@@ -18,6 +18,7 @@ from ..datastructures.enums import WorldMode, JointType, ObjectType, MultiverseB
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..description import Link, Joint
+from ..failures import FailedAPIResponse
 from ..object_descriptors.mjcf import ObjectDescription as MJCF, ObjectFactory, PrimitiveObjectFactory
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..robot_description import RobotDescription
@@ -545,23 +546,22 @@ class Multiverse(World):
         """
         Note: Currently Multiverse only gets one contact point per contact objects.
         """
-        if self.is_paused:
-            self.unpause_simulation()
-            contact_bodies = self.api_requester.get_contact_bodies_of_object(obj)
-            self.pause_simulation()
-        else:
-            contact_bodies = self.api_requester.get_contact_bodies_of_object(obj)
+        contact_bodies = self.api_requester.get_contact_bodies_of_object(obj)
         contact_points = ContactPointsList([])
         for body_name in contact_bodies:
-            multiverse_contact_points = self.api_requester.get_contact_points_between_objects(obj.name, body_name)
             body_object, body_link = self.get_object_with_body_name(body_name)
-            if body_link is None:
-                logerr(f"Body link not found: {body_name}")
-                raise ValueError(f"Body link not found: {body_name}")
-            for point in multiverse_contact_points:
+            if body_object is None:
+                logerr(f"Body Object not found: {body_name}")
+                raise ValueError(f"Body Object not found: {body_name}")
+            multiverse_contact_points = self.api_requester.get_contact_points_between_objects(obj.name,
+                                                                                              body_name)
+            if len(multiverse_contact_points) == 0:
                 contact_points.append(ContactPoint(obj.root_link, body_link))
-                contact_points[-1].normal_on_b = point.normal
-                contact_points[-1].position_on_b = point.position
+            else:
+                for point in multiverse_contact_points:
+                    contact_points.append(ContactPoint(obj.root_link, body_link))
+                    contact_points[-1].normal_on_b = point.normal
+                    contact_points[-1].position_on_b = point.position
         return contact_points
 
     def get_object_with_body_name(self, body_name: str) -> Tuple[Optional[Object], Optional[Link]]:

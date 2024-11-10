@@ -12,7 +12,8 @@ from ...datastructures.dataclasses import RayResult, MultiverseObjectContactData
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
 from ...datastructures.pose import Pose
-from ...ros.logging import logwarn
+from ...failures import FailedAPIResponse
+from ...ros.logging import logwarn, logerr
 from ...utils import wxyz_to_xyzw
 from ...world_concepts.constraints import Constraint
 from ...world_concepts.world_object import Object, Link
@@ -772,7 +773,7 @@ class MultiverseAPI(MultiverseClient):
         :param obj: The object.
         :return: The names of the bodies/objects that are in contact with the object.
         """
-        return self._request_single_api_callback(API.GET_CONTACT_BODIES, obj.name)
+        return self._request_single_api_callback(API.GET_CONTACT_BODIES, obj.name, "with_children")
 
     def get_contact_points_of_object(self, obj: Object) -> List[MultiverseContactPoint]:
         """
@@ -839,11 +840,26 @@ class MultiverseAPI(MultiverseClient):
         for api_name, params in api_data.items():
             self._add_api_request(api_name.value, *params)
         self._send_api_request()
-        responses = self._get_all_apis_responses()
         if self.wait:
             sleep(self.API_REQUEST_WAIT_TIME.total_seconds() * self.simulation_wait_time_factor)
             self.wait = False
+        responses = self._get_all_apis_responses()
+        self.validate_apis_response(api_data, responses)
         return responses
+
+    @staticmethod
+    def validate_apis_response(api_data: Dict[API, List], responses: Dict[API, List[str]]):
+        """
+        Validate the responses from the multiverse server and raise error if an api request failed.
+
+        :param api_data: The data of the api request which has the api name and the arguments.
+        :param responses: The responses of the given api requests.
+        :raises FailedAPIResponse: when one of the responses reports that the request failed.
+        """
+        for api_name, response in responses.items():
+            for val in response:
+                if 'failed' in val:
+                    raise FailedAPIResponse(response, api_name, api_data[api_name])
 
     def _get_all_apis_responses(self) -> Dict[API, List[str]]:
         """

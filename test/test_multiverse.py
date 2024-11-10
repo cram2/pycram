@@ -388,6 +388,14 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.assertTrue(contact_points[0].link_b.object, milk)
             self.tearDown()
 
+    def test_get_robot_contact_points(self):
+        robot = self.spawn_robot([0.9345829872370865, 1.9027591011850133, 0.0],
+                                 quaternion_from_euler(0, 0, 2.26).tolist(),
+                                 robot_name="pr2")
+        apartment = self.spawn_apartment()
+        contact_points = self.multiverse.get_contact_points_between_two_objects(robot, apartment)
+        self.assertTrue(len(contact_points) > 0)
+
     def test_get_contact_points_between_two_objects(self):
         for i in range(3):
             milk = self.spawn_milk([1, 1, 0.01], [0, -0.707, 0, 0.707])
@@ -430,6 +438,13 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         milk = Object("milk_box", ObjectType.MILK, "milk_box.urdf",
                       pose=Pose(position, orientation, frame=frame))
         return milk
+
+    def spawn_apartment(self) -> Object:
+        if "apartment" not in self.multiverse.get_object_names():
+            apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+        else:
+            apartment = self.multiverse.get_object_by_name("apartment")
+        return apartment
 
     def spawn_robot(self, position: Optional[List[float]] = None,
                     orientation: Optional[List[float]] = None,
