@@ -382,11 +382,17 @@ class NavigateActionPerformable(ActionAbstract):
     """
     Location to which the robot should be navigated
     """
+
+    keep_joint_states: bool = False
+    """
+    Keep the joint states of the robot the same during the navigation.
+    """
+
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMNavigateAction)
 
     @with_tree
     def plan(self) -> None:
-        MoveMotion(self.target_location).perform()
+        MoveMotion(self.target_location, self.keep_joint_states).perform()
 
 
 @dataclass
@@ -417,6 +423,7 @@ class TransportActionPerformable(ActionAbstract):
                                      reachable_arm=self.arm)
         # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = None
+        robot = robot_desig.resolve().world_object
         for pose in pickup_loc:
             if self.arm in pose.reachable_arms:
                 pickup_pose = pose

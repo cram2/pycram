@@ -210,9 +210,12 @@ class Pr2NavigationReal(ProcessModule):
 
     def _execute(self, designator: MoveMotion) -> Any:
         logdebug(f"Sending goal to giskard to Move the robot")
+        if designator.keep_joint_states:
+            joint_positions = World.current_world.robot.get_positions_of_controllable_joints()
+            giskard.set_joint_goal(joint_positions)
         giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map",
-                                       use_monitor=World.current_world.conf.use_giskard_monitor,
-                                       allow_gripper_collision=World.current_world.conf.allow_gripper_collision)
+                                       allow_gripper_collision_=False,
+                                       use_monitor=World.current_world.conf.use_giskard_monitor)
 
 
 class Pr2MoveHeadReal(ProcessModule):
