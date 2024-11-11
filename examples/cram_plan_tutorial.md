@@ -1,4 +1,4 @@
-from pycram.robot_description import RobotDescriptionfrom pycram.datastructures.enums import ObjectType---
+---
 jupyter:
   jupytext:
     text_representation:
