@@ -1,5 +1,7 @@
+import logging
 from datetime import timedelta
 
+import rospy
 from tf.transformations import quaternion_from_euler
 
 from pycram.datastructures.dataclasses import Color
@@ -14,6 +16,10 @@ from pycram.process_module import simulated_robot, with_simulated_robot, real_ro
 from pycram.ros_utils.robot_state_updater import WorldStateUpdater
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.multiverse import Multiverse
+
+
+rospy_logger = logging.getLogger('rosout')
+rospy_logger.setLevel(logging.DEBUG)
 
 
 @with_simulated_robot
