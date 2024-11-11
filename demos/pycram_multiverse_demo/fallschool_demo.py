@@ -23,6 +23,10 @@ from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycrap import PhysicalObject
 
 
+rospy_logger = logging.getLogger('rosout')
+rospy_logger.setLevel(logging.DEBUG)
+
+
 @with_simulated_robot
 def move_and_detect(obj_type: Type[PhysicalObject], pick_pose: Pose):
     NavigateAction(target_locations=[Pose([1.7, 2, 0])]).resolve().perform()
