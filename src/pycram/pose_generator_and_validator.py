@@ -151,11 +151,8 @@ def _in_contact(robot: Object, obj: Object, allowed_collision: Dict[Object, List
     allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
 
     if in_contact:
-        for link in contact_links:
-            if link[0].name in allowed_robot_links or link[1].name in allowed_links:
-                in_contact = False
-                # TODO: in_contact is never set to True after it was set to False is that correct?
-                # TODO: If it is correct, then this loop should break after the first contact is found
+        if all(link[0].name in allowed_robot_links or link[1].name in allowed_links for link in contact_links):
+            in_contact = False
     return in_contact
 
 
