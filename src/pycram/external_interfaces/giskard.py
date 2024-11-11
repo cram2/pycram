@@ -357,8 +357,8 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str,
         giskard_wrapper.monitors.add_end_motion(start_condition=end_monitor)
 
     giskard_wrapper.motion_goals.avoid_all_collisions()
-    if allow_gripper_collision:
-        giskard_wrapper.motion_goals.allow_collision(group1='gripper', group2=CollisionEntry.ALL)
+    if allow_gripper_collision_:
+        allow_gripper_collision('all')
 
     return giskard_wrapper.execute()
 
@@ -587,16 +587,20 @@ def projection_joint_goal(goal_poses: Dict[str, float], allow_collisions: bool =
 # Managing collisions
 
 @init_giskard_interface
-def allow_gripper_collision(gripper: str) -> None:
+def allow_gripper_collision(gripper: str, at_goal: bool = False) -> None:
     """
     Allows the specified gripper to collide with anything.
 
     :param gripper: The gripper which can collide, either 'right', 'left' or 'all'
+    :param at_goal: If the collision should be allowed only for this motion goal.
     """
     add_gripper_groups()
     for gripper_group in get_gripper_group_names():
         if gripper in gripper_group or gripper == "all":
-            giskard_wrapper.allow_collision(gripper_group, CollisionEntry.ALL)
+            if at_goal:
+                giskard_wrapper.motion_goals.allow_collision(gripper_group, CollisionEntry.ALL)
+            else:
+                giskard_wrapper.allow_collision(gripper_group, CollisionEntry.ALL)
 
 
 @init_giskard_interface
