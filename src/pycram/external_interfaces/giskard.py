@@ -332,7 +332,8 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str,
                            position_threshold: float = 0.02,
                            orientation_threshold: float = 0.02,
                            use_monitor: bool = True,
-                           allow_gripper_collision: bool = True) -> 'MoveResult':
+                           allow_gripper_collision_: bool = True,
+                           joint_goal: Optional[Dict[str, float]] = None) -> 'MoveResult':
     """
     Takes a cartesian position and tries to move the tip_link to this position using the chain defined by
     tip_link and root_link.
@@ -343,7 +344,9 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str,
     :param position_threshold: Position distance at which the goal is successfully reached
     :param orientation_threshold: Orientation distance at which the goal is successfully reached
     :param use_monitor: Whether to use a monitor for this goal or not.
-    :param allow_gripper_collision: Whether to allow collisions with the gripper or not.
+    :param allow_gripper_collision_: Whether to allow collisions with the gripper or not.
+    :param joint_goal: If a joint goal should be executed with the cartesian goal, this should be a dictionary with
+    joint names and joint positions.
     :return: MoveResult message for this goal
     """
     sync_worlds()
@@ -363,6 +366,9 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str,
     giskard_wrapper.motion_goals.add_cartesian_pose(name='g1', root_link=root_link, tip_link=tip_link,
                                                     goal_pose=_pose_to_pose_stamped(goal_pose),
                                                     end_condition=cart_monitor1)
+
+    if joint_goal:
+        giskard_wrapper.set_joint_goal(joint_goal, add_monitor=use_monitor)
 
     if use_monitor:
         giskard_wrapper.monitors.add_end_motion(start_condition=end_monitor)
