@@ -553,15 +553,22 @@ class Multiverse(World):
             if body_object is None:
                 logerr(f"Body Object not found: {body_name}")
                 raise ValueError(f"Body Object not found: {body_name}")
-            multiverse_contact_points = self.api_requester.get_contact_points_between_objects(obj.name,
-                                                                                              body_name)
-            if len(multiverse_contact_points) == 0:
-                contact_points.append(ContactPoint(obj.root_link, body_link))
-            else:
-                for point in multiverse_contact_points:
-                    contact_points.append(ContactPoint(obj.root_link, body_link))
-                    contact_points[-1].normal_on_b = point.normal
-                    contact_points[-1].position_on_b = point.position
+            # To get the links of obj that are in contact with body_link, we need to get the contact bodies of the
+            # body_link and check if they are in obj.
+            body_contact_bodies = self.api_requester.get_contact_bodies_of_link(body_link)
+            for obj_body in body_contact_bodies:
+                obj_body_object, obj_body_link = self.get_object_with_body_name(obj_body)
+                if obj_body_object.name != obj.name:
+                    continue
+                multiverse_contact_points = self.api_requester.get_contact_points_between_objects(obj_body_link.name,
+                                                                                                  body_name)
+                if len(multiverse_contact_points) == 0:
+                    contact_points.append(ContactPoint(obj_body_link, body_link))
+                else:
+                    for point in multiverse_contact_points:
+                        contact_points.append(ContactPoint(obj_body_link, body_link))
+                        contact_points[-1].normal_on_b = point.normal
+                        contact_points[-1].position_on_b = point.position
         return contact_points
 
     def get_object_with_body_name(self, body_name: str) -> Tuple[Optional[Object], Optional[Link]]:

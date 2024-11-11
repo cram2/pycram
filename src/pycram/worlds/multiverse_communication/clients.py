@@ -766,6 +766,15 @@ class MultiverseAPI(MultiverseClient):
         forces, torques = contact_effort[:3], contact_effort[3:]
         return forces, torques
 
+    def get_contact_bodies_of_link(self, link: Link) -> List[str]:
+        """
+        Get the names of bodies/objects that are in contact with an object.
+
+        :param link: The link to get the contact bodies for.
+        :return: The names of the bodies/objects that are in contact with the object.
+        """
+        return self._request_single_api_callback(API.GET_CONTACT_BODIES, link.name)
+
     def get_contact_bodies_of_object(self, obj: Object) -> List[str]:
         """
         Get the names of bodies/objects that are in contact with an object.
