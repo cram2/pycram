@@ -774,7 +774,7 @@ class MultiverseAPI(MultiverseClient):
         contact_points = []
         for contact_point in contact_data:
             contact_point_data = list(contact_point.split())
-            position_and_normal = list(map(float, contact_point_data[2].split()))
+            position_and_normal = list(map(float, contact_point_data[2:]))
             contact_points.append(MultiverseContactPoint(contact_point_data[0],
                                                          contact_point_data[1],
                                                          position_and_normal[:3],

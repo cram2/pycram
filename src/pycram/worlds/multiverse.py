@@ -550,10 +550,9 @@ class Multiverse(World):
         for mcp in multiverse_contact_points:
             body_object, body_link = self.get_object_with_body_name(mcp.body_2)
             obj_link = obj.links[mcp.body_1] if mcp.body_1 in obj.links.keys() else obj.root_link
-            for point in multiverse_contact_points:
-                contact_points.append(ContactPoint(obj_link, body_link))
-                contact_points[-1].normal_on_b = point.normal
-                contact_points[-1].position_on_b = point.position
+            contact_points.append(ContactPoint(obj_link, body_link))
+            contact_points[-1].normal_on_b = mcp.normal
+            contact_points[-1].position_on_b = mcp.position
         return contact_points
 
     def get_object_with_body_name(self, body_name: str) -> Tuple[Optional[Object], Optional[Link]]:
