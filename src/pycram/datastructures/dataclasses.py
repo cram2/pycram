@@ -880,19 +880,12 @@ class RayResult:
 
 
 @dataclass
-class MultiverseObjectContactData:
+class MultiverseContactPoint:
     """
     A dataclass to store all the contact data returned from Multiverse for a single object.
     """
-    body_names: List[str]
-    data: List[MultiverseContactPoint]
-
-
-@dataclass
-class MultiverseContactPoint:
-    """
-    A dataclass to store the contact point returned from Multiverse.
-    """
+    body_1: str
+    body_2: str
     position: List[float]
     normal: List[float]
 

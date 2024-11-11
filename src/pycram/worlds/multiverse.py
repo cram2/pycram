@@ -18,11 +18,10 @@ from ..datastructures.enums import WorldMode, JointType, ObjectType, MultiverseB
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..description import Link, Joint
-from ..failures import FailedAPIResponse
-from ..object_descriptors.mjcf import ObjectDescription as MJCF, ObjectFactory, PrimitiveObjectFactory
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
+from ..object_descriptors.mjcf import ObjectDescription as MJCF, PrimitiveObjectFactory
 from ..robot_description import RobotDescription
-from ..ros.logging import logwarn, logerr
+from ..ros.logging import logwarn
 from ..utils import RayTestUtils, wxyz_to_xyzw, xyzw_to_wxyz
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position, validate_multiple_object_poses
@@ -546,29 +545,15 @@ class Multiverse(World):
         """
         Note: Currently Multiverse only gets one contact point per contact objects.
         """
-        contact_bodies = self.api_requester.get_contact_bodies_of_object(obj)
+        multiverse_contact_points = self.api_requester.get_contact_points(obj.name)
         contact_points = ContactPointsList([])
-        for body_name in contact_bodies:
-            body_object, body_link = self.get_object_with_body_name(body_name)
-            if body_object is None:
-                logerr(f"Body Object not found: {body_name}")
-                raise ValueError(f"Body Object not found: {body_name}")
-            # To get the links of obj that are in contact with body_link, we need to get the contact bodies of the
-            # body_link and check if they are in obj.
-            body_contact_bodies = self.api_requester.get_contact_bodies_of_link(body_link)
-            for obj_body in body_contact_bodies:
-                obj_body_object, obj_body_link = self.get_object_with_body_name(obj_body)
-                if obj_body_object.name != obj.name:
-                    continue
-                multiverse_contact_points = self.api_requester.get_contact_points_between_objects(obj_body_link.name,
-                                                                                                  body_name)
-                if len(multiverse_contact_points) == 0:
-                    contact_points.append(ContactPoint(obj_body_link, body_link))
-                else:
-                    for point in multiverse_contact_points:
-                        contact_points.append(ContactPoint(obj_body_link, body_link))
-                        contact_points[-1].normal_on_b = point.normal
-                        contact_points[-1].position_on_b = point.position
+        for mcp in multiverse_contact_points:
+            body_object, body_link = self.get_object_with_body_name(mcp.body_2)
+            obj_link = obj.links[mcp.body_1] if mcp.body_1 in obj.links.keys() else obj.root_link
+            for point in multiverse_contact_points:
+                contact_points.append(ContactPoint(obj_link, body_link))
+                contact_points[-1].normal_on_b = point.normal
+                contact_points[-1].position_on_b = point.position
         return contact_points
 
     def get_object_with_body_name(self, body_name: str) -> Tuple[Optional[Object], Optional[Link]]:

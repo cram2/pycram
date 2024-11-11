@@ -8,12 +8,11 @@ from typing_extensions import List, Dict, Tuple, Optional, Callable, Union
 
 from .socket import MultiverseSocket, MultiverseMetaData
 from ...config.multiverse_conf import MultiverseConfig as Conf
-from ...datastructures.dataclasses import RayResult, MultiverseObjectContactData, MultiverseContactPoint
+from ...datastructures.dataclasses import RayResult, MultiverseContactPoint
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
 from ...datastructures.pose import Pose
 from ...failures import FailedAPIResponse
-from ...ros.logging import logwarn, logerr
 from ...utils import wxyz_to_xyzw
 from ...world_concepts.constraints import Constraint
 from ...world_concepts.world_object import Object, Link
@@ -674,28 +673,16 @@ class MultiverseAPI(MultiverseClient):
         effort = self._request_single_api_callback(API.GET_CONSTRAINT_EFFORT, obj.name)
         return self._parse_constraint_effort(effort)
 
-    def get_contact_data_of_object(self, obj: Object) -> MultiverseObjectContactData:
+    def get_contact_points_between_bodies(self, body_1_name: str, body_2_name: str) -> List[MultiverseContactPoint]:
         """
-        Request the contact data of an object, this includes the object names, and the contact points.
+        Request the contact points between two bodies.
 
-        :param obj: The object.
-        :return: The contact data of the object as a MultiverseObjectContactData.
+        :param body_1_name: The name of the first body.
+        :param body_2_name: The name of the second body.
+        :return: The contact points between the bodies as a list of MultiverseContactPoint.
         """
-        api_response_data = self._get_contact_data_of_object(obj.name)
-        body_names = api_response_data[API.GET_CONTACT_BODIES]
-        points = self._parse_contact_points(api_response_data[API.GET_CONTACT_POINTS])
-        return MultiverseObjectContactData(body_names, points)
-
-    def get_contact_points_between_objects(self, obj1_name: str, obj2_name: str) -> List[MultiverseContactPoint]:
-        """
-        Request the contact points between two objects.
-
-        :param obj1_name: The name of the first object.
-        :param obj2_name: The name of the second object.
-        :return: The contact points between the objects as a list of MultiverseContactPoint.
-        """
-        points = self._request_single_api_callback(API.GET_CONTACT_POINTS, obj1_name, obj2_name)
-        return self._parse_contact_points(points)
+        points = self._request_single_api_callback(API.GET_CONTACT_POINTS, body_1_name, body_2_name)
+        return self._parse_contact_points(body_1_name, body_2_name, points)
 
     def get_objects_intersected_with_rays(self, from_positions: List[List[float]],
                                           to_positions: List[List[float]]) -> List[RayResult]:
@@ -759,62 +746,40 @@ class MultiverseAPI(MultiverseClient):
         :return: The contact effort of the object as a list of floats.
         """
         contact_effort = contact_effort[0].split()
-        if 'failed' in contact_effort:
-            logwarn("Failed to get contact effort")
-            return [0.0] * 3, [0.0]*3
         contact_effort = list(map(float, contact_effort))
         forces, torques = contact_effort[:3], contact_effort[3:]
         return forces, torques
 
-    def get_contact_bodies_of_link(self, link: Link) -> List[str]:
-        """
-        Get the names of bodies/objects that are in contact with an object.
-
-        :param link: The link to get the contact bodies for.
-        :return: The names of the bodies/objects that are in contact with the object.
-        """
-        return self._request_single_api_callback(API.GET_CONTACT_BODIES, link.name)
-
-    def get_contact_bodies_of_object(self, obj: Object) -> List[str]:
-        """
-        Get the names of bodies/objects that are in contact with an object.
-
-        :param obj: The object.
-        :return: The names of the bodies/objects that are in contact with the object.
-        """
-        return self._request_single_api_callback(API.GET_CONTACT_BODIES, obj.name, "with_children")
-
-    def get_contact_points_of_object(self, obj: Object) -> List[MultiverseContactPoint]:
-        """
-        Get the 3d positions of the contacts of an object and the normal vectors at the contact points.
-
-        :param obj: The object.
-        :return: The contact points of the object as a list of MultiverseContactPoint.
-        """
-        api_response = self._request_single_api_callback(API.GET_CONTACT_POINTS, obj.name)
-        return self._parse_contact_points(api_response)
-
     @staticmethod
-    def _parse_contact_points(contact_points: List[str]) -> List[MultiverseContactPoint]:
+    def _parse_contact_points(body_1, body_2, contact_points: List[str]) -> List[MultiverseContactPoint]:
         """
         Parse the contact points of an object.
 
+        :param body_1: The name of the first body.
+        :param body_2: The name of the second body.
         :param contact_points: The contact points of the object as a list of strings.
         :return: The contact positions, and normal vectors as a list of MultiverseContactPoint.
         """
         contact_point_data = [list(map(float, contact_point.split())) for contact_point in contact_points]
-        return [MultiverseContactPoint(point[:3], point[3:]) for point in contact_point_data]
+        return [MultiverseContactPoint(body_1, body_2, point[:3], point[3:]) for point in contact_point_data]
 
-    def _get_contact_data_of_object(self, object_name) -> Dict[API, List]:
+    def get_contact_points(self, body_name: str) -> List[MultiverseContactPoint]:
         """
-        Request the names of bodies/objects that are in contact of an object, and the contact points.
+        Get the contact points of a body from the multiverse server.
 
-        :param object_name: The name of the object.
-        :return: The contact bodies, and contact points as a dictionary.
+        :param body_name: The name of the body.
         """
-        return self._request_apis_callbacks({API.GET_CONTACT_BODIES: [object_name],
-                                             API.GET_CONTACT_POINTS: [object_name]
-                                             })
+        contact_data = self._request_single_api_callback(API.GET_CONTACT_BODIES_AND_POINTS,
+                                                         body_name, "with_children")
+        contact_points = []
+        for contact_point in contact_data:
+            contact_point_data = list(contact_point.split())
+            position_and_normal = list(map(float, contact_point_data[2].split()))
+            contact_points.append(MultiverseContactPoint(contact_point_data[0],
+                                                         contact_point_data[1],
+                                                         position_and_normal[:3],
+                                                         position_and_normal[3:]))
+        return contact_points
 
     def pause_simulation(self) -> None:
         """

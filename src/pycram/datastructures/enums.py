@@ -246,6 +246,7 @@ class MultiverseAPIName(Enum):
     """
     GET_CONTACT_POINTS = "get_contact_points"
     GET_CONTACT_BODIES = "get_contact_bodies"
+    GET_CONTACT_BODIES_AND_POINTS = "get_contact_bodies_and_points"
     GET_CONSTRAINT_EFFORT = "get_constraint_effort"
     ATTACH = "attach"
     DETACH = "detach"

@@ -67,17 +67,14 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def test_save_and_restore_state(self):
         milk = self.spawn_milk([1, 1, 0.1])
         robot = self.spawn_robot()
-        cup = self.spawn_cup([1, 2, 0.1])
         if "apartment" not in self.multiverse.get_object_names():
             apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
         else:
             apartment = self.multiverse.get_object_by_name("apartment")
         apartment.set_joint_position("cabinet10_drawer1_joint", 0.1)
         robot.attach(milk)
-        milk.attach(cup)
         all_object_attachments = {obj: obj.attachments.copy() for obj in self.multiverse.objects}
         state_id = self.multiverse.save_state()
-        milk.detach(cup)
         robot_link = robot.root_link
         milk_link = milk.root_link
         cid = robot_link.constraint_ids[milk_link]
