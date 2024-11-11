@@ -191,7 +191,7 @@ def reachability_validator(pose: Pose,
     for description in manipulator_descs:
         retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(
             description.end_effector.tool_frame))
-        retract_target_pose.position.x -= 0.07  # Care hard coded value copied from PlaceAction class
+        retract_target_pose.position.x -= 0.15  # Care hard coded value copied from PlaceAction class
 
         # retract_pose needs to be in world frame?
         retract_target_pose = LocalTransformer().transform_pose(retract_target_pose, "map")
