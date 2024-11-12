@@ -238,13 +238,21 @@ class Pr2MoveTCPReal(ProcessModule):
     def _execute(self, designator: MoveTCPMotion) -> Any:
         lt = LocalTransformer()
         pose_in_map = lt.transform_pose(designator.target, "map")
+        tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
+        root_link = "torso_lift_link"
 
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm.name.lower())
-        giskard.achieve_cartesian_goal(pose_in_map, RobotDescription.current_robot_description.get_arm_chain(
-            designator.arm).get_tool_frame(), "torso_lift_link",
-                                       use_monitor=World.current_world.conf.use_giskard_monitor)
-        # robot_description.base_link)
+
+        if designator.movement_type == MovementType.STRAIGHT_TRANSLATION:
+            giskard.achieve_straight_translation_goal(pose_in_map.position_as_list(), tip_link, root_link)
+        elif designator.movement_type == MovementType.STRAIGHT_CARTESIAN:
+            giskard.achieve_straight_cartesian_goal(pose_in_map, tip_link, root_link)
+        elif designator.movement_type == MovementType.TRANSLATION:
+            giskard.achieve_translation_goal(pose_in_map.position_as_list(), tip_link, root_link)
+        elif designator.movement_type == MovementType.CARTESIAN:
+            giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
+                                           use_monitor=World.current_world.conf.use_giskard_monitor)
 
 
 class Pr2MoveArmJointsReal(ProcessModule):
