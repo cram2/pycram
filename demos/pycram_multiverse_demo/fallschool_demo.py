@@ -41,16 +41,14 @@ apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
 milk = Object("milk", ObjectType.MILK, f"milk.xml", pose=Pose([0.4, 2.6, 1.34],
                                                               [1, 0, 0, 0]),
               color=Color(1, 0, 0, 1))
+
 # apartment.set_joint_position("fridge_door1_joint", 1.5707963267948966)
-# milk.set_orientation(Pose(orientation=[1, 0, 0, 1]))
-# apartment.attach(milk, 'fridge_base')
+
 fridge_base_pose = apartment.get_link_pose("fridge_base")
 fridge_base_pose.position.z -= 0.12
 fridge_base_pose.position.x += 0.16
 fridge_base_pose.position.y += -0.1
 milk.set_pose(fridge_base_pose, base=True)
-# print(milk.get_position_as_list())
-# print(milk.get_orientation_as_list())
 
 
 robot_desig = BelieveObject(names=[robot.name])
@@ -59,23 +57,19 @@ apartment_desig = BelieveObject(names=[apartment.name])
 with real_robot:
 
     # Transport the milkMoveGripperMotion
-    # ParkArmsAction([Arms.BOTH]).resolve().perform()
-    #
-    # MoveTorsoAction([0.2]).resolve().perform()
-    #
-    # NavigateAction(target_locations=[Pose([1.1, 3.15, 0.01], quaternion_from_euler(0, 0, -2.9))]).resolve().perform()
-    #
-    # LookAtAction(targets=[Pose(milk.get_position_as_list())]).resolve().perform()
+    ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    # world.restore_physics_simulator_state(100)
+    MoveTorsoAction([0.2]).resolve().perform()
 
-    # try:
-    #     milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
-    # except PerceptionObjectNotFound:
-    #     milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
+    NavigateAction(target_locations=[Pose([1.1, 3.15, 0.01], quaternion_from_euler(0, 0, -2.9))]).resolve().perform()
 
-    # world.save_state(100)
-    milk_desig = BelieveObject(names=[milk.name])
+    LookAtAction(targets=[Pose(milk.get_position_as_list())]).resolve().perform()
+
+    try:
+        milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
+    except PerceptionObjectNotFound:
+        milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
+
     TransportAction(milk_desig, [Arms.LEFT], [Pose([2.4, 3, 1.02])]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()

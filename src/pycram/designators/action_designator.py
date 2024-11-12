@@ -367,7 +367,7 @@ class PlaceActionPerformable(ActionAbstract):
         World.robot.detach(self.object_designator.world_object)
         retract_pose = local_tf.transform_pose(target_diff, World.robot.get_link_tf_frame(
             RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()))
-        retract_pose.position.x -= 0.07
+        retract_pose.position.x -= 0.03
         MoveTCPMotion(retract_pose, self.arm).perform()
 
 
