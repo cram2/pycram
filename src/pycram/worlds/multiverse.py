@@ -550,7 +550,7 @@ class Multiverse(World):
         :return: The contact points of the object.
         """
         multiverse_contact_points = self.api_requester.get_contact_points(obj.name)
-        if ignore_attached_objects:
+        if ignore_attached_objects and len(obj.attachments) > 0:
             attached_objects_link_names = []
             for att_obj in obj.attachments.keys():
                 attached_objects_link_names.extend(att_obj.link_names)
