@@ -146,22 +146,19 @@ class CostmapLocation(LocationDesignatorDescription):
         """
         return next(iter(self))
 
-    @staticmethod
-    def check_for_collision(robot: Object, pose: Pose,
-                            ignore_collision_with: Optional[List[Object]] = None) -> bool:
+    def check_for_collision(self, robot: Object, pose: Pose) -> bool:
         """
         Check if the robot collides with any object in the world at the given pose.
 
         :param robot: The robot object
         :param pose: The pose to check for collision
-        :param ignore_collision_with: List of objects that should be ignored for collision checking.
         :return: True if the robot collides with any object, False otherwise
         """
         robot.set_pose(pose)
         floor = robot.world.get_object_by_name("floor")
-        ignore_collision_with = ignore_collision_with if ignore_collision_with is not None else []
+        ignore = [o.name for o in self.ignore_collision_with]
         for obj in robot.world.objects:
-            if obj in ([robot, floor] + ignore_collision_with):
+            if obj.name in ([robot.name, floor.name] + ignore):
                 continue
             if contact(robot, obj):
                 logdebug(f"Robot is in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
@@ -214,7 +211,7 @@ class CostmapLocation(LocationDesignatorDescription):
         with UseProspectionWorld():
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
                 if self.check_collision_at_start and (test_robot is not None):
-                    if self.check_for_collision(test_robot, maybe_pose, self.ignore_collision_with):
+                    if self.check_for_collision(test_robot, maybe_pose):
                         continue
                 res = True
                 arms = None
