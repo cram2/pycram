@@ -159,6 +159,7 @@ def _in_contact(robot: Object, obj: Object, allowed_collision: Dict[Object, List
 def reachability_validator(pose: Pose,
                            robot: Object,
                            target: Union[Object, Pose],
+                           prepose_distance: float = 0.07,
                            allowed_collision: Dict[Object, List] = None,
                            arm: Optional[Arms] = None) -> Tuple[bool, List]:
     """
@@ -170,6 +171,7 @@ def reachability_validator(pose: Pose,
     :param pose: The pose candidate for which the reachability should be validated
     :param robot: The robot object in the World for which the reachability should be validated.
     :param target: The target position or object instance which should be the target for reachability.
+    :param prepose_distance: The distance the robot should retract from the target position after/before reaching it.
     :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates to a list of links of which this object consists
     :param arm: The arm that should be used for the reachability check. If None all arms are checked.
     :return: True if the target is reachable for the robot and False in any other case.
@@ -191,7 +193,7 @@ def reachability_validator(pose: Pose,
     for description in manipulator_descs:
         retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(
             description.end_effector.tool_frame))
-        retract_target_pose.position.x -= 0.15  # Care hard coded value copied from PlaceAction class
+        retract_target_pose.position.x -= prepose_distance  # Care hard coded value copied from PlaceAction class
 
         # retract_pose needs to be in world frame?
         retract_target_pose = LocalTransformer().transform_pose(retract_target_pose, "map")
