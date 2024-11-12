@@ -399,6 +399,7 @@ def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
     if par_return:
         return par_return
 
+    giskard_wrapper.avoid_all_collisions()
     giskard_wrapper.set_straight_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
     # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
