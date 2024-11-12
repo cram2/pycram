@@ -423,7 +423,7 @@ class TransportActionPerformable(ActionAbstract):
         robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig_resolved,
-                                     reachable_arm=self.arm, prepose_distance=self.pickup_prepose_distance).resolve()
+                                     reachable_arm=self.arm, prepose_distance=self.pickup_prepose_distance)
         # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = None
         for pose in pickup_loc:
