@@ -72,6 +72,14 @@ def launch_icub():
     launch_robot(executable, args=args)
 
 
+def launch_fetch():
+    # name = 'fetch'
+    # urdf = 'fetch.urdf'
+    executable = 'ik_and_description.launch'
+    args = ["robot:=fetch"]
+    launch_robot(executable, args=args)
+
+
 def launch_robot(launch_file, package='pycram', launch_folder='/launch/', args: List[str] = None):
     """
     Starts a specified launch file with given parameters.

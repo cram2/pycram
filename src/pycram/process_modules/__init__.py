@@ -9,6 +9,7 @@ from .armar_process_modules import ArmarManager
 #from .hsrb_process_modules import HSRBManager
 from .default_process_modules import DefaultManager
 from .tiago_process_modules import TiagoManager
+from .fetch_process_modules import FetchManager
 
 Pr2Manager()
 JustinManager()
@@ -19,4 +20,5 @@ ArmarManager()
 DonbotManager()
 #StretchManager()
 HSRBManager()
+FetchManager()
 DefaultManager()

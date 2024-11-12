@@ -128,7 +128,7 @@ def transporting_demo(apartment, robot):
 
             spoon_desig = DetectAction(BelieveObject(types=[ObjectType.SPOON])).resolve().perform()
 
-            if robot == "iai_donbot":
+            if robot in {"iai_donbot", "fetch"}:
                 ParkArmsAction([Arms.BOTH]).resolve().perform()
                 PickUpAction(spoon_desig, [Arms.LEFT], [Grasp.TOP]).resolve().perform()
 
