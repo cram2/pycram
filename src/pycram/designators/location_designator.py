@@ -316,7 +316,7 @@ class AccessingLocation(LocationDesignatorDescription):
 
                 hand_links = []
                 for description in RobotDescription.current_robot_description.get_manipulator_chains():
-                    hand_links += description.links
+                    hand_links += description.end_effector.links
 
                 valid_init, arms_init = reachability_validator(maybe_pose, test_robot, init_pose,
                                                                allowed_collision={test_robot: hand_links})

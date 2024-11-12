@@ -58,7 +58,8 @@ with simulated_robot:
 
     NavigateAction([drawer_open_loc.pose]).resolve().perform()
 
-    OpenAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
+    OpenAction(object_designator_description=handle_desig,
+               arms=[drawer_open_loc.arms[0]]).resolve().perform()
     spoon.detach(apartment)
 
     # Detect and pickup the spoon
@@ -79,7 +80,8 @@ with simulated_robot:
 
     # Find a pose to place the spoon, move and then place it
     spoon_target_pose = Pose([2.35, 2.6, 0.95], [0, 0, 0, 1])
-    placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve()).resolve()
+    placing_loc = CostmapLocation(target=spoon_target_pose,
+                                  reachable_for=robot_desig.resolve()).resolve()
 
     NavigateAction([placing_loc.pose]).resolve().perform()
 
