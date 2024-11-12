@@ -227,8 +227,12 @@ class CostmapLocation(LocationDesignatorDescription):
                     else:
                         for description in RobotDescription.current_robot_description.get_manipulator_chains():
                             hand_links += description.end_effector.links
+                    allowed_collision = {test_robot: hand_links}
+                    ignore_collision_with = [World.current_world.get_prospection_object_for_object(o) for o in
+                                             self.ignore_collision_with]
+                    allowed_collision.update({o: o.links for o in ignore_collision_with})
                     valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
-                                                         allowed_collision={test_robot: hand_links},
+                                                         allowed_collision=allowed_collision,
                                                          arm=self.reachable_arm,
                                                          prepose_distance=self.prepose_distance)
                     if self.reachable_arm:

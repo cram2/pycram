@@ -172,7 +172,8 @@ def reachability_validator(pose: Pose,
     :param robot: The robot object in the World for which the reachability should be validated.
     :param target: The target position or object instance which should be the target for reachability.
     :param prepose_distance: The distance the robot should retract from the target position after/before reaching it.
-    :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates to a list of links of which this object consists
+    :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates
+     to a list of links of which this object consists
     :param arm: The arm that should be used for the reachability check. If None all arms are checked.
     :return: True if the target is reachable for the robot and False in any other case.
     """
