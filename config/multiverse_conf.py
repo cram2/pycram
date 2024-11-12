@@ -57,7 +57,7 @@ class MultiverseConfig(WorldConfig):
     The default description type for the objects.
     """
 
-    use_physics_simulator_state: bool = True
+    use_physics_simulator_state: bool = False
     """
     Whether to use the physics simulator state when restoring or saving the world state.
     """

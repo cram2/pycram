@@ -1029,13 +1029,14 @@ class World(StateEntity, ABC):
         self.world_sync.terminate = True
         self.world_sync.join()
 
-    def save_state(self, state_id: Optional[int] = None, use_same_id: bool = False) -> int:
+    def save_state(self, state_id: Optional[int] = None, use_same_id: bool = False, to_file: bool = False) -> int:
         """
         Return the id of the saved state of the World. The saved state contains the states of all the objects and
         the state of the physics simulator.
 
         :param state_id: The id of the saved state.
         :param use_same_id: Whether to use the same current state id for the new saved state.
+        :param to_file: Whether to save the state to a file.
         :return: A unique id of the state
         """
 
@@ -1052,7 +1053,7 @@ class World(StateEntity, ABC):
 
         self._current_state = WorldState(self.object_states, sim_state_id)
 
-        return super().save_state(state_id)
+        return super().save_state(state_id, self.get_cache_dir() if to_file else None)
 
     @property
     def current_state(self) -> WorldState:
@@ -1083,6 +1084,8 @@ class World(StateEntity, ABC):
             obj.set_attachments(obj_state.attachments)
             obj.link_states = obj_state.link_states
             obj.joint_states = obj_state.joint_states
+            if obj.name == self.robot.name and len(self.robot_virtual_joints) > 0:
+                obj.set_mobile_robot_pose(obj_state.pose)
 
     @property
     def object_states(self) -> Dict[str, ObjectState]:
