@@ -49,7 +49,7 @@ class Pr2MoveGripperMultiverse(ProcessModule):
             loginfo(f"Gripper Action Feedback: {msg}")
 
         goal = GripperCommandGoal()
-        goal.command.position = 0.0 if designator.motion == GripperState.CLOSE else 0.7
+        goal.command.position = 0.0 if designator.motion == GripperState.CLOSE else 0.4
         goal.command.max_effort = 50.0
         if designator.gripper == "right":
             controller_topic = "/real/pr2/right_gripper_controller/gripper_cmd"
