@@ -239,7 +239,7 @@ class Pr2MoveTCPReal(ProcessModule):
         lt = LocalTransformer()
         pose_in_map = lt.transform_pose(designator.target, "map")
         tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
-        root_link = RobotDescription.current_robot_description.base_link
+        root_link = "map"
 
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm.name.lower())
