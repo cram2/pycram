@@ -35,7 +35,7 @@ def move_and_detect(obj_type: ObjectType, pick_pose: Pose):
 
 world = Multiverse()
 robot = Object('pr2', ObjectType.ROBOT, f'pr2.urdf', pose=Pose([1.3, 2.6, 0.01]))
-WorldStateUpdater(tf_topic="/tf", joint_state_topic="/real/pr2/joint_states", update_rate=timedelta(seconds=1),
+WorldStateUpdater(tf_topic="/tf", joint_state_topic="/real/pr2/joint_states", update_rate=timedelta(seconds=2),
                   world=world)
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
 milk = Object("milk", ObjectType.MILK, f"milk.xml", pose=Pose([0.4, 2.6, 1.34],
@@ -61,7 +61,7 @@ with real_robot:
 
     MoveTorsoAction([0.2]).resolve().perform()
 
-    NavigateAction(target_locations=[Pose([1.1, 3.15, 0.01], quaternion_from_euler(0, 0, -2.9))]).resolve().perform()
+    NavigateAction(target_locations=[Pose([1.4, 3.15, 0.01], quaternion_from_euler(0, 0, 3.14))]).resolve().perform()
 
     LookAtAction(targets=[Pose(milk.get_position_as_list())]).resolve().perform()
 
