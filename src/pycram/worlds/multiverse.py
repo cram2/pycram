@@ -541,11 +541,21 @@ class Multiverse(World):
     def perform_collision_detection(self) -> None:
         ...
 
-    def get_object_contact_points(self, obj: Object) -> ContactPointsList:
+    def get_object_contact_points(self, obj: Object, ignore_attached_objects: bool = True) -> ContactPointsList:
         """
         Note: Currently Multiverse only gets one contact point per contact objects.
+
+        :param obj: The object.
+        :param ignore_attached_objects: Whether to ignore the attached objects or not.
+        :return: The contact points of the object.
         """
         multiverse_contact_points = self.api_requester.get_contact_points(obj.name)
+        if ignore_attached_objects:
+            attached_objects_link_names = []
+            for att_obj in obj.attachments.keys():
+                attached_objects_link_names.extend(att_obj.link_names)
+            multiverse_contact_points = [mcp for mcp in multiverse_contact_points if
+                                         mcp.body_1 not in attached_objects_link_names]
         contact_points = ContactPointsList([])
         for mcp in multiverse_contact_points:
             body_object, body_link = self.get_object_with_body_name(mcp.body_2)
