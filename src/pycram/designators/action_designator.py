@@ -25,7 +25,7 @@ from ..tasktree import with_tree
 
 from owlready2 import Thing
 
-from ..datastructures.enums import Arms, Grasp, GripperState
+from ..datastructures.enums import Arms, Grasp, GripperState, MovementType
 from ..designator import ActionDesignatorDescription
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
@@ -280,19 +280,8 @@ class PickUpActionPerformable(ActionAbstract):
         adjusted_oTm.multiply_quaternions(grasp)
 
         # prepose depending on the gripper (its annoying we have to put pr2_1 here tbh
-        # gripper_frame = "pr2_1/l_gripper_tool_frame" if self.arm == "left" else "pr2_1/r_gripper_tool_frame"
-        gripper_frame = robot.get_link_tf_frame(
-            RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame())
-        # First rotate the gripper, so the further calculations makes sense
-        tmp_for_rotate_pose = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
-        tmp_for_rotate_pose.pose.position.x = 0
-        tmp_for_rotate_pose.pose.position.y = 0
-        tmp_for_rotate_pose.pose.position.z = -0.1
-        gripper_rotate_pose = object.local_transformer.transform_pose(tmp_for_rotate_pose, "map")
-
-        # Perform Gripper Rotate
-        # BulletWorld.current_bullet_world.add_vis_axis(gripper_rotate_pose)
-        # MoveTCPMotion(gripper_rotate_pose, self.arm).resolve().perform()
+        arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.arm)
+        gripper_frame = robot.get_link_tf_frame(arm_chain.get_tool_frame())
 
         oTg = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
         oTg.pose.position.x -= 0.1  # in x since this is how the gripper is oriented
@@ -417,13 +406,12 @@ class TransportActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        robot_desig = BelieveObject(names=[RobotDescription.current_robot_description.name])
+        robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
         ParkArmsActionPerformable(Arms.BOTH).perform()
-        pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig.resolve(),
+        pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig_resolved,
                                      reachable_arm=self.arm)
         # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = None
-        robot = robot_desig.resolve().world_object
         for pose in pickup_loc:
             if self.arm in pose.reachable_arms:
                 pickup_pose = pose
@@ -436,7 +424,7 @@ class TransportActionPerformable(ActionAbstract):
         PickUpActionPerformable(self.object_designator, self.arm, Grasp.FRONT).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         try:
-            place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig.resolve(),
+            place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig_resolved,
                                         reachable_arm=self.arm).resolve()
         except StopIteration:
             raise ReachabilityFailure(

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from pycrap import PhysicalObject
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
+from ..datastructures.enums import ObjectType, Arms, GripperState, ExecutionType, MovementType
 from ..designator import ResolutionError
 from ..orm.base import ProcessMetaData
 from ..failures import PerceptionObjectNotFound
@@ -73,6 +74,10 @@ class MoveTCPMotion(BaseMotion):
     allow_gripper_collision: Optional[bool] = None
     """
     If the gripper can collide with something
+    """
+    movement_type: Optional[MovementType] = MovementType.CARTESIAN
+    """
+    The type of movement that should be performed.
     """
 
     @with_tree
