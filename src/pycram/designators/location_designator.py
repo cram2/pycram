@@ -157,7 +157,7 @@ class CostmapLocation(LocationDesignatorDescription):
         robot.set_pose(pose)
         floor = robot.world.get_object_by_name("floor")
         for obj in robot.world.objects:
-            if obj in [robot, floor] + self.ignore_collision_with:
+            if obj in ([robot, floor] + self.ignore_collision_with):
                 continue
             if contact(robot, obj):
                 logdebug(f"Robot is in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
