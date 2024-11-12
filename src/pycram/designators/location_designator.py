@@ -207,7 +207,8 @@ class CostmapLocation(LocationDesignatorDescription):
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
             test_robot = World.current_world.get_prospection_object_for_object(robot_object)
-
+        self.ignore_collision_with = [World.current_world.get_prospection_object_for_object(o) for o in
+                                      self.ignore_collision_with]
         with UseProspectionWorld():
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
                 if self.check_collision_at_start and (test_robot is not None):
@@ -228,9 +229,7 @@ class CostmapLocation(LocationDesignatorDescription):
                         for description in RobotDescription.current_robot_description.get_manipulator_chains():
                             hand_links += description.end_effector.links
                     allowed_collision = {test_robot: hand_links}
-                    ignore_collision_with = [World.current_world.get_prospection_object_for_object(o) for o in
-                                             self.ignore_collision_with]
-                    allowed_collision.update({o: o.links for o in ignore_collision_with})
+                    allowed_collision.update({o: o.link_names for o in self.ignore_collision_with})
                     valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
                                                          allowed_collision=allowed_collision,
                                                          arm=self.reachable_arm,
