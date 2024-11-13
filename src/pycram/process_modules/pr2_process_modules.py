@@ -16,7 +16,7 @@ from ..designators.motion_designator import MoveMotion, LookingMotion, \
 from ..external_interfaces import giskard
 from ..external_interfaces.ik import request_ik
 from ..external_interfaces.robokudo import *
-from ..failures import NavigationGoalNotReachedError
+from ..failures import NavigationGoalNotReachedError, ToolPoseNotReachedError
 from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_description import RobotDescription
@@ -251,6 +251,8 @@ class Pr2MoveTCPReal(ProcessModule):
         elif designator.movement_type == MovementType.CARTESIAN:
             giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
                                            use_monitor=World.current_world.conf.use_giskard_monitor)
+        if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.01, 3):
+            raise ToolPoseNotReachedError(World.current_world.robot.get_link_pose(tip_link), designator.target)
 
 
 class Pr2MoveArmJointsReal(ProcessModule):

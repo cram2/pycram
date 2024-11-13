@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
@@ -6,7 +5,7 @@ from sqlalchemy.orm import Session
 from pycrap import PhysicalObject, Location
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
 from ..datastructures.enums import MovementType
-from ..failures import PerceptionObjectNotFound
+from ..failures import PerceptionObjectNotFound, ToolPoseNotReachedError
 from ..process_module import ProcessModuleManager
 from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      MoveTCPMotion as ORMMoveTCPMotion, LookingMotion as ORMLookingMotion,
@@ -20,6 +19,18 @@ from ..datastructures.pose import Pose
 from ..tasktree import with_tree
 from ..designator import BaseMotion
 from ..external_interfaces.robokudo import robokudo_found
+
+
+def try_motion(motion, motion_designator_instance, exception, num_retries=3):
+    current_retry = 0
+    result = None
+    while current_retry < num_retries:
+        try:
+            result = motion.execute(motion_designator_instance)
+            break
+        except exception:
+            current_retry += 1
+    return result
 
 
 @dataclass
@@ -82,7 +93,7 @@ class MoveTCPMotion(BaseMotion):
     @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
-        return pm_manager.move_tcp().execute(self)
+        try_motion(pm_manager.move_tcp(), self, ToolPoseNotReachedError)
 
     def to_sql(self) -> ORMMoveTCPMotion:
         return ORMMoveTCPMotion(self.arm, self.allow_gripper_collision)
