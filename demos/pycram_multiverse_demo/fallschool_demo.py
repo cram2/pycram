@@ -58,17 +58,16 @@ apartment_desig = BelieveObject(names=[apartment.name])
 with real_robot:
 
     # Transport the milkMoveGripperMotion
-    # ParkArmsAction([Arms.BOTH]).resolve().perform()
-    #
-    # MoveTorsoAction([0.2]).resolve().perform()
-    #
-    # NavigateAction(target_locations=[Pose([1.4, 3.15, 0.01], quaternion_from_euler(0, 0, 3.14))]).resolve().perform()
-    #
-    # LookAtAction(targets=[Pose(milk.get_position_as_list())]).resolve().perform()
-    #
-    # milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
+    ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    milk_desig = BelieveObject(names=[milk.name])
+    MoveTorsoAction([0.2]).resolve().perform()
+
+    NavigateAction(target_locations=[Pose([1.4, 3.15, 0.01], quaternion_from_euler(0, 0, 3.14))]).resolve().perform()
+
+    LookAtAction(targets=[Pose(milk.get_position_as_list())]).resolve().perform()
+
+    milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
+
     TransportAction(milk_desig, [Arms.LEFT], [Pose([2.4, 3, 1.02])]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
