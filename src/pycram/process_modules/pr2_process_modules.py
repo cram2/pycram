@@ -5,6 +5,7 @@ import actionlib
 from .default_process_modules import DefaultDetectingReal, DefaultDetecting
 from .. import world_reasoning as btr
 import numpy as np
+import rospy
 
 from .. import world_reasoning as btr
 from ..external_interfaces.move_base import query_pose_nav
@@ -294,7 +295,7 @@ class Pr2MoveGripperMultiverse(ProcessModule):
             loginfo(f"Reached goal {designator.motion}: {result.reached_goal}")
 
         def feedback_callback(msg):
-            pass
+            loginfo(f"Gripper Action Feedback: {msg}")
 
         goal = GripperCommandGoal()
         goal.command.position = 0.0 if designator.motion == GripperState.CLOSE else 0.4
@@ -307,7 +308,8 @@ class Pr2MoveGripperMultiverse(ProcessModule):
         loginfo("Waiting for action server")
         client.wait_for_server()
         client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
-        wait = client.wait_for_result()
+        wait = client.wait_for_result(rospy.Duration.from_sec(5))
+        # client.cancel_all_goals()
 
 
 class Pr2MoveGripperReal(ProcessModule):

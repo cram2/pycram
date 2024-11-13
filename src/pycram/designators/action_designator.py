@@ -23,6 +23,7 @@ from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure
 from ..robot_description import RobotDescription
 from ..tasktree import with_tree
+from ..world_reasoning import contact
 
 from owlready2 import Thing
 

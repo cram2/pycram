@@ -7,7 +7,7 @@ from .datastructures.world import World, UseProspectionWorld
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .robot_description import RobotDescription
 from .utils import RayTestUtils
-from .world_concepts.world_object import Object
+from .world_concepts.world_object import Object, Link
 from .config import world_conf as conf
 
 
@@ -36,7 +36,7 @@ def stable(obj: Object) -> bool:
 def contact(
         object1: Object,
         object2: Object,
-        return_links: bool = False) -> Union[bool, Tuple[bool, List]]:
+        return_links: bool = False) -> Union[bool, Tuple[bool, List[Tuple[Link, Link]]]]:
     """
     Checks if two objects are in contact or not. If the links should be returned then the output will also contain a
     list of tuples where the first element is the link name of 'object1' and the second element is the link name of
