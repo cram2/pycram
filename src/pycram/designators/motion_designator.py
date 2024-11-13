@@ -21,7 +21,7 @@ from ..designator import BaseMotion
 from ..external_interfaces.robokudo import robokudo_found
 
 
-def try_motion(motion, motion_designator_instance, exception, num_retries=3):
+def try_motion(motion, motion_designator_instance, exception, num_retries=4):
     current_retry = 0
     result = None
     while current_retry < num_retries:
