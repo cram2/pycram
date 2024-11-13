@@ -485,6 +485,7 @@ class MultiverseWriter(MultiverseClient):
         if receive_meta_data:
             self.request_meta_data["receive"] = receive_meta_data
         self.send_and_receive_meta_data()
+        self.lock.release()
         self.send_data = data
         self.send_and_receive_data()
         response_meta_data = self.response_meta_data
