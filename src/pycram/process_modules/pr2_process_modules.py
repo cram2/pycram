@@ -1,5 +1,4 @@
 from typing_extensions import TYPE_CHECKING
-
 import actionlib
 
 from .default_process_modules import DefaultDetectingReal, DefaultDetecting
@@ -7,26 +6,23 @@ from .. import world_reasoning as btr
 import numpy as np
 import rospy
 
-from .. import world_reasoning as btr
 from ..external_interfaces.move_base import query_pose_nav
-from ..process_module import ProcessModule, ProcessModuleManager
-from ..external_interfaces.ik import request_ik
-from ..ros.logging import logdebug
-from ..utils import _apply_ik
-from ..local_transformer import LocalTransformer
-
 from .. import world_reasoning as btr
+from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType, GripperState, MovementType
+from ..datastructures.world import World
 from ..designators.motion_designator import MoveMotion, LookingMotion, \
     DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
     MoveGripperMotion, OpeningMotion, ClosingMotion
-from ..robot_description import RobotDescription
-from ..datastructures.world import World
-from ..world_concepts.world_object import Object
-from ..datastructures.pose import Pose
-from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType, MovementType, GripperState
 from ..external_interfaces import giskard
+from ..external_interfaces.ik import request_ik
 from ..external_interfaces.robokudo import *
-from ..ros.logging import loginfo, logwarn, logdebug
+from ..failures import NavigationGoalNotReachedError
+from ..local_transformer import LocalTransformer
+from ..process_module import ProcessModule, ProcessModuleManager
+from ..robot_description import RobotDescription
+from ..ros.logging import logdebug
+from ..utils import _apply_ik
+from ..world_concepts.world_object import Object
 
 if TYPE_CHECKING:
     from ..designators.object_designator import ObjectDesignatorDescription
@@ -204,7 +200,8 @@ class Pr2NavigationReal(ProcessModule):
     def _execute(self, designator: MoveMotion) -> Any:
         logdebug(f"Sending goal to movebase to Move the robot")
         query_pose_nav(designator.target)
-
+        if not World.current_world.robot.pose.almost_equal(designator.target, 0.05, 3):
+            raise NavigationGoalNotReachedError(World.current_world.robot.pose, designator.target)
 
 class Pr2MoveHeadReal(ProcessModule):
     """

@@ -436,6 +436,11 @@ class CollisionError(PlanFailure):
         super().__init__(*args, **kwargs)
 
 
+class NavigationGoalNotReachedError(PlanFailure):
+    def __init__(self, current_pose, goal_pose):
+        super().__init__(f"Navigation goal not reached. Current pose: {current_pose}, goal pose: {goal_pose}")
+
+
 class FailedAPIResponse(Exception):
     def __init__(self, api_response: List[str], api_name: MultiverseAPIName, *args, **kwargs):
         super().__init__(f"{api_name} api request with arguments {args} and keyword arguments {kwargs}"

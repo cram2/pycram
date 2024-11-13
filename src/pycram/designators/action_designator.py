@@ -20,7 +20,7 @@ from ..datastructures.property import GraspableProperty, ReachableProperty, Grip
     VisibleProperty
 from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
-from ..failures import ObjectUnfetchable, ReachabilityFailure
+from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound
 from ..robot_description import RobotDescription
 from ..tasktree import with_tree
 from ..world_reasoning import contact
@@ -45,6 +45,17 @@ from ..orm.object_designator import Object as ORMObject
 from ..orm.action_designator import Action as ORMAction
 from dataclasses import dataclass, field
 
+
+def try_action(action, exception, num_retries=3):
+    current_retry = 0
+    result = None
+    while current_retry < num_retries:
+        try:
+            result = action.perform()
+            break
+        except exception:
+            current_retry += 1
+    return result
 
 # ----------------------------------------------------------------------------
 # ---------------- Performables ----------------------------------------------
@@ -392,7 +403,9 @@ class NavigateActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        MoveMotion(self.target_location, self.keep_joint_states).perform()
+        motion_action = MoveMotion(self.target_location, self.keep_joint_states)
+        return try_action(motion_action, NavigationGoalNotReachedError)
+
 
 
 @dataclass
@@ -495,8 +508,8 @@ class DetectActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        return DetectingMotion(technique=self.technique,state=self.state, object_designator_description=self.object_designator_description,
-                               region=self.region).perform()
+        return try_action(DetectingMotion(technique=self.technique,state=self.state, object_designator_description=self.object_designator_description,
+                          region=self.region), PerceptionObjectNotFound)
 
 
 @dataclass

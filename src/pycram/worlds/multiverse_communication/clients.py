@@ -2,6 +2,8 @@ import datetime
 import logging
 import os
 import threading
+from threading import RLock
+
 from time import time, sleep
 
 from typing_extensions import List, Dict, Tuple, Optional, Callable, Union
@@ -319,6 +321,7 @@ class MultiverseWriter(MultiverseClient):
         """
         super().__init__(name, port, is_prospection_world, simulation_wait_time_factor=simulation_wait_time_factor)
         self.simulation = simulation
+        self.lock = RLock()
 
     def spawn_robot_with_actuators(self, robot_name: str,
                                    actuator_joint_commands: Optional[Dict[str, List[str]]] = None) -> None:
@@ -466,12 +469,14 @@ class MultiverseWriter(MultiverseClient):
         :param set_simulation_name: Whether to set the simulation name to the value of self.simulation.
         :return: The response from the server.
         """
+        self.lock.acquire()
         self._reset_request_meta_data(set_simulation_name=set_simulation_name)
         if send_meta_data:
             self.request_meta_data["send"] = send_meta_data
         if receive_meta_data:
             self.request_meta_data["receive"] = receive_meta_data
         self.send_and_receive_meta_data()
+        self.lock.release()
         self.send_data = data
         self.send_and_receive_data()
         return self.response_meta_data

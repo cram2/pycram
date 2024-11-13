@@ -11,7 +11,7 @@ from pycram.datastructures.world import UseProspectionWorld, World
 from pycram.designators.action_designator import ParkArmsAction, MoveTorsoAction, TransportAction, NavigateAction, \
     LookAtAction, DetectAction
 from pycram.designators.object_designator import BelieveObject
-from pycram.failures import PerceptionObjectNotFound
+from pycram.failures import PerceptionObjectNotFound, NavigationGoalNotReachedError
 from pycram.process_module import simulated_robot, with_simulated_robot, real_robot
 from pycram.ros_utils.robot_state_updater import WorldStateUpdater
 from pycram.world_concepts.world_object import Object
@@ -54,6 +54,7 @@ milk.set_pose(fridge_base_pose, base=True)
 robot_desig = BelieveObject(names=[robot.name])
 apartment_desig = BelieveObject(names=[apartment.name])
 
+
 with real_robot:
 
     # Transport the milkMoveGripperMotion
@@ -65,11 +66,9 @@ with real_robot:
 
     LookAtAction(targets=[Pose(milk.get_position_as_list())]).resolve().perform()
 
-    try:
-        milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
-    except PerceptionObjectNotFound:
-        milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
+    milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
 
+    # milk_desig = BelieveObject(names=[milk.name])
     TransportAction(milk_desig, [Arms.LEFT], [Pose([2.4, 3, 1.02])]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
