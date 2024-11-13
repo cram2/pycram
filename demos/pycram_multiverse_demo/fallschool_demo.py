@@ -11,7 +11,6 @@ from pycram.datastructures.world import UseProspectionWorld, World
 from pycram.designators.action_designator import ParkArmsAction, MoveTorsoAction, TransportAction, NavigateAction, \
     LookAtAction, DetectAction
 from pycram.designators.object_designator import BelieveObject
-from pycram.failures import PerceptionObjectNotFound, NavigationGoalNotReachedError
 from pycram.process_module import simulated_robot, with_simulated_robot, real_robot
 from pycram.ros_utils.robot_state_updater import WorldStateUpdater
 from pycram.world_concepts.world_object import Object

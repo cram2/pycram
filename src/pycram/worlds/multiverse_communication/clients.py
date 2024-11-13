@@ -435,6 +435,7 @@ class MultiverseWriter(MultiverseClient):
         :param body_data: The data to be sent for multiple bodies.
         :return: The response from the server.
         """
+        self.lock.acquire()
         send_meta_data = {body_name: list(map(str, data.keys())) for body_name, data in body_data.items()}
         response_meta_data = self.send_meta_data_and_get_response(send_meta_data)
         body_names = list(response_meta_data["send"].keys())
@@ -442,6 +443,7 @@ class MultiverseWriter(MultiverseClient):
                           for value in data]
         self.send_data = [self.sim_time, *flattened_data]
         self.send_and_receive_data()
+        self.lock.release()
         return self.response_meta_data
 
     def send_meta_data_and_get_response(self, send_meta_data: Dict) -> Dict:
@@ -451,9 +453,11 @@ class MultiverseWriter(MultiverseClient):
         :param send_meta_data: The metadata to be sent.
         :return: The response from the server.
         """
+        self.lock.acquire()
         self._reset_request_meta_data()
         self.request_meta_data["send"] = send_meta_data
         self.send_and_receive_meta_data()
+        self.lock.release()
         return self.response_meta_data
 
     def send_data_to_server(self, data: List,
@@ -476,9 +480,9 @@ class MultiverseWriter(MultiverseClient):
         if receive_meta_data:
             self.request_meta_data["receive"] = receive_meta_data
         self.send_and_receive_meta_data()
-        self.lock.release()
         self.send_data = data
         self.send_and_receive_data()
+        self.lock.release()
         return self.response_meta_data
 
 
