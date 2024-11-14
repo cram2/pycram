@@ -290,6 +290,9 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
     """
 
     target_location: Pose
+    """
+    The position to place the object.
+    """
 
     arms: List[Arms]
     """
