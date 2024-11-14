@@ -383,7 +383,7 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str,
 @init_giskard_interface
 @thread_safe
 def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
-                                    root_link: str) -> 'MoveResult':
+                                    root_link: str, allow_gripper_collision_: bool = False) -> 'MoveResult':
     """
     Takes a cartesian position and tries to move the tip_link to this position in a straight line, using the chain
     defined by tip_link and root_link.
@@ -391,6 +391,7 @@ def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
     :param goal_pose: The position which should be achieved with tip_link
     :param tip_link: The end link of the chain as well as the link which should achieve the goal_pose
     :param root_link: The starting link of the chain which should be used to achieve this goal
+    :param allow_gripper_collision_: Whether to allow collisions with the gripper or not.
     :return: MoveResult message for this goal
     """
     sync_worlds()
@@ -400,6 +401,8 @@ def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
         return par_return
 
     giskard_wrapper.avoid_all_collisions()
+    if allow_gripper_collision_:
+        allow_gripper_collision('all')
     giskard_wrapper.set_straight_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
     # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
@@ -642,7 +645,8 @@ def add_gripper_groups() -> None:
             if "gripper" in name:
                 return
         for description in RobotDescription.current_robot_description.get_manipulator_chains():
-            giskard_wrapper.register_group(description.name + "_gripper", description.start_link, RobotDescription.current_robot_description.name)
+            giskard_wrapper.register_group(description.name + "_gripper", description.end_effector.start_link,
+                                           RobotDescription.current_robot_description.name)
 
 
 @init_giskard_interface
