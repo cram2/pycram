@@ -250,6 +250,7 @@ class Pr2MoveTCPReal(ProcessModule):
             giskard.achieve_translation_goal(pose_in_map.position_as_list(), tip_link, root_link)
         elif designator.movement_type == MovementType.CARTESIAN:
             giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
+                                           allow_gripper_collision_=designator.allow_gripper_collision,
                                            use_monitor=World.current_world.conf.use_giskard_monitor)
         if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.01, 3):
             raise ToolPoseNotReachedError(World.current_world.robot.get_link_pose(tip_link), designator.target)
