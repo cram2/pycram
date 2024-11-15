@@ -210,8 +210,12 @@ done as follows:
 
     semantic = AlgebraicSemanticCostmap(object=apartment,
                                         link="table_area_main")
-    semantic = semantic.right &
+    semantic.valid_area &= semantic.right()
+    semantic.valid_area &= semantic.bottom()
 
+The result of this operation can be seen in the image below.
+
+.. image:: ../images/algebraic_costmap.png
 
 -------------------------
 Visualization of Costmaps
