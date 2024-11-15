@@ -698,6 +698,7 @@ class MultiverseContactPoint:
     contact_force: List[float]
     contact_torque: List[float]
 
+
 @dataclass
 class ReasoningResult:
     """

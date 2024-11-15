@@ -48,6 +48,9 @@ parts:
         - file: notebooks/interface_examples/giskard.md
         - file: notebooks/interface_examples/robokudo.md
         - file: notebooks/ontology
+      - file: knowledge_examples.rst
+        sections:
+        - file: notebooks/knowledge_source.md
 
   - caption: API
     chapters:
