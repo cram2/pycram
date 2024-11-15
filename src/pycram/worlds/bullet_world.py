@@ -36,7 +36,8 @@ class BulletWorld(World):
     manipulate the Bullet World.
     """
 
-    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False):
+    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False,
+                 use_multiverse_for_real_world_simulation: bool = False):
         """
         Creates a new simulation, the type decides of the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
@@ -44,8 +45,12 @@ class BulletWorld(World):
 
         :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default is "GUI"
         :param is_prospection_world: For internal usage, decides if this BulletWorld should be used as a shadow world.
+        :param use_multiverse_for_real_world_simulation: Whether to use the Multiverse for real world simulation.
         """
         super().__init__(mode=mode, is_prospection_world=is_prospection_world)
+
+        if use_multiverse_for_real_world_simulation:
+            self.add_multiverse_resources()
 
         # This disables file caching from PyBullet, since this would also cache
         # files that can not be loaded
@@ -61,6 +66,17 @@ class BulletWorld(World):
         if not is_prospection_world:
             _ = Object("floor", Floor, "plane.urdf",
                        world=self)
+
+    def add_multiverse_resources(self):
+        """
+        Add the Multiverse resources to the start of the data directories of the BulletWorld such they are searched
+        first for the resources because the pycram objects need to have the same description as the Multiverse objects.
+        """
+        try:
+            from .multiverse import Multiverse
+            Multiverse.make_sure_multiverse_resources_are_added(self.conf.clear_cache_at_start)
+        except ImportError:
+            logwarn("Multiverse is not installed, please install it to use the Multiverse.")
 
     def _init_world(self, mode: WorldMode):
         self._gui_thread: Gui = Gui(self, mode)

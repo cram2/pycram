@@ -54,26 +54,24 @@ class Multiverse(World):
     Add the MJCF description extension to the extension to description type mapping for the objects.
     """
 
-    def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
-                 is_prospection: Optional[bool] = False,
+    def __init__(self, is_prospection: Optional[bool] = False,
                  clear_cache: bool = False):
         """
         Initialize the Multiverse Socket and the PyCram World.
 
-        :param mode: The mode of the world (DIRECT or GUI).
         :param is_prospection: Whether the world is prospection or not.
         :param clear_cache: Whether to clear the cache or not.
         """
 
         self.latest_save_id: Optional[int] = None
         self.saved_simulator_states: Dict = {}
-        self._make_sure_multiverse_resources_are_added(clear_cache=clear_cache)
+        self.make_sure_multiverse_resources_are_added(clear_cache=clear_cache)
 
         self.simulation = self.conf.prospection_world_prefix if is_prospection else "belief_state"
         self.client_manager = MultiverseClientManager(self.conf.simulation_wait_time_factor)
         self._init_clients(is_prospection=is_prospection)
 
-        World.__init__(self, mode, is_prospection)
+        World.__init__(self, WorldMode.DIRECT, is_prospection)
 
         self._init_constraint_and_object_id_name_map_collections()
 
@@ -117,18 +115,19 @@ class Multiverse(World):
     def _init_world(self, mode: WorldMode):
         pass
 
-    def _make_sure_multiverse_resources_are_added(self, clear_cache: bool = False):
+    @classmethod
+    def make_sure_multiverse_resources_are_added(cls, clear_cache: bool = False) -> None:
         """
         Add the multiverse resources to the pycram world resources, and change the data directory and cache manager.
 
         :param clear_cache: Whether to clear the cache or not.
         """
-        if not self.added_multiverse_resources:
+        if not cls.added_multiverse_resources:
             if clear_cache:
                 World.cache_manager.clear_cache()
-            World.add_resource_path(self.conf.resources_path, prepend=True)
-            World.change_cache_dir_path(self.conf.resources_path)
-            self.added_multiverse_resources = True
+            World.add_resource_path(cls.conf.resources_path, prepend=True)
+            World.change_cache_dir_path(cls.conf.resources_path)
+            cls.added_multiverse_resources = True
 
     def remove_multiverse_resources(self):
         """

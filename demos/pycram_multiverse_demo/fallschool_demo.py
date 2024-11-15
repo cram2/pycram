@@ -14,7 +14,9 @@ from pycram.designators.object_designator import BelieveObject
 from pycram.process_module import simulated_robot, with_simulated_robot, real_robot
 from pycram.ros_utils.robot_state_updater import WorldStateUpdater
 from pycram.world_concepts.world_object import Object
+from pycram.worlds.bullet_world import BulletWorld
 from pycram.worlds.multiverse import Multiverse
+from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 
 
 rospy_logger = logging.getLogger('rosout')
@@ -32,12 +34,22 @@ def move_and_detect(obj_type: ObjectType, pick_pose: Pose):
     return object_desig
 
 
-world = Multiverse()
+use_bullet_world = False
+
+if use_bullet_world:
+    world = BulletWorld(use_multiverse_for_real_world_simulation=True)
+    vis_publisher = VizMarkerPublisher()
+    milk_path = "milk.stl"
+else:
+    world = Multiverse()
+    vis_publisher = None
+    milk_path = "milk.xml"
+
 robot = Object('pr2', ObjectType.ROBOT, f'pr2.urdf', pose=Pose([1.3, 2.6, 0.01]))
 WorldStateUpdater(tf_topic="/tf", joint_state_topic="/real/pr2/joint_states", update_rate=timedelta(seconds=2),
                   world=world)
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
-milk = Object("milk", ObjectType.MILK, f"milk.xml", pose=Pose([0.4, 2.6, 1.34],
+milk = Object("milk", ObjectType.MILK, milk_path, pose=Pose([0.4, 2.6, 1.34],
                                                               [1, 0, 0, 0]),
               color=Color(1, 0, 0, 1))
 
@@ -71,4 +83,6 @@ with real_robot:
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
+if vis_publisher is not None:
+    vis_publisher._stop_publishing()
 world.exit()
