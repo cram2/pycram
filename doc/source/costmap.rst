@@ -170,6 +170,49 @@ distribution.
 Semantic Costmap
 ----------------
 
+Semantic costmaps allow to specify a costmap based on a semantic description of the environment. This means that the
+costmap is created given an object and a link in the belief state. The costmap is created by taking the bounding box of
+the given link and creating a distribution above it.
+
+The semantic costmap is meant to be used to create poses for symbolic descriptions of the environment. For example, if
+the robot should place an object on the table but no specific pose is given, the semantic costmap can be used to create
+a costmap that contains all possible positions on the table. A sample of this costmap can then be used to parametrize
+the plan.
+
+A semantic costmap is created by specifying the object and the link in the belief state. Optionally the resolution of
+the resulting costmap can also be specified.
+
+.. code-block:: python
+
+    from pycram.costmaps import GaussianCostmap
+
+    semantic = SemanticCostmap(object=apartment,
+                               link="table_area_main",
+                               resolution=0.02)
+
+The image below show a semantic costmap created for a table.
+
+.. image:: ../images/semantic_costmap.png
+
+
+--------------------------
+Algebraic Semantic Costmap
+--------------------------
+
+A algebraic semantic costmap is a special for of a semantic costmap. It is created using `Random Event <https://random-events.readthedocs.io/en/latest/intro.html>`_.
+This allows to slice the created costmap to specify the area of interest. For example, the costmap is created above the
+whole table but we only want to place an object on the lower right area or the outer perimeter of the table. This can be
+done as follows:
+
+.. code-block:: python
+
+    from pycram.costmaps import GaussianCostmap
+
+    semantic = AlgebraicSemanticCostmap(object=apartment,
+                                        link="table_area_main")
+    semantic = semantic.right &
+
+
 -------------------------
 Visualization of Costmaps
 -------------------------
