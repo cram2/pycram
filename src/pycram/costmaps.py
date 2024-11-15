@@ -325,6 +325,8 @@ class OccupancyCostmap(Costmap):
         else:
             self.size = size
             self.origin = Pose() if not origin else origin
+            lt = LocalTransformer()
+            self.origin = lt.transform_pose(self.origin, "map")
             self.resolution = resolution
             self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
             self.map = self._create_from_world(size, resolution)
