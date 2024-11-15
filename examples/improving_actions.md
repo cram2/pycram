@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.4
   kernelspec:
     display_name: Python 3
     language: python
@@ -33,6 +33,7 @@ import pandas as pd
 import sqlalchemy.orm
 
 import plotly
+from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
 
 plotly.offline.init_notebook_mode()
 import plotly.graph_objects as go
@@ -90,7 +91,7 @@ fpa = MoveAndPickUp(milk_description, arms=[Arms.LEFT, Arms.RIGHT],
                     grasps=[Grasp.FRONT.value, Grasp.LEFT.value, Grasp.RIGHT.value, Grasp.TOP.value])
 print(world.current_world)
 p_xy = fpa.policy.marginal([fpa.variables.relative_x, fpa.variables.relative_y])
-fig = go.Figure(p_xy.root.plot(), p_xy.root.plotly_layout())
+fig = go.Figure(p_xy.plot(), p_xy.plotly_layout())
 fig.update_layout(title="Marginal View of relative x and y position of the robot with respect to the object.")
 fig.show()
 ```
@@ -128,7 +129,7 @@ variables = infer_variables_from_dataframe(samples, scale_continuous_types=False
                                            min_likelihood_improvement = 0.)
 model = JPT(variables, min_samples_leaf=25)
 model.fit(samples)
-model = model.probabilistic_circuit
+model = ProbabilisticCircuit.from_other(model)
 print(model)
 ```
 
