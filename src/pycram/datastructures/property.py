@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from abc import abstractmethod
 
+from past.builtins import reduce
+
 from .enums import Arms
 from .dataclasses import ReasoningResult
 from .pose import Pose
@@ -13,6 +15,7 @@ from ..failures import ObjectNotVisible, ManipulationPoseUnreachable, Navigation
 
 if TYPE_CHECKING:
     from ..designators.object_designator import ObjectDesignatorDescription
+
 
 class Property(NodeMixin):
     """
@@ -31,7 +34,7 @@ class Property(NodeMixin):
         self.parent: Property = parent
         self.variables: Dict[str, Any] = {}
         self.executed: bool = False
-        self.result: ReasoningResult = None
+        self._result: ReasoningResult = ReasoningResult(False)
         if children:
             self.children = children
 
@@ -69,7 +72,15 @@ class Property(NodeMixin):
         """
         return Not(self)
 
-    def manage_io(self, func: Callable, *args, **kwargs) -> bool:
+    @property
+    def result(self) -> ReasoningResult:
+        return self._result
+
+    @result.setter
+    def result(self, value):
+        self._result = value
+
+    def manage_io(self, func: Callable, *args, **kwargs) -> ReasoningResult:
         """
         Manages the ReasoningResult of a property function and calls it. The success of the method will be passed to the
         parent node while the reasoned parameters will be stored in the variables dictionary of the root node.
@@ -82,7 +93,7 @@ class Property(NodeMixin):
         reasoning_result = func(*args, **kwargs)
         self.root.variables.update(reasoning_result.reasoned_parameter)
         self.result = reasoning_result
-        return reasoning_result.success
+        return reasoning_result
 
     @property
     def successful(self) -> bool:
@@ -92,7 +103,7 @@ class Property(NodeMixin):
 
         :return: True if all nodes in the tree are True, False otherwise
         """
-        success = self.result
+        success = self.result.success
         for node in PreOrderIter(self.root):
             success &= node.result.success
         return success
@@ -126,7 +137,6 @@ class PropertyOperator(Property):
         :param properties: A list of properties to which are the children of this node
         """
         super().__init__(parent=None, children=properties)
-        self.result = True
 
     def simplify(self):
         """
@@ -170,7 +180,18 @@ class And(PropertyOperator):
         super().__init__(properties)
         self.simplify()
 
-    def __call__(self, *args, **kwargs) -> bool:
+    @property
+    def result(self):
+        """
+        Returns the result of this node. The result is the combination of results of all nodes below this one.
+
+        :return: A ReasoningResult of the combination of all children
+        """
+        suc = all([node.result.success for node in self.children])
+        return ReasoningResult(suc, reduce(lambda a, b: {**a, **b},
+                                           [node.result.reasoned_parameter for node in self.children]))
+
+    def __call__(self, *args, **kwargs) -> ReasoningResult:
         """
         Evaluate the children of this node as an and operator. This is done by iterating over the children and calling
         them with the given arguments. If one child returns False, the evaluation will be stopped and False will be
@@ -180,17 +201,14 @@ class And(PropertyOperator):
         :param kwargs: A dictionary of keyword arguments to pass to the children
         :return: True if all children return True, False otherwise
         """
-        result = True
+        self.executed = True
+
         for child in self.children:
-            # Child is a Property and the executed function should be called
-            if child.is_leaf:
-                result = result and child(*args, **kwargs)
-            # Child is a PropertyOperator
-            else:
-                child(*args, **kwargs)
-            if not result:
-                return False
-        return result
+            res = child(*args, **kwargs)
+            if not res.success:
+                break
+
+        return self.result
 
 
 class Or(PropertyOperator):
@@ -209,7 +227,18 @@ class Or(PropertyOperator):
         super().__init__(properties)
         self.simplify()
 
-    def __call__(self, *args, **kwargs) -> bool:
+    @property
+    def result(self):
+        """
+        Returns the result of this node. The result is the combination of results of all nodes below this one.
+
+        :return: A ReasoningResult of the combination of all children
+        """
+        suc = any([node.result.success for node in self.children])
+        return ReasoningResult(suc, reduce(lambda a, b: {**a, **b},
+                                           [node.result.reasoned_parameter for node in self.children]))
+
+    def __call__(self, *args, **kwargs) -> ReasoningResult:
         """
         Evaluate the children of this node as an or operator. This is done by iterating over the children and calling
         them with the given arguments. If one child returns True, the evaluation will be stopped and True will be
@@ -219,17 +248,11 @@ class Or(PropertyOperator):
         :param kwargs: A dictionary of keyword arguments to pass to the children
         :return: True if one child returns True, False otherwise
         """
-        result = False
+        self.executed = True
+
         for child in self.children:
-            # Child is a Property and the executed function should be called
-            if child.is_leaf:
-                result = result or child(*args, **kwargs)
-            # Child is a PropertyOperator
-            else:
-                result = child(*args, **kwargs)
-            if result:
-                return True
-        return result
+            child(*args, **kwargs)
+        return  self.result
 
 
 class Not(PropertyOperator):
@@ -246,7 +269,17 @@ class Not(PropertyOperator):
         """
         super().__init__([property])
 
-    def __call__(self, *args, **kwargs) -> bool:
+    @property
+    def result(self):
+        """
+        Returns the result of this node. The result is the result of the child since a Not Operator can only have one
+        child.
+
+        :return: A ReasoningResult of the combination of all children
+        """
+        return ReasoningResult(not self.children[0].result.success, self.children[0].result.reasoned_parameter)
+
+    def __call__(self, *args, **kwargs) -> ReasoningResult:
         """
         Evaluate the child of this node as a not operator. This is done by calling the child with the given arguments
         and returning the negation of the result.
@@ -255,7 +288,9 @@ class Not(PropertyOperator):
         :param kwargs: A dictionary of keyword arguments to pass to the child
         :return: The negation of the result of the child
         """
-        return not self.children[0](*args, **kwargs)
+        self.executed = True
+        self.children[0](*args, **kwargs)
+        return self.result
 
 
 class ResolvedProperty(Property):
@@ -274,7 +309,8 @@ class ResolvedProperty(Property):
     Exception that should be raised if the property is not fulfilled.
     """
 
-    def __init__(self, resolved_property_function: Callable, property_exception: Type[PlanFailure], parent: NodeMixin = None):
+    def __init__(self, resolved_property_function: Callable, property_exception: Type[PlanFailure],
+                 parent: NodeMixin = None):
         """
         Initialize the ResolvedProperty with the executed property function, the exception that should be raised if the property
         is not fulfilled, the parent node.
@@ -288,17 +324,18 @@ class ResolvedProperty(Property):
         self.property_exception = property_exception
         self.parameter = {}
 
-    def __call__(self, *args, **kwargs) -> bool:
+    def __call__(self, *args, **kwargs) -> ReasoningResult:
         """
         Manages the io of the call to the property function and then calls the function. If the function returns False,
         the exception defined in :attr:`property_exception` will be raised.
 
         :return: The result of the property function
         """
-        result = self.manage_io(self.resolved_property_function, **self.parameter)
-        if not result:
+        self.executed = True
+        self.result = self.manage_io(self.resolved_property_function, **self.parameter)
+        if not self.result.success:
             raise self.property_exception(f"Property function {self.resolved_property_function} returned False")
-        return result
+        return self.result
 
 
 class ReachableProperty(Property):

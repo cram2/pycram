@@ -1036,7 +1036,7 @@ class OpenAction(ActionDesignatorDescription):
 
     performable_class = OpenActionPerformable
 
-    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms],
+    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms] = None,
                  ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Moves the arm of the robot to open a container.
