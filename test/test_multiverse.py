@@ -47,6 +47,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        if not multiverse_installed:
+            return
         cls.multiverse.exit(remove_saved_states=True)
         cls.multiverse.remove_multiverse_resources()
 

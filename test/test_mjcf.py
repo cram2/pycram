@@ -12,6 +12,8 @@ class TestMjcf(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        if MJCFObjDesc is None:
+            return
         # Example usage
         model = mjcf.RootElement("test")
 
