@@ -152,7 +152,7 @@ class BulletWorld(World):
     def remove_constraint(self, constraint_id):
         p.removeConstraint(constraint_id, physicsClientId=self.id)
 
-    def get_joint_position(self, joint: ObjectDescription.Joint) -> float:
+    def _get_joint_position(self, joint: ObjectDescription.Joint) -> float:
         return p.getJointState(joint.object_id, joint.id, physicsClientId=self.id)[0]
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
@@ -233,17 +233,17 @@ class BulletWorld(World):
                 "lateral_friction_2": LateralFriction(point[12], point[13])}
 
     @validate_multiple_joint_positions
-    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
+    def _set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         for joint, joint_position in joint_positions.items():
             self.reset_joint_position(joint, joint_position)
         return True
 
     @validate_joint_position
-    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
+    def _reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
         return True
 
-    def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
+    def _get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
         return {joint.name: self.get_joint_position(joint) for joint in joints}
 
     @validate_multiple_object_poses

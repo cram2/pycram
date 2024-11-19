@@ -522,8 +522,16 @@ class World(StateEntity, ABC):
         """
         pass
 
-    @abstractmethod
     def get_joint_position(self, joint: Joint) -> float:
+        """
+        Wrapper for :meth:`_get_joint_position` that return 0.0 for a joint if it is in the ignore joints list.
+        """
+        if joint.object.obj_type == ObjectType.ROBOT and joint.name in self.robot_description.ignore_joints:
+            return 0.0
+        return self._get_joint_position(joint)
+
+    @abstractmethod
+    def _get_joint_position(self, joint: Joint) -> float:
         """
         Get the position of a joint of an articulated object
 
@@ -775,9 +783,18 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
+    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
+        """
+        Wrapper around :meth:`_reset_joint_position` that checks if the joint should be ignored.
+        """
+        if joint.object.obj_type == ObjectType.ROBOT and self.robot_description.ignore_joints:
+            if joint.name in self.robot_description.ignore_joints:
+                return True
+        return self._reset_joint_position(joint, joint_position)
+
     @validate_joint_position
     @abstractmethod
-    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
+    def _reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         """
         Reset the joint position instantly without physics simulation
 
@@ -791,9 +808,20 @@ class World(StateEntity, ABC):
         """
         pass
 
+    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
+        """
+        Wrapper around :meth:`_set_multiple_joint_positions` that checks if any of the joints should be ignored.
+        """
+        filtered_joint_positions = copy(joint_positions)
+        for joint, position in joint_positions.items():
+            if joint.object.obj_type == ObjectType.ROBOT and self.robot_description.ignore_joints:
+                if joint.name in self.robot_description.ignore_joints:
+                    filtered_joint_positions.pop(joint)
+        return self._set_multiple_joint_positions(filtered_joint_positions)
+
     @validate_multiple_joint_positions
     @abstractmethod
-    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
+    def _set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         """
         Set the positions of multiple joints of an articulated object.
 
@@ -806,8 +834,18 @@ class World(StateEntity, ABC):
         """
         pass
 
-    @abstractmethod
     def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
+        """
+        Wrapper around :meth:`_get_multiple_joint_positions` that checks if any of the joints should be ignored.
+        """
+        filtered_joints = [joint for joint in joints if joint.object.obj_type != ObjectType.ROBOT or
+                           joint.name not in self.robot_description.ignore_joints]
+        joint_positions = self._get_multiple_joint_positions(filtered_joints)
+        joint_positions.update({joint.name: 0.0 for joint in joints if joint not in filtered_joints})
+        return joint_positions
+
+    @abstractmethod
+    def _get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
         """
         Get the positions of multiple joints of an articulated object.
 

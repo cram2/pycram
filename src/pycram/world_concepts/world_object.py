@@ -446,8 +446,6 @@ class Object(WorldEntity, HasConcept):
         The names of the joints as a list.
         """
         joint_names = self.world.get_object_joint_names(self)
-        if self.obj_type == ObjectType.ROBOT and self.robot_description.ignore_joints:
-            joint_names = [joint for joint in joint_names if joint not in self.robot_description.ignore_joints]
         return joint_names
 
     def get_link(self, link_name: str) -> ObjectDescription.Link:

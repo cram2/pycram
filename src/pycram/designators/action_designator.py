@@ -20,7 +20,8 @@ from ..datastructures.property import GraspableProperty, ReachableProperty, Grip
     VisibleProperty
 from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
-from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound
+from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
+    ObjectNotGraspedError
 from ..robot_description import RobotDescription
 from ..tasktree import with_tree
 from ..world_reasoning import contact
@@ -305,7 +306,6 @@ class PickUpActionPerformable(ActionAbstract):
 
         oTg = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
         oTg.pose.position.x -= self.prepose_distance  # in x since this is how the gripper is oriented
-        oTg.pose.position.y -= 0.01
         prepose = object.local_transformer.transform_pose(oTg, "map")
 
         # Perform the motion with the prepose and open gripper
@@ -315,10 +315,22 @@ class PickUpActionPerformable(ActionAbstract):
 
 
         # Perform the motion with the adjusted pose -> actual grasp and close gripper
+        oTg = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
+        adjusted_oTm = object.local_transformer.transform_pose(oTg, "map")
         World.current_world.add_vis_axis(adjusted_oTm)
-        MoveTCPMotion(adjusted_oTm, self.arm, allow_gripper_collision=True).perform()
-        adjusted_oTm.pose.position.z += 0.03
+        MoveTCPMotion(adjusted_oTm, self.arm, allow_gripper_collision=True,
+                      movement_type=MovementType.STRAIGHT_CARTESIAN).perform()
+
         MoveGripperMotion(motion=GripperState.CLOSE, gripper=self.arm).perform()
+
+        # Make sure the object is in contact with the gripper
+        in_contact, contact_links = contact(object, robot, return_links=True)
+        if not in_contact or not any([link.name in arm_chain.end_effector.links
+                                      for _, link in contact_links]):
+            # TODO: Would be better to check for contact with both fingers
+            #  (maybe introduce left and right finger links in the end effector description)
+            raise ObjectNotGraspedError(object, self.arm)
+
         tool_frame = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
         robot.attach(object, tool_frame)
 

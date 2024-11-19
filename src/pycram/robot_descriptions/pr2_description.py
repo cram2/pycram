@@ -14,7 +14,7 @@ pr2_description = RobotDescription("pr2", "base_link", "torso_lift_link",
                                    "torso_lift_joint", filename,
                                    virtual_mobile_base_joints=VirtualMobileBaseJoints(),
                                    mjcf_path=mjcf_filename,
-                                   ignore_joints=['torso_lift_motor_screw_joint','r_gripper_motor_slider_joint',
+                                   ignore_joints=['torso_lift_motor_screw_joint', 'r_gripper_motor_slider_joint',
                                                   'r_gripper_motor_screw_joint', 'r_gripper_joint',
                                                   'l_gripper_motor_slider_joint', 'l_gripper_motor_screw_joint',
                                                   'l_gripper_joint'])

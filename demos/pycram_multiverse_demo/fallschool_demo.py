@@ -50,7 +50,7 @@ WorldStateUpdater(tf_topic="/tf", joint_state_topic="/real/pr2/joint_states", up
                   world=world)
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
 milk = Object("milk", ObjectType.MILK, milk_path, pose=Pose([0.4, 2.6, 1.34],
-                                                              [1, 0, 0, 0]),
+                                                            [1, 0, 0, 0]),
               color=Color(1, 0, 0, 1))
 
 # apartment.set_joint_position("fridge_door1_joint", 1.5707963267948966)

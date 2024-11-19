@@ -5,7 +5,7 @@ from typing_extensions import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
-    from .datastructures.enums import JointType, MultiverseAPIName
+    from .datastructures.enums import JointType, MultiverseAPIName, Arms
 
 
 class PlanFailure(Exception):
@@ -305,6 +305,11 @@ class Grasping(Task):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class ObjectNotGraspedError(Grasping):
+    def __init__(self, obj: Object, arm: Arms, *args, **kwargs):
+        super().__init__(f"object {obj.name} was not grasped by arm {arm}", *args, **kwargs)
 
 
 class Looking(Task):

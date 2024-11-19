@@ -285,7 +285,7 @@ class Multiverse(World):
         return self.reader.get_multiple_body_orientations([link.name for link in links])
 
     @validate_joint_position
-    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
+    def _reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         if not self.is_paused and self.conf.use_controller and self.joint_has_actuator(joint):
             self._reset_joint_position_using_controller(joint, joint_position)
         else:
@@ -306,7 +306,7 @@ class Multiverse(World):
         return True
 
     @validate_multiple_joint_positions
-    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
+    def _set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         """
         Set the positions of multiple joints in the simulator. Also check if the joint is controlled by an actuator
         and use the controller to set the joint position if the joint is controlled.
@@ -360,13 +360,13 @@ class Multiverse(World):
         self.joint_controller.send_multiple_body_data_to_server(controlled_joints_data)
         return True
 
-    def get_joint_position(self, joint: Joint) -> Optional[float]:
+    def _get_joint_position(self, joint: Joint) -> Optional[float]:
         joint_position_name = self.get_joint_position_name(joint)
         data = self.reader.get_body_data(joint.name, [joint_position_name])
         if data is not None:
             return data[joint_position_name.value][0]
 
-    def get_multiple_joint_positions(self, joints: List[Joint]) -> Optional[Dict[str, float]]:
+    def _get_multiple_joint_positions(self, joints: List[Joint]) -> Optional[Dict[str, float]]:
         joint_names = [joint.name for joint in joints]
         data = self.reader.get_multiple_body_data(joint_names, {joint.name: [self.get_joint_position_name(joint)]
                                                                 for joint in joints})
