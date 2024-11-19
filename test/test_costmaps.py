@@ -8,6 +8,8 @@ from random_events.interval import *
 
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.costmaps import OccupancyCostmap, AlgebraicSemanticCostmap
+from pycram.probabilistic_costmap import ProbabilisticCostmap
+from pycram.units import meter, centimeter
 from pycram.datastructures.pose import Pose
 import plotly.graph_objects as go
 
@@ -88,5 +90,13 @@ class SemanticCostmapTestCase(BulletWorldTestCase):
             self.assertTrue(costmap.valid_area.contains([sample.position.x, sample.position.y]))
 
 
-class OntologySemanticLocationTestCase(unittest.TestCase):
-    ...
+class ProbabilisticCostmapTestCase(BulletWorldTestCase):
+
+    origin = Pose([0, 0, 0], [0, 0, 0, 1])
+
+    def test_init(self):
+        pcm = ProbabilisticCostmap(self.origin, size = 100*centimeter,
+                                   resolution=20 * centimeter)
+        print(pcm.distribution.support)
+        fig = go.Figure(pcm.distribution.plot(surface=True), pcm.distribution.plotly_layout())
+        fig.show()
