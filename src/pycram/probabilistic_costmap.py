@@ -1,18 +1,25 @@
 from enum import Enum, auto
+from functools import cached_property
 
 import numpy as np
 import tf
+from geometry_msgs.msg import Point
+from std_msgs.msg import ColorRGBA
 from tf.transformations import quaternion_from_matrix
 from random_events.interval import closed, closed_open
 from typing_extensions import Optional, Type
+from visualization_msgs.msg import Marker, MarkerArray
 
 from . import World
 from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
+import matplotlib.colorbar
 from .datastructures.pose import Pose
+from .ros.data_types import Duration
+from .ros.publisher import create_publisher
 from .units import meter, centimeter
 
 from pint import Unit, Quantity
-from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event
+from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event, fully_factorized
 from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
@@ -44,48 +51,80 @@ class ProbabilisticCostmap:
     """
 
     origin: Pose
+    """
+    The origin of the costmap.
+    """
 
     size: Quantity
-    resolution: Quantity
+    """
+    The side length of the costmap. The costmap is a square.
+    """
 
     distribution: Optional[ProbabilisticCircuit] = None
+    """
+    The distribution associated with the costmap.
+    """
 
     def __init__(self, origin: Pose,
-                 size: Quantity = 1 * meter,
-                 resolution: Quantity = 20 * centimeter,
+                 size: Quantity = 2 * meter,
+                 max_cells = 10000,
                  costmap_type: Type[Costmap] = OccupancyCostmap,
-                 world: Optional[World] = None, **kwargs):
+                 world: Optional[World] = None):
+
         self.world = world if world else World.current_world
         self.origin = origin
-        self.size = size.to(centimeter)
-        self.resolution = resolution.to(meter)
+        self.size = size
+
+        # calculate the number of cells per axis
+        number_of_cells = int(np.sqrt(max_cells))
+        resolution = self.size.to(meter) / number_of_cells
 
         if costmap_type == OccupancyCostmap:
             self.costmap = OccupancyCostmap(
                 origin=self.origin,
                 distance_to_obstacle=0.2,
-                size=self.size.magnitude,
-                resolution=self.resolution.magnitude,
+                size=number_of_cells,
+                resolution=resolution.magnitude,
                 from_ros=False,
                 world = self.world)
+        elif costmap_type == VisibilityCostmap:
+            self.costmap = VisibilityCostmap(
+                min_height=0, max_height=2, size=number_of_cells, resolution=resolution.magnitude,
+                origin=self.origin, world=self.world)
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"Unknown costmap type {costmap_type}")
+
         self.create_distribution()
 
-    def create_distribution(self):
+    @cached_property
+    def publisher(self):
+        return create_publisher("/pycram/viz_marker", MarkerArray, queue_size=10)
+
+    def create_event_from_map(self) -> Event:
         """
-        Create a probabilistic circuit from the costmap.
+        :return: The event that is encoded by the costmaps map.
         """
         area = Event()
         for rectangle in self.costmap.partitioning_rectangles():
             rectangle.translate(self.origin.position.x, self.origin.position.y)
             area.simple_sets.add(SimpleEvent({self.x: closed_open(rectangle.x_lower, rectangle.x_upper),
                                                     self.y: closed_open(rectangle.y_lower, rectangle.y_upper)}))
-        self.distribution = uniform_measure_of_event(area)
+        return area
+
+    def create_distribution(self):
+        """
+        Create a probabilistic circuit from the costmap.
+        """
+        # self.distribution = fully_factorized([self.x, self.y], {self.x: self.origin.position.x,
+        #                                                     self.y: self.origin.position.y},
+        #                                      {self.x: 1, self.y: 1})
+        # self.distribution, _ = self.distribution.conditional(self.create_event_from_map())
+        self.distribution = uniform_measure_of_event(self.create_event_from_map())
 
     def sample_to_pose(self, sample: np.ndarray) -> Pose:
         """
         Convert a sample from the costmap to a pose.
+
         :param sample: The sample to convert
         :return: The pose corresponding to the sample
         """
@@ -95,3 +134,33 @@ class ProbabilisticCostmap:
         angle = np.arctan2(position[1] - self.origin.position.y, position[0] - self.origin.position.x) + np.pi
         orientation = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
         return Pose(position, orientation, self.origin.frame)
+
+    def visualize(self):
+        """
+        Visualize the costmap for rviz.
+        """
+        samples = self.distribution.sample(1000)
+        likelihoods = self.distribution.likelihood(samples)
+        likelihoods /= max(likelihoods)
+
+        colorscale = matplotlib.cm.get_cmap("inferno")
+        marker = Marker()
+        marker.type = Marker.POINTS
+        marker.id = 0
+        marker.action = Marker.ADD
+        marker.header.frame_id = self.origin.frame
+        marker.pose = Pose()
+        marker.lifetime = Duration(60)
+        marker.scale.x = 0.05
+        marker.scale.y = 0.05
+
+
+        for index, (sample, likelihood) in enumerate(zip(samples, likelihoods)):
+            position = self.sample_to_pose(sample).pose.position
+            position.z = 0.1
+            marker.points.append(position)
+            marker.colors.append(ColorRGBA(*colorscale(likelihood)[:3], 1))
+
+        marker_array = MarkerArray()
+        marker_array.markers.append(marker)
+        self.publisher.publish(marker_array)

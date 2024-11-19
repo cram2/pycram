@@ -10,8 +10,8 @@ from visualization_msgs.msg import Marker, MarkerArray
 
 from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape
 from ..datastructures.pose import Pose, Transform
-from ..designator import ObjectDesignatorDescription
 from ..datastructures.world import World
+from ..designator import ObjectDesignatorDescription
 from ..ros.data_types import Duration, Time
 from ..ros.logging import loginfo, logwarn, logerr
 from ..ros.publisher import create_publisher

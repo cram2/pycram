@@ -514,7 +514,7 @@ class VisibilityCostmap(Costmap):
         :param min_height: This is the minimal height the camera can be. This parameter
             is mostly relevant if the vertical position of the camera can change.
         :param max_height: This is the maximal height the camera can be. This is
-            mostly relevant if teh vertical position of the camera can change.
+            mostly relevant if the vertical position of the camera can change.
         :param size: The length of the side of the costmap, the costmap is created
             as a square.
         :param resolution: This parameter specifies how much meter a pixel in the
