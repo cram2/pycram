@@ -484,17 +484,18 @@ class PhysicalBodyState(State):
     Dataclass for storing the state of a physical body.
     """
     pose: Pose
-    is_translating: Optional[bool]
-    is_rotating: Optional[bool]
-    velocity: Optional[List[float]]
-    contact_points: Optional[ContactPointsList]
+    is_translating: bool
+    is_rotating: bool
+    velocity: List[float]
     acceptable_pose_error: Tuple[float, float] = (0.001, 0.001)
     acceptable_velocity_error: Tuple[float, float] = (0.001, 0.001)
 
     def __eq__(self, other: 'PhysicalBodyState'):
-        return (self.pose_is_almost_equal(other) and self.is_translating == other.is_translating
-                and self.is_rotating == other.is_rotating and self.velocity_is_almost_equal(other),
-                self.contact_points == other.contact_points)
+        return (self.pose_is_almost_equal(other)
+                and self.is_translating == other.is_translating
+                and self.is_rotating == other.is_rotating
+                and self.velocity_is_almost_equal(other)
+                )
 
     def pose_is_almost_equal(self, other: 'PhysicalBodyState') -> bool:
         """
@@ -585,26 +586,16 @@ class ObjectState(State):
     """
     Dataclass for storing the state of an object.
     """
-    pose: Pose
+    body_state: PhysicalBodyState
     attachments: Dict[Object, Attachment]
     link_states: Dict[int, LinkState]
     joint_states: Dict[int, JointState]
-    acceptable_pose_error: Tuple[float, float]
 
     def __eq__(self, other: 'ObjectState'):
-        return (self.pose_is_almost_equal(other)
+        return (self.body_state == other.body_state
                 and self.all_attachments_exist(other) and self.all_attachments_are_equal(other)
                 and self.link_states == other.link_states
                 and self.joint_states == other.joint_states)
-
-    def pose_is_almost_equal(self, other: 'ObjectState') -> bool:
-        """
-        Check if the pose of the object is almost equal to the pose of another object.
-
-        :param other: The state of the other object.
-        :return: True if the poses are almost equal, False otherwise.
-        """
-        return self.pose.almost_equal(other.pose, other.acceptable_pose_error[0], other.acceptable_pose_error[1])
 
     def all_attachments_exist(self, other: 'ObjectState') -> bool:
         """

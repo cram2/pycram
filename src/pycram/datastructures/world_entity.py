@@ -135,7 +135,7 @@ class PhysicalBody(WorldEntity, ABC):
 
     @property
     def current_state(self) -> PhysicalBodyState:
-        return PhysicalBodyState(self.pose, self.is_translating, self.is_rotating, self.velocity, self.contact_points)
+        return PhysicalBodyState(self.pose, self.is_translating, self.is_rotating, self.velocity)
 
     @property
     def velocity(self) -> Optional[List[float]]:
