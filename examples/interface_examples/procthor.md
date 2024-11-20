@@ -49,7 +49,8 @@ number_of_test_environment=5
 First let us check how many different environments are already known.
 
 ```python
-number_of_known_environment=len(procThorInterface.get_all_environments_stored_below_folder(procThorInterface.source_folder))
+number_of_known_environment = len(
+    procThorInterface.get_all_environments_stored_below_dictionary(procThorInterface.source_folder))
 print("Number of known Environments:{}".format(number_of_known_environment))
 print("Number of needed Testenvironments:{}".format(number_of_test_environment))
 ```
@@ -63,23 +64,24 @@ if number_of_known_environment < number_of_test_environment:
 
 Now that the preparations are met we can start to run our plan for each robot (even though it is only one) and each
 environment we know:
+
 ```python
 v = 0
 works = 0
 fails = 0
-known_environments = procThorInterface.get_all_environments_stored_below_folder(procThorInterface.source_folder)
-world=BulletWorld(WorldMode.GUI)
-apartment=None
+known_environments = procThorInterface.get_all_environments_stored_below_dictionary(procThorInterface.source_folder)
+world = BulletWorld(WorldMode.GUI)
+apartment = None
 milk_pos = Pose([1, -1.78, 0.55], [1, 0, 0, 0])
 milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, -1.78, 0.55], [1, 0, 0, 0]),
               color=Color(1, 0, 0, 1))
 for robot in robots:
-    robot_obj=Object("pr2", ObjectType.ROBOT, robot, pose=Pose([1, 2, 0]))
+    robot_obj = Object("pr2", ObjectType.ROBOT, robot, pose=Pose([1, 2, 0]))
     for environment in known_environments:
         v += 1
         print("Trying plan: {} with robot: {} in: {}".format("param_plan", robot, environment["name"]))
         try:
-            apartment = Object(environment["name"], ObjectType.ENVIRONMENT,environment["storage_place"])
+            apartment = Object(environment["name"], ObjectType.ENVIRONMENT, environment["storage_place"])
             generic_plan(world)
             works += 1
             print("Successfully!\n Overall successful tries: {}".format(works))
@@ -111,7 +113,6 @@ for robot in robots:
                 print("reseting world")
 if World.current_world is None:
     world.remove_object(robot_obj)
-
 
 print("Resume:\nOverall successful tries: {}\nOverall failed tries: {}".format(works, fails))
 World.current_world.exit()

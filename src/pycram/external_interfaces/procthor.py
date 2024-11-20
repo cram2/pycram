@@ -15,7 +15,7 @@ class ProcThorInterface:
         self.base_url = base_url
         self.source_folder = source_folder
         self.stored_environments = []
-        self.stored_environments.extend(self.get_all_environments_stored_below_folder(self.source_folder))
+        self.stored_environments.extend(self.get_all_environments_stored_below_dictionary(self.source_folder))
 
     def _download_file(self, base_url: str, full_url: str, folder: str) -> str:
         """
@@ -97,7 +97,7 @@ class ProcThorInterface:
 
     # Returns a list of all the urdf files in a given folder structure if non is given uses the base_source_folder
     # only look for urdf, but can be easly adapted
-    def get_all_environments_stored_below_folder(self, source_folder: str) -> list:
+    def get_all_environments_stored_below_dictionary(self, source_folder: str) -> list:
         """
         Returns a list of dictionaries that contains the name and the storage_place of all urdf files below a given
         folder. Only looks for urdf.
