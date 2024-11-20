@@ -253,6 +253,12 @@ class PickUpActionPerformable(ActionAbstract):
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
     not updated when the BulletWorld object is changed.
     """
+
+    prepose_distance: float = 0.07
+    """
+    The distance in meters the gripper should be at before picking up the object
+    """
+
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMPickUpAction)
 
     def __post_init__(self):

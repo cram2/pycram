@@ -43,7 +43,6 @@ class MoveMotion(BaseMotion):
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
         return pm_manager.navigate().execute(self)
-        # return ProcessModule.perform(self)
 
     def to_sql(self) -> ORMMoveMotion:
         return ORMMoveMotion()
@@ -52,6 +51,7 @@ class MoveMotion(BaseMotion):
         motion = super().insert(session)
         pose = self.target.insert(session)
         motion.pose = pose
+        motion.keep_joint_states = self.keep_joint_states
         session.add(motion)
 
         return motion

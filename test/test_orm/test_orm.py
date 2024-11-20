@@ -3,6 +3,8 @@ import time
 import unittest
 import time
 
+from anytree import RenderTree, AsciiStyle
+
 import owlready2
 from sqlalchemy import select
 import sqlalchemy.orm
@@ -90,15 +92,14 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "Unittest"
         pycram.tasktree.task_tree.root.insert(self.session, )
-
         node_results = self.session.scalars(select(pycram.orm.tasktree.TaskTreeNode)).all()
         self.assertEqual(len(node_results), len(pycram.tasktree.task_tree.root))
 
         position_results = self.session.scalars(select(pycram.orm.base.Position)).all()
-        self.assertEqual(14, len(position_results))
+        self.assertEqual(15, len(position_results))
 
         quaternion_results = self.session.scalars(select(pycram.orm.base.Quaternion)).all()
-        self.assertEqual(14, len(quaternion_results))
+        self.assertEqual(15, len(quaternion_results))
 
         park_arms_results = self.session.scalars(select(pycram.orm.action_designator.ParkArmsAction)).all()
         self.assertEqual(0, len(park_arms_results))

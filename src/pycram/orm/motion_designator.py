@@ -30,9 +30,12 @@ class Motion(MapperArgsMixin, Designator):
 class MoveMotion(PoseMixin, Motion):
     """
     ORM class of pycram.designators.motion_designator.MoveMotion
+
+    :ivar keep_joint_states: (Boolean) Keep the joint states of the robot during/at the end of the motion
     """
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
+    keep_joint_states: Mapped[bool] = mapped_column(init=False)
 
 
 class AccessingMotion(Motion):
