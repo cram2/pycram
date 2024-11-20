@@ -22,6 +22,7 @@ class PartialDesignator:
     to be filled, otherwise a TypeError will be raised, see the example below for usage.
 
     .. code-block:: python
+
             # Example usage
             partial_designator = PartialDesignator(PickUpActionPerformable, milk_object_designator, arm=[Arms.RIGHT, Arms.LEFT])
             for performable in partial_designator(Grasp.FRONT):

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import inspect
+from enum import Enum
+from typing import _GenericAlias
 
 import rospy
 from anytree import PreOrderIter
@@ -12,8 +14,6 @@ from .knowledge_source import KnowledgeSource
 from typing_extensions import Type, Callable, List, TYPE_CHECKING, Dict, Any
 
 from ..failures import KnowledgeNotAvailable, ReasoningError
-# This import is needed since the subclasses of KnowledgeSource need to be imported to be known at runtime
-from .knowledge_sources import *
 
 if TYPE_CHECKING:
     from ..designator import ActionDesignatorDescription
@@ -184,12 +184,18 @@ class KnowledgeEngine:
         for key, value in parameter.items():
             for parameter_name, type_hint in designator.performable_class.get_type_hints().items():
                 try:
-                    check_type(value, type_hint)
+                    # Distinction between Enum and other types, since check_type would check Enums and floats as an Enum
+                    # is technically just a number. Also excludes type hints, since they do not work with issubclass
+                    if issubclass(value.__class__, Enum) and not issubclass(type_hint.__class__, _GenericAlias):
+                        if not issubclass(value.__class__, type_hint):
+                            raise TypeCheckError(f"Expected type {type_hint} but got {value.__class__}")
+                    else:
+                        check_type(value, type_hint)
+
                     result_dict[parameter_name] = value
                 except TypeCheckError as e:
                     continue
         return result_dict
-
 
 class ReasoningInstance:
     """
