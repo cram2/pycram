@@ -35,8 +35,8 @@ class TaskTreeTestCase(BulletWorldTestCase):
         # self.tearDownBulletWorld()
         tt = pycram.tasktree.task_tree
 
-        self.assertEqual(15, len(tt.root))
-        self.assertEqual(10, len(tt.root.leaves))
+        self.assertEqual(16, len(tt.root))
+        self.assertEqual(11, len(tt.root.leaves))
 
         # check that all nodes succeeded
         for node in anytree.PreOrderIter(tt.root):
@@ -74,8 +74,8 @@ class TaskTreeTestCase(BulletWorldTestCase):
             self.plan()
             tt = pycram.tasktree.task_tree
 
-            self.assertEqual(15, len(tt.root))
-            self.assertEqual(10, len(tt.root.leaves))
+            self.assertEqual(16, len(tt.root))
+            self.assertEqual(11, len(tt.root.leaves))
 
         self.assertEqual(len(pycram.tasktree.task_tree), 1)
 
