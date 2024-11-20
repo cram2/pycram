@@ -479,6 +479,58 @@ class State(ABC):
 
 
 @dataclass
+class PhysicalBodyState(State):
+    """
+    Dataclass for storing the state of a physical body.
+    """
+    pose: Pose
+    is_translating: Optional[bool]
+    is_rotating: Optional[bool]
+    velocity: Optional[List[float]]
+    contact_points: Optional[ContactPointsList]
+    acceptable_pose_error: Tuple[float, float] = (0.001, 0.001)
+    acceptable_velocity_error: Tuple[float, float] = (0.001, 0.001)
+
+    def __eq__(self, other: 'PhysicalBodyState'):
+        return (self.pose_is_almost_equal(other) and self.is_translating == other.is_translating
+                and self.is_rotating == other.is_rotating and self.velocity_is_almost_equal(other),
+                self.contact_points == other.contact_points)
+
+    def pose_is_almost_equal(self, other: 'PhysicalBodyState') -> bool:
+        """
+        Check if the pose of the object is almost equal to the pose of another object.
+
+        :param other: The state of the other object.
+        :return: True if the poses are almost equal, False otherwise.
+        """
+        return self.pose.almost_equal(other.pose, other.acceptable_pose_error[0], other.acceptable_pose_error[1])
+
+    def velocity_is_almost_equal(self, other: 'PhysicalBodyState') -> bool:
+        """
+        Check if the velocity of the object is almost equal to the velocity of another object.
+
+        :param other: The state of the other object.
+        :return: True if the velocities are almost equal, False otherwise.
+        """
+        return ((self.velocity is None and other.velocity is None) or
+                (self.vector_is_almost_equal(self.velocity, other.velocity, self.acceptable_velocity_error[0]) and
+                self.is_translating == other.is_translating and self.is_rotating == other.is_rotating)
+                )
+
+    @staticmethod
+    def vector_is_almost_equal(vector1: List[float], vector2: List[float], acceptable_error: float) -> bool:
+        """
+        Check if the vector is almost equal to another vector.
+
+        :param vector1: The first vector.
+        :param vector2: The second vector.
+        :param acceptable_error: The acceptable error.
+        :return: True if the vectors are almost equal, False otherwise.
+        """
+        return np.all(np.array(vector1) - np.array(vector2) <= acceptable_error)
+
+
+@dataclass
 class LinkState(State):
     """
     Dataclass for storing the state of a link.
@@ -815,6 +867,7 @@ class VirtualJoint:
     name: str
     type_: JointType
     axes: Optional[Point] = None
+    object: Optional[Object] = None
 
     @property
     def type(self):

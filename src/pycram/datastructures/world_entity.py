@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 import os
 import pickle
 from abc import ABC, abstractmethod
 
-from typing_extensions import TYPE_CHECKING, Dict, Optional
+from typing_extensions import TYPE_CHECKING, Dict, Optional, List
 
-from .dataclasses import State
+from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, VisualShape, PhysicalBodyState
 
 if TYPE_CHECKING:
     from ..datastructures.world import World
+    from .pose import Pose, Point, GeoQuaternion as Quaternion
 
 
 class StateEntity:
@@ -110,10 +113,124 @@ class StateEntity:
 
 class WorldEntity(StateEntity, ABC):
     """
-    A data class that represents an entity of the world, such as an object or a link.
+    A class that represents an entity of the world, such as an object or a link.
     """
 
-    def __init__(self, _id: int, world: 'World'):
+    def __init__(self, _id: int, world: World):
         StateEntity.__init__(self)
         self.id = _id
-        self.world: 'World' = world
+        self.world: World = world
+
+
+class PhysicalBody(WorldEntity, ABC):
+    """
+    A class that represents a physical body in the world that has some related physical properties.
+    """
+
+    def __init__(self, body_id: int, world: World):
+        WorldEntity.__init__(self, body_id, world)
+        self._is_translating: Optional[bool] = None
+        self._is_rotating: Optional[bool] = None
+        self._velocity: Optional[List[float]] = None
+
+    @property
+    def current_state(self) -> PhysicalBodyState:
+        return PhysicalBodyState(self.pose, self.is_translating, self.is_rotating, self.velocity, self.contact_points)
+
+    @property
+    def velocity(self) -> Optional[List[float]]:
+        return self._velocity
+
+    @velocity.setter
+    def velocity(self, velocity: List[float]) -> None:
+        self._velocity = velocity
+
+    @property
+    def is_translating(self) -> Optional[bool]:
+        return self._is_translating
+
+    @is_translating.setter
+    def is_translating(self, is_translating: bool) -> None:
+        self._is_translating = is_translating
+
+    @property
+    def is_rotating(self) -> Optional[bool]:
+        return self._is_rotating
+
+    @is_rotating.setter
+    def is_rotating(self, is_rotating: bool) -> None:
+        self._is_rotating = is_rotating
+
+    @abstractmethod
+    @property
+    def color(self) -> Color:
+        """
+        :return: The color of this body.
+        """
+        ...
+
+    @abstractmethod
+    @property
+    def shape(self) -> VisualShape:
+        """
+        :return: The shape of this body.
+        """
+        ...
+
+    @abstractmethod
+    @property
+    def pose(self) -> Pose:
+        """
+        :return: The pose of this entity.
+        """
+        ...
+
+    @abstractmethod
+    @property
+    def contact_points(self) -> ContactPointsList:
+        """
+        :return: The contact points of this body with other physical bodies.
+        """
+        ...
+
+    @abstractmethod
+    def get_contact_points_with_body(self, body: 'PhysicalBody') -> ContactPointsList:
+        """
+        :param body: The body to get the contact points with.
+        :return: The contact points of this body with the given body.
+        """
+        ...
+
+    @abstractmethod
+    @property
+    def distances(self) -> Dict['PhysicalBody', float]:
+        """
+        :return: The closest distances of this body to other physical bodies.
+        """
+        ...
+
+    @abstractmethod
+    def get_distance_with_body(self, body: 'PhysicalBody') -> float:
+        """
+        :param body: The body to get the distance with.
+        :return: The closest distance of this body to the given body.
+        """
+        ...
+
+    @property
+    def is_moving(self) -> Optional[bool]:
+        """
+        :return: True if this body is moving, False if not, and None if not known.
+        """
+        if self.is_translating is not None or self.is_rotating is not None:
+            return self.is_translating or self.is_rotating
+        else:
+            return None
+
+    @property
+    def is_stationary(self) -> Optional[bool]:
+        """
+        :return: True if this body is stationary, False otherwise.
+        """
+        return None if self.is_moving is None else not self.is_moving
+
