@@ -92,7 +92,7 @@ class SemanticCostmapTestCase(BulletWorldTestCase):
 
 class ProbabilisticCostmapTestCase(BulletWorldTestCase):
 
-    origin = Pose([0, 1, 0], [0, 0, 0, 1])
+    origin = Pose([1.5, 1, 0], [0, 0, 0, 1])
 
     def setUp(self):
         super().setUp()

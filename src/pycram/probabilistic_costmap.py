@@ -10,13 +10,14 @@ from random_events.interval import closed, closed_open
 from typing_extensions import Optional, Type
 from visualization_msgs.msg import Marker, MarkerArray
 
-from . import World
+from .datastructures.world import World
 from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
 import matplotlib.colorbar
 from .datastructures.pose import Pose
 from .ros.data_types import Duration
 from .ros.publisher import create_publisher
 from .units import meter, centimeter
+from .robot_description import RobotDescription
 
 from pint import Unit, Quantity
 from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event, fully_factorized
@@ -80,20 +81,22 @@ class ProbabilisticCostmap:
         resolution = self.size.to(meter) / number_of_cells
 
         if costmap_type == OccupancyCostmap:
+            robot_bounding_box = self.world.robot.get_axis_aligned_bounding_box()
+            distance_to_obstacle = max(robot_bounding_box.width, robot_bounding_box.depth) / 2
             self.costmap = OccupancyCostmap(
                 origin=self.origin,
-                distance_to_obstacle=0.2,
+                distance_to_obstacle=distance_to_obstacle,
                 size=number_of_cells,
                 resolution=resolution.magnitude,
                 from_ros=False,
                 world = self.world)
         elif costmap_type == VisibilityCostmap:
+            camera = list(self.world.robot_description.cameras.values())[0]
             self.costmap = VisibilityCostmap(
-                min_height=0, max_height=2, size=number_of_cells, resolution=resolution.magnitude,
-                origin=self.origin, world=self.world)
+                min_height=camera.minimal_height, max_height=camera.maximal_height, size=number_of_cells,
+                resolution=resolution.magnitude, origin=self.origin, world=self.world)
         else:
             raise NotImplementedError(f"Unknown costmap type {costmap_type}")
-
         self.create_distribution()
 
     @cached_property
