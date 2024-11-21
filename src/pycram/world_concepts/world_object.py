@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from functools import cached_property
 from pathlib import Path
 
 import numpy as np
@@ -18,7 +19,7 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
-from ..datastructures.world_entity import WorldEntity
+from ..datastructures.world_entity import WorldEntity, PhysicalBody
 from ..description import ObjectDescription, LinkDescription, Joint
 from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, UnsupportedFileExtension, \
     ObjectDescriptionUndefined
@@ -40,7 +41,7 @@ from pycrap import PhysicalObject, ontology, Base, Agent
 Link = ObjectDescription.Link
 
 
-class Object(WorldEntity, HasConcept):
+class Object(PhysicalBody):
     """
     Represents a spawned Object in the World.
     """
@@ -54,8 +55,6 @@ class Object(WorldEntity, HasConcept):
     """
     A dictionary that maps the file extension to the corresponding ObjectDescription type.
     """
-
-    ontology_concept: Type[PhysicalObject] = PhysicalObject
 
     def __init__(self, name: str, concept: Type[PhysicalObject], path: Optional[str] = None,
                  description: Optional[ObjectDescription] = None,
@@ -118,8 +117,6 @@ class Object(WorldEntity, HasConcept):
 
         self.id = self._spawn_object_and_get_id()
 
-        self.tf_frame = (self.tf_prospection_world_prefix if self.world.is_prospection_world else "") + self.name
-
         self._init_joint_name_and_id_map()
         self._init_link_name_and_id_map()
 
@@ -129,6 +126,49 @@ class Object(WorldEntity, HasConcept):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.add_object(self)
+
+    @cached_property
+    def tf_frame(self) -> str:
+        """
+        The tf frame of the object.
+        """
+        return (self.tf_prospection_world_prefix if self.world.is_prospection_world else "") + self.name
+
+    @property
+    def color(self) -> Union[Color, Dict[str, Color]]:
+        """
+        Return the rgba_color of this object. The return is either:
+
+            1. A Color object with RGBA values, this is the case if the object only has one link (this
+                happens for example if the object is spawned from a .obj or .stl file)
+            2. A dict with the link name as key and the rgba_color as value. The rgba_color is given as a Color Object.
+                Please keep in mind that not every link may have a rgba_color. This is dependent on the URDF from which
+                 the object is spawned.
+
+        :return: The rgba_color as Color object with RGBA values between 0 and 1 or a dict with the link name as key and
+         the rgba_color as value.
+        """
+        link_to_color_dict = self.links_colors
+
+        if len(link_to_color_dict) == 1:
+            return list(link_to_color_dict.values())[0]
+        else:
+            return link_to_color_dict
+
+    @color.setter
+    def color(self, rgba_color: Color) -> None:
+        """
+        Change the color of this object.
+
+        :param rgba_color: The color as Color object with RGBA values between 0 and 1
+        """
+        # Check if there is only one link, this is the case for primitive
+        # forms or if loaded from an .stl or .obj file
+        if self.links != {}:
+            for link in self.links.values():
+                link.color = rgba_color
+        else:
+            self.root_link.color = rgba_color
 
     def get_mesh_path(self) -> str:
         """
@@ -745,15 +785,14 @@ class Object(WorldEntity, HasConcept):
         """
         return self.get_pose().orientation_as_list()
 
+    @deprecated("Use property 'pose' instead.")
     def get_pose(self) -> Pose:
         """
         Return the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
 
         :return: The current pose of this object
         """
-        if self.world.conf.update_poses_from_sim_on_get:
-            self.update_pose()
-        return self._current_pose
+        return self.pose
 
     def set_pose(self, pose: Pose, base: bool = False, set_attachments: bool = True) -> None:
         """
@@ -772,25 +811,8 @@ class Object(WorldEntity, HasConcept):
         if set_attachments:
             self._set_attached_objects_poses()
 
-    def reset_base_pose(self, pose: Pose):
-        if self.world.reset_object_base_pose(self, pose):
-            self.update_pose()
-
-    def update_pose(self):
-        """
-        Update the current pose of this object from the world, and updates the poses of all links.
-        """
-        self._current_pose = self.world.get_object_pose(self)
-        # TODO: Probably not needed, need to test
-        self._update_all_links_poses()
-        self.update_link_transforms()
-
-    def _update_all_links_poses(self):
-        """
-        Update the poses of all links by getting them from the simulator.
-        """
-        for link in self.links.values():
-            link.update_pose()
+    def reset_base_pose(self, pose: Pose) -> bool:
+        return self.world.reset_object_base_pose(self, pose)
 
     def move_base_to_origin_pose(self) -> None:
         """
@@ -1152,7 +1174,7 @@ class Object(WorldEntity, HasConcept):
         """
         self.clip_joint_positions_to_limits({joint_name: joint_position})
         if self.world.reset_joint_position(self.joints[joint_name], joint_position):
-            self._update_on_joint_position_change()
+            self._set_attached_objects_poses()
 
     @deprecated("Use set_multiple_joint_positions instead")
     def set_joint_positions(self, joint_positions: Dict[str, float]) -> None:
@@ -1168,7 +1190,7 @@ class Object(WorldEntity, HasConcept):
         joint_positions = {self.joints[joint_name]: joint_position
                            for joint_name, joint_position in joint_positions.items()}
         if self.world.set_multiple_joint_positions(joint_positions):
-            self._update_on_joint_position_change()
+            self._set_attached_objects_poses()
 
     def clip_joint_positions_to_limits(self, joint_positions: Dict[str, float]) -> Dict[str, float]:
         """
@@ -1181,12 +1203,6 @@ class Object(WorldEntity, HasConcept):
                                     self.joints[joint_name].upper_limit)
                 if self.joints[joint_name].has_limits else joint_position
                 for joint_name, joint_position in joint_positions.items()}
-
-    def _update_on_joint_position_change(self):
-        self.update_pose()
-        self._update_all_links_poses()
-        self.update_link_transforms()
-        self._set_attached_objects_poses()
 
     def get_joint_position(self, joint_name: str) -> float:
         """
@@ -1362,40 +1378,13 @@ class Object(WorldEntity, HasConcept):
         """
         return self.world.get_closest_points_between_objects(self, other_object, max_distance)
 
+    @deprecated("Use property setter 'color' instead.")
     def set_color(self, rgba_color: Color) -> None:
-        """
-        Change the color of this object, the color has to be given as a list
-        of RGBA values.
+        self.color = rgba_color
 
-        :param rgba_color: The color as Color object with RGBA values between 0 and 1
-        """
-        # Check if there is only one link, this is the case for primitive
-        # forms or if loaded from an .stl or .obj file
-        if self.links != {}:
-            for link in self.links.values():
-                link.color = rgba_color
-        else:
-            self.root_link.color = rgba_color
-
+    @deprecated("Use property 'color' instead.")
     def get_color(self) -> Union[Color, Dict[str, Color]]:
-        """
-        Return the rgba_color of this object. The return is either:
-
-            1. A Color object with RGBA values, this is the case if the object only has one link (this
-                happens for example if the object is spawned from a .obj or .stl file)
-            2. A dict with the link name as key and the rgba_color as value. The rgba_color is given as a Color Object.
-                Please keep in mind that not every link may have a rgba_color. This is dependent on the URDF from which
-                 the object is spawned.
-
-        :return: The rgba_color as Color object with RGBA values between 0 and 1 or a dict with the link name as key and
-         the rgba_color as value.
-        """
-        link_to_color_dict = self.links_colors
-
-        if len(link_to_color_dict) == 1:
-            return list(link_to_color_dict.values())[0]
-        else:
-            return link_to_color_dict
+        return self.color
 
     @property
     def links_colors(self) -> Dict[str, Color]:

@@ -53,8 +53,8 @@ def contact(
         prospection_obj1 = World.current_world.get_prospection_object_for_object(object1)
         prospection_obj2 = World.current_world.get_prospection_object_for_object(object2)
         World.current_world.perform_collision_detection()
-        con_points: ContactPointsList = World.current_world.get_contact_points_between_two_objects(prospection_obj1,
-                                                                                                   prospection_obj2)
+        con_points: ContactPointsList = World.current_world.get_contact_points_between_two_bodies(prospection_obj1,
+                                                                                                  prospection_obj2)
         objects_are_in_contact = len(con_points) > 0
         if return_links:
             contact_links = [(point.link_a, point.link_b) for point in con_points]

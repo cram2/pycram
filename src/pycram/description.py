@@ -5,18 +5,16 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 
-from trimesh.parent import Geometry3D
-
-from .ros.data_types import Time
 import trimesh
-from geometry_msgs.msg import Point, Quaternion
-from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, deprecated
+from geometry_msgs.msg import Point
+from trimesh.parent import Geometry3D
+from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, Sequence
 
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
-    MeshVisualShape, RotatedBoundingBox
+    MeshVisualShape, RotatedBoundingBox, ContactPointsList
 from .datastructures.enums import JointType
 from .datastructures.pose import Pose, Transform
-from .datastructures.world_entity import WorldEntity
+from .datastructures.world_entity import WorldEntity, PhysicalBody
 from .failures import ObjectDescriptionNotFound, LinkHasNoGeometry, LinkGeometryHasNoMesh
 from .local_transformer import LocalTransformer
 
@@ -28,6 +26,12 @@ class EntityDescription(ABC):
     """
     A description of an entity. This can be a link, joint or object description.
     """
+
+    def __init__(self, parsed_description: Optional[Any] = None):
+        """
+        :param parsed_description: The parsed description (most likely from a description file) of the entity.
+        """
+        self.parsed_description = parsed_description
 
     @property
     @abstractmethod
@@ -74,7 +78,7 @@ class JointDescription(EntityDescription):
         :param parsed_joint_description: The parsed description of the joint (e.g. from urdf or mjcf file).
         :param is_virtual: True if the joint is virtual (i.e. not a physically existing joint), False otherwise.
         """
-        self.parsed_description = parsed_joint_description
+        super().__init__(parsed_joint_description)
         self.is_virtual: Optional[bool] = is_virtual
 
     @property
@@ -158,14 +162,13 @@ class JointDescription(EntityDescription):
         raise NotImplementedError
 
 
-class ObjectEntity(WorldEntity):
+class ObjectEntity:
     """
-    An abstract base class that represents a physical part/entity of an Object.
+    An abstract base class that represents a part of an Object.
     This can be a link or a joint of an Object.
     """
 
-    def __init__(self, _id: int, obj: Object):
-        WorldEntity.__init__(self, _id, obj.world)
+    def __init__(self, obj: Object):
         self.object: Object = obj
 
     @property
@@ -176,33 +179,6 @@ class ObjectEntity(WorldEntity):
         return self.object.name
 
     @property
-    @abstractmethod
-    def pose(self) -> Pose:
-        """
-        :return: The pose of this entity relative to the world frame.
-        """
-        pass
-
-    @property
-    def transform(self) -> Transform:
-        """
-        The transform of this entity.
-
-        :return: The transform of this entity.
-        """
-        return self.pose.to_transform(self.tf_frame)
-
-    @property
-    @abstractmethod
-    def tf_frame(self) -> str:
-        """
-        The tf frame of this entity.
-
-        :return: The tf frame of this entity.
-        """
-        pass
-
-    @property
     def object_id(self) -> int:
         """
         :return: the id of the object to which this entity belongs.
@@ -210,18 +186,17 @@ class ObjectEntity(WorldEntity):
         return self.object.id
 
 
-class Link(ObjectEntity, LinkDescription, ABC):
+class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
     """
     A link of an Object in the World.
     """
 
     def __init__(self, _id: int, link_description: LinkDescription, obj: Object):
-        ObjectEntity.__init__(self, _id, obj)
+        PhysicalBody.__init__(self, _id, obj.world)
+        ObjectEntity.__init__(self, obj)
         LinkDescription.__init__(self, link_description.parsed_description, link_description.mesh_dir)
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
-        self._current_pose: Optional[Pose] = None
-        self.update_pose()
 
     def get_axis_aligned_bounding_box(self, transform_to_link_pose: bool = True) -> AxisAlignedBoundingBox:
         """
@@ -303,7 +278,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
         else:
             raise LinkGeometryHasNoMesh(self.name, type(geometry).__name__)
 
-    def set_pose(self, pose: Pose) -> None:
+    def set_object_pose_given_link_pose(self, pose: Pose) -> None:
         """
         Set the pose of this link to the given pose.
         NOTE: This will move the entire object such that the link is at the given pose, it will not consider any joints
@@ -406,14 +381,6 @@ class Link(ObjectEntity, LinkDescription, ABC):
         """
         return self.object.get_root_link_id() == self.id
 
-    def update_transform(self, transform_time: Optional[Time] = None) -> None:
-        """
-        Update the transformation of this link at the given time.
-
-        :param transform_time: The time at which the transformation should be updated.
-        """
-        self.local_transformer.update_transforms([self.transform], transform_time)
-
     def get_transform_to_link(self, link: 'Link') -> Transform:
         """
         :param link: The link to which the transformation should be returned.
@@ -435,56 +402,6 @@ class Link(ObjectEntity, LinkDescription, ABC):
         """
         return self.local_transformer.transform_pose(self.pose, link.tf_frame)
 
-    @property
-    def position(self) -> Point:
-        """
-        :return: A Point object containing the position of the link relative to the world frame.
-        """
-        return self.pose.position
-
-    @property
-    def position_as_list(self) -> List[float]:
-        """
-        :return: A list containing the position of the link relative to the world frame.
-        """
-        return self.pose.position_as_list()
-
-    @property
-    def orientation(self) -> Quaternion:
-        """
-        :return: A Quaternion object containing the orientation of the link relative to the world frame.
-        """
-        return self.pose.orientation
-
-    @property
-    def orientation_as_list(self) -> List[float]:
-        """
-        :return: A list containing the orientation of the link relative to the world frame.
-        """
-        return self.pose.orientation_as_list()
-
-    def update_pose(self) -> None:
-        """
-        Update the current pose of this link from the world.
-        """
-        self._current_pose = self.world.get_link_pose(self)
-
-    @property
-    def pose(self) -> Pose:
-        """
-        :return: A Pose object containing the pose of the link relative to the world frame.
-        """
-        if self.world.conf.update_poses_from_sim_on_get:
-            self.update_pose()
-        return self._current_pose
-
-    @property
-    def pose_as_list(self) -> List[List[float]]:
-        """
-        :return: A list containing the position and orientation of the link relative to the world frame.
-        """
-        return self.pose.to_list()
-
     def get_origin_transform(self) -> Transform:
         """
         :return: the transformation between the link frame and the origin frame of this link.
@@ -492,20 +409,18 @@ class Link(ObjectEntity, LinkDescription, ABC):
         return self.origin.to_transform(self.tf_frame)
 
     @property
+    def pose(self) -> Pose:
+        """
+        :return: The pose of this link.
+        """
+        return self.world.get_link_pose(self)
+
+    @property
     def color(self) -> Color:
         """
         :return: A Color object containing the rgba_color of this link.
         """
         return self.world.get_link_color(self)
-
-    @deprecated("Use color property setter instead")
-    def set_color(self, color: Color) -> None:
-        """
-        Set the color of this link, could be rgb or rgba.
-
-        :param color: The color as a list of floats, either rgb or rgba.
-        """
-        self.color = color
 
     @color.setter
     def color(self, color: Color) -> None:
@@ -515,13 +430,6 @@ class Link(ObjectEntity, LinkDescription, ABC):
         :param color: The color as a list of floats, either rgb or rgba.
         """
         self.world.set_link_color(self, color)
-
-    @property
-    def origin_transform(self) -> Transform:
-        """
-        :return: The transform from world to origin of entity.
-        """
-        return self.origin.to_transform(self.tf_frame)
 
     @property
     def tf_frame(self) -> str:
@@ -556,14 +464,18 @@ class RootLink(Link, ABC):
         """
         return self.object.tf_frame
 
-    def update_pose(self) -> None:
-        self._current_pose = self.world.get_object_pose(self.object)
+    @property
+    def pose(self) -> Pose:
+        """
+        :return: The pose of the root link, which is the same as the pose of the object.
+        """
+        return self.object.pose
 
     def __copy__(self):
         return RootLink(self.object)
 
 
-class Joint(ObjectEntity, JointDescription, ABC):
+class Joint(WorldEntity, ObjectEntity, JointDescription, ABC):
     """
     Represent a joint of an Object in the World.
     """
@@ -571,7 +483,8 @@ class Joint(ObjectEntity, JointDescription, ABC):
     def __init__(self, _id: int,
                  joint_description: JointDescription,
                  obj: Object, is_virtual: Optional[bool] = False):
-        ObjectEntity.__init__(self, _id, obj)
+        WorldEntity.__init__(self, _id, obj.world)
+        ObjectEntity.__init__(self, obj)
         JointDescription.__init__(self, joint_description.parsed_description, is_virtual)
         self.acceptable_error = (self.world.conf.revolute_joint_position_tolerance if self.type == JointType.REVOLUTE
                                  else self.world.conf.prismatic_joint_position_tolerance)
@@ -706,7 +619,7 @@ class ObjectDescription(EntityDescription):
         """
         :param path: The path of the file to update the description data from.
         """
-
+        super().__init__(None)
         self._links: Optional[List[LinkDescription]] = None
         self._joints: Optional[List[JointDescription]] = None
         self._link_map: Optional[Dict[str, Any]] = None

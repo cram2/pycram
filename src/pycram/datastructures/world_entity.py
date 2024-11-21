@@ -4,13 +4,17 @@ import os
 import pickle
 from abc import ABC, abstractmethod
 
-from typing_extensions import TYPE_CHECKING, Dict, Optional, List
+from trimesh.parent import Geometry3D
+from typing_extensions import TYPE_CHECKING, Dict, Optional, List, Any, deprecated, Union
 
-from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, VisualShape, PhysicalBodyState
+from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, VisualShape, PhysicalBodyState, \
+    AxisAlignedBoundingBox, RotatedBoundingBox
+from ..local_transformer import LocalTransformer
+from ..ros.data_types import Time
 
 if TYPE_CHECKING:
     from ..datastructures.world import World
-    from .pose import Pose, Point, GeoQuaternion as Quaternion
+    from .pose import Pose, Point, GeoQuaternion as Quaternion, Transform
 
 
 class StateEntity:
@@ -129,9 +133,37 @@ class PhysicalBody(WorldEntity, ABC):
 
     def __init__(self, body_id: int, world: World):
         WorldEntity.__init__(self, body_id, world)
+        self.local_transformer = LocalTransformer()
         self._is_translating: Optional[bool] = None
         self._is_rotating: Optional[bool] = None
         self._velocity: Optional[List[float]] = None
+
+    @abstractmethod
+    def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+        """
+        :return: The axis-aligned bounding box of this body.
+        """
+        ...
+
+    @abstractmethod
+    def get_rotated_bounding_box(self) -> RotatedBoundingBox:
+        """
+        :return: The rotated bounding box of this body.
+        """
+        ...
+
+    def _plot_convex_hull(self):
+        """
+        Plot the convex hull of the geometry.
+        """
+        self.get_convex_hull().show()
+
+    @abstractmethod
+    def get_convex_hull(self) -> Geometry3D:
+        """
+        :return: The convex hull of this body.
+        """
+        ...
 
     @property
     def current_state(self) -> PhysicalBodyState:
@@ -161,61 +193,103 @@ class PhysicalBody(WorldEntity, ABC):
     def is_rotating(self, is_rotating: bool) -> None:
         self._is_rotating = is_rotating
 
-    @abstractmethod
     @property
-    def color(self) -> Color:
+    def position(self) -> Point:
         """
-        :return: The color of this body.
+        :return: A Point object containing the position of the link relative to the world frame.
         """
-        ...
+        return self.pose.position
 
-    @abstractmethod
     @property
-    def shape(self) -> VisualShape:
+    def position_as_list(self) -> List[float]:
         """
-        :return: The shape of this body.
+        :return: A list containing the position of the link relative to the world frame.
         """
-        ...
+        return self.pose.position_as_list()
 
-    @abstractmethod
     @property
+    def orientation(self) -> Quaternion:
+        """
+        :return: A Quaternion object containing the orientation of the link relative to the world frame.
+        """
+        return self.pose.orientation
+
+    @property
+    def orientation_as_list(self) -> List[float]:
+        """
+        :return: A list containing the orientation of the link relative to the world frame.
+        """
+        return self.pose.orientation_as_list()
+
+    @property
+    def pose_as_list(self) -> List[List[float]]:
+        """
+        :return: A list containing the position and orientation of the link relative to the world frame.
+        """
+        return self.pose.to_list()
+
+    @property
+    def transform(self) -> Transform:
+        """
+        The transform of this entity.
+
+        :return: The transform of this entity.
+        """
+        return self.pose.to_transform(self.tf_frame)
+
+    def update_transform(self, transform_time: Optional[Time] = None) -> None:
+        """
+        Update the transformation of this link at the given time.
+
+        :param transform_time: The time at which the transformation should be updated.
+        """
+        self.local_transformer.update_transforms([self.transform], transform_time)
+
+    @property
+    @abstractmethod
     def pose(self) -> Pose:
         """
-        :return: The pose of this entity.
+        :return: A Pose object containing the pose of the link relative to the world frame.
         """
         ...
 
+    @property
     @abstractmethod
+    def tf_frame(self) -> str:
+        """
+        The tf frame of this entity.
+
+        :return: The tf frame of this entity.
+        """
+        pass
+
     @property
     def contact_points(self) -> ContactPointsList:
         """
         :return: The contact points of this body with other physical bodies.
         """
-        ...
+        return self.world.get_body_contact_points(self)
 
-    @abstractmethod
     def get_contact_points_with_body(self, body: 'PhysicalBody') -> ContactPointsList:
         """
         :param body: The body to get the contact points with.
         :return: The contact points of this body with the given body.
         """
-        ...
+        return self.world.get_contact_points_between_two_bodies(self, body)
 
-    @abstractmethod
     @property
     def distances(self) -> Dict['PhysicalBody', float]:
         """
         :return: The closest distances of this body to other physical bodies.
         """
-        ...
+        return self.world.get_body_distances(self)
 
-    @abstractmethod
     def get_distance_with_body(self, body: 'PhysicalBody') -> float:
         """
         :param body: The body to get the distance with.
         :return: The closest distance of this body to the given body.
         """
-        ...
+        return self.world.get_distance_between_two_bodies(self, body)
 
     @property
     def is_moving(self) -> Optional[bool]:
@@ -233,4 +307,31 @@ class PhysicalBody(WorldEntity, ABC):
         :return: True if this body is stationary, False otherwise.
         """
         return None if self.is_moving is None else not self.is_moving
+
+    @property
+    @abstractmethod
+    def color(self) -> Union[Color, Dict[str, Color]]:
+        """
+        :return: A Color object containing the rgba_color of this body or a dictionary if the body is articulated.
+        """
+        ...
+
+    @deprecated("Use color property setter instead")
+    def set_color(self, color: Color) -> None:
+        """
+        Set the color of this body, could be rgb or rgba.
+
+        :param color: The color as a list of floats, either rgb or rgba.
+        """
+        self.color = color
+
+    @color.setter
+    @abstractmethod
+    def color(self, color: Color) -> None:
+        """
+        Set the color of this body, could be rgb or rgba.
+
+        :param color: The color as a list of floats, either rgb or rgba.
+        """
+        ...
 

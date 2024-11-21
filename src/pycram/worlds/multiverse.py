@@ -607,7 +607,7 @@ class Multiverse(World):
         contact_force_array = obj_rot_matrix @ np.array(contact_force).reshape(3, 1)
         return contact_force_array.flatten().tolist()[2]
 
-    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
+    def get_contact_points_between_two_bodies(self, obj1: Object, obj2: Object) -> ContactPointsList:
         obj1_contact_points = self.get_object_contact_points(obj1)
         return obj1_contact_points.get_points_of_object(obj2)
 

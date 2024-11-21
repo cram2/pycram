@@ -10,7 +10,7 @@ from copy import copy
 import numpy as np
 from geometry_msgs.msg import Point
 from trimesh.parent import Geometry3D
-from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
+from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
 import pycrap
 from pycrap import PhysicalObject, Floor, Apartment, Robot
@@ -24,7 +24,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox)
 from ..datastructures.enums import JointType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
-from ..datastructures.world_entity import StateEntity
+from ..datastructures.world_entity import StateEntity, PhysicalBody
 from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
@@ -136,6 +136,65 @@ class World(StateEntity, ABC):
         self.original_state_id = self.save_state()
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
+
+    def get_link_contact_points(self, link: Link) -> ContactPointsList:
+        """
+        Return the contact points of a link with all other objects in the world.
+
+        :param link: The link.
+        :return: A list of contact points.
+        """
+        raise NotImplementedError
+
+    def get_link_contact_points_with_body(self, link: Link, body: PhysicalBody) -> ContactPointsList:
+        """
+        Return the contact points of a link with a specific body in the world.
+
+        :param link: The link.
+        :param body: The body.
+        :return: A list of contact points.
+        """
+        raise NotImplementedError
+
+    def get_link_distance_with_body(self, link: Link, body: PhysicalBody) -> float:
+        """
+        Return the distance of a link with a specific body in the world.
+
+        :param link: The link.
+        :param body: The body.
+        :return: The distance between the link and the body.
+        """
+        raise NotImplementedError
+
+    def get_link_closest_points_with_body(self, link: Link, body: PhysicalBody, max_distance: float) -> ClosestPointsList:
+        """
+        Return the closest points of a link with a specific body in the world.
+
+        :param link: The link.
+        :param body: The body.
+        :param max_distance: The maximum distance between the points.
+        :return: A list of closest points.
+        """
+        raise NotImplementedError
+
+    def get_link_distances(self, link: Link) -> Dict[PhysicalBody, float]:
+        """
+        Return the distances of a link with all other objects in the world.
+
+        :param link: The link.
+        :return: A dictionary of object names and distances.
+        """
+        raise NotImplementedError
+
+    def get_link_closest_points(self, link: Link, max_distance: float) -> ClosestPointsList:
+        """
+        Return the closest points of a link with all other objects in the world.
+
+        :param link: The link.
+        :param max_distance: The maximum distance between the points.
+        :return: A list of closest points.
+        """
+        raise NotImplementedError
 
     def get_object_convex_hull(self, obj: Object) -> Geometry3D:
         """
@@ -636,7 +695,7 @@ class World(StateEntity, ABC):
             curr_time = Time().now()
             self.step(func)
             for objects, callbacks in self.coll_callbacks.items():
-                contact_points = self.get_contact_points_between_two_objects(objects[0], objects[1])
+                contact_points = self.get_contact_points_between_two_bodies(objects[0], objects[1])
                 if len(contact_points) > 0:
                     callbacks.on_collision_cb()
                 elif callbacks.no_collision_cb is not None:
@@ -645,14 +704,6 @@ class World(StateEntity, ABC):
                 loop_time = Time().now() - curr_time
                 time_diff = self.simulation_time_step - loop_time.to_sec()
                 time.sleep(max(0, time_diff))
-        self.update_all_objects_poses()
-
-    def update_all_objects_poses(self) -> None:
-        """
-        Update the positions of all objects in the world.
-        """
-        for obj in self.objects:
-            obj.update_pose()
 
     @abstractmethod
     def get_object_pose(self, obj: Object) -> Pose:
@@ -737,7 +788,7 @@ class World(StateEntity, ABC):
         """
         pass
 
-    @abstractmethod
+    @deprecated("Use get_body_contact_points instead")
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
         Return a list of contact points of this Object with all other Objects.
@@ -745,16 +796,53 @@ class World(StateEntity, ABC):
         :param obj: The object.
         :return: A list of all contact points with other objects
         """
+        return self.get_body_contact_points(obj)
+
+    @abstractmethod
+    def get_body_contact_points(self, body: PhysicalBody) -> ContactPointsList:
+        """
+        Return the contact points of a body with all other bodies in the world.
+
+        :param body: The body.
+        """
+        pass
+
+    @deprecated("Use get_contact_points_between_two_bodies instead")
+    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
+        """
+        Same as :meth:`get_contact_points_between_two_bodies` but with objects instead of bodies.
+        """
+        return self.get_contact_points_between_two_bodies(obj1, obj2)
+
+    @abstractmethod
+    def get_contact_points_between_two_bodies(self, body_1: PhysicalBody, body_2: PhysicalBody) -> ContactPointsList:
+        """
+        Return a list of contact points between two bodies.
+
+        :param body_1: The first body.
+        :param body_2: The second body.
+        :return: A list of all contact points between the two bodies.
+        """
         pass
 
     @abstractmethod
-    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
+    def get_body_distances(self, body: PhysicalBody) -> Dict[PhysicalBody, float]:
         """
-        Return a list of contact points between obj_a and obj_b.
+        Return the distances of this body with all other bodies in the world.
 
-        :param obj1: The first object.
-        :param obj2: The second object.
-        :return: A list of all contact points between the two objects.
+        :param body: The body.
+        :return: A dictionary of body names and distances.
+        """
+        pass
+
+    @abstractmethod
+    def get_distance_between_two_bodies(self, body_1: PhysicalBody, body_2: PhysicalBody) -> float:
+        """
+        Return the distance between two bodies.
+
+        :param body_1: The first body.
+        :param body_2: The second body.
+        :return: The distance between the two bodies.
         """
         pass
 

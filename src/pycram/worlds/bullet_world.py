@@ -8,7 +8,7 @@ import time
 import numpy as np
 import pycram_bullet as p
 from geometry_msgs.msg import Point
-from typing_extensions import List, Optional, Dict, Any, Callable
+from typing_extensions import List, Optional, Dict, Any, Callable, Tuple
 
 from pycrap import Floor
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
@@ -16,6 +16,7 @@ from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBod
 from ..datastructures.enums import ObjectType, WorldMode, JointType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
+from ..datastructures.world_entity import PhysicalBody
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription
 from ..ros.logging import logwarn, loginfo
@@ -191,7 +192,7 @@ class BulletWorld(World):
     def perform_collision_detection(self) -> None:
         p.performCollisionDetection(physicsClientId=self.id)
 
-    def get_object_contact_points(self, obj: Object) -> ContactPointsList:
+    def get_body_contact_points(self, obj: Object) -> ContactPointsList:
         """
         Get the contact points of the object with akk other objects in the world. The contact points are returned as a
         ContactPointsList object.
@@ -204,14 +205,28 @@ class BulletWorld(World):
         return ContactPointsList([ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list
                                   if len(point) > 0])
 
-    def get_contact_points_between_two_objects(self, obj_a: Object, obj_b: Object) -> ContactPointsList:
+    def get_contact_points_between_two_bodies(self, obj_a: Object, obj_b: Object) -> ContactPointsList:
         self.perform_collision_detection()
         points_list = p.getContactPoints(obj_a.id, obj_b.id, physicsClientId=self.id)
         return ContactPointsList([ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list
                                   if len(point) > 0])
 
-    def get_closest_points_between_objects(self, obj_a: Object, obj_b: Object, distance: float) -> ClosestPointsList:
-        points_list = p.getClosestPoints(obj_a.id, obj_b.id, distance, physicsClientId=self.id)
+    def get_distance_between_two_bodies(self, body_1: PhysicalBody, body_2: PhysicalBody,
+                                        max_distance: float) -> Optional[float]:
+        body_1_id, link_1_id = self.get_body_and_link_id(body_1)
+        body_2_id, link_2_id = self.get_body_and_link_id(body_2)
+        points = p.getClosestPoints(body_1_id, body_2_id, max_distance, link_1_id, link_2_id,
+                                    physicsClientId=self.id)
+        closest_point = min(points, key=lambda x: x[8]) if points else None
+        return closest_point[8] if closest_point else None
+
+
+    @staticmethod
+    def get_body_and_link_id(body: PhysicalBody) -> Tuple[int, Optional[int]]:
+        return (body.id, None) if isinstance(body, Object) else (body.object_id, body.id)
+
+    def get_closest_points_between_objects(self, obj_a: Object, obj_b: Object, max_distance: float) -> ClosestPointsList:
+        points_list = p.getClosestPoints(obj_a.id, obj_b.id, max_distance, physicsClientId=self.id)
         return ClosestPointsList([ClosestPoint(**self.parse_points_list_to_args(point)) for point in points_list
                                   if len(point) > 0])
 
