@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from copy import copy
 
 from trimesh.parent import Geometry3D
-from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union
+from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union, Any
 
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
     AxisAlignedBoundingBox, RotatedBoundingBox, VisualShape

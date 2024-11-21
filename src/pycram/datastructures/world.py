@@ -704,12 +704,21 @@ class World(StateEntity, ABC):
 
         :param body: The body.
         """
+        return self.get_body_contact_points(obj)
+
+    @abstractmethod
+    def get_body_contact_points(self, body: PhysicalBody) -> ContactPointsList:
+        """
+        Return the contact points of a body with all other bodies in the world.
+
+        :param body: The body.
+        """
         pass
 
     @deprecated("Use get_contact_points_between_two_bodies instead")
     def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
         """
-        Same as :meth:`get_contact_points_between_two_bodies` but with objects instead of any type of bodies.
+        Same as :meth:`get_contact_points_between_two_bodies` but with objects instead of bodies.
         """
         return self.get_contact_points_between_two_bodies(obj1, obj2)
 
@@ -723,6 +732,13 @@ class World(StateEntity, ABC):
         :return: A list of all contact points between the two bodies.
         """
         pass
+
+    @deprecated("Use get_contact_points_between_two_bodies instead")
+    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
+        """
+        Same as :meth:`get_contact_points_between_two_bodies` but with objects instead of any type of bodies.
+        """
+        return self.get_contact_points_between_two_bodies(obj1, obj2)
 
     def get_body_closest_points(self, body: PhysicalBody, max_distance: float) -> ClosestPointsList:
         """
