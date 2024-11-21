@@ -11,7 +11,7 @@ from pycram.process_module import ProcessModule
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
-from pycrap import ontology
+from pycrap import ontology, Milk, Robot, Kitchen, Cereal
 import owlready2
 
 
@@ -28,11 +28,11 @@ class BulletWorldTestCase(unittest.TestCase):
         rdm = RobotDescriptionManager()
         rdm.load_description("pr2")
         cls.world = BulletWorld(mode=WorldMode.DIRECT)
-        cls.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-        cls.robot = Object(RobotDescription.current_robot_description.name, ObjectType.ROBOT,
+        cls.milk = Object("milk", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        cls.robot = Object(RobotDescription.current_robot_description.name, Robot,
                            RobotDescription.current_robot_description.name + cls.extension)
-        cls.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen" + cls.extension)
-        cls.cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl",
+        cls.kitchen = Object("kitchen", Kitchen, "kitchen" + cls.extension)
+        cls.cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
                             pose=Pose([1.3, 0.7, 0.95]))
         ProcessModule.execution_delay = False
         cls.viz_marker_publisher = VizMarkerPublisher()

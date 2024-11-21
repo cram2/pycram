@@ -31,7 +31,7 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
-from pycrap import PhysicalObject, ontology
+from pycrap import PhysicalObject, ontology, Base, Agent
 
 Link = ObjectDescription.Link
 
@@ -53,7 +53,7 @@ class Object(WorldEntity, HasConcept):
 
     ontology_concept: Type[PhysicalObject] = PhysicalObject
 
-    def __init__(self, name: str, obj_type: ObjectType, path: Optional[str] = None,
+    def __init__(self, name: str, concept: Type[PhysicalObject], path: Optional[str] = None,
                  description: Optional[ObjectDescription] = None,
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
@@ -67,7 +67,7 @@ class Object(WorldEntity, HasConcept):
         for URDFs :func:`~Object.set_color` can be used.
 
         :param name: The name of the object
-        :param obj_type: The type of the object as an ObjectType enum.
+        :param concept: The type of the object as ontological concept from PyCRAP
         :param path: The path to the source file, if only a filename is provided then the resources directories will be
          searched, it could be None in some cases when for example it is a generic object.
         :param description: The ObjectDescription of the object, this contains the joints and links of the object.
@@ -85,7 +85,7 @@ class Object(WorldEntity, HasConcept):
 
         self.name: str = name
         self.path: Optional[str] = path
-        self.obj_type: ObjectType = obj_type
+        self.ontology_concept = concept
         self.color: Color = color
         self._resolve_description(path, description)
         self.cache_manager = self.world.cache_manager
@@ -101,7 +101,7 @@ class Object(WorldEntity, HasConcept):
 
             self.description.update_description_from_file(self.path)
 
-        if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
+        if Agent in self.ontology_concept.is_a and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
 
         self.id = self._spawn_object_and_get_id()
@@ -117,18 +117,6 @@ class Object(WorldEntity, HasConcept):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.add_object(self)
-        self.create_individual()
-
-    def create_individual(self):
-        object_type_name = self.obj_type.name.lower()
-        concept = None
-        for clazz in ontology.classes():
-            if clazz.__name__.lower() == object_type_name:
-                concept = clazz
-                break
-
-        if concept is not None:
-            self.ontology_concept = concept
         self.ontology_individual = self.ontology_concept(self.name)
 
     def _resolve_description(self, path: Optional[str] = None, description: Optional[ObjectDescription] = None) -> None:
@@ -299,6 +287,10 @@ class Object(WorldEntity, HasConcept):
         The current transform of the object.
         """
         return self.get_pose().to_transform(self.tf_frame)
+
+    @property
+    def obj_type(self) -> Type[PhysicalObject]:
+        return self.ontology_concept
 
     def _spawn_object_and_get_id(self) -> int:
         """

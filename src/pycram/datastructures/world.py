@@ -11,6 +11,7 @@ import numpy as np
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
+from pycrap import PhysicalObject
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
@@ -284,7 +285,7 @@ class World(StateEntity, ABC):
 
     @abstractmethod
     def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None,
-                               obj_type: Optional[ObjectType] = None) -> int:
+                               obj_type: Optional[Type[PhysicalObject]] = None) -> int:
         """
         Load a description file (e.g. URDF) at the given pose and returns the id of the loaded object.
 

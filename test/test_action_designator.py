@@ -11,6 +11,8 @@ from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp
 from bullet_world_testcase import BulletWorldTestCase
 import numpy as np
 
+from pycrap import Milk
+
 
 class TestActionDesignatorGrounding(BulletWorldTestCase):
     """Testcase for the grounding methods of action designators."""
@@ -100,7 +102,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             detected_object = description.resolve().perform()
         self.assertEqual(detected_object.name, "milk")
-        self.assertEqual(detected_object.obj_type, ObjectType.MILK)
+        self.assertEqual(detected_object.obj_type, Milk)
         self.assertEqual(detected_object.world_object, self.milk)
 
     # Skipped since open and close work only in the apartment at the moment

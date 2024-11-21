@@ -160,7 +160,7 @@ class TestObject(BulletWorldTestCase):
             self.assertEqual(color, Color(0, 1, 0, 1))
 
     def test_object_equal(self):
-        milk2 = Object("milk2", ObjectType.MILK, "milk.stl")
+        milk2 = Object("milk2", Milk, "milk.stl")
         self.assertNotEqual(self.milk, milk2)
         self.assertEqual(self.milk, self.milk)
         self.assertNotEqual(self.milk, self.cereal)
@@ -171,7 +171,7 @@ class GenericObjectTestCase(BulletWorldTestCase):
 
     def test_init_generic_object(self):
         gen_obj_desc = GenericObjectDescription("robokudo_object", [0,0,0], [0.1, 0.1, 0.1])
-        obj = Object("robokudo_object", ObjectType.MILK, None, gen_obj_desc)
+        obj = Object("robokudo_object", Milk, None, gen_obj_desc)
         pose = obj.get_pose()
         self.assertTrue(isinstance(pose, Pose))
 
@@ -184,7 +184,7 @@ class OntologyIntegrationTestCase(BulletWorldTestCase):
 
         self.assertEqual(len(r), 1)
 
-        milk2  = Object("milk2", ObjectType.MILK, "milk.stl")
+        milk2  = Object("milk2", Milk, "milk.stl")
         r = list(filter(lambda x:  x in Milk.instances(), ontology.individuals()))
 
         self.assertEqual(len(r), 2)
