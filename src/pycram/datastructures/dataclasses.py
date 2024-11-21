@@ -145,6 +145,18 @@ class AxisAlignedBoundingBox:
         """
         return [self.max_x, self.max_y, self.max_z]
 
+    @property
+    def width(self) -> float:
+        return self.max_x - self.min_x
+
+    @property
+    def height(self) -> float:
+        return self.max_z - self.min_z
+
+    @property
+    def depth(self) -> float:
+        return self.max_y - self.min_y
+
 
 @dataclass
 class CollisionCallbacks:
