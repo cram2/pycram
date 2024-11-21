@@ -2,6 +2,8 @@ import os
 import time
 import unittest
 import time
+
+import owlready2
 from sqlalchemy import select
 import sqlalchemy.orm
 import pycram.orm.action_designator
@@ -12,7 +14,6 @@ import pycram.orm.tasktree
 import pycram.tasktree
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.datastructures.dataclasses import Color
-from pycram.ontology.ontology import OntologyManager, SOMA_ONTOLOGY_IRI
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.world_concepts.world_object import Object
 from pycram.designators import action_designator, object_designator, motion_designator
@@ -25,6 +26,7 @@ from pycram.tasktree import with_tree, task_tree
 from pycram.orm.views import PickUpWithContextView
 from pycram.datastructures.enums import Arms, Grasp, GripperState, ObjectType
 from pycram.worlds.bullet_world import BulletWorld
+from pycrap import ontology
 
 
 class DatabaseTestCaseMixin(BulletWorldTestCase):
@@ -309,7 +311,6 @@ class BelieveObjectTestCase(unittest.TestCase):
         cls.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, -1.78, 0.55], [1, 0, 0, 0]),
                            color=Color(1, 0, 0, 1))
         cls.viz_marker_publisher = VizMarkerPublisher()
-        OntologyManager(SOMA_ONTOLOGY_IRI)
 
     def setUp(self):
         self.world.reset_world()
@@ -317,6 +318,8 @@ class BelieveObjectTestCase(unittest.TestCase):
         self.session = sqlalchemy.orm.Session(bind=self.engine)
 
     def tearDown(self):
+        for individual in ontology.individuals():
+            owlready2.destroy_entity(individual)
         pycram.tasktree.task_tree.reset_tree()
         time.sleep(0.05)
         pycram.orm.base.ProcessMetaData.reset()

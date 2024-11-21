@@ -30,6 +30,7 @@ except ImportError:
     MJCF = None
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
+from pycrap import PhysicalObject, ontology
 
 Link = ObjectDescription.Link
 
@@ -48,6 +49,9 @@ class Object(WorldEntity):
     """
     A dictionary that maps the file extension to the corresponding ObjectDescription type.
     """
+
+    concept: Type[PhysicalObject] = PhysicalObject
+    individual: Optional[PhysicalObject] = None
 
     def __init__(self, name: str, obj_type: ObjectType, path: Optional[str] = None,
                  description: Optional[ObjectDescription] = None,
@@ -113,6 +117,19 @@ class Object(WorldEntity):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.add_object(self)
+        self.create_individual()
+
+    def create_individual(self):
+        object_type_name = self.obj_type.name.lower()
+        concept = None
+        for clazz in ontology.classes():
+            if clazz.__name__.lower() == object_type_name:
+                concept = clazz
+                break
+
+        if concept is not None:
+            self.concept = concept
+        self.individual = self.concept(self.name)
 
     def _resolve_description(self, path: Optional[str] = None, description: Optional[ObjectDescription] = None) -> None:
         """

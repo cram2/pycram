@@ -463,27 +463,10 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         """
         super().__init__(resolver, ontology_concept_holders)
         Language.__init__(self)
-        from .ontology.ontology import OntologyManager
-        self.soma = OntologyManager().soma
 
     def ground(self) -> Action:
         """Fill all missing parameters and chose plan to execute. """
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
-
-    def init_ontology_concepts(self, ontology_concept_classes: Dict[str, Type[owlready2.Thing]]):
-        """
-        Initialize the ontology concept holders for this action designator
-
-        :param ontology_concept_classes: The ontology concept classes that the action is categorized as or associated with
-        :param ontology_concept_name: The name of the ontology concept instance to be created
-        """
-        from .ontology.ontology_common import OntologyConceptHolderStore, OntologyConceptHolder
-        if not self.ontology_concept_holders:
-            for concept_name, concept_class in ontology_concept_classes.items():
-                if concept_class:
-                    existing_holders = OntologyConceptHolderStore().get_ontology_concept_holders_by_class(concept_class)
-                    self.ontology_concept_holders.extend(existing_holders if existing_holders \
-                                                         else [OntologyConceptHolder(concept_class(concept_name))])
 
     def __iter__(self):
         """

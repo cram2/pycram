@@ -11,7 +11,8 @@ from pycram.process_module import ProcessModule
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
-from pycram.ontology.ontology import OntologyManager, SOMA_ONTOLOGY_IRI
+from pycrap import ontology
+import owlready2
 
 
 class BulletWorldTestCase(unittest.TestCase):
@@ -33,9 +34,10 @@ class BulletWorldTestCase(unittest.TestCase):
                             pose=Pose([1.3, 0.7, 0.95]))
         ProcessModule.execution_delay = False
         cls.viz_marker_publisher = VizMarkerPublisher()
-        OntologyManager(SOMA_ONTOLOGY_IRI)
 
     def setUp(self):
+        for individual in ontology.individuals():
+            owlready2.destroy_entity(individual)
         self.world.reset_world(remove_saved_states=True)
         with UseProspectionWorld():
             pass
@@ -46,6 +48,8 @@ class BulletWorldTestCase(unittest.TestCase):
 
     def tearDown(self):
         pycram.tasktree.task_tree.reset_tree()
+        for individual in ontology.individuals():
+            owlready2.destroy_entity(individual)
         time.sleep(0.05)
         self.world.reset_world(remove_saved_states=True)
         with UseProspectionWorld():

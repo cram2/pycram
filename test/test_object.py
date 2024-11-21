@@ -12,6 +12,8 @@ from pycram.object_descriptors.generic import ObjectDescription as GenericObject
 from geometry_msgs.msg import Point, Quaternion
 import pathlib
 
+from pycrap import ontology, Milk
+
 
 class TestObject(BulletWorldTestCase):
 
@@ -172,3 +174,15 @@ class GenericObjectTestCase(BulletWorldTestCase):
         obj = Object("robokudo_object", ObjectType.MILK, None, gen_obj_desc)
         pose = obj.get_pose()
         self.assertTrue(isinstance(pose, Pose))
+
+
+class OntologyIntegrationTestCase(BulletWorldTestCase):
+
+    def test_querying(self):
+        # get all milks from the ontology
+        r = filter(lambda x:  x in Milk.instances(), ontology.individuals())
+        self.assertEqual(len(list(r)), 1)
+
+        milk2  = Object("milk2", ObjectType.MILK, "milk.stl")
+        r = filter(lambda x:  x in Milk.instances(), ontology.individuals())
+        self.assertEqual(len(list(r)), 2)
