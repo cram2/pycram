@@ -30,12 +30,13 @@ except ImportError:
     MJCF = None
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
+from ..datastructures.mixins import HasConcept
 from pycrap import PhysicalObject, ontology
 
 Link = ObjectDescription.Link
 
 
-class Object(WorldEntity):
+class Object(WorldEntity, HasConcept):
     """
     Represents a spawned Object in the World.
     """
@@ -50,8 +51,7 @@ class Object(WorldEntity):
     A dictionary that maps the file extension to the corresponding ObjectDescription type.
     """
 
-    concept: Type[PhysicalObject] = PhysicalObject
-    individual: Optional[PhysicalObject] = None
+    ontology_concept: Type[PhysicalObject] = PhysicalObject
 
     def __init__(self, name: str, obj_type: ObjectType, path: Optional[str] = None,
                  description: Optional[ObjectDescription] = None,
@@ -128,8 +128,8 @@ class Object(WorldEntity):
                 break
 
         if concept is not None:
-            self.concept = concept
-        self.individual = self.concept(self.name)
+            self.ontology_concept = concept
+        self.ontology_individual = self.ontology_concept(self.name)
 
     def _resolve_description(self, path: Optional[str] = None, description: Optional[ObjectDescription] = None) -> None:
         """

@@ -23,6 +23,8 @@ class BulletWorldTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        for individual in ontology.individuals():
+            owlready2.destroy_entity(individual)
         rdm = RobotDescriptionManager()
         rdm.load_description("pr2")
         cls.world = BulletWorld(mode=WorldMode.DIRECT)
@@ -36,8 +38,6 @@ class BulletWorldTestCase(unittest.TestCase):
         cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):
-        for individual in ontology.individuals():
-            owlready2.destroy_entity(individual)
         self.world.reset_world(remove_saved_states=True)
         with UseProspectionWorld():
             pass
@@ -48,8 +48,6 @@ class BulletWorldTestCase(unittest.TestCase):
 
     def tearDown(self):
         pycram.tasktree.task_tree.reset_tree()
-        for individual in ontology.individuals():
-            owlready2.destroy_entity(individual)
         time.sleep(0.05)
         self.world.reset_world(remove_saved_states=True)
         with UseProspectionWorld():
@@ -57,6 +55,8 @@ class BulletWorldTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        for individual in ontology.individuals():
+            owlready2.destroy_entity(individual)
         cls.viz_marker_publisher._stop_publishing()
         cls.world.exit()
 
