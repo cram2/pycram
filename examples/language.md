@@ -73,12 +73,13 @@ plan.
 If you are performing a plan with a simulated robot, you need a BulletWorld.
 
 ```python
+import pycrap
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType
 
 world = BulletWorld()
-pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
+pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
 ```
 
 ```python
