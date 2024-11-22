@@ -29,3 +29,8 @@ class Bathroom(Room):
     """
     A room where people wash in.
     """
+
+class Apartment(Location):
+    """
+    A building with multiple rooms.
+    """

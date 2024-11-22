@@ -92,7 +92,7 @@ class DetectingMotion(Motion):
     """
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
-    object_type: Mapped[ObjectType]
+    object_type: Mapped[str]
 
 
 class WorldStateDetectingMotion(Motion):

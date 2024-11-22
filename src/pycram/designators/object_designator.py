@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 import dataclasses
-from typing_extensions import List, Optional, Callable, TYPE_CHECKING
+
 import sqlalchemy.orm
+from typing_extensions import TYPE_CHECKING
+
 from ..datastructures.enums import ObjectType
 from ..datastructures.world import World
-from ..world_concepts.world_object import Object as WorldObject
-from ..designator import ObjectDesignatorDescription
+from ..external_interfaces.robokudo import *
 from ..orm.base import ProcessMetaData
 from ..orm.object_designator import (BelieveObject as ORMBelieveObject, ObjectPart as ORMObjectPart)
-from ..datastructures.pose import Pose
-from ..external_interfaces.robokudo import *
+from ..world_concepts.world_object import Object as WorldObject
 
 if TYPE_CHECKING:
-    import owlready2
+    pass
 
 
 class BelieveObject(ObjectDesignatorDescription):
@@ -28,7 +28,7 @@ class BelieveObject(ObjectDesignatorDescription):
         """
 
         def to_sql(self) -> ORMBelieveObject:
-            return ORMBelieveObject(name=self.name, obj_type=self.obj_type)
+            return ORMBelieveObject(name=self.name, obj_type=str(self.obj_type))
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMBelieveObject:
             metadata = ProcessMetaData().insert(session)

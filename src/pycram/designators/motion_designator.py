@@ -171,7 +171,7 @@ class DetectingMotion(BaseMotion):
                                                   world_object)
 
     def to_sql(self) -> ORMDetectingMotion:
-        return ORMDetectingMotion(self.object_type)
+        return ORMDetectingMotion(str(self.object_type))
 
     def insert(self, session: Session, *args, **kwargs) -> ORMDetectingMotion:
         motion = super().insert(session)

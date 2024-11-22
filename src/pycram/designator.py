@@ -1,11 +1,11 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from dataclasses import dataclass, field, fields
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field, fields
 from inspect import isgenerator, isgeneratorfunction
 
-from pycrap import PhysicalObject
+from pycrap import PhysicalObject, Agent
 from .ros.logging import logwarn, loginfo
 
 try:
@@ -21,7 +21,7 @@ from .world_concepts.world_object import Object as WorldObject
 from .utils import GeneratorList, bcolors
 from threading import Lock
 from time import time
-from typing_extensions import Type, List, Dict, Any, Optional, Union, get_type_hints, Callable, Iterable, TYPE_CHECKING, get_args, get_origin
+from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable, TYPE_CHECKING
 
 from .local_transformer import LocalTransformer
 from .language import Language
@@ -77,7 +77,6 @@ class Designator(ABC):
 
     :ivar timestamp: The timestamp of creation of reference or None if still not referencing an object.
     """
-
 
     resolvers = {}
     """
@@ -331,7 +330,8 @@ class DesignatorDescription(ABC):
     :ivar resolve: The specialized_designators function to use for this designator, defaults to self.ground
     """
 
-    def __init__(self, resolver: Optional[Callable] = None, ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
+    def __init__(self, resolver: Optional[Callable] = None,
+                 ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
         """
         Create a Designator description.
 
@@ -381,6 +381,7 @@ class DesignatorDescription(ABC):
         """
         return self.ontology_concept_holders[0].ontology_concept if self.ontology_concept_holders else None
 
+
 class ActionDesignatorDescription(DesignatorDescription, Language):
     """
     Abstract class for action designator descriptions.
@@ -401,14 +402,15 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         The torso height of the robot at the start of the action.
         """
 
-        robot_type: ObjectType = field(init=False)
+        robot_type: Type[Agent] = field(init=False)
         """
         The type of the robot at the start of the action.
         """
 
         def __post_init__(self):
             self.robot_position = World.robot.get_pose()
-            self.robot_torso_height = World.robot.get_joint_position(RobotDescription.current_robot_description.torso_joint)
+            self.robot_torso_height = World.robot.get_joint_position(
+                RobotDescription.current_robot_description.torso_joint)
             self.robot_type = World.robot.obj_type
 
         @with_tree
@@ -443,7 +445,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
             metadata = ProcessMetaData().insert(session)
 
             # create robot-state object
-            robot_state = RobotState(self.robot_torso_height, self.robot_type)
+            robot_state = RobotState(self.robot_torso_height, str(self.robot_type))
             robot_state.pose = pose
             robot_state.process_metadata = metadata
             session.add(robot_state)
@@ -504,7 +506,7 @@ class LocationDesignatorDescription(DesignatorDescription):
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
 
 
-#this knowledge should be somewhere else i guess
+# this knowledge should be somewhere else i guess
 SPECIAL_KNOWLEDGE = {
     'bigknife':
         [("top", [-0.08, 0, 0])],
@@ -559,7 +561,8 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
             :return: The created ORM object.
             """
-            return ORMObjectDesignator(name=self.name, obj_type=self.obj_type)
+            print(str(self.obj_type))
+            return ORMObjectDesignator(name=self.name, obj_type=str(self.obj_type))
 
         def insert(self, session: Session) -> ORMObjectDesignator:
             """
@@ -581,7 +584,10 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def frozen_copy(self) -> 'ObjectDesignatorDescription.Object':
             """
-            :return: A copy containing only the fields of this class. The WorldObject attached to this pycram object is not copied. The _pose gets set to a method that statically returns the pose of the object when this method was called.
+            :return: A copy containing only the fields of this class.
+                The WorldObject attached to this pycram object is not copied.
+                The _pose gets set to a method
+                that statically returns the pose of the object when this method was called.
             """
             result = ObjectDesignatorDescription.Object(self.name, self.obj_type, None)
             # get current object pose and set resulting pose to always be that
@@ -678,6 +684,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
                 continue
 
             yield self.Object(obj.name, obj.obj_type, obj)
+
 
 @dataclass
 class BaseMotion(ABC):
