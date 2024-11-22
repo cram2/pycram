@@ -119,8 +119,9 @@ class Object(WorldEntity, HasConcept):
 
         self.world.add_object(self)
 
-        # this line is problematic when the name conflicts with the ontology
-        self.ontology_individual = self.ontology_concept(self.name)
+        if not self.world.is_prospection_world:
+            # this line is problematic when the name conflicts with the ontology
+            self.ontology_individual = self.ontology_concept()
 
 
     def _resolve_description(self, path: Optional[str] = None, description: Optional[ObjectDescription] = None) -> None:
@@ -586,8 +587,9 @@ class Object(WorldEntity, HasConcept):
         is currently attached to. After this call world remove object
         to remove this Object from the simulation/world.
         """
-        self.world.remove_object(self)
         owlready2.destroy_entity(self.ontology_individual)
+        self.world.remove_object(self)
+
 
     def reset(self, remove_saved_states=False) -> None:
         """
