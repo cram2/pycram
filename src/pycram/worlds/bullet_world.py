@@ -8,7 +8,7 @@ import time
 import numpy as np
 import pycram_bullet as p
 from geometry_msgs.msg import Point
-from typing_extensions import List, Optional, Dict, Any, Callable, Tuple
+from typing_extensions import List, Optional, Dict, Any, Callable
 
 from pycrap import Floor
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
@@ -192,43 +192,44 @@ class BulletWorld(World):
     def perform_collision_detection(self) -> None:
         p.performCollisionDetection(physicsClientId=self.id)
 
-    def get_body_contact_points(self, obj: Object) -> ContactPointsList:
-        """
-        Get the contact points of the object with akk other objects in the world. The contact points are returned as a
-        ContactPointsList object.
-
-        :param obj: The object for which the contact points should be returned.
-        :return: The contact points of the object with all other objects in the world.
-        """
+    def get_body_contact_points(self, body: PhysicalBody) -> ContactPointsList:
         self.perform_collision_detection()
-        points_list = p.getContactPoints(obj.id, physicsClientId=self.id)
+        body_data = self.get_body_and_link_id(body, index='A')
+        kwargs = {**body_data, "physicsClientId": self.id}
+        points_list = p.getContactPoints(**kwargs)
         return ContactPointsList([ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list
                                   if len(point) > 0])
 
-    def get_contact_points_between_two_bodies(self, obj_a: Object, obj_b: Object) -> ContactPointsList:
+    def get_contact_points_between_two_bodies(self, obj_a: PhysicalBody, obj_b: PhysicalBody) -> ContactPointsList:
         self.perform_collision_detection()
-        points_list = p.getContactPoints(obj_a.id, obj_b.id, physicsClientId=self.id)
+        body_a_data = self.get_body_and_link_id(obj_a, index='A')
+        body_b_data = self.get_body_and_link_id(obj_b, index='B')
+        kwargs = {**body_a_data, **body_b_data, "physicsClientId": self.id}
+        points_list = p.getContactPoints(**kwargs)
         return ContactPointsList([ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list
                                   if len(point) > 0])
 
-    def get_distance_between_two_bodies(self, body_1: PhysicalBody, body_2: PhysicalBody,
-                                        max_distance: float) -> Optional[float]:
-        body_1_id, link_1_id = self.get_body_and_link_id(body_1)
-        body_2_id, link_2_id = self.get_body_and_link_id(body_2)
-        points = p.getClosestPoints(body_1_id, body_2_id, max_distance, link_1_id, link_2_id,
-                                    physicsClientId=self.id)
-        closest_point = min(points, key=lambda x: x[8]) if points else None
-        return closest_point[8] if closest_point else None
+    def get_body_closest_points(self, body: PhysicalBody, max_distance: float) -> ClosestPointsList:
+        all_obj_closest_points = [self.get_closest_points_between_two_bodies(body, other_body, max_distance)
+                                  for other_body in self.objects if other_body != body]
+        return ClosestPointsList([point for closest_points in all_obj_closest_points for point in closest_points])
 
-
-    @staticmethod
-    def get_body_and_link_id(body: PhysicalBody) -> Tuple[int, Optional[int]]:
-        return (body.id, None) if isinstance(body, Object) else (body.object_id, body.id)
-
-    def get_closest_points_between_objects(self, obj_a: Object, obj_b: Object, max_distance: float) -> ClosestPointsList:
-        points_list = p.getClosestPoints(obj_a.id, obj_b.id, max_distance, physicsClientId=self.id)
+    def get_closest_points_between_two_bodies(self, obj_a: PhysicalBody, obj_b: PhysicalBody,
+                                              max_distance: float) -> ClosestPointsList:
+        body_a_data = self.get_body_and_link_id(obj_a, index='A')
+        body_b_data = self.get_body_and_link_id(obj_b, index='B')
+        kwargs = {**body_a_data, **body_b_data, "physicsClientId": self.id}
+        points_list = p.getClosestPoints(**kwargs)
         return ClosestPointsList([ClosestPoint(**self.parse_points_list_to_args(point)) for point in points_list
                                   if len(point) > 0])
+
+    @staticmethod
+    def get_body_and_link_id(body: PhysicalBody, index='') -> Dict[str, int]:
+        body_id, link_id = (body.object_id, body.id) if isinstance(body, Link) else (body.id, None)
+        values_dict = {f"body{index}": body_id}
+        if link_id is not None:
+            values_dict.update({f"linkIndex{index}": link_id})
+        return values_dict
 
     def parse_points_list_to_args(self, point: List) -> Dict:
         """
@@ -487,7 +488,7 @@ class Gui(threading.Thread):
         self.mode: WorldMode = mode
 
         # Checks if there is a display connected to the system. If not, the simulation will be run in direct mode.
-        if not "DISPLAY" in os.environ:
+        if "DISPLAY" not in os.environ:
             loginfo("No display detected. Running the simulation in direct mode.")
             self.mode = WorldMode.DIRECT
 

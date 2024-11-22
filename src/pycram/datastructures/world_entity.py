@@ -3,11 +3,12 @@ from __future__ import annotations
 import os
 import pickle
 from abc import ABC, abstractmethod
+from copy import copy
 
 from trimesh.parent import Geometry3D
-from typing_extensions import TYPE_CHECKING, Dict, Optional, List, Any, deprecated, Union
+from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union
 
-from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, VisualShape, PhysicalBodyState, \
+from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
     AxisAlignedBoundingBox, RotatedBoundingBox
 from ..local_transformer import LocalTransformer
 from ..ros.data_types import Time
@@ -166,8 +167,17 @@ class PhysicalBody(WorldEntity, ABC):
         ...
 
     @property
-    def current_state(self) -> PhysicalBodyState:
-        return PhysicalBodyState(self.pose, self.is_translating, self.is_rotating, self.velocity)
+    def body_state(self) -> PhysicalBodyState:
+        return PhysicalBodyState(self.pose.copy(), self.is_translating, self.is_rotating, copy(self.velocity)
+                                 , self.world.conf.get_pose_tolerance())
+
+    @body_state.setter
+    def body_state(self, state: PhysicalBodyState) -> None:
+        if self.body_state != state:
+            self.pose = state.pose
+            self.is_translating = state.is_translating
+            self.is_rotating = state.is_rotating
+            self.velocity = state.velocity
 
     @property
     def velocity(self) -> Optional[List[float]]:
@@ -253,6 +263,16 @@ class PhysicalBody(WorldEntity, ABC):
         """
         ...
 
+    @pose.setter
+    @abstractmethod
+    def pose(self, pose: Pose) -> None:
+        """
+        Set the pose of this body.
+
+        :param pose: The pose of this body.
+        """
+        ...
+
     @property
     @abstractmethod
     def tf_frame(self) -> str:
@@ -277,19 +297,22 @@ class PhysicalBody(WorldEntity, ABC):
         """
         return self.world.get_contact_points_between_two_bodies(self, body)
 
-    @property
-    def distances(self) -> Dict['PhysicalBody', float]:
+    def closest_points(self, max_distance: float) -> ClosestPointsList:
         """
-        :return: The closest distances of this body to other physical bodies.
+        :param max_distance: The maximum distance to consider a body as close, only points closer than or equal to this
+         distance will be returned.
+        :return: The closest points of this body with other physical bodies within the given maximum distance.
         """
-        return self.world.get_body_distances(self)
+        return self.world.get_body_closest_points(self, max_distance)
 
-    def get_distance_with_body(self, body: 'PhysicalBody') -> float:
+    def get_closest_points_with_body(self, body: 'PhysicalBody', max_distance: float) -> ClosestPointsList:
         """
-        :param body: The body to get the distance with.
-        :return: The closest distance of this body to the given body.
+        :param body: The body to get the points with.
+        :param max_distance: The maximum distance to consider a body as close, only points closer than or equal to this
+         distance will be returned.
+        :return: The closest points of this body with the given body within the given maximum distance.
         """
-        return self.world.get_distance_between_two_bodies(self, body)
+        return self.world.get_closest_points_between_two_bodies(self, body, max_distance)
 
     @property
     def is_moving(self) -> Optional[bool]:
@@ -335,3 +358,9 @@ class PhysicalBody(WorldEntity, ABC):
         """
         ...
 
+    @abstractmethod
+    def __eq__(self, other: PhysicalBody) -> bool:
+        """
+        Check if this body is equal to another body.
+        """
+        ...

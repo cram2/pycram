@@ -513,10 +513,10 @@ class PhysicalBodyState(State):
         :param other: The state of the other object.
         :return: True if the velocities are almost equal, False otherwise.
         """
-        return ((self.velocity is None and other.velocity is None) or
-                (self.vector_is_almost_equal(self.velocity, other.velocity, self.acceptable_velocity_error[0]) and
-                self.is_translating == other.is_translating and self.is_rotating == other.is_rotating)
-                )
+        if self.velocity is None or other.velocity is None:
+            return self.velocity == other.velocity
+        return (self.vector_is_almost_equal(self.velocity[:3], other.velocity[:3], self.acceptable_velocity_error[0])
+                and self.vector_is_almost_equal(self.velocity[3:], other.velocity[3:], self.acceptable_velocity_error[1]))
 
     @staticmethod
     def vector_is_almost_equal(vector1: List[float], vector2: List[float], acceptable_error: float) -> bool:
@@ -530,16 +530,26 @@ class PhysicalBodyState(State):
         """
         return np.all(np.array(vector1) - np.array(vector2) <= acceptable_error)
 
+    def __copy__(self):
+        return PhysicalBodyState(pose=self.pose.copy(),
+                                 is_translating=self.is_translating, is_rotating=self.is_rotating,
+                                 velocity=self.velocity.copy(),
+                                 acceptable_pose_error=deepcopy(self.acceptable_pose_error),
+                                 acceptable_velocity_error=deepcopy(self.acceptable_velocity_error))
+
 
 @dataclass
 class LinkState(State):
     """
     Dataclass for storing the state of a link.
     """
+    body_state: PhysicalBodyState
     constraint_ids: Dict[Link, int]
 
     def __eq__(self, other: 'LinkState'):
-        return self.all_constraints_exist(other) and self.all_constraints_are_equal(other)
+        return (self.body_state == other.body_state
+                and self.all_constraints_exist(other)
+                and self.all_constraints_are_equal(other))
 
     def all_constraints_exist(self, other: 'LinkState') -> bool:
         """
@@ -562,7 +572,7 @@ class LinkState(State):
                                                                other.constraint_ids.values())])
 
     def __copy__(self):
-        return LinkState(constraint_ids=copy(self.constraint_ids))
+        return LinkState(copy(self.body_state), constraint_ids=copy(self.constraint_ids))
 
 
 @dataclass
@@ -596,6 +606,10 @@ class ObjectState(State):
                 and self.all_attachments_exist(other) and self.all_attachments_are_equal(other)
                 and self.link_states == other.link_states
                 and self.joint_states == other.joint_states)
+
+    @property
+    def pose(self) -> Pose:
+        return self.body_state.pose
 
     def all_attachments_exist(self, other: 'ObjectState') -> bool:
         """
@@ -777,6 +791,15 @@ class ContactPointsList(list):
         :return: A ContactPointsList instance that represents the contact points of the object.
         """
         return ContactPointsList([point for point in self if point.link_b.object == obj])
+
+    def get_points_of_link(self, link: Link) -> 'ContactPointsList':
+        """
+        Get the points of the link.
+
+        :param link: An instance of the Link class that represents the link that the points are related to.
+        :return: A ContactPointsList instance that represents the contact points of the link.
+        """
+        return ContactPointsList([point for point in self if point.link_b == link])
 
     def get_objects_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Object]:
         """

@@ -11,12 +11,13 @@ from trimesh.parent import Geometry3D
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, Sequence
 
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
-    MeshVisualShape, RotatedBoundingBox, ContactPointsList
+    MeshVisualShape, RotatedBoundingBox
 from .datastructures.enums import JointType
 from .datastructures.pose import Pose, Transform
 from .datastructures.world_entity import WorldEntity, PhysicalBody
 from .failures import ObjectDescriptionNotFound, LinkHasNoGeometry, LinkGeometryHasNoMesh
 from .local_transformer import LocalTransformer
+from .ros.logging import logwarn
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
@@ -242,7 +243,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         :return: The convex hull of the link geometry.
         """
         try:
-            return self.world.get_link_convex_hull(self)
+            return self.world.get_body_convex_hull(self)
         except NotImplementedError:
             if isinstance(self.geometry, MeshVisualShape):
                 mesh_path = self.get_mesh_path(self.geometry)
@@ -320,7 +321,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
 
     @property
     def current_state(self) -> LinkState:
-        return LinkState(self.constraint_ids.copy())
+        return LinkState(self.body_state, self.constraint_ids.copy())
 
     @current_state.setter
     def current_state(self, link_state: LinkState) -> None:
@@ -328,6 +329,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
             if not self.all_constraint_links_belong_to_same_world(link_state):
                 raise ValueError("All constraint links must belong to the same world, since the constraint ids"
                                  "are unique to the world and cannot be transferred between worlds.")
+            self.body_state = link_state.body_state
             self.constraint_ids = link_state.constraint_ids
 
     def all_constraint_links_belong_to_same_world(self, other: LinkState) -> bool:
@@ -415,6 +417,11 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         """
         return self.world.get_link_pose(self)
 
+    @pose.setter
+    def pose(self, pose: Pose) -> None:
+        logwarn("Setting the pose of a link is not allowed,"
+                " change object pose and/or joint position to affect the link pose.")
+
     @property
     def color(self) -> Color:
         """
@@ -438,7 +445,16 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         """
         return f"{self.object.tf_frame}/{self.name}"
 
-    def __eq__(self, other):
+    @property
+    def origin_transform(self) -> Transform:
+        """
+        The transformation between the link frame and the origin frame of this link.
+        """
+        return self.origin.to_transform(self.tf_frame)
+
+    def __eq__(self, other: Link):
+        if not isinstance(other, Link):
+            return False
         return self.id == other.id and self.object == other.object and self.name == other.name
 
     def __copy__(self):
@@ -455,7 +471,7 @@ class RootLink(Link, ABC):
     """
 
     def __init__(self, obj: Object):
-        super().__init__(obj.get_root_link_id(), obj.get_root_link_description(), obj)
+        Link.__init__(self, obj.get_root_link_id(), obj.get_root_link_description(), obj)
 
     @property
     def tf_frame(self) -> str:

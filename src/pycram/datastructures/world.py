@@ -30,9 +30,7 @@ from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
 from ..ros.data_types import Time
 from ..ros.logging import logwarn
-from ..validation.goal_validator import (MultiPoseGoalValidator,
-                                         PoseGoalValidator, JointPositionGoalValidator,
-                                         MultiJointPositionGoalValidator, GoalValidator,
+from ..validation.goal_validator import (GoalValidator,
                                          validate_joint_position, validate_multiple_joint_positions,
                                          validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
@@ -131,86 +129,14 @@ class World(StateEntity, ABC):
 
         self._current_state: Optional[WorldState] = None
 
-        self._init_goal_validators()
-
         self.original_state_id = self.save_state()
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
 
-    def get_link_contact_points(self, link: Link) -> ContactPointsList:
+    def get_body_convex_hull(self, body: PhysicalBody) -> Geometry3D:
         """
-        Return the contact points of a link with all other objects in the world.
-
-        :param link: The link.
-        :return: A list of contact points.
-        """
-        raise NotImplementedError
-
-    def get_link_contact_points_with_body(self, link: Link, body: PhysicalBody) -> ContactPointsList:
-        """
-        Return the contact points of a link with a specific body in the world.
-
-        :param link: The link.
-        :param body: The body.
-        :return: A list of contact points.
-        """
-        raise NotImplementedError
-
-    def get_link_distance_with_body(self, link: Link, body: PhysicalBody) -> float:
-        """
-        Return the distance of a link with a specific body in the world.
-
-        :param link: The link.
-        :param body: The body.
-        :return: The distance between the link and the body.
-        """
-        raise NotImplementedError
-
-    def get_link_closest_points_with_body(self, link: Link, body: PhysicalBody, max_distance: float) -> ClosestPointsList:
-        """
-        Return the closest points of a link with a specific body in the world.
-
-        :param link: The link.
-        :param body: The body.
-        :param max_distance: The maximum distance between the points.
-        :return: A list of closest points.
-        """
-        raise NotImplementedError
-
-    def get_link_distances(self, link: Link) -> Dict[PhysicalBody, float]:
-        """
-        Return the distances of a link with all other objects in the world.
-
-        :param link: The link.
-        :return: A dictionary of object names and distances.
-        """
-        raise NotImplementedError
-
-    def get_link_closest_points(self, link: Link, max_distance: float) -> ClosestPointsList:
-        """
-        Return the closest points of a link with all other objects in the world.
-
-        :param link: The link.
-        :param max_distance: The maximum distance between the points.
-        :return: A list of closest points.
-        """
-        raise NotImplementedError
-
-    def get_object_convex_hull(self, obj: Object) -> Geometry3D:
-        """
-        Get the convex hull of an object.
-
-        :param obj: The pycram object.
-        :return: The convex hull of the object as a list of Points.
-        """
-        raise NotImplementedError
-
-    def get_link_convex_hull(self, link: Link) -> Geometry3D:
-        """
-        Get the convex hull of a link of an articulated object.
-
-        :param link: The link as a AbstractLink object.
-        :return: The convex hull of the link as a list of Points.
+        :param body: The body object.
+        :return: The convex hull of the body as a Geometry3D object.
         """
         raise NotImplementedError
 
@@ -290,30 +216,6 @@ class World(StateEntity, ABC):
         Return the joint actuators of the robot.
         """
         return self.robot_description.joint_actuators
-
-    def _init_goal_validators(self):
-        """
-        Initialize the goal validators for the World objects' poses, positions, and orientations.
-        """
-
-        # Objects Pose goal validators
-        self.pose_goal_validator = PoseGoalValidator(self.get_object_pose, self.conf.get_pose_tolerance(),
-                                                     self.conf.acceptable_percentage_of_goal)
-        self.multi_pose_goal_validator = MultiPoseGoalValidator(
-            lambda x: list(self.get_multiple_object_poses(x).values()),
-            self.conf.get_pose_tolerance(), self.conf.acceptable_percentage_of_goal)
-
-        # Joint Goal validators
-        self.joint_position_goal_validator = JointPositionGoalValidator(
-            self.get_joint_position,
-            acceptable_revolute_joint_position_error=self.conf.revolute_joint_position_tolerance,
-            acceptable_prismatic_joint_position_error=self.conf.prismatic_joint_position_tolerance,
-            acceptable_percentage_of_goal_achieved=self.conf.acceptable_percentage_of_goal)
-        self.multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
-            lambda x: list(self.get_multiple_joint_positions(x).values()),
-            acceptable_revolute_joint_position_error=self.conf.revolute_joint_position_tolerance,
-            acceptable_prismatic_joint_position_error=self.conf.prismatic_joint_position_tolerance,
-            acceptable_percentage_of_goal_achieved=self.conf.acceptable_percentage_of_goal)
 
     def check_object_exists(self, obj: Object) -> bool:
         """
@@ -791,10 +693,7 @@ class World(StateEntity, ABC):
     @deprecated("Use get_body_contact_points instead")
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
-        Return a list of contact points of this Object with all other Objects.
-
-        :param obj: The object.
-        :return: A list of all contact points with other objects
+        Same as :meth:`get_body_contact_points` but with objects instead of any type of bodies.
         """
         return self.get_body_contact_points(obj)
 
@@ -810,7 +709,7 @@ class World(StateEntity, ABC):
     @deprecated("Use get_contact_points_between_two_bodies instead")
     def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
         """
-        Same as :meth:`get_contact_points_between_two_bodies` but with objects instead of bodies.
+        Same as :meth:`get_contact_points_between_two_bodies` but with objects instead of any type of bodies.
         """
         return self.get_contact_points_between_two_bodies(obj1, obj2)
 
@@ -825,47 +724,25 @@ class World(StateEntity, ABC):
         """
         pass
 
-    @abstractmethod
-    def get_body_distances(self, body: PhysicalBody) -> Dict[PhysicalBody, float]:
+    def get_body_closest_points(self, body: PhysicalBody, max_distance: float) -> ClosestPointsList:
         """
-        Return the distances of this body with all other bodies in the world.
+        Return the closest points of this body with all other bodies in the world.
 
         :param body: The body.
-        :return: A dictionary of body names and distances.
-        """
-        pass
-
-    @abstractmethod
-    def get_distance_between_two_bodies(self, body_1: PhysicalBody, body_2: PhysicalBody) -> float:
-        """
-        Return the distance between two bodies.
-
-        :param body_1: The first body.
-        :param body_2: The second body.
-        :return: The distance between the two bodies.
-        """
-        pass
-
-    def get_object_closest_points(self, obj: Object, max_distance: float) -> ClosestPointsList:
-        """
-        Return the closest points of this object with all other objects in the world.
-
-        :param obj: The object.
-        :param max_distance: The maximum distance between the points.
+        :param max_distance: The maximum allowed distance between the points.
         :return: A list of the closest points.
         """
-        all_obj_closest_points = [self.get_closest_points_between_objects(obj, other_obj, max_distance) for other_obj in
-                                  self.objects
-                                  if other_obj != obj]
+        all_obj_closest_points = [self.get_closest_points_between_two_bodies(body, other_body, max_distance)
+                                  for other_body in self.objects if other_body != body]
         return ClosestPointsList([point for closest_points in all_obj_closest_points for point in closest_points])
 
-    def get_closest_points_between_objects(self, object_a: Object, object_b: Object, max_distance: float) \
+    def get_closest_points_between_two_bodies(self, body_a: PhysicalBody, body_b: PhysicalBody, max_distance: float) \
             -> ClosestPointsList:
         """
         Return the closest points between two objects.
 
-        :param object_a: The first object.
-        :param object_b: The second object.
+        :param body_a: The first body.
+        :param body_b: The second body.
         :param max_distance: The maximum distance between the points.
         :return: A list of the closest points.
         """
@@ -1771,6 +1648,15 @@ class World(StateEntity, ABC):
 
     def __del__(self):
         self.exit()
+
+    def __eq__(self, other: World):
+        if not isinstance(other, self.__class__):
+            return False
+        return (self.is_prospection_world == other.is_prospection_world
+                and self.id == other.id)
+
+    def __hash__(self):
+        return hash((self.__class__.__name__, self.is_prospection_world, self.id))
 
 
 class UseProspectionWorld:

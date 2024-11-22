@@ -19,7 +19,7 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
-from ..datastructures.world_entity import WorldEntity, PhysicalBody
+from ..datastructures.world_entity import PhysicalBody
 from ..description import ObjectDescription, LinkDescription, Joint
 from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, UnsupportedFileExtension, \
     ObjectDescriptionUndefined
@@ -121,6 +121,8 @@ class Object(PhysicalBody):
         self._init_link_name_and_id_map()
 
         self._init_links_and_update_transforms()
+        self.color: Color = color
+
         self._init_joints()
 
         self.attachments: Dict[Object, Attachment] = {}
@@ -156,7 +158,7 @@ class Object(PhysicalBody):
             return link_to_color_dict
 
     @color.setter
-    def color(self, rgba_color: Color) -> None:
+    def color(self, rgba_color: Union[Color, Dict[str, Color]]) -> None:
         """
         Change the color of this object.
 
@@ -164,11 +166,15 @@ class Object(PhysicalBody):
         """
         # Check if there is only one link, this is the case for primitive
         # forms or if loaded from an .stl or .obj file
-        if self.links != {}:
-            for link in self.links.values():
-                link.color = rgba_color
-        else:
+        if self.has_one_link:
             self.root_link.color = rgba_color
+        else:
+            if isinstance(rgba_color, Color):
+                for link in self.links.values():
+                    link.color = rgba_color
+            else:
+                for link_name, color in rgba_color.items():
+                    self.links[link_name].color = color
 
     def get_mesh_path(self) -> str:
         """
@@ -335,7 +341,7 @@ class Object(PhysicalBody):
         """
         The current pose of the object.
         """
-        return self.get_pose()
+        return self.world.get_object_pose(self)
 
     @pose.setter
     def pose(self, pose: Pose):
@@ -821,15 +827,16 @@ class Object(PhysicalBody):
         """
         self.set_pose(self.get_pose(), base=True)
 
-    def save_state(self, state_id) -> None:
+    def save_state(self, state_id: int, save_dir: Optional[str] = None) -> None:
         """
         Save the state of this object by saving the state of all links and attachments.
 
         :param state_id: The unique id of the state.
+        :param save_dir: The directory in which to save the state.
         """
         self.save_links_states(state_id)
         self.save_joints_states(state_id)
-        super().save_state(state_id)
+        super().save_state(state_id, save_dir)
 
     def save_links_states(self, state_id: int) -> None:
         """
@@ -854,8 +861,8 @@ class Object(PhysicalBody):
         """
         The current state of this object as an ObjectState.
         """
-        return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(),
-                           self.joint_states.copy(), self.world.conf.get_pose_tolerance())
+        return ObjectState(self.body_state, self.attachments.copy(), self.link_states.copy(),
+                           self.joint_states.copy())
 
     @current_state.setter
     def current_state(self, state: ObjectState) -> None:
@@ -863,7 +870,7 @@ class Object(PhysicalBody):
         Set the current state of this object to the given state.
         """
         if self.current_state != state:
-            self.set_pose(state.pose, base=False, set_attachments=False)
+            self.body_state = state.body_state
             self.set_attachments(state.attachments)
             self.link_states = state.link_states
             self.joint_states = state.joint_states
@@ -1339,6 +1346,7 @@ class Object(PhysicalBody):
         for link in self.links.values():
             link.update_transform(transform_time)
 
+    @property
     def contact_points(self) -> ContactPointsList:
         """
         Return a list of contact points of this Object with other Objects.
@@ -1355,7 +1363,7 @@ class Object(PhysicalBody):
         """
         state_id = self.world.save_state()
         self.world.step()
-        contact_points = self.contact_points()
+        contact_points = self.contact_points
         self.world.restore_state(state_id)
         return contact_points
 
@@ -1366,7 +1374,7 @@ class Object(PhysicalBody):
         :param max_distance: The maximum distance between the closest points
         :return: A list of closest points between this Object and other Objects
         """
-        return self.world.get_object_closest_points(self, max_distance)
+        return self.world.get_body_closest_points(self, max_distance)
 
     def closest_points_with_obj(self, other_object: Object, max_distance: float) -> ClosestPointsList:
         """
@@ -1376,7 +1384,7 @@ class Object(PhysicalBody):
         :param max_distance: The maximum distance between the closest points
         :return: A list of closest points between this Object and the other Object
         """
-        return self.world.get_closest_points_between_objects(self, other_object, max_distance)
+        return self.world.get_closest_points_between_two_bodies(self, other_object, max_distance)
 
     @deprecated("Use property setter 'color' instead.")
     def set_color(self, rgba_color: Color) -> None:
@@ -1425,7 +1433,7 @@ class Object(PhysicalBody):
         if self.has_one_link:
             return self.root_link.get_convex_hull()
         else:
-            return self.world.get_object_convex_hull(self)
+            return self.world.get_body_convex_hull(self)
 
     def get_base_origin(self) -> Pose:
         """
