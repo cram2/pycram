@@ -431,7 +431,7 @@ class World(StateEntity, ABC):
         :param obj: The object to be removed.
         """
         self.original_state.object_states.pop(obj.name)
-        self.original_state.simulator_state_id = self.save_physics_simulator_state(use_same_id=True)
+        self.update_simulator_state_id_in_original_state(use_same_id=True)
 
     def add_object_to_original_state(self, obj: Object) -> None:
         """
@@ -1264,7 +1264,7 @@ class World(StateEntity, ABC):
         self.restore_state(self.original_state_id)
         if remove_saved_states:
             self.remove_saved_states()
-        self.original_state_id = self.save_state(use_same_id=True)
+            self.original_state_id = self.save_state(use_same_id=True)
 
     def remove_saved_states(self) -> None:
         """

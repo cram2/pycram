@@ -195,8 +195,7 @@ class BulletWorld(World):
     def get_body_contact_points(self, body: PhysicalBody) -> ContactPointsList:
         self.perform_collision_detection()
         body_data = self.get_body_and_link_id(body, index='A')
-        kwargs = {**body_data, "physicsClientId": self.id}
-        points_list = p.getContactPoints(**kwargs)
+        points_list = p.getContactPoints(**body_data, physicsClientId=self.id)
         return ContactPointsList([ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list
                                   if len(point) > 0])
 
@@ -204,8 +203,7 @@ class BulletWorld(World):
         self.perform_collision_detection()
         body_a_data = self.get_body_and_link_id(obj_a, index='A')
         body_b_data = self.get_body_and_link_id(obj_b, index='B')
-        kwargs = {**body_a_data, **body_b_data, "physicsClientId": self.id}
-        points_list = p.getContactPoints(**kwargs)
+        points_list = p.getContactPoints(**body_a_data, **body_b_data, physicsClientId=self.id)
         return ContactPointsList([ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list
                                   if len(point) > 0])
 
@@ -218,8 +216,7 @@ class BulletWorld(World):
                                               max_distance: float) -> ClosestPointsList:
         body_a_data = self.get_body_and_link_id(obj_a, index='A')
         body_b_data = self.get_body_and_link_id(obj_b, index='B')
-        kwargs = {**body_a_data, **body_b_data, "physicsClientId": self.id}
-        points_list = p.getClosestPoints(**kwargs)
+        points_list = p.getClosestPoints(**body_a_data, **body_b_data, distance=max_distance, physicsClientId=self.id)
         return ClosestPointsList([ClosestPoint(**self.parse_points_list_to_args(point)) for point in points_list
                                   if len(point) > 0])
 

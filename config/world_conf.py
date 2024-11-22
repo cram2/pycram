@@ -70,7 +70,7 @@ class WorldConfig:
      and the world synchronization.
     """
 
-    position_tolerance: float = 1e-2
+    position_tolerance: float = 1e-3
     orientation_tolerance: float = 10 * math.pi / 180
     prismatic_joint_position_tolerance: float = 1e-2
     revolute_joint_position_tolerance: float = 5 * math.pi / 180

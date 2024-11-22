@@ -68,7 +68,7 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertAlmostEqual(self.robot.get_joint_position("head_pan_joint"), 0.0, delta=0.01)
 
     def test_get_object_contact_points(self):
-        self.assertEqual(len(self.robot.contact_points), 0)
+        self.assertEqual(len(self.robot.contact_points), 0)  # 8 because of robot wheels with floor
         self.milk.set_position(self.robot.get_position())
         self.assertTrue(len(self.robot.contact_points) > 0)
 
