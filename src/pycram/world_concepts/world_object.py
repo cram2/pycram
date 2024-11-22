@@ -95,7 +95,6 @@ class Object(PhysicalBody):
         self.name: str = name
         self.path: Optional[str] = path
 
-        self.color: Color = color
         self._resolve_description(path, description)
         self.cache_manager = self.world.cache_manager
 
