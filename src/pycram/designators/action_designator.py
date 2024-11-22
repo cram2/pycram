@@ -1016,7 +1016,7 @@ class MoveAndPickUpPerformable(ActionAbstract):
     The grasp to use
     """
 
-    @with_tree
+    # @with_tree
     def perform(self):
         NavigateActionPerformable(self.standing_position).perform()
         FaceAtPerformable(self.object_designator.pose).perform()
