@@ -15,6 +15,7 @@ parts:
     - file: notebooks.rst
     - file: designators.rst
     - file: knowledge.rst
+    - file: knowledge_and_reasoning.rst
 
   - caption: Trouble Shooting
     chapters:
@@ -28,6 +29,8 @@ parts:
       - file: notebooks/bullet_world
       - file: notebooks/language
       - file: notebooks/local_transformer
+      - file: notebooks/minimal_task_tree
+      - file: notebooks/improving_actions
       - file: designator_example.rst
         sections:
         - file: notebooks/action_designator
@@ -51,6 +54,7 @@ parts:
       - file: knowledge_examples.rst
         sections:
         - file: notebooks/knowledge_source.md
+        - file: notebooks/properties.md
 
   - caption: API
     chapters:

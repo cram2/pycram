@@ -13,6 +13,7 @@ jupyter:
 ---
 
 # How to create Knowledge Source
+(knowledge_source_header)=
 This notebook will detail what a knowledge source does, how it works and how you can create your own. 
 
 A knowledge source is part of the wider knowledge system in PyCRAM as explained [here](/knowledge). The purpose of a 

@@ -24,6 +24,7 @@ of entities in the world. Properties can be combined to create more complex expr
 that have to be true at the time an action designator is executed. Let's look at an example explaining this:
 
 .. code-block:: python
+
     GraspableProperty(ObjectDesignator(...))
     & ReachableProperty(Pose(....))
 
@@ -41,6 +42,7 @@ the methods needed to answer the question. The resolved properties are then comb
 and evaluated.
 
 This image shows the process of resolving the properties through the knowledge engine:
+
 .. image:: ../images/knowledge/property_resolution.png
     :align: center
     :alt: Property Resolution
@@ -68,7 +70,9 @@ available and which a knowledge source can implement are:
 - `VisibleProperty`: Checks if an object is visible
 
 
-## TODO link to example of knowledge source
+If you want to learn more about the implementation of a Knowledge Source, you can look at the following example:
+
+:ref:`Knowledge Source example<knowledge_source_header>`
 
 ----------------
 Knowledge Engine
