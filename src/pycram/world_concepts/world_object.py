@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 import numpy as np
+import owlready2
 from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
@@ -117,7 +118,10 @@ class Object(WorldEntity, HasConcept):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.add_object(self)
+
+        # this line is problematic when the name conflicts with the ontology
         self.ontology_individual = self.ontology_concept(self.name)
+
 
     def _resolve_description(self, path: Optional[str] = None, description: Optional[ObjectDescription] = None) -> None:
         """
@@ -583,6 +587,7 @@ class Object(WorldEntity, HasConcept):
         to remove this Object from the simulation/world.
         """
         self.world.remove_object(self)
+        owlready2.destroy_entity(self.ontology_individual)
 
     def reset(self, remove_saved_states=False) -> None:
         """
@@ -1407,3 +1412,4 @@ class Object(WorldEntity, HasConcept):
 
     def __hash__(self):
         return hash((self.id, self.name, self.world))
+

@@ -404,8 +404,6 @@ class CloseAction(ActionDesignatorDescription):
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[Arms] = arms
 
-        if self.soma:
-            self.init_ontology_concepts({"closing": self.soma.Closing})
 
     def ground(self) -> CloseActionPerformable:
         """

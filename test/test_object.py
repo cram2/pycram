@@ -181,10 +181,10 @@ class OntologyIntegrationTestCase(BulletWorldTestCase):
     def test_querying(self):
         # get all milks from the ontology
         r = list(filter(lambda x:  x in Milk.instances(), ontology.individuals()))
-
         self.assertEqual(len(r), 1)
 
         milk2  = Object("milk2", Milk, "milk.stl")
+
         r = list(filter(lambda x:  x in Milk.instances(), ontology.individuals()))
 
         self.assertEqual(len(r), 2)

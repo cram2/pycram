@@ -41,6 +41,7 @@ class BulletWorldTestCase(unittest.TestCase):
         ProcessModule.execution_delay = False
         cls.viz_marker_publisher = VizMarkerPublisher()
 
+
     def setUp(self):
         self.world.reset_world(remove_saved_states=True)
         with UseProspectionWorld():
