@@ -1,5 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 
+from ...datastructures.dataclasses import ReasoningResult
 from ...datastructures.enums import Arms, ObjectType
 from ..knowledge_source import KnowledgeSource
 from ...datastructures.property import ReachableProperty, GraspableProperty, GripperIsFreeProperty, VisibleProperty, SpaceIsFreeProperty
@@ -8,9 +13,11 @@ from ...datastructures.world import World, UseProspectionWorld
 # from ...designators.location_designator import CostmapLocation
 # from ...designators.object_designator import BelieveObject
 from ...robot_description import RobotDescription
-from ...world_concepts.world_object import Object
 from ...world_reasoning import visible
 from ...costmaps import OccupancyCostmap
+
+if TYPE_CHECKING:
+    from ...designators.object_designator import ObjectDesignatorDescription
 
 class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, SpaceIsFreeProperty, GraspableProperty, ReachableProperty):
     """
@@ -44,7 +51,7 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
     def reachable(self, pose: Pose) -> bool:
         return True
 
-    def graspable(self, object_designator: 'ObjectDesignatorDescription') -> bool:
+    def graspable(self, object_designator: ObjectDesignatorDescription) -> ReasoningResult:
         with UseProspectionWorld():
             pro_obj = World.current_world.get_prospection_object_for_object(object_designator.resolve().world_object)
             pro_obj.set_pose(Pose([0, 0, 0], [0, 0, 0, 1]))
@@ -60,10 +67,10 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
                     return True
             return False
 
-    def space_is_free(self, pose: Pose) -> bool:
+    def space_is_free(self, pose: Pose) -> ReasoningResult:
         om = OccupancyCostmap(0.35, False, 200, 0.02, pose)
         origin_map = om.map[200 // 2 - 10: 200 // 2 + 10, 200 // 2 - 10: 200 // 2 + 10]
-        return np.sum(origin_map) > 400 * 0.9
+        return ReasoningResult(np.sum(origin_map) > 400 * 0.9)
 
     def gripper_is_free(self, gripper: Arms) -> bool:
         tool_frame_link = RobotDescription.current_robot_description.get_arm_chain(gripper).get_tool_frame()
@@ -72,6 +79,6 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
                 return False
         return True
 
-    def is_visible(self, object_designator: 'ObjectDesignatorDescription') -> bool:
+    def is_visible(self, object_designator: ObjectDesignatorDescription) -> ReasoningResult:
         cam_pose = World.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_frame())
         return visible(object_designator.resolve().world_object, cam_pose)

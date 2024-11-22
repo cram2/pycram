@@ -140,7 +140,7 @@ class KnowledgeEngine:
             rospy.logwarn("Knowledge engine is disabled")
             return True
 
-    def find_source_for_property(self, property: Type[Property]) -> Type[KnowledgeSource]:
+    def find_source_for_property(self, property: Type[Property]) -> KnowledgeSource:
         """
         Find the source for the given property
 
@@ -153,7 +153,7 @@ class KnowledgeEngine:
                 return source
 
     def match_reasoned_parameter(self, reasoned_parameter: Dict[str, any],
-                                 designator: Type[ActionDesignatorDescription]) -> Dict[str, any]:
+                                 designator: ActionDesignatorDescription) -> Dict[str, any]:
         """
         Match the reasoned parameters, in the root node of the property expression, to the corresponding parameter in
         the designator_description
@@ -164,7 +164,7 @@ class KnowledgeEngine:
         return matched_parameter
 
     @staticmethod
-    def _match_by_name(parameter: Dict[str, any], designator: Type[ActionDesignatorDescription]) -> Dict[str, any]:
+    def _match_by_name(parameter: Dict[str, any], designator: ActionDesignatorDescription) -> Dict[str, any]:
         """
         Match the reasoned parameters to the corresponding parameter in the designator_description by name
         """
@@ -176,7 +176,7 @@ class KnowledgeEngine:
         return result_dict
 
     @staticmethod
-    def _match_by_type(parameter: Dict[str, any], designator: Type[ActionDesignatorDescription]) -> Dict[str, any]:
+    def _match_by_type(parameter: Dict[str, any], designator: ActionDesignatorDescription) -> Dict[str, any]:
         """
         Match the reasoned parameters to the corresponding parameter in the designator_description by type
         """
@@ -205,7 +205,7 @@ class ReasoningInstance:
     full designator at a later time.
     """
 
-    def __init__(self, designator_description: Type[ActionDesignatorDescription], partial_designator: PartialDesignator):
+    def __init__(self, designator_description: ActionDesignatorDescription, partial_designator: PartialDesignator):
         """
         Initialize the reasoning instance with the designator_description and the partial designator
 
@@ -219,7 +219,7 @@ class ReasoningInstance:
                                          self.designator_description.__getattribute__(param_name) is None]
         self.partial_designator = partial_designator
 
-    def __iter__(self) -> Type[ActionDesignatorDescription.Action]:
+    def __iter__(self) -> ActionDesignatorDescription.Action:
         """
         Executes property structure, matches the reasoned and missing parameter and generates a completes designator.
 

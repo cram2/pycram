@@ -6,6 +6,7 @@ from dataclasses import dataclass, field, fields
 from abc import ABC, abstractmethod
 from inspect import isgenerator, isgeneratorfunction
 
+from .datastructures.property import Property
 from .ros.logging import logwarn, loginfo
 
 import inspect
@@ -279,7 +280,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         Language.__init__(self)
         from .ontology.ontology import OntologyManager
         self.soma = OntologyManager().soma
-        self.knowledge_conditions = None
+        self.knowledge_condition = Property()
 
     def resolve(self) -> Type[ActionDesignatorDescription.Action]:
         """

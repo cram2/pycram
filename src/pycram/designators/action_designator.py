@@ -44,8 +44,6 @@ from ..orm.action_designator import Action as ORMAction
 from dataclasses import dataclass, field
 
 
-
-
 # ----------------------------------------------------------------------------
 # ---------------- Performables ----------------------------------------------
 # ----------------------------------------------------------------------------
@@ -140,7 +138,6 @@ class MoveTorsoActionPerformable(ActionAbstract):
     @with_tree
     def plan(self) -> None:
         MoveJointsMotion([RobotDescription.current_robot_description.torso_joint], [self.position]).perform()
-
 
 
 @dataclass
@@ -322,7 +319,7 @@ class PickUpActionPerformable(ActionAbstract):
         # Remove the vis axis from the world
         World.current_world.remove_vis_axis()
 
-    #TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in ActionAbstract
+    # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in ActionAbstract
     def to_sql(self) -> Action:
         return ORMPickUpAction(arm=self.arm, grasp=self.grasp)
 
@@ -403,13 +400,13 @@ class TransportActionPerformable(ActionAbstract):
     """
     Object designator_description describing the object that should be transported.
     """
-    arm: Arms
-    """
-    Arm that should be used
-    """
     target_location: Pose
     """
     Target Location to which the object should be transported
+    """
+    arm: Arms
+    """
+    Arm that should be used
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMTransportAction)
 
@@ -626,6 +623,7 @@ class MoveAndPickUpPerformable(ActionAbstract):
         FaceAtPerformable(self.object_designator.pose).perform()
         PickUpActionPerformable(self.object_designator, self.arm, self.grasp).perform()
 
+
 # ----------------------------------------------------------------------------
 #               Action Designators Description
 # ----------------------------------------------------------------------------
@@ -754,7 +752,7 @@ class GripAction(ActionDesignatorDescription):
 
     def __init__(self, grippers: List[Arms], object_designator_description: ObjectDesignatorDescription,
                  efforts: List[float], ontology_concept_holders: Optional[List[Thing]] = None):
-        super().__init__( ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.grippers: List[Arms] = grippers
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.efforts: List[float] = efforts
@@ -841,10 +839,13 @@ class PickUpAction(ActionDesignatorDescription):
     #     return PickUpActionPerformable(obj_desig, self.arms[0], self.grasps[0])
 
     def __iter__(self) -> PickUpActionPerformable:
-        ri = ReasoningInstance(self, PartialDesignator(PickUpActionPerformable, self.object_designator_description, self.arms, self.grasps))
+        ri = ReasoningInstance(self,
+                               PartialDesignator(PickUpActionPerformable, self.object_designator_description, self.arms,
+                                                 self.grasps))
         # Here is where the magic happens
         for desig in ri:
             yield desig
+
 
 class PlaceAction(ActionDesignatorDescription):
     """
@@ -885,6 +886,13 @@ class PlaceAction(ActionDesignatorDescription):
 
         return PlaceActionPerformable(obj_desig, self.arms[0], self.target_locations[0])
 
+    def __iter__(self) -> PlaceActionPerformable:
+        ri = ReasoningInstance(self,
+                               PartialDesignator(PlaceActionPerformable, self.object_designator_description, self.arms,
+                                                 self.target_locations))
+        for desig in ri:
+            yield desig
+
 
 class NavigateAction(ActionDesignatorDescription):
     """
@@ -922,6 +930,15 @@ class NavigateAction(ActionDesignatorDescription):
         """
         return NavigateActionPerformable(self.target_locations[0])
 
+    def __iter__(self) -> NavigateActionPerformable:
+        """
+        Iterates over all possible target locations
+
+        :return: A performable designator_description
+        """
+        for location in self.target_locations:
+            yield NavigateActionPerformable(location)
+
 
 class TransportAction(ActionDesignatorDescription):
     """
@@ -932,15 +949,15 @@ class TransportAction(ActionDesignatorDescription):
 
     def __init__(self,
                  object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
-                 arms: List[Arms],
                  target_locations: List[Pose],
+                 arms: List[Arms] = None,
                  ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Designator representing a pick and place plan.
 
         :param object_designator_description: Object designator_description description or a specified Object designator_description that should be transported
-        :param arms: A List of possible arms that could be used for transporting
         :param target_locations: A list of possible target locations for the object to be placed
+        :param arms: A List of possible arms that could be used for transporting
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(ontology_concept_holders)
@@ -962,7 +979,17 @@ class TransportAction(ActionDesignatorDescription):
             if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object) \
             else self.object_designator_description.resolve()
 
-        return TransportActionPerformable(obj_desig, self.arms[0], self.target_locations[0])
+        return TransportActionPerformable(obj_desig, self.target_locations[0],  self.arms[0])
+
+    def __iter__(self) -> TransportActionPerformable:
+        obj_desig = self.object_designator_description \
+            if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object) \
+            else self.object_designator_description.resolve()
+        ri = ReasoningInstance(self,
+                               PartialDesignator(TransportActionPerformable, obj_desig, self.target_locations,
+                                                 self.arms))
+        for desig in ri:
+            yield desig
 
 
 class LookAtAction(ActionDesignatorDescription):
@@ -993,6 +1020,15 @@ class LookAtAction(ActionDesignatorDescription):
         :return: A performable designator_description
         """
         return LookAtActionPerformable(self.targets[0])
+
+    def __iter__(self) -> LookAtActionPerformable:
+        """
+        Iterates over all possible target locations
+
+        :return: A performable designator_description
+        """
+        for target in self.targets:
+            yield LookAtActionPerformable(target)
 
 
 class DetectAction(ActionDesignatorDescription):
@@ -1025,6 +1061,15 @@ class DetectAction(ActionDesignatorDescription):
         :return: A performable designator_description
         """
         return DetectActionPerformable(self.object_designator_description.resolve())
+
+    def __iter__(self) -> DetectActionPerformable:
+        """
+        Iterates over all possible values for this designator_description and returns a performable action designator_description with the value.
+
+        :return: A performable action designator_description
+        """
+        for desig in self.object_designator_description:
+            yield DetectActionPerformable(desig)
 
 
 class OpenAction(ActionDesignatorDescription):
@@ -1063,6 +1108,17 @@ class OpenAction(ActionDesignatorDescription):
         """
         return OpenActionPerformable(self.object_designator_description.resolve(), self.arms[0])
 
+    def __iter__(self) -> OpenActionPerformable:
+        """
+        Iterates over all possible values for this designator_description and returns a performable action designator_description with the value.
+
+        :return: A performable action designator_description
+        """
+        ri = ReasoningInstance(self,
+                               PartialDesignator(OpenActionPerformable, self.object_designator_description, self.arms))
+        for desig in ri:
+            yield desig
+
 
 class CloseAction(ActionDesignatorDescription):
     """
@@ -1073,7 +1129,7 @@ class CloseAction(ActionDesignatorDescription):
 
     performable_class = CloseActionPerformable
 
-    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms],
+    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms] = None,
                  ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Attempts to close an open container
@@ -1100,6 +1156,17 @@ class CloseAction(ActionDesignatorDescription):
         """
         return CloseActionPerformable(self.object_designator_description.resolve(), self.arms[0])
 
+    def __iter__(self) -> CloseActionPerformable:
+        """
+        Iterates over all possible solutions for this designator_description and returns a performable action designator.
+
+        :yield: A performable fully parametrized Action designator
+        """
+        ri = ReasoningInstance(self,
+                               PartialDesignator(CloseActionPerformable, self.object_designator_description, self.arms))
+        for desig in ri:
+            yield desig
+
 
 class GraspingAction(ActionDesignatorDescription):
     """
@@ -1108,7 +1175,7 @@ class GraspingAction(ActionDesignatorDescription):
 
     performable_class = GraspingActionPerformable
 
-    def __init__(self, arms: List[Arms], object_description: Union[ObjectDesignatorDescription, ObjectPart],
+    def __init__(self, object_description: Union[ObjectDesignatorDescription, ObjectPart], arms: List[Arms] = None,
                  ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Will try to grasp the object described by the given description. Grasping is done by moving into a pre grasp
@@ -1134,3 +1201,14 @@ class GraspingAction(ActionDesignatorDescription):
         """
         return GraspingActionPerformable(self.arms[0], self.object_description.resolve())
 
+    def __iter__(self) -> CloseActionPerformable:
+        """
+        Iterates over all possible solutions for this designator_description and returns a performable action
+        designator.
+
+        :yield: A fully parametrized Action designator
+        """
+        ri = ReasoningInstance(self,
+                               PartialDesignator(GraspingActionPerformable, self.object_description, self.arms))
+        for desig in ri:
+            yield desig
