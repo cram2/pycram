@@ -5,6 +5,7 @@ from dataclasses import dataclass, field, fields
 from abc import ABC, abstractmethod
 from inspect import isgenerator, isgeneratorfunction
 
+from pycrap import PhysicalObject
 from .ros.logging import logwarn, loginfo
 
 try:
@@ -637,7 +638,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
                     return pose_in_object
             return pose
 
-    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[ObjectType]] = None,
+    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None,
                  resolver: Optional[Callable] = None, ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
         """
         Base of all object designator descriptions. Every object designator has the name and type of the object.

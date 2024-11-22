@@ -12,7 +12,7 @@ import pycram.orm.motion_designator
 import pycram.orm.object_designator
 import pycram.orm.tasktree
 import pycram.tasktree
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.dataclasses import Color
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.world_concepts.world_object import Object

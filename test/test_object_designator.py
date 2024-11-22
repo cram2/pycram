@@ -1,5 +1,5 @@
 import unittest
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.designators.object_designator import *
 from pycram.datastructures.enums import ObjectType
 from pycrap import Milk

@@ -5,7 +5,7 @@ import numpy as np
 from random_events.variable import Continuous, Symbolic
 from sortedcontainers import SortedSet
 
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.enums import ObjectType, Arms, Grasp
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators.action_designator import MoveTorsoActionPerformable

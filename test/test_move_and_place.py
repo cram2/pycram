@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.enums import ObjectType, Arms, Grasp
 from pycram.datastructures.pose import Pose
 from pycram.designator import ObjectDesignatorDescription

@@ -1,7 +1,7 @@
 import os.path
 import pathlib
 
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 
 
 class DescriptionTest(BulletWorldTestCase):

@@ -1,6 +1,6 @@
 import time
 
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.enums import ObjectType
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.world import UseProspectionWorld

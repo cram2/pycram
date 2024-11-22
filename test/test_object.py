@@ -1,6 +1,6 @@
 import numpy as np
 
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 
 from pycram.datastructures.enums import JointType, ObjectType
 from pycram.datastructures.pose import Pose

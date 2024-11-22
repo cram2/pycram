@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 
 import rospkg
 
-from bullet_world_testcase import BulletWorldTestCase, BulletWorldGUITestCase
+from pycram.testing import BulletWorldTestCase, BulletWorldGUITestCase
 from pycram.datastructures.dataclasses import Color
 from pycram.datastructures.enums import WorldMode
 from pycram.datastructures.pose import Pose
