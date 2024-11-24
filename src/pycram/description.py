@@ -199,6 +199,13 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
 
+    @property
+    def name(self) -> str:
+        """
+        :return: The name of this link.
+        """
+        return self.parsed_description.name
+
     def get_axis_aligned_bounding_box(self, transform_to_link_pose: bool = True) -> AxisAlignedBoundingBox:
         """
         :param transform_to_link_pose: If True, return the bounding box transformed to the link pose.
