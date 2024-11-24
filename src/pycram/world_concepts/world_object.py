@@ -60,7 +60,7 @@ class Object(PhysicalBody):
                  description: Optional[ObjectDescription] = None,
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
-                 color: Color = Color(),
+                 color: Optional[Color] = None,
                  ignore_cached_files: bool = False,
                  scale_mesh: Optional[float] = None,
                  mesh_transform: Optional[Transform] = None):
@@ -120,7 +120,9 @@ class Object(PhysicalBody):
         self._init_link_name_and_id_map()
 
         self._init_links_and_update_transforms()
-        self.color: Color = color
+
+        if color is not None:
+            self.color: Color = color
 
         self._init_joints()
 
