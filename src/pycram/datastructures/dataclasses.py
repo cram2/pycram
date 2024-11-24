@@ -881,7 +881,6 @@ class VirtualJoint:
     name: str
     type_: JointType
     axes: Optional[Point] = None
-    object: Optional[Object] = None
 
     @property
     def type(self):
@@ -900,6 +899,7 @@ class VirtualMobileBaseJoints:
     """
     Dataclass for storing the names, types and axes of the virtual mobile base joints of a mobile robot.
     """
+
     translation_x: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_X.value,
                                                          JointType.PRISMATIC,
                                                          Point(1, 0, 0))
