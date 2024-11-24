@@ -17,7 +17,7 @@ from .datastructures.pose import Pose, Transform
 from .datastructures.world_entity import WorldEntity, PhysicalBody
 from .failures import ObjectDescriptionNotFound, LinkHasNoGeometry, LinkGeometryHasNoMesh
 from .local_transformer import LocalTransformer
-from .ros.logging import logwarn
+from .ros.logging import logwarn_once
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
@@ -439,8 +439,8 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
 
     @pose.setter
     def pose(self, pose: Pose) -> None:
-        logwarn("Setting the pose of a link is not allowed,"
-                " change object pose and/or joint position to affect the link pose.")
+        logwarn_once("Setting the pose of a link is not allowed,"
+                     " change object pose and/or joint position to affect the link pose.")
 
     @property
     def color(self) -> Color:
