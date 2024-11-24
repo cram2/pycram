@@ -130,7 +130,7 @@ class Object(PhysicalBody):
 
         self.world.add_object(self)
 
-    @cached_property
+    @property
     def tf_frame(self) -> str:
         """
         The tf frame of the object.
