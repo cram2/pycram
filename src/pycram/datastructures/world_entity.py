@@ -139,6 +139,14 @@ class PhysicalBody(WorldEntity, ABC):
         self._is_rotating: Optional[bool] = None
         self._velocity: Optional[List[float]] = None
 
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """
+        :return: The name of this body.
+        """
+        ...
+
     @abstractmethod
     def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
         """

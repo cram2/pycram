@@ -78,8 +78,7 @@ class World(StateEntity, ABC):
     The ontology of this world.
     """
 
-    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False,
-                 clear_cache: bool = False):
+    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection: bool = False, clear_cache: bool = False):
         """
         Create a new simulation, the mode decides if the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
@@ -87,7 +86,7 @@ class World(StateEntity, ABC):
 
         :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is
          "GUI"
-        :param is_prospection_world: For internal usage, decides if this World should be used as a prospection world.
+        :param is_prospection: For internal usage, decides if this World should be used as a prospection world.
         :param clear_cache: Whether to clear the cache directory.
         """
 
@@ -115,7 +114,7 @@ class World(StateEntity, ABC):
         self.objects: List[Object] = []
         # List of all Objects in the World
 
-        self.is_prospection_world: bool = is_prospection_world
+        self.is_prospection_world: bool = is_prospection
         self._init_and_sync_prospection_world()
 
         self.local_transformer = LocalTransformer()
@@ -263,7 +262,7 @@ class World(StateEntity, ABC):
         if self.is_prospection_world:  # then no need to add another prospection world
             self.prospection_world = None
         else:
-            self.prospection_world: World = self.__class__(is_prospection_world=True)
+            self.prospection_world: World = self.__class__(is_prospection=True)
 
     def _sync_prospection_world(self):
         """

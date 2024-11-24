@@ -37,7 +37,7 @@ class BulletWorld(World):
     manipulate the Bullet World.
     """
 
-    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False,
+    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection: bool = False,
                  use_multiverse_for_real_world_simulation: bool = False):
         """
         Creates a new simulation, the type decides of the simulation should be a rendered window or just run in the
@@ -45,10 +45,10 @@ class BulletWorld(World):
         The BulletWorld object also initializes the Events for attachment, detachment and for manipulating the world.
 
         :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default is "GUI"
-        :param is_prospection_world: For internal usage, decides if this BulletWorld should be used as a shadow world.
+        :param is_prospection: For internal usage, decides if this BulletWorld should be used as a shadow world.
         :param use_multiverse_for_real_world_simulation: Whether to use the Multiverse for real world simulation.
         """
-        super().__init__(mode=mode, is_prospection_world=is_prospection_world)
+        super().__init__(mode=mode, is_prospection=is_prospection)
 
         if use_multiverse_for_real_world_simulation:
             self.add_multiverse_resources()
@@ -64,7 +64,7 @@ class BulletWorld(World):
         # Some default settings
         self.set_gravity([0, 0, -9.8])
 
-        if not is_prospection_world:
+        if not is_prospection:
             _ = Object("floor", Floor, "plane.urdf",
                        world=self)
 
