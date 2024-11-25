@@ -96,10 +96,10 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
         self.assertEqual(len(node_results), len(pycram.tasktree.task_tree.root))
 
         position_results = self.session.scalars(select(pycram.orm.base.Position)).all()
-        self.assertEqual(15, len(position_results))
+        self.assertEqual(14, len(position_results))
 
         quaternion_results = self.session.scalars(select(pycram.orm.base.Quaternion)).all()
-        self.assertEqual(15, len(quaternion_results))
+        self.assertEqual(14, len(quaternion_results))
 
         park_arms_results = self.session.scalars(select(pycram.orm.action_designator.ParkArmsAction)).all()
         self.assertEqual(0, len(park_arms_results))

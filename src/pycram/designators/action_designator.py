@@ -290,7 +290,8 @@ class PickUpActionPerformable(ActionAbstract):
         gripper_frame = robot.get_link_tf_frame(arm_chain.get_tool_frame())
 
         oTg = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
-        oTg.pose.position.x -= 0.1  # in x since this is how the gripper is oriented
+        oTg.pose.position.x -= self.prepose_distance  # in x since this is how the gripper is oriented
+        oTg.pose.position.y -= 0.01
         prepose = object.local_transformer.transform_pose(oTg, "map")
 
         # Perform the motion with the prepose and open gripper
@@ -408,6 +409,10 @@ class TransportActionPerformable(ActionAbstract):
     """
     Arm that should be used
     """
+    pickup_prepose_distance: float = 0.07
+    """
+    Distance between the object and the gripper in the x-axis before picking up the object.
+    """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMTransportAction)
 
     @with_tree
@@ -427,7 +432,8 @@ class TransportActionPerformable(ActionAbstract):
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
 
         NavigateActionPerformable(pickup_pose.pose).perform()
-        PickUpActionPerformable(self.object_designator, self.arm, Grasp.FRONT).perform()
+        PickUpActionPerformable(self.object_designator, self.arm, Grasp.FRONT,
+                                prepose_distance=self.pickup_prepose_distance).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         try:
             place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig_resolved,
