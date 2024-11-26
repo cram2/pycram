@@ -11,6 +11,9 @@ from pycram.knowledge.knowledge_engine import KnowledgeEngine
 
 
 class TestProperty(Property):
+    """
+    A Mock Property for testing the property implementation
+    """
     property_exception = ReasoningError
 
     def __init__(self, pose: Pose):
@@ -23,6 +26,9 @@ class TestProperty(Property):
 
 
 class TestKnowledge(KnowledgeSource, TestProperty):
+    """
+    A Mock KnowledgeSource for testing the knowledge_source implementation
+    """
     def __init__(self):
         super().__init__("test_source", 1)
         self.parameter = {}

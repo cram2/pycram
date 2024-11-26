@@ -111,8 +111,7 @@ class Property(NodeMixin):
     @property
     def resolved(self) -> bool:
         """
-        Returns True if all nodes in the tree are resolved. This is done by iterating over the tree and checking if all
-        nodes are either a ResolvedProperty or a PropertyOperator.
+        Returns True if all nodes in the tree are resolved and are either of type ResolvedProperty or PropertyOperator.
 
         :return: True if all nodes in the tree are resolved, False otherwise
         """
@@ -140,8 +139,7 @@ class PropertyOperator(Property):
 
     def simplify(self):
         """
-        Simplifies the tree structure by merging nodes of the same type. This is done by iterating over the tree and
-        merging nodes of the same type.
+        Simplifies the tree structure by merging nodes of the same type.
 
         :return: Returns the root node of the tree
         """
@@ -166,8 +164,7 @@ class PropertyOperator(Property):
 
 class And(PropertyOperator):
     """
-    Class to represent a logical and operator in a tree structure. This class inherits from PropertyOperator and adds a
-    method to evaluate the children as an and operator.
+    Represents a logical AND between multiple properties.
     """
 
     def __init__(self, properties: List[Property]):
@@ -213,8 +210,7 @@ class And(PropertyOperator):
 
 class Or(PropertyOperator):
     """
-    Class to represent a logical or operator in a tree structure. This class inherits from PropertyOperator and adds a
-    method to evaluate the children as an or operator.
+    Represents a logical OR between multiple properties.
     """
 
     def __init__(self, properties: List[Property]):
@@ -257,8 +253,7 @@ class Or(PropertyOperator):
 
 class Not(PropertyOperator):
     """
-    Class to represent a logical not operator in a tree structure. This class inherits from PropertyOperator and adds a
-    method to evaluate the children as a not operator.
+    Represents a logical NOT of a single property.
     """
 
     def __init__(self, property: Property):
@@ -295,7 +290,7 @@ class Not(PropertyOperator):
 
 class ResolvedProperty(Property):
     """
-    Class to represent a executed property function. It holds the reference to the respective function in the knowledge
+    Represents a resolved property function. It holds the reference to the respective function in the knowledge
     source and the exception that should be raised if the property is not fulfilled. Its main purpose is to manage the
     call to the property function as well as handle the input and output variables.
     """

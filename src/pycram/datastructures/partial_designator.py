@@ -72,8 +72,7 @@ class PartialDesignator:
     @staticmethod
     def generate_permutations(args: Iterable) -> List:
         """
-        Generates all possible permutations of the given arguments. This uses itertools.product to generate the
-        permutations.
+        Generates the cartesian product of the given arguments. Arguments can also be a list of lists of arguments.
 
         :param args: An iterable with arguments
         :yields: A list with a possible permutation of the given arguments
