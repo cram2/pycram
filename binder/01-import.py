@@ -46,7 +46,7 @@ VizMarkerPublisher()
 
 robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
 apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
-if robot_param == "armar":
+if robot_param not in ["pr2"]:
     VizMarkerRobotPublisher()
 else:
     TFBroadcaster()
