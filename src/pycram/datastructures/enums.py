@@ -164,6 +164,17 @@ class ImageEnum(Enum):
     CHAIR = 37
 
 
+class LoggerLevel(Enum):
+    """
+    Enum for the different logger levels.
+    """
+    DEBUG = 'debug'
+    INFO = 'info'
+    WARN = 'warn'
+    ERROR = 'error'
+    FATAL = 'fatal'
+
+
 class VirtualMobileBaseJointName(Enum):
     """
     Enum for the joint names of the virtual mobile base.
