@@ -47,12 +47,14 @@ def launch_justin():
     args = ["robot:=justin"]
     launch_robot(executable, args=args)
 
+
 def launch_donbot():
     # name = 'iai_donbot'
     # urdf = 'iai_donbot.urdf'
     executable = 'ik_and_description.launch'
     args = ["robot:=donbot"]
     launch_robot(executable, args=args)
+
 
 def launch_armar():
     # name = 'Armar6'
@@ -61,12 +63,14 @@ def launch_armar():
     args = ["robot:=armar"]
     launch_robot(executable, args=args)
 
+
 def launch_icub():
     # name = 'iCub'
     # urdf = 'iCub.urdf'
     executable = 'ik_and_description.launch'
     args = ["robot:=icub"]
     launch_robot(executable, args=args)
+
 
 def launch_robot(launch_file, package='pycram', launch_folder='/launch/', args: List[str] = None):
     """

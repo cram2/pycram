@@ -82,11 +82,11 @@ def start_demo_local():
 
 
 def demo_selecting(apartment, robot, task_param):
-    if task_param == "navigate":
-        navigate_simple_example()
-    elif task_param == "follow":
+    # if task_param == "navigate":
+    #     navigate_simple_example()
+    if task_param == "follow":
         follow_simple_example(robot)
-    elif task_param == "transporting":
+    elif task_param == "transporting" or task_param == "navigate":
         specialized_task = None
         # specialized_task = rospy.get_param('/nbparam_specialized_task')
         if specialized_task == "clean":
