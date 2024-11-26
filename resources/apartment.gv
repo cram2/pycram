@@ -1,0 +1,338 @@
+digraph G {
+node [shape=box];
+"apartment_root" [label="apartment_root"];
+"furnitures_root" [label="furnitures_root"];
+"armchair" [label="armchair"];
+"bedside_table" [label="bedside_table"];
+"coffee_table" [label="coffee_table"];
+"coffee_table_drawer" [label="coffee_table_drawer"];
+"sofa" [label="sofa"];
+"wall_coloksu_wall1" [label="wall_coloksu_wall1"];
+"wall_coloksu_wall2" [label="wall_coloksu_wall2"];
+"wall_coloksu_wall3" [label="wall_coloksu_wall3"];
+"wall_coloksu_wall4" [label="wall_coloksu_wall4"];
+"walls" [label="walls"];
+"wardrobe" [label="wardrobe"];
+"wardrobe_door_left" [label="wardrobe_door_left"];
+"wardrobe_door_left_handle" [label="wardrobe_door_left_handle"];
+"wardrobe_door_right" [label="wardrobe_door_right"];
+"wardrobe_door_right_handle" [label="wardrobe_door_right_handle"];
+"windows" [label="windows"];
+"kitchen_root" [label="kitchen_root"];
+"side_A" [label="side_A"];
+"cabinet1" [label="cabinet1"];
+"cabinet1_coloksu_level4" [label="cabinet1_coloksu_level4"];
+"cabinet1_coloksu_level5" [label="cabinet1_coloksu_level5"];
+"cabinet1_door_top_left" [label="cabinet1_door_top_left"];
+"handle_cab1_top_door" [label="handle_cab1_top_door"];
+"cabinet1_drawer_bottom" [label="cabinet1_drawer_bottom"];
+"handle_cab1_drawer_bottom" [label="handle_cab1_drawer_bottom"];
+"cabinet1_drawer_middle" [label="cabinet1_drawer_middle"];
+"handle_cab1_drawer_mid" [label="handle_cab1_drawer_mid"];
+"oven" [label="oven"];
+"cabinet2" [label="cabinet2"];
+"cabinet2_door_out_fancy" [label="cabinet2_door_out_fancy"];
+"cabinet2_door_left" [label="cabinet2_door_left"];
+"handle_cab2_door" [label="handle_cab2_door"];
+"cabinet2_drawer_big" [label="cabinet2_drawer_big"];
+"cabinet2_drawer_small" [label="cabinet2_drawer_small"];
+"cabinet3" [label="cabinet3"];
+"cabinet3_door_bottom_out_fancy" [label="cabinet3_door_bottom_out_fancy"];
+"cabinet3_door_bottom_left" [label="cabinet3_door_bottom_left"];
+"handle_cab3_door_bottom" [label="handle_cab3_door_bottom"];
+"cabinet3_door_top_out_fancy" [label="cabinet3_door_top_out_fancy"];
+"cabinet3_door_top_left" [label="cabinet3_door_top_left"];
+"handle_cab3_door_top" [label="handle_cab3_door_top"];
+"cabinet4" [label="cabinet4"];
+"cabinet4_door_top" [label="cabinet4_door_top"];
+"cabinet4_door_bottom" [label="cabinet4_door_bottom"];
+"handle_cab4_door_bottom" [label="handle_cab4_door_bottom"];
+"cabinet5" [label="cabinet5"];
+"cabinet5_drawer_bottom" [label="cabinet5_drawer_bottom"];
+"handle_cab5_b" [label="handle_cab5_b"];
+"cabinet5_drawer_middle" [label="cabinet5_drawer_middle"];
+"handle_cab5_m" [label="handle_cab5_m"];
+"cabinet5_drawer_top" [label="cabinet5_drawer_top"];
+"handle_cab5_t" [label="handle_cab5_t"];
+"countertop" [label="countertop"];
+"coffe_machine" [label="coffe_machine"];
+"cabinet6" [label="cabinet6"];
+"cabinet6_drawer_bottom" [label="cabinet6_drawer_bottom"];
+"handle_cab6_b" [label="handle_cab6_b"];
+"cabinet6_drawer_middle" [label="cabinet6_drawer_middle"];
+"handle_cab6_m" [label="handle_cab6_m"];
+"cabinet6_drawer_top" [label="cabinet6_drawer_top"];
+"handle_cab6_t" [label="handle_cab6_t"];
+"side_A_left" [label="side_A_left"];
+"side_A_rb" [label="side_A_rb"];
+"side_A_rt" [label="side_A_rt"];
+"useless_underbar_a" [label="useless_underbar_a"];
+"side_B" [label="side_B"];
+"cabinet10" [label="cabinet10"];
+"cabinet10_drawer_bottom" [label="cabinet10_drawer_bottom"];
+"handle_cab10_b" [label="handle_cab10_b"];
+"cabinet10_drawer_middle" [label="cabinet10_drawer_middle"];
+"handle_cab10_m" [label="handle_cab10_m"];
+"cabinet10_drawer_top" [label="cabinet10_drawer_top"];
+"handle_cab10_t" [label="handle_cab10_t"];
+"cabinet11" [label="cabinet11"];
+"cabinet11_drawer_bottom" [label="cabinet11_drawer_bottom"];
+"handle_cab11_b" [label="handle_cab11_b"];
+"cabinet11_drawer_middle" [label="cabinet11_drawer_middle"];
+"handle_cab11_m" [label="handle_cab11_m"];
+"cabinet11_drawer_top" [label="cabinet11_drawer_top"];
+"handle_cab11_t" [label="handle_cab11_t"];
+"cabinet7" [label="cabinet7"];
+"cabinet7_door_bottom_left" [label="cabinet7_door_bottom_left"];
+"handle_cab7" [label="handle_cab7"];
+"dishwasher_drawer_middle" [label="dishwasher_drawer_middle"];
+"handle_cab7_middle" [label="handle_cab7_middle"];
+"cabinet8" [label="cabinet8"];
+"cabinet8_drawer_bottom" [label="cabinet8_drawer_bottom"];
+"handle_cab8" [label="handle_cab8"];
+"cabinet8_drawer_middle" [label="cabinet8_drawer_middle"];
+"cabinet9" [label="cabinet9"];
+"cabinet9_drawer_bottom" [label="cabinet9_drawer_bottom"];
+"handle_cab9_b" [label="handle_cab9_b"];
+"cabinet9_drawer_middle" [label="cabinet9_drawer_middle"];
+"handle_cab9_m" [label="handle_cab9_m"];
+"cabinet9_drawer_top" [label="cabinet9_drawer_top"];
+"handle_cab9_t" [label="handle_cab9_t"];
+"island_back" [label="island_back"];
+"island_countertop" [label="island_countertop"];
+"cooktop" [label="cooktop"];
+"hotplate1" [label="hotplate1"];
+"hotplate2" [label="hotplate2"];
+"hotplate3" [label="hotplate3"];
+"hotplate4" [label="hotplate4"];
+"sink" [label="sink"];
+"tap_body" [label="tap_body"];
+"tap_handle_open" [label="tap_handle_open"];
+"tap_handle" [label="tap_handle"];
+"island_waterfall_left" [label="island_waterfall_left"];
+"island_waterfall_right" [label="island_waterfall_right"];
+"useless_underbar_b" [label="useless_underbar_b"];
+node [shape=ellipse, color=blue, fontcolor=blue];
+"apartment_root" -> "furnitures_base" [label="xyz: 8.85 1.75 0 \nrpy: 0 -0 0"]
+"furnitures_base" -> "furnitures_root"
+"furnitures_root" -> "armchair_joint" [label="xyz: 7.9688 -0.3791 0 \nrpy: 0 -0 1.9199"]
+"armchair_joint" -> "armchair"
+"furnitures_root" -> "bedside_table_joint" [label="xyz: 7.211 0.1296 0 \nrpy: 0 -0 0"]
+"bedside_table_joint" -> "bedside_table"
+"furnitures_root" -> "coffee_table_joint" [label="xyz: 7.8034 1.02957 0 \nrpy: 0 -0 1.5708"]
+"coffee_table_joint" -> "coffee_table"
+"coffee_table" -> "coffee_table_drawer_joint" [label="xyz: 0 0 0 \nrpy: 0 -0 0"]
+"coffee_table_drawer_joint" -> "coffee_table_drawer"
+"furnitures_root" -> "sofa_joint" [label="xyz: 8.1986 2.4096 0 \nrpy: 0 -0 0"]
+"sofa_joint" -> "sofa"
+"furnitures_root" -> "wall_coloksu_wall1_joint" [label="xyz: 0.6 -1.615 1.53 \nrpy: 0 0 -1.57"]
+"wall_coloksu_wall1_joint" -> "wall_coloksu_wall1"
+"furnitures_root" -> "wall_coloksu_wall2_joint" [label="xyz: -8.855 0.782 1.53 \nrpy: 0 -0 3.14"]
+"wall_coloksu_wall2_joint" -> "wall_coloksu_wall2"
+"furnitures_root" -> "wall_coloksu_wall3_joint" [label="xyz: 0.6 3.18 1.53 \nrpy: 0 -0 1.57"]
+"wall_coloksu_wall3_joint" -> "wall_coloksu_wall3"
+"furnitures_root" -> "wall_coloksu_wall4_joint" [label="xyz: 10.069 0.782 1.53 \nrpy: 0 -0 0"]
+"wall_coloksu_wall4_joint" -> "wall_coloksu_wall4"
+"furnitures_root" -> "walls_joint" [label="xyz: 0 0 -0.2 \nrpy: 0 -0 0"]
+"walls_joint" -> "walls"
+"furnitures_root" -> "wardrobe_joint" [label="xyz: 9.7082 -0.6331 0 \nrpy: 0 -0 0"]
+"wardrobe_joint" -> "wardrobe"
+"wardrobe" -> "wardrobe_door_left_joint" [label="xyz: -0.3246 0.5 0 \nrpy: 0 -0 0"]
+"wardrobe_door_left_joint" -> "wardrobe_door_left"
+"wardrobe_door_left" -> "wardrobe_door_left_handle_joint" [label="xyz: -0.032089 -0.460513 0.973703 \nrpy: 0 -0 0"]
+"wardrobe_door_left_handle_joint" -> "wardrobe_door_left_handle"
+"wardrobe" -> "wardrobe_door_right_joint" [label="xyz: -0.3246 -0.5 0 \nrpy: 0 -0 0"]
+"wardrobe_door_right_joint" -> "wardrobe_door_right"
+"wardrobe_door_right" -> "wardrobe_door_right_handle_joint" [label="xyz: -0.032089 0.460513 0.973703 \nrpy: 0 -0 0"]
+"wardrobe_door_right_handle_joint" -> "wardrobe_door_right_handle"
+"furnitures_root" -> "windows_joint" [label="xyz: 0 0 -0.2 \nrpy: 0 -0 0"]
+"windows_joint" -> "windows"
+"apartment_root" -> "kitchen_base" [label="xyz: -0.03 0.75 0.005 \nrpy: 0 -0 0"]
+"kitchen_base" -> "kitchen_root"
+"kitchen_root" -> "frame_A_joint" [label="xyz: 2.91 3.7 0.08 \nrpy: 0 -0 -1.57319"]
+"frame_A_joint" -> "side_A"
+"side_A" -> "cabinet1_joint" [label="xyz: 0.01 0.01 1.02 \nrpy: 0 -0 0"]
+"cabinet1_joint" -> "cabinet1"
+"cabinet1" -> "cabinet1_coloksu_level4_joint" [label="xyz: -0.172 0.005 0.281 \nrpy: 0 -0 0"]
+"cabinet1_coloksu_level4_joint" -> "cabinet1_coloksu_level4"
+"cabinet1" -> "cabinet1_coloksu_level5_joint" [label="xyz: -0.172 0.005 0.56 \nrpy: 0 -0 0"]
+"cabinet1_coloksu_level5_joint" -> "cabinet1_coloksu_level5"
+"cabinet1" -> "cabinet1_door_top_left_joint" [label="xyz: 0.103 -0.3 0.32 \nrpy: 0 -0 3.14"]
+"cabinet1_door_top_left_joint" -> "cabinet1_door_top_left"
+"cabinet1_door_top_left" -> "handle_cab1_top_door_joint" [label="xyz: -0.055 -0.5 0 \nrpy: 1.57 -0 0"]
+"handle_cab1_top_door_joint" -> "handle_cab1_top_door"
+"cabinet1" -> "cabinet1_drawer_bottom_joint" [label="xyz: -0.094 0 -0.95 \nrpy: 0 -0 3.14"]
+"cabinet1_drawer_bottom_joint" -> "cabinet1_drawer_bottom"
+"cabinet1_drawer_bottom" -> "handle_cab1_drawer_bottom_joint" [label="xyz: -0.237 0 0.35 \nrpy: 1.57 -0 0"]
+"handle_cab1_drawer_bottom_joint" -> "handle_cab1_drawer_bottom"
+"cabinet1" -> "cabinet1_drawer_middle_joint" [label="xyz: -0.117 0 -0.43 \nrpy: 0 -0 3.14"]
+"cabinet1_drawer_middle_joint" -> "cabinet1_drawer_middle"
+"cabinet1_drawer_middle" -> "handle_cab1_drawer_mid_joint" [label="xyz: -0.26 0 0.11 \nrpy: 1.57 -0 0"]
+"handle_cab1_drawer_mid_joint" -> "handle_cab1_drawer_mid"
+"cabinet1" -> "oven_joint" [label="xyz: -0.175 0 -0.025 \nrpy: 0 -0 0"]
+"oven_joint" -> "oven"
+"side_A" -> "cabinet2_joint" [label="xyz: -0.163 0.51 0.975 \nrpy: 0 -0 0"]
+"cabinet2_joint" -> "cabinet2"
+"cabinet2" -> "cabinet2_door_out_joint" [label="xyz: 0.277 -0.19 0 \nrpy: 0 -0 3.14"]
+"cabinet2_door_out_joint" -> "cabinet2_door_out_fancy"
+"cabinet2_door_out_fancy" -> "cabinet2_door_left_joint" [label="xyz: 0 0 0 \nrpy: 0 -0 0"]
+"cabinet2_door_left_joint" -> "cabinet2_door_left"
+"cabinet2_door_left" -> "handle_cab2_drawer_bottom_joint" [label="xyz: -0.04 -0.29 0.05 \nrpy: 1.57 -0 0"]
+"handle_cab2_drawer_bottom_joint" -> "handle_cab2_door"
+"cabinet2" -> "cabinet2_drawer_big_joint" [label="xyz: 0.04 0 -0.12 \nrpy: 0 -0 3.14"]
+"cabinet2_drawer_big_joint" -> "cabinet2_drawer_big"
+"cabinet2" -> "cabinet2_drawer_small_joint" [label="xyz: -0.01 0 0.17 \nrpy: 0 -0 3.14"]
+"cabinet2_drawer_small_joint" -> "cabinet2_drawer_small"
+"side_A" -> "cabinet3_joint" [label="xyz: -0.273 1.022 1.07 \nrpy: 0 -0 0"]
+"cabinet3_joint" -> "cabinet3"
+"cabinet3" -> "cabinet3_door_bottom_out_joint" [label="xyz: 0.39 -0.3 -0.5 \nrpy: 0 -0 3.14"]
+"cabinet3_door_bottom_out_joint" -> "cabinet3_door_bottom_out_fancy"
+"cabinet3_door_bottom_out_fancy" -> "cabinet3_door_bottom_left_joint" [label="xyz: 0 0 0 \nrpy: 0 -0 0"]
+"cabinet3_door_bottom_left_joint" -> "cabinet3_door_bottom_left"
+"cabinet3_door_bottom_left" -> "handle_cab3_door_bottom_joint" [label="xyz: -0.036 -0.45 0.1 \nrpy: 1.57 -0 0"]
+"handle_cab3_door_bottom_joint" -> "handle_cab3_door_bottom"
+"cabinet3" -> "cabinet3_door_top_out_joint" [label="xyz: 0.39 -0.3 0.5 \nrpy: 0 -0 3.14"]
+"cabinet3_door_top_out_joint" -> "cabinet3_door_top_out_fancy"
+"cabinet3_door_top_out_fancy" -> "cabinet3_door_top_left_joint" [label="xyz: 0 0 0 \nrpy: 0 -0 0"]
+"cabinet3_door_top_left_joint" -> "cabinet3_door_top_left"
+"cabinet3_door_top_left" -> "handle_cab3_door_top_joint" [label="xyz: -0.036 -0.45 -0.65 \nrpy: 1.57 -0 0"]
+"handle_cab3_door_top_joint" -> "handle_cab3_door_top"
+"side_A" -> "cabinet4_joint" [label="xyz: -0.175 1.825 1.72 \nrpy: 0 -0 0"]
+"cabinet4_joint" -> "cabinet4"
+"cabinet4" -> "cabinet4_door_top_top_joint" [label="xyz: 0.07 0 0.42 \nrpy: 0 -0 3.14"]
+"cabinet4_door_top_top_joint" -> "cabinet4_door_top"
+"cabinet4_door_top" -> "cabinet4_door_bottom_bottom_joint" [label="xyz: 0 0 -0.4 \nrpy: 0 -0 0"]
+"cabinet4_door_bottom_bottom_joint" -> "cabinet4_door_bottom"
+"cabinet4_door_bottom" -> "handle_cab4_door_bottom_joint" [label="xyz: -0.055 0 -0.35 \nrpy: 1.57 -0 0"]
+"handle_cab4_door_bottom_joint" -> "handle_cab4_door_bottom"
+"side_A" -> "cabinet5_joint" [label="xyz: -0.121 1.625 0.4 \nrpy: 0 -0 0"]
+"cabinet5_joint" -> "cabinet5"
+"cabinet5" -> "cabinet5_drawer_bottom_joint" [label="xyz: 0.037 0 -0.28 \nrpy: 0 -0 3.14"]
+"cabinet5_drawer_bottom_joint" -> "cabinet5_drawer_bottom"
+"cabinet5_drawer_bottom" -> "handle_cab5_bott_joint" [label="xyz: -0.235 0 0.245 \nrpy: 1.57 -0 0"]
+"handle_cab5_bott_joint" -> "handle_cab5_b"
+"cabinet5" -> "cabinet5_drawer_middle_joint" [label="xyz: 0.027 0 0.107 \nrpy: 0 -0 3.14"]
+"cabinet5_drawer_middle_joint" -> "cabinet5_drawer_middle"
+"cabinet5_drawer_middle" -> "handle_cab5_mid_joint" [label="xyz: -0.245 0 0.13 \nrpy: 1.57 -0 0"]
+"handle_cab5_mid_joint" -> "handle_cab5_m"
+"cabinet5" -> "cabinet5_drawer_top_joint" [label="xyz: 0.03 0 0.327 \nrpy: 0 -0 3.14"]
+"cabinet5_drawer_top_joint" -> "cabinet5_drawer_top"
+"cabinet5_drawer_top" -> "handle_cab5_top_joint" [label="xyz: -0.245 0 0.05 \nrpy: 1.57 -0 0"]
+"handle_cab5_top_joint" -> "handle_cab5_t"
+"cabinet5" -> "countertop_joint" [label="xyz: -0.027 0.21 0.423 \nrpy: 0 -0 0"]
+"countertop_joint" -> "countertop"
+"countertop" -> "coffe_machine_joint" [label="xyz: 0 0.3 0.2 \nrpy: 0 -0 0"]
+"coffe_machine_joint" -> "coffe_machine"
+"side_A" -> "cabinet6_joint" [label="xyz: -0.121 2.127 0.4 \nrpy: 0 -0 0"]
+"cabinet6_joint" -> "cabinet6"
+"cabinet6" -> "cabinet6_drawer_bottom_joint" [label="xyz: 0.047 0 -0.28 \nrpy: 0 -0 3.14"]
+"cabinet6_drawer_bottom_joint" -> "cabinet6_drawer_bottom"
+"cabinet6_drawer_bottom" -> "handle_cab6_bott_joint" [label="xyz: -0.227 0 0.245 \nrpy: 1.57 -0 0"]
+"handle_cab6_bott_joint" -> "handle_cab6_b"
+"cabinet6" -> "cabinet6_drawer_middle_joint" [label="xyz: 0.03 0 0.105 \nrpy: 0 -0 3.14"]
+"cabinet6_drawer_middle_joint" -> "cabinet6_drawer_middle"
+"cabinet6_drawer_middle" -> "handle_cab6_mid_joint" [label="xyz: -0.245 0 0.13 \nrpy: 1.57 -0 0"]
+"handle_cab6_mid_joint" -> "handle_cab6_m"
+"cabinet6" -> "cabinet6_drawer_top_joint" [label="xyz: 0.033 -0.0125 0.328 \nrpy: 0 -0 3.14"]
+"cabinet6_drawer_top_joint" -> "cabinet6_drawer_top"
+"cabinet6_drawer_top" -> "handle_cab6_top_joint" [label="xyz: -0.238 0 0.05 \nrpy: 1.57 -0 0"]
+"handle_cab6_top_joint" -> "handle_cab6_t"
+"side_A" -> "side_A_left_joint" [label="xyz: -0.16 -0.296 1.03 \nrpy: 0 -0 1.57"]
+"side_A_left_joint" -> "side_A_left"
+"side_A" -> "side_A_right_bott_joint" [label="xyz: -0.159 2.338 0.361 \nrpy: 1.57 -5.55112e-17 1.57"]
+"side_A_right_bott_joint" -> "side_A_rb"
+"side_A" -> "side_A_right_top_joint" [label="xyz: -0.262 2.336 1.74 \nrpy: 0 -0 1.57"]
+"side_A_right_top_joint" -> "side_A_rt"
+"side_A" -> "socket_a_joint" [label="xyz: 0.095 1.02 -0.03 \nrpy: 0 -0 0"]
+"socket_a_joint" -> "useless_underbar_a"
+"kitchen_root" -> "frame_B_joint" [label="xyz: 5.91 1.7 0.11 \nrpy: 0 -0 1.57"]
+"frame_B_joint" -> "side_B"
+"side_B" -> "cabinet10_joint" [label="xyz: 0.333 2.204 0.394 \nrpy: 0 -0 0"]
+"cabinet10_joint" -> "cabinet10"
+"cabinet10" -> "cabinet10_drawer_bottom_joint" [label="xyz: 0.03 0 -0.279 \nrpy: 0 -0 3.14"]
+"cabinet10_drawer_bottom_joint" -> "cabinet10_drawer_bottom"
+"cabinet10_drawer_bottom" -> "handle_cab10_bott_joint" [label="xyz: -0.245 0 0.245 \nrpy: 1.57 -0 0"]
+"handle_cab10_bott_joint" -> "handle_cab10_b"
+"cabinet10" -> "cabinet10_drawer_middle_joint" [label="xyz: 0.031 0 0.104 \nrpy: 0 -0 3.14"]
+"cabinet10_drawer_middle_joint" -> "cabinet10_drawer_middle"
+"cabinet10_drawer_middle" -> "handle_cab10_mid_joint" [label="xyz: -0.245 0 0.13 \nrpy: 1.57 -0 0"]
+"handle_cab10_mid_joint" -> "handle_cab10_m"
+"cabinet10" -> "cabinet10_drawer_top_joint" [label="xyz: 0.033 0 0.326 \nrpy: 0 -0 3.14"]
+"cabinet10_drawer_top_joint" -> "cabinet10_drawer_top"
+"cabinet10_drawer_top" -> "handle_cab10_top_joint" [label="xyz: -0.243 0 0.05 \nrpy: 1.57 -0 0"]
+"handle_cab10_top_joint" -> "handle_cab10_t"
+"side_B" -> "cabinet11_joint" [label="xyz: 0.333 2.855 0.394 \nrpy: 0 -0 0"]
+"cabinet11_joint" -> "cabinet11"
+"cabinet11" -> "cabinet11_drawer_bottom_joint" [label="xyz: 0.045 0 -0.286 \nrpy: 0 -0 3.14"]
+"cabinet11_drawer_bottom_joint" -> "cabinet11_drawer_bottom"
+"cabinet11_drawer_bottom" -> "handle_cab11_bott_joint" [label="xyz: -0.228 0 0.245 \nrpy: 1.57 -0 0"]
+"handle_cab11_bott_joint" -> "handle_cab11_b"
+"cabinet11" -> "cabinet11_drawer_middle_joint" [label="xyz: 0.027 0 0.106 \nrpy: 0 -0 3.14"]
+"cabinet11_drawer_middle_joint" -> "cabinet11_drawer_middle"
+"cabinet11_drawer_middle" -> "handle_cab11_mid_joint" [label="xyz: -0.245 0 0.13 \nrpy: 1.57 -0 0"]
+"handle_cab11_mid_joint" -> "handle_cab11_m"
+"cabinet11" -> "cabinet11_drawer_top_joint" [label="xyz: 0.03 0 0.326 \nrpy: 0 -0 3.14"]
+"cabinet11_drawer_top_joint" -> "cabinet11_drawer_top"
+"cabinet11_drawer_top" -> "handle_cab11_top_joint" [label="xyz: -0.243 0 0.05 \nrpy: 1.57 -0 0"]
+"handle_cab11_top_joint" -> "handle_cab11_t"
+"side_B" -> "cabinet7_joint" [label="xyz: 0.2 0.501 0.47 \nrpy: 0 -0 0"]
+"cabinet7_joint" -> "cabinet7"
+"cabinet7" -> "cabinet7_door_bottom_left_joint" [label="xyz: 0.372 0 -0.45 \nrpy: 0 -0 3.14"]
+"cabinet7_door_bottom_left_joint" -> "cabinet7_door_bottom_left"
+"cabinet7_door_bottom_left" -> "handle_cab7_top_joint" [label="xyz: -0.06 0 0.74 \nrpy: 1.57 -0 0"]
+"handle_cab7_top_joint" -> "handle_cab7"
+"cabinet7" -> "dishwasher_drawer_middle_joint" [label="xyz: -0.065 0.03 0.08 \nrpy: 0 -0 3.14"]
+"dishwasher_drawer_middle_joint" -> "dishwasher_drawer_middle"
+"dishwasher_drawer_middle" -> "handle_cab7_drawer_middle_joint" [label="xyz: -0.315 0 0.068 \nrpy: 1.57 -0 0"]
+"handle_cab7_drawer_middle_joint" -> "handle_cab7_middle"
+"side_B" -> "cabinet8_joint" [label="xyz: 0.256 1.102 0.006 \nrpy: 0 -0 0"]
+"cabinet8_joint" -> "cabinet8"
+"cabinet8" -> "cabinet8_drawer_bottom_joint" [label="xyz: 0.114 0 0.105 \nrpy: 0 -0 3.14"]
+"cabinet8_drawer_bottom_joint" -> "cabinet8_drawer_bottom"
+"cabinet8_drawer_bottom" -> "handle_cab8_top_joint" [label="xyz: -0.238 0 0.65 \nrpy: 1.57 -0 0"]
+"handle_cab8_top_joint" -> "handle_cab8"
+"cabinet8" -> "cabinet8_drawer_middle_joint" [label="xyz: 0.05 0 0.48 \nrpy: 0 -0 3.14"]
+"cabinet8_drawer_middle_joint" -> "cabinet8_drawer_middle"
+"side_B" -> "cabinet9_joint" [label="xyz: 0.333 1.703 0.394 \nrpy: 0 -0 0"]
+"cabinet9_joint" -> "cabinet9"
+"cabinet9" -> "cabinet9_drawer_bottom_joint" [label="xyz: 0.036 0 -0.281 \nrpy: 0 -0 3.14"]
+"cabinet9_drawer_bottom_joint" -> "cabinet9_drawer_bottom"
+"cabinet9_drawer_bottom" -> "handle_cab9_bott_joint" [label="xyz: -0.24 0 0.245 \nrpy: 1.57 -0 0"]
+"handle_cab9_bott_joint" -> "handle_cab9_b"
+"cabinet9" -> "cabinet9_drawer_middle_joint" [label="xyz: 0.027 0 0.106 \nrpy: 0 -0 3.14"]
+"cabinet9_drawer_middle_joint" -> "cabinet9_drawer_middle"
+"cabinet9_drawer_middle" -> "handle_cab9_mid_joint" [label="xyz: -0.245 0 0.13 \nrpy: 1.57 -0 0"]
+"handle_cab9_mid_joint" -> "handle_cab9_m"
+"cabinet9" -> "cabinet9_drawer_top_joint" [label="xyz: 0.03 0 0.327 \nrpy: 0 -0 3.14"]
+"cabinet9_drawer_top_joint" -> "cabinet9_drawer_top"
+"cabinet9_drawer_top" -> "handle_cab9_top_joint" [label="xyz: -0.245 0 0.05 \nrpy: 1.57 -0 0"]
+"handle_cab9_top_joint" -> "handle_cab9_t"
+"side_B" -> "island_back_joint" [label="xyz: -0.026 1.754 0.353 \nrpy: 0 1.5708 -0"]
+"island_back_joint" -> "island_back"
+"side_B" -> "island_countertop_joint" [label="xyz: 0.13 1.786 0.807 \nrpy: 0 -0 0"]
+"island_countertop_joint" -> "island_countertop"
+"island_countertop" -> "cooktop_joint" [label="xyz: 0.13 1.074 0.023 \nrpy: 0 -0 0"]
+"cooktop_joint" -> "cooktop"
+"cooktop" -> "hotplate1_joint" [label="xyz: 0.1069 -0.16199 0.005 \nrpy: 0 -0 0"]
+"hotplate1_joint" -> "hotplate1"
+"cooktop" -> "hotplate2_joint" [label="xyz: 0.066902 0.13801 0.0055 \nrpy: 0 -0 0"]
+"hotplate2_joint" -> "hotplate2"
+"cooktop" -> "hotplate3_joint" [label="xyz: -0.155778 0.138013 0.0055 \nrpy: 0 -0 0"]
+"hotplate3_joint" -> "hotplate3"
+"cooktop" -> "hotplate4_joint" [label="xyz: -0.115778 -0.161987 0.005333 \nrpy: 0 -0 0"]
+"hotplate4_joint" -> "hotplate4"
+"island_countertop" -> "sink_joint" [label="xyz: 0.198 -0.698 -0.038 \nrpy: 0 -0 0"]
+"sink_joint" -> "sink"
+"sink" -> "tap_joint" [label="xyz: -0.228 -0.003 0.164 \nrpy: 0 -0 0"]
+"tap_joint" -> "tap_body"
+"tap_body" -> "tap_handle_open_joint" [label="xyz: 0.001233 0.038489 -0.055395 \nrpy: 0 -0 0"]
+"tap_handle_open_joint" -> "tap_handle_open"
+"tap_handle_open" -> "tap_handle_hot_cold_joint" [label="xyz: 0 0 0 \nrpy: 0 0.5 0"]
+"tap_handle_hot_cold_joint" -> "tap_handle"
+"side_B" -> "island_waterfall_left_joint" [label="xyz: 0.285 0.191 0.354 \nrpy: 1.57 -5.55112e-17 1.57"]
+"island_waterfall_left_joint" -> "island_waterfall_left"
+"side_B" -> "island_waterfall_right_joint" [label="xyz: 0.285 3.315 0.354 \nrpy: 1.57 -5.55112e-17 1.57"]
+"island_waterfall_right_joint" -> "island_waterfall_right"
+"side_B" -> "socket_b_joint" [label="xyz: 0.552 1.755 -0.045 \nrpy: 0 -0 0"]
+"socket_b_joint" -> "useless_underbar_b"
+}
