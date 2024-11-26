@@ -139,6 +139,8 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import WorldMode, ObjectType
 from pycram.knowledge.knowledge_engine import KnowledgeEngine
+from pycram.datastructures.pose import Pose
+from pycram.datastructures.property import ReachableProperty, SpaceIsFreeProperty
 
 world = BulletWorld(WorldMode.GUI)
 pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")

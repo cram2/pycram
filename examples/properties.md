@@ -32,6 +32,7 @@ from pycram.datastructures.property import Property
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.dataclasses import ReasoningResult
 from pycram.failures import ReasoningError
+from abc import abstractmethod
 
 class ExampleProperty(Property):
     
@@ -72,6 +73,8 @@ information how a Knowledge Source is created pleas refere to the respective exa
 
 ```python
 from pycram.knowledge.knowledge_source import KnowledgeSource
+from pycram.datastructures.pose import Pose
+from pycram.datastructures.dataclasses import ReasoningResult
 
 class ExampleKnowledge(KnowledgeSource, ExampleProperty):
     
