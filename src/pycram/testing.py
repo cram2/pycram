@@ -27,8 +27,6 @@ class BulletWorldTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        for individual in ontology.individuals():
-            owlready2.destroy_entity(individual)
         rdm = RobotDescriptionManager()
         rdm.load_description("pr2")
         cls.world = BulletWorld(mode=WorldMode.DIRECT)
@@ -57,8 +55,7 @@ class BulletWorldTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        for individual in ontology.individuals():
-            owlready2.destroy_entity(individual)
+        cls.world.ontology.destroy_individuals()
         cls.viz_marker_publisher._stop_publishing()
         cls.world.exit()
 

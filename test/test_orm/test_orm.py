@@ -318,8 +318,6 @@ class BelieveObjectTestCase(unittest.TestCase):
         self.session = sqlalchemy.orm.Session(bind=self.engine)
 
     def tearDown(self):
-        for individual in ontology.individuals():
-            owlready2.destroy_entity(individual)
         pycram.tasktree.task_tree.reset_tree()
         time.sleep(0.05)
         pycram.orm.base.ProcessMetaData.reset()
@@ -329,6 +327,7 @@ class BelieveObjectTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        cls.world.ontology.destroy_individuals()
         cls.viz_marker_publisher._stop_publishing()
         cls.world.exit()
 

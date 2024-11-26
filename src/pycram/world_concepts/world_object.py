@@ -120,8 +120,7 @@ class Object(WorldEntity, HasConcept):
         self.world.add_object(self)
 
         if not self.world.is_prospection_world:
-            # this line is problematic when the name conflicts with the ontology
-            self.ontology_individual = self.ontology_concept()
+            self.ontology_individual = self.ontology_concept(namespace=self.world.ontology.ontology)
 
 
     def _resolve_description(self, path: Optional[str] = None, description: Optional[ObjectDescription] = None) -> None:

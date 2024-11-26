@@ -11,6 +11,7 @@ import numpy as np
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
+import pycrap
 from pycrap import PhysicalObject
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
@@ -73,6 +74,11 @@ class World(StateEntity, ABC):
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
 
+    ontology: pycrap.ontology.Ontology
+    """
+    The ontology of this world.
+    """
+
     def __init__(self, mode: WorldMode, is_prospection_world: bool = False, clear_cache: bool = False):
         """
         Create a new simulation, the mode decides if the simulation should be a rendered window or just run in the
@@ -86,6 +92,9 @@ class World(StateEntity, ABC):
         """
 
         StateEntity.__init__(self)
+
+        self.ontology = pycrap.Ontology()
+
         self.latest_state_id: Optional[int] = None
 
         if clear_cache or (self.conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
