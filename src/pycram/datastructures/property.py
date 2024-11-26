@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 
-from past.builtins import reduce
+from functools import reduce
 
 from .enums import Arms
 from .dataclasses import ReasoningResult
