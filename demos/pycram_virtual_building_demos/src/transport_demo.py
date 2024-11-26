@@ -27,7 +27,7 @@ from pycram.datastructures.dataclasses import Color
 # apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment-small{extension}")
 def transporting_demo(apartment, robot):
 
-    if robot.name == "iCub":
+    if robot == "iCub":
         milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([4.7, 4.65, 0.8]),
                       color=Color(1, 0, 0, 1))
         milk_target_pose = Pose([4.8, 3.45, 0.8])
@@ -93,20 +93,14 @@ def transporting_demo(apartment, robot):
 
         cereal_desig = move_and_detect(ObjectType.BREAKFAST_CEREAL)
 
-        if robot.name == "tiago_dual":
+        if robot == "tiago_dual":
             #cereal_target_pose = Pose([5.25, 3.4, 0.85], [0, 0, 0, -1])
             TransportAction(cereal_desig, [Arms.LEFT], [cereal_target_pose]).resolve().perform()
         else:
             TransportAction(cereal_desig, [Arms.LEFT], [cereal_target_pose]).resolve().perform()
         clear_output()
 
-        if not robot.name == "tiago_dual":
-            bowl_desig = move_and_detect(ObjectType.BOWL)
-
-            TransportAction(bowl_desig, [Arms.LEFT], [bowl_target_pose]).resolve().perform()
-            clear_output()
-
-        if robot.name == "iCub":
+        if robot == "iCub":
             spoon_desig = move_and_detect(ObjectType.SPOON)
 
             TransportAction(spoon_desig, [Arms.LEFT], [spoon_target_pose]).resolve().perform()
@@ -131,7 +125,7 @@ def transporting_demo(apartment, robot):
 
             spoon_desig = DetectAction(BelieveObject(types=[ObjectType.SPOON])).resolve().perform()
 
-            if robot.name == "iai_donbot":
+            if robot == "iai_donbot":
                 ParkArmsAction([Arms.BOTH]).resolve().perform()
                 PickUpAction(spoon_desig, [Arms.LEFT], [Grasp.TOP]).resolve().perform()
 
