@@ -33,13 +33,13 @@ def start_demo():
     robot_param = rospy.get_param('/nbparam_robots')
     task_param = rospy.get_param('/nbparam_tasks')
 
-    robot_name = get_robot_name(robot_param)
-
-    extension = ObjectDescription.get_file_extension()
-    # text widget for the virtual building
+    # robot_name = get_robot_name(robot_param)
+    #
+    # extension = ObjectDescription.get_file_extension()
+    # # text widget for the virtual building
     text_widget = display_loading_gif_with_text()
     update_text(text_widget, 'Loading process~ Please wait...')
-
+    #
     # world = BulletWorld(WorldMode.DIRECT)
     #
     # # Set this to True to publish costmaps and axis marker during the demo. May slow down the simulation.
@@ -48,7 +48,8 @@ def start_demo():
     # VizMarkerPublisher()
     # robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
     # apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
-    # tf = TFBroadcaster()
+    # if not robot.name == "Armar6":
+    #     TFBroadcaster()
 
     clear_output(wait=True)
 
@@ -110,5 +111,5 @@ def demo_selecting(apartment, robot, task_param):
         start_generalized_demo(task_param, object_tool, object_target, specialized_task)
 
 
-start_demo_local()
+#start_demo_local()
 
