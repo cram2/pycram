@@ -73,7 +73,7 @@ def start_demo_local():
     extension = ObjectDescription.get_file_extension()
 
     world = BulletWorld(WorldMode.DIRECT)
-    VizMarkerPublisher(interval=0.1)
+    VizMarkerPublisher(interval=0.4)
     VizMarkerRobotPublisher(interval=0.2)
     robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
     apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}-small{extension}")

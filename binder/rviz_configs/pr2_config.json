@@ -40,7 +40,7 @@
       "type": "grid"
     },
     {
-      "isShown": true,
+      "isShown": false,
       "name": "Robot model",
       "options": {
         "param": "robot_description",
@@ -65,8 +65,15 @@
         "topic": "/pycram/viz_marker"
       },
       "type": "markerArray"
+    },
+   {
+      "isShown": true,
+      "name": "Marker array",
+      "options": {
+        "topic": "/pycram/viz_marker_robot"
+      },
+      "type": "markerArray"
     }
-
   
   ]
 }
