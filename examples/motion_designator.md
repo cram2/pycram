@@ -26,9 +26,11 @@ BulletWorld as well as a PR2 robot.
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
+from pycram.datastructures.pose import Pose
 
 world = BulletWorld(WorldMode.GUI)
 pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
+milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.5, 0, 1]))
 ```
 
 ## Move
@@ -107,10 +109,6 @@ view (FOV) this motion designator will return an object designator describing th
 Since we need an object that we can detect, we will spawn a milk for this.
 
 ```python
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.5, 0, 1]))
-```
-
-```python
 from pycram.designators.motion_designator import DetectingMotion, LookingMotion
 from pycram.process_module import simulated_robot
 
@@ -146,10 +144,6 @@ As long as the object is somewhere in the belief state (BulletWorld) a resolved 
 
 Sine we want to detect something we will spawn an object that we can detect. If you already spawned the milk from the
 previous example, you can skip this step.
-
-```python
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([-1, 0, 1]))
-```
 
 ```python
 from pycram.designators.motion_designator import WorldStateDetectingMotion

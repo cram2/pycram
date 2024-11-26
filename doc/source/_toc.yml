@@ -16,6 +16,7 @@ parts:
     - file: designators.rst
     - file: knowledge.rst
     - file: knowledge_and_reasoning.rst
+    - file: costmap.rst
 
   - caption: Trouble Shooting
     chapters:

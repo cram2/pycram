@@ -618,10 +618,46 @@ class MoveAndPickUpPerformable(ActionAbstract):
     The grasp to use
     """
 
+    @with_tree
     def plan(self):
         NavigateActionPerformable(self.standing_position).perform()
         FaceAtPerformable(self.object_designator.pose).perform()
         PickUpActionPerformable(self.object_designator, self.arm, self.grasp).perform()
+
+
+@dataclass
+class MoveAndPlacePerformable(ActionAbstract):
+    """
+    Navigate to `standing_position`, then turn towards the object and pick it up.
+    """
+
+    standing_position: Pose
+    """
+    The pose to stand before trying to pick up the object
+    """
+
+    object_designator: ObjectDesignatorDescription.Object
+    """
+    The object to pick up
+    """
+
+    target_location: Pose
+    """
+    The location to place the object.
+    """
+
+    arm: Arms
+    """
+    The arm to use
+    """
+
+    @with_tree
+    def plan(self):
+        NavigateActionPerformable(self.standing_position).perform()
+        FaceAtPerformable(self.target_location).perform()
+        PlaceActionPerformable(self.object_designator, self.arm, self.target_location).perform()
+
+
 
 
 # ----------------------------------------------------------------------------
@@ -1234,3 +1270,4 @@ class GraspingAction(ActionDesignatorDescription):
                                PartialDesignator(GraspingActionPerformable, self.object_description, self.arms))
         for desig in ri:
             yield desig
+

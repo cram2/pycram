@@ -80,7 +80,6 @@ def init_giskard_interface(func: Callable) -> Callable:
 
         if "/giskard" in get_node_names():
             giskard_wrapper = GiskardWrapper()
-            giskard_update_service = get_service_proxy("/giskard/update_world", UpdateWorld)
             loginfo_once("Successfully initialized Giskard interface")
             is_init = True
         else:
@@ -252,7 +251,7 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
             for cmd in giskard_wrapper.motion_goals.get_goals():
                 par_value_pair = json.loads(cmd.kwargs)
                 if "tip_link" in par_value_pair.keys() and "root_link" in par_value_pair.keys():
-                    if par_value_pair["tip_link"] == robot_description.base_link:
+                    if par_value_pair["tip_link"] == RobotDescription.current_robot_description.base_link:
                         continue
                     chain = World.robot.description.get_chain(par_value_pair["root_link"],
                                                               par_value_pair["tip_link"])
@@ -346,8 +345,8 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str, posit
                                                     end_condition=cart_monitor1)
 
     giskard_wrapper.monitors.add_end_motion(start_condition=end_monitor)
-    giskard_wrapper.motion_goals.avoid_all_collisions()
-    giskard_wrapper.motion_goals.allow_collision(group1='gripper', group2=CollisionEntry.ALL)
+    # giskard_wrapper.motion_goals.avoid_all_collisions()
+    # giskard_wrapper.motion_goals.allow_collision(group1='gripper', group2=CollisionEntry.ALL)
     return giskard_wrapper.execute()
 
 

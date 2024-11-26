@@ -1,22 +1,23 @@
 import numpy as np
 import tf
+from typing_extensions import Tuple, List, Union, Dict, Iterable
 
-from .datastructures.world import World
-from .world_concepts.world_object import Object
-from .world_reasoning import contact
 from .costmaps import Costmap
-from .local_transformer import LocalTransformer
 from .datastructures.pose import Pose, Transform
-from .robot_description import RobotDescription
+from .datastructures.world import World
 from .external_interfaces.ik import request_ik
 from .failures import IKError
-from typing_extensions import Tuple, List, Union, Dict, Iterable
+from .local_transformer import LocalTransformer
+from .robot_description import RobotDescription
+from .world_concepts.world_object import Object
+from .world_reasoning import contact
 
 
 class PoseGenerator:
     """
-    Crates pose candidates from a given costmap. The generator
-    selects the highest values, amount is given by number_of_sample, and returns the corresponding positions.
+    Creates pose candidates from a given costmap.
+    The generator selects the highest values, amount is given by number_of_sample, and returns the corresponding
+    positions.
     Orientations are calculated such that the Robot faces the center of the costmap.
     """
 

@@ -7,7 +7,9 @@ from random_events.product_algebra import Event, SimpleEvent
 from random_events.interval import *
 
 from bullet_world_testcase import BulletWorldTestCase
-from pycram.costmaps import OccupancyCostmap, AlgebraicSemanticCostmap
+from pycram.costmaps import OccupancyCostmap, AlgebraicSemanticCostmap, VisibilityCostmap
+from pycram.probabilistic_costmap import ProbabilisticCostmap
+from pycram.units import meter, centimeter
 from pycram.datastructures.pose import Pose
 import plotly.graph_objects as go
 
@@ -88,5 +90,32 @@ class SemanticCostmapTestCase(BulletWorldTestCase):
             self.assertTrue(costmap.valid_area.contains([sample.position.x, sample.position.y]))
 
 
-class OntologySemanticLocationTestCase(unittest.TestCase):
-    ...
+class ProbabilisticCostmapTestCase(BulletWorldTestCase):
+
+    origin = Pose([1.5, 1, 0], [0, 0, 0, 1])
+
+    def setUp(self):
+        super().setUp()
+        self.costmap = ProbabilisticCostmap(self.origin, size = 200*centimeter)
+
+    def test_setup(self):
+        event = self.costmap.create_event_from_map()
+        self.assertTrue(event.is_disjoint())
+
+    def test_visualization(self):
+        fig = go.Figure(self.costmap.distribution.plot(), self.costmap.distribution.plotly_layout())
+        self.costmap.visualize()
+        # fig = go.Figure(pcm.distribution.plot(surface=True), pcm.distribution.plotly_layout())
+        # fig.show()
+
+    def test_visibility_cm(self):
+        costmap = ProbabilisticCostmap(self.origin, size = 200*centimeter,
+                                       costmap_type=VisibilityCostmap)
+        costmap.visualize()
+
+    def test_merge_cm(self):
+        visibility = ProbabilisticCostmap(self.origin, size = 200*centimeter,
+                                       costmap_type=VisibilityCostmap)
+        occupancy = ProbabilisticCostmap(self.origin, size = 200*centimeter)
+        occupancy.distribution, _ = occupancy.distribution.conditional(visibility.create_event_from_map())
+        occupancy.visualize()
