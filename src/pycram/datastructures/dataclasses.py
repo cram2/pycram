@@ -11,6 +11,7 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
 
 from .enums import JointType, Shape, VirtualMobileBaseJointName
 from .pose import Pose, Point, Transform
+from .world_entity import PhysicalBody
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
 if TYPE_CHECKING:
@@ -697,20 +698,20 @@ class LateralFriction:
 @dataclass
 class ContactPoint:
     """
-    Dataclass for storing the information of a contact point between two objects.
+    Dataclass for storing the information of a contact point between two bodies.
     """
-    link_a: Link
-    link_b: Link
-    position_on_object_a: Optional[List[float]] = None
-    position_on_object_b: Optional[List[float]] = None
-    normal_on_b: Optional[List[float]] = None  # the contact normal vector on object b pointing towards object a
+    body_a: PhysicalBody
+    body_b: PhysicalBody
+    position_on_body_a: Optional[List[float]] = None
+    position_on_body_b: Optional[List[float]] = None
+    normal_on_body_b: Optional[List[float]] = None  # the contact normal vector on object b pointing towards object a
     distance: Optional[float] = None  # distance between the two objects (+ve for separation, -ve for penetration)
     normal_force: Optional[List[float]] = None  # normal force applied during last step simulation
     lateral_friction_1: Optional[LateralFriction] = None
     lateral_friction_2: Optional[LateralFriction] = None
 
     def __str__(self):
-        return f"ContactPoint: {self.link_a.object.name} - {self.link_b.object.name}"
+        return f"ContactPoint: {self.body_a.name} - {self.body_b.name}"
 
     def __repr__(self):
         return self.__str__()
@@ -727,24 +728,24 @@ class ContactPointsList(list):
     A list of contact points.
     """
 
-    def get_links_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Link]:
+    def get_bodies_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Link]:
         """
-        Return the links that are not in the current points list but were in the initial points list.
+        Return the bodies that are not in the current points list but were in the initial points list.
 
         :param previous_points: The initial points list.
-        :return: A list of Link instances that represent the links that got removed.
+        :return: A list of bodies that got removed.
         """
-        initial_links_in_contact = previous_points.get_links_in_contact()
-        current_links_in_contact = self.get_links_in_contact()
-        return [link for link in initial_links_in_contact if link not in current_links_in_contact]
+        initial_bodies_in_contact = previous_points.get_bodies_in_contact()
+        current_bodies_in_contact = self.get_bodies_in_contact()
+        return [body for body in initial_bodies_in_contact if body not in current_bodies_in_contact]
 
-    def get_links_in_contact(self) -> List[Link]:
+    def get_bodies_in_contact(self) -> List[PhysicalBody]:
         """
-        Get the links in contact.
+        Get the bodies in contact.
 
-        :return: A list of Link instances that represent the links in contact.
+        :return: A list of bodies that are in contact.
         """
-        return [point.link_b for point in self]
+        return [point.body_b for point in self]
 
     def check_if_two_objects_are_in_contact(self, obj_a: Object, obj_b: Object) -> bool:
         """
@@ -754,8 +755,19 @@ class ContactPointsList(list):
         :param obj_b: An instance of the Object class that represents the second object.
         :return: True if the objects are in contact, False otherwise.
         """
-        return (any([point.link_b.object == obj_b and point.link_a.object == obj_a for point in self]) or
-                any([point.link_a.object == obj_b and point.link_b.object == obj_a for point in self]))
+        return (any([self.is_body_in_object(point.body_b, obj_b) and self.is_body_in_object(point.body_a, obj_a) for point in self]) or
+                any([self.is_body_in_object(point.body_a, obj_b) and self.is_body_in_object(point.body_b, obj_a) for point in self]))
+
+    @staticmethod
+    def is_body_in_object(body: PhysicalBody, obj: Object) -> bool:
+        """
+        Check if the body belongs to the object.
+
+        :param body: The body.
+        :param obj: The object.
+        :return: True if the body belongs to the object, False otherwise.
+        """
+        return body in obj.links or body == obj
 
     def get_normals_of_object(self, obj: Object) -> List[List[float]]:
         """
@@ -772,7 +784,7 @@ class ContactPointsList(list):
 
         :return: A list of float vectors that represent the normals of the contact points.
         """
-        return [point.normal_on_b for point in self]
+        return [point.normal_on_body_b for point in self]
 
     def get_links_in_contact_of_object(self, obj: Object) -> List[Link]:
         """
@@ -781,7 +793,7 @@ class ContactPointsList(list):
         :param obj: An instance of the Object class that represents the object.
         :return: A list of Link instances that represent the links in contact of the object.
         """
-        return [point.link_b for point in self if point.link_b.object == obj]
+        return [point.body_b for point in self if point.body_b.parent == obj]
 
     def get_points_of_object(self, obj: Object) -> 'ContactPointsList':
         """
@@ -790,7 +802,7 @@ class ContactPointsList(list):
         :param obj: An instance of the Object class that represents the object that the points are related to.
         :return: A ContactPointsList instance that represents the contact points of the object.
         """
-        return ContactPointsList([point for point in self if point.link_b.object == obj])
+        return ContactPointsList([point for point in self if self.is_body_in_object(point.body_b, obj)])
 
     def get_points_of_link(self, link: Link) -> 'ContactPointsList':
         """
@@ -799,7 +811,7 @@ class ContactPointsList(list):
         :param link: An instance of the Link class that represents the link that the points are related to.
         :return: A ContactPointsList instance that represents the contact points of the link.
         """
-        return ContactPointsList([point for point in self if point.link_b == link])
+        return ContactPointsList([point for point in self if link == point.body_b])
 
     def get_objects_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Object]:
         """
@@ -846,7 +858,7 @@ class ContactPointsList(list):
 
         :return: A list of Object instances that represent the objects that have points in the list.
         """
-        return list({point.link_b.object for point in self})
+        return list({point.body_b.object for point in self})
 
     def __str__(self):
         return f"ContactPointsList: {', '.join([point.__str__() for point in self])}"

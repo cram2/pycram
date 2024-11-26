@@ -57,7 +57,7 @@ def contact(
                                                                                                   prospection_obj2)
         objects_are_in_contact = len(con_points) > 0
         if return_links:
-            contact_links = [(point.link_a, point.link_b) for point in con_points]
+            contact_links = [(point.body_a, point.body_b) for point in con_points]
             return objects_are_in_contact, contact_links
         else:
             return objects_are_in_contact

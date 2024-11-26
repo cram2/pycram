@@ -555,7 +555,7 @@ class Multiverse(World):
                 body_object, body_link = self.get_object_with_body_name(mcp.body_2)
                 obj, obj_link = self.get_object_with_body_name(mcp.body_1)
                 contact_points.append(ContactPoint(obj_link, body_link))
-                contact_points[-1].normal_on_b = mcp.normal
+                contact_points[-1].normal_on_body_b = mcp.normal
                 contact_points[-1].position_on_b = mcp.position
             return contact_points
 
@@ -579,7 +579,7 @@ class Multiverse(World):
             body_object, body_link = self.get_object_with_body_name(mcp.body_2)
             obj_link = obj.links[mcp.body_1] if mcp.body_1 in obj.links.keys() else obj.root_link
             contact_points.append(ContactPoint(obj_link, body_link))
-            contact_points[-1].normal_on_b = mcp.normal
+            contact_points[-1].normal_on_body_b = mcp.normal
             contact_points[-1].position_on_b = mcp.position
         return contact_points
 

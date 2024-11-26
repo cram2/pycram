@@ -200,6 +200,13 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         self.constraint_ids: Dict[Link, int] = {}
 
     @property
+    def parent(self) -> PhysicalBody:
+        """
+        :return: The parent of this link, which is the object.
+        """
+        return self.object
+
+    @property
     def name(self) -> str:
         """
         :return: The name of this link.
@@ -473,9 +480,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         return self.origin.to_transform(self.tf_frame)
 
     def __eq__(self, other: Link):
-        if not isinstance(other, Link):
-            return False
-        return self.id == other.id and self.object == other.object and self.name == other.name
+        return PhysicalBody.__eq__(self, other)
 
     def __copy__(self):
         return Link(self.id, self, self.object)

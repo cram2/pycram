@@ -366,9 +366,21 @@ class PhysicalBody(WorldEntity, ABC):
         """
         ...
 
+    @property
     @abstractmethod
+    def parent(self) -> Optional[PhysicalBody]:
+        """
+        :return: The parent of this body, if it has one.
+        """
+        pass
+
     def __eq__(self, other: PhysicalBody) -> bool:
         """
         Check if this body is equal to another body.
         """
-        ...
+        if not isinstance(other, PhysicalBody):
+            return False
+        return self.id == other.id, self.name == other.name, self.parent == other.parent
+
+    def __hash__(self) -> int:
+        return hash(self.id, self.name, self.parent)
