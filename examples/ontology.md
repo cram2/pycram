@@ -22,10 +22,12 @@ filter for certain objects.
 PyCRAP is defined in its package next to the PyCRAM package and hence allows users and developers to
 add new classes, instances, and relationships on demand. 
 Furthermore, this architecture allows the users to directly see what's in the ontology and how it is structured without
-switching to tools like (Protégé)[https://protege.stanford.edu/].
+switching to tools like [Protégé](https://protege.stanford.edu/).
 The linter and AI assistants like Copilot can also deal with this notation and guide the users without annoyances.
 
-Note that this area is under construction and may frequently changes.
+Note that this area is under construction and may frequently change.
+
+## Usage
 
 You can access the ontology by importing the PyCRAP package:
 
@@ -50,11 +52,28 @@ milk = Object("milk", pycrap.Milk, "milk.stl")
 cereal = Object("cereal", pycrap.Cereal, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
 ```
 
-You can query the ontology using owlready2. For example, we can see all food objects like this:
+You can query the ontology using [owlready2](https://owlready2.readthedocs.io/en/v0.41/index.html). 
+For example, we can see all food objects like this:
 
 ```python
 print("All food instances", list(filter(lambda x: x in pycrap.Food.instances(), pycrap.ontology.individuals())))
 ```
 
+## Extending the Ontology
+
 Feel free to extend the ontology with new classes and relations as you go! 
 These will be then reviewed in the pull requests so don't be shy!
+
+If you are looking to integrate PyCRAP with some other ontology like [Soma](https://ease-crc.github.io/soma/), you
+can do so by denoting the class equivalences in the PyCRAP ontology. 
+Details on this are found in the [owlready2 properties documentation](https://owlready2.readthedocs.io/en/v0.41/properties.html#obtaining-indirect-relations-considering-subproperty-transitivity-etc).
+
+Currently, only objects spawned during runtime are tracked in the A-Box of PyCRAP.
+
+The roadmap for a full integration is as follows:
+    - Map the entire belief state in the A-Box, including
+        - Relevant links from the URDF
+        - Robot descriptions
+    - Find a way to get action descriptions from ontological statements
+    - Use the ontology to guide the robot in its decision making
+    
