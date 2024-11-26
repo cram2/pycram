@@ -14,14 +14,15 @@ jupyter:
 
 # Ontologies in PyCRAM
 
-Cognitive Architectures often include some logical theory to them that enables a higher level reasoning and so does 
+Cognitive Architectures often include some logical theory to them that enables higher level reasoning, and so does 
 PyCRAM. The PyCRAM typology PyCRAP is an ontology that can be used in PyCRAM to describe the belief of the robot
-using concepts. These individuals for the ontology are created on the fly and PyCRAP can then be used to for instance 
+using concepts. These individuals for the ontology are created on the fly, and PyCRAP can then be used to for instance 
 filter for certain objects.
 
-PyCRAP is defined in it's package next to the PyCRAM package and hence allows users and developers to
+PyCRAP is defined in its package next to the PyCRAM package and hence allows users and developers to
 add new classes, instances, and relationships on demand. 
-Furthermore, this architecture allows the users to directly see whats in the ontology and how it is structured.
+Furthermore, this architecture allows the users to directly see what's in the ontology and how it is structured without
+switching to tools like (Protégé)[https://protege.stanford.edu/].
 The linter and AI assistants like Copilot can also deal with this notation and guide the users without annoyances.
 
 Note that this area is under construction and may frequently changes.
