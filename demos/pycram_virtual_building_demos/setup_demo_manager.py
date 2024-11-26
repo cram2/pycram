@@ -77,7 +77,7 @@ def start_demo_local():
     robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
     apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}-small{extension}")
     if not robot.name == "Armar6":
-        tf = TFBroadcaster()
+        TFBroadcaster()
 
     demo_selecting(apartment, robot, task_param)
     extension = ObjectDescription.get_file_extension()
