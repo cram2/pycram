@@ -1,38 +1,40 @@
 from .default_process_modules import *
+from ..utils import _apply_ik
+from .default_process_modules import _move_arm_tcp
 
 
-class DonbotMoveHead(ProcessModule):
+class DonbotMoveHead(DefaultMoveHead):
     """
-    This process module moves the head to look at a specific point in the world coordinate frame.
-    This point can either be a position or an object.
+    Moves the head of the iai_donbot robot to look at a specified point in the world coordinate frame.
+    This point can be a position or an object, and the orientation is calculated based on the
+    robot's base and camera alignment.
     """
-
     def _execute(self, desig):
         target = desig.target
         robot = World.robot
 
-        local_transformer = LocalTransformer()
+        base_frame_pose: Pose = robot.get_link_pose("ur5_base_link").copy()
+        base_frame_pose.position.z += 0.4
+        base_position = np.array(base_frame_pose.position_as_list())
 
-        pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("ur5_shoulder_link"))
+        target_position = np.array(target.position_as_list())
 
-        if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(pose_in_shoulder.position.y):
-            robot.set_joint_positions(
-                RobotDescription.current_robot_description.get_static_joint_chain("left_arm", "front"))
-        if pose_in_shoulder.position.y >= 0 and pose_in_shoulder.position.y >= abs(pose_in_shoulder.position.x):
-            robot.set_joint_positions(
-                RobotDescription.current_robot_description.get_static_joint_chain("left_arm", "arm_right"))
-        if pose_in_shoulder.position.x <= 0 and abs(pose_in_shoulder.position.x) > abs(pose_in_shoulder.position.y):
-            robot.set_joint_positions(
-                RobotDescription.current_robot_description.get_static_joint_chain("left_arm", "back"))
-        if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(pose_in_shoulder.position.x):
-            robot.set_joint_positions(
-                RobotDescription.current_robot_description.get_static_joint_chain("left_arm", "arm_left"))
+        look_vector = target_position - base_position
+        z_axis = look_vector / np.linalg.norm(look_vector)
 
-        pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("ur5_shoulder_link"))
+        up = -np.array(RobotDescription.current_robot_description.cameras["camera_link"].front_facing_axis)
 
-        new_pan = np.arctan2(pose_in_shoulder.position.y, pose_in_shoulder.position.x)
+        x_axis = np.cross(up, z_axis)
+        x_axis /= np.linalg.norm(x_axis)
 
-        robot.set_joint_position("ur5_shoulder_pan_joint", new_pan + robot.get_joint_position("ur5_shoulder_pan_joint"))
+        y_axis = np.cross(z_axis, x_axis)
+        rotation_matrix = np.array([x_axis, y_axis, z_axis]).T
+
+        orientation_quat = R.from_matrix(rotation_matrix).as_quat()
+        adjusted_pose = Pose(base_position.tolist(), orientation_quat.tolist())
+        _move_arm_tcp(adjusted_pose, robot, Arms.LEFT)
+
+# TODO: Also need to do DonbotMoveHeadReal
 
 
 class DonbotManager(DefaultManager):

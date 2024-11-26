@@ -11,16 +11,15 @@ from sqlalchemy.orm import Session
 from tf import transformations
 from typing_extensions import Any, List, Union, Callable, Optional, Type
 
-import rospy
-
-from .location_designator import CostmapLocation
+from .location_designator import CostmapLocation, AccessingLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveArmJointsMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
 from .. import utils
+from ..helper import calculate_object_faces, adjust_grasp_for_object_rotation, \
+    calculate_grasp_offset
 from ..local_transformer import LocalTransformer
 from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
-# from ..robot_descriptions import robot_description
 from ..robot_description import RobotDescription
 from ..ros.viz_marker_publisher import AxisMarkerPublisher
 from ..tasktree import with_tree
@@ -44,6 +43,8 @@ from ..orm.base import Pose as ORMPose
 from ..orm.object_designator import Object as ORMObject
 from ..orm.action_designator import Action as ORMAction
 from dataclasses import dataclass, field
+
+from ..utils import translate_relative_to_object
 
 
 class MoveTorsoAction(ActionDesignatorDescription):
@@ -410,70 +411,158 @@ class DetectAction(ActionDesignatorDescription):
 
 class OpenAction(ActionDesignatorDescription):
     """
-    Opens a container like object
+    Opens a container-like object using a designated arm and navigation poses.
 
-    Can currently not be used
+    This class handles the action of moving a robot's arm to interact with and open
+    container-like objects. It specifies both the arm(s) used and the start and goal
+    locations necessary for positioning the robot during the action.
     """
 
-    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms], resolver=None,
-                 ontology_concept_holders: Optional[List[Thing]] = None):
-        """
-        Moves the arm of the robot to open a container.
+    object_designator_description: ObjectPart
+    """
+    Describes the specific part or handle of the object used for opening.
+    """
 
-        :param object_designator_description: Object designator describing the handle that should be used to open
-        :param arms: A list of possible arms that should be used
-        :param resolver: A alternative specialized_designators that returns a performable designator for the lists of possible parameter.
-        :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
+    arms: List[Arms]
+    """
+    A list of possible arms designated for the opening action.
+    """
+
+    start_location: AccessingLocation.Location
+    """
+    The start location for the navigation pose required to perform the action.
+    """
+
+    goal_location: Optional[AccessingLocation.Location]
+    """
+    The goal location for the navigation pose, if different from the start location.
+    """
+
+    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms],
+                 start_goal_location: List[AccessingLocation.Location],
+                 resolver=None, ontology_concept_holders: Optional[List[Thing]] = None):
+        """
+        Initializes the OpenAction with specified object, arm, and location parameters.
+
+        Args:
+            object_designator_description (ObjectPart): Describes the part or handle of
+                the object to be used for opening.
+            arms (List[Arms]): A list of arms available for the action.
+            start_goal_location (List[AccessingLocation.Location]): A list containing
+                the start and goal locations for the navigation poses required to perform
+                the action. If both entries are the same, only the start location is set.
+            resolver (optional): A specialized designator that returns a performable
+                designator for the list of possible parameters.
+            ontology_concept_holders (Optional[List[Thing]]): Ontology concepts categorizing
+                or associating the action with certain semantic meanings.
         """
         super().__init__(resolver, ontology_concept_holders)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[Arms] = arms
+        self.start_location: AccessingLocation.Location = start_goal_location[0]
+        self.goal_location: AccessingLocation.Location = None if start_goal_location[0] == start_goal_location[1] else \
+            start_goal_location[1]
 
         if self.soma:
             self.init_ontology_concepts({"opening": self.soma.Opening})
 
     def ground(self) -> OpenActionPerformable:
         """
-        Default specialized_designators that returns a performable designator with the resolved object description and the first entries
-        from the lists of possible parameter.
+        Returns a performable designator for the `OpenAction`, using the resolved object
+        description and the primary entries from the provided parameter lists.
 
-        :return: A performable designator
+        This method creates an `OpenActionPerformable` instance based on the resolved
+        description of the target object, the first available arm, and the predefined
+        start and goal locations for executing the action.
+
+        Returns:
+            OpenActionPerformable: An instance representing a performable designator for the
+            action, ready to be executed with the specified parameters.
         """
-        return OpenActionPerformable(self.object_designator_description.resolve(), self.arms[0])
+        return OpenActionPerformable(
+            self.object_designator_description.resolve(),
+            self.arms[0],
+            self.start_location,
+            self.goal_location
+        )
 
 
 class CloseAction(ActionDesignatorDescription):
     """
-    Closes a container like object.
+    Closes a container-like object using a designated arm and navigation poses.
 
-    Can currently not be used
+    This class manages the action of moving a robot's arm to interact with and close
+    container-like objects. It specifies the arm(s) to use and the start and goal
+    locations required for positioning the robot during the action.
+    """
+
+    object_designator_description: ObjectPart
+    """
+    Describes the specific part or handle of the object used for closing.
+    """
+
+    arms: List[Arms]
+    """
+    A list of possible arms designated for the closing action.
+    """
+
+    start_location: AccessingLocation.Location
+    """
+    The start location for the navigation pose required to perform the action.
+    """
+
+    goal_location: Optional[AccessingLocation.Location]
+    """
+    The goal location for the navigation pose, if different from the start location.
     """
 
     def __init__(self, object_designator_description: ObjectPart, arms: List[Arms],
+                 start_goal_location: List[AccessingLocation.Location],
                  resolver=None, ontology_concept_holders: Optional[List[Thing]] = None):
         """
-        Attempts to close an open container
+        Initializes the CloseAction with specified object, arm, and location parameters.
 
-        :param object_designator_description: Object designator description of the handle that should be used
-        :param arms: A list of possible arms to use
-        :param resolver: An alternative specialized_designators that returns a performable designator for the list of possible parameter
-        :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
+        Args:
+            object_designator_description (ObjectPart): Describes the part or handle of
+                the object to be used for closing.
+            arms (List[Arms]): A list of arms available for the action.
+            start_goal_location (List[AccessingLocation.Location]): A list containing
+                the start and goal locations for the navigation poses required to perform
+                the action. If both entries are the same, only the start location is set.
+            resolver (optional): A specialized designator that returns a performable
+                designator for the list of possible parameters.
+            ontology_concept_holders (Optional[List[Thing]]): Ontology concepts categorizing
+                or associating the action with certain semantic meanings.
         """
         super().__init__(resolver, ontology_concept_holders)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[Arms] = arms
+        self.start_location: AccessingLocation.Location = start_goal_location[0]
+        self.goal_location: AccessingLocation.Location = None if start_goal_location[0] == start_goal_location[1] else \
+            start_goal_location[1]
 
         if self.soma:
             self.init_ontology_concepts({"closing": self.soma.Closing})
 
     def ground(self) -> CloseActionPerformable:
         """
-        Default specialized_designators that returns a performable designator with the resolved object designator and the first entry from
-        the list of possible arms.
+        Returns a performable designator for the `CloseAction`, using the resolved object
+        designator and the primary entry from the list of possible arms.
 
-        :return: A performable designator
+        This method creates a `CloseActionPerformable` instance based on the resolved
+        description of the target object, the first available arm, and the predefined
+        start and goal locations for executing the action.
+
+        Returns:
+            CloseActionPerformable: An instance representing a performable designator for
+            the action, ready to be executed with the specified parameters.
         """
-        return CloseActionPerformable(self.object_designator_description.resolve(), self.arms[0])
+        return CloseActionPerformable(
+            self.object_designator_description.resolve(),
+            self.arms[0],
+            self.start_location,
+            self.goal_location
+        )
 
 
 class GraspingAction(ActionDesignatorDescription):
@@ -1077,116 +1166,108 @@ class PickUpActionPerformable(ActionAbstract):
 
     object_designator: ObjectDesignatorDescription.Object
     """
-    Object designator describing the object that should be picked up
+    Object designator describing the object that should be picked up.
     """
 
     arm: Arms
     """
-    The arm that should be used for pick up
+    The arm enum that should be used for pick up, e.g., Arms.LEFT or Arms.RIGHT.
     """
 
     grasp: Grasp
     """
-    The grasp that should be used. For example, 'left' or 'right'
+    The grasp enum that should be used, e.g., Grasp.FRONT or Grasp.RIGHT.
     """
 
     object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False)
     """
-    The object at the time this Action got created. It is used to be a static, information holding entity. It is
-    not updated when the BulletWorld object is changed.
+    The object at the time this action was created. Acts as a static information holder and 
+    is not updated when the BulletWorld object is changed.
     """
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMPickUpAction)
 
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMPickUpAction)
+    """
+    ORM class type for this action.
+    """
     @with_tree
     def perform(self) -> None:
+        """
+        Executes the action to pick up the designated object with specified parameters,
+        moving the robot arm to the pre-pick position, grasping, and lifting the object.
+        """
         # Store the object's data copy at execution
         self.object_at_execution = self.object_designator.frozen_copy()
         robot = World.robot
         # Retrieve object and robot from designators
         object = self.object_designator.world_object
-        # Get grasp orientation and target pose
-        grasp = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.grasps[self.grasp]
         # oTm = Object Pose in Frame map
         oTm = object.get_pose()
-        # Transform the object pose to the object frame, basically the origin of the object frame
-        mTo = object.local_transformer.transform_to_object_frame(oTm, object)
+
         # Adjust the pose according to the special knowledge of the object designator
-        adjusted_pose = self.object_designator.special_knowledge_adjustment_pose(self.grasp, mTo)
-        # Transform the adjusted pose to the map frame
-        adjusted_oTm = object.local_transformer.transform_pose(adjusted_pose, "map")
-        # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
+        # I think this should be irrelevant now due to the grasp_offset calculation, but not sure, so just commented out for now
+        # adjusted_pose = self.object_designator.special_knowledge_adjustment_pose(self.grasp, mTo)
+        adjusted_grasp = adjust_grasp_for_object_rotation(oTm, self.grasp, self.arm)
+        adjusted_oTm = oTm.copy()
+        adjusted_oTm.set_orientation(adjusted_grasp)
 
-        adjusted_oTm.multiply_quaternions(grasp)
+        grasp_offset = calculate_grasp_offset(object.get_object_dimensions(), self.arm, self.grasp)
+        palm_axis = RobotDescription.current_robot_description.get_palm_axis()
+        adjusted_oTm_grasp_pose = translate_relative_to_object(adjusted_oTm, palm_axis, grasp_offset)
 
-        # prepose depending on the gripper (its annoying we have to put pr2_1 here tbh
-        # gripper_frame = "pr2_1/l_gripper_tool_frame" if self.arm == "left" else "pr2_1/r_gripper_tool_frame"
-        gripper_frame = robot.get_link_tf_frame(
-            RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame())
-        # First rotate the gripper, so the further calculations makes sense
-        tmp_for_rotate_pose = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
-        tmp_for_rotate_pose.pose.position.x = 0
-        tmp_for_rotate_pose.pose.position.y = 0
-        tmp_for_rotate_pose.pose.position.z = -0.1
-        gripper_rotate_pose = object.local_transformer.transform_pose(tmp_for_rotate_pose, "map")
+        translation_value = 0.1  # hardcoded value for now
+        oTm_prepose = translate_relative_to_object(adjusted_oTm_grasp_pose, palm_axis, translation_value)
+        prepose = object.local_transformer.transform_pose(oTm_prepose, "map")
 
-        # Perform Gripper Rotate
-        # BulletWorld.current_bullet_world.add_vis_axis(gripper_rotate_pose)
-        # MoveTCPMotion(gripper_rotate_pose, self.arm).resolve().perform()
-
-        oTg = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
-        oTg.pose.position.x -= 0.1  # in x since this is how the gripper is oriented
-        prepose = object.local_transformer.transform_pose(oTg, "map")
-
-        # Perform the motion with the prepose and open gripper
-        World.current_world.add_vis_axis(prepose)
-
-        marker = AxisMarkerPublisher()
-        gripper_pose = World.robot.get_link_pose(
-            RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame())
-
-        marker.publish([adjusted_oTm, gripper_pose], length=0.3)
+        if World.current_world.allow_publish_debug_poses:
+            gripper_pose = World.robot.get_link_pose(
+                RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame())
+            marker = AxisMarkerPublisher()
+            marker.publish([adjusted_oTm_grasp_pose, prepose, gripper_pose], length=0.3)
 
         MoveTCPMotion(prepose, self.arm, allow_gripper_collision=True).perform()
         MoveGripperMotion(motion=GripperState.OPEN, gripper=self.arm).perform()
 
-        # Perform the motion with the adjusted pose -> actual grasp and close gripper
-        World.current_world.add_vis_axis(adjusted_oTm)
-        MoveTCPMotion(adjusted_oTm, self.arm, allow_gripper_collision=True).perform()
-        adjusted_oTm.pose.position.z += 0.03
+        MoveTCPMotion(adjusted_oTm_grasp_pose, self.arm, allow_gripper_collision=True).perform()
         MoveGripperMotion(motion=GripperState.CLOSE, gripper=self.arm).perform()
         tool_frame = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
         robot.attach(object, tool_frame)
 
-        # Lift object
-        World.current_world.add_vis_axis(adjusted_oTm)
-        MoveTCPMotion(adjusted_oTm, self.arm, allow_gripper_collision=True).perform()
-
-        # Remove the vis axis from the world
-        World.current_world.remove_vis_axis()
+        adjusted_oTm_grasp_pose.pose.position.z += 0.03
+        MoveTCPMotion(adjusted_oTm_grasp_pose, self.arm, allow_gripper_collision=True).perform()
 
 
 @dataclass
 class PlaceActionPerformable(ActionAbstract):
     """
-    Places an Object at a position using an arm.
+    Places an object at a specified position using an arm.
     """
 
     object_designator: ObjectDesignatorDescription.Object
     """
-    Object designator describing the object that should be place
+    Describes the object that should be placed.
     """
+
     arm: Arms
     """
-    Arm that is currently holding the object
+    The arm currently holding the object.
     """
+
     target_location: Pose
     """
-    Pose in the world at which the object should be placed
+    The world pose at which the object should be placed.
     """
+
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMPlaceAction)
+    """
+    ORM class type for this action.
+    """
 
     @with_tree
     def perform(self) -> None:
+        """
+        Executes the place action, positioning the arm to the specified target location,
+        releasing the object, and retracting the arm.
+        """
         object_pose = self.object_designator.world_object.get_pose()
         local_tf = LocalTransformer()
 
@@ -1198,12 +1279,23 @@ class PlaceActionPerformable(ActionAbstract):
         target_diff = self.target_location.to_transform("target").inverse_times(
             tcp_to_object.to_transform("object")).to_pose()
 
+        if World.current_world.allow_publish_debug_poses:
+            gripper_pose = World.robot.get_link_pose(
+                RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame())
+            marker = AxisMarkerPublisher()
+            marker.publish([target_diff, self.target_location, gripper_pose], length=0.3)
+
         MoveTCPMotion(target_diff, self.arm).perform()
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()
         World.robot.detach(self.object_designator.world_object)
+
         retract_pose = local_tf.transform_pose(target_diff, World.robot.get_link_tf_frame(
             RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()))
-        retract_pose.position.x -= 0.07
+
+        palm_axis = RobotDescription.current_robot_description.get_palm_axis()
+        translation_value = 0.1
+        retract_pose = translate_relative_to_object(retract_pose, palm_axis, translation_value)
+
         MoveTCPMotion(retract_pose, self.arm).perform()
 
 
@@ -1227,54 +1319,84 @@ class NavigateActionPerformable(ActionAbstract):
 @dataclass
 class TransportActionPerformable(ActionAbstract):
     """
-    Transports an object to a position using an arm
+    Transports an object to a specified position using an arm.
     """
 
     object_designator: ObjectDesignatorDescription.Object
     """
-    Object designator describing the object that should be transported.
+    Describes the object that should be transported.
     """
+
     arm: Arms
     """
-    Arm that should be used
+    The arm designated for transporting the object.
     """
+
     target_location: Pose
     """
-    Target Location to which the object should be transported
+    The target world pose to which the object should be transported.
     """
+
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMTransportAction)
+    """
+    ORM class type for this action.
+    """
 
     @with_tree
     def perform(self) -> None:
+        """
+        Executes the transport action by navigating to the pick-up and target locations
+        to grasp, transport, and place the designated object.
+
+        The process includes:
+        1. Parking both arms for initial positioning.
+        2. Determining the appropriate grasp based on object type.
+        3. Finding a reachable pose for the robot to pick up the object with the designated arm.
+        4. Navigating to the pick-up pose, performing the pick-up, and then parking arms again.
+        5. Resolving a place location reachable by the robot to place the object.
+        6. Navigating to the place location, performing the placement, and parking arms post-transport.
+
+        Raises:
+            ObjectUnfetchable: If no reachable pose is found for the pick-up.
+            ReachabilityFailure: If no reachable location is found for the target location.
+        """
         robot_desig = BelieveObject(names=[RobotDescription.current_robot_description.name])
         ParkArmsActionPerformable(Arms.BOTH).perform()
 
         if self.object_designator.obj_type == ObjectType.BOWL or self.object_designator.obj_type == ObjectType.SPOON:
-            grasp = Grasp.TOP
+            grasp = calculate_object_faces(self.object_designator)[1]
         else:
-            grasp = Grasp.FRONT
+            grasp = calculate_object_faces(self.object_designator)[0]
 
-        pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig.resolve(),
-                                     reachable_arm=self.arm, used_grasps=[grasp])
+        pickup_loc = CostmapLocation(
+            target=self.object_designator,
+            reachable_for=robot_desig.resolve(),
+            reachable_arm=self.arm,
+            used_grasps=[grasp]
+        )
+
         # Tries to find a pick-up posotion for the robot that uses the given arm
-        pickup_pose = None
-        for pose in pickup_loc:
-            if self.arm in pose.reachable_arms:
-                pickup_pose = pose
-                break
+        pickup_pose = next((pose for pose in pickup_loc if self.arm in pose.reachable_arms), None)
         if not pickup_pose:
             raise ObjectUnfetchable(
-                f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
+                f"No reachable pose found for the robot to grasp the object: {self.object_designator} with arm: {self.arm}"
+            )
 
         NavigateActionPerformable(pickup_pose.pose).perform()
         PickUpActionPerformable(self.object_designator, self.arm, grasp).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         try:
-            place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig.resolve(),
-                                        reachable_arm=self.arm, used_grasps=[grasp]).resolve()
+            place_loc = CostmapLocation(
+                target=self.target_location,
+                reachable_for=robot_desig.resolve(),
+                reachable_arm=self.arm,
+                used_grasps=[grasp],
+                object_in_hand=self.object_designator
+            ).resolve()
         except StopIteration:
             raise ReachabilityFailure(
-                f"No location found from where the robot can reach the target location: {self.target_location}")
+                f"No reachable location found for the target location: {self.target_location}"
+            )
         NavigateActionPerformable(place_loc.pose).perform()
         PlaceActionPerformable(self.object_designator, self.arm, self.target_location).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
@@ -1322,23 +1444,50 @@ class DetectActionPerformable(ActionAbstract):
 @dataclass
 class OpenActionPerformable(ActionAbstract):
     """
-    Opens a container like object
+    Opens a container-like object using a specified arm.
     """
 
     object_designator: ObjectPart.Object
     """
-    Object designator describing the object that should be opened
+    Describes the object that should be opened.
     """
+
     arm: Arms
     """
-    Arm that should be used for opening the container
+    The arm designated for opening the container.
     """
+
+    start_location: AccessingLocation.Location
+    """
+    The initial location from which the opening action begins.
+    """
+
+    goal_location: Optional[AccessingLocation.Location]
+    """
+    The final goal location for the opening action.
+    """
+
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMOpenAction)
+    """
+    ORM class type for this action.
+    """
 
     @with_tree
     def perform(self) -> None:
+        """
+        Executes the open action by navigating to the start location, performing a grasp,
+        and executing the opening motion to the goal location.
+
+        The process includes:
+        1. Navigating to the specified `start_location`.
+        2. Performing the grasp action on the designated object.
+        3. Executing the opening motion towards the `goal_location`.
+        4. Releasing the gripper to complete the opening.
+
+        """
+        NavigateAction([self.start_location.pose]).resolve().perform()
         GraspingActionPerformable(self.arm, self.object_designator).perform()
-        OpeningMotion(self.object_designator, self.arm).perform()
+        OpeningMotion(self.object_designator, self.arm, self.goal_location).perform()
 
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
 
@@ -1346,23 +1495,50 @@ class OpenActionPerformable(ActionAbstract):
 @dataclass
 class CloseActionPerformable(ActionAbstract):
     """
-    Closes a container like object.
+    Closes a container-like object using a specified arm.
     """
 
     object_designator: ObjectPart.Object
     """
-    Object designator describing the object that should be closed
+    Describes the object that should be closed.
     """
+
     arm: Arms
     """
-    Arm that should be used for closing
+    The arm designated for closing the container.
     """
+
+    start_location: AccessingLocation.Location
+    """
+    The initial location from which the closing action begins.
+    """
+
+    goal_location: Optional[AccessingLocation.Location]
+    """
+    The final goal location for the closing action.
+    """
+
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMCloseAction)
+    """
+    ORM class type for this action.
+    """
 
     @with_tree
     def perform(self) -> None:
+        """
+        Executes the close action by navigating to the start location, performing a grasp,
+        and executing the closing motion to the goal location.
+
+        The process includes:
+        1. Navigating to the specified `start_location`.
+        2. Performing the grasp action on the designated object.
+        3. Executing the closing motion towards the `goal_location`.
+        4. Releasing the gripper to complete the closing.
+
+        """
+        NavigateAction([self.start_location.pose]).resolve().perform()
         GraspingActionPerformable(self.arm, self.object_designator).perform()
-        ClosingMotion(self.object_designator, self.arm).perform()
+        ClosingMotion(self.object_designator, self.arm, self.goal_location).perform()
 
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
 
@@ -1370,46 +1546,64 @@ class CloseActionPerformable(ActionAbstract):
 @dataclass
 class GraspingActionPerformable(ActionAbstract):
     """
-    Grasps an object described by the given Object Designator description
+    Grasps an object as described by the given object designator.
     """
+
     arm: Arms
     """
-    The arm that should be used to grasp
+    The arm to be used for grasping the object.
     """
+
     object_desig: Union[ObjectDesignatorDescription.Object, ObjectPart.Object]
     """
-    Object Designator for the object that should be grasped
+    Object designator for the object that should be grasped.
     """
+
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMGraspingAction)
+    """
+    ORM class type for this action.
+    """
 
     @with_tree
     def perform(self) -> None:
+        """
+        Executes the grasp action by navigating to a pre-grasp position and grasping the object.
+
+        The sequence includes:
+        1. Determining the object's pose and adjusting the grasp orientation.
+        2. Translating to a pre-grasp position.
+        3. Moving the robot's arm to the pre-grasp position and opening the gripper.
+        4. Moving to the grasp position and closing the gripper to secure the object.
+
+        Notes:
+            - The grasp side is currently hardcoded to `Grasp.FRONT`.
+            - This approach adjusts the pose orientation to align with the grasp angle.
+        """
         if isinstance(self.object_desig, ObjectPart.Object):
             object_pose = self.object_desig.part_pose
         else:
             object_pose = self.object_desig.world_object.get_pose()
 
-        if RobotDescription.current_robot_description.name == "tiago_dual":
-            object_pose = object_pose.copy()
-            object_pose.set_orientation([0, 0, 0, 1])
+        # TODO: there is a difference in which side faces the object during costmap and execution, so hardcoded for now, fix it
+        # grasp = calculate_object_faces(self.object_desig)[0]
+        grasp = Grasp.FRONT
 
-            grasp = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.grasps[Grasp.FRONT]
-            object_pose.multiply_quaternions(grasp)
+        adjusted_grasp = adjust_grasp_for_object_rotation(object_pose, grasp, self.arm)
+        object_pose = object_pose.copy()
+        object_pose.set_orientation(adjusted_grasp)
 
-        lt = LocalTransformer()
-        gripper_name = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
+        palm_axis = RobotDescription.current_robot_description.get_palm_axis()
+        translation_value = 0.05
+        local_transformer = LocalTransformer()
+        oTm_prepose = translate_relative_to_object(object_pose, palm_axis, translation_value)
 
-        object_pose_in_gripper = lt.transform_pose(object_pose,
-                                                   World.robot.get_link_tf_frame(gripper_name))
+        prepose = local_transformer.transform_pose(oTm_prepose, "map")
 
-        marker = AxisMarkerPublisher()
-        gripper_pose = World.robot.get_link_pose(gripper_name)
-        pre_grasp = object_pose_in_gripper.copy()
-        # pre_grasp.pose.position.x -= 0.1
+        if World.current_world.allow_publish_debug_poses:
+            marker = AxisMarkerPublisher()
+            marker.publish([object_pose, prepose], name="Grasping", length=0.3)
 
-        # marker.publish([object_pose, gripper_pose], name="Grasping", length=0.3)
-
-        MoveTCPMotion(pre_grasp, self.arm).perform()
+        MoveTCPMotion(prepose, self.arm).perform()
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()
 
         MoveTCPMotion(object_pose, self.arm, allow_gripper_collision=True).perform()

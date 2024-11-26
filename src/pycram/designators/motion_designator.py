@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
+
+from .location_designator import AccessingLocation
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
 from ..designator import ResolutionError
 from ..orm.base import ProcessMetaData
@@ -266,6 +268,10 @@ class OpeningMotion(BaseMotion):
     """
     Arm that should be used
     """
+    goal_location: Optional[AccessingLocation.Location]
+    """
+    The goal location for the opening
+    """
 
     @with_tree
     def perform(self):
@@ -297,6 +303,10 @@ class ClosingMotion(BaseMotion):
     arm: Arms
     """
     Arm that should be used
+    """
+    goal_location: Optional[AccessingLocation.Location]
+    """
+    The goal location for the closing
     """
 
     @with_tree

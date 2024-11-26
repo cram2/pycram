@@ -50,6 +50,8 @@ hsrb_description.add_camera_description(hand_camera)
 ################################## Neck ##################################
 neck = KinematicChainDescription("neck", "head_pan_link", "head_tilt_link",
                                  hsrb_description.urdf_object)
+hsrb_description.set_neck("head_pan_joint", "head_tilt_joint")
+
 
 ################################## Torso ##################################
 torso = KinematicChainDescription("torso", "base_link", "torso_lift_link",
@@ -70,6 +72,11 @@ left_gripper.add_grasp_orientations({Grasp.FRONT: [-1, 0, -1, 0],
                                      Grasp.TOP: [-1, 0, 0, 0]})
 
 hsrb_description.add_kinematic_chain_description(neck)
+
+############################## Additionals ################################
+# hsrb_description.set_costmap_offset(0.3)  # set to correct offset if needed
+# hsrb_description.set_palm_axis([0, 0, -1])  # set to correct axis if needed
+# hsrb_description.set_max_reach("torso_lift_link", "gripper_left_tool_link")  # set to correct links if needed
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

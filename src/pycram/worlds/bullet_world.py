@@ -34,6 +34,8 @@ class BulletWorld(World):
 
     extension: str = ObjectDescription.get_file_extension()
 
+    allow_publish_debug_poses: bool = False
+
     # Check is for sphinx autoAPI to be able to work in a CI workflow
     if rosgraph.is_master_online():  # and "/pycram" not in rosnode.get_node_names():
         rospy.init_node('pycram')

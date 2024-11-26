@@ -1,7 +1,9 @@
 import tf
 import numpy as np
 
+from .datastructures.enums import Grasp
 from .datastructures.world import World
+from .ros.viz_marker_publisher import AxisMarkerPublisher
 from .world_concepts.world_object import Object
 from .world_reasoning import contact
 from .costmaps import Costmap
@@ -10,7 +12,7 @@ from .datastructures.pose import Pose, Transform
 from .robot_description import RobotDescription
 from .external_interfaces.ik import request_ik
 from .plan_failures import IKError
-from .utils import _apply_ik
+from .utils import _apply_ik, translate_relative_to_object
 from typing_extensions import Tuple, List, Union, Dict, Iterable
 
 
@@ -32,9 +34,19 @@ class PoseGenerator:
 
     def __init__(self, costmap: Costmap, number_of_samples=100, orientation_generator=None):
         """
-        :param costmap: The costmap from which poses should be sampled.
-        :param number_of_samples: The number of samples from the costmap that should be returned at max
-        :param orientation_generator: function that generates an orientation given a position and the origin of the costmap
+        Initializes a PoseGenerator for sampling poses from a given costmap.
+
+        This class generates sampled poses within the specified costmap, using a defined number of samples
+        and an optional orientation generator. If no orientation generator is provided, a default generator
+        is used.
+
+        Args:
+            costmap (Costmap): The costmap from which poses should be sampled.
+            number_of_samples (int, optional): Maximum number of samples to be returned from the costmap. Defaults to 100.
+            orientation_generator (callable, optional): Function that generates an orientation given a position and the origin of the costmap.
+
+        Returns:
+            None
         """
 
         if not PoseGenerator.current_orientation_generator:
@@ -48,23 +60,42 @@ class PoseGenerator:
 
     def __iter__(self) -> Iterable:
         """
-        A generator that crates pose candidates from a given costmap. The generator
-        selects the highest 100 values and returns the corresponding positions.
-        Orientations are calculated such that the Robot faces the center of the costmap.
+        Generates pose candidates from a costmap, selecting the highest 100 values and
+        returning the corresponding positions. The orientations are calculated such that
+        the robot faces the center of the costmap.
 
-        :Yield: A tuple of position and orientation
+        Yields:
+            Pose: A Pose object containing position and orientation.
         """
 
-        # Determines how many positions should be sampled from the costmap
+        np.random.seed(42)
+
         if self.number_of_samples == -1:
             self.number_of_samples = self.costmap.map.flatten().shape[0]
-        indices = np.argpartition(self.costmap.map.flatten(), -self.number_of_samples)[-self.number_of_samples:]
-        indices = np.dstack(np.unravel_index(indices, self.costmap.map.shape)).reshape(self.number_of_samples, 2)
+        number_of_samples = min(self.number_of_samples, self.costmap.map.size)
 
-        height = self.costmap.map.shape[0]
-        width = self.costmap.map.shape[1]
+        height, width = self.costmap.map.shape
         center = np.array([height // 2, width // 2])
-        for ind in indices:
+
+        flat_values = self.costmap.map.flatten()
+
+        # Filter non-zero weights and adjust number_of_samples accordingly
+        non_zero_indices = np.nonzero(flat_values)[0]
+        non_zero_weights = flat_values[non_zero_indices]
+        number_of_samples = min(number_of_samples, len(non_zero_indices))
+
+        if non_zero_weights.sum() > 0:
+            sampled_indices = np.random.choice(non_zero_indices, size=number_of_samples, replace=False,
+                                               p=non_zero_weights / non_zero_weights.sum())
+        else:
+            sampled_indices = []
+
+        indices = np.dstack(np.unravel_index(sampled_indices, self.costmap.map.shape)).reshape(number_of_samples, 2)
+
+        sampled_weights = flat_values[sampled_indices]
+        sorted_indices = indices[np.argsort(-sampled_weights)]
+
+        for ind in sorted_indices:
             if self.costmap.map[ind[0]][ind[1]] == 0:
                 continue
             # The position is calculated by creating a vector from the 2D position in the costmap (given by x and y)
@@ -141,41 +172,57 @@ def visibility_validator(pose: Pose,
 def _in_contact(robot: Object, obj: Object, allowed_collision: Dict[Object, List[str]],
                 allowed_robot_links: List[str]) -> bool:
     """
-    This method checks if a given robot is in contact with a given object.
+    Checks if the specified robot is in contact with a given object, while accounting for
+    allowed collisions on specific links.
 
-    :param robot: The robot object that should be checked for contact.
-    :param obj: The object that should be checked for contact with the robot.
-    :param allowed_collision: A dictionary that contains the allowed collisions for links of each object in the world.
-    :param allowed_robot_links: A list of links of the robot that are allowed to be in contact with the object.
-    :return: True if the robot is in contact with the object and False otherwise.
+    Args:
+        robot (Object): The robot to check for contact.
+        obj (Object): The object to check for contact with the robot.
+        allowed_collision (Dict[Object, List[str]]): A dictionary of objects with lists of
+                                                     link names allowed to collide.
+        allowed_robot_links (List[str]): A list of robot link names that are allowed to be in
+                                         contact with the object.
+
+    Returns:
+        bool: True if the robot is in contact with the object on non-allowed links, False otherwise.
     """
     in_contact, contact_links = contact(robot, obj, return_links=True)
-    allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
+    if not in_contact:
+        return False
 
-    if in_contact:
-        for link in contact_links:
-            if link[0].name in allowed_robot_links or link[1].name in allowed_links:
-                in_contact = False
-                # TODO: in_contact is never set to True after it was set to False is that correct?
-                # TODO: If it is correct, then this loop should break after the first contact is found
-    return in_contact
+    allowed_links = allowed_collision.get(obj, [])
+
+    for link in contact_links:
+        if link[0].name not in allowed_robot_links and link[1].name not in allowed_links:
+            return True
+
+    return False
+
 
 
 def reachability_validator(pose: Pose,
                            robot: Object,
                            target: Union[Object, Pose],
-                           allowed_collision: Dict[Object, List] = None) -> Tuple[bool, List]:
+                           allowed_collision: Dict[Object, List] = None,
+                           translation_value: float = 0.1) -> Tuple[bool, List]:
     """
-    This method validates if a target position is reachable for a pose candidate.
-    This is done by asking the ik solver if there is a valid solution if the
-    robot stands at the position of the pose candidate. if there is a solution
-    the validator returns True and False in any other case.
+    Validates if a target position is reachable for a given pose candidate.
 
-    :param pose: The pose candidate for which the reachability should be validated
-    :param robot: The robot object in the World for which the reachability should be validated.
-    :param target: The target position or object instance which should be the target for reachability.
-    :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates to a list of links of which this object consists
-    :return: True if the target is reachable for the robot and False in any other case.
+    This method uses an IK solver to determine if a valid solution exists for the robot
+    standing at the specified pose. If a solution is found, the validator returns `True`;
+    otherwise, it returns `False`.
+
+    Args:
+        pose (Pose): The pose candidate for which reachability should be validated.
+        robot (Object): The robot object in the world for which reachability is being validated.
+        target (Union[Object, Pose]): The target position or object that should be reachable.
+        allowed_collision (Dict[Object, List], optional): A dictionary of objects with which
+            the robot is allowed to collide, where each object maps to a list of its constituent links.
+
+    Returns:
+        Tuple[bool, List]: A tuple where the first element is `True` if the target is reachable
+        and `False` otherwise. The second element is a list of details about the solution or issues
+        encountered during validation.
     """
     if type(target) == Object:
         target = target.get_pose()
@@ -189,11 +236,6 @@ def reachability_validator(pose: Pose,
     res = False
     arms = []
     for description in manipulator_descs:
-        retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(description.end_effector.tool_frame))
-        retract_target_pose.position.x -= 0.07  # Care hard coded value copied from PlaceAction class
-
-        # retract_pose needs to be in world frame?
-        retract_target_pose = LocalTransformer().transform_pose(retract_target_pose, "map")
 
         joints = description.joints
         tool_frame = description.end_effector.tool_frame
@@ -210,7 +252,18 @@ def reachability_validator(pose: Pose,
             # _apply_ik(robot, resp, joints)
 
             in_contact = collision_check(robot, allowed_collision)
+
             if not in_contact:  # only check for retract pose if pose worked
+
+                palm_axis = RobotDescription.current_robot_description.get_palm_axis()
+
+                retract_target_pose = translate_relative_to_object(target, palm_axis, translation_value)
+
+                retract_target_pose = LocalTransformer().transform_pose(retract_target_pose, "map")
+
+                marker = AxisMarkerPublisher()
+                marker.publish([pose, retract_target_pose], length=0.3)
+
                 pose, joint_states = request_ik(retract_target_pose, robot, joints, tool_frame)
                 robot.set_pose(pose)
                 robot.set_joint_positions(joint_states)
@@ -251,5 +304,3 @@ def collision_check(robot: Object, allowed_collision: Dict[Object, List]):
         in_contact= _in_contact(robot, obj, allowed_collision, allowed_robot_links)
 
     return in_contact
-
-

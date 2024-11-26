@@ -3,11 +3,12 @@ from __future__ import annotations
 
 from enum import Enum
 
+import numpy as np
 import rospy
-from typing_extensions import List, Dict, Union, Optional
+from typing_extensions import List, Dict, Union, Optional, Tuple
 from urdf_parser_py.urdf import URDF
 
-from .utils import suppress_stdout_stderr
+from .utils import load_urdf_silently, suppress_stdout_stderr
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType
 
 
@@ -103,6 +104,10 @@ class RobotDescription:
     """
     All joints defined in the URDF, by default fixed joints are not included
     """
+    neck: Dict[str, List[str]]
+    """
+    Dictionary of neck links and joints
+    """
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str):
         """
@@ -120,13 +125,16 @@ class RobotDescription:
         self.torso_link = torso_link
         self.torso_joint = torso_joint
         with suppress_stdout_stderr():
-            # Since parsing URDF causes a lot of warning messages which can't be deactivated, we suppress them
-            self.urdf_object = URDF.from_xml_file(urdf_path)
+            self.urdf_object = load_urdf_silently(urdf_path)
         self.kinematic_chains: Dict[str, KinematicChainDescription] = {}
         self.cameras: Dict[str, CameraDescription] = {}
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
         self.costmap_offset: float = 0.3
+        self.max_reach = None
+        self.palm_axis = [0, 0, 1]
+        self.distance_palm_to_tool_frame_left = None
+        self.distance_palm_to_tool_frame_right = None
 
     def add_kinematic_chain_description(self, chain: KinematicChainDescription):
         """
@@ -321,6 +329,204 @@ class RobotDescription:
         :return: The name of the torso joint
         """
         return self.torso_joint
+
+    def get_tool_frame_joint(self, arm: Arms) -> str:
+        """
+        Retrieves the name of the tool frame joint for the specified arm.
+
+        Args:
+            arm (Arms): The arm for which to retrieve the tool frame joint.
+
+        Returns:
+            str: The name of the tool frame joint.
+        """
+        chain = self.get_arm_chain(arm)
+        tool_frame = chain.end_effector.tool_frame
+        return self.get_parent(tool_frame)
+
+    def set_distance_palm_to_tool_frame(self, arm: Arms, distance: float):
+        """
+        Sets the distance between the palm and the tool frame for the specified arm.
+
+        Args:
+            arm (Arms): The arm for which to set the distance.
+            distance (float): The distance to set between the palm and the tool frame.
+        """
+        if arm == Arms.LEFT:
+            self.distance_palm_to_tool_frame_left = distance
+        elif arm == Arms.RIGHT:
+            self.distance_palm_to_tool_frame_right = distance
+
+    def get_distance_palm_to_tool_frame(self, arm: Arms) -> float:
+        """
+        Retrieves the distance between the palm and the tool frame for the specified arm.
+
+        If the distance is not yet set, it calculates the distance based on the robot's
+        arm chain configuration and caches the result for future use.
+
+        Args:
+            arm (Arms): The arm for which to retrieve the palm-to-tool-frame distance.
+
+        Returns:
+            float: The distance between the palm and the tool frame.
+        """
+        if arm == Arms.LEFT:
+            if not self.distance_palm_to_tool_frame_left:
+                chain = self.get_arm_chain(arm)
+                palm_link = chain.end_effector.start_link
+                tool_frame = chain.end_effector.tool_frame
+                distance = self.get_distance_between_links(palm_link, tool_frame)
+                return distance
+            else:
+                return self.distance_palm_to_tool_frame_left
+
+        if arm == Arms.RIGHT:
+            if not self.distance_palm_to_tool_frame_right:
+                chain = self.get_arm_chain(arm)
+                palm_link = chain.end_effector.start_link
+                tool_frame = chain.end_effector.tool_frame
+                distance = self.get_distance_between_links(palm_link, tool_frame)
+                return distance
+            else:
+                return self.distance_palm_to_tool_frame_right
+
+    def get_distance_between_links(self, link1: str, link2: str) -> float:
+        """
+        Calculates the distance between two links in the URDF by summing the lengths
+        of all intermediate links in the kinematic chain between them.
+
+        Args:
+            link1 (str): The name of the first link.
+            link2 (str): The name of the second link.
+
+        Returns:
+            float: The total distance between the two links.
+        """
+        robot = self.urdf_object
+        distance = 0.0
+
+        kinematic_chain = robot.get_chain(link1, link2, joints=False)
+        joints = robot.get_chain(link1, link2, links=False)
+
+        for joint in joints:
+            if self.get_parent(joint) in kinematic_chain and self.get_child(joint) in kinematic_chain:
+                translation = robot.joint_map[joint].origin.position
+                link_length = np.linalg.norm(translation)
+                distance += link_length
+
+        return distance
+
+    def set_max_reach(self, start_link: str, end_link: str, factor: float = 0.65):
+        """
+        Calculates and sets the maximum reach of the robot by summing the lengths of
+        links in the kinematic chain between the specified start and end links. The
+        calculated reach is scaled by a given factor.
+
+        Args:
+            start_link (str): The starting link in the kinematic chain.
+            end_link (str): The ending link in the kinematic chain.
+            factor (float): A scaling factor to adjust the calculated maximum reach.
+                            Defaults to 0.65.
+        """
+        robot = self.urdf_object
+        max_reach = 0.0
+
+        kinematic_chain = robot.get_chain(start_link, end_link, joints=False)
+        joints = robot.get_chain(start_link, end_link, links=False)
+
+        for joint in joints:
+            if self.get_parent(joint) in kinematic_chain and self.get_child(
+                    joint) in kinematic_chain:
+                translation = robot.joint_map[joint].origin.position
+                link_length = np.linalg.norm(translation)
+                max_reach += link_length
+
+        self.max_reach = max_reach * factor
+
+    def get_max_reach(self) -> float:
+        """
+        Retrieves the maximum reach of the robot. If it has not been set, calculates
+        the reach based on the primary manipulator chain and sets it.
+
+        Returns:
+            float: The maximum reach of the robot.
+        """
+        if not self.max_reach:
+            manip = self.get_manipulator_chains()[0]
+            self.set_max_reach(manip.start_link, manip.end_effector.tool_frame)
+
+        return self.max_reach
+
+    def get_joint_limits(self, joint_name: str) -> Optional[Tuple[float, float]]:
+        """
+        Retrieves the joint limits for a specified joint in the URDF.
+
+        If the joint is not found or does not have defined limits, logs an error
+        and returns `None`.
+
+        Args:
+            joint_name (str): The name of the joint for which to retrieve limits.
+
+        Returns:
+            Optional[Tuple[float, float]]: A tuple containing the lower and upper joint limits,
+                                           or `None` if the joint is not found or has no limits.
+        """
+        if joint_name not in self.urdf_object.joint_map:
+            rospy.logerr(f"Joint {joint_name} not found in URDF")
+            return None
+        joint = self.urdf_object.joint_map[joint_name]
+        if joint.limit:
+            return joint.limit.lower, joint.limit.upper
+        else:
+            return None
+
+    def set_neck(self, yaw_joint: Optional[str] = None, pitch_joint: Optional[str] = None,
+                 roll_joint: Optional[str] = None):
+        """
+        Defines the neck configuration of the robot by setting the yaw, pitch, and roll
+        joints along with their corresponding links.
+
+        Args:
+            yaw_joint (Optional[str]): The name of the yaw joint. Defaults to None.
+            pitch_joint (Optional[str]): The name of the pitch joint. Defaults to None.
+            roll_joint (Optional[str]): The name of the roll joint. Defaults to None.
+        """
+        yaw_link = self.get_child(yaw_joint) if yaw_joint else None
+        pitch_link = self.get_child(pitch_joint) if pitch_joint else None
+        roll_link = self.get_child(roll_joint) if roll_joint else None
+        self.neck = {
+            "yaw": [yaw_link, yaw_joint],
+            "pitch": [pitch_link, pitch_joint],
+            "roll": [roll_link, roll_joint]
+        }
+
+    def get_neck(self) -> Dict[str, List[Optional[str]]]:
+        """
+        Retrieves the neck configuration of the robot, including links and joints for yaw,
+        pitch, and roll.
+
+        Returns:
+            Dict[str, List[Optional[str]]]: A dictionary containing neck links and joints.
+        """
+        return self.neck
+
+    def set_palm_axis(self, axis: List[float]):
+        """
+        Sets the direction axis for the robot's palm.
+
+        Args:
+            axis (List[float]): A list representing the direction of the palm axis.
+        """
+        self.palm_axis = axis
+
+    def get_palm_axis(self) -> List[float]:
+        """
+        Retrieves the direction axis of the robot's palm.
+
+        Returns:
+            List[float]: The current direction of the palm axis.
+        """
+        return self.palm_axis
 
 
 class KinematicChainDescription:
@@ -664,6 +870,44 @@ class EndEffectorDescription:
         :param orientations: Dictionary of grasp orientations
         """
         self.grasps.update(orientations)
+
+    def generate_all_grasp_orientations_from_front_grasp(self, front_orientation: List[float]):
+        """
+        Generates all grasp orientations based on a given front-facing orientation.
+
+        This method calculates orientations for six grasp directions (front, back, left, right,
+        top, and bottom) relative to a specified front-facing orientation. Each orientation
+        is computed by applying a quaternion multiplication between the front orientation and
+        predefined relative rotations.
+
+        Args:
+            front_orientation (List[float]): A quaternion representing the front-facing orientation
+                                             as [x, y, z, w].
+        """
+        relative_rotations = {
+            Grasp.FRONT: [0, 0, 0, 1],
+            Grasp.BACK: [0, 0, 1, 0],
+            Grasp.LEFT: [0, 0, -0.707, 0.707],
+            Grasp.RIGHT: [0, 0, 0.707, 0.707],
+            Grasp.TOP: [0, 0.707, 0, 0.707],
+            Grasp.BOTTOM: [0, -0.707, 0, 0.707]
+        }
+
+        all_orientations = {}
+
+        for grasp, relative_rotation in relative_rotations.items():
+            x1, y1, z1, w1 = front_orientation
+            x2, y2, z2, w2 = relative_rotation
+
+            grasp_orientation_x = w2 * x1 + x2 * w1 + y2 * z1 - z2 * y1
+            grasp_orientation_y = w2 * y1 - x2 * z1 + y2 * w1 + z2 * x1
+            grasp_orientation_z = w2 * z1 + x2 * y1 - y2 * x1 + z2 * w1
+            grasp_orientation_w = w2 * w1 - x2 * x1 - y2 * y1 - z2 * z1
+
+            all_orientations[grasp] = [grasp_orientation_x, grasp_orientation_y,
+                                       grasp_orientation_z, grasp_orientation_w]
+
+        self.grasps = all_orientations
 
     @property
     def links(self) -> List[str]:
