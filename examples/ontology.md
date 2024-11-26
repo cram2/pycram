@@ -56,8 +56,11 @@ You can query the ontology using [owlready2](https://owlready2.readthedocs.io/en
 For example, we can see all food objects like this:
 
 ```python
-print("All food instances", list(filter(lambda x: x in pycrap.Food.instances(), pycrap.ontology.individuals())))
+print("All food instances", list(filter(lambda x: x in pycrap.Food.instances(), world.ontology.individuals())))
 ```
+
+Architecturally speaking, the ontology is a part of the world and is accessible through the world object.
+Objects created in a world will only appear in the ontology of that world.
 
 ## Extending the Ontology
 
