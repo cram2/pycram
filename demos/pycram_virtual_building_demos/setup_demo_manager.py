@@ -64,15 +64,15 @@ def start_demo():
 def start_demo_local():
     # get params
     environment_param = 'apartment'
-    robot_param = 'pr2'
-    task_param = 'follow'
+    robot_param = 'armar'
+    task_param = 'transporting'
 
 
     robot_name = get_robot_name(robot_param)
 
     extension = ObjectDescription.get_file_extension()
 
-    world = BulletWorld(WorldMode)
+    world = BulletWorld(WorldMode.GUI)
     VizMarkerPublisher()
     robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
     apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}-small{extension}")
