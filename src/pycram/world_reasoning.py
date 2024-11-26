@@ -62,6 +62,27 @@ def contact(
             return objects_are_in_contact
 
 
+def is_a_picked_object(robot: Object, obj: Object, robot_contact_links: List[Link]) -> bool:
+    """
+    Check if the object is picked by the robot.
+
+    :param robot: The robot object
+    :param obj: The object to check if it is picked
+    :param robot_contact_links: The links of the robot that are in contact with the object
+    :return: True if the object is picked by the robot, False otherwise
+    """
+    picked_object = False
+    if obj in robot.attachments:
+        arm_chains = RobotDescription.current_robot_description.get_manipulator_chains()
+        for chain in arm_chains:
+            gripper_links = chain.end_effector.links
+            if (robot.attachments[obj].parent_link.name in gripper_links
+                    and all(link.name in gripper_links for link in robot_contact_links)):
+                picked_object = True
+                continue
+    return picked_object
+
+
 def get_visible_objects(
         camera_pose: Pose,
         front_facing_axis: Optional[List[float]] = None,

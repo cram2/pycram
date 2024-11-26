@@ -12,8 +12,8 @@ from ..local_transformer import LocalTransformer
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
 from ..robot_description import RobotDescription
 from ..ros.logging import logdebug
-from ..world_concepts.world_object import Object
-from ..world_reasoning import link_pose_for_joint_config, contact
+from ..world_concepts.world_object import Object, Link
+from ..world_reasoning import link_pose_for_joint_config, contact, is_a_picked_object
 
 
 class Location(LocationDesignatorDescription):
@@ -160,7 +160,8 @@ class CostmapLocation(LocationDesignatorDescription):
         for obj in robot.world.objects:
             if obj.name in ([robot.name, floor.name] + ignore):
                 continue
-            if contact(robot, obj):
+            in_contact, contact_links = contact(robot, obj, return_links=True)
+            if in_contact and not is_a_picked_object(robot, obj, [links[0] for links in contact_links]):
                 logdebug(f"Robot is in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
                          f"at position {pose.position_as_list()} and z_angle {pose.z_angle}")
                 return True
@@ -206,7 +207,8 @@ class CostmapLocation(LocationDesignatorDescription):
         test_robot = None
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
-            test_robot = World.current_world.get_prospection_object_for_object(robot_object)
+            # test_robot = World.current_world.get_prospection_object_for_object(robot_object)
+            test_robot = robot_object
         self.ignore_collision_with = [World.current_world.get_prospection_object_for_object(o) for o in
                                       self.ignore_collision_with]
         with UseProspectionWorld():
