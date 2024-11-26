@@ -722,13 +722,6 @@ class SetGripperAction(ActionDesignatorDescription):
         super().__init__(ontology_concept_holders)
         self.grippers: List[Arms] = grippers
         self.motions: List[GripperState] = motions
-        if len(self.grippers) == 1:
-            self.knowledge_condition = GripperIsFreeProperty(self.grippers[0])
-        else:
-            root = GripperIsFreeProperty(self.grippers[0])
-            for gripper in grippers[1:]:
-                root |= GripperIsFreeProperty(gripper)
-            self.knowledge_condition = root
 
         if self.soma:
             self.init_ontology_concepts({"setting_gripper": self.soma.SettingGripper})
@@ -883,19 +876,6 @@ class PickUpAction(ActionDesignatorDescription):
         if self.soma:
             self.init_ontology_concepts({"picking_up": self.soma.PickingUp})
 
-    # def ground(self) -> PickUpActionPerformable:
-    #     """
-    #     Default specialized_designators, returns a performable designator_description with the first entries from the lists of possible parameter.
-    #
-    #     :return: A performable designator_description
-    #     """
-    #     if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object):
-    #         obj_desig = self.object_designator_description
-    #     else:
-    #         obj_desig = self.object_designator_description.resolve()
-    #
-    #     return PickUpActionPerformable(obj_desig, self.arms[0], self.grasps[0])
-
     def __iter__(self) -> PickUpActionPerformable:
         ri = ReasoningInstance(self,
                                PartialDesignator(PickUpActionPerformable, self.object_designator_description, self.arms,
@@ -915,7 +895,7 @@ class PlaceAction(ActionDesignatorDescription):
     def __init__(self,
                  object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
                  target_locations: List[Pose],
-                 arms: List[Arms], ontology_concept_holders: Optional[List[Thing]] = None):
+                 arms: List[Arms] = None, ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Create an Action Description to place an object
 
@@ -929,6 +909,7 @@ class PlaceAction(ActionDesignatorDescription):
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.target_locations: List[Pose] = target_locations
         self.arms: List[Arms] = arms
+        self.knowledge_condition = ReachableProperty(self.object_designator_description.resolve().pose)
 
         if self.soma:
             self.init_ontology_concepts({"placing": self.soma.Placing})

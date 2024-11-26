@@ -131,8 +131,15 @@ class TestPartialDesignator(KnowledgeBulletTestCase):
         self.assertTrue(all([isinstance(p, PickUpActionPerformable) for p in performables]))
         self.assertEqual([p.arm for p in performables], [Arms.RIGHT, Arms.RIGHT, Arms.LEFT, Arms.LEFT])
         self.assertEqual([p.grasp for p in performables], [Grasp.FRONT, Grasp.TOP, Grasp.FRONT, Grasp.TOP])
-        self.assertEqual([p.object_designator for p in performables], [test_object_resolved]*4)
+        self.assertEqual([p.object_designator for p in performables], [test_object_resolved] * 4)
 
+
+class TestParameterInference(KnowledgeBulletTestCase):
+    def test_pickup_arm(self):
+        test_object = BelieveObject(names=["milk"])
+        partial_desig = PickUpAction(test_object, [Arms.RIGHT])
+        desig = partial_desig.resolve()
+        self.assertEqual(desig.grasp, Grasp.FRONT)
 
 
 class TestReasoningInstance(KnowledgeSourceTestCase):

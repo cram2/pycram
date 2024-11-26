@@ -382,12 +382,12 @@ class SpaceIsFreeProperty(Property):
 class GripperIsFreeProperty(Property):
     property_exception = GripperOccupied
 
-    def __init__(self, gripper: Arms):
+    def __init__(self, grippers: List[Arms]):
         super().__init__(None, None)
-        self.gripper = gripper
+        self.grippers = grippers
 
     @abstractmethod
-    def gripper_is_free(self, gripper: Arms) -> ReasoningResult:
+    def gripper_is_free(self, grippers: List[Arms]) -> ReasoningResult:
         raise NotImplementedError
 
 

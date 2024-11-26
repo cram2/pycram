@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import Iterable
+
 from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING
 from itertools import product
 from inspect import signature
@@ -44,8 +45,9 @@ class PartialDesignator:
     def __init__(self, performable: Type[ActionDesignatorDescription.Action], *args, **kwargs):
         self.performable = performable
         # Remove None values fom the given arguments and keyword arguments
-        self.args = tuple(filter(None, args))
-        self.kwargs = {k:v for k,v in kwargs.items() if v is not None}
+        self.kwargs = dict(signature(self.performable).bind(*args, **kwargs).arguments)
+        # self.args = tuple(filter(None, args))
+        # self.kwargs = {k:v for k,v in kwargs.items() if v is not None}
 
     def __call__(self, *fargs, **fkwargs):
         """
@@ -56,18 +58,19 @@ class PartialDesignator:
         :return: A new PartialDesignator with the given arguments and keyword arguments added
         """
         newkeywords = {**self.kwargs, **fkwargs}
-        return PartialDesignator(self.performable, *self.args, *fargs, **newkeywords)
+        return PartialDesignator(self.performable, *fargs, **newkeywords)
 
     def __iter__(self) -> Type[ActionDesignatorDescription.Action]:
         """
         Iterates over all possible permutations of the arguments and keyword arguments and creates a new performable
-        object for each permutation.
+        object for each permutation. In case there are conflicting parameters the args will be used over the keyword
+        arguments.
 
         :return: A new performable object for each permutation of arguments and keyword arguments
         """
-        for args_combination in PartialDesignator.generate_permutations(self.args):
-            for kwargs_combination in PartialDesignator.generate_permutations(self.kwargs.values()):
-                yield self.performable(*args_combination, **dict(zip(self.kwargs.keys(), kwargs_combination)))
+        # for args_combination in PartialDesignator.generate_permutations(self.args):
+        for kwargs_combination in PartialDesignator.generate_permutations(self.kwargs.values()):
+            yield self.performable(**dict(zip(self.kwargs.keys(), kwargs_combination)))
 
     @staticmethod
     def generate_permutations(args: Iterable) -> List:
@@ -101,13 +104,17 @@ class PartialDesignator:
 
         :return: A list of parameter names that are missing from the performable
         """
-        performable_params = signature(self.performable).parameters
-        # List of all parameter names that need to be filled for the performable
-        param_names = list(performable_params.keys())
+        missing = {k: v for k, v in self.kwargs.items() if v is None}
+        return list(missing.keys())
 
-        # Remove parameter that are filled by args
-        missing_after_args = param_names[len(self.args):]
-        # Remove parameter that are filled by keyword arguments and return the remaining parameters
-        return list(set(missing_after_args) - set(self.kwargs.keys()))
+        # performable_params = signature(self.performable).parameters
+        # # List of all parameter names that need to be filled for the performable
+        # param_names = list(performable_params.keys())
+        #
+        # # Remove parameter that are filled by args
+        # # missing_after_args = param_names[len(self.args):]
+        #
+        # # Remove parameter that are filled by keyword arguments and return the remaining parameters
+        # return list(set(missing_after_args) - set(self.kwargs.keys()))
 
 
