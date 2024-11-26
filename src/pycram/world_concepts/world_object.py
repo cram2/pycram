@@ -587,7 +587,7 @@ class Object(WorldEntity, HasConcept):
         is currently attached to. After this call world remove object
         to remove this Object from the simulation/world.
         """
-        owlready2.destroy_entity(self.ontology_individual)
+        # owlready2.destroy_entity(self.ontology_individual)
         self.world.remove_object(self)
 
 
