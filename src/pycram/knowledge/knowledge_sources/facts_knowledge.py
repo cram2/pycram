@@ -7,7 +7,8 @@ import numpy as np
 from ...datastructures.dataclasses import ReasoningResult
 from ...datastructures.enums import Arms, ObjectType
 from ..knowledge_source import KnowledgeSource
-from ...datastructures.property import ReachableProperty, GraspableProperty, GripperIsFreeProperty, VisibleProperty, SpaceIsFreeProperty
+from ...datastructures.property import ReachableProperty, GraspableProperty, GripperIsFreeProperty, VisibleProperty, \
+    SpaceIsFreeProperty, EmptyProperty
 from ...datastructures.pose import Pose
 from ...datastructures.world import World, UseProspectionWorld
 # from ...designators.location_designator import CostmapLocation
@@ -19,7 +20,7 @@ from ...costmaps import OccupancyCostmap
 if TYPE_CHECKING:
     from ...designators.object_designator import ObjectDesignatorDescription
 
-class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, SpaceIsFreeProperty, GraspableProperty, ReachableProperty):
+class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, SpaceIsFreeProperty, GraspableProperty, ReachableProperty, EmptyProperty):
     """
     Knowledge source for hard coded facts, this knowledge source acts as a fallback if no other knowledge source is
     available.
@@ -48,8 +49,8 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
     #     if c.pose:
     #         return True
 
-    def reachable(self, pose: Pose) -> bool:
-        return True
+    def reachable(self, pose: Pose) -> ReasoningResult:
+        return ReasoningResult(True)
 
     def graspable(self, object_designator: ObjectDesignatorDescription) -> ReasoningResult:
         with UseProspectionWorld():
@@ -64,21 +65,24 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
                                      RobotDescription.current_robot_description.get_manipulator_chains()]
             for dist in gripper_opening_dists:
                 if dist > obj_x or dist > obj_y or dist > obj_z:
-                    return True
-            return False
+                    return ReasoningResult(True)
+            return ReasoningResult(False)
 
     def space_is_free(self, pose: Pose) -> ReasoningResult:
         om = OccupancyCostmap(0.35, False, 200, 0.02, pose)
         origin_map = om.map[200 // 2 - 10: 200 // 2 + 10, 200 // 2 - 10: 200 // 2 + 10]
         return ReasoningResult(np.sum(origin_map) > 400 * 0.9)
 
-    def gripper_is_free(self, gripper: Arms) -> bool:
+    def gripper_is_free(self, gripper: Arms) -> ReasoningResult:
         tool_frame_link = RobotDescription.current_robot_description.get_arm_chain(gripper).get_tool_frame()
         for att in World.robot.attachments.values():
             if att.parent_link == tool_frame_link or att.child_link == tool_frame_link:
-                return False
-        return True
+                return ReasoningResult(False)
+        return ReasoningResult(True)
 
     def is_visible(self, object_designator: ObjectDesignatorDescription) -> ReasoningResult:
         cam_pose = World.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_frame())
-        return visible(object_designator.resolve().world_object, cam_pose)
+        return ReasoningResult(visible(object_designator.resolve().world_object, cam_pose))
+
+    def empty(self) -> ReasoningResult:
+        return ReasoningResult(True)

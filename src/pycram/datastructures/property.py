@@ -338,6 +338,16 @@ class ResolvedProperty(Property):
         return self.result
 
 
+
+class EmptyProperty(Property):
+    property_exception = PlanFailure
+
+    def __init__(self):
+        super().__init__(None, None)
+
+    def empty(self) -> ReasoningResult:
+        return ReasoningResult(True)
+
 class ReachableProperty(Property):
     property_exception = ManipulationPoseUnreachable
 

@@ -724,7 +724,7 @@ class ReleaseAction(ActionDesignatorDescription):
 
     performable_class = ReleaseActionPerformable
 
-    def __init__(self, grippers: List[Arms], object_designator_description: ObjectDesignatorDescription,
+    def __init__(self, object_designator_description: ObjectDesignatorDescription, grippers: List[Arms] = None,
                  ontology_concept_holders: Optional[List[Thing]] = None):
         super().__init__(ontology_concept_holders)
         self.grippers: List[Arms] = grippers
@@ -735,6 +735,12 @@ class ReleaseAction(ActionDesignatorDescription):
 
     def ground(self) -> ReleaseActionPerformable:
         return ReleaseActionPerformable(self.grippers[0], self.object_designator_description.ground())
+
+    def __iter__(self):
+        ri = ReasoningInstance(self,
+                                 PartialDesignator(ReleaseActionPerformable, self.grippers, self.object_designator_description))
+        for desig in ri:
+            yield desig
 
 
 class GripAction(ActionDesignatorDescription):
@@ -750,8 +756,8 @@ class GripAction(ActionDesignatorDescription):
 
     performable_class = GripActionPerformable
 
-    def __init__(self, grippers: List[Arms], object_designator_description: ObjectDesignatorDescription,
-                 efforts: List[float], ontology_concept_holders: Optional[List[Thing]] = None):
+    def __init__(self, object_designator_description: ObjectDesignatorDescription, grippers: List[Arms] = None,
+                 efforts: List[float] = None, ontology_concept_holders: Optional[List[Thing]] = None):
         super().__init__(ontology_concept_holders)
         self.grippers: List[Arms] = grippers
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
@@ -762,6 +768,13 @@ class GripAction(ActionDesignatorDescription):
 
     def ground(self) -> GripActionPerformable:
         return GripActionPerformable(self.grippers[0], self.object_designator_description.ground(), self.efforts[0])
+
+    def __iter__(self):
+        ri = ReasoningInstance(self,
+                                 PartialDesignator(GripActionPerformable, self.grippers, self.object_designator_description,
+                                                     self.efforts))
+        for desig in ri:
+            yield desig
 
 
 class ParkArmsAction(ActionDesignatorDescription):
@@ -792,6 +805,15 @@ class ParkArmsAction(ActionDesignatorDescription):
         :return: A performable designator_description
         """
         return ParkArmsActionPerformable(self.arms[0])
+
+    def __iter__(self) -> ParkArmsActionPerformable:
+        """
+        Iterates over all possible solutions and returns a performable designator with the arm.
+
+        :return: A performable designator_description
+        """
+        for arm in self.arms:
+            yield ParkArmsActionPerformable(arm)
 
 
 class PickUpAction(ActionDesignatorDescription):

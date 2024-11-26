@@ -35,13 +35,13 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_release(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.ReleaseAction([Arms.LEFT], object_description)
+        description = action_designator.ReleaseAction(object_description, [Arms.LEFT])
         self.assertEqual(description.ground().gripper, Arms.LEFT)
         self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_grip(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.GripAction([Arms.LEFT], object_description, [0.5])
+        description = action_designator.GripAction(object_description, [Arms.LEFT], [0.5])
         self.assertEqual(description.ground().gripper, Arms.LEFT)
         self.assertEqual(description.ground().object_designator.name, "milk")
 
@@ -119,9 +119,9 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_transport(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.TransportAction(object_description,
-                                                        [Arms.LEFT],
                                                         [Pose([-1.35, 0.78, 0.95],
-                                                              [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])])
+                                                              [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])],
+                                                        [Arms.LEFT])
         with simulated_robot:
             action_designator.MoveTorsoAction([0.2]).resolve().perform()
             description.resolve().perform()
