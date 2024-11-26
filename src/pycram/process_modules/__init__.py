@@ -4,6 +4,7 @@ from .donbot_process_modules import DonbotManager
 from .hsrb_process_modules import HSRBManager
 from .default_process_modules import DefaultManager
 from .stretch_process_modules import StretchManager
+from .iCub_process_modules import ICubManager
 from .tiago_process_modules import TiagoManager
 
 Pr2Manager()
@@ -12,4 +13,5 @@ DonbotManager()
 HSRBManager()
 DefaultManager()
 StretchManager()
+ICubManager()
 TiagoManager()

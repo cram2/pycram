@@ -1,4 +1,6 @@
 from threading import Lock
+from typing import Union
+
 from typing_extensions import Any
 
 import actionlib
@@ -24,6 +26,26 @@ from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import *
 
 
+import yarp
+ACK_VOCAB = yarp.createVocab32('a','c','k')
+NO_ACK_VOCAB = yarp.createVocab32('n','a','c','k')
+
+def init_yarp_network():
+    if not yarp.Network.checkNetwork():
+        print("Unable to find a yarp server exiting ...")
+        return False
+
+    yarp.Network.init()
+    return True
+
+def open_rpc_client_port(port_name):
+    handle_port: yarp.RpcClient = yarp.RpcClient()
+    if not handle_port.open(port_name):
+        print(f"Can't open the port %s correctly" % port_name)
+        return False , None
+    print(f"Port %s opened correctly" % port_name)
+    return True , handle_port
+
 
 class iCubNavigation(ProcessModule):
     """
@@ -40,8 +62,43 @@ class iCubMoveHead(ProcessModule):
         This point can either be a position or an object.
         """
 
+    def __init__(self,lock,cmd_port:yarp.RpcClient):
+        super().__init__(lock)
+        self.cmd_port = cmd_port
+
     def _execute(self, desig: LookingMotion):
         print("iCub Move Head")
+        position_target = desig.target.pose.position
+        if self.cmd_port.getOutputCount():
+
+            yarp_bottle_msg: yarp.Bottle = yarp.Bottle()
+            yarp_bottle_reply: yarp.Bottle = yarp.Bottle()
+            yarp_bottle_msg.addVocab32('l', 'o', 'o', 'k')
+            yarp_bottle_msg.addVocab32('3', 'D')
+
+            target_loc: yarp.Bottle = yarp_bottle_msg.addList()
+            target_loc.addFloat32(position_target.x)
+            target_loc.addFloat32(position_target.y)
+            target_loc.addFloat32(position_target.z)
+            print(f"command Ready to send to iCub")
+            self.cmd_port .write(yarp_bottle_msg, yarp_bottle_reply)
+            reply_vocab = yarp_bottle_reply.get(0).asVocab32()
+
+            if reply_vocab == NO_ACK_VOCAB:
+                print("NO_ACK")
+                return False
+            elif reply_vocab == ACK_VOCAB:
+                print("ACK")
+                return True
+            else:
+                print("another reply")
+                return False
+
+
+        else:
+            print("port is not connected")
+            return False
+
 
 
 class iCubMoveGripper(ProcessModule):
@@ -219,6 +276,24 @@ class ICubManager(ProcessModuleManager):
         self._move_gripper_lock = Lock()
         self._open_lock = Lock()
         self._close_lock = Lock()
+        self.yarp_network_state = init_yarp_network()
+
+        # yarp related
+        self.gaze_cmd_port_name = "/pycram/gaze/cmd:oi"
+        self.action_cmd_port_name = "/pycram/action/cmd:oi"
+
+        self.gaze_client_port = None
+        self.action_client_port = None
+
+        if self.yarp_network_state:
+            print("yarp network state detected")
+            self.config_yarp_ports()
+            self.connect_yarp_ports()
+        else:
+            print("yarp network state not detected")
+
+
+
 
     def navigate(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
@@ -229,7 +304,7 @@ class ICubManager(ProcessModuleManager):
 
     def looking(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return iCubMoveHead(self._looking_lock)
+            return iCubMoveHead(self._looking_lock,self.gaze_client_port)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return iCubMoveHeadReal(self._looking_lock)
 
@@ -279,3 +354,35 @@ class ICubManager(ProcessModuleManager):
             return iCubClose(self._close_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return iCubCloseReal(self._close_lock)
+
+
+    def config_yarp_ports(self)->bool:
+        suc, self.gaze_client_port = open_rpc_client_port(self.gaze_cmd_port_name)
+        suc2, self.action_client_port = open_rpc_client_port(self.action_cmd_port_name)
+
+        return suc and suc2
+
+    def connect_yarp_ports(self)->bool:
+        gaze_connected = yarp.NetworkBase_connect(self.gaze_cmd_port_name, "/iKinGazeCtrl/rpc", "tcp")
+        action_connected = yarp.NetworkBase_connect(self.action_cmd_port_name, "/actionsRenderingEngine/cmd:io", "tcp")
+
+        if not gaze_connected:
+            print("gaze control port couldn't connect")
+
+        if not action_connected:
+            print("action port couldn't connect")
+
+        return gaze_connected and action_connected
+
+
+    def exit(self):
+        self.disconnect_and_remove()
+
+
+    def disconnect_and_remove(self):
+        self.gaze_client_port .interrupt()
+        self.gaze_client_port .close()
+
+        self.action_client_port.interrupt()
+        self.action_client_port.close()
+

@@ -5,14 +5,17 @@ from ..datastructures.enums import Arms, Grasp, GripperState, GripperType
 from ..ros.ros_tools import get_ros_package_path
 
 from ..helper import get_robot_mjcf_path
+import icub_models
 
-filename = get_ros_package_path('pycram') + '/resources/robots/' + "iCubGazeboV2_5_visuomanip" + '.urdf'
+#filename = get_ros_package_path('pycram') + '/resources/robots/' + "iCubGazeboV2_5_visuomanip" + '.urdf'
+
+RobotName = 'iCubGazeboV2_5_visuomanip'
 
 iCub_description = RobotDescription("iCub",
                                     "root_link",
                                     "torso_1",
                                     "torso_pitch",
-                                   filename)
+                                   icub_models.get_model_file(RobotName))
 
 ################################## Left Arm ##################################
 left_arm = KinematicChainDescription("left", "chest", "l_hand",

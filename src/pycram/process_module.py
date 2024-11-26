@@ -330,7 +330,7 @@ class ProcessModuleManager(ABC):
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
 
-    def looking(self) -> Type[ProcessModule]:
+    def plooking(self) -> Type[ProcessModule]:
         """
         Get the Process Module for looking at a point with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
@@ -419,3 +419,9 @@ class ProcessModuleManager(ABC):
         """
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+
+    def exit(self)->None:
+        """
+        Exit process module and disconnect from robot
+        """
+        pass
