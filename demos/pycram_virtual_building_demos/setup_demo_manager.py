@@ -72,11 +72,12 @@ def start_demo_local():
 
     extension = ObjectDescription.get_file_extension()
 
-    world = BulletWorld(WorldMode.GUI)
-    VizMarkerPublisher()
+    world = BulletWorld(WorldMode.DIRECT)
+    VizMarkerPublisher(interval=0.3)
     robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
     apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}-small{extension}")
-    tf = TFBroadcaster()
+    if not robot.name == "Armar6":
+        tf = TFBroadcaster()
 
     demo_selecting(apartment, robot, task_param)
     extension = ObjectDescription.get_file_extension()
@@ -110,5 +111,5 @@ def demo_selecting(apartment, robot, task_param):
         start_generalized_demo(task_param, object_tool, object_target, specialized_task)
 
 
-#start_demo_local()
+start_demo_local()
 
