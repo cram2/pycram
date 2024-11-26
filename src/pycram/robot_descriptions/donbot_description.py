@@ -6,7 +6,7 @@ from ..datastructures.enums import Arms, Grasp, GripperState, TorsoState
 rospack = rospkg.RosPack()
 filename = rospack.get_path('pycram') + '/resources/robots/' + "iai_donbot" + '.urdf'
 
-donbot_description = RobotDescription("iai_donbot", "base_link", "ur5_base_link", "arm_base_mounting_joint",
+donbot_description = RobotDescription("iai_donbot", "base_footprint", "ur5_base_link", "arm_base_mounting_joint",
                                       filename)
 
 ################################## Right Arm ##################################
@@ -35,7 +35,7 @@ left_gripper.add_static_joint_states(GripperState.CLOSE, {'gripper_joint': 0.006
 left_arm.end_effector = left_gripper
 
 ################################## Torso ##################################
-torso = KinematicChainDescription("torso", "base_link", "ur5_base_link",
+torso = KinematicChainDescription("torso", "base_footprint", "ur5_base_link",
                                   donbot_description.urdf_object, include_fixed_joints=True)
 
 # fixed joint, so all states set to 0
@@ -56,6 +56,7 @@ donbot_description.add_camera_description(camera)
 ################################## Neck ##################################
 neck = KinematicChainDescription("neck", "ur5_base_link", "ur5_wrist_3_link", donbot_description.urdf_object)
 
+# TODO: may be able to remove this already
 neck.add_static_joint_states("down", {'ur5_shoulder_pan_joint': 4.130944728851318,
                                       'ur5_shoulder_lift_joint': 0.04936718940734863,
                                       'ur5_elbow_joint': -1.9734209219561976,
@@ -112,11 +113,11 @@ left_arm.add_static_joint_states("arm_left", {'ur5_shoulder_pan_joint': 0,
                                               'ur5_wrist_2_joint': -1.5,
                                               'ur5_wrist_3_joint': 1.5})
 
+donbot_description.set_neck("ur5_wrist_2_joint", "ur5_wrist_1_joint")
+
+
 ################################# Grasps ##################################
-left_gripper.add_grasp_orientations({Grasp.FRONT: [0.707, -0.707, 0.707, -0.707],
-                                           Grasp.LEFT: [0, 0.707, -0.707, 0],
-                                           Grasp.RIGHT: [0, 0, 1, 1],
-                                           Grasp.TOP: [0.707, -0.707, 0, 0.0]})
+left_gripper.generate_all_grasp_orientations_from_front_grasp([0.707, -0.707, 0.707, -0.707])
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

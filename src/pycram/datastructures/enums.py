@@ -47,6 +47,8 @@ class Grasp(Enum):
     LEFT = 1
     RIGHT = 2
     TOP = 3
+    BACK = 4
+    BOTTOM = 5
 
 
 class ObjectType(Enum):

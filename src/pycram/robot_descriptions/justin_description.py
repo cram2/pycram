@@ -168,19 +168,16 @@ justin_description.add_camera_description(camera)
 
 ################################## Neck ##################################
 justin_description.add_kinematic_chain("neck", "torso4", "head2")
+justin_description.set_neck("head1_joint", "head2_joint")
+
 
 ################################# Grasps ##################################
-left_gripper.add_grasp_orientations({Grasp.FRONT: [0.707, -0.707, 0.707, -0.707],
-                                     Grasp.LEFT: [1, 0, 0, 1],
-                                     Grasp.RIGHT: [-1, 0, 1, 1],
-                                     Grasp.TOP: [-1, 1, 0, 0]})
-right_gripper.add_grasp_orientations({Grasp.FRONT: [0.707, 0.707, 0.707, 0.707],
-                                      Grasp.LEFT: [1, 0, 0, 1],
-                                      Grasp.RIGHT: [0, 1, 1, 0],
-                                      Grasp.TOP: [1, 1, 0, 0]})
+left_gripper.generate_all_grasp_orientations_from_front_grasp([0.707, -0.707, 0.707, -0.707])
+right_gripper.generate_all_grasp_orientations_from_front_grasp([0.707, 0.707, 0.707, 0.707])
 
 ################################# Additionals ##################################
-justin_description.set_costmap_offset(0.8)
+justin_description.set_costmap_offset(0.5)
+justin_description.set_palm_axis([0, 0, 1])
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

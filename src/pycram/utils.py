@@ -6,15 +6,21 @@ _block -- wrap multiple statements into a single block.
 Classes:
 GeneratorList -- implementation of generator list wrappers.
 """
+import sys
 from inspect import isgeneratorfunction
+
+import numpy as np
 from typing_extensions import List, Tuple, Callable
 
 import os
+
+from urdf_parser_py.urdf import URDF
 
 from .datastructures.pose import Pose
 import math
 
 from typing_extensions import Dict
+from scipy.spatial.transform import Rotation as R
 
 
 class bcolors:
@@ -114,6 +120,78 @@ def axis_angle_to_quaternion(axis: List, angle: float) -> Tuple:
     w = math.cos(angle / 2)
 
     return (x, y, z, w)
+
+
+def translate_relative_to_object(obj_pose, palm_axis, translation_value) -> Pose:
+    """
+    Applies the translation directly along the palm axis returned by get_palm_axis().
+
+    Args:
+        oTg: The current pose of the object relative to the gripper.
+        palm_axis: A list [x, y, z] where one value is 1 or -1, and the others are 0.
+        translation_value: The magnitude of the retreat in meters.
+        gripper_pose: The current pose of the gripper.
+
+    Returns:
+        None: Modifies the oTg.pose in place.
+    """
+    object_pose = obj_pose.copy()
+    local_retraction = np.array([palm_axis[0] * translation_value,
+                                 palm_axis[1] * translation_value,
+                                 palm_axis[2] * translation_value])
+
+    quat = object_pose.orientation_as_list()
+
+    rotation_matrix = R.from_quat(quat).as_matrix()
+
+    retraction_world = rotation_matrix @ local_retraction
+
+    object_pose.pose.position.x -= retraction_world[0]
+    object_pose.pose.position.y -= retraction_world[1]
+    object_pose.pose.position.z -= retraction_world[2]
+
+    return object_pose
+
+
+def on_error_do_nothing(message):
+    pass
+
+
+def load_urdf_silently(urdf_path_or_string: str, from_string_instead_of_file: bool = False) -> URDF:
+    """
+    Loads a URDF file or XML string with suppressed error messages.
+
+    This function temporarily overrides the `on_error` function in the `urdf_parser_py.xml_reflection.core` module
+    to suppress warnings and error messages during URDF parsing.
+
+    Args:
+        urdf_path_or_string (str): Path to the URDF file or XML string if `from_string_instead_of_file` is True.
+        from_string_instead_of_file (bool, optional): If True, interprets `urdf_path_or_string` as an XML string.
+            Defaults to False.
+
+    Returns:
+        URDF: Parsed URDF object.
+
+    Raises:
+        ImportError: If the `urdf_parser_py.xml_reflection.core` module is not found.
+    """
+    urdf_core_module = sys.modules.get('urdf_parser_py.xml_reflection.core')
+    if urdf_core_module is None:
+        raise ImportError(
+            "Could not locate `urdf_parser_py.xml_reflection.core` module. Please check how the module changed since "
+            "'https://github.com/ros/urdf_parser_py/blob/3bcb9051e3bc6ebb8bff0bf8dd2c2281522b05d9/src/urdf_parser_py/xml_reflection/core.py#L33'")
+
+    original_on_error = getattr(urdf_core_module, 'on_error', None)
+    urdf_core_module.on_error = on_error_do_nothing
+
+    try:
+        if from_string_instead_of_file:
+            return URDF.from_xml_string(urdf_path_or_string)
+        else:
+            return URDF.from_xml_file(urdf_path_or_string)
+    finally:
+        if original_on_error is not None:
+            urdf_core_module.on_error = original_on_error
 
 
 class suppress_stdout_stderr(object):

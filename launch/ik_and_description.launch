@@ -62,10 +62,10 @@
               textfile="$(find pycram)/resources/robots/iCub.urdf"/>
   </group>
 
-  <!-- slr urdf -->
-  <group if="$(eval robot == 'slr')">
+  <!-- ARMAR6 -->
+  <group if="$(eval robot == 'armar')">
     <param name="robot_description"
-              textfile="$(find pycram)/resources/robots/slr.urdf"/>
+              textfile="$(find pycram)/resources/robots/Armar6.urdf"/>
   </group>
 
   <!-- Use Knowrob -->

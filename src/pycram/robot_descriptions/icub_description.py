@@ -49,26 +49,26 @@ left_gripper.add_static_joint_states(GripperState.OPEN, {"l_hand_thumb_0_joint":
                                                          "l_hand_little_1_joint": 0.0,
                                                          "l_hand_little_2_joint": 0.0,
                                                          "l_hand_little_3_joint": 0.0})
-left_gripper.add_static_joint_states(GripperState.CLOSE, {"l_hand_thumb_0_joint": 0.0,
-                                                          "l_hand_thumb_1_joint": 0.0,
-                                                          "l_hand_thumb_2_joint": 0.0,
-                                                          "l_hand_thumb_3_joint": 0.0,
-                                                          "l_hand_index_0_joint": 0.0,
-                                                          "l_hand_index_1_joint": 0.0,
-                                                          "l_hand_index_2_joint": 0.0,
-                                                          "l_hand_index_3_joint": 0.0,
-                                                          "l_hand_middle_0_joint": 0.0,
-                                                          "l_hand_middle_1_joint": 0.0,
-                                                          "l_hand_middle_2_joint": 0.0,
-                                                          "l_hand_middle_3_joint": 0.0,
-                                                          "l_hand_ring_0_joint": 0.0,
-                                                          "l_hand_ring_1_joint": 0.0,
-                                                          "l_hand_ring_2_joint": 0.0,
-                                                          "l_hand_ring_3_joint": 0.0,
-                                                          "l_hand_little_0_joint": 0.0,
-                                                          "l_hand_little_1_joint": 0.0,
-                                                          "l_hand_little_2_joint": 0.0,
-                                                          "l_hand_little_3_joint": 0.0})
+left_gripper.add_static_joint_states(GripperState.CLOSE, {"l_hand_thumb_0_joint": 1.5707963267948966,
+                                                          "l_hand_thumb_1_joint": 1.5707963267948966,
+                                                          "l_hand_thumb_2_joint": 1.5707963267948966,
+                                                          "l_hand_thumb_3_joint": 1.5707963267948966,
+                                                          "l_hand_index_0_joint": -0.3490658503988659,
+                                                          "l_hand_index_1_joint": 1.5707963267948966,
+                                                          "l_hand_index_2_joint": 1.5707963267948966,
+                                                          "l_hand_index_3_joint": 1.5707963267948966,
+                                                          "l_hand_middle_0_joint": 0.3490658503988659,
+                                                          "l_hand_middle_1_joint": 1.5707963267948966,
+                                                          "l_hand_middle_2_joint": 1.5707963267948966,
+                                                          "l_hand_middle_3_joint": 1.5707963267948966,
+                                                          "l_hand_ring_0_joint": 0.3490658503988659,
+                                                          "l_hand_ring_1_joint": 1.5707963267948966,
+                                                          "l_hand_ring_2_joint": 1.5707963267948966,
+                                                          "l_hand_ring_3_joint": 1.5707963267948966,
+                                                          "l_hand_little_0_joint": 0.3490658503988659,
+                                                          "l_hand_little_1_joint": 1.5707963267948966,
+                                                          "l_hand_little_2_joint": 1.5707963267948966,
+                                                          "l_hand_little_3_joint": 1.5707963267948966})
 
 left_gripper.end_effector_type = GripperType.FINGER
 # left_gripper.opening_distance = 0.548
@@ -114,26 +114,26 @@ right_gripper.add_static_joint_states(GripperState.OPEN, {"r_hand_thumb_0_joint"
                                                           "r_hand_little_1_joint": 0.0,
                                                           "r_hand_little_2_joint": 0.0,
                                                           "r_hand_little_3_joint": 0.0})
-right_gripper.add_static_joint_states(GripperState.CLOSE, {"r_hand_thumb_0_joint": 0.0,
-                                                           "r_hand_thumb_1_joint": 0.0,
-                                                           "r_hand_thumb_2_joint": 0.0,
-                                                           "r_hand_thumb_3_joint": 0.0,
-                                                           "r_hand_index_0_joint": 0.0,
-                                                           "r_hand_index_1_joint": 0.0,
-                                                           "r_hand_index_2_joint": 0.0,
-                                                           "r_hand_index_3_joint": 0.0,
-                                                           "r_hand_middle_0_joint": 0.0,
-                                                           "r_hand_middle_1_joint": 0.0,
-                                                           "r_hand_middle_2_joint": 0.0,
-                                                           "r_hand_middle_3_joint": 0.0,
-                                                           "r_hand_ring_0_joint": 0.0,
-                                                           "r_hand_ring_1_joint": 0.0,
-                                                           "r_hand_ring_2_joint": 0.0,
-                                                           "r_hand_ring_3_joint": 0.0,
-                                                           "r_hand_little_0_joint": 0.0,
-                                                           "r_hand_little_1_joint": 0.0,
-                                                           "r_hand_little_2_joint": 0.0,
-                                                           "r_hand_little_3_joint": 0.0})
+right_gripper.add_static_joint_states(GripperState.CLOSE, {"r_hand_thumb_0_joint": 1.5707963267948966,
+                                                          "r_hand_thumb_1_joint": 1.5707963267948966,
+                                                          "r_hand_thumb_2_joint": 1.5707963267948966,
+                                                          "r_hand_thumb_3_joint": 1.5707963267948966,
+                                                          "r_hand_index_0_joint": -0.3490658503988659,
+                                                          "r_hand_index_1_joint": 1.5707963267948966,
+                                                          "r_hand_index_2_joint": 1.5707963267948966,
+                                                          "r_hand_index_3_joint": 1.5707963267948966,
+                                                          "r_hand_middle_0_joint": 0.3490658503988659,
+                                                          "r_hand_middle_1_joint": 1.5707963267948966,
+                                                          "r_hand_middle_2_joint": 1.5707963267948966,
+                                                          "r_hand_middle_3_joint": 1.5707963267948966,
+                                                          "r_hand_ring_0_joint": 0.3490658503988659,
+                                                          "r_hand_ring_1_joint": 1.5707963267948966,
+                                                          "r_hand_ring_2_joint": 1.5707963267948966,
+                                                          "r_hand_ring_3_joint": 1.5707963267948966,
+                                                          "r_hand_little_0_joint": 0.3490658503988659,
+                                                          "r_hand_little_1_joint": 1.5707963267948966,
+                                                          "r_hand_little_2_joint": 1.5707963267948966,
+                                                          "r_hand_little_3_joint": 1.5707963267948966})
 
 right_gripper.end_effector_type = GripperType.FINGER
 # right_gripper.opening_distance = 0.548
@@ -161,14 +161,14 @@ icub_description.add_camera_description(camera)
 
 ################################## Neck ##################################
 icub_description.add_kinematic_chain("neck", "chest", "head")
+icub_description.set_neck("neck_yaw", "neck_pitch", "neck_roll")
 
 ################################# Grasps ##################################
-grasps = {Grasp.FRONT: [0.707, 0.707, 0.707, 0.707],
-          Grasp.LEFT: [1, 0, 0, 1],
-          Grasp.RIGHT: [0, 1, 1, 0],
-          Grasp.TOP: [1, 1, 0, 0]}
-right_gripper.add_grasp_orientations(grasps)
-left_gripper.add_grasp_orientations(grasps)
+right_gripper.generate_all_grasp_orientations_from_front_grasp([0.5, 0.5, 0.5, 0.5])
+# right_gripper.add_grasp_orientation(Grasp.TOP, [1, 1, 0, 0])
+
+left_gripper.generate_all_grasp_orientations_from_front_grasp([0.5, 0.5, 0.5, 0.5])
+# left_gripper.add_grasp_orientation(Grasp.TOP, [1, 1, 0, 0])
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

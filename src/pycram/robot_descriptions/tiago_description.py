@@ -25,7 +25,7 @@ left_arm.add_static_joint_states("park", {"torso_lift_joint": 0.15,
 tiago_description.add_kinematic_chain_description(left_arm)
 
 ################################## Left Gripper ##################################
-left_gripper = EndEffectorDescription("left_gripper", "gripper_left_link", "gripper_left_tool_link",
+left_gripper = EndEffectorDescription("left_gripper", "wrist_left_ft_link", "gripper_left_tool_link",
                                       tiago_description.urdf_object)
 
 left_gripper.add_static_joint_states(GripperState.OPEN, {'gripper_left_left_finger_joint': 0.048,
@@ -35,6 +35,7 @@ left_gripper.add_static_joint_states(GripperState.CLOSE, {'gripper_left_left_fin
                                                           'gripper_left_right_finger_joint': 0.0})
 
 left_arm.end_effector = left_gripper
+tiago_description.set_distance_palm_to_tool_frame(Arms.LEFT, tiago_description.get_distance_palm_to_tool_frame(Arms.LEFT)/2)
 
 ################################## Right Arm ##################################
 right_arm = KinematicChainDescription("right_arm", "torso_fixed_link", "arm_right_7_link",
@@ -52,7 +53,7 @@ right_arm.add_static_joint_states("park", {"torso_lift_joint": 0.15,
 tiago_description.add_kinematic_chain_description(right_arm)
 
 ################################## Right Gripper ##################################
-right_gripper = EndEffectorDescription("right_gripper", "gripper_right_link", "gripper_right_tool_link",
+right_gripper = EndEffectorDescription("right_gripper", "wrist_right_ft_link", "gripper_right_tool_link",
                                        tiago_description.urdf_object)
 
 right_gripper.add_static_joint_states(GripperState.OPEN, {'gripper_right_left_finger_joint': 0.048,
@@ -62,6 +63,8 @@ right_gripper.add_static_joint_states(GripperState.CLOSE, {'gripper_right_left_f
                                                            'gripper_right_right_finger_joint': 0.0})
 
 right_arm.end_effector = right_gripper
+tiago_description.set_distance_palm_to_tool_frame(Arms.RIGHT, tiago_description.get_distance_palm_to_tool_frame(Arms.RIGHT)/2)
+
 
 ################################## Torso ##################################
 torso = KinematicChainDescription("torso", "torso_fixed_link", "torso_lift_link",
@@ -81,17 +84,18 @@ tiago_description.add_camera_description(camera)
 
 ################################## Neck ##################################
 tiago_description.add_kinematic_chain("neck", "torso_lift_link", "head_2_link")
+tiago_description.set_neck("head_1_joint", "head_2_joint")
+
 
 ################################# Grasps ##################################
-grasps = {Grasp.FRONT: [-0.5, 0.5, 0.5, -0.5],
-          Grasp.LEFT: [0, 0, -1, 1],
-          Grasp.RIGHT: [0, 0, 1, 1],
-          Grasp.TOP: [0, 0, -0.7071068, 0.7071068]}
-right_gripper.add_grasp_orientations(grasps)
-left_gripper.add_grasp_orientations(grasps)
+front_grasp = [-0.5, 0.5, 0.5, -0.5]
+right_gripper.generate_all_grasp_orientations_from_front_grasp(front_grasp)
+left_gripper.generate_all_grasp_orientations_from_front_grasp(front_grasp)
 
 ################################# Additionals ##################################
-tiago_description.set_costmap_offset(0.35)
+tiago_description.set_costmap_offset(0.3)
+tiago_description.set_palm_axis([0, 0, -1])
+tiago_description.set_max_reach("torso_lift_link", "gripper_left_tool_link")
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()
