@@ -40,7 +40,7 @@
       "type": "grid"
     },
     {
-      "isShown": false,
+      "isShown": true,
       "name": "Robot model",
       "options": {
         "param": "robot_description",

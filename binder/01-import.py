@@ -10,10 +10,9 @@ from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.designators.object_designator import *
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.ros.tf_broadcaster import TFBroadcaster
-from pycram.ros.viz_marker_publisher import VizMarkerPublisher
+from pycram.ros.viz_marker_publisher import VizMarkerPublisher, VizMarkerRobotPublisher
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.bullet_world import BulletWorld
-
 
 robot_param = rospy.get_param('/nbparam_robots')
 environment_param = rospy.get_param('/nbparam_environments')
@@ -44,7 +43,10 @@ world = BulletWorld(WorldMode.DIRECT)
 world.allow_publish_debug_poses = False
 
 VizMarkerPublisher()
+
 robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
 apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
-if not robot.name == "Armar6":
+if robot_name == "armar":
+    VizMarkerRobotPublisher()
+else:
     TFBroadcaster()

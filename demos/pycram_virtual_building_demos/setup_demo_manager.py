@@ -26,7 +26,6 @@ from pycram.worlds.bullet_world import BulletWorld
 output = None
 
 
-
 def start_demo():
     # get params
     environment_param = rospy.get_param('/nbparam_environments')
@@ -66,7 +65,6 @@ def start_demo_local():
     robot_param = 'armar'
     task_param = 'transporting'
 
-
     robot_name = get_robot_name(robot_param)
 
     extension = ObjectDescription.get_file_extension()
@@ -76,10 +74,10 @@ def start_demo_local():
     VizMarkerRobotPublisher(interval=0.2)
     robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
     apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}-small{extension}")
-    if not robot.name == "Armar6":
+    if not robot_name == "Armar6":
         TFBroadcaster()
 
-    demo_selecting(apartment, robot, task_param)
+    demo_selecting(environment_param, robot_name, task_param)
     extension = ObjectDescription.get_file_extension()
 
 
@@ -110,6 +108,4 @@ def demo_selecting(apartment, robot, task_param):
         specialized_task = rospy.get_param('/nbparam_specialized_task')
         start_generalized_demo(task_param, object_tool, object_target, specialized_task)
 
-
-#start_demo_local()
-
+# start_demo_local()
