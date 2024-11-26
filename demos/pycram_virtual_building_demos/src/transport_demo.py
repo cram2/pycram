@@ -68,8 +68,8 @@ def transporting_demo(apartment, robot):
         pick_pose = Pose([2.7, 2.15, 1])
         nav_pose = Pose([1.5, 2, 0])
 
-    robot_desig = BelieveObject(names=[robot.name])
-    apartment_desig = BelieveObject(names=[apartment.name])
+    robot_desig = BelieveObject(names=[robot])
+    apartment_desig = BelieveObject(names=[apartment])
 
     @with_simulated_robot
     def move_and_detect(obj_type):
