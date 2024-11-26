@@ -19,7 +19,7 @@ from pycram.datastructures.enums import WorldMode
 from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
 from pycram.object_descriptors.urdf import ObjectDescription
-from pycram.ros.viz_marker_publisher import VizMarkerPublisher
+from pycram.ros.viz_marker_publisher import VizMarkerPublisher, VizMarkerRobotPublisher
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.bullet_world import BulletWorld
 
@@ -73,7 +73,8 @@ def start_demo_local():
     extension = ObjectDescription.get_file_extension()
 
     world = BulletWorld(WorldMode.DIRECT)
-    VizMarkerPublisher(interval=0.3)
+    VizMarkerPublisher(interval=0.1)
+    VizMarkerRobotPublisher(interval=0.2)
     robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
     apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}-small{extension}")
     if not robot.name == "Armar6":
