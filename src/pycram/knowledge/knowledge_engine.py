@@ -238,5 +238,6 @@ class ReasoningInstance:
             if value is None:
                 self.partial_designator.kwargs[key] = matched_parameter[key]
 
+
         for designator in self.partial_designator(**matched_parameter):
             yield designator

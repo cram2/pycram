@@ -45,20 +45,29 @@ class PartialDesignator:
     def __init__(self, performable: Type[ActionDesignatorDescription.Action], *args, **kwargs):
         self.performable = performable
         # Remove None values fom the given arguments and keyword arguments
-        self.kwargs = dict(signature(self.performable).bind(*args, **kwargs).arguments)
+        self.kwargs = dict(signature(self.performable).bind_partial(*args, **kwargs).arguments)
+        for key in dict(signature(self.performable).parameters).keys():
+            if key not in self.kwargs.keys():
+                self.kwargs[key] = None
         # self.args = tuple(filter(None, args))
         # self.kwargs = {k:v for k,v in kwargs.items() if v is not None}
 
     def __call__(self, *fargs, **fkwargs):
         """
-        Creats a new PartialDesignator with the given arguments and keyword arguments added.
+        Creates a new PartialDesignator with the given arguments and keyword arguments added. Existing arguments will
+        be prioritized over the new arguments.
 
         :param fargs: Additional arguments that should be added to the new PartialDesignator
         :param fkwargs: Additional keyword arguments that should be added to the new PartialDesignator
         :return: A new PartialDesignator with the given arguments and keyword arguments added
         """
-        newkeywords = {**self.kwargs, **fkwargs}
-        return PartialDesignator(self.performable, *fargs, **newkeywords)
+        newkeywors = {k: v for k, v in self.kwargs.items() if v is not None}
+        for key, value in fkwargs.items():
+            if key in newkeywors.keys() and newkeywors[key] is None:
+                newkeywors[key] = value
+            elif key not in newkeywors.keys():
+                newkeywors[key] = value
+        return PartialDesignator(self.performable, *fargs, **newkeywors)
 
     def __iter__(self) -> Type[ActionDesignatorDescription.Action]:
         """

@@ -87,21 +87,18 @@ class TestPartialDesignator(KnowledgeBulletTestCase):
         test_object = BelieveObject(names=["milk"])
         partial_desig = PartialDesignator(PickUpActionPerformable, test_object, arm=Arms.RIGHT)
         self.assertEqual(partial_desig.performable, PickUpActionPerformable)
-        self.assertEqual(partial_desig.args, (test_object,))
-        self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT})
+        self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": test_object, "grasp": None})
 
     def test_partial_desig_construction_none(self):
         partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
         self.assertEqual(partial_desig.performable, PickUpActionPerformable)
-        self.assertEqual(partial_desig.args, ())
-        self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT})
+        self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": None, "grasp": None})
 
     def test_partial_desig_call(self):
         partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
         new_partial_desig = partial_desig(grasp=Grasp.FRONT)
         self.assertEqual(new_partial_desig.performable, PickUpActionPerformable)
-        self.assertEqual(new_partial_desig.args, ())
-        self.assertEqual(new_partial_desig.kwargs, {"arm": Arms.RIGHT, "grasp": Grasp.FRONT})
+        self.assertEqual({"arm": Arms.RIGHT, "grasp": Grasp.FRONT, "object_designator": None}, new_partial_desig.kwargs)
 
     def test_partial_desig_missing_params(self):
         partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
