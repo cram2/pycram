@@ -15,10 +15,14 @@ from ..world_concepts.world_object import Object as WorldObject
 if TYPE_CHECKING:
     pass
 
-class OntologicalObject(ObjectDesignatorDescription):
 
-    def __init__(self):
-        super().__init__()
+class OntologyObjectDesignatorDescription:
+
+    def __init__(self, search_result):
+        ...
+
+    def __iter__(self):
+        ...
 
 
 class BelieveObject(ObjectDesignatorDescription):

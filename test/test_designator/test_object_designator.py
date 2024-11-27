@@ -21,6 +21,21 @@ class TestObjectDesignator(BulletWorldTestCase):
         frozen_copy = obj.frozen_copy()
         self.assertEqual(obj.pose, frozen_copy.pose)
 
+class OntologyObjectDesignatorDescriptionTestCase(BulletWorldTestCase):
+
+    def test_object_grounding(self):
+        description = OntologyObjectDesignatorDescription(["milk"], [Milk])
+        obj = description.ground()
+
+        self.assertEqual(obj.name, "milk")
+        self.assertEqual(obj.obj_type, Milk)
+
+    def test_frozen_copy(self):
+        description = OntologyObjectDesignatorDescription(["milk"], [Milk])
+        obj = description.ground()
+
+        frozen_copy = obj.frozen_copy()
+        self.assertEqual(obj.pose, frozen_copy.pose)
 
 if __name__ == '__main__':
     unittest.main()
