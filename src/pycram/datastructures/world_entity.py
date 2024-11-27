@@ -126,6 +126,33 @@ class WorldEntity(StateEntity, ABC):
         self.id = _id
         self.world: World = world
 
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """
+        :return: The name of this body.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def parent_entity(self) -> Optional[WorldEntity]:
+        """
+        :return: The parent entity of this entity, if it has one.
+        """
+        pass
+
+    def __eq__(self, other: WorldEntity) -> bool:
+        """
+        Check if this body is equal to another body.
+        """
+        if not isinstance(other, WorldEntity):
+            return False
+        return self.id == other.id and self.name == other.name and self.parent_entity == other.parent_entity
+
+    def __hash__(self) -> int:
+        return hash((self.id, self.name, self.parent_entity))
+
 
 class PhysicalBody(WorldEntity, ABC):
     """
@@ -138,14 +165,6 @@ class PhysicalBody(WorldEntity, ABC):
         self._is_translating: Optional[bool] = None
         self._is_rotating: Optional[bool] = None
         self._velocity: Optional[List[float]] = None
-
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """
-        :return: The name of this body.
-        """
-        ...
 
     @abstractmethod
     def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
@@ -365,22 +384,3 @@ class PhysicalBody(WorldEntity, ABC):
         :param color: The color as a list of floats, either rgb or rgba.
         """
         ...
-
-    @property
-    @abstractmethod
-    def parent(self) -> Optional[PhysicalBody]:
-        """
-        :return: The parent of this body, if it has one.
-        """
-        pass
-
-    def __eq__(self, other: PhysicalBody) -> bool:
-        """
-        Check if this body is equal to another body.
-        """
-        if not isinstance(other, PhysicalBody):
-            return False
-        return self.id == other.id, self.name == other.name, self.parent == other.parent
-
-    def __hash__(self) -> int:
-        return hash(self.id, self.name, self.parent)

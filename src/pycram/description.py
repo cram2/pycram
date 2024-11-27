@@ -196,11 +196,12 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         PhysicalBody.__init__(self, _id, obj.world)
         ObjectEntity.__init__(self, obj)
         LinkDescription.__init__(self, link_description.parsed_description, link_description.mesh_dir)
+        self.description = link_description
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
 
     @property
-    def parent(self) -> PhysicalBody:
+    def parent_entity(self) -> Object:
         """
         :return: The parent of this link, which is the object.
         """
@@ -211,7 +212,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         """
         :return: The name of this link.
         """
-        return self.parsed_description.name
+        return self.description.name
 
     def get_axis_aligned_bounding_box(self, transform_to_link_pose: bool = True) -> AxisAlignedBoundingBox:
         """
@@ -479,14 +480,8 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         """
         return self.origin.to_transform(self.tf_frame)
 
-    def __eq__(self, other: Link):
-        return PhysicalBody.__eq__(self, other)
-
     def __copy__(self):
-        return Link(self.id, self, self.object)
-
-    def __hash__(self):
-        return hash((self.id, self.object, self.name))
+        return Link(self.id, self.description, self.object)
 
 
 class RootLink(Link, ABC):
@@ -527,9 +522,24 @@ class Joint(WorldEntity, ObjectEntity, JointDescription, ABC):
         WorldEntity.__init__(self, _id, obj.world)
         ObjectEntity.__init__(self, obj)
         JointDescription.__init__(self, joint_description.parsed_description, is_virtual)
+        self.description = joint_description
         self.acceptable_error = (self.world.conf.revolute_joint_position_tolerance if self.type == JointType.REVOLUTE
                                  else self.world.conf.prismatic_joint_position_tolerance)
         self._update_position()
+
+    @property
+    def name(self) -> str:
+        """
+        :return: The name of this joint.
+        """
+        return self.description.name
+
+    @property
+    def parent_entity(self) -> Link:
+        """
+        :return: The parent of this joint, which is the object.
+        """
+        return self.parent_link
 
     @property
     def tf_frame(self) -> str:
@@ -628,13 +638,7 @@ class Joint(WorldEntity, ObjectEntity, JointDescription, ABC):
             self.position = joint_state.position
 
     def __copy__(self):
-        return Joint(self.id, self, self.object)
-
-    def __eq__(self, other):
-        return self.id == other.id and self.object == other.object and self.name == other.name
-
-    def __hash__(self):
-        return hash((self.id, self.object, self.name))
+        return Joint(self.id, self.description, self.object, self.is_virtual)
 
 
 class ObjectDescription(EntityDescription):

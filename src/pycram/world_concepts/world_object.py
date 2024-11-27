@@ -19,7 +19,7 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
-from ..datastructures.world_entity import PhysicalBody
+from ..datastructures.world_entity import PhysicalBody, WorldEntity
 from ..description import ObjectDescription, LinkDescription, Joint
 from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, UnsupportedFileExtension, \
     ObjectDescriptionUndefined
@@ -1484,10 +1484,9 @@ class Object(PhysicalBody):
                      world, self.color)
         return obj
 
-    def __eq__(self, other):
-        return (isinstance(other, Object) and self.id == other.id and self.name == other.name
-                and self.world == other.world)
-
-    def __hash__(self):
-        return hash((self.id, self.name, self.world))
+    def parent_entity(self) -> World:
+        """
+        :return: The parent of this object which is the world.
+        """
+        return self.world
 

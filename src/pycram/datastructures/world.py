@@ -24,7 +24,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox)
 from ..datastructures.enums import JointType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
-from ..datastructures.world_entity import StateEntity, PhysicalBody
+from ..datastructures.world_entity import StateEntity, PhysicalBody, WorldEntity
 from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 
 
-class World(StateEntity, ABC):
+class World(WorldEntity, ABC):
     """
     The World Class represents the physics Simulation and belief state, it is the main interface for reasoning about
     the World. This is implemented as a singleton, the current World can be accessed via the static variable
@@ -78,7 +78,8 @@ class World(StateEntity, ABC):
     The ontology of this world.
     """
 
-    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection: bool = False, clear_cache: bool = False):
+    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection: bool = False, clear_cache: bool = False,
+                 id_: int = -1):
         """
         Create a new simulation, the mode decides if the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
@@ -88,12 +89,11 @@ class World(StateEntity, ABC):
          "GUI"
         :param is_prospection: For internal usage, decides if this World should be used as a prospection world.
         :param clear_cache: Whether to clear the cache directory.
+        :param id_: The unique id of the world.
         """
 
-        StateEntity.__init__(self)
-
+        WorldEntity.__init__(self, id_, self)
         self.ontology = pycrap.Ontology()
-
         self.latest_state_id: Optional[int] = None
 
         if clear_cache or (self.conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
@@ -105,9 +105,6 @@ class World(StateEntity, ABC):
             World.current_world = self
 
         self.object_lock: threading.Lock = threading.Lock()
-
-        self.id: Optional[int] = -1
-        # This is used to connect to the physics server (allows multiple clients)
 
         self._init_world(mode)
 
@@ -131,6 +128,20 @@ class World(StateEntity, ABC):
         self.original_state_id = self.save_state()
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
+
+    @property
+    def parent_entity(self) -> Optional[WorldEntity]:
+        """
+        Return the parent entity of this entity, in this case it is None as the World is the top level entity.
+        """
+        return None
+
+    @property
+    def name(self) -> str:
+        """
+        Return the name of the world, which is the name of the implementation class (e.g. BulletWorld).
+        """
+        return self.__class__.__name__
 
     def get_body_convex_hull(self, body: PhysicalBody) -> Geometry3D:
         """

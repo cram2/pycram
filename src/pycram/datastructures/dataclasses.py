@@ -11,13 +11,13 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
 
 from .enums import JointType, Shape, VirtualMobileBaseJointName
 from .pose import Pose, Point, Transform
-from .world_entity import PhysicalBody
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
 if TYPE_CHECKING:
     from ..description import Link
     from ..world_concepts.world_object import Object
     from ..world_concepts.constraints import Attachment
+    from .world_entity import PhysicalBody
 
 
 def get_point_as_list(point: Point) -> List[float]:
@@ -755,8 +755,10 @@ class ContactPointsList(list):
         :param obj_b: An instance of the Object class that represents the second object.
         :return: True if the objects are in contact, False otherwise.
         """
-        return (any([self.is_body_in_object(point.body_b, obj_b) and self.is_body_in_object(point.body_a, obj_a) for point in self]) or
-                any([self.is_body_in_object(point.body_a, obj_b) and self.is_body_in_object(point.body_b, obj_a) for point in self]))
+        return (any([self.is_body_in_object(point.body_b, obj_b)
+                     and self.is_body_in_object(point.body_a, obj_a) for point in self]) or
+                any([self.is_body_in_object(point.body_a, obj_b)
+                     and self.is_body_in_object(point.body_b, obj_a) for point in self]))
 
     @staticmethod
     def is_body_in_object(body: PhysicalBody, obj: Object) -> bool:
@@ -786,7 +788,7 @@ class ContactPointsList(list):
         """
         return [point.normal_on_body_b for point in self]
 
-    def get_links_in_contact_of_object(self, obj: Object) -> List[Link]:
+    def get_links_in_contact_of_object(self, obj: Object) -> List[PhysicalBody]:
         """
         Get the links in contact of the object.
 
@@ -858,7 +860,7 @@ class ContactPointsList(list):
 
         :return: A list of Object instances that represent the objects that have points in the list.
         """
-        return list({point.body_b.object for point in self})
+        return list({point.body_b.parent for point in self if isinstance(point.body_b.parent, Object)})
 
     def __str__(self):
         return f"ContactPointsList: {', '.join([point.__str__() for point in self])}"

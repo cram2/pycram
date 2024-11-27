@@ -235,11 +235,11 @@ class BulletWorld(World):
 
         :param point: The list of points.
         """
-        return {"link_a": self.get_object_by_id(point[1]).get_link_by_id(point[3]),
-                "link_b": self.get_object_by_id(point[2]).get_link_by_id(point[4]),
-                "position_on_object_a": point[5],
-                "position_on_object_b": point[6],
-                "normal_on_b": point[7],
+        return {"body_a": self.get_object_by_id(point[1]).get_link_by_id(point[3]),
+                "body_b": self.get_object_by_id(point[2]).get_link_by_id(point[4]),
+                "position_on_body_a": point[5],
+                "position_on_body_b": point[6],
+                "normal_on_body_b": point[7],
                 "distance": point[8],
                 "normal_force": point[9],
                 "lateral_friction_1": LateralFriction(point[10], point[11]),
