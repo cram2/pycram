@@ -24,3 +24,4 @@ probabilistic_model>=6.0.2
 random_events>=3.1.2
 sympy
 pint>=0.21.1
+scipy~=1.10.1
