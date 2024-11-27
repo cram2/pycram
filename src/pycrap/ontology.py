@@ -1,12 +1,15 @@
 import tempfile
 
 import owlready2
-from typing_extensions import Optional
+from .base import default_pycrap_ontology
 
 
 class Ontology:
     """
     Wrapper class for user-friendly access of the owlready2 ontology class.
+
+    This class spawns a temporary file that is used to store the ontology.
+    This has to be done whenever several PyCRAP ontologies are needed that store different individuals.
     """
 
     ontology: owlready2.Ontology
@@ -23,7 +26,7 @@ class Ontology:
     def __init__(self):
         self.file = tempfile.NamedTemporaryFile(delete=True)
         self.ontology = owlready2.get_ontology("file://" + self.path).load()
-        self.ontology.name = "PyCRAP_" + str(id(self))
+        self.ontology.name = "PyCRAP"
 
     @property
     def path(self) -> str:
@@ -38,3 +41,10 @@ class Ontology:
         """
         for individual in self.individuals():
             owlready2.destroy_entity(individual)
+
+    @staticmethod
+    def classes():
+        """
+        :return: All classes of the PyCRAP ontology.
+        """
+        return default_pycrap_ontology.classes()

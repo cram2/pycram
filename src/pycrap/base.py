@@ -1,11 +1,14 @@
-from owlready2 import Thing
-from .ontology import Ontology
+import tempfile
 
-default_pycrap_ontology = Ontology()
+import owlready2
+from owlready2 import Thing
+
+default_pycrap_ontology_file = tempfile.NamedTemporaryFile()
+default_pycrap_ontology = owlready2.get_ontology("file://" + default_pycrap_ontology_file.name).load()
 
 class Base(Thing):
     comment = __doc__
-    namespace = default_pycrap_ontology.ontology
+    namespace = default_pycrap_ontology
 
     @classmethod
     def set_comment_to_docstring(cls):

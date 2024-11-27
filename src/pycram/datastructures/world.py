@@ -74,7 +74,7 @@ class World(StateEntity, ABC):
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
 
-    ontology: pycrap.ontology.Ontology
+    ontology: pycrap.Ontology
     """
     The ontology of this world.
     """
@@ -122,7 +122,6 @@ class World(StateEntity, ABC):
         self._update_local_transformer_worlds()
 
         self.mode: WorldMode = mode
-        # The mode of the simulation, can be "GUI" or "DIRECT"
 
         self.coll_callbacks: Dict[Tuple[Object, Object], CollisionCallbacks] = {}
 
