@@ -207,8 +207,8 @@ class CostmapLocation(LocationDesignatorDescription):
         test_robot = None
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
-            # test_robot = World.current_world.get_prospection_object_for_object(robot_object)
-            test_robot = robot_object
+            test_robot = World.current_world.get_prospection_object_for_object(robot_object)
+            # test_robot = robot_object
         self.ignore_collision_with = [World.current_world.get_prospection_object_for_object(o) for o in
                                       self.ignore_collision_with]
         with UseProspectionWorld():

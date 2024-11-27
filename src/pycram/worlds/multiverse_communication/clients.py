@@ -10,7 +10,7 @@ from typing_extensions import List, Dict, Tuple, Optional, Callable, Union
 
 from .socket import MultiverseSocket, MultiverseMetaData
 from ...config.multiverse_conf import MultiverseConfig as Conf
-from ...datastructures.dataclasses import RayResult, MultiverseContactPoint
+from ...datastructures.dataclasses import RayResult, MultiverseContactPoint, MultiverseBoundingBox
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
 from ...datastructures.pose import Pose
@@ -435,16 +435,17 @@ class MultiverseWriter(MultiverseClient):
         :param body_data: The data to be sent for multiple bodies.
         :return: The response from the server.
         """
-        self.lock.acquire()
         send_meta_data = {body_name: list(map(str, data.keys())) for body_name, data in body_data.items()}
         response_meta_data = self.send_meta_data_and_get_response(send_meta_data)
         body_names = list(response_meta_data["send"].keys())
         flattened_data = [value for body_name in body_names for data in body_data[body_name].values()
                           for value in data]
+        self.lock.acquire()
         self.send_data = [self.sim_time, *flattened_data]
         self.send_and_receive_data()
+        response_meta_data = self.response_meta_data
         self.lock.release()
-        return self.response_meta_data
+        return response_meta_data
 
     def send_meta_data_and_get_response(self, send_meta_data: Dict) -> Dict:
         """
@@ -457,8 +458,9 @@ class MultiverseWriter(MultiverseClient):
         self._reset_request_meta_data()
         self.request_meta_data["send"] = send_meta_data
         self.send_and_receive_meta_data()
+        response_meta_data = self.response_meta_data
         self.lock.release()
-        return self.response_meta_data
+        return response_meta_data
 
     def send_data_to_server(self, data: List,
                             send_meta_data: Optional[Dict] = None,
@@ -482,8 +484,9 @@ class MultiverseWriter(MultiverseClient):
         self.send_and_receive_meta_data()
         self.send_data = data
         self.send_and_receive_data()
+        response_meta_data = self.response_meta_data
         self.lock.release()
-        return self.response_meta_data
+        return response_meta_data
 
 
 class MultiverseController(MultiverseWriter):
@@ -531,6 +534,30 @@ class MultiverseAPI(MultiverseClient):
         super().__init__(name, port, is_prospection_world, simulation_wait_time_factor=simulation_wait_time_factor)
         self.simulation = simulation
         self.wait: bool = False  # Whether to wait after sending the API request.
+
+    def get_body_bounding_box(self, body_name: str,
+                              with_children: bool = False) -> Union[MultiverseBoundingBox, List[MultiverseBoundingBox]]:
+        """
+        Get the body bounding box from the multiverse server, they are with respect to the body's frame.
+        """
+        bounding_boxes_data = self._get_bounding_box(body_name, with_children)
+        multiverse_bounding_boxes = []
+        for bounding_box in bounding_boxes_data:
+            min_point, max_point = bounding_box[:3], bounding_box[3:]
+            multiverse_bounding_boxes.append(MultiverseBoundingBox(min_point, max_point))
+        if with_children:
+            return multiverse_bounding_boxes
+        return multiverse_bounding_boxes[0]
+
+    def _get_bounding_box(self, body_name: str, with_children: bool = False) -> List[List[float]]:
+        """
+        Get the body bounding box from the multiverse server.
+        """
+        params = [body_name]
+        if with_children:
+            params.append("with_children")
+        response = self._request_single_api_callback(API.GET_BOUNDING_BOX, *params)[0]
+        return [list(map(float, bounding_box.split())) for bounding_box in response]
 
     def save(self, save_name: str, save_directory: Optional[str] = None) -> str:
         """

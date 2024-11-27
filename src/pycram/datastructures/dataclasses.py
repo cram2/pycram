@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 from copy import deepcopy, copy
 from dataclasses import dataclass, fields
@@ -848,6 +849,15 @@ class VirtualMobileBaseJoints:
         Return the axes (i.e. The axis on which the joint moves) of the virtual mobile base joints.
         """
         return {getattr(self, field.name).name: getattr(self, field.name).axes for field in fields(self)}
+
+
+@dataclass
+class MultiverseBoundingBox:
+    """
+    Dataclass for storing the bounding box of a body in the Multiverse simulation.
+    """
+    min_point: List[float]
+    max_point: List[float]
 
 
 @dataclass

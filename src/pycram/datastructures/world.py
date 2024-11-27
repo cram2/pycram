@@ -80,7 +80,8 @@ class World(StateEntity, ABC):
     The ontology of this world.
     """
 
-    def __init__(self, mode: WorldMode, is_prospection_world: bool = False, clear_cache: bool = False):
+    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False,
+                 clear_cache: bool = False):
         """
         Create a new simulation, the mode decides if the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
@@ -301,8 +302,7 @@ class World(StateEntity, ABC):
         if self.is_prospection_world:  # then no need to add another prospection world
             self.prospection_world = None
         else:
-            self.prospection_world: World = self.__class__(WorldMode.DIRECT,
-                                                           True)
+            self.prospection_world: World = self.__class__(is_prospection_world=True)
 
     def _sync_prospection_world(self):
         """
@@ -1658,6 +1658,13 @@ class World(StateEntity, ABC):
         """
         remover_func(*args, **kwargs)
         self.update_simulator_state_id_in_original_state()
+
+    def update_original_state(self) -> int:
+        """
+        Update the original state of the world.
+        :return: The id of the updated original state.
+        """
+        return self.save_state(self.original_state_id, use_same_id=True)
 
     def update_simulator_state_id_in_original_state(self, use_same_id: bool = False) -> None:
         """
