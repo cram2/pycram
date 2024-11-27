@@ -1132,8 +1132,7 @@ class OpenAction(ActionDesignatorDescription):
         super().__init__(ontology_concept_holders)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[Arms] = arms
-        self.knowledge_condition = ReachableProperty(
-            self.object_designator_description.resolve().pose) & GripperIsFreeProperty(self.arms[0])
+        self.knowledge_condition = GripperIsFreeProperty(self.arms)
 
         if self.soma:
             self.init_ontology_concepts({"opening": self.soma.Opening})
@@ -1180,8 +1179,7 @@ class CloseAction(ActionDesignatorDescription):
         super().__init__(ontology_concept_holders)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[Arms] = arms
-        self.knowledge_condition = ReachableProperty(
-            self.object_designator_description.resolve().pose) & GripperIsFreeProperty(self.arms[0])
+        self.knowledge_condition = GripperIsFreeProperty(self.arms)
 
         if self.soma:
             self.init_ontology_concepts({"closing": self.soma.Closing})

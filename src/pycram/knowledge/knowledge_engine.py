@@ -234,6 +234,7 @@ class ReasoningInstance:
             raise ReasoningError(f"The parameters {not_reasoned} could not be inferred from the knowledge sources. Therefore, a complete designator can not be generated. ")
 
         for key, value in self.partial_designator.kwargs.items():
+            # This line means the parameter of the designator description will be preferred over the reasoned parameter
             if value is None:
                 self.partial_designator.kwargs[key] = matched_parameter[key]
 
