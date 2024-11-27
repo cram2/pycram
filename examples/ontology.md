@@ -56,7 +56,16 @@ You can query the ontology using [owlready2](https://owlready2.readthedocs.io/en
 For example, we can see all food objects like this:
 
 ```python
-print("All food instances", list(filter(lambda x: x in pycrap.Food.instances(), world.ontology.individuals())))
+print("All food instances", list(world.ontology.search(type=pycrap.Food)))
+```
+
+You can also search for objects in the world using the ontology:
+
+```python
+from pycram.designators.object_designator import OntologyObjectDesignatorDescription
+object_designator = OntologyObjectDesignatorDescription(world.ontology.search(type=pycrap.Food))
+result_in_world = list(object_designator.__iter__())
+print(result_in_world)
 ```
 
 Architecturally speaking, the ontology is a part of the world and is accessible through the world object.

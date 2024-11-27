@@ -4,6 +4,7 @@ import dataclasses
 
 import owlready2
 import sqlalchemy.orm
+from owlready2.triplelite import _SearchList
 from typing_extensions import TYPE_CHECKING, Iterable
 
 from ..datastructures.enums import ObjectType
@@ -27,7 +28,7 @@ class OntologyObjectDesignatorDescription:
     The result from the search in the ontology.
     """
 
-    def __init__(self, search_result):
+    def __init__(self, search_result: _SearchList):
         self.search_result = list(search_result)
 
     def __iter__(self) -> Iterable[ObjectDesignatorDescription.Object]:
