@@ -931,6 +931,15 @@ class VirtualMobileBaseJoints:
 
 
 @dataclass
+class MultiverseBoundingBox:
+    """
+    Dataclass for storing the bounding box of a body in the Multiverse simulation.
+    """
+    min_point: List[float]
+    max_point: List[float]
+
+
+@dataclass
 class MultiverseMetaData:
     """Meta data for the Multiverse Client, the simulation_name should be non-empty and unique for each simulation"""
     world_name: str = "world"
