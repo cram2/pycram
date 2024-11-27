@@ -54,3 +54,15 @@ class Ontology:
         :return: The search results of the ontology.
         """
         return self.ontology.search(*args, **kwargs)
+
+    def __enter__(self):
+        return self.ontology.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return self.ontology.__exit__(exc_type, exc_val, exc_tb)
+
+    def reason(self):
+        """
+        Reason over the ontology. This may take a long time.
+        """
+        owlready2.sync_reasoner([self.ontology, default_pycrap_ontology])

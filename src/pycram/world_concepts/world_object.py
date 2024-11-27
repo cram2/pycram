@@ -84,9 +84,14 @@ class Object(WorldEntity, HasConcept):
 
         pose = Pose() if pose is None else pose
 
+        # set ontology related information
+        self.ontology_concept = concept
+        if not self.world.is_prospection_world:
+            self.ontology_individual = self.ontology_concept(namespace=self.world.ontology.ontology)
+
         self.name: str = name
         self.path: Optional[str] = path
-        self.ontology_concept = concept
+
         self.color: Color = color
         self._resolve_description(path, description)
         self.cache_manager = self.world.cache_manager
@@ -102,6 +107,7 @@ class Object(WorldEntity, HasConcept):
 
             self.description.update_description_from_file(self.path)
 
+        # if the object is an agent in the belief state
         if Agent in self.ontology_concept.is_a and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
 
@@ -119,8 +125,6 @@ class Object(WorldEntity, HasConcept):
 
         self.world.add_object(self)
 
-        if not self.world.is_prospection_world:
-            self.ontology_individual = self.ontology_concept(namespace=self.world.ontology.ontology)
 
 
     def _resolve_description(self, path: Optional[str] = None, description: Optional[ObjectDescription] = None) -> None:

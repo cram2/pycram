@@ -74,7 +74,7 @@ class World(StateEntity, ABC):
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
 
-    ontology: pycrap.Ontology
+    ontology: Optional[pycrap.Ontology] = None
     """
     The ontology of this world.
     """
@@ -912,6 +912,7 @@ class World(StateEntity, ABC):
         self.disconnect_from_physics_server()
         self.reset_robot()
         self.join_threads()
+        self.ontology.destroy_individuals()
         if World.current_world == self:
             World.current_world = None
 
