@@ -747,27 +747,37 @@ class SemanticCostmap(Costmap):
     table surface.
     """
 
-    def __init__(self, object, urdf_link_name, size=100, resolution=0.02, world=None):
+    def __init__(self, object, link_name, resolution=0.02, world=None):
         """
         Creates a semantic costmap for the given parameter. The semantic costmap will be on top of the link of the given
         Object.
 
         :param object: The object of which the link is a part
-        :param urdf_link_name: The link name, as stated in the URDF
-        :param resolution: Resolution of the final costmap
+        :param link_name: The link name, as stated in the description of the object
+        :param resolution: Resolution of the final costmap (how much meters one pixel represents)
         :param world: The World from which the costmap should be created
         """
         self.world: World = world if world else World.current_world
         self.object: Object = object
-        self.link: Link = object.get_link(urdf_link_name)
+        self.link: Link = object.get_link(link_name)
         self.resolution: float = resolution
-        self.origin: Pose = object.get_link_pose(urdf_link_name)
+        self.origin: Pose = object.get_link_pose(link_name)
         self.height: int = 0
         self.width: int = 0
         self.map: np.ndarray = []
         self.generate_map()
 
         Costmap.__init__(self, resolution, self.height, self.width, self.origin, self.map)
+
+    def get_edges_map(self, margin_in_meters: float, horizontal_only: bool = False) -> Costmap:
+        mask = np.zeros(self.map.shape)
+        edge_tolerance = int(margin_in_meters / self.resolution)
+        mask[:edge_tolerance] = 1
+        mask[-edge_tolerance:] = 1
+        if not horizontal_only:
+            mask[:, :edge_tolerance] = 1
+            mask[:, -edge_tolerance:] = 1
+        return Costmap(self.resolution, self.height, self.width, self.origin, mask)
 
     def generate_map(self) -> None:
         """
@@ -786,13 +796,7 @@ class SemanticCostmap(Costmap):
          the AABB as close to the actual object as possible, the Object will be rotated such that the link will be in the
         identity orientation.
         """
-        prospection_object = World.current_world.get_prospection_object_for_object(self.object)
-        with UseProspectionWorld():
-            prospection_object.set_orientation(Pose(orientation=[0, 0, 0, 1]))
-            link_pose_trans = self.link.transform
-            inverse_trans = link_pose_trans.invert()
-            prospection_object.set_orientation(inverse_trans.to_pose())
-            return self.link.get_axis_aligned_bounding_box()
+        return self.link.get_axis_aligned_bounding_box(False)
 
 
 class AlgebraicSemanticCostmap(SemanticCostmap):

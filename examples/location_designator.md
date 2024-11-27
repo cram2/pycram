@@ -139,7 +139,7 @@ from pycram.designators.object_designator import BelieveObject
 kitchen_desig = BelieveObject(names=["apartment"]).resolve()
 milk_desig = BelieveObject(names=["milk"]).resolve()
 
-location_description = SemanticCostmapLocation(urdf_link_name="island_countertop",
+location_description = SemanticCostmapLocation(link_name="island_countertop",
                                                part_of=kitchen_desig,
                                                for_object=milk_desig)
 

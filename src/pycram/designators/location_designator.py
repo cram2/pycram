@@ -341,20 +341,28 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
     class Location(LocationDesignatorDescription.Location):
         pass
 
-    def __init__(self, urdf_link_name, part_of, for_object=None):
+    def __init__(self, link_name, part_of, for_object=None, edges_only: bool = False,
+                 horizontal_edges_only: bool = False, edge_size_in_meters: float = 0.06):
         """
-        Creates a distribution over a urdf link to sample poses which are on this link. Can be used, for example, to find
+        Creates a distribution over a link to sample poses which are on this link. Can be used, for example, to find
         poses that are on a table. Optionally an object can be given for which poses should be calculated, in that case
         the poses are calculated such that the bottom of the object is on the link.
 
-        :param urdf_link_name: Name of the urdf link for which a distribution should be calculated
+        :param link_name: Name of the link for which a distribution should be calculated
         :param part_of: Object of which the urdf link is a part
         :param for_object: Optional object that should be placed at the found location
+        :param edges_only: If True, only the edges of the link are considered
+        :param horizontal_edges_only: If True, only the horizontal edges of the link are considered
+        :param edge_size_in_meters: Size of the edges in meters.
         """
         super().__init__()
-        self.urdf_link_name: str = urdf_link_name
+        self.link_name: str = link_name
         self.part_of: ObjectDesignatorDescription.Object = part_of
         self.for_object: Optional[ObjectDesignatorDescription.Object] = for_object
+        self.edges_only: bool = edges_only
+        self.horizontal_edges_only: bool = horizontal_edges_only
+        self.edge_size_in_meters: float = edge_size_in_meters
+        self.sem_costmap: Optional[SemanticCostmap] = None
 
     def ground(self) -> Location:
         """
@@ -372,11 +380,14 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
 
         :yield: An instance of SemanticCostmapLocation.Location with the found valid position of the Costmap.
         """
-        sem_costmap = SemanticCostmap(self.part_of.world_object, self.urdf_link_name)
+        self.sem_costmap = SemanticCostmap(self.part_of.world_object, self.link_name)
+        if self.edges_only or self.horizontal_edges_only:
+            self.sem_costmap = self.sem_costmap.get_edges_map(self.edge_size_in_meters,
+                                                    horizontal_only=self.horizontal_edges_only)
         height_offset = 0
         if self.for_object:
             min_p, max_p = self.for_object.world_object.get_axis_aligned_bounding_box().get_min_max_points()
             height_offset = (max_p.z - min_p.z) / 2
-        for maybe_pose in PoseGenerator(sem_costmap):
+        for maybe_pose in PoseGenerator(self.sem_costmap):
             maybe_pose.position.z += height_offset
             yield self.Location(maybe_pose)

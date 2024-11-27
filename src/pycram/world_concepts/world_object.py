@@ -511,14 +511,15 @@ class Object(WorldEntity, HasConcept):
         """
         return self.links[link_name].tf_frame
 
-    def get_link_axis_aligned_bounding_box(self, link_name: str) -> AxisAlignedBoundingBox:
+    def get_link_axis_aligned_bounding_box(self, link_name: str, transform_to_link_pose: bool = True) -> AxisAlignedBoundingBox:
         """
         Return the axis aligned bounding box of the link with the given name.
 
         :param link_name: The name of the link.
+        :param transform_to_link_pose: If True, the bounding box will be transformed to fit link pose.
         :return: The axis aligned bounding box of the link.
         """
-        return self.links[link_name].get_axis_aligned_bounding_box()
+        return self.links[link_name].get_axis_aligned_bounding_box(transform_to_link_pose)
 
     def get_transform_between_links(self, from_link: str, to_link: str) -> Transform:
         """
@@ -1395,14 +1396,15 @@ class Object(WorldEntity, HasConcept):
         """
         return self.world.get_colors_of_object_links(self)
 
-    def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+    def get_axis_aligned_bounding_box(self, transform_to_object_pose: bool = True) -> AxisAlignedBoundingBox:
         """
         Return the axis aligned bounding box of this object.
 
+        :param transform_to_object_pose: If True, the bounding box will be transformed to fit object pose.
         :return: The axis aligned bounding box of this object.
         """
         if self.has_one_link:
-            return self.root_link.get_axis_aligned_bounding_box()
+            return self.root_link.get_axis_aligned_bounding_box(transform_to_object_pose)
         else:
             return self.world.get_object_axis_aligned_bounding_box(self)
 
