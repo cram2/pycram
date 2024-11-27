@@ -37,7 +37,7 @@ from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
 import pycrap
-world = BulletWorld(WorldMode.GUI)
+world = BulletWorld(WorldMode.DIRECT)
 ```
 
 ## Believe Object

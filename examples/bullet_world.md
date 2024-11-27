@@ -24,7 +24,7 @@ from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import ObjectType, WorldMode
 import pycrap
 
-world = BulletWorld(mode=WorldMode.GUI)
+world = BulletWorld(mode=WorldMode.DIRECT)
 ```
 
 This new window is the BulletWorld, PyCRAMs internal physics simulation. You can use the mouse to move the camera

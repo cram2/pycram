@@ -44,7 +44,7 @@ from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
 import pycrap
 
-world = BulletWorld(WorldMode.GUI)
+world = BulletWorld(WorldMode.DIRECT)
 apartment = Object("apartment", pycrap.Apartment, "apartment.urdf")
 pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
 ```

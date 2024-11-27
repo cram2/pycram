@@ -42,7 +42,7 @@ world first.
 
 ```python
 # Create an instance of the BulletWorld
-world = BulletWorld(WorldMode.GUI)
+world = BulletWorld(WorldMode.DIRECT)
 ```
 
 ## Adding Objects to the World

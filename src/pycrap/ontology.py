@@ -48,3 +48,9 @@ class Ontology:
         :return: All classes of the PyCRAP ontology.
         """
         return default_pycrap_ontology.classes()
+
+    def search(self, *args, **kwargs):
+        """
+        :return: The search results of the ontology.
+        """
+        return self.ontology.search(*args, **kwargs)

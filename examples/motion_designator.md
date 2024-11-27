@@ -29,7 +29,7 @@ from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
 import pycrap
 
-world = BulletWorld(WorldMode.GUI)
+world = BulletWorld(WorldMode.DIRECT)
 pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
 milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([1.5, 0, 1]))
 ```

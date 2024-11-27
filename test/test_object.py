@@ -19,7 +19,7 @@ class TestObject(BulletWorldTestCase):
 
     def test_wrong_object_description_path(self):
         with self.assertRaises(UnsupportedFileExtension):
-            milk = Object("milk_not_found", ObjectType.MILK, "wrong_path.sk")
+            milk = Object("milk_not_found", Milk, "wrong_path.sk")
 
     def test_malformed_object_description(self):
         file_path = pathlib.Path(__file__).parent.resolve()
@@ -27,7 +27,7 @@ class TestObject(BulletWorldTestCase):
         with open(malformed_file, "w") as file:
             file.write("malformed")
         with self.assertRaises(Exception):
-            Object("milk2", ObjectType.MILK, malformed_file)
+            Object("milk2", Milk, malformed_file)
 
     def test_move_base_to_origin_pose(self):
         self.milk.set_position(Point(1, 2, 3), base=False)
@@ -180,11 +180,11 @@ class OntologyIntegrationTestCase(BulletWorldTestCase):
 
     def test_querying(self):
         # get all milks from the ontology
-        r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.ontology.individuals()))
+        r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.individuals()))
         self.assertEqual(len(r), 1)
 
         milk2  = Object("milk2", Milk, "milk.stl")
 
-        r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.ontology.individuals()))
+        r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.individuals()))
 
         self.assertEqual(len(r), 2)
