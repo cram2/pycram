@@ -158,7 +158,6 @@ class ParkArmsAction(ActionDesignatorDescription):
 
         :param arms: A list of possible arms, that could be used
         :param resolver: An optional specialized_designators that returns a performable designator from the designator description
-        :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(resolver)
         self.arms: List[Arms] = arms
@@ -219,7 +218,7 @@ class PlaceAction(ActionDesignatorDescription):
     def __init__(self,
                  object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
                  target_locations: List[Pose],
-                 arms: List[Arms], resolver=None, ontology_concept_holders: Optional[List[Thing]] = None):
+                 arms: List[Arms], resolver=None):
         """
         Create an Action Description to place an object
 
@@ -228,7 +227,7 @@ class PlaceAction(ActionDesignatorDescription):
         :param arms: List of possible arms to use
         :param resolver: Grounding method to resolve this designator
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(resolver)
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.target_locations: List[Pose] = target_locations

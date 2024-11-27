@@ -15,6 +15,11 @@ from ..world_concepts.world_object import Object as WorldObject
 if TYPE_CHECKING:
     pass
 
+class OntologicalObject(ObjectDesignatorDescription):
+
+    def __init__(self):
+        super().__init__()
+
 
 class BelieveObject(ObjectDesignatorDescription):
     """
