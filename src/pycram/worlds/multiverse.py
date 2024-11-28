@@ -5,7 +5,7 @@ from pathlib import Path
 from time import sleep
 
 import numpy as np
-from tf.transformations import quaternion_matrix
+from tf.transformations import quaternion_matrix, quaternion_about_axis, quaternion_multiply
 from typing_extensions import List, Dict, Optional, Union, Tuple, Callable
 
 from .multiverse_communication.client_manager import MultiverseClientManager
@@ -19,9 +19,9 @@ from ..datastructures.world import World
 from ..description import Link, Joint
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.mjcf import ObjectDescription as MJCF, PrimitiveObjectFactory
-from ..robot_description import RobotDescription
+from ..robot_description import RobotDescription, CameraDescription
 from ..ros.logging import logwarn
-from ..utils import RayTestUtils, wxyz_to_xyzw, xyzw_to_wxyz
+from ..utils import RayTestUtils, wxyz_to_xyzw, xyzw_to_wxyz, adjust_camera_pose_based_on_target
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position, validate_multiple_object_poses
 from ..world_concepts.constraints import Constraint
@@ -171,13 +171,14 @@ class Multiverse(World):
                               size: int = 256,
                               camera_min_distance: float = 0.1,
                               camera_max_distance: int = 3,
-                              plot: bool = False) -> List[np.ndarray]:
+                              plot: bool = True) -> List[np.ndarray]:
         """
         Uses ray test to get the images for the target object. (target_pose is currently not used)
         """
         camera_description = RobotDescription.current_robot_description.get_default_camera()
         camera_frame = RobotDescription.current_robot_description.get_camera_frame()
-        return self.ray_test_utils.get_images_for_target(cam_pose, camera_description, camera_frame,
+        adjusted_cam_pose = adjust_camera_pose_based_on_target(cam_pose, target_pose, camera_description)
+        return self.ray_test_utils.get_images_for_target(adjusted_cam_pose, camera_description, camera_frame,
                                                          size, camera_min_distance, camera_max_distance, plot)
 
     @staticmethod

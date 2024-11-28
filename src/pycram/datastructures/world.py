@@ -814,9 +814,8 @@ class World(StateEntity, ABC):
         """
         filtered_joint_positions = copy(joint_positions)
         for joint, position in joint_positions.items():
-            if joint.object.obj_type == ObjectType.ROBOT and self.robot_description.ignore_joints:
-                if joint.name in self.robot_description.ignore_joints:
-                    filtered_joint_positions.pop(joint)
+            if joint.name in self.robot_description.ignore_joints:
+                filtered_joint_positions.pop(joint)
         return self._set_multiple_joint_positions(filtered_joint_positions)
 
     @validate_multiple_joint_positions

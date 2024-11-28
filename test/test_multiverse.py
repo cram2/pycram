@@ -155,7 +155,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         milk_spawn_position = np.array(camera_front_facing_axis) * 0.5
         orientation = camera_pose.to_transform(camera_frame).invert().rotation_as_list()
         milk = self.spawn_milk(milk_spawn_position.tolist(), orientation, frame=camera_frame)
-        _, depth, segmentation_mask = self.multiverse.get_images_for_target(milk.pose, camera_pose, plot=False)
+        _, depth, segmentation_mask = self.multiverse.get_images_for_target(milk.pose, camera_pose, plot=True)
         self.assertIsInstance(depth, np.ndarray)
         self.assertIsInstance(segmentation_mask, np.ndarray)
         self.assertTrue(depth.shape == (256, 256))
