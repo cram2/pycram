@@ -21,6 +21,7 @@ def move_and_detect(obj_type: ObjectType, pick_pose: Pose):
 
     return object_desig
 
+
 world = Multiverse()
 extension = ObjectDescription.get_file_extension()
 robot = Object('pr2', ObjectType.ROBOT, f'pr2{extension}', pose=Pose([1.3, 2, 0.01]))
