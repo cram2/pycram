@@ -72,7 +72,7 @@ class RobotStateUpdater:
 
 class EnvironmentStateUpdater:
     """
-    Updates the environment in the Bullet World with information of the real environment published to ROS topics.
+    Updates the environment in the World with information of the real environment published to ROS topics.
     Infos used to update the envi are:
         * The current pose of the environment
         * The current joint state of the environment
@@ -96,7 +96,7 @@ class EnvironmentStateUpdater:
 
     def _subscribe_joint_state(self, msg: JointState) -> None:
         """
-        Sets the current joint configuration of the environment in the bullet world to the configuration published on the topic.
+        Sets the current joint configuration of the environment in the world to the configuration published on the topic.
         Since this uses rospy.wait_for_message which can have errors when used with threads there might be an attribute error
         in the rospy implementation.
 
@@ -119,7 +119,7 @@ class EnvironmentStateUpdater:
 
     def _stop_subscription(self) -> None:
         """
-        Stops the Timer for TF and joint states and therefore the updating of the environment in the bullet world.
+        Stops the Timer for TF and joint states and therefore the updating of the environment in the world.
         """
         self.joint_state_timer.shutdown()
         self.joint_state_timer.shutdown()
