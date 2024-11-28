@@ -171,7 +171,7 @@ class Multiverse(World):
                               size: int = 256,
                               camera_min_distance: float = 0.1,
                               camera_max_distance: int = 3,
-                              plot: bool = True) -> List[np.ndarray]:
+                              plot: bool = False) -> List[np.ndarray]:
         """
         Uses ray test to get the images for the target object. (target_pose is currently not used)
         """
