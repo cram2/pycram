@@ -171,7 +171,7 @@ class SayingActionPerformable(ActionAbstract):
     orm_class = ORMSaying
         
     @with_tree
-    def perform(self) -> None:
+    def plan(self) -> None:
         print(self.text)
 ```
 

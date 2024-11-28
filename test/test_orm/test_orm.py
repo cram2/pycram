@@ -221,8 +221,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
 
     def test_transportAction(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        action = TransportActionPerformable(object_description.resolve(), Arms.LEFT,
-                                            Pose([1.3, 0.9, 0.9], [0, 0, 0, 1]))
+        action = TransportActionPerformable(object_description.resolve(),  Pose([1.3, 0.9, 0.9], [0, 0, 0, 1]), Arms.LEFT)
         with simulated_robot:
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "transportAction_test"
@@ -343,7 +342,7 @@ class BelieveObjectTestCase(unittest.TestCase):
             LookAtAction(targets=[Pose([1, -1.78, 0.55])]).resolve().perform()
 
             object_desig = DetectAction(BelieveObject(types=[Milk])).resolve().perform()
-            TransportAction(object_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+            TransportAction(object_desig, [Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
 
             ParkArmsAction([Arms.BOTH]).resolve().perform()
             pycram.orm.base.ProcessMetaData().description = "BelieveObject_test"

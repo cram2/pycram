@@ -580,8 +580,8 @@ class Object(WorldEntity, HasConcept):
 
     def __repr__(self):
         skip_attr = ["links", "joints", "description", "attachments"]
-        return self.__class__.__qualname__ + f"(" + ', \n'.join(
-            [f"{key}={value}" if key not in skip_attr else f"{key}: ..." for key, value in self.__dict__.items()]) + ")"
+        return self.__class__.__qualname__ + f"(name={self.name}, object_type={self.obj_type.name}, file_path={self.path}, pose={self.pose}, world={self.world})"
+
 
     def remove(self) -> None:
         """

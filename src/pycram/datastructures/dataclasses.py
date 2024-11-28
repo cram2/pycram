@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from copy import deepcopy, copy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
 
@@ -710,3 +710,12 @@ class MultiverseContactPoint:
     body_name: str
     contact_force: List[float]
     contact_torque: List[float]
+
+
+@dataclass
+class ReasoningResult:
+    """
+    Result of a reasoning result of knowledge source
+    """
+    success: bool
+    reasoned_parameter: Dict[str, Any] = field(default_factory=dict)
