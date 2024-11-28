@@ -21,15 +21,18 @@ from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, Cyl
     SphereVisualShape, MeshVisualShape
 from ..failures import MultiplePossibleTipLinks
 from ..utils import suppress_stdout_stderr
+from ..datastructures.mixins import HasConcept
 
 
-class LinkDescription(AbstractLinkDescription):
+class LinkDescription(AbstractLinkDescription, HasConcept):
     """
     A class that represents a link description of an object.
     """
 
     def __init__(self, urdf_description: urdf.Link):
         super().__init__(urdf_description)
+        # match the name of the link to the class in the ontology that this may be
+
 
     @property
     def geometry(self) -> Union[VisualShape, None]:

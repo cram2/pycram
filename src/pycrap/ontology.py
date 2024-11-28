@@ -1,7 +1,9 @@
 import tempfile
 
 import owlready2
-from .base import default_pycrap_ontology
+from typing_extensions import Dict, Any, Type
+
+from .base import default_pycrap_ontology, Base
 
 
 class Ontology:
@@ -22,11 +24,16 @@ class Ontology:
     The file that the ontology is stored in.
     """
 
+    python_objects: Dict[Base, Any]
+    """
+    A dictionary that maps ontology individuals to python objects.
+    """
 
     def __init__(self):
         self.file = tempfile.NamedTemporaryFile(delete=True)
         self.ontology = owlready2.get_ontology("file://" + self.path).load()
         self.ontology.name = "PyCRAP"
+        self.python_objects = {}
 
     @property
     def path(self) -> str:
@@ -66,3 +73,6 @@ class Ontology:
         Reason over the ontology. This may take a long time.
         """
         owlready2.sync_reasoner([self.ontology, default_pycrap_ontology])
+
+    def add_individual(self, individual :Base, python_object: Any):
+        self.python_objects[individual] = python_object

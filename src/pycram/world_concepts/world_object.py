@@ -104,7 +104,6 @@ class Object(WorldEntity, HasConcept):
             self.path = self.world.preprocess_object_file_and_get_its_cache_path(path, ignore_cached_files,
                                                                                  self.description, self.name,
                                                                                  scale_mesh=scale_mesh)
-
             self.description.update_description_from_file(self.path)
 
         # if the object is an agent in the belief state

@@ -1,4 +1,5 @@
-from .base import PhysicalObject
+from . import default_pycrap_ontology
+from .base import PhysicalObject, Base, BaseProperty
 
 
 class Container(PhysicalObject):
@@ -82,7 +83,27 @@ class Cereal(Food):
     A traditional breakfast dish made from processed cereal grains.
     """
 
+
 class Floor(PhysicalObject):
     """
     The lower surface of a room.
+    """
+
+
+class Table(PhysicalObject):
+    """
+    A table is an item of furniture with a flat top, used as a surface for working at,
+    eating from or on which to place things.
+    """
+
+
+class Board(PhysicalObject):
+    """
+    A flat, thin, rectangular supporting piece.
+    """
+
+
+class has_part(BaseProperty, PhysicalObject >> PhysicalObject):
+    """
+    A property that relates an object to a part of it.
     """

@@ -1,7 +1,7 @@
 import tempfile
 
 import owlready2
-from owlready2 import Thing
+from owlready2 import Thing, ObjectProperty
 
 default_pycrap_ontology_file = tempfile.NamedTemporaryFile()
 default_pycrap_ontology = owlready2.get_ontology("file://" + default_pycrap_ontology_file.name).load()
@@ -13,6 +13,10 @@ class Base(Thing):
     @classmethod
     def set_comment_to_docstring(cls):
         cls.comment = cls.__doc__
+
+
+class BaseProperty(ObjectProperty):
+    namespace = default_pycrap_ontology
 
 
 class PhysicalObject(Base):
