@@ -1,19 +1,51 @@
 from __future__ import annotations
 
 import dataclasses
-from typing_extensions import List, Optional, Callable, TYPE_CHECKING
+
+import owlready2
 import sqlalchemy.orm
+from owlready2.triplelite import _SearchList
+from typing_extensions import TYPE_CHECKING, Iterable
+
 from ..datastructures.enums import ObjectType
 from ..datastructures.world import World
-from ..world_concepts.world_object import Object as WorldObject
-from ..designator import ObjectDesignatorDescription
+from ..external_interfaces.robokudo import *
 from ..orm.base import ProcessMetaData
 from ..orm.object_designator import (BelieveObject as ORMBelieveObject, ObjectPart as ORMObjectPart)
-from ..datastructures.pose import Pose
-from ..external_interfaces.robokudo import *
+from ..world_concepts.world_object import Object as WorldObject
 
 if TYPE_CHECKING:
-    import owlready2
+    pass
+
+
+class OntologyObjectDesignatorDescription:
+    """
+    Description for Objects that can be found using ontological reasoning
+    """
+
+    search_result: List
+    """
+    The result from the search in the ontology.
+    """
+
+    def __init__(self, search_result: _SearchList):
+        self.search_result = list(search_result)
+
+    def __iter__(self) -> Iterable[ObjectDesignatorDescription.Object]:
+        """
+        :return: The objects in the current world which match the search result in the 'is_a' relation.
+        """
+        for obj in World.current_world.objects:
+
+            # expand is_a of the object individual
+            is_a = obj.ontology_individual.is_a + [obj.ontology_individual]
+
+            # get the matching concepts
+            intersection = ([x for x in is_a if x in self.search_result])
+
+            # if it matches
+            if len(intersection) > 0:
+                yield obj
 
 
 class BelieveObject(ObjectDesignatorDescription):
@@ -28,7 +60,7 @@ class BelieveObject(ObjectDesignatorDescription):
         """
 
         def to_sql(self) -> ORMBelieveObject:
-            return ORMBelieveObject(name=self.name, obj_type=self.obj_type)
+            return ORMBelieveObject(name=self.name, obj_type=str(self.obj_type))
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMBelieveObject:
             metadata = ProcessMetaData().insert(session)
@@ -74,7 +106,6 @@ class ObjectPart(ObjectDesignatorDescription):
         :param part_of: Parent object of which the part should be described
         :param type: Type of the part
         :param resolver: An alternative specialized_designators to resolve the input parameter to an object designator
-        :param ontology_concept_holders: A list of ontology concepts that the object part is categorized as or associated with
         """
         super().__init__(names, type, resolver)
 
@@ -123,8 +154,7 @@ class LocatedObject(ObjectDesignatorDescription):
         """
 
     def __init__(self, names: List[str], types: List[str],
-                 reference_frames: List[str], timestamps: List[float], resolver: Optional[Callable] = None,
-                 ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
+                 reference_frames: List[str], timestamps: List[float], resolver: Optional[Callable] = None):
         """
         Describing an object resolved through knowrob.
 
@@ -133,9 +163,8 @@ class LocatedObject(ObjectDesignatorDescription):
         :param reference_frames: Frame of reference in which the object position should be
         :param timestamps: Timestamps for which positions should be returned
         :param resolver: An alternative specialized_designators that resolves the input parameter to an object designator.
-        :param ontology_concept_holders: A list of ontology concepts that the object is categorized as
         """
-        super(LocatedObject, self).__init__(names, types, resolver, ontology_concept_holders)
+        super(LocatedObject, self).__init__(names, types, resolver)
         self.reference_frames: List[str] = reference_frames
         self.timestamps: List[float] = timestamps
 

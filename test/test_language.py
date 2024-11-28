@@ -10,7 +10,7 @@ from pycram.failures import PlanFailure, NotALanguageExpression
 from pycram.datastructures.pose import Pose
 from pycram.language import Sequential, Language, Parallel, TryAll, TryInOrder, Monitor, Code
 from pycram.process_module import simulated_robot
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.robot_description import RobotDescription
 
 

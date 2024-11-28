@@ -6,7 +6,7 @@ numpy==1.24.3
 pytransform3d~=1.9.1
 graphviz
 anytree>=2.8.0
-SQLAlchemy>=2.0.9
+SQLAlchemy>=2.0.36
 tqdm==4.66.3
 psutil==5.9.7
 lxml==4.9.1

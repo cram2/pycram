@@ -28,16 +28,17 @@ It is possible to spawn objects and robots into the BulletWorld, these objects c
 A BulletWorld can be created by simply creating an object of the BulletWorld class.
 
 ```python
+import pycrap
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
 
-world = BulletWorld(mode=WorldMode.GUI)
+world = BulletWorld(mode=WorldMode.DIRECT)
 
-milk = Object("Milk", ObjectType.MILK, "milk.stl")
-pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
-cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
+milk = Object("milk", pycrap.Milk, "milk.stl")
+pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
+cereal = Object("cereal", pycrap.Cereal, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
 ```
 
 The BulletWorld allows to render images from arbitrary positions. In the following example we render images with the
@@ -90,7 +91,7 @@ Since everything inside the BulletWorld is an Object, even a complex environment
 in the same way as the milk.
 
 ```python
-kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
+kitchen = Object("kitchen", pycrap.Kitchen, "kitchen.urdf")
 ```
 
 ## Costmaps
@@ -270,7 +271,7 @@ Designators are used, for example, by the PickUpAction to know which object shou
 ```python
 from pycram.designators.object_designator import *
 
-milk_desig = BelieveObject(names=["Milk"])
+milk_desig = BelieveObject(names=["milk"])
 milk_desig.resolve()
 ```
 
@@ -281,7 +282,7 @@ Location Designator can create a position in cartisian space from a symbolic des
 ```python
 from pycram.designators.object_designator import *
 
-milk_desig = BelieveObject(names=["Milk"])
+milk_desig = BelieveObject(names=["milk"])
 milk_desig.resolve()
 ```
 
@@ -293,8 +294,8 @@ Location Designators can create a position in cartesian space from a symbolic de
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
 
-robot_desig = BelieveObject(types=[ObjectType.ROBOT]).resolve()
-milk_desig = BelieveObject(names=["Milk"]).resolve()
+robot_desig = BelieveObject(types=[pycrap.Robot]).resolve()
+milk_desig = BelieveObject(names=["milk"]).resolve()
 location_desig = CostmapLocation(target=milk_desig, visible_for=robot_desig)
 
 print(f"Resolved: {location_desig.resolve()}")

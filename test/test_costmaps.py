@@ -6,7 +6,7 @@ from random_events.variable import Continuous
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.interval import *
 
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.costmaps import OccupancyCostmap, AlgebraicSemanticCostmap, VisibilityCostmap
 from pycram.probabilistic_costmap import ProbabilisticCostmap
 from pycram.units import meter, centimeter

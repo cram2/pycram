@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
+
+from pycrap import PhysicalObject
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
 from ..designator import ResolutionError
 from ..orm.base import ProcessMetaData
@@ -14,7 +16,7 @@ from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      Motion as ORMMotionDesignator)
 from ..datastructures.enums import ObjectType, Arms, GripperState, ExecutionType
 
-from typing_extensions import Dict, Optional, get_type_hints
+from typing_extensions import Dict, Optional, get_type_hints, Type, Any
 from ..datastructures.pose import Pose
 from ..tasktree import with_tree
 from ..designator import BaseMotion
@@ -149,7 +151,7 @@ class DetectingMotion(BaseMotion):
     Tries to detect an object in the FOV of the robot
     """
 
-    object_type: ObjectType
+    object_type: Type[PhysicalObject]
     """
     Type of the object that should be detected
     """
@@ -169,7 +171,7 @@ class DetectingMotion(BaseMotion):
                                                   world_object)
 
     def to_sql(self) -> ORMDetectingMotion:
-        return ORMDetectingMotion(self.object_type)
+        return ORMDetectingMotion(str(self.object_type))
 
     def insert(self, session: Session, *args, **kwargs) -> ORMDetectingMotion:
         motion = super().insert(session)
