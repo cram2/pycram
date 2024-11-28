@@ -431,7 +431,8 @@ class Multiverse(World):
                 obj.set_mobile_robot_pose(objects[obj])
         objects = {obj: pose for obj, pose in objects.items() if obj.obj_type not in [ObjectType.ENVIRONMENT,
                                                                                       ObjectType.ROBOT]}
-        self._set_multiple_body_poses({obj.name: pose for obj, pose in objects.items()})
+        if len(objects) > 0:
+            self._set_multiple_body_poses({obj.name: pose for obj, pose in objects.items()})
 
     def _set_body_pose(self, body_name: str, pose: Pose) -> None:
         """
