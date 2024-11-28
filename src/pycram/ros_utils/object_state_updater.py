@@ -20,6 +20,8 @@ class RobotStateUpdater:
 
         * The current pose of the robot
         * The current joint state of the robot
+    .. Note:: This class can only be used if the topics are present in the RSO network on the real robot/world,
+    hence it is not testable in the CI.
     """
 
     def __init__(self, tf_topic: str, joint_state_topic: str):
@@ -76,6 +78,9 @@ class EnvironmentStateUpdater:
     Infos used to update the envi are:
         * The current pose of the environment
         * The current joint state of the environment
+
+    .. Note:: This class can only be used if the topics are present in the RSO network on the real robot/world,
+    hence it is not testable in the CI.
     """
 
     def __init__(self, tf_topic: str, joint_state_topic: str):
