@@ -1,7 +1,7 @@
 import unittest
 from abc import abstractmethod
 
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.dataclasses import ReasoningResult
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.property import Property

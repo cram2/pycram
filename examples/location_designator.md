@@ -42,10 +42,11 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
+import pycrap
 
-world = BulletWorld(WorldMode.GUI)
-apartment = Object("apartment", ObjectType.ENVIRONMENT, "apartment.urdf")
-pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
+world = BulletWorld(WorldMode.DIRECT)
+apartment = Object("apartment", pycrap.Apartment, "apartment.urdf")
+pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
 ```
 
 Next up we will create the location designator description, the {meth}`~pycram.designators.location_designator.CostmapLocation` that we will be using needs a
@@ -78,7 +79,7 @@ PR2 will be set to 0.2 since otherwise the arms of the robot will be too low to 
 
 ```python
 pr2.set_joint_position("torso_lift_joint", 0.2)
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
 
 ```
 
@@ -181,7 +182,7 @@ from pycram.datastructures.enums import ObjectType
 
 apartment_desig = BelieveObject(names=["apartment"])
 handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig.resolve())
-robot_desig = BelieveObject(types=[ObjectType.ROBOT])
+robot_desig = BelieveObject(types=[pycrap.Robot])
 
 access_location = AccessingLocation(handle_desig.resolve(), robot_desig.resolve()).resolve()
 print(access_location.pose)

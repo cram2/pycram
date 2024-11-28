@@ -11,6 +11,8 @@ import numpy as np
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
+import pycrap
+from pycrap import PhysicalObject
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
@@ -72,6 +74,11 @@ class World(StateEntity, ABC):
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
 
+    ontology: Optional[pycrap.Ontology] = None
+    """
+    The ontology of this world.
+    """
+
     def __init__(self, mode: WorldMode, is_prospection_world: bool = False, clear_cache: bool = False):
         """
         Create a new simulation, the mode decides if the simulation should be a rendered window or just run in the
@@ -85,6 +92,9 @@ class World(StateEntity, ABC):
         """
 
         StateEntity.__init__(self)
+
+        self.ontology = pycrap.Ontology()
+
         self.latest_state_id: Optional[int] = None
 
         if clear_cache or (self.conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
@@ -112,7 +122,6 @@ class World(StateEntity, ABC):
         self._update_local_transformer_worlds()
 
         self.mode: WorldMode = mode
-        # The mode of the simulation, can be "GUI" or "DIRECT"
 
         self.coll_callbacks: Dict[Tuple[Object, Object], CollisionCallbacks] = {}
 
@@ -284,7 +293,7 @@ class World(StateEntity, ABC):
 
     @abstractmethod
     def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None,
-                               obj_type: Optional[ObjectType] = None) -> int:
+                               obj_type: Optional[Type[PhysicalObject]] = None) -> int:
         """
         Load a description file (e.g. URDF) at the given pose and returns the id of the loaded object.
 
@@ -903,6 +912,7 @@ class World(StateEntity, ABC):
         self.disconnect_from_physics_server()
         self.reset_robot()
         self.join_threads()
+        self.ontology.destroy_individuals()
         if World.current_world == self:
             World.current_world = None
 

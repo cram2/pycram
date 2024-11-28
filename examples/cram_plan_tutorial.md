@@ -32,13 +32,14 @@ from pycram.world_concepts.world_object import Object
 import anytree
 import pycram.failures
 import numpy as np
+import pycrap
 
 np.random.seed(4)
 
 world = BulletWorld()
-robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
+robot = Object("pr2", pycrap.Robot, "pr2.urdf")
 robot_desig = ObjectDesignatorDescription(names=['pr2']).resolve()
-apartment = Object("apartment", "environment", "apartment.urdf", pose=Pose([-1.5, -2.5, 0]))
+apartment = Object("apartment", pycrap.Apartment, "apartment.urdf", pose=Pose([-1.5, -2.5, 0]))
 apartment_desig = ObjectDesignatorDescription(names=['apartment']).resolve()
 table_top = apartment.get_link_position("cooktop")
 # milk = Object("milk", "milk", "milk.stl", position=[table_top[0]-0.15, table_top[1], table_top[2]])
@@ -98,6 +99,7 @@ def get_n_random_positions(pose_list, n=4, dist=0.5, random=True):
 ```
 
 ```python
+import pycrap
 from pycram.costmaps import SemanticCostmap
 from pycram.pose_generator_and_validator import PoseGenerator
 
@@ -106,17 +108,15 @@ poses_list = list(PoseGenerator(scm, number_of_samples=-1))
 poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x.position_as_list()))
 object_poses = get_n_random_positions(poses_list)
 object_names = ["bowl", "breakfast_cereal", "spoon"]
+object_types = [pycrap.Bowl, pycrap.Cereal, pycrap.Spoon]
 objects = {}
 object_desig = {}
-for obj_name, obj_pose in zip(object_names, object_poses):
-    print(obj_name)
-    print(obj_pose)
-    objects[obj_name] = Object(obj_name, obj_name, obj_name + ".stl",
+for obj_name, obj_type, obj_pose in zip(object_names, object_types, object_poses):
+    objects[obj_name] = Object(obj_name, obj_type, obj_name + ".stl",
                                pose=Pose([obj_pose.position.x, obj_pose.position.y, table_top.z]))
     objects[obj_name].move_base_to_origin_pose()
     objects[obj_name].original_pose = objects[obj_name].pose
-    object_desig[obj_name] = ObjectDesignatorDescription(names=[obj_name], types=[obj_name]).resolve()
-print(object_poses)
+    object_desig[obj_name] = ObjectDesignatorDescription(names=[obj_name], types=[obj_type]).resolve()
 ```
 
 If You want to visualize all apartment frames

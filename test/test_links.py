@@ -1,4 +1,4 @@
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.dataclasses import Color
 
 

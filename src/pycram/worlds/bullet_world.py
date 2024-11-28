@@ -10,6 +10,7 @@ import pycram_bullet as p
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Any
 
+from pycrap import Floor
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
     ClosestPoint, LateralFriction, ContactPoint, ContactPointsList, ClosestPointsList
 from ..datastructures.enums import ObjectType, WorldMode, JointType
@@ -58,7 +59,7 @@ class BulletWorld(World):
         self.set_gravity([0, 0, -9.8])
 
         if not is_prospection_world:
-            _ = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
+            _ = Object("floor", Floor, "plane.urdf",
                        world=self)
 
     def _init_world(self, mode: WorldMode):

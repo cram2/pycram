@@ -141,9 +141,10 @@ from pycram.datastructures.enums import WorldMode, ObjectType
 from pycram.knowledge.knowledge_engine import KnowledgeEngine
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.property import ReachableProperty, SpaceIsFreeProperty
+from pycrap import Robot
 
 world = BulletWorld(WorldMode.GUI)
-pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
+pr2 = Object("pr2", Robot, "pr2.urdf")
 
 target_pose = Pose([0.3, 0, 0.2])
 property = ReachableProperty(target_pose) & SpaceIsFreeProperty(target_pose)

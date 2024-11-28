@@ -1,4 +1,4 @@
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from knowledge_testcase import KnowledgeSourceTestCase, TestProperty, KnowledgeBulletTestCase
 from pycram.datastructures.enums import Arms, Grasp, ObjectType
 from pycram.datastructures.partial_designator import PartialDesignator

@@ -1,11 +1,12 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import typing_extensions
-from dataclasses import dataclass, field, fields
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field, fields
 from inspect import isgenerator, isgeneratorfunction
 
+from typing_extensions import get_type_hints
+from pycrap import PhysicalObject, Agent
 from .datastructures.property import Property, EmptyProperty
 from .ros.logging import logwarn, loginfo
 
@@ -26,7 +27,7 @@ from .world_concepts.world_object import Object as WorldObject
 from .utils import GeneratorList, bcolors
 from threading import Lock
 from time import time
-from typing_extensions import Type, List, Dict, Any, Optional, Union, get_type_hints, Callable, Iterable, TYPE_CHECKING, get_args, get_origin
+from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable, TYPE_CHECKING
 
 from .local_transformer import LocalTransformer
 from .language import Language
@@ -42,9 +43,6 @@ from .orm.motion_designator import Motion as ORMMotionDesignator
 
 from .orm.base import RobotState, ProcessMetaData
 from .tasktree import with_tree
-
-if TYPE_CHECKING:
-    from .ontology.ontology_common import OntologyConceptHolder
 
 
 class DesignatorError(Exception):
@@ -79,15 +77,11 @@ class DesignatorDescription(ABC):
     :ivar resolve: The specialized_designators function to use for this designator_description, defaults to self.ground
     """
 
-    def __init__(self, ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
+    def __init__(self):
         """
         Create a Designator description.
-
-        :param ontology_concept_holders: A list of holders of ontology concepts that the designator_description is categorized as or associated with
         """
-
-        # self.resolve = self.ground
-        self.ontology_concept_holders = [] if ontology_concept_holders is None else ontology_concept_holders
+        pass
 
     def resolve(self):
         return self.ground()
@@ -124,11 +118,7 @@ class DesignatorDescription(ABC):
     def copy(self) -> DesignatorDescription:
         return self
 
-    def get_default_ontology_concept(self) -> owlready2.Thing | None:
-        """
-        :return: The first element of ontology_concept_holders if there is, else None
-        """
-        return self.ontology_concept_holders[0].ontology_concept if self.ontology_concept_holders else None
+
 
     def get_optional_parameter(self) -> List[str]:
         """
@@ -149,7 +139,7 @@ class DesignatorDescription(ABC):
 
         :return:
         """
-        return typing_extensions.get_type_hints(self.__init__)
+        return get_type_hints(self.__init__)
 
 class ActionDesignatorDescription(DesignatorDescription, Language):
     """
@@ -181,7 +171,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         The torso height of the robot at the start of the action.
         """
 
-        robot_type: ObjectType = field(init=False)
+        robot_type: Type[Agent] = field(init=False)
         """
         The type of the robot at the start of the action.
         """
@@ -249,7 +239,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
             metadata = ProcessMetaData().insert(session)
 
             # create robot-state object
-            robot_state = RobotState(self.robot_torso_height, self.robot_type)
+            robot_state = RobotState(self.robot_torso_height, str(self.robot_type))
             robot_state.pose = pose
             robot_state.process_metadata = metadata
             session.add(robot_state)
@@ -268,18 +258,14 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
 
             :return:
             """
-            return typing_extensions.get_type_hints(cls)
+            return get_type_hints(cls)
 
-    def __init__(self, ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
+    def __init__(self):
         """
         Base of all action designator_description descriptions.
-
-        :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(ontology_concept_holders)
+        super().__init__()
         Language.__init__(self)
-        from .ontology.ontology import OntologyManager
-        self.soma = OntologyManager().soma
         self.knowledge_condition = EmptyProperty()
         self.ground = self.resolve
 
@@ -298,21 +284,13 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         """Fill all missing parameters and chose plan to execute. """
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
 
-    def init_ontology_concepts(self, ontology_concept_classes: Dict[str, Type[owlready2.Thing]]):
+    def __iter__(self):
         """
-        Initialize the ontology concept holders for this action designator_description
+        Iterate through all possible performables fitting this description
 
-        :param ontology_concept_classes: The ontology concept classes that the action is categorized as or associated with
-        :param ontology_concept_name: The name of the ontology concept instance to be created
+        :yield: A resolved action designator
         """
-        from .ontology.ontology_common import OntologyConceptHolderStore, OntologyConceptHolder
-        if not self.ontology_concept_holders:
-            for concept_name, concept_class in ontology_concept_classes.items():
-                if concept_class:
-                    existing_holders = OntologyConceptHolderStore().get_ontology_concept_holders_by_class(concept_class)
-                    self.ontology_concept_holders.extend(existing_holders if existing_holders \
-                                                             else [OntologyConceptHolder(concept_class(concept_name))])
-
+        yield self.ground()
 
 
 class LocationDesignatorDescription(DesignatorDescription):
@@ -331,8 +309,8 @@ class LocationDesignatorDescription(DesignatorDescription):
         The executed pose of the location designator_description. Pose is inherited by all location designator_description.
         """
 
-    def __init__(self, ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
-        super().__init__(ontology_concept_holders)
+    def __init__(self):
+        super().__init__()
 
     def ground(self) -> Location:
         """
@@ -396,7 +374,8 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
             :return: The created ORM object.
             """
-            return ORMObjectDesignator(name=self.name, obj_type=self.obj_type)
+            print(str(self.obj_type))
+            return ORMObjectDesignator(name=self.name, obj_type=str(self.obj_type))
 
         def insert(self, session: Session) -> ORMObjectDesignator:
             """
@@ -418,9 +397,10 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def frozen_copy(self) -> 'ObjectDesignatorDescription.Object':
             """
-            Returns a copy of this designator_description containing only the fields.
-
-            :return: A copy containing only the fields of this class. The WorldObject attached to this pycram object is not copied. The _pose gets set to a method that statically returns the pose of the object when this method was called.
+            :return: A copy containing only the fields of this class.
+                The WorldObject attached to this pycram object is not copied.
+                The _pose gets set to a method
+                that statically returns the pose of the object when this method was called.
             """
             result = ObjectDesignatorDescription.Object(self.name, self.obj_type, None)
             # get current object pose and set resulting pose to always be that
@@ -477,16 +457,14 @@ class ObjectDesignatorDescription(DesignatorDescription):
                     return pose_in_object
             return pose
 
-    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[ObjectType]] = None,
-                 ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
+    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None):
         """
         Base of all object designator_description descriptions. Every object designator_description has the name and type of the object.
 
         :param names: A list of names that could describe the object
         :param types: A list of types that could represent the object
-        :param ontology_concept_holders: A list of ontology concepts that the object is categorized as or associated with
         """
-        super().__init__(ontology_concept_holders)
+        super().__init__()
         self.types: Optional[List[ObjectType]] = types
         self.names: Optional[List[str]] = names
 
@@ -516,6 +494,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
                 continue
 
             yield self.Object(obj.name, obj.obj_type, obj)
+
 
 @dataclass
 class BaseMotion(ABC):
@@ -559,26 +538,29 @@ class BaseMotion(ABC):
         """
         Checks if types are missing or wrong
         """
-        right_types = get_type_hints(self)
-        attributes = self.__dict__.copy()
-
-        missing = []
-        wrong_type = {}
-        current_type = {}
-
-        for k in attributes.keys():
-            attribute = attributes[k]
-            attribute_type = type(attributes[k])
-            right_type = right_types[k]
-            types = get_args(right_type)
-            if attribute is None:
-                if not any([x is type(None) for x in get_args(right_type)]):
-                    missing.append(k)
-            elif attribute_type is not right_type:
-                if attribute_type not in types:
-                    if attribute_type not in [get_origin(x) for x in types if x is not type(None)]:
-                        wrong_type[k] = right_types[k]
-                        current_type[k] = attribute_type
-        if missing != [] or wrong_type != {}:
-            raise ResolutionError(missing, wrong_type, current_type, self.__class__)
-
+        return
+        # TODO include type checks for this again (use type guard?)
+        #
+        # right_types = get_type_hints(self)
+        # attributes = self.__dict__.copy()
+        #
+        # missing = []
+        # wrong_type = {}
+        # current_type = {}
+        #
+        # for k in attributes.keys():
+        #     attribute = attributes[k]
+        #     attribute_type = type(attributes[k])
+        #     right_type = right_types[k]
+        #     types = get_args(right_type)
+        #     if attribute is None:
+        #         if not any([x is type(None) for x in get_args(right_type)]):
+        #             missing.append(k)
+        #     elif not issubclass(attribute_type, right_type): # attribute_type is not right_type:
+        #         if attribute_type not in types:
+        #             if attribute_type not in [get_origin(x) for x in types if x is not type(None)]:
+        #                 wrong_type[k] = right_types[k]
+        #                 current_type[k] = attribute_type
+        # if missing != [] or wrong_type != {}:
+        #     raise ResolutionError(missing, wrong_type, current_type, self.__class__)
+        #

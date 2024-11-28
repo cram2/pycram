@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.object_descriptors.urdf import ObjectDescription as URDFObject
 from pycram.config import world_conf as conf
 

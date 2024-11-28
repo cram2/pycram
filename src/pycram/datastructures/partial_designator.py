@@ -1,7 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from collections import Iterable
+from collections.abc import Iterable
 
 from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING
 from itertools import product
@@ -49,8 +49,7 @@ class PartialDesignator:
         for key in dict(signature(self.performable).parameters).keys():
             if key not in self.kwargs.keys():
                 self.kwargs[key] = None
-        # self.args = tuple(filter(None, args))
-        # self.kwargs = {k:v for k,v in kwargs.items() if v is not None}
+
 
     def __call__(self, *fargs, **fkwargs):
         """
@@ -77,7 +76,6 @@ class PartialDesignator:
 
         :return: A new performable object for each permutation of arguments and keyword arguments
         """
-        # for args_combination in PartialDesignator.generate_permutations(self.args):
         for kwargs_combination in PartialDesignator.generate_permutations(self.kwargs.values()):
             yield self.performable(**dict(zip(self.kwargs.keys(), kwargs_combination)))
 
@@ -116,14 +114,5 @@ class PartialDesignator:
         missing = {k: v for k, v in self.kwargs.items() if v is None}
         return list(missing.keys())
 
-        # performable_params = signature(self.performable).parameters
-        # # List of all parameter names that need to be filled for the performable
-        # param_names = list(performable_params.keys())
-        #
-        # # Remove parameter that are filled by args
-        # # missing_after_args = param_names[len(self.args):]
-        #
-        # # Remove parameter that are filled by keyword arguments and return the remaining parameters
-        # return list(set(missing_after_args) - set(self.kwargs.keys()))
 
 
