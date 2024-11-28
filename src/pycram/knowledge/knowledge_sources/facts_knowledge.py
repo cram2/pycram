@@ -51,24 +51,25 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
         :param pose: Pose which should be checked
         :return: A ReasoningResult with the result of the check and possible arms
         """
-        ground_pose = Pose(pose.position_as_list())
-        ground_pose.position.z = 0
-        occupancy = OccupancyCostmap(0.32, False, 200, 0.02, ground_pose)
-        gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
-        final_map = occupancy +  gaussian
-
-        with UseProspectionWorld():
-            test_robot = World.current_world.get_prospection_object_for_object(World.robot)
-            for maybe_pose in PoseGenerator(final_map, number_of_samples=200):
-                hand_links = []
-                for description in RobotDescription.current_robot_description.get_manipulator_chains():
-                    hand_links += description.end_effector.links
-                valid, arms = reachability_validator(maybe_pose, test_robot, pose,
-                                                     allowed_collision={test_robot: hand_links})
-                if valid:
-                    return ReasoningResult(True, {"arm": arms})
-
-        return ReasoningResult(False)
+        # ground_pose = Pose(pose.position_as_list())
+        # ground_pose.position.z = 0
+        # occupancy = OccupancyCostmap(0.32, False, 200, 0.02, ground_pose)
+        # gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
+        # final_map = occupancy +  gaussian
+        #
+        # with UseProspectionWorld():
+        #     test_robot = World.current_world.get_prospection_object_for_object(World.robot)
+        #     for maybe_pose in PoseGenerator(final_map, number_of_samples=200):
+        #         hand_links = []
+        #         for description in RobotDescription.current_robot_description.get_manipulator_chains():
+        #             hand_links += description.end_effector.links
+        #         valid, arms = reachability_validator(maybe_pose, test_robot, pose,
+        #                                              allowed_collision={test_robot: hand_links})
+        #         if valid:
+        #             return ReasoningResult(True, {"arm": arms})
+        #
+        # return ReasoningResult(False)
+        return ReasoningResult(True)
 
     def graspable(self, object_designator: ObjectDesignatorDescription) -> ReasoningResult:
         """
