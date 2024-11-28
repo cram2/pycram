@@ -94,7 +94,7 @@ import pycrap
 from pycram.costmaps import SemanticCostmap
 from pycram.pose_generator_and_validator import PoseGenerator
 
-counter_name = "counter_stove_sink" if use_multiverse else "island_countertop"
+counter_name = "counter_sink_stove" if use_multiverse else "island_countertop"
 counter_link = apartment.get_link(counter_name)
 counter_bounds = counter_link.get_axis_aligned_bounding_box()
 scm = SemanticCostmap(apartment, counter_name)
