@@ -13,7 +13,7 @@ from ..pose_generator_and_validator import PoseGenerator, visibility_validator, 
 from ..robot_description import RobotDescription
 from ..ros.logging import logdebug
 from ..world_concepts.world_object import Object, Link
-from ..world_reasoning import link_pose_for_joint_config, contact, is_a_picked_object
+from ..world_reasoning import link_pose_for_joint_config, contact, is_a_picked_object, check_for_collision
 
 
 class Location(LocationDesignatorDescription):
@@ -146,29 +146,6 @@ class CostmapLocation(LocationDesignatorDescription):
         """
         return next(iter(self))
 
-    def check_for_collision(self, robot: Object, pose: Pose) -> bool:
-        """
-        Check if the robot collides with any object in the world at the given pose.
-
-        :param robot: The robot object
-        :param pose: The pose to check for collision
-        :return: True if the robot collides with any object, False otherwise
-        """
-        robot.set_pose(pose)
-        floor = robot.world.get_object_by_name("floor")
-        ignore = [o.name for o in self.ignore_collision_with]
-        for obj in robot.world.objects:
-            if obj.name in ([robot.name, floor.name] + ignore):
-                continue
-            in_contact, contact_links = contact(robot, obj, return_links=True)
-            if in_contact and not is_a_picked_object(robot, obj, [links[0] for links in contact_links]):
-                logdebug(f"Robot is in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
-                         f"at position {pose.position_as_list()} and z_angle {pose.z_angle}")
-                return True
-            logdebug(f"Robot is not in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
-                     f"at position {pose.position_as_list()} and z_angle {pose.z_angle}")
-        return False
-
     def __iter__(self):
         """
            Generates positions for a given set of constrains from a costmap and returns
@@ -208,13 +185,12 @@ class CostmapLocation(LocationDesignatorDescription):
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
             test_robot = World.current_world.get_prospection_object_for_object(robot_object)
-            # test_robot = robot_object
         self.ignore_collision_with = [World.current_world.get_prospection_object_for_object(o) for o in
                                       self.ignore_collision_with]
         with UseProspectionWorld():
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
                 if self.check_collision_at_start and (test_robot is not None):
-                    if self.check_for_collision(test_robot, maybe_pose):
+                    if check_for_collision(test_robot, maybe_pose, self.ignore_collision_with):
                         continue
                 res = True
                 arms = None
@@ -314,8 +290,10 @@ class AccessingLocation(LocationDesignatorDescription):
 
         with UseProspectionWorld():
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600,
-                                             orientation_generator=lambda p, o: PoseGenerator.generate_orientation(p, half_pose)):
-
+                                            orientation_generator=lambda p, o: PoseGenerator.generate_orientation(p,
+                                                                                                                  half_pose)):
+                if check_for_collision(test_robot, maybe_pose):
+                    continue
                 hand_links = []
                 for description in RobotDescription.current_robot_description.get_manipulator_chains():
                     hand_links += description.end_effector.links

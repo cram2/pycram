@@ -4,7 +4,7 @@ Classes:
 Singleton -- implementation of singleton metaclass
 """
 import os
-from typing_extensions import Dict, Optional
+from typing_extensions import Dict, Optional, List
 import xml.etree.ElementTree as ET
 
 from .ros.logging import logwarn

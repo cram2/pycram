@@ -6,6 +6,7 @@ from .datastructures.pose import Pose, Transform
 from .datastructures.world import World, UseProspectionWorld
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .robot_description import RobotDescription
+from .ros.logging import logdebug
 from .utils import RayTestUtils
 from .world_concepts.world_object import Object, Link
 from .config import world_conf as conf
@@ -60,6 +61,33 @@ def contact(
             return objects_are_in_contact, contact_links
         else:
             return objects_are_in_contact
+
+
+def check_for_collision(robot: Object, pose: Pose,
+                        ignore_collision_with: Optional[List[Object]] = None) -> bool:
+    """
+    Check if the robot collides with any object in the world at the given pose.
+
+    :param robot: The robot object
+    :param pose: The pose to check for collision
+    :param ignore_collision_with: A list of objects to ignore collision with
+    :return: True if the robot collides with any object, False otherwise
+    """
+    robot.set_pose(pose)
+    floor = robot.world.get_object_by_name("floor")
+    ignore_collision_with = [] if ignore_collision_with is None else ignore_collision_with
+    ignore = [o.name for o in ignore_collision_with]
+    for obj in robot.world.objects:
+        if obj.name in ([robot.name, floor.name] + ignore):
+            continue
+        in_contact, contact_links = contact(robot, obj, return_links=True)
+        if in_contact and not is_a_picked_object(robot, obj, [links[0] for links in contact_links]):
+            logdebug(f"Robot is in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
+                     f"at position {pose.position_as_list()} and z_angle {pose.z_angle}")
+            return True
+        logdebug(f"Robot is not in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
+                 f"at position {pose.position_as_list()} and z_angle {pose.z_angle}")
+    return False
 
 
 def is_a_picked_object(robot: Object, obj: Object, robot_contact_links: List[Link]) -> bool:
