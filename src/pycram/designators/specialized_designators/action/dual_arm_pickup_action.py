@@ -22,8 +22,7 @@ class DualArmPickupAction(PickUpAction):
 
     def __init__(self,
                  object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
-                 grasps: List[Grasp], resolver=None,
-                 ontology_concept_holders: Optional[List[Thing]] = None):
+                 grasps: List[Grasp], resolver=None):
         """
         Specialized version of the PickUpAction designator which uses heuristics to solve for a dual pickup problem. The
         designator will choose the arm which is closest to the object that is to be picked up.
@@ -32,13 +31,11 @@ class DualArmPickupAction(PickUpAction):
         :param grasps: List of possible grasps which should be used for the pickup
         :param resolver: Optional specialized_designators that returns a performable designator with elements from the
                          lists of possible parameter
-        :param ontology_concept_holders: List of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(object_designator_description,
                          arms=[Arms.LEFT, Arms.RIGHT],
                          grasps=grasps,
-                         resolver=resolver,
-                         ontology_concept_holders=ontology_concept_holders)
+                         resolver=resolver)
 
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description

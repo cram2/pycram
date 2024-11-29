@@ -11,6 +11,7 @@ from pycram.failures import PlanFailure
 from pycram.process_module import ProcessModule, simulated_robot
 from pycram.robot_description import RobotDescription
 from pycram.object_descriptors.urdf import ObjectDescription
+from pycrap import Robot
 
 extension = ObjectDescription.get_file_extension()
 
@@ -33,7 +34,7 @@ class FailureHandlingTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(WorldMode.DIRECT)
-        cls.robot = Object(RobotDescription.current_robot_description.name, ObjectType.ROBOT,
+        cls.robot = Object(RobotDescription.current_robot_description.name, Robot,
                            RobotDescription.current_robot_description.name + extension)
         ProcessModule.execution_delay = True
 

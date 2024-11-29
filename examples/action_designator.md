@@ -41,11 +41,12 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
+import pycrap
 
-world = BulletWorld(WorldMode.GUI)
-pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf", pose=Pose([1, 2, 0]))
-apartmet = Object("apartment", ObjectType.ENVIRONMENT, "apartment.urdf")
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([2.3, 2, 1.1]))
+world = BulletWorld(WorldMode.DIRECT)
+pr2 = Object("pr2", pycrap.Robot, "pr2.urdf", pose=Pose([1, 2, 0]))
+apartmet = Object("apartment", pycrap.Apartment, "apartment.urdf")
+milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([2.3, 2, 1.1]))
 ```
 
 To move the robot we need to create a description and resolve it to an actual Designator. The description of navigation
@@ -243,9 +244,9 @@ from pycram.datastructures.enums import Arms
 milk_desig = BelieveObject(names=["milk"])
 
 description = TransportAction(milk_desig,
-                              [Arms.LEFT],
                               [Pose([2.4, 1.8, 1], 
-                                       [0, 0, 0, 1])])
+                                       [0, 0, 0, 1])],
+                              [Arms.LEFT])
 with simulated_robot:
     MoveTorsoAction([0.2]).resolve().perform()
     description.resolve().perform()

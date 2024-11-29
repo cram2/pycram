@@ -8,8 +8,10 @@ from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import  BulletWorldTestCase
 import numpy as np
+
+from pycrap import Milk
 
 
 class TestActionDesignatorGrounding(BulletWorldTestCase):
@@ -35,13 +37,13 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_release(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.ReleaseAction([Arms.LEFT], object_description)
+        description = action_designator.ReleaseAction(object_description, [Arms.LEFT])
         self.assertEqual(description.ground().gripper, Arms.LEFT)
         self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_grip(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.GripAction([Arms.LEFT], object_description, [0.5])
+        description = action_designator.GripAction(object_description, [Arms.LEFT], [0.5])
         self.assertEqual(description.ground().gripper, Arms.LEFT)
         self.assertEqual(description.ground().object_designator.name, "milk")
 
@@ -57,11 +59,11 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
 
     def test_navigate(self):
-        description = action_designator.NavigateAction([Pose([1, 0, 0], [0, 0, 0, 1])])
+        description = action_designator.NavigateAction([Pose([0.3, 0, 0], [0, 0, 0, 1])])
         with simulated_robot:
             description.resolve().perform()
-        self.assertEqual(description.ground().target_location, Pose([1, 0, 0], [0, 0, 0, 1]))
-        self.assertEqual(self.robot.get_pose(), Pose([1, 0, 0]))
+        self.assertEqual(description.ground().target_location, Pose([0.3, 0, 0], [0, 0, 0, 1]))
+        self.assertEqual(self.robot.get_pose(), Pose([0.3, 0, 0]))
 
     def test_pick_up(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -100,7 +102,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             detected_object = description.resolve().perform()
         self.assertEqual(detected_object.name, "milk")
-        self.assertEqual(detected_object.obj_type, ObjectType.MILK)
+        self.assertEqual(detected_object.obj_type, Milk)
         self.assertEqual(detected_object.world_object, self.milk)
 
     # Skipped since open and close work only in the apartment at the moment
@@ -119,9 +121,9 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_transport(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.TransportAction(object_description,
-                                                        [Arms.LEFT],
                                                         [Pose([-1.35, 0.78, 0.95],
-                                                              [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])])
+                                                              [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])],
+                                                        [Arms.LEFT])
         with simulated_robot:
             action_designator.MoveTorsoAction([0.2]).resolve().perform()
             description.resolve().perform()

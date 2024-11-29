@@ -5,7 +5,7 @@ import numpy as np
 from random_events.variable import Continuous, Symbolic
 from sortedcontainers import SortedSet
 
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.enums import ObjectType, Arms, Grasp
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators.action_designator import MoveTorsoActionPerformable
@@ -14,6 +14,7 @@ from pycram.designators.specialized_designators.probabilistic.probabilistic_acti
                                                                                            Grasp as PMGrasp)
 from pycram.failures import PlanFailure
 from pycram.process_module import simulated_robot
+from pycrap import Milk
 
 
 class MoveAndPickUpTestCase(BulletWorldTestCase):
@@ -25,7 +26,7 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
         random.seed(69)
 
     def test_variables(self):
-        object_designator = ObjectDesignatorDescription(types=[ObjectType.MILK]).resolve()
+        object_designator = ObjectDesignatorDescription(types=[Milk]).resolve()
         move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
                                       grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP])
         result = SortedSet([Symbolic("arm", PMArms), Symbolic("grasp", PMGrasp),
@@ -34,7 +35,7 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
         self.assertEqual(all_variables, result)
 
     def test_grounding(self):
-        object_designator = ObjectDesignatorDescription(types=[ObjectType.MILK]).resolve()
+        object_designator = ObjectDesignatorDescription(types=[Milk]).resolve()
         move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
                                       grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP])
 
@@ -44,7 +45,7 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
         self.assertIsNotNone(model)
 
     def test_move_and_pick_up_with_mode(self):
-        object_designator = ObjectDesignatorDescription(types=[ObjectType.MILK]).resolve()
+        object_designator = ObjectDesignatorDescription(types=[Milk]).resolve()
         move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
                                       grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP])
         with simulated_robot:

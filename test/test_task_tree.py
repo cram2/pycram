@@ -7,7 +7,7 @@ import pycram.tasktree
 from pycram.tasktree import with_tree
 import unittest
 import anytree
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 import pycram.failures
 from pycram.designators import object_designator, action_designator
 
