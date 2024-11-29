@@ -88,6 +88,7 @@ def get_n_random_positions(pose_list, n=4, dist=0.5, random=True):
 ```
 
 ```python
+import pycrap
 from tf.transformations import quaternion_from_euler
 import pycrap
 from pycram.costmaps import SemanticCostmap
