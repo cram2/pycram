@@ -8,6 +8,7 @@ from std_msgs.msg import Header
 
 from ..datastructures.enums import FilterConfig
 from ..datastructures.world import World
+from ..failures import SensorMonitoringCondition
 from ..ros.filter import Butterworth
 from ..ros.data_types import Time
 from ..ros.publisher import create_publisher
@@ -171,6 +172,7 @@ class ForceTorqueSensor:
 
     def _filter_data(self, current_wrench_data: WrenchStamped) -> WrenchStamped:
         filtered_data = WrenchStamped()
+        filtered_data.header = current_wrench_data.header
         for attr in ['x', 'y', 'z']:
             force_values = [getattr(val.wrench.force, attr) for val in self.prev_values] + [
                 getattr(current_wrench_data.wrench.force, attr)]
@@ -218,19 +220,41 @@ class ForceTorqueSensor:
         """
         Calculate the derivative of current data.
 
-        :param is_filtered: Decides about using filtered or raw data
+        :param is_filtered: Decides about using filtered or raw data.
+        :return: The derivative as a WrenchStamped object. Returns a zeroed derivative if only one data point exists.
         """
         status = self.filtered if is_filtered else self.unfiltered
+
+        if len(self.whole_data[status]) < 2:
+            return WrenchStamped()
 
         before: WrenchStamped = self.whole_data[status][-2]
         after: WrenchStamped = self.whole_data[status][-1]
         derivative = WrenchStamped()
 
-        derivative.wrench.force.x = before.wrench.force.x - after.wrench.force.x
-        derivative.wrench.force.y = before.wrench.force.y - after.wrench.force.y
-        derivative.wrench.force.z = before.wrench.force.z - after.wrench.force.z
-        derivative.wrench.torque.x = before.wrench.torque.x - after.wrench.torque.x
-        derivative.wrench.torque.y = before.wrench.torque.y - after.wrench.torque.y
-        derivative.wrench.torque.z = before.wrench.torque.z - after.wrench.torque.z
+        dt = (after.header.stamp - before.header.stamp).to_sec()
+        if dt == 0:
+            return WrenchStamped()
+
+        derivative.wrench.force.x = (after.wrench.force.x - before.wrench.force.x) / dt
+        derivative.wrench.force.y = (after.wrench.force.y - before.wrench.force.y) / dt
+        derivative.wrench.force.z = (after.wrench.force.z - before.wrench.force.z) / dt
+        derivative.wrench.torque.x = (after.wrench.torque.x - before.wrench.torque.x) / dt
+        derivative.wrench.torque.y = (after.wrench.torque.y - before.wrench.torque.y) / dt
+        derivative.wrench.torque.z = (after.wrench.torque.z - before.wrench.torque.z) / dt
 
         return derivative
+
+    def human_touch_monitoring(self):
+        print("monitoring")
+        if self.robot_name == 'hsrb':
+            der = self.get_last_value()
+            if abs(der.wrench.force.x) > 10.30:
+                print("sensor")
+                return SensorMonitoringCondition
+        elif self.robot_name == 'pr2':
+            der = self.get_derivative()
+            print(der.wrench.torque.x)
+            if abs(der.wrench.torque.x) > 3:
+                print("sensor")
+                return SensorMonitoringCondition
