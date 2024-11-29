@@ -282,3 +282,11 @@ class MultiverseJointCMD(MultiverseJointProperty):
             return MultiverseJointCMD.PRISMATIC_JOINT_CMD
         else:
             raise UnsupportedJointType(joint_type)
+
+
+class FilterConfig(Enum):
+    """
+    Declare existing filter methods.
+    Currently supported: Butterworth
+    """
+    butterworth = 1

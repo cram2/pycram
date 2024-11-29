@@ -2,7 +2,7 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
-from pycram.datastructures.enums import ObjectType, WorldMode
+from pycram.datastructures.enums import  WorldMode
 from pycram.datastructures.pose import Pose
 from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.object_descriptors.urdf import ObjectDescription
@@ -11,6 +11,7 @@ from pycram.datastructures.dataclasses import Color
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 from pycrap import Robot, Apartment, Milk, Cereal, Spoon, Bowl
 import numpy as np
+
 
 np.random.seed(420)
 extension = ObjectDescription.get_file_extension()
