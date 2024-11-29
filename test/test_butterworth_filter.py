@@ -1,5 +1,5 @@
 import unittest
-from pycram.ros.custom_filter import Butterworth
+from pycram.ros.filter import Butterworth
 
 class TestButterworthFilter(unittest.TestCase):
 
