@@ -4,20 +4,18 @@ import networkx
 import networkx as nx
 import owlready2
 from graph_tool.topology import topological_sort
-from owlready2 import ThingClass, Thing, ObjectProperty
+from owlready2 import ThingClass, Thing, ObjectProperty, PropertyClass
 from owlready2.base import *
 from owlready2.class_construct import Restriction, SOME, ONLY, VALUE, HAS_SELF, _restriction_type_2_label
 import tqdm
-from typing_extensions import List
+from typing_extensions import List, Any
 
 
 class Parser:
     """
     A class that parses all definitions from an ontology into python files that are owlready2 compatible.
 
-    Not parsed are:
-        - Circular dependencies
-
+    TODO: Labels metadata and SWRL is not parsed
     """
 
     ontology: owlready2.Ontology
@@ -30,138 +28,210 @@ class Parser:
     The path to write the files of the parsed ontology into.
     """
 
-    classes_file_name: str = "classes.py"
+    base_file_name: str = "base"
+    """
+    The file name where the base classes are written to.
+    """
+
+    classes_file_name: str = "classes"
     """
     The file name where all elements from ontology.classes() are written to.
     """
 
-    properties_file_name: str = "properties.py"
+    object_properties_file_name: str = "object_properties"
     """
     The file name where all elements from ontology.properties() are written to.
     """
 
-    restrictions_file_name: str = "restrictions.py"
+    data_properties_file_name: str = "data_properties"
 
-    individuals_file_name: str = "individuals.py"
+    restrictions_file_name: str = "restrictions"
+
+    individuals_file_name: str = "individuals"
+
+    file_extension: str = ".py"
 
     indentation = 4
     """
     The indentation to use for the python file.
     """
 
-    dependency_graph: nx.DiGraph
+    current_file: Any
 
-    def __init__(self, ontology: owlready2.Ontology, file_name: str):
+    def __init__(self, ontology: owlready2.Ontology, path: str):
         self.ontology = ontology
-        self.file_name = file_name
-        self.file = None
+        self.path = path
         render_func_without_namespace = lambda entity: entity.name
         owlready2.set_render_func(render_func_without_namespace)
 
-    def create_dependency_graph(self):
-        """
-        Create the dependency graph of the ontology.
-        """
-        self.dependency_graph = nx.DiGraph()
-        for cls in self.ontology.classes():
-            print(cls)
-            self.dependency_graph.add_node(cls)
-            for other in self.get_concepts_of_elements(cls.is_a):
-                self.dependency_graph.add_edge(other, cls)
-            for other in self.get_concepts_of_elements(cls.equivalent_to):
-                self.dependency_graph.add_edge(other, cls)
-
-        # for prop in owlready2.ObjectProperty.subclasses():
-        #     self.dependency_graph.add_node(prop)
-        #     for other in self.get_concepts_of_elements(prop.is_a):
-        #         self.dependency_graph.add_edge(other, prop)
-        #     for other in self.get_concepts_of_elements(prop.equivalent_to):
-        #         self.dependency_graph.add_edge(other, prop)
-        #     if prop.domain:
-        #         for domain in self.get_concepts_of_elements(prop.domain):
-        #             self.dependency_graph.add_edge(domain, prop)
-        #     if prop.range:
-        #         for range in self.get_concepts_of_elements(prop.range):
-        #             self.dependency_graph.add_edge(range, prop)
-            # if prop.inverse_property:
-            #     for inverse_property in self.get_concepts_of_element(prop.inverse_property):
-            #         self.graph.add_edge(prop, inverse_property)
-
-    def get_concepts_of_elements(self, elements: List) -> List:
-        return [e for element in elements for e in self.get_concepts_of_element(element)]
-
-    def get_concepts_of_element(self, element) -> List:
-        if element is ThingClass:
-            return []
-        elif isinstance(element, ThingClass):
-            return [element]
-        elif isinstance(element, Thing):
-            return [element]
-        elif element.__module__ == 'builtins':
-            return [element]
-        elif isinstance(element, owlready2.prop.DatatypeClass):
-            return [element]
-        elif isinstance(element, normstr):
-            return [element]
-        elif isinstance(element, owlready2.prop.PropertyClass) and not isinstance(element, ObjectProperty):
-            return []
-        elif isinstance(element, owlready2.class_construct.And):
-            return self.get_concepts_of_elements(element.Classes)
-        elif isinstance(element, owlready2.class_construct.Or):
-            return self.get_concepts_of_elements(element.Classes)
-        elif isinstance(element, owlready2.class_construct.Restriction):
-            return self.get_concepts_of_element(element.value)
-        elif isinstance(element, owlready2.class_construct.Not):
-            return self.get_concepts_of_element(element.Class)
-        elif isinstance(element, owlready2.class_construct.OneOf):
-            return self.get_concepts_of_elements(element.instances)
-        elif element.__module__ == "owlready2.util":
-            return []
-        else:
-            raise NotImplementedError(f"Cant get concepts of {element} with type {type(element)}")
 
     def parse(self):
         """
         Parses the ontology into a python file.
         """
-        self.create_dependency_graph()
-        self.file = open(self.file_name, "w")
-        self.create_imports()
-        self.create_namespace()
+        self.create_base()
+        self.create_classes()
+        self.create_object_properties()
+        self.create_data_properties()
+        self.create_individuals()
+        self.create_restrictions()
+        # create swrl rules
+        self.create_init()
+
+    def create_init(self):
+        self.current_file = open(f"{os.path.join(self.path, '__init__')}{self.file_extension}", "w")
+        self.create_import_from_classes()
+        self.create_import_from_properties()
+        self.import_individuals()
+        self.current_file.close()
+
+    def create_base(self):
+        self.current_file = open(f"{os.path.join(self.path, self.base_file_name)}{self.file_extension}", "w")
+        self.create_base_imports()
+        self.current_file.write("\n" * 2)
+        self.current_file.write("ontology_file = tempfile.NamedTemporaryFile()\n")
+        self.current_file.write('ontology = owlready2.get_ontology("file://" + ontology_file.name).load()\n')
+        self.current_file.write("\n" * 2)
         self.create_base_class()
         self.create_base_property()
-        self.create_nodes_and_properties()
-        self.file.close()
+        self.current_file.close()
 
-    def create_imports(self):
-        self.file.write("from owlready2 import *\n\n")
+    def create_classes(self):
+        self.current_file = open(f"{os.path.join(self.path, self.classes_file_name)}{self.file_extension}", "w")
+        self.create_import_from_base()
+        self.current_file.write("\n" * 2)
+        classes = list(self.ontology.classes())
+        for cls in tqdm.tqdm(classes, desc="Parsing classes"):
+            self.parse_class(cls)
+        self.current_file.close()
+
+    def create_object_properties(self):
+        self.current_file = open(f"{os.path.join(self.path, self.object_properties_file_name)}{self.file_extension}", "w")
+        self.create_import_from_base()
+        self.current_file.write("\n" * 2)
+        properties = list(self.ontology.object_properties())
+        for prop in tqdm.tqdm(properties, desc="Parsing object properties"):
+            self.parse_property(prop)
+        self.current_file.close()
+
+    def create_data_properties(self):
+        self.current_file = open(f"{os.path.join(self.path, self.data_properties_file_name)}{self.file_extension}", "w")
+        self.create_import_from_base()
+        self.create_import_from_classes()
+        self.current_file.write("\n" * 2)
+        properties = list(self.ontology.data_properties())
+        for prop in tqdm.tqdm(properties, desc="Parsing data properties"):
+            self.parse_property(prop)
+        self.current_file.close()
+
+    def create_restrictions(self):
+        self.current_file = open(f"{os.path.join(self.path, self.restrictions_file_name)}{self.file_extension}", "w")
+        self.create_import_from_classes()
+        self.import_individuals()
+        self.current_file.write("\n" * 2)
+
+        elements = list(self.ontology.classes()) + list(self.ontology.properties())
+
+        for element in tqdm.tqdm(elements, desc="Parsing restrictions"):
+            self.parse_restrictions_for(element)
+            self.current_file.write("\n")
+        self.current_file.close()
+
+    def parse_restrictions_for(self, element):
+        if isinstance(element, ThingClass):
+            self.parse_restrictions_for_class(element)
+        elif isinstance(element, PropertyClass):
+            self.parse_restrictions_for_property(element)
+
+    def parse_restrictions_for_class(self, cls: ThingClass):
+        # write is_a restrictions
+        is_a = self.parse_elements(cls.is_a)
+        if is_a:
+            is_a = f"{repr(cls)}.is_a = [{is_a}]"
+            self.current_file.write(is_a)
+            self.current_file.write("\n")
+
+        # write equivalent_to restrictions
+        self.write_equivalent_to(cls)
+
+    def import_individuals(self):
+        self.current_file.write("from .individuals import *\n")
+
+    def parse_restrictions_for_property(self, prop):
+        #write is_a restrictions
+        is_a = self.parse_elements(prop.is_a)
+        if is_a:
+            is_a = f"{repr(prop)}.is_a = [{is_a}]"
+            self.current_file.write(is_a)
+            self.current_file.write("\n")
+
+        # write domain restrictions
+        domain_string = self.parse_elements(prop.domain)
+        if domain_string:
+            domain_string = f"{repr(prop)}.domain = [{domain_string}]"
+            self.current_file.write(domain_string)
+            self.current_file.write("\n")
+
+        # write range restrictions
+        range_string = self.parse_elements(prop.range)
+        if range_string:
+            range_string = f"{repr(prop)}.range = [{range_string}]"
+            self.current_file.write(range_string)
+            self.current_file.write("\n")
+
+    def create_individuals(self):
+        self.current_file = open(f"{os.path.join(self.path, self.individuals_file_name)}{self.file_extension}", "w")
+        self.create_import_from_base()
+        self.create_import_from_classes()
+        self.create_import_from_properties()
+        self.current_file.write("\n" * 2)
+
+        individuals = list(self.ontology.individuals())
+        for individual in tqdm.tqdm(individuals, desc="Parsing individuals"):
+            self.parse_individual(individual)
+        self.current_file.write("\n")
+        for individual in tqdm.tqdm(individuals, desc="Parsing individuals"):
+            self.parse_individual_properties(individual)
+            if individual.get_properties():
+                self.current_file.write("\n")
+        self.current_file.close()
+
+    def parse_individual(self, individual: owlready2.Thing):
+        self.current_file.write(f"{individual.name} = {repr(individual.__class__)}(namespace = ontology)")
+        self.current_file.write("\n")
+
+    def parse_individual_properties(self, individual: owlready2.Thing):
+        for prop in individual.get_properties():
+            self.current_file.write(f"{individual.name}.{repr(prop)} = {individual.__getattr__(repr(prop))}")
+            self.current_file.write("\n")
+
+
+    def create_base_imports(self):
+        self.current_file.write("from owlready2 import *\n")
+        self.current_file.write("import tempfile\n")
+
+    def create_import_from_base(self):
+        self.current_file.write("from .base import *\n")
+
+    def create_import_from_classes(self):
+        self.current_file.write("from .classes import *\n")
+
+    def create_import_from_properties(self):
+        self.current_file.write("from .object_properties import *\n")
+        self.current_file.write("from .data_properties import *\n")
 
     def create_namespace(self):
-        self.file.write(f"default_namespace = get_ontology('{self.ontology.base_iri}').load()\n\n")
+        self.current_file.write(f"ontology = get_ontology('{self.ontology.base_iri}').load()\n\n")
 
     def create_base_class(self):
-        self.file.write("class Base(Thing):\n")
-        self.file.write("    namespace = default_namespace\n\n")
+        self.current_file.write("class Base(Thing):\n")
+        self.current_file.write(self.apply_indent_to("namespace = ontology"))
+        self.current_file.write("\n" * 3)
 
     def create_base_property(self):
-        self.file.write("class BaseProperty(ObjectProperty):\n")
-        self.file.write("    namespace = default_namespace\n\n")
-
-
-    def create_nodes_and_properties(self):
-
-        # start will all nodes that have no incoming edges
-        assert nx.is_directed_acyclic_graph(self.dependency_graph), "Only DAGs can be parsed for now."
-        for node in nx.topological_sort(self.dependency_graph):
-            if isinstance(node, owlready2.prop.ObjectPropertyClass):
-                self.parse_property(node)
-            elif isinstance(node, owlready2.ThingClass):
-                self.parse_class(node)
-            else:
-                continue
-                raise NotImplementedError(f"Parsing of node {node} with type {type(node)} is not supported.")
-            self.file.write("\n\n")
-
+        self.current_file.write("class BaseProperty(ObjectProperty):\n")
+        self.current_file.write(self.apply_indent_to("namespace = ontology"))
+        self.current_file.write("\n" * 3)
 
     def apply_indent_to(self, string):
         return " " * self.indentation + string.replace('\n', '\n' + ' ' * self.indentation)
@@ -171,10 +241,13 @@ class Parser:
         Get the docstring for a class.
         """
         docstring = cls.comment
-        docstring = f"\n".join(docstring)
-        return (f'"""\n'
-                f'{docstring}\n'
-                f'"""\n')
+        if docstring:
+            docstring = f"\n".join(docstring)
+            return (f'"""\n'
+                    f'{docstring}\n'
+                    f'"""\n')
+        else:
+            return "...\n"
 
     def parse_element(self, element):
         """
@@ -195,51 +268,28 @@ class Parser:
         # apply indent to docstring
         docstring = self.get_docstring(cls)
         docstring = self.apply_indent_to(docstring)
-        self.file.write(docstring)
+        self.current_file.write(docstring)
 
     def write_equivalent_to(self, cls):
         equivalent_to = self.parse_elements(cls.equivalent_to)
         if equivalent_to:
-            equivalent_to = self.apply_indent_to(f"equivalent_to = [{equivalent_to}]")
-            self.file.write(equivalent_to)
-            self.file.write("\n")
+            equivalent_to = f"{repr(cls)}.equivalent_to = [{equivalent_to}]"
+            self.current_file.write(equivalent_to)
+            self.current_file.write("\n")
 
     def write_is_a(self, cls):
         is_a = self.parse_elements(cls.is_a)
-        is_a = self.apply_indent_to(f"is_a = [{is_a}]")
-        self.file.write(is_a)
-        self.file.write("\n")
+        is_a = f"{repr(cls)}is_a = [{is_a}]"
+        self.current_file.write(is_a)
+        self.current_file.write("\n")
 
     def parse_class(self, cls):
-        inherited_classes_sting = "Base"  # , ".join(self.parse_element(parent) for parent in cls.is_a)
-        self.file.write(f"class {cls.name}({inherited_classes_sting}):\n")
+        inherited_classes_sting = "Base"
+        self.current_file.write(f"class {cls.name}({inherited_classes_sting}):\n")
         self.write_docstring(cls)
-        self.file.write("\n")
-        self.write_is_a(cls)
-        self.write_equivalent_to(cls)
+        self.current_file.write("\n\n")
 
     def parse_property(self, prop):
-        self.file.write(f"class {prop.name}(Base):\n")
+        self.current_file.write(f"class {prop.name}(Base):\n")
         self.write_docstring(prop)
-        self.file.write("\n")
-
-        domain_string = self.parse_elements(prop.domain)
-        if domain_string:
-            domain_string = self.apply_indent_to(f"domain = [{domain_string}]")
-            self.file.write(domain_string)
-            self.file.write("\n")
-
-        range_string = self.parse_elements(prop.range)
-        if range_string:
-            range_string = self.apply_indent_to(f"range = [{range_string}]")
-            self.file.write(range_string)
-            self.file.write("\n")
-
-        self.write_equivalent_to(prop)
-        self.write_is_a(prop)
-
-        # check if an inverse property exists
-        if prop.inverse_property:
-            inverse_property = self.apply_indent_to(f"inverse_property = {self.parse_element(prop.inverse_property)}")
-            self.file.write(inverse_property)
-            self.file.write("\n")
+        self.current_file.write("\n")
