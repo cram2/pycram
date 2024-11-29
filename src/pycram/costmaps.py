@@ -800,23 +800,23 @@ class SemanticCostmap(Costmap):
     table surface.
     """
 
-    def __init__(self, object, link_name, resolution=0.02, world=None):
+    def __init__(self, obj: Object, link_name: str, resolution: float = 0.02, world: Optional[World] = None):
         """
         Creates a semantic costmap for the given parameter. The semantic costmap will be on top of the link of the given
         Object.
 
-        :param object: The object of which the link is a part
+        :param obj: The object of which the link is a part
         :param link_name: The link name, as stated in the description of the object
         :param resolution: Resolution of the final costmap (how much meters one pixel represents)
         :param world: The World from which the costmap should be created
         """
         self.world: World = world if world else World.current_world
-        self.object: Object = object
-        self.link: Link = object.get_link(link_name)
+        self.object: Object = obj
+        self.link: Link = obj.get_link(link_name)
         self.resolution: float = resolution
-        self.origin: Pose = object.get_link_pose(link_name)
-        self.height: int = 0
-        self.width: int = 0
+        self.origin: Pose = obj.get_link_pose(link_name)
+        self.height: Optional[int] = None
+        self.width: Optional[int] = None
         self.map: np.ndarray = []
         self.generate_map()
 
