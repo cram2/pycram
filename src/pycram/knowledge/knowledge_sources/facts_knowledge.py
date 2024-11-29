@@ -79,7 +79,8 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
         :return: Reasoning Result with the result and a possible grasp
         """
         with UseProspectionWorld():
-            pro_obj = World.current_world.get_prospection_object_for_object(object_designator.resolve().world_object)
+            object_desig = object_designator.resolve() if hasattr(object_designator, "resolve") else object_designator
+            pro_obj = World.current_world.get_prospection_object_for_object(object_desig.world_object)
             pro_obj.set_pose(Pose([0, 0, 0], [0, 0, 0, 1]))
             bounding_box = pro_obj.get_axis_aligned_bounding_box()
 
@@ -112,7 +113,7 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
         for gripper in grippers:
             tool_frame_link = RobotDescription.current_robot_description.get_arm_chain(gripper).get_tool_frame()
             for att in World.robot.attachments.values():
-                if att.parent_link == tool_frame_link or att.child_link == tool_frame_link:
+                if att.parent_link.name == tool_frame_link or att.child_link.name == tool_frame_link:
                     return ReasoningResult(False)
             return ReasoningResult(True, {"gripper": gripper})
 

@@ -9,22 +9,22 @@ from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.dataclasses import Color
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
-from pycrap import Robot
+from pycrap import Robot, Apartment, Milk, Cereal, Spoon, Bowl
 
 extension = ObjectDescription.get_file_extension()
 
 world = BulletWorld(WorldMode.GUI)
 
 robot = Object("pr2", Robot, f"pr2{extension}", pose=Pose([1, 2, 0]))
-apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
+apartment = Object("apartment", Apartment, f"apartment{extension}")
 
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([2.5, 2, 1.02]),
+milk = Object("milk", Milk, "milk.stl", pose=Pose([2.5, 2, 1.02]),
               color=Color(1, 0, 0, 1))
-cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl",
+cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
                 pose=Pose([2.5, 2.3, 1.05]), color=Color(0, 1, 0, 1))
-spoon = Object("spoon", ObjectType.SPOON, "spoon.stl", pose=Pose([2.4, 2.2, 0.85]),
+spoon = Object("spoon", Spoon, "spoon.stl", pose=Pose([2.4, 2.2, 0.85]),
                color=Color(0, 0, 1, 1))
-bowl = Object("bowl", ObjectType.BOWL, "bowl.stl", pose=Pose([2.5, 2.2, 1.02]),
+bowl = Object("bowl", Bowl, "bowl.stl", pose=Pose([2.5, 2.2, 1.02]),
               color=Color(1, 1, 0, 1))
 apartment.attach(spoon, 'cabinet10_drawer_top')
 
@@ -50,17 +50,17 @@ with simulated_robot:
 
     MoveTorsoAction([0.25]).resolve().perform()
 
-    milk_desig = move_and_detect(ObjectType.MILK)
+    milk_desig = move_and_detect(Milk)
 
-    TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+    TransportAction(milk_desig,  [Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
 
-    cereal_desig = move_and_detect(ObjectType.BREAKFAST_CEREAL)
+    cereal_desig = move_and_detect(Cereal)
 
-    TransportAction(cereal_desig, [Arms.RIGHT], [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])]).resolve().perform()
+    TransportAction(cereal_desig,  [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])],[Arms.RIGHT]).resolve().perform()
 
-    bowl_desig = move_and_detect(ObjectType.BOWL)
+    bowl_desig = move_and_detect(Bowl)
 
-    TransportAction(bowl_desig, [Arms.LEFT], [Pose([5, 3.3, 0.8], [0, 0, 1, 1])]).resolve().perform()
+    TransportAction(bowl_desig,  [Pose([5, 3.3, 0.8], [0, 0, 1, 1])], [Arms.LEFT]).resolve().perform()
 
     # Finding and navigating to the drawer holding the spoon
     handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig.resolve())
@@ -75,7 +75,7 @@ with simulated_robot:
     # Detect and pickup the spoon
     LookAtAction([apartment.get_link_pose("handle_cab10_t")]).resolve().perform()
 
-    spoon_desig = DetectAction(BelieveObject(types=[ObjectType.SPOON])).resolve().perform()
+    spoon_desig = DetectAction(BelieveObject(types=[Spoon])).resolve().perform()
 
     pickup_arm = Arms.LEFT if drawer_open_loc.arms[0] == Arms.RIGHT else Arms.RIGHT
     PickUpAction(spoon_desig, [pickup_arm], [Grasp.TOP]).resolve().perform()
