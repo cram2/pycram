@@ -514,7 +514,9 @@ class VisibilityCostmap(Costmap):
                  size: Optional[int] = 100,
                  resolution: Optional[float] = 0.02,
                  origin: Optional[Pose] = None,
-                 world: Optional[World] = None):
+                 world: Optional[World] = None,
+                 target_object: Optional[Object] = None,
+                 robot: Optional[Object] = None):
         """
         Visibility Costmaps show for every position around the origin pose if the origin can be seen from this pose.
         The costmap is able to deal with height differences of the camera while in a single position, for example, if
@@ -531,6 +533,8 @@ class VisibilityCostmap(Costmap):
         :param origin: The pose in world coordinate frame around which the
             costmap should be created.
         :param world: The World for which the costmap should be created.
+        :param target_object: The object that should be visible.
+        :param robot: The robot for which the visibility costmap should be created.
         """
         if (11 * size ** 2 + size ** 3) * 2 > psutil.virtual_memory().available:
             raise OSError("Not enough free RAM to calculate a costmap of this size")
@@ -544,8 +548,52 @@ class VisibilityCostmap(Costmap):
         # for pr2 = 1.6
         self.min_height: float = min_height
         self.origin: Pose = Pose() if not origin else origin
+        self.target_object: Optional[Object] = target_object
+        self.robot: Optional[Object] = robot
         self._generate_map()
         Costmap.__init__(self, resolution, size, size, self.origin, self.map)
+
+    @property
+    def robot(self) -> Optional[Object]:
+        return self._robot
+
+    @robot.setter
+    def robot(self, robot: Optional[Object]) -> None:
+        if robot is not None:
+            self._robot = World.current_world.get_prospection_object_for_object(robot)
+            self.robot_original_pose = self._robot.pose
+        else:
+            self._robot = None
+            self.robot_original_pose = None
+
+    @property
+    def target_object(self) -> Optional[Object]:
+        return self._target_object
+
+    @target_object.setter
+    def target_object(self, target_object: Optional[Object]) -> None:
+        if target_object is not None:
+            self._target_object = World.current_world.get_prospection_object_for_object(target_object)
+            self.target_original_pose = self._target_object.pose
+        else:
+            self._target_object = None
+            self.target_original_pose = None
+
+    def move_target_and_robot_far_away(self):
+        if self.target_object is not None:
+            self.target_object.set_pose(Pose([self.origin.position.x + self.size * self.resolution * 2,
+                                              self.origin.position.y + self.size * self.resolution * 2,
+                                              self.target_original_pose.position.z]))
+        if self.robot is not None:
+            self.robot.set_pose(Pose([self.origin.position.x + self.size * self.resolution * 3,
+                                      self.origin.position.y + self.size * self.resolution * 3,
+                                      self.robot_original_pose.position.z]))
+
+    def return_target_and_robot_to_their_original_position(self):
+        if self.target_original_pose is not None:
+            self.target_object.set_pose(self.target_original_pose)
+        if self.robot_original_pose is not None:
+            self.robot.set_pose(self.robot_original_pose)
 
     def _create_images(self) -> List[np.ndarray]:
         """
@@ -558,6 +606,8 @@ class VisibilityCostmap(Costmap):
         """
         images = []
         camera_pose = self.origin
+
+        self.move_target_and_robot_far_away()
 
         with UseProspectionWorld():
             origin_copy = self.origin.copy()
@@ -577,8 +627,11 @@ class VisibilityCostmap(Costmap):
             origin_copy.position.x += 1
             images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
 
-        for i in range(0, 4):
-            images[i] = self._depth_buffer_to_meter(images[i])
+        self.return_target_and_robot_to_their_original_position()
+
+        if not World.current_world.conf.depth_images_are_in_meter:
+            for i in range(0, 4):
+                images[i] = self._depth_buffer_to_meter(images[i])
         return images
 
     def _depth_buffer_to_meter(self, buffer: np.ndarray) -> np.ndarray:

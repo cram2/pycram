@@ -13,7 +13,7 @@ from ..pose_generator_and_validator import PoseGenerator, visibility_validator, 
 from ..robot_description import RobotDescription
 from ..ros.logging import logdebug
 from ..world_concepts.world_object import Object, Link
-from ..world_reasoning import link_pose_for_joint_config, contact, is_a_picked_object, check_for_collision
+from ..world_reasoning import link_pose_for_joint_config, contact, is_a_picked_object, robot_will_be_in_collision_at_pose
 
 
 class Location(LocationDesignatorDescription):
@@ -164,8 +164,10 @@ class CostmapLocation(LocationDesignatorDescription):
         # This ensures that the costmaps always get a position as their origin.
         if isinstance(self.target, ObjectDesignatorDescription.Object):
             target_pose = self.target.world_object.get_pose()
+            target_object = self.target.world_object
         else:
             target_pose = self.target.copy()
+            target_object = None
 
         # ground_pose = [[target_pose[0][0], target_pose[0][1], 0], target_pose[1]]
         ground_pose = Pose(target_pose.position_as_list())
@@ -174,23 +176,26 @@ class CostmapLocation(LocationDesignatorDescription):
         occupancy = OccupancyCostmap(0.32, False, 200, 0.02, ground_pose)
         final_map = occupancy
 
-        if self.reachable_for:
-            gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
-            final_map += gaussian
-        if self.visible_for:
-            visible = VisibilityCostmap(min_height, max_height, 200, 0.02, Pose(target_pose.position_as_list()))
-            final_map += visible
-
         test_robot = None
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
             test_robot = World.current_world.get_prospection_object_for_object(robot_object)
+
+        if self.reachable_for:
+            gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
+            final_map += gaussian
+        if self.visible_for:
+            visible = VisibilityCostmap(min_height, max_height, 200, 0.02,
+                                        Pose(target_pose.position_as_list()), target_object=target_object,
+                                        robot=test_robot)
+            final_map += visible
+
         self.ignore_collision_with = [World.current_world.get_prospection_object_for_object(o) for o in
                                       self.ignore_collision_with]
         with UseProspectionWorld():
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
                 if self.check_collision_at_start and (test_robot is not None):
-                    if check_for_collision(test_robot, maybe_pose, self.ignore_collision_with):
+                    if robot_will_be_in_collision_at_pose(test_robot, maybe_pose, self.ignore_collision_with):
                         continue
                 res = True
                 arms = None
@@ -232,17 +237,21 @@ class AccessingLocation(LocationDesignatorDescription):
         List of arms that can be used to for accessing from this pose
         """
 
-    def __init__(self, handle_desig: ObjectPart.Object, robot_desig: ObjectDesignatorDescription.Object):
+    def __init__(self, handle_desig: ObjectPart.Object,
+                 robot_desig: ObjectDesignatorDescription.Object,
+                 prepose_distance: float = 0.03):
         """
         Describes a position from where a drawer can be opened. For now this position should be calculated before the
         drawer will be opened. Calculating the pose while the drawer is open could lead to problems.
 
         :param handle_desig: ObjectPart designator for handle of the drawer
         :param robot_desig: Object designator for the robot which should open the drawer
+        :param prepose_distance: Distance to the target pose where the robot should be checked for reachability.
         """
         super().__init__()
         self.handle: ObjectPart.Object = handle_desig
         self.robot: ObjectDesignatorDescription.Object = robot_desig.world_object
+        self.prepose_distance = prepose_distance
 
     def ground(self) -> Location:
         """
@@ -292,22 +301,25 @@ class AccessingLocation(LocationDesignatorDescription):
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600,
                                             orientation_generator=lambda p, o: PoseGenerator.generate_orientation(p,
                                                                                                                   half_pose)):
-                if check_for_collision(test_robot, maybe_pose):
+                if robot_will_be_in_collision_at_pose(test_robot, maybe_pose):
                     continue
                 hand_links = []
                 for description in RobotDescription.current_robot_description.get_manipulator_chains():
                     hand_links += description.end_effector.links
 
                 valid_init, arms_init = reachability_validator(maybe_pose, test_robot, init_pose,
-                                                               allowed_collision={test_robot: hand_links})
+                                                               allowed_collision={test_robot: hand_links},
+                                                               prepose_distance=self.prepose_distance)
 
-                valid_goal, arms_goal = reachability_validator(maybe_pose, test_robot, goal_pose,
-                                                               allowed_collision={test_robot: hand_links})
+                if valid_init:
+                    valid_goal, arms_goal = reachability_validator(maybe_pose, test_robot, goal_pose,
+                                                                   allowed_collision={test_robot: hand_links},
+                                                                   prepose_distance=self.prepose_distance)
 
-                arms_list = list(set(arms_init).intersection(set(arms_goal)))
+                    arms_list = list(set(arms_init).intersection(set(arms_goal)))
 
-                if valid_init and valid_goal and len(arms_list) > 0:
-                    yield self.Location(maybe_pose, arms_list)
+                    if valid_goal and len(arms_list) > 0:
+                        yield self.Location(maybe_pose, arms_list)
 
 
 class SemanticCostmapLocation(LocationDesignatorDescription):

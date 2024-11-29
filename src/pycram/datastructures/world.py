@@ -458,7 +458,7 @@ class World(StateEntity, ABC):
             self.objects.remove(obj)
             self.remove_object_from_original_state(obj)
 
-        if World.robot == obj:
+        if World.robot == obj and not self.is_prospection_world:
             World.robot = None
 
         self.object_lock.release()

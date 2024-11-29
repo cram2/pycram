@@ -159,7 +159,7 @@ def _in_contact(robot: Object, obj: Object, allowed_collision: Dict[Object, List
 def reachability_validator(pose: Pose,
                            robot: Object,
                            target: Union[Object, Pose],
-                           prepose_distance: float = 0.07,
+                           prepose_distance: float = 0.03,
                            allowed_collision: Dict[Object, List] = None,
                            arm: Optional[Arms] = None) -> Tuple[bool, List]:
     """

@@ -104,6 +104,11 @@ class WorldConfig:
     Whether to allow the gripper to collide with the objects when planning for the goals.
     """
 
+    depth_images_are_in_meter: bool = False
+    """
+    Whether the depth images produced by :meth:`datastructures.world.World.get_images_for_target` are in meters.
+    """
+
     @classmethod
     def get_pose_tolerance(cls) -> Tuple[float, float]:
         return cls.position_tolerance, cls.orientation_tolerance

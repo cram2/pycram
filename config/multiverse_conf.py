@@ -76,3 +76,5 @@ class MultiverseConfig(WorldConfig):
     allow_gripper_collision = True
 
     use_multiverse_process_modules = True
+
+    depth_images_are_in_meter = True

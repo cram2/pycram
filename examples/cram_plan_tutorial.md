@@ -43,11 +43,10 @@ if use_multiverse:
         from pycram.worlds.multiverse import Multiverse
         world = Multiverse()
     except ImportError:
-        Multiverse = None
-        raise ImportError("Multiverse not available")
+        raise ImportError("Multiverse is not installed, please install it to use it.")
 else:
-    world = BulletWorld()
     from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
+    world = BulletWorld()
     viz_marker_publisher = VizMarkerPublisher()
     
 robot = Object("pr2", pycrap.Robot, "pr2.urdf")
