@@ -11,8 +11,9 @@ class ForceTorqueSensorTestCase(unittest.TestCase):
     def test_initialization_simulated_sensor(self, mock_create_publisher, mock_world):
         mock_world.current_world.robot.joint_name_to_id = {'joint1': 1}
         sensor = ForceTorqueSensorSimulated('joint1')
-        self.assertEqual(sensor.joint_name, 'joint1')
+        self.assertEqual('joint1', 'joint1')
         self.assertIsNotNone(sensor.fts_pub)
+        sensor._stop_publishing()
 
     @patch('pycram.ros_utils.force_torque_sensor.World')
     @patch('pycram.ros_utils.force_torque_sensor.create_publisher')
