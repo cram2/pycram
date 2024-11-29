@@ -133,6 +133,14 @@ class ForceTorqueSensor:
 
         elif self.robot_name == 'iai_donbot':
             self.wrench_topic_name = '/kms40_driver/wrench'
+
+        elif self.robot_name == 'pr2':
+            raw_data = "/ft/l_gripper_motor_zeroed"
+            raw_data_10_sample_moving_average = "/ft/l_gripper_motor_zeroed_avg"
+            derivative_data = "/ft/l_gripper_motor_zeroed_derivative"
+            derivative_data_10_sample_moving_average = "/ft/l_gripper_motor_zeroed_derivative_avg"
+
+            self.wrench_topic_name = raw_data
         else:
             rospy.logerr(f'{self.robot_name} is not supported')
 
