@@ -25,6 +25,13 @@ Furthermore, this architecture allows the users to directly see what's in the on
 switching to tools like [Protégé](https://protege.stanford.edu/).
 The linter and AI assistants like Copilot can also deal with this notation and guide the users without annoyances.
 
+PyCRAP contains a subpackage with ontologies. 
+Every package in the ontologies subpackage is a separate ontology.
+The classes, properties, and so on can just be included via the import statement.
+
+PyCRAP also comes with a parser to reflect any ontology that can be loaded with owlready2 in python files.
+This is very similar to the [code generation tool of sqlalchemy](https://github.com/agronholm/sqlacodegen).
+
 Note that this area is under construction and may frequently change.
 
 ## Usage
