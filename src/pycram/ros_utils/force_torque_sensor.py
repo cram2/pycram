@@ -92,25 +92,21 @@ class ForceTorqueSensor:
     Default filter is the low pass filter 'Butterworth'
 
     Can also calculate the derivative of (un-)filtered data
+
+    :param robot_name: Name of the robot
+    :param filter_config: Desired filter (default: Butterworth)
+    :param filter_order: Order of the filter. Declares the number of elements that delay the sampling
+    :param custom_topic: Declare a custom topic if the default topics do not fit
     """
+
     filtered = 'filtered'
     unfiltered = 'unfiltered'
 
     def __init__(self, robot_name, filter_config=FilterConfig.butterworth, filter_order=4, custom_topic=None,
                  debug=False):
-
-        """
-        Create a subscriber for the force-torque-sensor topic of a specified robot.
-
-        :param robot_name: Name of the robot
-        :param filter_config: Desired filter (default: Butterworth)
-        :param filter_order: Order of the filter. Declares the number of elements that delay the sampling
-        :param custom_topic: Declare a custom topic if the default topics do not fit
-        """
-
         self.robot_name = robot_name
         self.filter_config = filter_config
-        self.filter = self.__get_filter(order=filter_order)
+        self.filter = self._get_filter(order=filter_order)
         self.debug = debug
 
         self.wrench_topic_name = custom_topic
@@ -122,13 +118,13 @@ class ForceTorqueSensor:
 
         self.order = filter_order
 
-        self.__setup()
+        self._setup()
 
-    def __setup(self):
-        self.__get_robot_parameters()
+    def _setup(self):
+        self._get_robot_parameters()
         self.subscribe()
 
-    def __get_robot_parameters(self):
+    def _get_robot_parameters(self):
         if self.wrench_topic_name is not None:
             return
 
@@ -140,15 +136,14 @@ class ForceTorqueSensor:
         else:
             rospy.logerr(f'{self.robot_name} is not supported')
 
-    def __get_rospy_data(self,
-                         data_compensated: WrenchStamped):
+    def _get_rospy_data(self, data_compensated: WrenchStamped):
         if self.init_data:
             self.init_data = False
             self.prev_values = [data_compensated] * (self.order + 1)
             self.whole_data = {self.unfiltered: [data_compensated],
                                self.filtered: [data_compensated]}
 
-        filtered_data = self.__filter_data(data_compensated)
+        filtered_data = self._filter_data(data_compensated)
 
         self.whole_data[self.unfiltered].append(data_compensated)
         self.whole_data[self.filtered].append(filtered_data)
@@ -157,16 +152,16 @@ class ForceTorqueSensor:
         self.prev_values.pop(0)
 
         if self.debug:
-            print(
+            rospy.logdebug(
                 f'x: {data_compensated.wrench.force.x}, '
                 f'y: {data_compensated.wrench.force.y}, '
                 f'z: {data_compensated.wrench.force.z}')
 
-    def __get_filter(self, order=4, cutoff=10, fs=60):
+    def _get_filter(self, order=4, cutoff=10, fs=60):
         if self.filter_config == FilterConfig.butterworth:
             return Butterworth(order=order, cutoff=cutoff, fs=fs)
 
-    def __filter_data(self, current_wrench_data: WrenchStamped) -> WrenchStamped:
+    def _filter_data(self, current_wrench_data: WrenchStamped) -> WrenchStamped:
         filtered_data = WrenchStamped()
         for attr in ['x', 'y', 'z']:
             force_values = [getattr(val.wrench.force, attr) for val in self.prev_values] + [
@@ -192,7 +187,7 @@ class ForceTorqueSensor:
 
         self.force_torque_subscriber = rospy.Subscriber(name=self.wrench_topic_name,
                                                         data_class=WrenchStamped,
-                                                        callback=self.__get_rospy_data)
+                                                        callback=self._get_rospy_data)
 
     def unsubscribe(self):
         """
