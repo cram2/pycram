@@ -9,12 +9,13 @@ from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.dataclasses import Color
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
+from pycrap import Robot
 
 extension = ObjectDescription.get_file_extension()
 
 world = BulletWorld(WorldMode.GUI)
 
-robot = Object("pr2", ObjectType.ROBOT, f"pr2{extension}", pose=Pose([1, 2, 0]))
+robot = Object("pr2", Robot, f"pr2{extension}", pose=Pose([1, 2, 0]))
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
 
 milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([2.5, 2, 1.02]),
