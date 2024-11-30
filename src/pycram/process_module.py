@@ -49,11 +49,11 @@ class ProcessModule:
 
     def execute(self, designator: BaseMotion) -> Any:
         """
-        Execute the given designator. If there is already another process module of the same kind the `self._lock` will
+        Execute the given designator_description. If there is already another process module of the same kind the `self._lock` will
         lock this thread until the execution of that process module is finished. This implicitly queues the execution of
         process modules.
 
-        :param designator: The designator to execute.
+        :param designator: The designator_description to execute.
         :return: Return of the Process Module if there is any
         """
         if threading.get_ident() in Language.block_list:

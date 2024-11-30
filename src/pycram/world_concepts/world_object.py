@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 import numpy as np
+import owlready2
 from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
 from trimesh.parent import Geometry3D
@@ -31,11 +32,13 @@ except ImportError:
     MJCF = None
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
+from ..datastructures.mixins import HasConcept
+from pycrap import PhysicalObject, ontology, Base, Agent
 
 Link = ObjectDescription.Link
 
 
-class Object(WorldEntity):
+class Object(WorldEntity, HasConcept):
     """
     Represents a spawned Object in the World.
     """
@@ -50,7 +53,9 @@ class Object(WorldEntity):
     A dictionary that maps the file extension to the corresponding ObjectDescription type.
     """
 
-    def __init__(self, name: str, obj_type: ObjectType, path: Optional[str] = None,
+    ontology_concept: Type[PhysicalObject] = PhysicalObject
+
+    def __init__(self, name: str, concept: Type[PhysicalObject], path: Optional[str] = None,
                  description: Optional[ObjectDescription] = None,
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
@@ -65,7 +70,7 @@ class Object(WorldEntity):
         for URDFs :func:`~Object.set_color` can be used.
 
         :param name: The name of the object
-        :param obj_type: The type of the object as an ObjectType enum.
+        :param concept: The type of the object as ontological concept from PyCRAP
         :param path: The path to the source file, if only a filename is provided then the resources directories will be
          searched, it could be None in some cases when for example it is a generic object.
         :param description: The ObjectDescription of the object, this contains the joints and links of the object.
@@ -81,9 +86,14 @@ class Object(WorldEntity):
 
         pose = Pose() if pose is None else pose
 
+        # set ontology related information
+        self.ontology_concept = concept
+        if not self.world.is_prospection_world:
+            self.ontology_individual = self.ontology_concept(namespace=self.world.ontology.ontology)
+
         self.name: str = name
         self.path: Optional[str] = path
-        self.obj_type: ObjectType = obj_type
+
         self.color: Color = color
         self._resolve_description(path, description)
         self.cache_manager = self.world.cache_manager
@@ -100,7 +110,8 @@ class Object(WorldEntity):
 
             self.description.update_description_from_file(self.path)
 
-        if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
+        # if the object is an agent in the belief state
+        if Agent in self.ontology_concept.is_a and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
 
         self.id = self._spawn_object_and_get_id()
@@ -296,6 +307,10 @@ class Object(WorldEntity):
         The current transform of the object.
         """
         return self.get_pose().to_transform(self.tf_frame)
+
+    @property
+    def obj_type(self) -> Type[PhysicalObject]:
+        return self.ontology_concept
 
     def _spawn_object_and_get_id(self) -> int:
         """
@@ -577,8 +592,8 @@ class Object(WorldEntity):
 
     def __repr__(self):
         skip_attr = ["links", "joints", "description", "attachments"]
-        return self.__class__.__qualname__ + f"(" + ', \n'.join(
-            [f"{key}={value}" if key not in skip_attr else f"{key}: ..." for key, value in self.__dict__.items()]) + ")"
+        return self.__class__.__qualname__ + f"(name={self.name}, object_type={self.obj_type.name}, file_path={self.path}, pose={self.pose}, world={self.world})"
+
 
     def remove(self) -> None:
         """
@@ -587,7 +602,9 @@ class Object(WorldEntity):
         is currently attached to. After this call world remove object
         to remove this Object from the simulation/world.
         """
+        # owlready2.destroy_entity(self.ontology_individual)
         self.world.remove_object(self)
+
 
     def reset(self, remove_saved_states=False) -> None:
         """
@@ -1437,3 +1454,4 @@ class Object(WorldEntity):
 
     def __hash__(self):
         return hash((self.id, self.name, self.world))
+

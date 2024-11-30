@@ -1,10 +1,10 @@
 from dataclasses import field
 from typing import Optional
 
-from pycram.orm.base import Base, MapperArgsMixin, PoseMixin, Pose
-from sqlalchemy.orm import Mapped, mapped_column, declared_attr, relationship, MappedAsDataclass
 from sqlalchemy import ForeignKey
-from pycram.datastructures.enums import ObjectType
+from sqlalchemy.orm import Mapped, mapped_column, declared_attr, relationship, MappedAsDataclass
+
+from pycram.orm.base import Base, MapperArgsMixin, PoseMixin
 
 
 class ObjectMixin(MappedAsDataclass):
@@ -29,8 +29,8 @@ class Object(PoseMixin, Base):
     """ORM class of pycram.designators.object_designator.ObjectDesignator"""
 
     dtype: Mapped[str] = mapped_column(init=False)
-    obj_type: Mapped[Optional[ObjectType]]
-    name: Mapped[str]
+    obj_type: Mapped[Optional[str]] = mapped_column(init=True)
+    name: Mapped[str] = mapped_column(init=True)
 
     __mapper_args__ = {
         "polymorphic_identity": "Object",
@@ -51,5 +51,4 @@ class ObjectPart(Object):
 
 
 class BelieveObject(MapperArgsMixin, Object):
-
     id: Mapped[int] = mapped_column(ForeignKey(f'{Object.__tablename__}.id'), primary_key=True, init=False)

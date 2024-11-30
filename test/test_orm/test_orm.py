@@ -2,6 +2,8 @@ import os
 import time
 import unittest
 import time
+
+import owlready2
 from sqlalchemy import select
 import sqlalchemy.orm
 import pycram.orm.action_designator
@@ -10,9 +12,8 @@ import pycram.orm.motion_designator
 import pycram.orm.object_designator
 import pycram.orm.tasktree
 import pycram.tasktree
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.dataclasses import Color
-from pycram.ontology.ontology import OntologyManager, SOMA_ONTOLOGY_IRI
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.world_concepts.world_object import Object
 from pycram.designators import action_designator, object_designator, motion_designator
@@ -25,6 +26,7 @@ from pycram.tasktree import with_tree, task_tree
 from pycram.orm.views import PickUpWithContextView
 from pycram.datastructures.enums import Arms, Grasp, GripperState, ObjectType
 from pycram.worlds.bullet_world import BulletWorld
+from pycrap import ontology, Apartment, Robot, Milk
 
 
 class DatabaseTestCaseMixin(BulletWorldTestCase):
@@ -219,8 +221,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
 
     def test_transportAction(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        action = TransportActionPerformable(object_description.resolve(), Arms.LEFT,
-                                            Pose([1.3, 0.9, 0.9], [0, 0, 0, 1]))
+        action = TransportActionPerformable(object_description.resolve(),  Pose([1.3, 0.9, 0.9], [0, 0, 0, 1]), Arms.LEFT)
         with simulated_robot:
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "transportAction_test"
@@ -271,7 +272,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         self.assertEqual(result[0].motion, GripperState.OPEN)
 
     def test_open_and_closeAction(self):
-        apartment = Object("apartment", ObjectType.ENVIRONMENT, "apartment.urdf")
+        apartment = Object("apartment", Apartment, "apartment.urdf")
         apartment_desig = BelieveObject(names=["apartment"]).resolve()
         handle_desig = object_designator.ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig, type=ObjectType.ENVIRONMENT).resolve()
 
@@ -304,12 +305,11 @@ class BelieveObjectTestCase(unittest.TestCase):
         cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
         environment_path = "apartment.urdf"
         cls.world = BulletWorld(WorldMode.DIRECT)
-        cls.robot = Object("pr2", ObjectType.ROBOT, path="pr2.urdf",  pose=Pose([1, 2, 0]))
-        cls.apartment = Object(environment_path[:environment_path.find(".")], ObjectType.ENVIRONMENT, environment_path)
-        cls.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, -1.78, 0.55], [1, 0, 0, 0]),
+        cls.robot = Object("pr2", Robot, path="pr2.urdf",  pose=Pose([1, 2, 0]))
+        cls.apartment = Object(environment_path[:environment_path.find(".")], Apartment, environment_path)
+        cls.milk = Object("milk", Milk, "milk.stl", pose=Pose([1, -1.78, 0.55], [1, 0, 0, 0]),
                            color=Color(1, 0, 0, 1))
         cls.viz_marker_publisher = VizMarkerPublisher()
-        OntologyManager(SOMA_ONTOLOGY_IRI)
 
     def setUp(self):
         self.world.reset_world()
@@ -326,6 +326,7 @@ class BelieveObjectTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        cls.world.ontology.destroy_individuals()
         cls.viz_marker_publisher._stop_publishing()
         cls.world.exit()
 
@@ -340,8 +341,8 @@ class BelieveObjectTestCase(unittest.TestCase):
 
             LookAtAction(targets=[Pose([1, -1.78, 0.55])]).resolve().perform()
 
-            object_desig = DetectAction(BelieveObject(types=[ObjectType.MILK])).resolve().perform()
-            TransportAction(object_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+            object_desig = DetectAction(BelieveObject(types=[Milk])).resolve().perform()
+            TransportAction(object_desig, [Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
 
             ParkArmsAction([Arms.BOTH]).resolve().perform()
             pycram.orm.base.ProcessMetaData().description = "BelieveObject_test"

@@ -164,6 +164,17 @@ class ImageEnum(Enum):
     CHAIR = 37
 
 
+class LoggerLevel(Enum):
+    """
+    Enum for the different logger levels.
+    """
+    DEBUG = 'debug'
+    INFO = 'info'
+    WARN = 'warn'
+    ERROR = 'error'
+    FATAL = 'fatal'
+
+
 class VirtualMobileBaseJointName(Enum):
     """
     Enum for the joint names of the virtual mobile base.
@@ -271,3 +282,11 @@ class MultiverseJointCMD(MultiverseJointProperty):
             return MultiverseJointCMD.PRISMATIC_JOINT_CMD
         else:
             raise UnsupportedJointType(joint_type)
+
+
+class FilterConfig(Enum):
+    """
+    Declare existing filter methods.
+    Currently supported: Butterworth
+    """
+    butterworth = 1

@@ -4,14 +4,15 @@ import xml.etree.ElementTree as ET
 
 import rospkg
 
-from bullet_world_testcase import BulletWorldTestCase, BulletWorldGUITestCase
-from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import Pose
-from pycram.robot_description import RobotDescription
-from pycram.object_descriptors.urdf import ObjectDescription
+from pycram.testing import BulletWorldTestCase, BulletWorldGUITestCase
 from pycram.datastructures.dataclasses import Color
+from pycram.datastructures.enums import WorldMode
+from pycram.datastructures.pose import Pose
+from pycram.datastructures.world import UseProspectionWorld
+from pycram.object_descriptors.urdf import ObjectDescription
+from pycram.robot_description import RobotDescription
 from pycram.world_concepts.world_object import Object
-from pycram.datastructures.world import UseProspectionWorld, World
+from pycrap import Milk, Robot
 
 fix_missing_inertial = ObjectDescription.fix_missing_inertial
 
@@ -53,14 +54,14 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue(milk_id in [obj.id for obj in self.world.objects])
         self.world.remove_object(self.milk)
         self.assertTrue(milk_id not in [obj.id for obj in self.world.objects])
-        BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        BulletWorldTest.milk = Object("milk", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
 
     def test_remove_robot(self):
         robot_id = self.robot.id
         self.assertTrue(robot_id in [obj.id for obj in self.world.objects])
         self.world.remove_object(self.robot)
         self.assertTrue(robot_id not in [obj.id for obj in self.world.objects])
-        BulletWorldTest.robot = Object(RobotDescription.current_robot_description.name, ObjectType.ROBOT,
+        BulletWorldTest.robot = Object(RobotDescription.current_robot_description.name, Robot,
                                        RobotDescription.current_robot_description.name + self.extension)
 
     def test_get_joint_position(self):
@@ -143,7 +144,7 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue("test" in self.world.get_data_directories())
 
     def test_no_prospection_object_found_for_given_object(self):
-        milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        milk_2 = Object("milk_2", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
         try:
             prospection_milk_2 = self.world.get_prospection_object_for_object(milk_2)
             self.world.remove_object(milk_2)
@@ -154,7 +155,7 @@ class BulletWorldTest(BulletWorldTestCase):
 
     def test_real_object_position_does_not_change_with_prospection_object(self):
         milk_2_pos = [1.3, 1, 0.9]
-        milk_2 = Object("milk_3", ObjectType.MILK, "milk.stl", pose=Pose(milk_2_pos))
+        milk_2 = Object("milk_3", Milk, "milk.stl", pose=Pose(milk_2_pos))
         time.sleep(0.05)
         milk_2_pos = milk_2.get_position()
 
@@ -170,7 +171,7 @@ class BulletWorldTest(BulletWorldTestCase):
 
     def test_prospection_object_position_does_not_change_with_real_object(self):
         milk_2_pos = [1.3, 1, 0.9]
-        milk_2 = Object("milk_4", ObjectType.MILK, "milk.stl", pose=Pose(milk_2_pos))
+        milk_2 = Object("milk_4", Milk, "milk.stl", pose=Pose(milk_2_pos))
         time.sleep(0.05)
         milk_2_pos = milk_2.get_position()
 

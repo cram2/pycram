@@ -15,6 +15,13 @@ class PlanFailure(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 
+class KnowledgeNotAvailable(PlanFailure):
+    """Thrown when a knowledge source can not provide the information for a query."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
 class NotALanguageExpression(PlanFailure):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -112,6 +119,13 @@ class GripperGoalNotReached(GripperLowLevelFailure):
         super().__init__(*args, **kwargs)
 
 
+class GripperOccupied(GripperLowLevelFailure):
+    """Thrown when the gripper is occupied by some object."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
 class LookingHighLevelFailure(HighLevelFailure):
     """High-level failure produced when looking for an object, i.e. it is not a hardware issue but one relating to
     the looking task, its parameters, and how they relate to the environment."""
@@ -181,6 +195,13 @@ class NavigationGoalNotReached(NavigationLowLevelFailure):
 
 class NavigationPoseUnreachable(NavigationLowLevelFailure):
     """Thrown when the goal pose for navigation is computed to be unreachable."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class ObjectNotVisible(HighLevelFailure):
+    """Thrown when the robot cannot see an object of a given description in its surroundings."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -399,12 +420,12 @@ class SustainedFailure(PlanFailure):
 
 
 class ReasoningError(PlanFailure):
-    def __init__(*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
 
 class CollisionError(PlanFailure):
-    def __init__(*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
 

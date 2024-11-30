@@ -1,6 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import os
 import threading
 import time
 
@@ -9,6 +10,7 @@ import pycram_bullet as p
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Any
 
+from pycrap import Floor
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
     ClosestPoint, LateralFriction, ContactPoint, ContactPointsList, ClosestPointsList
 from ..datastructures.enums import ObjectType, WorldMode, JointType
@@ -16,6 +18,7 @@ from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription
+from ..ros.logging import loginfo
 from ..validation.goal_validator import (validate_multiple_joint_positions, validate_joint_position,
                                          validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
@@ -56,7 +59,7 @@ class BulletWorld(World):
         self.set_gravity([0, 0, -9.8])
 
         if not is_prospection_world:
-            _ = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
+            _ = Object("floor", Floor, "plane.urdf",
                        world=self)
 
     def _init_world(self, mode: WorldMode):
@@ -447,6 +450,11 @@ class Gui(threading.Thread):
         threading.Thread.__init__(self)
         self.world = world
         self.mode: WorldMode = mode
+
+        # Checks if there is a display connected to the system. If not, the simulation will be run in direct mode.
+        if not "DISPLAY" in os.environ:
+            loginfo("No display detected. Running the simulation in direct mode.")
+            self.mode = WorldMode.DIRECT
 
     def run(self):
         """

@@ -1,7 +1,7 @@
 from pycram.designators.location_designator import *
 from pycram.robot_description import RobotDescription
 from pycram.datastructures.pose import Pose
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 
 
 class TestActionDesignatorGrounding(BulletWorldTestCase):

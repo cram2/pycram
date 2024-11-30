@@ -43,7 +43,7 @@ class Language(NodeMixin):
 
     def resolve(self) -> Language:
         """
-        Dummy method for compatability to designator descriptions
+        Dummy method for compatability to designator_description descriptions
 
         :return: self reference
         """
@@ -60,7 +60,7 @@ class Language(NodeMixin):
         """
         Language expression for sequential execution.
 
-        :param other: Another Language expression, either a designator or language expression
+        :param other: Another Language expression, either a designator_description or language expression
         :return: A :func:`~Sequential` object which is the new root node of the language tree
         """
         if not issubclass(other.__class__, Language):
@@ -72,7 +72,7 @@ class Language(NodeMixin):
         """
         Language expression for try in order.
 
-        :param other: Another Language expression, either a designator or language expression
+        :param other: Another Language expression, either a designator_description or language expression
         :return: A :func:`~TryInOrder` object which is the new root node of the language tree
         """
         if not issubclass(other.__class__, Language):
@@ -84,7 +84,7 @@ class Language(NodeMixin):
         """
         Language expression for parallel execution.
 
-        :param other: Another Language expression, either a designator or language expression
+        :param other: Another Language expression, either a designator_description or language expression
         :return: A :func:`~Parallel` object which is the new root node of the language tree
         """
         if not issubclass(other.__class__, Language):
@@ -100,7 +100,7 @@ class Language(NodeMixin):
         """
         Language expression for try all execution.
 
-        :param other: Another Language expression, either a designator or language expression
+        :param other: Another Language expression, either a designator_description or language expression
         :return: A :func:`~TryAll` object which is the new root node of the language tree
         """
         if not issubclass(other.__class__, Language):
@@ -211,14 +211,16 @@ class Repeat(Language):
 
         :return:
         """
+        results = []
         for i in range(self.repeat):
             for child in self.children:
                 if self.interrupted:
                     return
                 try:
-                    child.resolve().perform()
+                    results.append(child.resolve().perform())
                 except PlanFailure as e:
                     self.root.exceptions[self] = e
+        return State.SUCCEEDED, results
 
     def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None, repeat: int = 1):
         """
