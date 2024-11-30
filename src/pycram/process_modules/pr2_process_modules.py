@@ -6,9 +6,10 @@ from .. import world_reasoning as btr
 import numpy as np
 import rospy
 
+import pycrap
 from ..external_interfaces.move_base import query_pose_nav
 from .. import world_reasoning as btr
-from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType, GripperState, MovementType
+from ..datastructures.enums import JointType, Arms, ExecutionType, GripperState, MovementType
 from ..datastructures.world import World
 from ..designators.motion_designator import MoveMotion, LookingMotion, \
     DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
@@ -203,6 +204,7 @@ class Pr2NavigationReal(ProcessModule):
         if not World.current_world.robot.pose.almost_equal(designator.target, 0.05, 3):
             raise NavigationGoalNotReachedError(World.current_world.robot.pose, designator.target)
 
+
 class Pr2MoveHeadReal(ProcessModule):
     """
     Process module for the real robot to move that such that it looks at the given position. Uses the same calculation
@@ -239,6 +241,7 @@ class Pr2MoveTCPReal(ProcessModule):
         tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
         root_link = "map"
 
+        gripper_that_can_collide = designator.arm if designator.allow_gripper_collision else None
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm.name.lower())
 
@@ -250,8 +253,8 @@ class Pr2MoveTCPReal(ProcessModule):
             giskard.achieve_translation_goal(pose_in_map.position_as_list(), tip_link, root_link)
         elif designator.movement_type == MovementType.CARTESIAN:
             giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
-                                           allow_gripper_collision_=designator.allow_gripper_collision,
-                                           use_monitor=World.current_world.conf.use_giskard_monitor)
+                                           grippers_that_can_collide=gripper_that_can_collide,
+                                           use_monitor=designator.monitor_motion)
         if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.01, 3):
             raise ToolPoseNotReachedError(World.current_world.robot.get_link_pose(tip_link), designator.target)
 
