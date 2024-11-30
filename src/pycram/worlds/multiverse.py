@@ -6,13 +6,15 @@ from time import sleep
 
 import numpy as np
 from tf.transformations import quaternion_matrix
-from typing_extensions import List, Dict, Optional, Union, Tuple, Callable
+from typing_extensions import List, Dict, Optional, Union, Tuple, Callable, Type
 
+import pycrap
+from pycrap import PhysicalObject
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
 from ..config.multiverse_conf import MultiverseConfig
 from ..datastructures.dataclasses import Color, ContactPointsList, ContactPoint
-from ..datastructures.enums import WorldMode, JointType, ObjectType, MultiverseBodyProperty, MultiverseJointPosition, \
+from ..datastructures.enums import WorldMode, JointType, MultiverseBodyProperty, MultiverseJointPosition, \
     MultiverseJointCMD
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
@@ -141,7 +143,7 @@ class Multiverse(World):
         """
         Spawn the plane in the simulator.
         """
-        self.floor = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
+        self.floor = Object("floor", pycrap.Floor, "plane.urdf",
                             world=self)
 
     def pause_simulation(self) -> None:
@@ -164,7 +166,7 @@ class Multiverse(World):
         object_factory = PrimitiveObjectFactory(description.name, description.links[0].geometry, save_path)
         object_factory.build_shape()
         object_factory.export_to_mjcf(save_path)
-        return self.load_object_and_get_id(description.name, pose, ObjectType.GENERIC_OBJECT)
+        return self.load_object_and_get_id(description.name, pose, pycrap.PhysicalObject)
 
     def get_images_for_target(self, target_pose: Pose,
                               cam_pose: Pose,
@@ -209,7 +211,7 @@ class Multiverse(World):
 
     def load_object_and_get_id(self, name: Optional[str] = None,
                                pose: Optional[Pose] = None,
-                               obj_type: Optional[ObjectType] = None) -> int:
+                               obj_type: Optional[Type[PhysicalObject]] = None) -> int:
         """
         Spawn the object in the simulator and return the object id. Object name has to be unique and has to be same as
         the name of the object in the description file.
@@ -223,12 +225,13 @@ class Multiverse(World):
 
         # Do not spawn objects with type environment as they should be already present in the simulator through the
         # multiverse description file (.muv file).
-        if not obj_type == ObjectType.ENVIRONMENT:
+        obj_type = pycrap.PhysicalObject if obj_type is None else obj_type
+        if not (issubclass(obj_type, pycrap.Location) or issubclass(obj_type, pycrap.Floor)):
             self.spawn_object(name, obj_type, pose)
 
         return self._update_object_id_name_maps_and_get_latest_id(name)
 
-    def spawn_object(self, name: str, object_type: ObjectType, pose: Pose) -> None:
+    def spawn_object(self, name: str, object_type: Type[PhysicalObject], pose: Pose) -> None:
         """
         Spawn the object in the simulator.
 
@@ -236,7 +239,7 @@ class Multiverse(World):
         :param object_type: The type of the object.
         :param pose: The pose of the object.
         """
-        if object_type == ObjectType.ROBOT:
+        if issubclass(object_type, pycrap.Robot):
             if self.conf.use_controller:
                 self.spawn_robot_with_controller(name, pose)
             else:
@@ -389,7 +392,7 @@ class Multiverse(World):
         return self._get_multiple_body_poses([link.name for link in links])
 
     def get_object_pose(self, obj: Object) -> Pose:
-        if obj.has_type_environment():
+        if obj.is_an_environment:
             return Pose()
         return self._get_body_pose(obj.name)
 
@@ -401,17 +404,17 @@ class Multiverse(World):
         :param objects: The list of objects.
         :return: The dictionary of object names and poses.
         """
-        non_env_objects = [obj for obj in objects if not obj.has_type_environment()]
+        non_env_objects = [obj for obj in objects if not obj.is_an_environment]
         all_poses = self._get_multiple_body_poses([obj.name for obj in non_env_objects])
-        all_poses.update({obj.name: Pose() for obj in objects if obj.has_type_environment()})
+        all_poses.update({obj.name: Pose() for obj in objects if obj.is_an_environment})
         return all_poses
 
     @validate_object_pose
     def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
-        if obj.has_type_environment():
+        if obj.is_an_environment:
             return False
 
-        if (obj.obj_type == ObjectType.ROBOT and
+        if (obj.is_a_robot and
                 RobotDescription.current_robot_description.virtual_mobile_base_joints is not None):
             obj.set_mobile_robot_pose(pose)
         else:
@@ -427,11 +430,11 @@ class Multiverse(World):
         :param objects: The dictionary of objects and poses.
         """
         for obj in objects.keys():
-            if (obj.obj_type == ObjectType.ROBOT and
+            if (obj.is_a_robot and
                     RobotDescription.current_robot_description.virtual_mobile_base_joints is not None):
                 obj.set_mobile_robot_pose(objects[obj])
-        objects = {obj: pose for obj, pose in objects.items() if obj.obj_type not in [ObjectType.ENVIRONMENT,
-                                                                                      ObjectType.ROBOT]}
+        objects = {obj: pose for obj, pose in objects.items()
+                   if not obj.is_a_robot and not obj.is_an_environment}
         if len(objects) > 0:
             self._set_multiple_body_poses({obj.name: pose for obj, pose in objects.items()})
 
@@ -506,7 +509,7 @@ class Multiverse(World):
         return False
 
     def remove_object_from_simulator(self, obj: Object) -> bool:
-        if obj.obj_type != ObjectType.ENVIRONMENT:
+        if not obj.is_an_environment:
             self.writer.remove_body(obj.name)
             return True
         logwarn("Cannot remove environment objects")

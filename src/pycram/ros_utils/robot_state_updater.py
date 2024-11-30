@@ -57,7 +57,7 @@ class WorldStateUpdater:
         for obj in self.world.objects:
             if obj.name == self.world.robot.name:
                 tf_frame = RobotDescription.current_robot_description.base_link
-            elif obj.has_type_environment():
+            elif obj.is_an_environment:
                 continue
             else:
                 tf_frame = obj.tf_frame

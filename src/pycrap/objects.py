@@ -41,6 +41,12 @@ class Milk(Food):
     """
 
 
+class Bread(Food):
+    """
+    A type of food prepared from a dough of flour and water.
+    """
+
+
 class Cutlery(PhysicalObject):
     """
     Any implement, tool, or container used for serving or eating food.

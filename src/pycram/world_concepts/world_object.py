@@ -11,6 +11,7 @@ from geometry_msgs.msg import Point, Quaternion
 from trimesh.parent import Geometry3D
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
+import pycrap
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList, RotatedBoundingBox, VirtualJoint)
@@ -624,13 +625,23 @@ class Object(WorldEntity, HasConcept):
         if remove_saved_states:
             self.remove_saved_states()
 
-    def has_type_environment(self) -> bool:
+    @property
+    def is_an_environment(self) -> bool:
         """
         Check if the object is of type environment.
 
         :return: True if the object is of type environment, False otherwise.
         """
-        return self.obj_type == ObjectType.ENVIRONMENT
+        return issubclass(self.obj_type, pycrap.Location) or issubclass(self.obj_type, pycrap.Floor)
+
+    @property
+    def is_a_robot(self) -> bool:
+        """
+        Check if the object is a robot.
+
+        :return: True if the object is a robot, False otherwise.
+        """
+        return issubclass(self.obj_type, pycrap.Robot)
 
     def attach(self,
                child_object: Object,
