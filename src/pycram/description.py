@@ -56,7 +56,7 @@ class LinkDescription(EntityDescription):
 
     @property
     @abstractmethod
-    def geometry(self) -> Union[VisualShape, None]:
+    def geometry(self) -> Union[List[VisualShape], VisualShape, None]:
         """
         The geometry type of the collision element of this link.
         """
@@ -222,32 +222,44 @@ class Link(ObjectEntity, LinkDescription, ABC):
         self._current_pose: Optional[Pose] = None
         self.update_pose()
 
-    def get_bounding_box(self, rotated: bool = False) -> Union[AxisAlignedBoundingBox, RotatedBoundingBox]:
+    def get_axis_aligned_bounding_box(self, transform_to_link_pose: bool = True) -> AxisAlignedBoundingBox:
         """
-        :param rotated: If True, return the rotated bounding box, otherwise the axis-aligned bounding box.
-        :return: The axis-aligned or rotated bounding box of a link. First try to get it from the simulator, if not,
+        :param transform_to_link_pose: If True, return the bounding box transformed to the link pose.
+        :return: The axis-aligned bounding box of a link. First try to get it from the simulator, if not,
          then calculate it depending on the type of the link geometry.
         """
         try:
-            if rotated:
-                return self.world.get_link_rotated_bounding_box(self)
-            else:
-                return self.world.get_link_axis_aligned_bounding_box(self)
+            return self.world.get_link_axis_aligned_bounding_box(self)
         except NotImplementedError:
-            if isinstance(self.geometry, MeshVisualShape):
-                mesh_path = self.get_mesh_path()
-                mesh = trimesh.load(mesh_path)
-                min_bound, max_bound = mesh.bounds
-                if rotated:
-                    return RotatedBoundingBox.from_min_max_and_transform(min_bound, max_bound, self.transform)
-                else:
-                    return AxisAlignedBoundingBox.from_min_max(min_bound, max_bound).get_transformed_box(self.transform)
+            bounding_box = self.get_axis_aligned_bounding_box_from_geometry()
+            if transform_to_link_pose:
+                return bounding_box.get_transformed_box(self.transform)
             else:
-                bounding_box = self.geometry.axis_aligned_bounding_box
-                if rotated:
-                    return RotatedBoundingBox.from_axis_aligned_bounding_box(bounding_box, self.transform)
-                else:
-                    return bounding_box.get_transformed_box(self.transform)
+                return bounding_box
+
+    def get_rotated_bounding_box(self) -> RotatedBoundingBox:
+        """
+        :return: The rotated bounding box of a link. First try to get it from the simulator, if not,
+         then calculate it depending on the type of the link geometry.
+        """
+        try:
+            return self.world.get_link_rotated_bounding_box(self)
+        except NotImplementedError:
+            return RotatedBoundingBox.from_axis_aligned_bounding_box(self.get_axis_aligned_bounding_box(),
+                                                                     self.transform)
+
+    def get_axis_aligned_bounding_box_from_geometry(self) -> AxisAlignedBoundingBox:
+        if isinstance(self.geometry, List):
+            all_boxes = [geom.get_axis_aligned_bounding_box(self.get_mesh_path(geom))
+                         if isinstance(geom, MeshVisualShape) else geom.get_axis_aligned_bounding_box()
+                         for geom in self.geometry
+                         ]
+            bounding_box = AxisAlignedBoundingBox.from_multiple_bounding_boxes(all_boxes)
+        else:
+            geom = self.geometry
+            bounding_box = geom.get_axis_aligned_bounding_box(self.get_mesh_path(geom)) \
+                if isinstance(geom, MeshVisualShape) else geom.get_axis_aligned_bounding_box()
+        return bounding_box
 
     def get_convex_hull(self) -> Geometry3D:
         """
@@ -257,7 +269,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
             return self.world.get_link_convex_hull(self)
         except NotImplementedError:
             if isinstance(self.geometry, MeshVisualShape):
-                mesh_path = self.get_mesh_path()
+                mesh_path = self.get_mesh_path(self.geometry)
                 mesh = trimesh.load(mesh_path)
                 return trimesh.convex.convex_hull(mesh).apply_transform(self.transform.get_homogeneous_matrix())
             else:
@@ -270,25 +282,26 @@ class Link(ObjectEntity, LinkDescription, ABC):
         hull = self.get_convex_hull()
         hull.show()
 
-    def get_mesh_path(self) -> str:
+    def get_mesh_path(self, geometry: MeshVisualShape) -> str:
         """
+        :param geometry: The geometry for which the mesh path should be returned.
         :return: The path of the mesh file of this link if the geometry is a mesh.
         """
-        mesh_filename = self.get_mesh_filename()
+        mesh_filename = self.get_mesh_filename(geometry)
         return self.world.cache_manager.look_for_file_in_data_dir(pathlib.Path(mesh_filename))
 
-    def get_mesh_filename(self) -> str:
+    def get_mesh_filename(self, geometry: MeshVisualShape) -> str:
         """
         :return: The mesh file name of this link if the geometry is a mesh, otherwise raise a LinkGeometryHasNoMesh.
         :raises LinkHasNoGeometry: If the link has no geometry.
         :raises LinkGeometryHasNoMesh: If the geometry is not a mesh.
         """
-        if self.geometry is None:
+        if geometry is None:
             raise LinkHasNoGeometry(self.name)
-        if isinstance(self.geometry, MeshVisualShape):
-            return self.geometry.file_name
+        if isinstance(geometry, MeshVisualShape):
+            return geometry.file_name
         else:
-            raise LinkGeometryHasNoMesh(self.name, type(self.geometry).__name__)
+            raise LinkGeometryHasNoMesh(self.name, type(geometry).__name__)
 
     def set_pose(self, pose: Pose) -> None:
         """

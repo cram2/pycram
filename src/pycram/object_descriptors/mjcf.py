@@ -1,15 +1,15 @@
 import os
 import pathlib
+from xml.etree import ElementTree as ET
 
 import numpy as np
 from dm_control import mjcf
 from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional, Dict, Tuple
-from xml.etree import ElementTree as ET
 
 from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
-    SphereVisualShape, MeshVisualShape
-from ..datastructures.enums import JointType, MJCFGeomType, MJCFJointType
+    SphereVisualShape, MeshVisualShape, VisualShapeUnion
+from ..datastructures.enums import JointType, MJCFGeomType, MJCFJointType, Shape
 from ..datastructures.pose import Pose
 from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
@@ -38,11 +38,17 @@ class LinkDescription(AbstractLinkDescription):
         super().__init__(mjcf_description)
 
     @property
-    def geometry(self) -> Union[VisualShape, None]:
+    def geometry(self) -> Union[List[VisualShape], VisualShape, None]:
         """
         :return: The geometry type of the collision element of this link.
         """
-        return self._get_visual_shape(self.parsed_description.find_all('geom')[0])
+        all_geoms = self.parsed_description.find_all('geom')
+        if len(all_geoms) == 0:
+            return None
+        elif len(all_geoms) == 1:
+            return self._get_visual_shape(all_geoms[0])
+        else:
+            return [self._get_visual_shape(geom) for geom in all_geoms]
 
     @staticmethod
     def _get_visual_shape(mjcf_geometry) -> Union[VisualShape, None]:
@@ -74,7 +80,6 @@ class LinkDescription(AbstractLinkDescription):
 
 
 class JointDescription(AbstractJointDescription):
-
     mjcf_type_map = {
         MJCFJointType.HINGE.value: JointType.REVOLUTE,
         MJCFJointType.BALL.value: JointType.SPHERICAL,
@@ -176,15 +181,18 @@ class ObjectFactory(Factory):
     """
     Create MJCF object descriptions from mesh files.
     """
-    def __init__(self, object_name: str, file_path: str, config: Configuration, texture_type: str = "png"):
+
+    def __init__(self, file_path: str, config: Configuration):
         super().__init__(file_path, config)
+
+    def from_mesh_file(self, object_name: str, texture_type: str = "png"):
 
         self._world_builder = WorldBuilder(usd_file_path=self.tmp_usd_file_path)
 
         body_builder = self._world_builder.add_body(body_name=object_name)
 
         tmp_usd_mesh_file_path, tmp_origin_mesh_file_path = self.import_mesh(
-            mesh_file_path=file_path, merge_mesh=True)
+            mesh_file_path=self.source_file_path, merge_mesh=True)
         mesh_stage = Usd.Stage.Open(tmp_usd_mesh_file_path)
         for idx, mesh_prim in enumerate([prim for prim in mesh_stage.Traverse() if prim.IsA(UsdGeom.Mesh)]):
             mesh_name = mesh_prim.GetName()
@@ -200,10 +208,11 @@ class ObjectFactory(Factory):
             geom_builder.add_mesh(mesh_name=mesh_name, mesh_property=mesh_property)
 
             # Add texture if available
-            texture_file_path = file_path.replace(pathlib.Path(file_path).suffix, f".{texture_type}")
+            texture_file_path = self.source_file_path.replace(pathlib.Path(self.source_file_path).suffix,
+                                                              f".{texture_type}")
             if pathlib.Path(texture_file_path).exists():
                 self.add_material_with_texture(geom_builder=geom_builder, material_name=f"M_{object_name}_{idx}",
-                                               texture_file_path=texture_file_path)
+                                              texture_file_path=texture_file_path)
 
             geom_builder.build()
 
@@ -234,6 +243,64 @@ class ObjectFactory(Factory):
         exporter = MjcfExporter(self, output_file_path)
         exporter.build()
         exporter.export(keep_usd=False)
+
+
+class PrimitiveObjectFactory(ObjectFactory):
+
+    def __init__(self, object_name: str, shape_data: VisualShapeUnion, save_path: str,
+                 orientation: Optional[List[float]] = None):
+        """
+        Create an MJCF object description from a primitive shape.
+
+        :param object_name: The name of the object.
+        :param shape_data: The shape data of the object.
+        :param save_path: The path to save the MJCF file.
+        :param orientation: The orientation of the object.
+        """
+        self.shape_data: VisualShapeUnion = shape_data
+        self.orientation: List[float] = [0, 0, 0, 1] if orientation is None else orientation
+        config = Configuration(model_name=object_name,
+                               fixed_base=False,
+                               with_visual=True,
+                               with_collision=True,
+                               default_rgba=np.array(shape_data.rgba_color.get_rgba()))
+        super().__init__(save_path, config)
+
+    def build_shape(self):
+
+        self._world_builder = WorldBuilder(usd_file_path=self.tmp_usd_file_path)
+
+        body_builder = self._world_builder.add_body(body_name=self.config.model_name)
+
+        geom_type_map = {
+            Shape.SPHERE: GeomType.SPHERE,
+            Shape.BOX: GeomType.CUBE,
+            Shape.CYLINDER: GeomType.CYLINDER,
+            Shape.PLANE: GeomType.PLANE,
+            Shape.CAPSULE: GeomType.CAPSULE,
+        }
+        geom_property = GeomProperty(geom_type=geom_type_map[self.shape_data.visual_geometry_type],
+                                     is_visible=self.config.with_visual,
+                                     is_collidable=self.config.with_collision,
+                                     rgba=self.config.default_rgba)
+
+        geom_builder = body_builder.add_geom(
+            geom_name=f"{self.config.model_name}_Shape",
+            geom_property=geom_property
+        )
+        geom_pos = self.shape_data.visual_frame_position
+        geom_quat = np.array(self.orientation)
+        if self.shape_data.visual_geometry_type == Shape.PLANE:
+            geom_builder.set_transform(pos=geom_pos, quat=geom_quat, scale=np.array([50, 50, 1]))
+        elif self.shape_data.visual_geometry_type == Shape.BOX:
+            geom_builder.set_transform(pos=geom_pos, quat=geom_quat, scale=np.array(self.shape_data.half_extents) * 2)
+        elif self.shape_data.visual_geometry_type == Shape.SPHERE:
+            geom_builder.set_transform(pos=geom_pos, quat=geom_quat)
+            geom_builder.set_attribute(radius=self.shape_data.radius)
+        elif self.shape_data.visual_geometry_type in [Shape.CYLINDER, Shape.CAPSULE]:
+            geom_builder.set_transform(pos=geom_pos, quat=geom_quat)
+            geom_builder.set_attribute(radius=self.shape_data.radius, height=self.shape_data.length)
+        geom_builder.build()
 
 
 class ObjectDescription(AbstractObjectDescription):
@@ -373,10 +440,11 @@ class ObjectDescription(AbstractObjectDescription):
         :param color: The color of the object.
         :param save_path: The path to save the generated xml file.
         """
-        factory = ObjectFactory(object_name=name, file_path=path,
+        factory = ObjectFactory(file_path=path,
                                 config=Configuration(model_name=name,
                                                      fixed_base=False,
                                                      default_rgba=np.array(color.get_rgba())))
+        factory.from_mesh_file(object_name=name)
         factory.export_to_mjcf(output_file_path=save_path)
 
     def generate_from_description_file(self, path: str, save_path: str, make_mesh_paths_absolute: bool = True) -> None:

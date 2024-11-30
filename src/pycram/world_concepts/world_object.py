@@ -516,7 +516,7 @@ class Object(WorldEntity, HasConcept):
         :param link_name: The name of the link.
         :return: The axis aligned bounding box of the link.
         """
-        return self.links[link_name].get_bounding_box()
+        return self.links[link_name].get_axis_aligned_bounding_box()
 
     def get_transform_between_links(self, from_link: str, to_link: str) -> Transform:
         """
@@ -1374,7 +1374,7 @@ class Object(WorldEntity, HasConcept):
         :return: The axis aligned bounding box of this object.
         """
         if self.has_one_link:
-            return self.root_link.get_bounding_box()
+            return self.root_link.get_axis_aligned_bounding_box()
         else:
             return self.world.get_object_axis_aligned_bounding_box(self)
 
@@ -1385,7 +1385,7 @@ class Object(WorldEntity, HasConcept):
         :return: The rotated bounding box of this object.
         """
         if self.has_one_link:
-            return self.root_link.get_bounding_box(rotated=True)
+            return self.root_link.get_rotated_bounding_box()
         else:
             return self.world.get_object_rotated_bounding_box(self)
 

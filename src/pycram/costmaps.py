@@ -783,7 +783,7 @@ class SemanticCostmap(Costmap):
             link_pose_trans = self.link.transform
             inverse_trans = link_pose_trans.invert()
             prospection_object.set_orientation(inverse_trans.to_pose())
-            return self.link.get_bounding_box()
+            return self.link.get_axis_aligned_bounding_box()
 
 
 class AlgebraicSemanticCostmap(SemanticCostmap):
