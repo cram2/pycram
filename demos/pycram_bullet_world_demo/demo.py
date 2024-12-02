@@ -25,7 +25,7 @@ milk = Object("milk", Milk, "milk.stl", pose=Pose([2.5, 2, 1.02]),
               color=Color(1, 0, 0, 1))
 cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
                 pose=Pose([2.5, 2.3, 1.05]), color=Color(0, 1, 0, 1))
-spoon = Object("spoon", Spoon, "spoon.stl", pose=Pose([2.4, 2.2, 0.85]),
+spoon = Object("spoon", Spoon, "spoon.stl", pose=Pose([2.4, 2.24, 0.85]),
                color=Color(0, 0, 1, 1))
 bowl = Object("bowl", Bowl, "bowl.stl", pose=Pose([2.5, 2.2, 1.02]),
               color=Color(1, 1, 0, 1))
