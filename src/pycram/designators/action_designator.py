@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from tf import transformations
 from typing_extensions import List, Union, Callable, Optional, Type
 
+from pycrap import PhysicalObject, Location
 from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveArmJointsMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
@@ -25,7 +26,7 @@ from ..tasktree import with_tree
 
 from owlready2 import Thing
 
-from ..datastructures.enums import Arms, Grasp, GripperState
+from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState
 from ..designator import ActionDesignatorDescription
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
@@ -460,17 +461,32 @@ class LookAtActionPerformable(ActionAbstract):
 class DetectActionPerformable(ActionAbstract):
     """
     Detects an object that fits the object description and returns an object designator_description describing the object.
+
+    If no object is found, an PerceptionObjectNotFound error is raised.
     """
 
-    object_designator: ObjectDesignatorDescription.Object
+    technique: DetectionTechnique
     """
-    Object designator_description loosely describing the object, e.g. only type. 
+    The technique that should be used for detection
+    """
+    state: DetectionState
+    """
+    The state of the detection, e.g Start Stop for continues perception
+    """
+    object_designator_description: Optional[ObjectDesignatorDescription] = None
+    """
+    The type of the object that should be detected, only considered if technique is equal to Type
+    """
+    region: Optional[Location] = None
+    """
+    The region in which the object should be detected
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMDetectAction)
 
     @with_tree
     def plan(self) -> None:
-        return DetectingMotion(object_type=self.object_designator.obj_type).perform()
+        return DetectingMotion(technique=self.technique,state=self.state, object_designator_description=self.object_designator_description,
+                               region=self.region).perform()
 
 
 @dataclass
@@ -657,8 +673,6 @@ class MoveAndPlacePerformable(ActionAbstract):
         PlaceActionPerformable(self.object_designator, self.arm, self.target_location).perform()
 
 
-
-
 # ----------------------------------------------------------------------------
 #               Action Designators Description
 # ----------------------------------------------------------------------------
@@ -715,7 +729,6 @@ class SetGripperAction(ActionDesignatorDescription):
         self.grippers: List[Arms] = grippers
         self.motions: List[GripperState] = motions
 
-
     def ground(self) -> SetGripperActionPerformable:
         """
         Default specialized_designators that returns a performable designator_description with the first element in the grippers and motions list.
@@ -748,13 +761,13 @@ class ReleaseAction(ActionDesignatorDescription):
         self.grippers: List[Arms] = grippers
         self.object_designator_description = object_designator_description
 
-
     def ground(self) -> ReleaseActionPerformable:
         return ReleaseActionPerformable(self.grippers[0], self.object_designator_description.ground())
 
     def __iter__(self):
         ri = ReasoningInstance(self,
-                                 PartialDesignator(ReleaseActionPerformable, self.grippers, self.object_designator_description))
+                               PartialDesignator(ReleaseActionPerformable, self.grippers,
+                                                 self.object_designator_description))
         for desig in ri:
             yield desig
 
@@ -779,14 +792,14 @@ class GripAction(ActionDesignatorDescription):
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.efforts: List[float] = efforts
 
-
     def ground(self) -> GripActionPerformable:
         return GripActionPerformable(self.grippers[0], self.object_designator_description.ground(), self.efforts[0])
 
     def __iter__(self):
         ri = ReasoningInstance(self,
-                                 PartialDesignator(GripActionPerformable, self.grippers, self.object_designator_description,
-                                                     self.efforts))
+                               PartialDesignator(GripActionPerformable, self.grippers,
+                                                 self.object_designator_description,
+                                                 self.efforts))
         for desig in ri:
             yield desig
 
@@ -806,7 +819,6 @@ class ParkArmsAction(ActionDesignatorDescription):
         """
         super().__init__()
         self.arms: List[Arms] = arms
-
 
     def ground(self) -> ParkArmsActionPerformable:
         """
@@ -889,7 +901,6 @@ class PlaceAction(ActionDesignatorDescription):
         self.target_locations: List[Pose] = target_locations
         self.arms: List[Arms] = arms
         self.knowledge_condition = ReachableProperty(object_desig.pose)
-
 
     def ground(self) -> PlaceActionPerformable:
         """
@@ -975,7 +986,6 @@ class TransportAction(ActionDesignatorDescription):
         self.arms: List[Arms] = arms
         self.target_locations: List[Pose] = target_locations
 
-
     def ground(self) -> TransportActionPerformable:
         """
         Default specialized_designators that returns a performable designator_description with the first entries from the lists of possible parameter.
@@ -986,7 +996,7 @@ class TransportAction(ActionDesignatorDescription):
             if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object) \
             else self.object_designator_description.resolve()
 
-        return TransportActionPerformable(obj_desig, self.target_locations[0],  self.arms[0])
+        return TransportActionPerformable(obj_desig, self.target_locations[0], self.arms[0])
 
     def __iter__(self) -> TransportActionPerformable:
         obj_desig = self.object_designator_description \
@@ -1015,7 +1025,6 @@ class LookAtAction(ActionDesignatorDescription):
         super().__init__()
         self.targets: List[Pose] = targets
 
-
     def ground(self) -> LookAtActionPerformable:
         """
         Default specialized_designators that returns a performable designator_description with the first entry in the list of possible targets
@@ -1041,17 +1050,19 @@ class DetectAction(ActionDesignatorDescription):
 
     performable_class = DetectActionPerformable
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription,
-                 ontology_concept_holders: Optional[List[Thing]] = None):
+    def __init__(self, technique: DetectionTechnique, state: Optional[DetectionState] = None,
+                 object_designator_description: Optional[ObjectDesignatorDescription] = None, region: Optional[Location] = None):
         """
         Tries to detect an object in the field of view (FOV) of the robot.
 
-        :param object_designator_description: Object designator_description describing the object
-        """
+      """
         super().__init__()
-        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
-        self.knowledge_condition = VisibleProperty(self.object_designator_description)
-
+        self.technique: DetectionTechnique = technique
+        self.state: DetectionState = DetectionState.START if state is None else state
+        self.object_designator_description: Optional[ObjectDesignatorDescription] = object_designator_description
+        self.region: Optional[Location] = region
+        #TODO: Implement knowledge condition
+        # self.knowledge_condition = VisibleProperty(self.object_designator_description)
 
     def ground(self) -> DetectActionPerformable:
         """
@@ -1067,8 +1078,7 @@ class DetectAction(ActionDesignatorDescription):
 
         :return: A performable action designator_description
         """
-        for desig in self.object_designator_description:
-            yield DetectActionPerformable(desig)
+        yield DetectActionPerformable(self.technique, self.state, self.object_designator_description, self.region)
 
 
 class OpenAction(ActionDesignatorDescription):
@@ -1134,7 +1144,6 @@ class CloseAction(ActionDesignatorDescription):
         self.arms: List[Arms] = arms
         self.knowledge_condition = GripperIsFreeProperty(self.arms)
 
-
     def ground(self) -> CloseActionPerformable:
         """
         Default specialized_designators that returns a performable designator_description with the executed object designator_description and the first entry from
@@ -1175,7 +1184,6 @@ class GraspingAction(ActionDesignatorDescription):
         self.arms: List[Arms] = arms
         self.object_description: ObjectDesignatorDescription = object_description
 
-
     def ground(self) -> GraspingActionPerformable:
         """
         Default specialized_designators that takes the first element from the list of arms and the first solution for the object
@@ -1196,4 +1204,3 @@ class GraspingAction(ActionDesignatorDescription):
                                PartialDesignator(GraspingActionPerformable, self.object_description, self.arms))
         for desig in ri:
             yield desig
-

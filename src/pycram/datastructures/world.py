@@ -12,7 +12,7 @@ from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
 import pycrap
-from pycrap import PhysicalObject
+from pycrap import PhysicalObject, Floor, Apartment
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
@@ -350,6 +350,13 @@ class World(StateEntity, ABC):
         :return: The Object with the id 'id'.
         """
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
+
+    def get_scene_objects(self) -> List[Object]:
+        """
+        Return all objects in the world except the robot, floor and apartment.
+        :return: A list of all objects in the world except the robot, floor and apartment.
+        """
+        return [obj for obj in self.objects if obj not in {self.robot, Floor, Apartment}]
 
     def remove_visual_object(self, obj_id: int) -> bool:
         """
@@ -1576,6 +1583,7 @@ class UseProspectionWorld:
         with UseProspectionWorld():
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
+
     def __init__(self):
         self.prev_world: Optional[World] = None
         # The previous world is saved to restore it after the with block is exited.
