@@ -89,7 +89,7 @@ class Floor(PhysicalObject):
     """
 
 
-class GenObj(PhysicalObject):
+class Genobj(PhysicalObject):
     """
     A generic object if no description is provided.
     """

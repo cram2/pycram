@@ -12,7 +12,7 @@ from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
 import pycrap
-from pycrap import PhysicalObject, Floor, Apartment
+from pycrap import PhysicalObject, Floor, Apartment, Robot
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
@@ -353,10 +353,9 @@ class World(StateEntity, ABC):
 
     def get_scene_objects(self) -> List[Object]:
         """
-        Return all objects in the world except the robot, floor and apartment.
-        :return: A list of all objects in the world except the robot, floor and apartment.
+        :return: A list of all objects in the world except the robot, floor, and apartment.
         """
-        return [obj for obj in self.objects if obj not in {self.robot, Floor, Apartment}]
+        return [obj for obj in self.objects if obj.obj_type not in {Robot, Floor, Apartment}]
 
     def remove_visual_object(self, obj_id: int) -> bool:
         """

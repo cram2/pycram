@@ -1,5 +1,7 @@
 import time
 import unittest
+
+from pycram.designator import ObjectDesignatorDescription
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, FaceAtPerformable
@@ -96,7 +98,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_detect(self):
         self.kitchen.set_pose(Pose([10, 10, 0]))
         self.milk.set_pose(Pose([1.5, 0, 1.2]))
-        object_description = object_designator.ObjectDesignatorDescription(types=[Milk])
+        object_description = ObjectDesignatorDescription(types=[Milk])
         description = action_designator.DetectAction(technique=DetectionTechnique.TYPES, object_designator_description=object_description)
         with simulated_robot:
             detected_object = description.resolve().perform()

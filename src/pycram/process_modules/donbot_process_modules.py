@@ -8,7 +8,7 @@ from ..designators.motion_designator import MoveArmJointsMotion, WorldStateDetec
 from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_description import RobotDescription
-from ..process_modules.pr2_process_modules import Pr2Detecting as DonbotDetecting, _move_arm_tcp
+from ..process_modules.pr2_process_modules import _move_arm_tcp
 from ..datastructures.enums import Arms, ExecutionType
 
 

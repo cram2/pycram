@@ -1,15 +1,17 @@
 from threading import Lock
-from typing import List
+from typing_extensions import List
 
 import numpy as np
 import rospy
 
+import pycram.datastructures.dataclasses
 from ..datastructures.dataclasses import Color
 from ..datastructures.enums import JointType
 from ..external_interfaces.ik import request_ik
 from ..external_interfaces.robokudo import query_all_objects, query_object, query_human, query_specific_region, \
     query_human_attributes, query_waving_human, stop_query
-from ..utils import _apply_ik
+from ..ros.ros_tools import get_time
+from ..utils import _apply_ik, map_color_names_to_rgba
 from ..process_module import ProcessModule
 from ..robot_description import RobotDescription
 from ..local_transformer import LocalTransformer
@@ -261,24 +263,6 @@ class DefaultDetectingReal(ProcessModule):
                 except IndexError:
                     pass
 
-                # Map color names to RGBA values
-                color_switch = {
-                    "red": [1, 0, 0, 1],
-                    "yellow": [1, 1, 0, 1],
-                    "green": [0, 1, 0, 1],
-                    "cyan": [0, 1, 1, 1],
-                    "blue": [0, 0, 1, 1],
-                    "magenta": [1, 0, 1, 1],
-                    "white": [1, 1, 1, 1],
-                    "black": [0, 0, 0, 1],
-                    "grey": [0.5, 0.5, 0.5, 1],
-                    # add more colors if needed
-                }
-
-                color = color_switch.get(obj_color)
-                if color is None:
-                    color = Color(0, 0, 0, 1)
-
                 hsize = [obj_size.x / 2, obj_size.y / 2, obj_size.z / 2]
 
                 # Check if the object type is a subclass of the classes in the objects module (pycrap)
@@ -286,15 +270,16 @@ class DefaultDetectingReal(ProcessModule):
 
                 matching_classes = [class_name for class_name in class_names if obj_type in class_name]
 
-                obj_name = obj_type + "" + str(rospy.get_time())
+                obj_name = obj_type + "" + str(get_time())
                 # Check if there are any matches
                 if matching_classes:
                     rospy.loginfo(f"Matching class names: {matching_classes}")
                     obj_type = matching_classes[0]
                 else:
                     rospy.loginfo(f"No class name contains the string '{obj_type}'")
-                    obj_type = GenObj
+                    obj_type = Genobj
                 gen_obj_desc = GenericObjectDescription(obj_name, [0, 0, 0], hsize)
+                color = map_color_names_to_rgba(obj_color)
                 generic_obj = Object(name=obj_name, concept=obj_type, path=None, description=gen_obj_desc, color=color)
 
                 generic_obj.set_pose(obj_pose)
