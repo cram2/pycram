@@ -43,7 +43,7 @@ def move_and_detect(obj_type):
 
     LookAtAction(targets=[pick_pose]).resolve().perform()
 
-    object_desig = DetectAction(BelieveObject(types=[obj_type])).resolve().perform()
+    object_desig = DetectAction(technique=DetectionTechnique.TYPES, object_designator_description=BelieveObject(types=[obj_type])).resolve().perform()
 
     return object_desig[0]
 
