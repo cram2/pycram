@@ -81,6 +81,7 @@ class Pr2MoveGripper(ProcessModule):
             robot.set_joint_position(joint, state)
 
 
+@DeprecationWarning
 class Pr2Detecting(ProcessModule):
     """
     This process module tries to detect an object with the given type. To be detected the object has to be in
@@ -238,38 +239,39 @@ class Pr2MoveHeadReal(ProcessModule):
         giskard.achieve_joint_goal({"head_pan_joint": new_pan + current_pan,
                                     "head_tilt_joint": new_tilt + current_tilt})
 
-#
-# class Pr2DetectingReal(ProcessModule):
-#     """
-#     Process Module for the real Pr2 that tries to detect an object fitting the given object description. Uses Robokudo
-#     for perception of the environment.
-#     """
-#
-#     def _execute(self, designator: DetectingMotion) -> Any:
-#
-#
-#
-#         query_result = query_object(ObjectDesignatorDescription(types=[designator.object_type]))
-#         print(query_result)
-#         obj_pose = query_result["ClusterPoseBBAnnotator"]
-#
-#         lt = LocalTransformer()
-#         obj_pose = lt.transform_pose(obj_pose, World.robot.get_link_tf_frame("torso_lift_link"))
-#         obj_pose.orientation = [0, 0, 0, 1]
-#         obj_pose.position.x += 0.05
-#
-#         world_obj = World.current_world.get_object_by_type(designator.object_type)
-#         if world_obj:
-#             world_obj[0].set_pose(obj_pose)
-#             return world_obj[0]
-#         elif designator.object_type == ObjectType.JEROEN_CUP:
-#             cup = Object("cup", ObjectType.JEROEN_CUP, "jeroen_cup.stl", pose=obj_pose)
-#             return cup
-#         elif designator.object_type == ObjectType.BOWL:
-#             bowl = Object("bowl", ObjectType.BOWL, "bowl.stl", pose=obj_pose)
-#             return bowl
-#
-#         return world_obj[0]
+
+@DeprecationWarning
+class Pr2DetectingReal(ProcessModule):
+    """
+    Process Module for the real Pr2 that tries to detect an object fitting the given object description. Uses Robokudo
+    for perception of the environment.
+    """
+
+    def _execute(self, designator: DetectingMotion) -> Any:
+
+
+
+        query_result = query_object(ObjectDesignatorDescription(types=[designator.object_type]))
+        print(query_result)
+        obj_pose = query_result["ClusterPoseBBAnnotator"]
+
+        lt = LocalTransformer()
+        obj_pose = lt.transform_pose(obj_pose, World.robot.get_link_tf_frame("torso_lift_link"))
+        obj_pose.orientation = [0, 0, 0, 1]
+        obj_pose.position.x += 0.05
+
+        world_obj = World.current_world.get_object_by_type(designator.object_type)
+        if world_obj:
+            world_obj[0].set_pose(obj_pose)
+            return world_obj[0]
+        elif designator.object_type == ObjectType.JEROEN_CUP:
+            cup = Object("cup", ObjectType.JEROEN_CUP, "jeroen_cup.stl", pose=obj_pose)
+            return cup
+        elif designator.object_type == ObjectType.BOWL:
+            bowl = Object("bowl", ObjectType.BOWL, "bowl.stl", pose=obj_pose)
+            return bowl
+
+        return world_obj[0]
 
 
 class Pr2MoveTCPReal(ProcessModule):
