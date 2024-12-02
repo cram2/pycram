@@ -10,7 +10,10 @@ from pycram.world_concepts.world_object import Object
 from pycram.datastructures.dataclasses import Color
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 from pycrap import Robot, Apartment, Milk, Cereal, Spoon, Bowl
+import numpy as np
 
+
+np.random.seed(420)
 extension = ObjectDescription.get_file_extension()
 
 world = BulletWorld(WorldMode.GUI)
@@ -22,7 +25,7 @@ milk = Object("milk", Milk, "milk.stl", pose=Pose([2.5, 2, 1.02]),
               color=Color(1, 0, 0, 1))
 cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
                 pose=Pose([2.5, 2.3, 1.05]), color=Color(0, 1, 0, 1))
-spoon = Object("spoon", Spoon, "spoon.stl", pose=Pose([2.4, 2.2, 0.85]),
+spoon = Object("spoon", Spoon, "spoon.stl", pose=Pose([2.4, 2.24, 0.85]),
                color=Color(0, 0, 1, 1))
 bowl = Object("bowl", Bowl, "bowl.stl", pose=Pose([2.5, 2.2, 1.02]),
               color=Color(1, 1, 0, 1))
@@ -52,15 +55,15 @@ with simulated_robot:
 
     milk_desig = move_and_detect(Milk)
 
-    TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+    TransportAction(milk_desig,  [Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
 
     cereal_desig = move_and_detect(Cereal)
 
-    TransportAction(cereal_desig, [Arms.RIGHT], [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])]).resolve().perform()
+    TransportAction(cereal_desig,  [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])],[Arms.RIGHT]).resolve().perform()
 
     bowl_desig = move_and_detect(Bowl)
 
-    TransportAction(bowl_desig, [Arms.LEFT], [Pose([5, 3.3, 0.8], [0, 0, 1, 1])]).resolve().perform()
+    TransportAction(bowl_desig,  [Pose([5, 3.3, 0.8], [0, 0, 1, 1])], [Arms.LEFT]).resolve().perform()
 
     # Finding and navigating to the drawer holding the spoon
     handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig.resolve())

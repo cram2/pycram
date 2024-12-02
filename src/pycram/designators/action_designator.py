@@ -849,8 +849,10 @@ class PickUpAction(ActionDesignatorDescription):
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.arms: List[Arms] = arms
         self.grasps: List[Grasp] = grasps
+        object_desig = self.object_designator_description if isinstance(self.object_designator_description,
+                                                                        ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
         self.knowledge_condition = GraspableProperty(self.object_designator_description) & ReachableProperty(
-            self.object_designator_description.resolve().pose)
+            object_desig.pose)
 
     def __iter__(self) -> PickUpActionPerformable:
         ri = ReasoningInstance(self,
@@ -882,9 +884,11 @@ class PlaceAction(ActionDesignatorDescription):
         super().__init__()
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
+        object_desig = self.object_designator_description if isinstance(self.object_designator_description,
+                                                                       ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
         self.target_locations: List[Pose] = target_locations
         self.arms: List[Arms] = arms
-        self.knowledge_condition = ReachableProperty(self.object_designator_description.resolve().pose)
+        self.knowledge_condition = ReachableProperty(object_desig.pose)
 
 
     def ground(self) -> PlaceActionPerformable:
