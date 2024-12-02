@@ -7,7 +7,7 @@ from ..ros.data_types import Time
 from ..ros.logging import logwarn, loginfo_once
 from ..ros.ros_tools import get_node_names
 
-from ..datastructures.enums import JointType, ObjectType
+from ..datastructures.enums import JointType, ObjectType, Arms
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..datastructures.dataclasses import MeshVisualShape
@@ -22,7 +22,6 @@ from threading import Lock, RLock
 try:
     from giskardpy.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
     from giskard_msgs.msg import WorldBody, MoveResult, CollisionEntry
-    from giskard_msgs.srv import UpdateWorld
 except ModuleNotFoundError as e:
     logwarn("Failed to import Giskard messages, the real robot will not be available")
 
@@ -305,16 +304,12 @@ def achieve_joint_goal(goal_poses: Dict[str, float]) -> 'MoveResult':
     :param goal_poses: Dictionary with joint names and position goals
     :return: MoveResult message for this goal
     """
-    sync_worlds()
-    par_return = _manage_par_motion_goals(giskard_wrapper.set_joint_goal, goal_poses)
-    if par_return:
-        return par_return
-
-    giskard_wrapper.set_joint_goal(goal_poses)
-    # giskard_wrapper.add_default_end_motion_conditions()
+    set_joint_goal(goal_poses)
     return giskard_wrapper.execute()
 
 
+@init_giskard_interface
+@thread_safe
 def set_joint_goal(goal_poses: Dict[str, float]) -> None:
     """
     Takes a dictionary of joint position that should be achieved, the keys in the dictionary are the joint names and
@@ -323,6 +318,10 @@ def set_joint_goal(goal_poses: Dict[str, float]) -> None:
     :param goal_poses: Dictionary with joint names and position goals
     """
     sync_worlds()
+    par_return = _manage_par_motion_goals(giskard_wrapper.set_joint_goal, goal_poses)
+    if par_return:
+        return par_return
+
     giskard_wrapper.set_joint_goal(goal_poses)
 
 
@@ -332,8 +331,7 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str,
                            position_threshold: float = 0.02,
                            orientation_threshold: float = 0.02,
                            use_monitor: bool = True,
-                           allow_gripper_collision_: bool = True,
-                           joint_goal: Optional[Dict[str, float]] = None) -> 'MoveResult':
+                           grippers_that_can_collide: Optional[Arms] = None) -> 'MoveResult':
     """
     Takes a cartesian position and tries to move the tip_link to this position using the chain defined by
     tip_link and root_link.
@@ -344,9 +342,7 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str,
     :param position_threshold: Position distance at which the goal is successfully reached
     :param orientation_threshold: Orientation distance at which the goal is successfully reached
     :param use_monitor: Whether to use a monitor for this goal or not.
-    :param allow_gripper_collision_: Whether to allow collisions with the gripper or not.
-    :param joint_goal: If a joint goal should be executed with the cartesian goal, this should be a dictionary with
-    joint names and joint positions.
+    :param grippers_that_can_collide: The gripper(s) that should be allowed to collide.
     :return: MoveResult message for this goal
     """
     sync_worlds()
@@ -367,15 +363,12 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str,
                                                     goal_pose=_pose_to_pose_stamped(goal_pose),
                                                     end_condition=cart_monitor1)
 
-    if joint_goal:
-        giskard_wrapper.set_joint_goal(joint_goal, add_monitor=use_monitor)
-
     if use_monitor:
         giskard_wrapper.monitors.add_end_motion(start_condition=end_monitor)
 
     giskard_wrapper.motion_goals.avoid_all_collisions()
-    if allow_gripper_collision_:
-        allow_gripper_collision('all')
+    if grippers_that_can_collide is not None:
+        allow_gripper_collision(grippers_that_can_collide)
 
     return giskard_wrapper.execute()
 
@@ -383,7 +376,8 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str,
 @init_giskard_interface
 @thread_safe
 def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
-                                    root_link: str, allow_gripper_collision_: bool = False) -> 'MoveResult':
+                                    root_link: str,
+                                    grippers_that_can_collide: Optional[Arms] = None) -> 'MoveResult':
     """
     Takes a cartesian position and tries to move the tip_link to this position in a straight line, using the chain
     defined by tip_link and root_link.
@@ -391,7 +385,7 @@ def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
     :param goal_pose: The position which should be achieved with tip_link
     :param tip_link: The end link of the chain as well as the link which should achieve the goal_pose
     :param root_link: The starting link of the chain which should be used to achieve this goal
-    :param allow_gripper_collision_: Whether to allow collisions with the gripper or not.
+    :param grippers_that_can_collide: The gripper(s) that should be allowed to collide.
     :return: MoveResult message for this goal
     """
     sync_worlds()
@@ -401,8 +395,8 @@ def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
         return par_return
 
     giskard_wrapper.avoid_all_collisions()
-    if allow_gripper_collision_:
-        allow_gripper_collision('all')
+    if grippers_that_can_collide is not None:
+        allow_gripper_collision(grippers_that_can_collide)
     giskard_wrapper.set_straight_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
     # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
@@ -608,16 +602,16 @@ def projection_joint_goal(goal_poses: Dict[str, float], allow_collisions: bool =
 # Managing collisions
 
 @init_giskard_interface
-def allow_gripper_collision(gripper: str, at_goal: bool = False) -> None:
+def allow_gripper_collision(gripper: Arms, at_goal: bool = False) -> None:
     """
     Allows the specified gripper to collide with anything.
 
-    :param gripper: The gripper which can collide, either 'right', 'left' or 'all'
+    :param gripper: The gripper which can collide, either 'Arms.RIGHT', 'Arms.LEFT' or 'Arms.BOTH'
     :param at_goal: If the collision should be allowed only for this motion goal.
     """
     add_gripper_groups()
     for gripper_group in get_gripper_group_names():
-        if gripper in gripper_group or gripper == "all":
+        if gripper.name.lower() in gripper_group or gripper == Arms.BOTH:
             if at_goal:
                 giskard_wrapper.motion_goals.allow_collision(gripper_group, CollisionEntry.ALL)
             else:
