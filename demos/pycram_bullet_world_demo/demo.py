@@ -45,7 +45,7 @@ def move_and_detect(obj_type):
 
     object_desig = DetectAction(BelieveObject(types=[obj_type])).resolve().perform()
 
-    return object_desig
+    return object_desig[0]
 
 
 with simulated_robot:
