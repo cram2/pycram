@@ -246,15 +246,8 @@ class ForceTorqueSensor:
         return derivative
 
     def human_touch_monitoring(self):
-        print("monitoring")
-        if self.robot_name == 'hsrb':
-            der = self.get_last_value()
-            if abs(der.wrench.force.x) > 10.30:
-                print("sensor")
-                return SensorMonitoringCondition
-        elif self.robot_name == 'pr2':
+        rospy.loginfo_once("Now monitoring for human touch")
+        if self.robot_name == 'pr2':
             der = self.get_derivative()
-            print(der.wrench.torque.x)
             if abs(der.wrench.torque.x) > 3:
-                print("sensor")
                 return SensorMonitoringCondition
