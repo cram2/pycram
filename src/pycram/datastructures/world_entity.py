@@ -6,8 +6,9 @@ from abc import ABC, abstractmethod
 from copy import copy
 
 from trimesh.parent import Geometry3D
-from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union
+from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union, Type
 
+from pycrap import PhysicalObject
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
     AxisAlignedBoundingBox, RotatedBoundingBox
 from ..local_transformer import LocalTransformer
@@ -157,6 +158,11 @@ class WorldEntity(StateEntity, ABC):
 class PhysicalBody(WorldEntity, ABC):
     """
     A class that represents a physical body in the world that has some related physical properties.
+    """
+
+    ontology_concept: Type[PhysicalObject] = PhysicalObject
+    """
+    The ontology concept of this entity.
     """
 
     def __init__(self, body_id: int, world: World):
