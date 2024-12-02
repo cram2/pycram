@@ -329,17 +329,6 @@ def set_joint_goal(goal_poses: Dict[str, float]) -> None:
     giskard_wrapper.set_joint_goal(goal_poses)
 
 
-def set_joint_goal(goal_poses: Dict[str, float]) -> None:
-    """
-    Takes a dictionary of joint position that should be achieved, the keys in the dictionary are the joint names and
-    values are the goal joint positions.
-
-    :param goal_poses: Dictionary with joint names and position goals
-    """
-    sync_worlds()
-    giskard_wrapper.set_joint_goal(goal_poses)
-
-
 @init_giskard_interface
 @thread_safe
 def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str,
