@@ -1,5 +1,4 @@
-from threading import Lock
-from typing_extensions import Any, TYPE_CHECKING
+from typing_extensions import TYPE_CHECKING
 
 import actionlib
 
@@ -8,7 +7,7 @@ import numpy as np
 
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
-from ..ros.logging import logdebug
+from pycram.ros.ros1.logging import logdebug
 from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
 
@@ -18,7 +17,6 @@ from ..designators.motion_designator import MoveMotion, LookingMotion, \
 from ..robot_description import RobotDescription
 from ..datastructures.world import World
 from ..world_concepts.world_object import Object
-from ..datastructures.pose import Pose
 from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import *

@@ -4,8 +4,8 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 
-from ..ros.logging import logerr
-from ..ros.ros_tools import create_ros_pack, ResourceNotFound, get_parameter
+from pycram.ros.ros1.logging import logerr
+from pycram.ros.ros1.ros_tools import create_ros_pack, ResourceNotFound, get_parameter
 from geometry_msgs.msg import Point
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
 from typing_extensions import Union, List, Optional, Dict, Tuple

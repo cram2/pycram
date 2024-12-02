@@ -8,7 +8,7 @@ from pathlib import Path
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..datastructures.enums import LoggerLevel
+    from pycram.datastructures.enums import LoggerLevel
 
 
 PYCRAM_LOGGER_NAME = "pycram"

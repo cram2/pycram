@@ -18,7 +18,7 @@ from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription
-from ..ros.logging import loginfo
+from pycram.ros.ros1.logging import loginfo
 from ..validation.goal_validator import (validate_multiple_joint_positions, validate_joint_position,
                                          validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint

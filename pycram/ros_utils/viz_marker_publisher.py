@@ -12,10 +12,10 @@ from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, Me
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
 from ..designator import ObjectDesignatorDescription
-from ..ros.data_types import Duration, Time
-from ..ros.logging import loginfo, logwarn, logerr
-from ..ros.publisher import create_publisher
-from ..ros.ros_tools import sleep
+from pycram.ros.ros1.data_types import Duration, Time
+from pycram.ros.ros1.logging import loginfo, logwarn, logerr
+from pycram.ros.ros1.publisher import create_publisher
+from pycram.ros.ros1.ros_tools import sleep
 
 
 class VizMarkerPublisher:

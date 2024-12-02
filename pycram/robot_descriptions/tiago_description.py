@@ -1,4 +1,4 @@
-from ..ros.ros_tools import get_ros_package_path
+from pycram.ros.ros1.ros_tools import get_ros_package_path
 
 from ..datastructures.dataclasses import VirtualMobileBaseJoints
 from ..datastructures.enums import GripperState, Arms, Grasp

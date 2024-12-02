@@ -1,7 +1,7 @@
-from ..ros.ros_tools import get_ros_package_path
+from pycram.ros.ros1.ros_tools import get_ros_package_path
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import Arms, Grasp, GripperState
+from ..datastructures.enums import Arms, GripperState
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "iai_donbot" + '.urdf'
 

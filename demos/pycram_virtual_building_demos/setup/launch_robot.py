@@ -1,10 +1,8 @@
 import time
 import roslaunch
-import rospy
-import rospkg
 
-from pycram.ros.logging import loginfo
-from pycram.ros.ros_tools import create_ros_pack
+from pycram.ros.ros1.logging import loginfo
+from pycram.ros.ros1.ros_tools import create_ros_pack
 
 
 def launch_pr2():

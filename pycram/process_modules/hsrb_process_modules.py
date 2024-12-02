@@ -1,8 +1,5 @@
-import numpy as np
 from threading import Lock
-from typing_extensions import Any
 
-from ..datastructures.enums import ExecutionType
 from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
 from ..robot_description import RobotDescription
 from ..process_module import ProcessModule
@@ -16,7 +13,7 @@ from gtts import gTTS
 
 import io
 
-from ..ros.logging import logdebug
+from pycram.ros.ros1.logging import logdebug
 
 
 class HSRBNavigation(ProcessModule):

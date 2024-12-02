@@ -13,10 +13,10 @@ from ..datastructures.enums import WorldMode, JointType, ObjectType, MultiverseB
     MultiverseJointCMD
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
-from ..description import Link, Joint, ObjectDescription
+from ..description import Link, Joint
 from ..object_descriptors.mjcf import ObjectDescription as MJCF
 from ..robot_description import RobotDescription
-from ..ros.logging import logwarn, logerr
+from pycram.ros.ros1.logging import logwarn, logerr
 from ..utils import RayTestUtils, wxyz_to_xyzw, xyzw_to_wxyz
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position, validate_multiple_object_poses

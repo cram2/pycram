@@ -12,7 +12,7 @@ from matplotlib import colors
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event
 from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
-from random_events.interval import Interval, reals, closed_open, closed
+from random_events.interval import reals, closed_open, closed
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
 from tf.transformations import quaternion_from_matrix
@@ -24,7 +24,7 @@ from .datastructures.world import UseProspectionWorld
 from .datastructures.world import World
 from .description import Link
 from .local_transformer import LocalTransformer
-from .ros.ros_tools import wait_for_message
+from pycram.ros.ros1.ros_tools import wait_for_message
 from .world_concepts.world_object import Object
 
 

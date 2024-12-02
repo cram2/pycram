@@ -3,10 +3,8 @@ from functools import cached_property
 
 import numpy as np
 import tf
-from geometry_msgs.msg import Point
 from std_msgs.msg import ColorRGBA
-from tf.transformations import quaternion_from_matrix
-from random_events.interval import closed, closed_open
+from random_events.interval import closed_open
 from typing_extensions import Optional, Type
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -14,13 +12,12 @@ from .datastructures.world import World
 from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
 import matplotlib.colorbar
 from .datastructures.pose import Pose
-from .ros.data_types import Duration
-from .ros.publisher import create_publisher
-from .units import meter, centimeter
-from .robot_description import RobotDescription
+from pycram.ros.ros1.data_types import Duration
+from pycram.ros.ros1.publisher import create_publisher
+from .units import meter
 
-from pint import Unit, Quantity
-from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event, fully_factorized
+from pint import Quantity
+from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event
 from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous

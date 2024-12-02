@@ -1,18 +1,16 @@
-from typing_extensions import List, Union, Optional
+from typing_extensions import List, Union
 from numpy.linalg import norm
 from numpy import array
 from geometry_msgs.msg import Vector3
 
-from owlready2 import Thing
-
 from ...action_designator import PickUpAction, PickUpActionPerformable
 from ....local_transformer import LocalTransformer
 from ....datastructures.world import World
-from ....datastructures.pose import Pose, Transform
+from ....datastructures.pose import Pose
 from ....datastructures.enums import Arms, Grasp
 from ....robot_description import RobotDescription, KinematicChainDescription
 from ....designator import ObjectDesignatorDescription
-from ....ros.logging import loginfo
+from pycram.ros.ros1.logging import loginfo
 
 
 class DualArmPickupAction(PickUpAction):

@@ -1,18 +1,16 @@
 import json
 import threading
-import time
 
 import sys
 
-from ..ros.data_types import Time
-from ..ros.logging import logwarn, loginfo_once
-from ..ros.ros_tools import get_node_names
+from pycram.ros.ros1.data_types import Time
+from pycram.ros.ros1.logging import logwarn, loginfo_once
+from pycram.ros.ros1.ros_tools import get_node_names
 
 from ..datastructures.enums import JointType, ObjectType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..datastructures.dataclasses import MeshVisualShape
-from ..ros.service import get_service_proxy
 from ..world_concepts.world_object import Object
 from ..robot_description import RobotDescription
 

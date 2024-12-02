@@ -5,8 +5,8 @@ import threading
 from geometry_msgs.msg import WrenchStamped
 from std_msgs.msg import Header
 from ..datastructures.world import World
-from ..ros.data_types import Time
-from ..ros.publisher import create_publisher
+from pycram.ros.ros1.data_types import Time
+from pycram.ros.ros1.publisher import create_publisher
 
 
 class ForceTorqueSensor:

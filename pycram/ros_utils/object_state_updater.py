@@ -9,8 +9,8 @@ from sensor_msgs.msg import JointState
 from ..datastructures.world import World
 from ..robot_description import RobotDescription
 from ..datastructures.pose import Pose
-from ..ros.data_types import Time, Duration
-from ..ros.ros_tools import wait_for_message, create_timer
+from pycram.ros.ros1.data_types import Time, Duration
+from pycram.ros.ros1.ros_tools import wait_for_message, create_timer
 
 
 class RobotStateUpdater:

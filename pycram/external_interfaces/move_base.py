@@ -1,8 +1,8 @@
 import sys
 
-from ..ros.action_lib import create_action_client, SimpleActionClient
-from ..ros.logging import logwarn, loginfo
-from ..ros.ros_tools import get_node_names
+from pycram.ros.ros1.action_lib import create_action_client, SimpleActionClient
+from pycram.ros.ros1.logging import logwarn, loginfo
+from pycram.ros.ros1.ros_tools import get_node_names
 
 from geometry_msgs.msg import PoseStamped
 from typing import Callable

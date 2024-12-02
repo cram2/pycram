@@ -2,9 +2,9 @@ from typing_extensions import Optional
 
 from ..datastructures.enums import GripperState
 from ..designators.motion_designator import MoveGripperMotion, TalkingMotion
-from ..ros.logging import loginfo
-from ..ros.publisher import create_publisher
-from ..ros.data_types import Rate
+from pycram.ros.ros1.logging import loginfo
+from pycram.ros.ros1.publisher import create_publisher
+from pycram.ros.ros1.data_types import Rate
 
 is_init = False
 

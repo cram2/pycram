@@ -12,7 +12,7 @@ from ...datastructures.dataclasses import RayResult, MultiverseContactPoint
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
 from ...datastructures.pose import Pose
-from ...ros.logging import logwarn
+from pycram.ros.ros1.logging import logwarn
 from ...utils import wxyz_to_xyzw
 from ...world_concepts.constraints import Constraint
 from ...world_concepts.world_object import Object, Link

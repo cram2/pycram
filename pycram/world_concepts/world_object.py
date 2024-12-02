@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 
 import numpy as np
-import owlready2
 from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
@@ -23,7 +22,7 @@ from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, Un
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
-from ..ros.logging import logwarn
+from pycram.ros.ros1.logging import logwarn
 
 try:
     from ..object_descriptors.mjcf import ObjectDescription as MJCF
@@ -32,7 +31,7 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
-from pycrap import PhysicalObject, ontology, Base, Agent
+from pycrap import PhysicalObject, Agent
 
 Link = ObjectDescription.Link
 

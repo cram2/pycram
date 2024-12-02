@@ -11,7 +11,7 @@ import threading
 from .fluent import Fluent
 from .failures import PlanFailure, NotALanguageExpression
 from .external_interfaces import giskard
-from .ros.ros_tools import sleep
+from pycram.ros.ros1.ros_tools import sleep
 
 
 class Language(NodeMixin):

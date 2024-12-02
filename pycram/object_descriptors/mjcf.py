@@ -14,7 +14,7 @@ from ..datastructures.pose import Pose
 from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
 from ..failures import MultiplePossibleTipLinks
-from ..ros.ros_tools import get_parameter
+from pycram.ros.ros1.ros_tools import get_parameter
 
 try:
     from multiverse_parser import Configuration, Factory, InertiaSource, GeomBuilder

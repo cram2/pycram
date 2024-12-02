@@ -6,7 +6,7 @@ from typing_extensions import Any, Callable, Optional, Union, Iterable, Dict, TY
 from ..datastructures.enums import JointType
 from .error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, SingleValueErrorChecker
-from ..ros.logging import logerr, logwarn
+from pycram.ros.ros1.logging import logerr, logwarn
 
 if TYPE_CHECKING:
     from ..datastructures.world import World

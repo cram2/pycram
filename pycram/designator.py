@@ -3,16 +3,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
-from inspect import isgenerator, isgeneratorfunction
 
 from typing_extensions import get_type_hints
 from pycrap import PhysicalObject, Agent
-from .datastructures.property import Property, EmptyProperty
-from .ros.logging import logwarn, loginfo
+from .datastructures.property import EmptyProperty
+from pycram.ros.ros1.logging import logwarn, loginfo
 
 import inspect
-
-from .knowledge.knowledge_engine import KnowledgeEngine
 
 try:
     import owlready2
@@ -24,18 +21,14 @@ from sqlalchemy.orm.session import Session
 
 from .datastructures.world import World
 from .world_concepts.world_object import Object as WorldObject
-from .utils import GeneratorList, bcolors
-from threading import Lock
-from time import time
-from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable, TYPE_CHECKING
+from .utils import bcolors
+from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable
 
 from .local_transformer import LocalTransformer
 from .language import Language
 from .datastructures.pose import Pose
 from .robot_description import RobotDescription
 from .datastructures.enums import ObjectType, Grasp
-
-import logging
 
 from .orm.action_designator import (Action as ORMAction)
 from .orm.object_designator import (Object as ORMObjectDesignator)

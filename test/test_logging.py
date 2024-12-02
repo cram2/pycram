@@ -1,5 +1,5 @@
 from pycram.testing import BulletWorldTestCase
-from pycram.ros.logging import set_logger_level, logwarn, logerr
+from pycram.ros.ros1.logging import set_logger_level, logwarn, logerr
 from pycram.datastructures.enums import LoggerLevel
 
 

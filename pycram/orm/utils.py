@@ -1,10 +1,9 @@
-import traceback
 import sqlalchemy
 from .base import Base
 from ..designators.object_designator import *
 import json
 
-from ..ros.logging import loginfo, logwarn
+from pycram.ros.ros1.logging import loginfo, logwarn
 
 
 

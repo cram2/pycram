@@ -5,7 +5,7 @@ from typing_extensions import List, Dict, Union, Optional
 from .datastructures.dataclasses import VirtualMobileBaseJoints
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType
 from .object_descriptors.urdf import ObjectDescription as URDFObject
-from .ros.logging import logerr
+from pycram.ros.ros1.logging import logerr
 from .utils import suppress_stdout_stderr
 from .helper import parse_mjcf_actuators
 

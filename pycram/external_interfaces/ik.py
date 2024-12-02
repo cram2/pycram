@@ -2,9 +2,9 @@ import rosnode
 import tf
 from typing_extensions import List, Union, Tuple, Dict
 
-from ..ros.data_types import Duration, ServiceException
-from ..ros.logging import loginfo_once, logerr
-from ..ros.service import get_service_proxy, wait_for_service
+from pycram.ros.ros1.data_types import Duration, ServiceException
+from pycram.ros.ros1.logging import loginfo_once, logerr
+from pycram.ros.ros1.service import get_service_proxy, wait_for_service
 from moveit_msgs.msg import PositionIKRequest
 from moveit_msgs.msg import RobotState
 from moveit_msgs.srv import GetPositionIK
