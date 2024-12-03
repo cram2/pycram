@@ -151,7 +151,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
         action = MoveAndPickUpPerformable(standing_position, self.object_designator, EArms[Arms(int(arm)).name],
-                                          EGrasp(int(grasp)))
+                                          EGrasp(int(grasp)), True, 0.03)
         return action
 
     def events_from_occupancy_and_visibility_costmap(self) -> Event:
@@ -313,7 +313,7 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
         action = MoveAndPlacePerformable(standing_position, self.object_designator,
-                                         self.target_location, EArms.LEFT)
+                                         self.target_location, EArms.LEFT, True)
         return action
 
     def events_from_occupancy_and_visibility_costmap(self) -> Event:

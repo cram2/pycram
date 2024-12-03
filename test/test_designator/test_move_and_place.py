@@ -29,9 +29,9 @@ class MoveAndPlaceTestCase(BulletWorldTestCase):
         designator = MoveAndPlace(object_designator, target_location)
 
         with simulated_robot:
-            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable(0.3).perform()
-            PickUpActionPerformable(object_designator, Arms.LEFT, Grasp.FRONT).perform()
+            PickUpActionPerformable(object_designator, Arms.LEFT, Grasp.FRONT, 0.03).perform()
             with simulated_robot:
                 for action in designator:
                     try:
