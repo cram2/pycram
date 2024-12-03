@@ -177,8 +177,7 @@ class DetectingMotion(BaseMotion):
         return obj_dict
 
     def to_sql(self) -> ORMDetectingMotion:
-        #TODO: Adjust to new params
-        return ORMDetectingMotion(str(self.object_type))
+        return ORMDetectingMotion(self.technique, self.state, str(self.region))
 
     def insert(self, session: Session, *args, **kwargs) -> ORMDetectingMotion:
         motion = super().insert(session)

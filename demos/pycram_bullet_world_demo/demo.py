@@ -44,7 +44,6 @@ def move_and_detect(obj_type):
     LookAtAction(targets=[pick_pose]).resolve().perform()
 
     object_desig = DetectAction(technique=DetectionTechnique.TYPES, object_designator_description=BelieveObject(types=[obj_type])).resolve().perform()
-
     return object_desig[0]
 
 
@@ -78,7 +77,7 @@ with simulated_robot:
     # Detect and pickup the spoon
     LookAtAction([apartment.get_link_pose("handle_cab10_t")]).resolve().perform()
 
-    spoon_desig = DetectAction(BelieveObject(types=[Spoon])).resolve().perform()
+    spoon_desig = DetectAction(technique=DetectionTechnique.TYPES, object_designator_description=BelieveObject(types=[Spoon])).resolve().perform()
 
     pickup_arm = Arms.LEFT if drawer_open_loc.arms[0] == Arms.RIGHT else Arms.RIGHT
     PickUpAction(spoon_desig, [pickup_arm], [Grasp.TOP]).resolve().perform()

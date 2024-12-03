@@ -95,9 +95,10 @@ class DefaultDetecting(ProcessModule):
         query_result = []
         world_objects = []
         object_types = designator.object_designator_description.types
+        # print(object_types.name)
         if designator.technique == DetectionTechnique.TYPES:
-            for tip in object_types:
-                list1 = World.current_world.get_object_by_type(tip)
+            for obj_type in object_types:
+                list1 = World.current_world.get_object_by_type(obj_type)
                 world_objects = world_objects + list1
         elif designator.technique == DetectionTechnique.ALL:
             world_objects = World.current_world.get_scene_objects()
@@ -116,11 +117,13 @@ class DefaultDetecting(ProcessModule):
             raise PerceptionObjectNotFound(
                 f"Could not find an object with the type {object_types} in the FOV of the robot")
         else:
-            object_dict = {}
+            object_dict = []
 
-            for i, obj in enumerate(query_result):
-                object_dict[obj.name] = obj
-            return query_result
+            for obj in query_result:
+                object_dict.append(ObjectDesignatorDescription.Object(obj.name, obj.obj_type,
+                                                   obj))
+
+            return object_dict
 
 
 class DefaultMoveTCP(ProcessModule):
