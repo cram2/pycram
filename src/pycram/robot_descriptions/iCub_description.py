@@ -8,6 +8,7 @@ from ..helper import get_robot_mjcf_path
 import icub_models
 
 #filename = get_ros_package_path('pycram') + '/resources/robots/' + "iCubGazeboV2_5_visuomanip" + '.urdf'
+filename_ros_package = "/usr/local/src/robot/Bremen/workspace/ros/src/icub_model/urdf/model.urdf"
 
 RobotName = 'iCubGazeboV2_5_visuomanip'
 
@@ -15,7 +16,7 @@ iCub_description = RobotDescription("iCub",
                                     "root_link",
                                     "torso_1",
                                     "torso_pitch",
-                                   icub_models.get_model_file(RobotName))
+                                   filename_ros_package)
 
 ################################## Left Arm ##################################
 left_arm = KinematicChainDescription("left", "chest", "l_hand",

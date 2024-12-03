@@ -16,6 +16,12 @@
     <param name="robot_description"
               textfile="$(find pycram)/resources/robots/boxy.urdf"/>
   </group>
+
+    <!-- iCub -->
+  <group if="$(eval robot == 'iCub')">
+    <param name="robot_description"
+              textfile="$(find icub_model)/urdf/model.urdf"/>
+  </group>
   <!-- Tiago -->
   <group if="$(eval robot == 'tiago_dual')">
     <param name="robot_description"
