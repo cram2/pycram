@@ -12,7 +12,7 @@ from .object_designator import Object
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 
-from ..datastructures.enums import ObjectType, Arms, GripperState
+from ..datastructures.enums import ObjectType, Arms, GripperState, DetectionTechnique, DetectionState
 
 
 class Motion(MapperArgsMixin, Designator):
