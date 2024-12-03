@@ -1,19 +1,35 @@
-import collections
+from os import mkdir
 
-import networkx
 import networkx as nx
 import owlready2
-from graph_tool.topology import topological_sort
-from owlready2 import ThingClass, Thing, ObjectProperty, PropertyClass
-from owlready2.base import *
-from owlready2.class_construct import Restriction, SOME, ONLY, VALUE, HAS_SELF, _restriction_type_2_label
 import tqdm
+from owlready2 import ThingClass, PropertyClass
+from owlready2.base import *
 from typing_extensions import List, Any
 
 
-class Parser:
+def to_snake_case(string: str) -> str:
     """
-    A class that parses all everything from an ontology into python files that are owlready2 compatible.
+    Convert a string to snake case.
+
+    :param string: The string to convert.
+    :return: The string in snake case.
+    """
+    return string.replace(" ", "_").lower()
+
+def to_camel_case(string: str) -> str:
+    """
+    Convert a string to camel case.
+
+    :param string: The string to convert.
+    :return: The string in camel case.
+    """
+    return ''.join(x for x in string.title() if not x.isspace())
+
+class OntologyParser:
+    """
+    A class that parses everything from an owlready2 compatible ontology into python files that
+    represent the same ontology.
 
     It will create several files in a directory specified by the constructor:
     - base: A file that contains an intermediate based class and temporary ontology definitions such that a user
@@ -77,7 +93,6 @@ class Parser:
         render_func_without_namespace = lambda entity: entity.name
         owlready2.set_render_func(render_func_without_namespace)
 
-
     def parse(self):
         """
         Parses the ontology into a python file.
@@ -120,7 +135,7 @@ class Parser:
         Generate the path for a file.
 
         Example:
-        >>> parser = Parser(ontology, "/tmp")
+        >>> parser = OntologyParser(ontology, "/tmp")
         >>> parser.path_for_file("base")
             "/tmp/base.py"
 
@@ -218,7 +233,7 @@ class Parser:
         Write all restrictions for a property.
         :param prop: The property
         """
-        #write is_a restrictions
+        # write is_a restrictions
         is_a = self.parse_elements(prop.is_a)
         if is_a:
             is_a = f"{repr(prop)}.is_a = [{is_a}]"
@@ -275,7 +290,6 @@ class Parser:
         for prop in individual.get_properties():
             self.current_file.write(f"{individual.name}.{repr(prop)} = {individual.__getattr__(repr(prop))}")
             self.current_file.write("\n")
-
 
     def create_base_imports(self):
         """
@@ -413,3 +427,72 @@ class Parser:
         self.current_file.write(f"class {prop.name}(BaseProperty):\n")
         self.write_docstring(prop)
         self.current_file.write("\n")
+
+
+class OntologiesParser:
+    """
+    Class that parses multiple ontologies at once.
+
+    The resulting python package has the following form
+
+
+    path/__init__.py
+    path/base.py
+    path/ontology1/__init__.py
+    path/ontology1/classes.py
+    path/ontology1/object_properties.py
+    path/ontology1/data_properties.py
+    path/ontology1/restrictions.py
+    path/ontology1/individuals.py
+    path/ontology2/__init__.py
+    path/ontology2/classes.py
+    ...
+    """
+
+    ontologies: List[owlready2.Ontology]
+    """
+    The ontologies to parse.
+    """
+
+    path: str
+    """
+    The path to write the packages of the parsed ontology into.
+    """
+
+    include_imported_ontologies = True
+    """
+    If True, the imported ontologies are also parsed.
+    """
+
+    dependency_graph: nx.DiGraph
+    """
+    The dependency graph of the ontologies.
+    """
+
+    def __init__(self, ontologies: List[owlready2.Ontology], path: str):
+        self.ontologies = ontologies
+        self.path = path
+
+        if self.include_imported_ontologies:
+            self.ontologies += [imported for onto in self.ontologies for imported in onto.imported_ontologies]
+
+        # make ontologies unique
+        self.ontologies = list(set(self.ontologies))
+
+        self.create_dependency_graph()
+
+    def create_dependency_graph(self):
+        """
+        Create the dependency graph of the ontologies.
+        """
+        self.dependency_graph = nx.DiGraph()
+        for onto in self.ontologies:
+            self.dependency_graph.add_node(onto)
+            for imported in onto.imported_ontologies:
+                self.dependency_graph.add_edge(imported, onto)
+
+    def create_ontologies(self):
+        for onto in nx.topological_sort(self.dependency_graph):
+            mkdir(os.path.join(self.path, to_snake_case(onto.name)))
+            parser = OntologyParser(onto, os.path.join(self.path, to_snake_case(onto.name)))
+            parser.parse()
