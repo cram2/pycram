@@ -95,7 +95,7 @@ class Parser:
         """
         Create the __init__.py
         """
-        self.current_file = open(f"{os.path.join(self.path, '__init__')}{self.file_extension}", "w")
+        self.current_file = open(self.path_for_file("__init__"), "w")
         self.import_from_classes()
         self.import_from_properties()
         self.import_individuals()
@@ -105,7 +105,7 @@ class Parser:
         """
         Create the base.py
         """
-        self.current_file = open(f"{os.path.join(self.path, self.base_file_name)}{self.file_extension}", "w")
+        self.current_file = open(self.path_for_file(self.base_file_name), "w")
         self.create_base_imports()
         self.current_file.write("\n" * 2)
         self.current_file.write("ontology_file = tempfile.NamedTemporaryFile()\n")
@@ -115,11 +115,25 @@ class Parser:
         self.create_base_property()
         self.current_file.close()
 
+    def path_for_file(self, file_name):
+        """
+        Generate the path for a file.
+
+        Example:
+        >>> parser = Parser(ontology, "/tmp")
+        >>> parser.path_for_file("base")
+            "/tmp/base.py"
+
+        :param file_name: The file name.
+        :return: The path to the file.
+        """
+        return f"{os.path.join(self.path, file_name)}{self.file_extension}"
+
     def create_classes(self):
         """
         Create the classes.py
         """
-        self.current_file = open(f"{os.path.join(self.path, self.classes_file_name)}{self.file_extension}", "w")
+        self.current_file = open(self.path_for_file(self.classes_file_name), "w")
         self.import_from_base()
         self.current_file.write("\n" * 2)
         classes = list(self.ontology.classes())
@@ -131,7 +145,7 @@ class Parser:
         """
         Create the object_properties.py
         """
-        self.current_file = open(f"{os.path.join(self.path, self.object_properties_file_name)}{self.file_extension}", "w")
+        self.current_file = open(self.path_for_file(self.object_properties_file_name), "w")
         self.import_from_base()
         self.current_file.write("\n" * 2)
         properties = list(self.ontology.object_properties())
@@ -143,7 +157,7 @@ class Parser:
         """
         Create the data_properties.py
         """
-        self.current_file = open(f"{os.path.join(self.path, self.data_properties_file_name)}{self.file_extension}", "w")
+        self.current_file = open(self.path_for_file(self.data_properties_file_name), "w")
         self.import_from_base()
         self.import_from_classes()
         self.current_file.write("\n" * 2)
@@ -156,7 +170,7 @@ class Parser:
         """
         Create the restrictions.py
         """
-        self.current_file = open(f"{os.path.join(self.path, self.restrictions_file_name)}{self.file_extension}", "w")
+        self.current_file = open(self.path_for_file(self.restrictions_file_name), "w")
         self.import_from_classes()
         self.import_individuals()
         self.current_file.write("\n" * 2)
