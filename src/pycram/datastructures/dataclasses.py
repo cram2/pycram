@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from copy import deepcopy, copy
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, field
 
 import numpy as np
 import trimesh
