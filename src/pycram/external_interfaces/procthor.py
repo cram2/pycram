@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 from pycram.ros import ros_tools
 from typing_extensions import Dict, Set
+from pycram.ros import logging as log
 
 filename = ros_tools.get_ros_package_path('pycram')
 
@@ -20,7 +21,7 @@ class ProcThorInterface:
     def _download_file(self, base_url: str, full_url: str, folder: str) -> str:
         """
         Downloads the file given in full_url and stores it into folder. If necessary it will create the same folder
-         structure. For this purpose the base_url is necessary to decide what is folder structure and what is just url.
+        structure. For this purpose the base_url is necessary to decide what is folder structure and what is just url.
 
 
         :param base_url: Base url as string from
@@ -28,13 +29,11 @@ class ProcThorInterface:
         :param folder: Folder where the file should be stored
         :return: The local file name of the downloaded file
         """
-        print("base_url:{} full_url:{} folder:{}".format(base_url, full_url, folder))
         tree_structure = full_url.replace(base_url, '')
         if tree_structure.startswith("/"):
             tree_structure = tree_structure[1:]
         full_storage_path = os.path.join(folder, tree_structure)
         if not os.path.exists(full_storage_path[:full_storage_path.rfind('/') + 1]):
-            print(full_storage_path[:full_storage_path.rfind('/') + 1])
             os.makedirs(full_storage_path[:full_storage_path.rfind('/') + 1], exist_ok=True)
         local_filename = os.path.join(folder, full_url.split('/')[-1])
         # Send HTTP GET request to fetch the file
@@ -54,7 +53,6 @@ class ProcThorInterface:
         :param base_url: Base url as string from
         :return: Set of all files found below the given url
         """
-        print("get_files_list({})".format(base_url))
         # Send GET request to the URL
         response = requests.get(base_url)
         # Parse the HTML response
@@ -70,7 +68,7 @@ class ProcThorInterface:
             elif link.get('href').endswith(('.usda', '.urdf', '.stl', '.usd', '.hdr')):
                 files_urls.add(os.path.join(base_url, link['href']))
             else:
-                print("Ignored File: {}".format(link.get('href')))
+                log.logwarn("Ignored File: {}".format(link.get('href')))
         return files_urls
 
     # Main function to download all files from a directory
@@ -88,11 +86,10 @@ class ProcThorInterface:
         files = self._get_files_list(base_url)
         # create_folder_structure(base_url,folder,files)
         # Download each file
-        print(files)
         for file_url in files:
-            print(f"Downloading {file_url}...")
+            log.loginfo(f"Downloading {file_url}...")
             self._download_file(base_url, file_url, folder)
-        print("All files downloaded.")
+        log.loginfo("All files downloaded.")
         return None
 
     # Returns a list of all the urdf files in a given folder structure if non is given uses the base_source_folder
@@ -139,7 +136,6 @@ class ProcThorInterface:
         full_url = os.path.join(self.base_url, endpoint, str(num_of_environments))
         response = requests.get(full_url)
         for env in response.json():
-            print(env)
             self.download_all_files_from_URL(env["storage_place"], self.source_folder)
             self.stored_environments.append(env)
         return response.json()
