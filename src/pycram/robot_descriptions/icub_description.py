@@ -38,7 +38,7 @@ icub_description = RobotDescription("icub",
                                     actuated_joints=actuated_joints)
 
 ################################## Left Arm ##################################
-left_arm = KinematicChainDescription("left", "chest", "l_hand",
+left_arm = KinematicChainDescription("left_arm", "chest", "l_hand",
                                      icub_description.urdf_object, arm_type=Arms.LEFT)
 left_arm.add_static_joint_states("park", {'l_shoulder_pitch': -80.0,
                                           'l_shoulder_roll': 70.0,
@@ -61,7 +61,7 @@ left_arm.end_effector = left_gripper
 
 
 ################################## Right Arm ##################################
-right_arm = KinematicChainDescription("right", "chest", "r_hand",
+right_arm = KinematicChainDescription("right_arm", "chest", "r_hand",
                                       icub_description.urdf_object, arm_type=Arms.RIGHT)
 right_arm.add_static_joint_states("park", {'r_shoulder_pitch': 80.0,
                                           'r_shoulder_roll': 70.0,
@@ -84,12 +84,37 @@ right_arm.end_effector = right_gripper
 
 
 ################################## Camera ##################################
-camera = CameraDescription("left_camera", "eyes_tilt_frame", 1.27,
+left_camera = CameraDescription("left_camera", "l_eye", 1.27,
                            1.60, 0.99483, 0.75049)
-icub_description.add_camera_description(camera)
+icub_description.add_camera_description(left_camera)
+
+right_camera = CameraDescription("right_camera", "r_eye", 1.27,
+                           1.60, 0.99483, 0.75049)
+icub_description.add_camera_description(right_camera)
 
 ################################## Neck ##################################
-icub_description.add_kinematic_chain("neck", "neck_1", "head")
+icub_description.add_kinematic_chain("neck", "chest", "head")
+
+
+################################## l_fingers ##################################
+icub_description.add_kinematic_chain("l_index", "l_hand", "l_hand_index_tip")
+icub_description.add_kinematic_chain("l_little", "l_hand", "l_hand_little_tip")
+icub_description.add_kinematic_chain("l_middle", "l_hand", "l_hand_middle_tip")
+icub_description.add_kinematic_chain("l_ring", "l_hand", "l_hand_ring_tip")
+icub_description.add_kinematic_chain("l_thumb", "l_hand", "l_hand_thumb_tip")
+
+
+################################## r_ringers ##################################
+icub_description.add_kinematic_chain("r_index", "r_hand", "r_hand_index_tip")
+icub_description.add_kinematic_chain("r_little", "r_hand", "r_hand_little_tip")
+icub_description.add_kinematic_chain("r_middle", "r_hand", "r_hand_middle_tip")
+icub_description.add_kinematic_chain("r_ring", "r_hand", "r_hand_ring_tip")
+icub_description.add_kinematic_chain("r_thumb", "r_hand", "r_hand_thumb_tip")
+
+
+################################## legs ##################################
+icub_description.add_kinematic_chain("l_leg", "root_link", "l_foot")
+icub_description.add_kinematic_chain("r_leg", "root_link", "r_foot")
 
 ################################# Grasps ##################################
 icub_description.add_grasp_orientations({Grasp.FRONT: [0, 0, 0, 1],

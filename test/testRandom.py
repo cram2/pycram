@@ -46,8 +46,10 @@ class ICUBTestCase(BulletWorldTestCase):
     def test_move_joints(self):
         with simulated_robot:
             MoveJointsMotion(["torso_roll"], [-20.0]).perform()
+            MoveArmJointsMotion(left_arm_poses={"r_elbow":20.0}).perform()
+            MoveArmJointsMotion(right_arm_poses={"r_elbow": 20.0}).perform()
 
     def test_try_world(self):
-        sleep(100)
+        sleep(10)
 
 # run_look_and_move_tcp()

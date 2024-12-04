@@ -225,7 +225,63 @@ class iCubMoveArmJoints(ProcessModule):
     list that should be applied or a pre-defined position can be used, such as "parking"
     """
 
+    def __init__(self, lock,
+                 state_ports : [yarp.BufferedPortBottle],
+                 ctp_ports: [yarp.RpcClient]):
+        super().__init__(lock)
+        self.state_ports = state_ports
+        self.ctp_ports = ctp_ports
+        print("iCubMoveArmJoints initialized")
+
+
     def _execute(self, desig: MoveArmJointsMotion):
+
+        right_arm_to_change_joints = []
+        left_arm_to_change_joints = []
+
+        right_arm_to_change_joints_states = []
+        left_arm_to_change_joints_states = []
+
+        right_arm_to_change = desig.right_arm_poses
+        left_arm_to_change = desig.left_arm_poses
+
+        if right_arm_to_change is not None:
+            for joint_mame , joint_pose in right_arm_to_change.items():
+                part_index,joint_index = RobotDescription.current_robot_description.get_actuated_joint_indices(joint_mame)
+                if part_index is not None:
+                    if part_index == 1:
+                        right_arm_to_change_joints.append(joint_index)
+                        right_arm_to_change_joints_states.append(joint_pose)
+                    else:
+                        print("error in joint name")
+                else:
+                    print("error in joint name")
+        if left_arm_to_change is not None:
+            for joint_mame, joint_pose in left_arm_to_change.items():
+                part_index, joint_index = RobotDescription.current_robot_description.get_actuated_joint_indices(
+                    joint_mame)
+                if part_index is not None:
+                    if part_index == 2:
+                        left_arm_to_change_joints.append(joint_index)
+                        left_arm_to_change_joints_states.append(joint_pose)
+                    else:
+                        print("error in joint name")
+                else:
+                    print("error in joint name")
+
+
+        update_part(self.state_ports[0],
+                    self.ctp_ports[0],
+                    right_arm_to_change_joints,
+                    right_arm_to_change_joints_states)
+
+        update_part(self.state_ports[1],
+                    self.ctp_ports[1],
+                    left_arm_to_change_joints,
+                    left_arm_to_change_joints_states)
+
+
+
         print("iCub Move Arm Joints")
 
 class iCubMoveJoints(ProcessModule):
@@ -479,7 +535,10 @@ class ICubManager(ProcessModuleManager):
 
     def move_arm_joints(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return iCubMoveArmJoints(self._move_arm_joints_lock)
+            return iCubMoveArmJoints(self._move_arm_joints_lock,
+                                     [self.state_right_arm_port, self.state_right_arm_port],
+                                     [self.ctp_right_arm_client_port,self.ctp_right_arm_client_port])
+
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return iCubMoveArmJointsReal(self._move_arm_joints_lock)
 
