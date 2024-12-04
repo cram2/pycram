@@ -769,7 +769,7 @@ class ContactPointsList(list):
         :param obj: The object.
         :return: True if the body belongs to the object, False otherwise.
         """
-        return body in obj.links or body == obj
+        return body in list(obj.links.values()) or body == obj
 
     def get_normals_of_object(self, obj: Object) -> List[List[float]]:
         """
