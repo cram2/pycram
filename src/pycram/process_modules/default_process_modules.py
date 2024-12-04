@@ -94,7 +94,10 @@ class DefaultDetecting(ProcessModule):
         front_facing_axis = camera_description.front_facing_axis
         query_result = []
         world_objects = []
-        object_types = designator.object_designator_description.types
+        try:
+            object_types = designator.object_designator_description.types
+        except AttributeError:
+            object_types = None
         if designator.technique == DetectionTechnique.TYPES:
             for obj_type in object_types:
                 list1 = World.current_world.get_object_by_type(obj_type)
