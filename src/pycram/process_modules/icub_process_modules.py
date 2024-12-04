@@ -38,7 +38,7 @@ robot_parts = {
                       "r_hand_finger",
                       "r_thumb_oppose","r_thumb_proximal","r_thumb_distal",
                       "r_index_proximal","r_index_distal",
-                      "l_middle_proximal","l_middle_distal",
+                      "r_middle_proximal","r_middle_distal",
                       "r_pinky"],
         "left_arm": ["l_shoulder_pitch", "l_shoulder_roll", "l_shoulder_yaw",
                      "l_elbow",
@@ -77,6 +77,45 @@ def open_buffered_bottle_port(port_name):
         return False , None
     print(f"Port %s opened correctly" % port_name)
     return True , opened_port
+
+
+def update_part(state_port,ctp_port, joint_to_change_idx, joints_to_change_pos):
+    if len(joint_to_change_idx):
+        part_state: yarp.Bottle = state_port.read(shouldWait=True)
+        part_new_states = []
+        for i in range(part_state.size()):
+            print(i, "   ", part_state.get(i).asFloat32())
+            part_new_states.append(part_state.get(i).asFloat32())
+
+        for i in range(len(joint_to_change_idx)):
+            part_new_states[joint_to_change_idx[i]] = joints_to_change_pos[i]
+
+        yarp_bottle_msg: yarp.Bottle = yarp.Bottle()
+        yarp_bottle_reply: yarp.Bottle = yarp.Bottle()
+        yarp_bottle_msg.addVocab32('c', 't', 'p', 'q')
+        yarp_bottle_msg.addVocab32('t', 'i', 'm', 'e')
+        yarp_bottle_msg.addFloat32(1.5)
+        yarp_bottle_msg.addVocab32('o', 'f', 'f')
+        yarp_bottle_msg.addInt32(0)
+        yarp_bottle_msg.addVocab32('p', 'o', 's')
+        target_loc: yarp.Bottle = yarp_bottle_msg.addList()
+        for i in part_new_states:
+            target_loc.addFloat32(i)
+
+        print(f"command Ready to send to iCub torso tcp")
+
+        ctp_port.write(yarp_bottle_msg, yarp_bottle_reply)
+        reply_vocab = yarp_bottle_reply.get(0).asVocab32()
+
+        if reply_vocab == NO_ACK_VOCAB:
+            print("NO_ACK")
+            return False
+        elif reply_vocab == ACK_VOCAB:
+            print("ACK")
+            return True
+        else:
+            print("another reply")
+            return False
 
 class iCubNavigation(ProcessModule):
     """
@@ -234,6 +273,10 @@ class iCubMoveJoints(ProcessModule):
         Returns:
             tuple: (part_index, joint_index) or (None, None) if joint not found.
         """
+        left_arm_chain = RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT)
+        print(left_arm_chain.joint_names)
+        right_arm_chain = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT)
+        print(right_arm_chain.joint_names)
         for part_index, (part_name, joints) in enumerate(robot_parts_list):
             if joint_name in joints:
                 joint_index = joints.index(joint_name)
@@ -271,43 +314,20 @@ class iCubMoveJoints(ProcessModule):
 
             index += 1
 
-        if len(torso_to_change_joints):
-            torso_state: yarp.Bottle = self.state_ports[0].read(shouldWait=True)
-            torso_new_states = []
-            for i in range(torso_state.size()):
-                print(i,"   ",torso_state.get(i).asFloat32())
-                torso_new_states.append(torso_state.get(i).asFloat32())
+        update_part(self.state_ports[0],
+                    self.ctp_ports[0],
+                    torso_to_change_joints,
+                    torso_to_change_joints_states)
 
-            for i in range(len(torso_to_change_joints)):
-                torso_new_states[torso_to_change_joints[i]] = torso_to_change_joints_states[i]
+        update_part(self.state_ports[1],
+                    self.ctp_ports[1],
+                    right_arm_to_change_joints,
+                    right_arm_to_change_joints_states)
 
-            yarp_bottle_msg: yarp.Bottle = yarp.Bottle()
-            yarp_bottle_reply: yarp.Bottle = yarp.Bottle()
-            yarp_bottle_msg.addVocab32('c', 't', 'p', 'q')
-            yarp_bottle_msg.addVocab32('t', 'i', 'm', 'e')
-            yarp_bottle_msg.addFloat32(1.5)
-            yarp_bottle_msg.addVocab32('o', 'f', 'f')
-            yarp_bottle_msg.addInt32(0)
-            yarp_bottle_msg.addVocab32('p', 'o', 's')
-            target_loc: yarp.Bottle = yarp_bottle_msg.addList()
-            for i in torso_new_states:
-                target_loc.addFloat32(i)
-
-            print(f"command Ready to send to iCub torso tcp")
-
-            self.ctp_ports[0].write(yarp_bottle_msg, yarp_bottle_reply)
-            reply_vocab = yarp_bottle_reply.get(0).asVocab32()
-
-            if reply_vocab == NO_ACK_VOCAB:
-                print("NO_ACK")
-                return False
-            elif reply_vocab == ACK_VOCAB:
-                print("ACK")
-                return True
-            else:
-                print("another reply")
-                return False
-
+        update_part(self.state_ports[2],
+                    self.ctp_ports[2],
+                    left_arm_to_change_joints,
+                    left_arm_to_change_joints_states)
 
 
 

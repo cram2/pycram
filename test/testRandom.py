@@ -56,6 +56,11 @@ class ICUBTestCase(BulletWorldTestCase):
         cls.viz_marker_publisher = VizMarkerPublisher()
         OntologyManager(SOMA_ONTOLOGY_IRI)
 
+
+    def test_move_joints(self):
+        with simulated_robot:
+            MoveJointsMotion(["torso_roll"], [20.0]).perform()
+
     def test_try_world(self):
         sleep(100)
 
