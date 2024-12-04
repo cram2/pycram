@@ -55,6 +55,12 @@ class HighLevelFailure(FailureDiagnosis):
         super().__init__(*args, **kwargs)
 
 
+class SensorMonitoringCondition(PlanFailure):
+    """Thrown when a sensor monitoring condition is met."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
 class DeliveringFailed(HighLevelFailure):
     """Thrown when delivering plan completely gives up."""
 
