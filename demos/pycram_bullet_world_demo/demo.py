@@ -2,7 +2,7 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
-from pycram.datastructures.enums import  WorldMode
+from pycram.datastructures.enums import WorldMode
 from pycram.datastructures.pose import Pose
 from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.object_descriptors.urdf import ObjectDescription
@@ -77,8 +77,9 @@ with simulated_robot:
     # Detect and pickup the spoon
     LookAtAction([apartment.get_link_pose("handle_cab10_t")]).resolve().perform()
 
-    spoon_desig = DetectAction(technique=DetectionTechnique.TYPES, object_designator_description=BelieveObject(types=[Spoon])).resolve().perform()
-
+    spoon_desigs = DetectAction(technique=DetectionTechnique.TYPES,
+                               object_designator_description=BelieveObject(types=[Spoon])).resolve().perform()
+    spoon_desig = spoon_desigs[0]
     pickup_arm = Arms.LEFT if drawer_open_loc.arms[0] == Arms.RIGHT else Arms.RIGHT
     PickUpAction(spoon_desig, [pickup_arm], [Grasp.TOP]).resolve().perform()
 

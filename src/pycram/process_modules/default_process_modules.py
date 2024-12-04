@@ -95,7 +95,6 @@ class DefaultDetecting(ProcessModule):
         query_result = []
         world_objects = []
         object_types = designator.object_designator_description.types
-        # print(object_types.name)
         if designator.technique == DetectionTechnique.TYPES:
             for obj_type in object_types:
                 list1 = World.current_world.get_object_by_type(obj_type)
@@ -289,7 +288,13 @@ class DefaultDetectingReal(ProcessModule):
 
                 perceived_objects.append(generic_obj)
 
-            return perceived_objects
+            object_dict = []
+
+            for obj in perceived_objects:
+                object_dict.append(ObjectDesignatorDescription.Object(obj.name, obj.obj_type,
+                                                                      obj))
+
+            return object_dict
 
 
 class DefaultManager(ProcessModuleManager):
