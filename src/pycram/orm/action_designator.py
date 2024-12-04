@@ -30,6 +30,7 @@ class NavigateAction(PoseMixin, Action):
     """ORM Class of pycram.designators.action_designator.NavigateAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
+    keep_joint_states: Mapped[bool]
 
 
 class MoveTorsoAction(Action):
@@ -69,6 +70,7 @@ class PickUpAction(ObjectMixin, Action):
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[Arms]
     grasp: Mapped[Grasp]
+    prepose_distance: Mapped[float]
 
 
 class PlaceAction(PoseMixin, ObjectMixin, Action):
@@ -83,6 +85,7 @@ class TransportAction(PoseMixin, ObjectMixin, Action):
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[Arms]
+    pickup_prepose_distance: Mapped[float]
 
 
 class LookAtAction(PoseMixin, Action):
@@ -122,3 +125,4 @@ class FaceAtAction(PoseMixin, Action):
     """ORM Class of pycram.designators.action_designator.FaceAtAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
+    keep_joint_states: Mapped[bool]

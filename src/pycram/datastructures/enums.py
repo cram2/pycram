@@ -216,6 +216,16 @@ class MJCFJointType(Enum):
     FIXED = "fixed"  # Added for compatibility with PyCRAM, but not a real joint type in MuJoCo.
 
 
+class MovementType(Enum):
+    """
+    Enum for the different movement types of the robot.
+    """
+    STRAIGHT_TRANSLATION = auto()
+    STRAIGHT_CARTESIAN = auto()
+    TRANSLATION = auto()
+    CARTESIAN = auto()
+
+
 class MultiverseAPIName(Enum):
     """
     Enum for the different APIs of the Multiverse.

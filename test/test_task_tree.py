@@ -20,9 +20,9 @@ class TaskTreeTestCase(BulletWorldTestCase):
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable(0.3).perform()
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             description.resolve().perform()
 
     def setUp(self):

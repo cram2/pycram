@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from pycrap import PhysicalObject
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
+from ..datastructures.enums import ObjectType, Arms, GripperState, ExecutionType, MovementType
 from ..designator import ResolutionError
 from ..orm.base import ProcessMetaData
 from ..failures import PerceptionObjectNotFound
@@ -33,11 +34,15 @@ class MoveMotion(BaseMotion):
     Location to which the robot should be moved
     """
 
+    keep_joint_states: bool = False
+    """
+    Keep the joint states of the robot during/at the end of the motion
+    """
+
     @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
         return pm_manager.navigate().execute(self)
-        # return ProcessModule.perform(self)
 
     def to_sql(self) -> ORMMoveMotion:
         return ORMMoveMotion()
@@ -46,6 +51,7 @@ class MoveMotion(BaseMotion):
         motion = super().insert(session)
         pose = self.target.insert(session)
         motion.pose = pose
+        motion.keep_joint_states = self.keep_joint_states
         session.add(motion)
 
         return motion
@@ -68,6 +74,10 @@ class MoveTCPMotion(BaseMotion):
     allow_gripper_collision: Optional[bool] = None
     """
     If the gripper can collide with something
+    """
+    movement_type: Optional[MovementType] = MovementType.CARTESIAN
+    """
+    The type of movement that should be performed.
     """
 
     @with_tree
