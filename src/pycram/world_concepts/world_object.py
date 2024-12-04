@@ -951,7 +951,11 @@ class Object(WorldEntity, HasConcept):
                 joint.current_state = joint_states[joint.id]
 
     def robot_virtual_move_base_joints_names(self):
-        return self.robot_description.virtual_mobile_base_joints.names
+        try:
+            return self.robot_description.virtual_mobile_base_joints.names
+        except AttributeError:
+            # Means that robot has no virtual move base joints.
+            return []
 
     def remove_saved_states(self) -> None:
         """

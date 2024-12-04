@@ -423,7 +423,7 @@ class iCubCloseReal(ProcessModule):
 class ICubManager(ProcessModuleManager):
 
     def __init__(self):
-        super().__init__("iCub")
+        super().__init__("icub")
         self._navigate_lock = Lock()
         self._looking_lock = Lock()
         self._detecting_lock = Lock()
@@ -459,11 +459,12 @@ class ICubManager(ProcessModuleManager):
         self.state_torso_port =  yarp.BufferedPortBottle()
         self.state_right_arm_port =  yarp.BufferedPortBottle()
         self.state_left_arm_port =  yarp.BufferedPortBottle()
-
+        self.initialized = False
         if self.yarp_network_state:
             print("yarp network state detected")
             self.config_yarp_ports()
             self.connect_yarp_ports()
+            self.initialized = True
         else:
             print("yarp network state not detected")
 
@@ -628,7 +629,8 @@ class ICubManager(ProcessModuleManager):
 
 
     def exit(self):
-        self.disconnect_and_remove()
+        if self.initialized:
+            self.disconnect_and_remove()
 
 
     def disconnect_and_remove(self):

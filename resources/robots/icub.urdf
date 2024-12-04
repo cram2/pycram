@@ -9,7 +9,7 @@
     <visual>
       <origin xyz="-0.0364 0 0.032" rpy="1.57079632679 0 -1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_root_link_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_root_link_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="root_link_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -18,7 +18,7 @@
     <collision>
       <origin xyz="-0.0364 0 0.032" rpy="1.57079632679 0 -1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_root_link_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_root_link_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -36,7 +36,7 @@
     <visual>
       <origin xyz="0.0428515000001 0.026 0.151913" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_hip_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_hip_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_hip_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -45,7 +45,7 @@
     <collision>
       <origin xyz="0.0428515000001 0.026 0.151913" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_hip_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_hip_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -66,7 +66,7 @@
     <visual>
       <origin xyz="0.0428514998094 0.0701 0.151913" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_hip_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_hip_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_hip_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -75,7 +75,7 @@
     <collision>
       <origin xyz="0.0428514998094 0.0701 0.151913" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_hip_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_hip_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -96,7 +96,7 @@
     <visual>
       <origin xyz="0.0437090152 -0.0700999919 -0.226213" rpy="-1.57079632679 0 -1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_upper_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_upper_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_hip_3_color">
         <color rgba="0.635 0.137 0.114 1"/>
@@ -105,7 +105,7 @@
     <collision>
       <origin xyz="0.0437090152 -0.0700999919 -0.226213" rpy="-1.57079632679 0 -1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_upper_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_upper_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -124,7 +124,7 @@
     <visual>
       <origin xyz="0.0437090152 0.0700999919 0.240813" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_upper_leg_color">
         <color rgba="0.635 0.137 0.114 1"/>
@@ -133,7 +133,7 @@
     <collision>
       <origin xyz="0.0437090152 0.0700999919 0.240813" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -161,7 +161,7 @@
     <visual>
       <origin xyz="0.0437090152 0.070099992 0.386638" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_shank_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_shank_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_lower_leg_color">
         <color rgba="0.635 0.137 0.114 1"/>
@@ -170,7 +170,7 @@
     <collision>
       <origin xyz="0.0437090152 0.070099992 0.386638" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_shank_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_shank_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -191,7 +191,7 @@
     <visual>
       <origin xyz="0.0437090152 0.070099992 0.587138" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_ankle_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_ankle_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_ankle_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -200,7 +200,7 @@
     <collision>
       <origin xyz="0.0437090152 0.070099992 0.587138" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_ankle_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_ankle_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -221,7 +221,7 @@
     <visual>
       <origin xyz="0.0437877996186 0.0700861001907 0.587138" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_foot_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_foot_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_ankle_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -230,7 +230,7 @@
     <collision>
       <origin xyz="0.0437877996186 0.0700861001907 0.587138" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_foot_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_foot_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -251,7 +251,7 @@
     <visual>
       <origin xyz="0.047209015 -0.070099992 -0.647438000286" rpy="-1.57079632679 0 -1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_sole_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_sole_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_foot_color">
         <color rgba="0.635 0.137 0.114 1"/>
@@ -279,7 +279,7 @@
     <visual>
       <origin xyz="0.0428515000001 -0.026 0.151913" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_hip_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_hip_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_hip_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -288,7 +288,7 @@
     <collision>
       <origin xyz="0.0428515000001 -0.026 0.151913" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_hip_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_hip_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -309,7 +309,7 @@
     <visual>
       <origin xyz="0.0428514998093 -0.0701 0.151913" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_hip_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_hip_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_hip_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -318,7 +318,7 @@
     <collision>
       <origin xyz="0.0428514998093 -0.0701 0.151913" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_hip_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_hip_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -339,7 +339,7 @@
     <visual>
       <origin xyz="0.0437090614 0.0701000246 -0.226213" rpy="-1.57079632679 0 -1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_upper_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_upper_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_hip_3_color">
         <color rgba="0.635 0.137 0.114 1"/>
@@ -348,7 +348,7 @@
     <collision>
       <origin xyz="0.0437090614 0.0701000246 -0.226213" rpy="-1.57079632679 0 -1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_upper_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_upper_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -367,7 +367,7 @@
     <visual>
       <origin xyz="0.0437090614 -0.0701000246 0.240813" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_upper_leg_color">
         <color rgba="0.635 0.137 0.114 1"/>
@@ -376,7 +376,7 @@
     <collision>
       <origin xyz="0.0437090614 -0.0701000246 0.240813" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_thigh_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -404,7 +404,7 @@
     <visual>
       <origin xyz="0.0437090614 -0.0701000248 0.386638" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_shank_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_shank_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_lower_leg_color">
         <color rgba="0.635 0.137 0.114 1"/>
@@ -413,7 +413,7 @@
     <collision>
       <origin xyz="0.0437090614 -0.0701000248 0.386638" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_shank_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_shank_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -434,7 +434,7 @@
     <visual>
       <origin xyz="0.0437090614 -0.0701000248 0.587138" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_ankle_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_ankle_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_ankle_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -443,7 +443,7 @@
     <collision>
       <origin xyz="0.0437090614 -0.0701000248 0.587138" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_ankle_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_ankle_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -464,7 +464,7 @@
     <visual>
       <origin xyz="0.0436816996186 -0.0701752001908 0.587138" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_foot_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_foot_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_ankle_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -473,7 +473,7 @@
     <collision>
       <origin xyz="0.0436816996186 -0.0701752001908 0.587138" rpy="1.57079632679 0 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_foot_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_foot_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -494,7 +494,7 @@
     <visual>
       <origin xyz="0.0472090612 0.0701000248 -0.647438000286" rpy="-1.57079632679 0 -1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_sole_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_sole_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_foot_color">
         <color rgba="0.635 0.137 0.114 1"/>
@@ -522,7 +522,7 @@
     <visual>
       <origin xyz="0.0270462998093 0.032 0.0364" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_lap_belt_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_lap_belt_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="torso_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -531,7 +531,7 @@
     <collision>
       <origin xyz="0.0270462998093 0.032 0.0364" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_lap_belt_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_lap_belt_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -552,7 +552,7 @@
     <visual>
       <origin xyz="0 0.1433 0.0386531" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_lap_belt_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_lap_belt_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="torso_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -561,7 +561,7 @@
     <collision>
       <origin xyz="0 0.1433 0.0386531" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_lap_belt_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_lap_belt_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -582,7 +582,7 @@
     <visual>
       <origin xyz="0 0.0928 -0.024189" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_chest_bb_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_chest_bb_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="chest_color">
         <color rgba="0.635 0.137 0.114 1"/>
@@ -591,7 +591,7 @@
     <collision>
       <origin xyz="0 0.0928 -0.024189" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_chest_bb_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_chest_bb_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -612,7 +612,7 @@
     <visual>
       <origin xyz="0.0990079253076 0 -0.0265292487558" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_shoulder_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_shoulder_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_shoulder_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -621,7 +621,7 @@
     <collision>
       <origin xyz="0.0990079253076 0 -0.0265292487558" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_shoulder_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_shoulder_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -642,7 +642,7 @@
     <visual>
       <origin xyz="0.106587808568 2.31914715418e-07 -0.0407392121175" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_shoulder_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_shoulder_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_shoulder_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -651,7 +651,7 @@
     <collision>
       <origin xyz="0.106587808568 2.31914715418e-07 -0.0407392121175" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_shoulder_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_shoulder_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -672,7 +672,7 @@
     <visual>
       <origin xyz="0.131933879164 0 -0.0353515667647" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_upper_arm_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_upper_arm_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_shoulder_3_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -681,7 +681,7 @@
     <collision>
       <origin xyz="0.131933879164 0 -0.0353515667647" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_upper_arm_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_upper_arm_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -702,7 +702,7 @@
     <visual>
       <origin xyz="-0.015 0 -0.1933" rpy="0 1.30899700697 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_elbow_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_elbow_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_upper_arm_color">
         <color rgba="0.635 0.137 0.114 1"/>
@@ -711,7 +711,7 @@
     <collision>
       <origin xyz="-0.015 0 -0.1933" rpy="0 1.30899700697 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_elbow_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_elbow_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -730,7 +730,7 @@
     <visual>
       <origin xyz="0.259390463317 0.0224999 -0.0850325886962" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_elbow_prosup_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_elbow_prosup_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_elbow_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -739,7 +739,7 @@
     <collision>
       <origin xyz="0.259390463317 0.0224999 -0.0850325886962" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_elbow_prosup_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_elbow_prosup_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -760,7 +760,7 @@
     <visual>
       <origin xyz="0.296886967375 0 -0.0795506015227" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_forearm_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_forearm_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_forearm_color">
         <color rgba="0.635 0.137 0.114 1"/>
@@ -769,7 +769,7 @@
     <collision>
       <origin xyz="0.296886967375 0 -0.0795506015227" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_forearm_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_forearm_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -797,7 +797,7 @@
     <visual>
       <origin xyz="0.400392176248 -7.00000000009e-06 -0.104748304516" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_wrist_pitch_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_wrist_pitch_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_wrist_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -806,7 +806,7 @@
     <collision>
       <origin xyz="0.400392176248 -7.00000000009e-06 -0.104748304516" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_r_wrist_pitch_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_r_wrist_pitch_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -827,7 +827,7 @@
     <visual>
       <origin xyz="0.00271606739979117 -0.00155679999998751 -0.00248235390712302" rpy="-1.57079632679979 0.261799319827 2.0696157436707e-13"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightHandPalm.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightHandPalm.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_palm_color">
         <color rgba="0.1 0.1 0.1 1"/>
@@ -836,7 +836,7 @@
     <visual>
       <origin xyz="-0.0576542978428 -0.0055568 0.0136938323083" rpy="-1.57079632679 -0.261799319827 3.14159265359"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightTopCover.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/full_RightTopCover.dae" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="r_hand_top_color">
         <color rgba="0.1 0.1 0.1 1"/>
@@ -845,7 +845,7 @@
     <collision>
       <origin xyz="0.00271606739979117 -0.00155679999998751 -0.00248235390712302" rpy="-1.57079632679979 0.261799319827 2.0696157436707e-13"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightHandPalm.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightHandPalm.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -873,7 +873,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 3.14159265359 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightThumb0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightThumb0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_thumb_0_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -883,7 +883,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 3.14159265359 1.57079632679"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightThumb0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightThumb0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -904,7 +904,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightThumb1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightThumb1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_thumb_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -914,7 +914,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightThumb1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightThumb1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -935,7 +935,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightThumb2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightThumb2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_thumb_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -945,7 +945,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightThumb2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightThumb2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -966,7 +966,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightThumb3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightThumb3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_thumb_3_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -976,7 +976,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightThumb3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightThumb3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1004,7 +1004,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightIndex0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightIndex0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_index_0_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1014,7 +1014,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightIndex0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightIndex0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1035,7 +1035,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightIndex1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightIndex1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_index_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1045,7 +1045,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightIndex1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightIndex1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1066,7 +1066,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightIndex2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightIndex2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_index_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1076,7 +1076,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightIndex2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightIndex2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1097,7 +1097,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightIndex3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightIndex3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_index_3_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1107,7 +1107,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightIndex3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightIndex3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1135,7 +1135,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0035" rpy="0.0 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightMiddle0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightMiddle0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_middle_0_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1145,7 +1145,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0035" rpy="0.0 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightMiddle0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightMiddle0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1166,7 +1166,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightMiddle1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightMiddle1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_middle_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1176,7 +1176,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightMiddle1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightMiddle1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1197,7 +1197,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightMiddle2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightMiddle2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_middle_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1207,7 +1207,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightMiddle2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightMiddle2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1228,7 +1228,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightMiddle3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightMiddle3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_middle_3_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1238,7 +1238,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightMiddle3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightMiddle3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1266,7 +1266,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightRing0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightRing0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_ring_0_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1276,7 +1276,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightRing0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightRing0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1297,7 +1297,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightRing1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightRing1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_ring_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1307,7 +1307,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightRing1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightRing1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1328,7 +1328,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightRing2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightRing2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_ring_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1338,7 +1338,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightRing2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightRing2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1359,7 +1359,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightRing3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightRing3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_ring_3_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1369,7 +1369,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightRing3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightRing3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1397,7 +1397,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0038" rpy="0.0 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightLittle0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightLittle0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_little_0_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1407,7 +1407,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0038" rpy="0.0 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightLittle0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightLittle0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1428,7 +1428,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightLittle1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightLittle1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_little_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1438,7 +1438,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightLittle1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightLittle1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1459,7 +1459,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightLittle2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightLittle2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_little_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1469,7 +1469,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightLittle2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightLittle2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1490,7 +1490,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_RightLittle3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_RightLittle3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_little_3_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1500,7 +1500,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_RightLittle3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_RightLittle3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1528,7 +1528,7 @@
     <visual>
       <origin xyz="-0.120257482 0 -0.032223" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_shoulder_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_shoulder_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_shoulder_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1537,7 +1537,7 @@
     <collision>
       <origin xyz="-0.120257482 0 -0.032223" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_shoulder_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_shoulder_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -1558,7 +1558,7 @@
     <visual>
       <origin xyz="-0.106586691581 1.10800934344e-07 -0.040743380771" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_shoulder_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_shoulder_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_shoulder_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1567,7 +1567,7 @@
     <collision>
       <origin xyz="-0.106586691581 1.10800934344e-07 -0.040743380771" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_shoulder_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_shoulder_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -1588,7 +1588,7 @@
     <visual>
       <origin xyz="-0.131901037685 0 -0.0353427669194" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_upper_arm_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_upper_arm_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_shoulder_3_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1597,7 +1597,7 @@
     <collision>
       <origin xyz="-0.131901037685 0 -0.0353427669194" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_upper_arm_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_upper_arm_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -1618,7 +1618,7 @@
     <visual>
       <origin xyz="-0.015 0 -0.1933" rpy="0 -1.30899700697 -3.14159265359"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_elbow_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_elbow_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_upper_arm_color">
         <color rgba="0.635 0.137 0.114 1"/>
@@ -1627,7 +1627,7 @@
     <collision>
       <origin xyz="-0.015 0 -0.1933" rpy="0 -1.30899700697 -3.14159265359"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_elbow_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_elbow_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -1646,7 +1646,7 @@
     <visual>
       <origin xyz="-0.259390463317 0.0339999 -0.0850325886962" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_elbow_prosup_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_elbow_prosup_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_elbow_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1655,7 +1655,7 @@
     <collision>
       <origin xyz="-0.259390463317 0.0339999 -0.0850325886962" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_elbow_prosup_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_elbow_prosup_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -1676,7 +1676,7 @@
     <visual>
       <origin xyz="-0.296886967375 0 -0.0795506015227" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_forearm_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_forearm_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_forearm_color">
         <color rgba="0.635 0.137 0.114 1"/>
@@ -1685,7 +1685,7 @@
     <collision>
       <origin xyz="-0.296886967375 0 -0.0795506015227" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_forearm_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_forearm_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -1713,7 +1713,7 @@
     <visual>
       <origin xyz="-0.400314530555 -7.00000000009e-06 -0.105038082269" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_wrist_pitch_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_wrist_pitch_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="l_wrist_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1722,7 +1722,7 @@
     <collision>
       <origin xyz="-0.400314530555 -7.00000000009e-06 -0.105038082269" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_l_wrist_pitch_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_l_wrist_pitch_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -1743,7 +1743,7 @@
     <visual>
       <origin xyz="-0.00271606739980213 -0.0015568 -0.00248235390708518" rpy="1.57079632679979 -0.261799319827 3.32244804390038e-17"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftHandPalm.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftHandPalm.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="l_hand_palm_color">
         <color rgba="0.1 0.1 0.1 1"/>
@@ -1752,7 +1752,7 @@
     <visual>
       <origin xyz="0.0576542978428 -0.0055568 0.0136938323083" rpy="-1.57079632679 -0.261799319827 5.74693715701688e-17"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftTopCover.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftTopCover.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="l_hand_top_color">
         <color rgba="0.1 0.1 0.1 1"/>
@@ -1761,7 +1761,7 @@
     <collision>
       <origin xyz="-0.00271606739980213 -0.0015568 -0.00248235390708518" rpy="1.57079632679979 -0.261799319827 3.32244804390038e-17"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftHandPalm.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftHandPalm.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1789,7 +1789,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftThumb0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftThumb0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_thumb_0_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1799,7 +1799,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftThumb0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftThumb0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1820,7 +1820,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftThumb1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftThumb1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_thumb_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1830,7 +1830,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftThumb1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftThumb1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1851,7 +1851,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftThumb2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftThumb2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_thumb_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1861,7 +1861,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftThumb2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftThumb2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1882,7 +1882,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 3.14159265358979 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftThumb3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftThumb3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_thumb_3_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1892,7 +1892,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 3.14159265358979 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftThumb3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftThumb3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1920,7 +1920,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftIndex0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftIndex0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_index_0_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1930,7 +1930,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftIndex0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftIndex0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1951,7 +1951,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftIndex1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftIndex1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_index_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1961,7 +1961,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftIndex1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftIndex1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -1982,7 +1982,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftIndex2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftIndex2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_index_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -1992,7 +1992,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftIndex2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftIndex2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2013,7 +2013,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftIndex3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftIndex3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_index_3_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2023,7 +2023,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftIndex3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftIndex3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2051,7 +2051,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 1.5707963267949"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftMiddle0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftMiddle0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_middle_0_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2060,7 +2060,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 1.5707963267949"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftMiddle0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftMiddle0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2081,7 +2081,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftMiddle1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftMiddle1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_middle_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2091,7 +2091,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftMiddle1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftMiddle1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2112,7 +2112,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftMiddle2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftMiddle2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_middle_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2122,7 +2122,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftMiddle2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftMiddle2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2143,7 +2143,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftMiddle3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftMiddle3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_middle_3_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2153,7 +2153,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftMiddle3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftMiddle3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2181,7 +2181,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftRing0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftRing0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_ring_0_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2191,7 +2191,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftRing0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftRing0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2212,7 +2212,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftRing1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftRing1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_ring_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2222,7 +2222,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftRing1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftRing1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2243,7 +2243,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftRing2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftRing2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_ring_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2253,7 +2253,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftRing2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftRing2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2274,7 +2274,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftRing3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftRing3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_ring_3_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2284,7 +2284,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftRing3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftRing3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2312,7 +2312,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="-3.14159265358979 -1.5707963267949 1.5707963267949"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftLittle0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftLittle0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_little_0_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2322,7 +2322,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="-3.14159265358979 -1.5707963267949 1.5707963267949"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftLittle0.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftLittle0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2343,7 +2343,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 3.14159265358979 1.5707963267949"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftLittle1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftLittle1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_little_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2353,7 +2353,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 3.14159265358979 1.5707963267949"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftLittle1.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftLittle1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2374,7 +2374,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftLittle2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftLittle2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_little_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2384,7 +2384,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftLittle2.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftLittle2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2405,7 +2405,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/full_LeftLittle3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/full_LeftLittle3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="r_hand_little_3_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2415,7 +2415,7 @@
       <max_contacts>1</max_contacts>
       <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/col_LeftLittle3.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://icub_model/meshes/col_LeftLittle3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -2443,7 +2443,7 @@
     <visual>
       <origin xyz="0.0142999998093 -0.079997 -0.0295008" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_neck_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_neck_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="neck_1_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2452,7 +2452,7 @@
     <collision>
       <origin xyz="0.0142999998093 -0.079997 -0.0295008" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_neck_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_neck_1_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -2473,7 +2473,7 @@
     <visual>
       <origin xyz="0 -0.089497 -0.05030077" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_neck_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_neck_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="neck_2_color">
         <color rgba="0.9 0.9 0.9 1"/>
@@ -2482,7 +2482,7 @@
     <collision>
       <origin xyz="0 -0.089497 -0.05030077" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_neck_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_neck_2_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -2503,7 +2503,7 @@
     <visual>
       <origin xyz="0 -0.067153 -0.0295008" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_head_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_head_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="head_color">
         <color rgba="1 1 1 1"/>
@@ -2512,7 +2512,7 @@
     <collision>
       <origin xyz="0 -0.067153 -0.0295008" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://iCub/meshes/simmechanics/sim_sea_2-5_head_prt-binary.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://icub_model/meshes/simmechanics/sim_sea_2-5_head_prt-binary.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
