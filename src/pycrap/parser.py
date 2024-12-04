@@ -93,11 +93,11 @@ class OntologyParser:
         render_func_without_namespace = lambda entity: entity.name
         owlready2.set_render_func(render_func_without_namespace)
 
-    def parse(self):
+    def parse(self, additional_imports=None):
         """
         Parses the ontology into a python file.
         """
-        self.create_base()
+        self.create_base(additional_imports)
         self.create_classes()
         self.create_object_properties()
         self.create_data_properties()
@@ -116,12 +116,12 @@ class OntologyParser:
         self.import_individuals()
         self.current_file.close()
 
-    def create_base(self):
+    def create_base(self, additional_imports=None):
         """
         Create the base.py
         """
         self.current_file = open(self.path_for_file(self.base_file_name), "w")
-        self.create_base_imports()
+        self.create_base_imports(additional_imports)
         self.current_file.write("\n" * 2)
         self.current_file.write("ontology_file = tempfile.NamedTemporaryFile()\n")
         self.current_file.write('ontology = owlready2.get_ontology("file://" + ontology_file.name).load()\n')
@@ -215,6 +215,12 @@ class OntologyParser:
         # write is_a restrictions
         is_a = self.parse_elements(cls.is_a)
         if is_a:
+            if "<class 'int'>" in str(is_a):
+                is_a = str(is_a).replace("<class 'int'>", "int")
+            if "<class 'str'>" in str(is_a):
+                is_a = str(is_a).replace("<class 'str'>", "str")
+            if "<class 'float'>" in str(is_a):
+                is_a = str(is_a).replace("<class 'float'>", "float")
             is_a = f"{repr(cls)}.is_a = [{is_a}]"
             self.current_file.write(is_a)
             self.current_file.write("\n")
@@ -250,6 +256,10 @@ class OntologyParser:
         # write range restrictions
         range_string = self.parse_elements(prop.range)
         if range_string:
+            if "<class 'int'>" in str(range_string):
+                range_string = str(range_string).replace("<class 'int'>", "int")
+            if "<class 'str'>" in str(range_string):
+                range_string = str(range_string).replace("<class 'str'>", "str")
             range_string = f"{repr(prop)}.range = [{range_string}]"
             self.current_file.write(range_string)
             self.current_file.write("\n")
@@ -291,12 +301,17 @@ class OntologyParser:
             self.current_file.write(f"{individual.name}.{repr(prop)} = {individual.__getattr__(repr(prop))}")
             self.current_file.write("\n")
 
-    def create_base_imports(self):
+    def create_base_imports(self, additional_imports=None):
         """
         Create the imports for the base.py
         """
         self.current_file.write("from owlready2 import *\n")
         self.current_file.write("import tempfile\n")
+
+        # Additional imports for other ontologies
+        if additional_imports:
+            for import_path in additional_imports:
+                self.current_file.write(f"from {import_path} import *\n")
 
     def import_from_base(self):
         """
@@ -414,8 +429,17 @@ class OntologyParser:
         Parse a class without restrictions.
         :param cls: The class.
         """
+        if cls.name[0].isdigit():
+            # Prepend "I" to make the class name valid
+            modified_class_name = "I" + cls.name
+        else:
+            modified_class_name = cls.name
+
+        if "-" in modified_class_name:
+            modified_class_name = "U" + modified_class_name.replace("-", "_")
+
         inherited_classes_sting = "Base"
-        self.current_file.write(f"class {cls.name}({inherited_classes_sting}):\n")
+        self.current_file.write(f"class {modified_class_name}({inherited_classes_sting}):\n")
         self.write_docstring(cls)
         self.current_file.write("\n\n")
 
@@ -491,8 +515,40 @@ class OntologiesParser:
             for imported in onto.imported_ontologies:
                 self.dependency_graph.add_edge(imported, onto)
 
+
+
+    # def create_ontologies(self):
+    #     for onto in nx.topological_sort(self.dependency_graph):
+    #         mkdir(os.path.join(self.path, to_snake_case(onto.name)))
+    #         print(to_snake_case(onto.name))
+    #         parser = OntologyParser(onto, os.path.join(self.path, to_snake_case(onto.name)))
+    #         # Determine which ontologies depend on this one
+    #         dependents = [to_snake_case(dep.name) for dep in self.dependency_graph.successors(onto)]
+    #         additional_imports = [f"..{dep}" for dep in dependents]
+    #
+    #         # Parse the ontology, passing its dependents for imports
+    #         parser.parse(additional_imports)
+
     def create_ontologies(self):
+        for node, successors in self.dependency_graph.adjacency():
+            print(f"{node.name}: {[succ.name for succ in successors]}")
+
+        self.dependency_graph = nx.reverse(self.dependency_graph, copy=True)
         for onto in nx.topological_sort(self.dependency_graph):
-            mkdir(os.path.join(self.path, to_snake_case(onto.name)))
-            parser = OntologyParser(onto, os.path.join(self.path, to_snake_case(onto.name)))
-            parser.parse()
+
+            # Create the directory for the ontology
+            ontology_path = os.path.join(self.path, to_snake_case(onto.name))
+            mkdir(ontology_path)
+
+            # Parse the ontology
+            parser = OntologyParser(onto, ontology_path)
+
+            # Determine which ontologies depend on this one
+            dependents = [to_snake_case(dep.name) for dep in self.dependency_graph.successors(onto)]
+            print(f"Dependents of {onto.name}: {dependents}")
+
+            additional_imports = [f"..{dep}" for dep in dependents]
+            print(f"Imports added to {onto.name}: {additional_imports}")
+
+            # Parse the ontology, passing its dependents for imports
+            parser.parse(additional_imports)
