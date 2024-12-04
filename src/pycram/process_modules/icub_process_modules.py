@@ -30,29 +30,6 @@ import yarp
 ACK_VOCAB = yarp.createVocab32('a','c','k')
 NO_ACK_VOCAB = yarp.createVocab32('n','a','c','k')
 
-robot_parts = {
-        "torso": ["torso_yaw", "torso_roll", "torso_pitch"],
-        "right_arm": ["r_shoulder_pitch", "r_shoulder_roll", "r_shoulder_yaw",
-                      "r_elbow",
-                      "r_wrist_prosup","r_wrist_pitch","r_wrist_yaw",
-                      "r_hand_finger",
-                      "r_thumb_oppose","r_thumb_proximal","r_thumb_distal",
-                      "r_index_proximal","r_index_distal",
-                      "r_middle_proximal","r_middle_distal",
-                      "r_pinky"],
-        "left_arm": ["l_shoulder_pitch", "l_shoulder_roll", "l_shoulder_yaw",
-                     "l_elbow",
-                     "l_wrist_prosup","l_wrist_pitch","l_wrist_yaw",
-                     "l_hand_finger",
-                     "l_thumb_oppose","l_thumb_proximal","l_thumb_distal",
-                     "l_index_proximal","l_index_distal",
-                     "l_middle_proximal","l_middle_distal",
-                     "l_pinky"],
-    }
-
-# Convert to a list of parts for indexed access
-robot_parts_list = list(robot_parts.items())
-
 
 def init_yarp_network():
     if not yarp.Network.checkNetwork():
@@ -263,25 +240,6 @@ class iCubMoveJoints(ProcessModule):
         self.state_ports = state_ports
         self.ctp_ports = ctp_ports
 
-    def get_joint_indices(self,joint_name):
-        """
-        Given a joint name, returns the indices of the part and the joint within that part.
-
-        Args:
-            joint_name (str): Name of the joint to find.
-
-        Returns:
-            tuple: (part_index, joint_index) or (None, None) if joint not found.
-        """
-        left_arm_chain = RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT)
-        print(left_arm_chain.joint_names)
-        right_arm_chain = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT)
-        print(right_arm_chain.joint_names)
-        for part_index, (part_name, joints) in enumerate(robot_parts_list):
-            if joint_name in joints:
-                joint_index = joints.index(joint_name)
-                return part_index, joint_index
-        return None, None
 
 
     def _execute(self, desig: MoveJointsMotion):
@@ -298,7 +256,7 @@ class iCubMoveJoints(ProcessModule):
 
         index = 0
         for joint_mame in to_change_joints:
-            part_index,joint_index = self.get_joint_indices(joint_mame)
+            part_index,joint_index = RobotDescription.current_robot_description.get_actuated_joint_indices(joint_mame)
             if part_index is not None:
                 if part_index == 0:
                     torso_to_change_joints.append(joint_index)

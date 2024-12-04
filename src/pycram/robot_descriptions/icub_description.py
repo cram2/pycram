@@ -9,12 +9,33 @@ import icub_models
 
 filename = get_ros_package_path('icub_model') + '/urdf/model' + '.urdf'
 
+actuated_joints = {
+        "torso": ["torso_yaw", "torso_roll", "torso_pitch"],
+        "right_arm": ["r_shoulder_pitch", "r_shoulder_roll", "r_shoulder_yaw",
+                      "r_elbow",
+                      "r_wrist_prosup","r_wrist_pitch","r_wrist_yaw",
+                      "r_hand_finger",
+                      "r_thumb_oppose","r_thumb_proximal","r_thumb_distal",
+                      "r_index_proximal","r_index_distal",
+                      "r_middle_proximal","r_middle_distal",
+                      "r_pinky"],
+        "left_arm": ["l_shoulder_pitch", "l_shoulder_roll", "l_shoulder_yaw",
+                     "l_elbow",
+                     "l_wrist_prosup","l_wrist_pitch","l_wrist_yaw",
+                     "l_hand_finger",
+                     "l_thumb_oppose","l_thumb_proximal","l_thumb_distal",
+                     "l_index_proximal","l_index_distal",
+                     "l_middle_proximal","l_middle_distal",
+                     "l_pinky"],
+    }
+
 
 icub_description = RobotDescription("icub",
                                     "root_link",
                                     "torso_1",
                                     "torso_pitch",
-                                    filename)
+                                    filename,
+                                    actuated_joints=actuated_joints)
 
 ################################## Left Arm ##################################
 left_arm = KinematicChainDescription("left", "chest", "l_hand",

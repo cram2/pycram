@@ -1,6 +1,6 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
-from typing_extensions import List, Dict, Union, Optional
+from typing_extensions import List, Dict, Union, Optional, Tuple
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType
@@ -118,7 +118,8 @@ class RobotDescription:
     """
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
-                 virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None):
+                 virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None,
+                 actuated_joints: Optional[Dict] = None):
         """
         Initialize the RobotDescription. The URDF is loaded from the given path and used as basis for the kinematic
         chains.
@@ -130,6 +131,7 @@ class RobotDescription:
         :param urdf_path: Path to the URDF file of the robot
         :param virtual_mobile_base_joints: Virtual mobile base joint names for mobile robots
         :param mjcf_path: Path to the MJCF file of the robot
+        :param actuated_joints: Actuated joints of the robot.
         """
         self.name = name
         self.base_link = base_link
@@ -139,7 +141,11 @@ class RobotDescription:
             # Since parsing URDF causes a lot of warning messages which can't be deactivated, we suppress them
             self.urdf_object = URDFObject(urdf_path)
         self.joint_types = {joint.name: joint.type for joint in self.urdf_object.joints}
-        self.joint_actuators: Optional[Dict] = parse_mjcf_actuators(mjcf_path) if mjcf_path is not None else None
+        self.joint_actuators: Optional[Dict] = None
+        if actuated_joints is not None:
+            self.joint_actuators = actuated_joints
+        elif mjcf_path is not None:
+            self.joint_actuators = parse_mjcf_actuators(mjcf_path)
         self.kinematic_chains: Dict[str, KinematicChainDescription] = {}
         self.cameras: Dict[str, CameraDescription] = {}
         self.grasps: Dict[Grasp, List[float]] = {}
@@ -156,7 +162,7 @@ class RobotDescription:
         """
         return self.joint_actuators is not None
 
-    def get_actuator_for_joint(self, joint: str) -> Optional[str]:
+    def get_actuator_for_joint(self, joint: str) -> Optional[Union[str, List[str]]]:
         """
         Get the actuator name for a given joint.
 
@@ -166,6 +172,23 @@ class RobotDescription:
         if self.has_actuators:
             return self.joint_actuators.get(joint)
         return None
+
+    def get_actuated_joint_indices(self, joint_name) -> Tuple[Optional[int], Optional[int]]:
+        """
+        Given a joint name, returns the indices of the part and the joint within that part.
+
+        Args:
+            joint_name (str): Name of the joint to find.
+
+        Returns:
+            tuple: (part_index, joint_index) or (None, None) if joint not found.
+        """
+
+        for part_index, (part_name, joints) in enumerate(list(self.joint_actuators.items())):
+            if joint_name in joints:
+                joint_index = joints.index(joint_name)
+                return part_index, joint_index
+        return None, None
 
     def add_kinematic_chain_description(self, chain: KinematicChainDescription):
         """
