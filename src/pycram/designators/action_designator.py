@@ -1110,7 +1110,7 @@ class DetectAction(ActionDesignatorDescription):
 
         :return: A performable designator_description
         """
-        return DetectActionPerformable(self.object_designator_description.resolve())
+        return DetectActionPerformable(self.technique, self.state, self.object_designator_description, self.region)
 
     def __iter__(self) -> DetectActionPerformable:
         """

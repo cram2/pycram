@@ -105,7 +105,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
         self.assertEqual(detected_object[0].name, "milk")
         self.assertEqual(detected_object[0].obj_type, Milk)
-        self.assertEqual(detected_object[0].world, self.milk.world)
+        self.assertEqual(detected_object[0].world_object.world, self.milk.world)
 
     # Skipped since open and close work only in the apartment at the moment
     @unittest.skip
