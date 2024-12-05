@@ -2,7 +2,7 @@ from typing_extensions import Optional
 
 from .base import RobotState, Designator, MapperArgsMixin, PoseMixin
 from .object_designator import ObjectMixin
-from ..datastructures.enums import Arms, GripperState, Grasp
+from ..datastructures.enums import Arms, GripperState, Grasp, DetectionTechnique, DetectionState
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 
@@ -98,7 +98,9 @@ class DetectAction(ObjectMixin, Action):
     """ORM Class of pycram.designators.action_designator.DetectAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
-
+    technique: Mapped[DetectionTechnique] = mapped_column(init=False)
+    state: Mapped[DetectionState] = mapped_column(init=False)
+    region: Mapped[str] = mapped_column(init=False)
 
 class OpenAction(ObjectMixin, Action):
     """ORM Class of pycram.designators.action_designator.OpenAction."""

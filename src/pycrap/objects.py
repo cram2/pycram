@@ -82,7 +82,14 @@ class Cereal(Food):
     A traditional breakfast dish made from processed cereal grains.
     """
 
+
 class Floor(PhysicalObject):
     """
     The lower surface of a room.
+    """
+
+
+class Genobj(PhysicalObject):
+    """
+    A generic object if no description is provided.
     """

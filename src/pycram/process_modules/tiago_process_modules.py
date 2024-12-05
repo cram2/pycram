@@ -10,7 +10,8 @@ from ..designators.motion_designator import MoveMotion, DetectingMotion, MoveTCP
 from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModuleManager, ProcessModule
 from .default_process_modules import DefaultOpen, DefaultClose, DefaultMoveGripper, DefaultMoveJoints, DefaultMoveTCP, \
-    DefaultNavigation, DefaultMoveHead, DefaultDetecting, DefaultMoveArmJoints, DefaultWorldStateDetecting
+    DefaultNavigation, DefaultMoveHead, DefaultDetecting, DefaultMoveArmJoints, DefaultWorldStateDetecting, \
+    DefaultDetectingReal
 from ..robot_description import RobotDescription
 from ..ros.logging import logdebug
 from ..external_interfaces import giskard
@@ -149,7 +150,7 @@ class TiagoManager(ProcessModuleManager):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultDetecting(self._detecting_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return TiagoDetectingReal(self._detecting_lock)
+            return DefaultDetectingReal(self._detecting_lock)
 
     def move_tcp(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:

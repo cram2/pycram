@@ -15,9 +15,9 @@ from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
 from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING
 
+from .datastructures.dataclasses import Color
 from .datastructures.pose import Pose
 from .local_transformer import LocalTransformer
-
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
@@ -410,3 +410,24 @@ def xyzw_to_wxyz(xyzw: List[float]) -> List[float]:
     """
     return [xyzw[3], *xyzw[:3]]
 
+
+def map_color_names_to_rgba(name: str) -> Color:
+    """
+    Maps a color name to its corresponding RGBA value.
+
+    :param name: The name of the color (e.g., "red", "blue").
+    :return: A list of RGBA values [R, G, B, A] where each component ranges from 0 to 1.
+             Returns [0, 0, 0, 1] (black) for unknown colors.
+    """
+    colors = {
+        "red": Color(1, 0, 0, 1),
+        "yellow": Color(1, 1, 0, 1),
+        "green": Color(0, 1, 0, 1),
+        "cyan": Color(0, 1, 1, 1),
+        "blue": Color(0, 0, 1, 1),
+        "magenta": Color(1, 0, 1, 1),
+        "white": Color(1, 1, 1, 1),
+        "black": Color(0, 0, 0, 1),
+        "grey": Color(0.5, 0.5, 0.5, 1),
+    }
+    return colors.get(name.lower(), Color(0, 0, 0, 1)).to_list()  # Fallback to black
