@@ -93,6 +93,19 @@ class OntologyParser:
         render_func_without_namespace = lambda entity: entity.name
         owlready2.set_render_func(render_func_without_namespace)
 
+
+    def digit_to_string(self, cls):
+        # Mapping of digits to words
+        digit_map = {
+            '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
+            '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine'
+        }
+
+        # Replace each digit with its corresponding word
+        converted_name = ''.join(digit_map[char] if char.isdigit() else char for char in cls)
+
+        return converted_name
+
     def parse(self, additional_imports=None):
         """
         Parses the ontology into a python file.
@@ -190,6 +203,19 @@ class OntologyParser:
         self.import_individuals()
         self.current_file.write("\n" * 2)
 
+        for cls in self.ontology.classes():
+            if cls.name[0].isdigit():
+                original_name = cls.name
+                new_name = self.digit_to_string(original_name)
+                if new_name != original_name:
+                    cls.name = new_name
+
+            if "-" in cls.name:
+                original_name = cls.name
+                new_name = cls.name.replace("-", "")
+                if new_name != original_name:
+                    cls.name = new_name
+
         elements = list(self.ontology.classes()) + list(self.ontology.properties())
 
         for element in tqdm.tqdm(elements, desc="Parsing restrictions"):
@@ -212,9 +238,12 @@ class OntologyParser:
 
         :param cls: The class
         """
+        # TODO: requiring a digit_to_string for the restrictions body.
         # write is_a restrictions
         is_a = self.parse_elements(cls.is_a)
         if is_a:
+            if "-" in str(is_a):
+                is_a = str(is_a).replace("-","")
             if "<class 'int'>" in str(is_a):
                 is_a = str(is_a).replace("<class 'int'>", "int")
             if "<class 'str'>" in str(is_a):
@@ -424,6 +453,9 @@ class OntologyParser:
         self.current_file.write(is_a)
         self.current_file.write("\n")
 
+
+
+    # TODO: Decide upon a better solution for the hyphen symbol
     def parse_class(self, cls):
         """
         Parse a class without restrictions.
@@ -431,12 +463,13 @@ class OntologyParser:
         """
         if cls.name[0].isdigit():
             # Prepend "I" to make the class name valid
-            modified_class_name = "I" + cls.name
+            #modified_class_name = "I" + cls.name
+            modified_class_name = self.digit_to_string(cls.name)
         else:
             modified_class_name = cls.name
 
         if "-" in modified_class_name:
-            modified_class_name = "U" + modified_class_name.replace("-", "_")
+            modified_class_name = modified_class_name.replace("-", "")
 
         inherited_classes_sting = "Base"
         self.current_file.write(f"class {modified_class_name}({inherited_classes_sting}):\n")
