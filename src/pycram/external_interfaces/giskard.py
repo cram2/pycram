@@ -1,6 +1,5 @@
 import json
 import threading
-import time
 
 import sys
 
@@ -8,7 +7,7 @@ from ..ros.data_types import Time
 from ..ros.logging import logwarn, loginfo_once
 from ..ros.ros_tools import get_node_names
 
-from ..datastructures.enums import JointType, ObjectType
+from ..datastructures.enums import JointType, ObjectType, Arms
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..datastructures.dataclasses import MeshVisualShape
@@ -80,7 +79,6 @@ def init_giskard_interface(func: Callable) -> Callable:
 
         if "/giskard" in get_node_names():
             giskard_wrapper = GiskardWrapper()
-            giskard_update_service = get_service_proxy("/giskard/update_world", UpdateWorld)
             loginfo_once("Successfully initialized Giskard interface")
             is_init = True
         else:
@@ -134,7 +132,8 @@ def sync_worlds() -> None:
             world_object_names.add(obj.name)
         if obj.name == RobotDescription.current_robot_description.name or obj.obj_type == ObjectType.ROBOT:
             joint_config = obj.get_positions_of_all_joints()
-            non_fixed_joints = list(filter(lambda joint: joint.type != JointType.FIXED, obj.joints.values()))
+            non_fixed_joints = list(filter(lambda joint: joint.type != JointType.FIXED and not joint.is_virtual,
+                                           obj.joints.values()))
             joint_config_filtered = {joint.name: joint_config[joint.name] for joint in non_fixed_joints}
 
             giskard_wrapper.monitors.add_set_seed_configuration(joint_config_filtered,
@@ -253,7 +252,7 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
             for cmd in giskard_wrapper.motion_goals.get_goals():
                 par_value_pair = json.loads(cmd.kwargs)
                 if "tip_link" in par_value_pair.keys() and "root_link" in par_value_pair.keys():
-                    if par_value_pair["tip_link"] == robot_description.base_link:
+                    if par_value_pair["tip_link"] == RobotDescription.current_robot_description.base_link:
                         continue
                     chain = World.robot.description.get_chain(par_value_pair["root_link"],
                                                               par_value_pair["tip_link"])
@@ -306,19 +305,34 @@ def achieve_joint_goal(goal_poses: Dict[str, float]) -> 'MoveResult':
     :param goal_poses: Dictionary with joint names and position goals
     :return: MoveResult message for this goal
     """
+    set_joint_goal(goal_poses)
+    return giskard_wrapper.execute()
+
+
+@init_giskard_interface
+@thread_safe
+def set_joint_goal(goal_poses: Dict[str, float]) -> None:
+    """
+    Takes a dictionary of joint position that should be achieved, the keys in the dictionary are the joint names and
+    values are the goal joint positions.
+
+    :param goal_poses: Dictionary with joint names and position goals
+    """
     sync_worlds()
     par_return = _manage_par_motion_goals(giskard_wrapper.set_joint_goal, goal_poses)
     if par_return:
         return par_return
 
     giskard_wrapper.set_joint_goal(goal_poses)
-    # giskard_wrapper.add_default_end_motion_conditions()
-    return giskard_wrapper.execute()
 
 
 @init_giskard_interface
 @thread_safe
-def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str, position_threshold: float = 0.02, orientation_threshold: float = 0.02) -> 'MoveResult':
+def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str,
+                           position_threshold: float = 0.02,
+                           orientation_threshold: float = 0.02,
+                           use_monitor: bool = True,
+                           grippers_that_can_collide: Optional[Arms] = None) -> 'MoveResult':
     """
     Takes a cartesian position and tries to move the tip_link to this position using the chain defined by
     tip_link and root_link.
@@ -328,6 +342,8 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str, posit
     :param root_link: The starting link of the chain which should be used to achieve this goal
     :param position_threshold: Position distance at which the goal is successfully reached
     :param orientation_threshold: Orientation distance at which the goal is successfully reached
+    :param use_monitor: Whether to use a monitor for this goal or not.
+    :param grippers_that_can_collide: The gripper(s) that should be allowed to collide.
     :return: MoveResult message for this goal
     """
     sync_worlds()
@@ -336,26 +352,33 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str, posit
     if par_return:
         return par_return
 
-    cart_monitor1 = giskard_wrapper.monitors.add_cartesian_pose(root_link=root_link, tip_link=tip_link,
-                                                                goal_pose=_pose_to_pose_stamped(goal_pose),
-                                                                position_threshold=position_threshold, orientation_threshold=orientation_threshold,
-                                                                name='cart goal 1')
-    end_monitor = giskard_wrapper.monitors.add_local_minimum_reached(start_condition=cart_monitor1)
+    cart_monitor1 = None
+    if use_monitor:
+        cart_monitor1 = giskard_wrapper.monitors.add_cartesian_pose(root_link=root_link, tip_link=tip_link,
+                                                                    goal_pose=_pose_to_pose_stamped(goal_pose),
+                                                                    position_threshold=position_threshold, orientation_threshold=orientation_threshold,
+                                                                    name='cart goal 1')
+        end_monitor = giskard_wrapper.monitors.add_local_minimum_reached(start_condition=cart_monitor1)
 
     giskard_wrapper.motion_goals.add_cartesian_pose(name='g1', root_link=root_link, tip_link=tip_link,
                                                     goal_pose=_pose_to_pose_stamped(goal_pose),
                                                     end_condition=cart_monitor1)
 
-    giskard_wrapper.monitors.add_end_motion(start_condition=end_monitor)
+    if use_monitor:
+        giskard_wrapper.monitors.add_end_motion(start_condition=end_monitor)
+
     giskard_wrapper.motion_goals.avoid_all_collisions()
-    giskard_wrapper.motion_goals.allow_collision(group1='gripper', group2=CollisionEntry.ALL)
+    if grippers_that_can_collide is not None:
+        allow_gripper_collision(grippers_that_can_collide)
+
     return giskard_wrapper.execute()
 
 
 @init_giskard_interface
 @thread_safe
 def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
-                                    root_link: str) -> 'MoveResult':
+                                    root_link: str,
+                                    grippers_that_can_collide: Optional[Arms] = None) -> 'MoveResult':
     """
     Takes a cartesian position and tries to move the tip_link to this position in a straight line, using the chain
     defined by tip_link and root_link.
@@ -363,6 +386,7 @@ def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
     :param goal_pose: The position which should be achieved with tip_link
     :param tip_link: The end link of the chain as well as the link which should achieve the goal_pose
     :param root_link: The starting link of the chain which should be used to achieve this goal
+    :param grippers_that_can_collide: The gripper(s) that should be allowed to collide.
     :return: MoveResult message for this goal
     """
     sync_worlds()
@@ -371,6 +395,9 @@ def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
     if par_return:
         return par_return
 
+    giskard_wrapper.avoid_all_collisions()
+    if grippers_that_can_collide is not None:
+        allow_gripper_collision(grippers_that_can_collide)
     giskard_wrapper.set_straight_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
     # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
@@ -576,16 +603,20 @@ def projection_joint_goal(goal_poses: Dict[str, float], allow_collisions: bool =
 # Managing collisions
 
 @init_giskard_interface
-def allow_gripper_collision(gripper: str) -> None:
+def allow_gripper_collision(gripper: Arms, at_goal: bool = False) -> None:
     """
     Allows the specified gripper to collide with anything.
 
-    :param gripper: The gripper which can collide, either 'right', 'left' or 'all'
+    :param gripper: The gripper which can collide, either 'Arms.RIGHT', 'Arms.LEFT' or 'Arms.BOTH'
+    :param at_goal: If the collision should be allowed only for this motion goal.
     """
     add_gripper_groups()
     for gripper_group in get_gripper_group_names():
-        if gripper in gripper_group or gripper == "all":
-            giskard_wrapper.allow_collision(gripper_group, CollisionEntry.ALL)
+        if gripper.name.lower() in gripper_group or gripper == Arms.BOTH:
+            if at_goal:
+                giskard_wrapper.motion_goals.allow_collision(gripper_group, CollisionEntry.ALL)
+            else:
+                giskard_wrapper.allow_collision(gripper_group, CollisionEntry.ALL)
 
 
 @init_giskard_interface
@@ -609,7 +640,8 @@ def add_gripper_groups() -> None:
             if "gripper" in name:
                 return
         for description in RobotDescription.current_robot_description.get_manipulator_chains():
-            giskard_wrapper.register_group(description.name + "_gripper", description.start_link, RobotDescription.current_robot_description.name)
+            giskard_wrapper.register_group(description.name + "_gripper", description.end_effector.start_link,
+                                           RobotDescription.current_robot_description.name)
 
 
 @init_giskard_interface

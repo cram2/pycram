@@ -12,7 +12,7 @@ from .object_designator import Object
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 
-from ..datastructures.enums import ObjectType, Arms, GripperState
+from ..datastructures.enums import ObjectType, Arms, GripperState, DetectionTechnique, DetectionState
 
 
 class Motion(MapperArgsMixin, Designator):
@@ -30,9 +30,12 @@ class Motion(MapperArgsMixin, Designator):
 class MoveMotion(PoseMixin, Motion):
     """
     ORM class of pycram.designators.motion_designator.MoveMotion
+
+    :ivar keep_joint_states: (Boolean) Keep the joint states of the robot during/at the end of the motion
     """
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
+    keep_joint_states: Mapped[bool] = mapped_column(init=False)
 
 
 class AccessingMotion(Motion):
@@ -92,7 +95,12 @@ class DetectingMotion(Motion):
     """
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
-    object_type: Mapped[ObjectType]
+    technique: Mapped[DetectionTechnique]
+    state: Mapped[DetectionState]
+    # object_designator_description: Mapped[ObjectDesignatorDescription]
+    # object_designator_description: Mapped[str] = mapped_column(init=False)
+
+    region: Mapped[str] = mapped_column(init=False)
 
 
 class WorldStateDetectingMotion(Motion):

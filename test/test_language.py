@@ -10,7 +10,7 @@ from pycram.failures import PlanFailure, NotALanguageExpression
 from pycram.datastructures.pose import Pose
 from pycram.language import Sequential, Language, Parallel, TryAll, TryInOrder, Monitor, Code
 from pycram.process_module import simulated_robot
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.robot_description import RobotDescription
 
 
@@ -214,14 +214,14 @@ class LanguageTestCase(BulletWorldTestCase):
         self.assertRaises(AttributeError, lambda: (act + act2) * park)
 
     def test_perform_desig(self):
-        act = NavigateAction([Pose([1, 1, 0])])
+        act = NavigateAction([Pose([0.3, 0.3, 0])])
         act2 = MoveTorsoAction([0.3])
         act3 = ParkArmsAction([Arms.BOTH])
 
         plan = act + act2 + act3
         with simulated_robot:
             plan.perform()
-        self.assertEqual(self.robot.get_pose(), Pose([1, 1, 0]))
+        self.assertEqual(self.robot.get_pose(), Pose([0.3, 0.3, 0]))
         self.assertEqual(self.robot.get_joint_position("torso_lift_joint"), 0.3)
         for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right", "park").items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
@@ -232,14 +232,14 @@ class LanguageTestCase(BulletWorldTestCase):
         def test_set(param):
             self.assertTrue(param)
 
-        act = NavigateAction([Pose([1, 1, 0])])
+        act = NavigateAction([Pose([0.3, 0.3, 0])])
         act2 = Code(test_set, {"param": True})
         act3 = Code(test_set, {"param": True})
 
         plan = act + act2 + act3
         with simulated_robot:
             plan.perform()
-        self.assertEqual(self.robot.get_pose(), Pose([1, 1, 0]))
+        self.assertEqual(self.robot.get_pose(), Pose([0.3, 0.3, 0]))
 
     def test_perform_parallel(self):
 

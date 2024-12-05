@@ -2,26 +2,19 @@ import random
 import unittest
 
 import numpy as np
+from random_events.variable import Continuous, Symbolic
+from sortedcontainers import SortedSet
 
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.enums import ObjectType, Arms, Grasp
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators.action_designator import MoveTorsoActionPerformable
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import (MoveAndPickUp,
-                                                                                           GaussianCostmapModel)
+                                                                                           Arms as PMArms,
+                                                                                           Grasp as PMGrasp)
 from pycram.failures import PlanFailure
 from pycram.process_module import simulated_robot
-
-
-class GaussianCostmapModelTestCase(unittest.TestCase):
-
-    def test_create_model(self):
-        gcm = GaussianCostmapModel()
-        model = gcm.create_model()
-        self.assertEqual(model.probability(gcm.center_event()), 0)
-        self.assertEqual(len(model.variables), 4)
-        # p_xy = model.marginal([gcm.relative_x, gcm.relative_y])
-        # go.Figure(p_xy.plot(), p_xy.plotly_layout()).show()
+from pycrap import Milk
 
 
 class MoveAndPickUpTestCase(BulletWorldTestCase):
@@ -32,8 +25,17 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
         np.random.seed(69)
         random.seed(69)
 
+    def test_variables(self):
+        object_designator = ObjectDesignatorDescription(types=[Milk]).resolve()
+        move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
+                                      grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP])
+        result = SortedSet([Symbolic("arm", PMArms), Symbolic("grasp", PMGrasp),
+                            Continuous("relative_x"), Continuous("relative_y")])
+        all_variables = move_and_pick.all_variables()
+        self.assertEqual(all_variables, result)
+
     def test_grounding(self):
-        object_designator = ObjectDesignatorDescription(types=[ObjectType.MILK]).resolve()
+        object_designator = ObjectDesignatorDescription(types=[Milk]).resolve()
         move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
                                       grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP])
 
@@ -42,12 +44,12 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
         self.assertTrue(event.is_disjoint())
         self.assertIsNotNone(model)
 
-    def test_move_and_pick_up(self):
-        object_designator = ObjectDesignatorDescription(types=[ObjectType.MILK]).resolve()
+    def test_move_and_pick_up_with_mode(self):
+        object_designator = ObjectDesignatorDescription(types=[Milk]).resolve()
         move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
                                       grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP])
         with simulated_robot:
-            for action in move_and_pick:
+            for action in move_and_pick.iter_with_mode():
                 try:
                     MoveTorsoActionPerformable(0.3).perform()
                     action.perform()

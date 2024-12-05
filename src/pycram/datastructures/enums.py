@@ -129,15 +129,6 @@ class GripperType(Enum):
     CUSTOM = auto()
 
 
-class PerceptionTechniques(Enum):
-    """
-    Enum for techniques for perception tasks.
-    """
-    ALL = auto()
-    HUMAN = auto()
-    TYPES = auto()
-
-
 class ImageEnum(Enum):
     """
     Enum for image switch view on hsrb display.
@@ -162,6 +153,38 @@ class ImageEnum(Enum):
     SOFA = 17
     INSPECT = 18
     CHAIR = 37
+
+
+class DetectionTechnique(int, Enum):
+    """
+    Enum for techniques for detection tasks.
+    """
+    ALL = 0
+    HUMAN = 1
+    TYPES = 2
+    REGION = 3
+    HUMAN_ATTRIBUTES = 4
+    HUMAN_WAVING = 5
+
+
+class DetectionState(int, Enum):
+    """
+    Enum for the state of the detection task.
+    """
+    START = 0
+    STOP = 1
+    PAUSE = 2
+
+
+class LoggerLevel(Enum):
+    """
+    Enum for the different logger levels.
+    """
+    DEBUG = 'debug'
+    INFO = 'info'
+    WARN = 'warn'
+    ERROR = 'error'
+    FATAL = 'fatal'
 
 
 class VirtualMobileBaseJointName(Enum):
@@ -203,6 +226,16 @@ class MJCFJointType(Enum):
     SLIDE = "slide"
     HINGE = "hinge"
     FIXED = "fixed"  # Added for compatibility with PyCRAM, but not a real joint type in MuJoCo.
+
+
+class MovementType(Enum):
+    """
+    Enum for the different movement types of the robot.
+    """
+    STRAIGHT_TRANSLATION = auto()
+    STRAIGHT_CARTESIAN = auto()
+    TRANSLATION = auto()
+    CARTESIAN = auto()
 
 
 class MultiverseAPIName(Enum):
@@ -271,3 +304,11 @@ class MultiverseJointCMD(MultiverseJointProperty):
             return MultiverseJointCMD.PRISMATIC_JOINT_CMD
         else:
             raise UnsupportedJointType(joint_type)
+
+
+class FilterConfig(Enum):
+    """
+    Declare existing filter methods.
+    Currently supported: Butterworth
+    """
+    butterworth = 1

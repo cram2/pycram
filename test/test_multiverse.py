@@ -7,7 +7,7 @@ import psutil
 from tf.transformations import quaternion_from_euler, quaternion_multiply
 from typing_extensions import Optional, List
 
-from pycram.datastructures.dataclasses import ContactPointsList, ContactPoint
+from pycram.datastructures.dataclasses import ContactPointsList, ContactPoint, AxisAlignedBoundingBox
 from pycram.datastructures.enums import ObjectType, Arms, JointType
 from pycram.datastructures.pose import Pose
 from pycram.robot_description import RobotDescriptionManager
@@ -53,9 +53,67 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def tearDown(self):
         self.multiverse.remove_all_objects()
 
+    def test_save_and_restore_state(self):
+        milk = self.spawn_milk([1, 1, 0.1])
+        robot = self.spawn_robot()
+        cup = self.spawn_cup([1, 2, 0.1])
+        if "apartment" not in self.multiverse.get_object_names():
+            apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+        else:
+            apartment = self.multiverse.get_object_by_name("apartment")
+        apartment.set_joint_position("cabinet10_drawer1_joint", 0.1)
+        robot.attach(milk)
+        milk.attach(cup)
+        all_object_attachments = {obj: obj.attachments.copy() for obj in self.multiverse.objects}
+        state_id = self.multiverse.save_state()
+        milk.detach(cup)
+        robot_link = robot.root_link
+        milk_link = milk.root_link
+        cid = robot_link.constraint_ids[milk_link]
+        self.assertTrue(cid == robot.attachments[milk].id)
+        self.multiverse.remove_constraint(cid)
+        apartment.set_joint_position("cabinet10_drawer1_joint", 0.0)
+        self.multiverse.restore_state(state_id)
+        cid = robot_link.constraint_ids[milk_link]
+        self.assertTrue(milk_link in robot_link.constraint_ids)
+        self.assertTrue(cid == robot.attachments[milk].id)
+        for obj in self.multiverse.objects:
+            self.assertTrue(len(obj.attachments) == len(all_object_attachments[obj]))
+            for att in obj.attachments:
+                self.assertTrue(att in all_object_attachments[obj])
+        self.assertTrue(apartment.get_joint_position("cabinet10_drawer1_joint") == 0.1)
+
     def test_spawn_xml_object(self):
         bread = Object("bread_1", ObjectType.GENERIC_OBJECT, "bread_1.xml", pose=Pose([1, 1, 0.1]))
         self.assert_poses_are_equal(bread.get_pose(), Pose([1, 1, 0.1]))
+
+    def test_get_axis_aligned_bounding_box_for_one_link_object(self):
+        position = [1, 1, 0.1]
+        milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, 1, 0.1],
+                                                                     quaternion_from_euler(np.pi/4, 0, 0).tolist()))
+        aabb = milk.get_axis_aligned_bounding_box()
+        self.assertIsInstance(aabb, AxisAlignedBoundingBox)
+        min_p_1, max_p_1 = aabb.get_min_max()
+        width = max_p_1[0] - min_p_1[0]
+        length = max_p_1[1] - min_p_1[1]
+        height = max_p_1[2] - min_p_1[2]
+        self.assertTrue(width > 0)
+        self.assertTrue(length > 0)
+        self.assertTrue(height > 0)
+        # Move the object and check if the bounding box is updated correctly
+        position_shift = 1
+        milk.set_position([position[0] + position_shift, position[1] + position_shift, 0.1])
+        aabb = milk.get_axis_aligned_bounding_box()
+        min_p_2, max_p_2 = aabb.get_min_max()
+        width_2 = max_p_2[0] - min_p_2[0]
+        length_2 = max_p_2[1] - min_p_2[1]
+        height_2 = max_p_2[2] - min_p_2[2]
+        self.assertAlmostEqual(width, width_2, delta=0.001)
+        self.assertAlmostEqual(length, length_2, delta=0.001)
+        self.assertAlmostEqual(height, height_2, delta=0.001)
+        for i in range(3):
+            self.assertAlmostEqual(min_p_1[0] + position_shift, min_p_2[0], delta=0.001)
+            self.assertAlmostEqual(max_p_1[0] + position_shift, max_p_2[0], delta=0.001)
 
     def test_spawn_mesh_object(self):
         milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, 1, 0.1]))
@@ -243,7 +301,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
                                         orientation_delta=self.multiverse.conf.orientation_tolerance)
 
     def test_get_environment_pose(self):
-        apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+        if "apartment" not in self.multiverse.get_object_names():
+            apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+        else:
+            apartment = self.multiverse.get_object_by_name("apartment")
         pose = apartment.get_pose()
         self.assertIsInstance(pose, Pose)
 
@@ -356,7 +417,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def spawn_milk(position: List, orientation: Optional[List] = None, frame="map") -> Object:
         if orientation is None:
             orientation = [0, 0, 0, 1]
-        milk = Object("milk_box", ObjectType.MILK, "milk_box.xml",
+        milk = Object("milk_box", ObjectType.MILK, "milk_box.urdf",
                       pose=Pose(position, orientation, frame=frame))
         return milk
 

@@ -1,7 +1,6 @@
 """Implementation of base classes for orm modelling."""
 import datetime
 import getpass
-import os
 from dataclasses import field
 from typing import Optional
 
@@ -51,11 +50,13 @@ class Base(_Base):
     @declared_attr
     def process_metadata_id(self) -> Mapped[int]:
         return mapped_column(ForeignKey(f'{ProcessMetaData.__tablename__}.id'), default=None, init=False)
+
     """Related MetaData Object to store information about the context of this experiment."""
 
     @declared_attr
     def process_metadata(self):
         return relationship(ProcessMetaData.__tablename__)
+
     """model relationship between foreign key in ProcessMetaData table and the ids of all inheriting
     tables"""
 
@@ -189,25 +190,25 @@ class Designator(Base):
 class Position(Base):
     """ORM Class for 3D positions."""
 
-    x: Mapped[float]
-    y: Mapped[float]
-    z: Mapped[float]
+    x: Mapped[float] = mapped_column(init=True)
+    y: Mapped[float] = mapped_column(init=True)
+    z: Mapped[float] = mapped_column(init=True)
 
 
 class Quaternion(Base):
     """ORM Class for Quaternions."""
 
-    x: Mapped[float]
-    y: Mapped[float]
-    z: Mapped[float]
-    w: Mapped[float]
+    x: Mapped[float] = mapped_column(init=True)
+    y: Mapped[float] = mapped_column(init=True)
+    z: Mapped[float] = mapped_column(init=True)
+    w: Mapped[float] = mapped_column(init=True)
 
 
 class Pose(PositionMixin, QuaternionMixin, Base):
     """ORM Class for Poses."""
 
-    time: Mapped[datetime.datetime]
-    frame: Mapped[str]
+    time: Mapped[datetime.datetime] = mapped_column(init=True)
+    frame: Mapped[str] = mapped_column(init=True)
 
 
 class Color(Base):
@@ -222,8 +223,8 @@ class Color(Base):
 class RobotState(PoseMixin, Base):
     """ORM Representation of a robots state."""
 
-    torso_height: Mapped[float]
+    torso_height: Mapped[float] = mapped_column(init=True)
     """The torso height of the robot."""
 
-    type: Mapped[ObjectType]
+    type: Mapped[str] = mapped_column(init=True)
     """The type of the robot."""

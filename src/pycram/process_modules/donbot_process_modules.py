@@ -2,13 +2,14 @@ from threading import Lock
 
 import numpy as np
 
+from .default_process_modules import DefaultDetecting, DefaultDetectingReal
 from ..worlds.bullet_world import World
 from ..designators.motion_designator import MoveArmJointsMotion, WorldStateDetectingMotion
 from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_description import RobotDescription
-from ..process_modules.pr2_process_modules import Pr2Detecting as DonbotDetecting, _move_arm_tcp
-from ..datastructures.enums import Arms
+from ..process_modules.pr2_process_modules import _move_arm_tcp
+from ..datastructures.enums import Arms, ExecutionType
 
 
 def _park_arms(arm):
@@ -161,8 +162,10 @@ class DonbotManager(ProcessModuleManager):
             return DonbotMoveHead(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
-            return DonbotDetecting(self._detecting_lock)
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
+            return DefaultDetecting(self._detecting_lock)
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            return DefaultDetectingReal(self._detecting_lock)
 
     def move_tcp(self):
         if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:

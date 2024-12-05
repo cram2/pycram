@@ -9,8 +9,11 @@ from copy import copy
 
 import numpy as np
 from geometry_msgs.msg import Point
+from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
+import pycrap
+from pycrap import PhysicalObject, Floor, Apartment, Robot
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
@@ -18,7 +21,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           SphereVisualShape,
                                           CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                           ObjectState, WorldState, ClosestPointsList,
-                                          ContactPointsList, VirtualMobileBaseJoints)
+                                          ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox)
 from ..datastructures.enums import JointType, ObjectType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity
@@ -72,6 +75,11 @@ class World(StateEntity, ABC):
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
 
+    ontology: Optional[pycrap.Ontology] = None
+    """
+    The ontology of this world.
+    """
+
     def __init__(self, mode: WorldMode, is_prospection_world: bool = False, clear_cache: bool = False):
         """
         Create a new simulation, the mode decides if the simulation should be a rendered window or just run in the
@@ -85,6 +93,10 @@ class World(StateEntity, ABC):
         """
 
         StateEntity.__init__(self)
+
+        self.ontology = pycrap.Ontology()
+
+        self.latest_state_id: Optional[int] = None
 
         if clear_cache or (self.conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
             self.cache_manager.clear_cache()
@@ -111,7 +123,6 @@ class World(StateEntity, ABC):
         self._update_local_transformer_worlds()
 
         self.mode: WorldMode = mode
-        # The mode of the simulation, can be "GUI" or "DIRECT"
 
         self.coll_callbacks: Dict[Tuple[Object, Object], CollisionCallbacks] = {}
 
@@ -122,6 +133,42 @@ class World(StateEntity, ABC):
         self._init_goal_validators()
 
         self.original_state_id = self.save_state()
+
+        self.on_add_object_callbacks: List[Callable[[Object], None]] = []
+
+    def get_object_convex_hull(self, obj: Object) -> Geometry3D:
+        """
+        Get the convex hull of an object.
+
+        :param obj: The pycram object.
+        :return: The convex hull of the object as a list of Points.
+        """
+        raise NotImplementedError
+
+    def get_link_convex_hull(self, link: Link) -> Geometry3D:
+        """
+        Get the convex hull of a link of an articulated object.
+
+        :param link: The link as a AbstractLink object.
+        :return: The convex hull of the link as a list of Points.
+        """
+        raise NotImplementedError
+
+    def add_callback_on_add_object(self, callback: Callable[[Object], None]) -> None:
+        """
+        Add a callback that is called when an object is added to the world.
+
+        :param callback: The callback.
+        """
+        self.on_add_object_callbacks.append(callback)
+
+    def remove_callback_on_add_object(self, callback: Callable[[Object], None]) -> None:
+        """
+        Remove a callback that is called when an object is added to the world.
+
+        :param callback: The callback.
+        """
+        self.on_add_object_callbacks.remove(callback)
 
     @classmethod
     def get_cache_dir(cls) -> str:
@@ -140,6 +187,16 @@ class World(StateEntity, ABC):
         self.objects.append(obj)
         self.add_object_to_original_state(obj)
         self.object_lock.release()
+        self.invoke_on_add_object_callbacks(obj)
+
+    def invoke_on_add_object_callbacks(self, obj: Object) -> None:
+        """
+        Invoke the object added callbacks.
+
+        :param obj: The object.
+        """
+        for callback in self.on_add_object_callbacks:
+            callback(obj)
 
     @property
     def robot_description(self) -> RobotDescription:
@@ -261,7 +318,8 @@ class World(StateEntity, ABC):
 
     def preprocess_object_file_and_get_its_cache_path(self, path: str, ignore_cached_files: bool,
                                                       description: ObjectDescription, name: str,
-                                                      scale_mesh: Optional[float] = None) -> str:
+                                                      scale_mesh: Optional[float] = None,
+                                                      mesh_transform: Optional[Transform] = None) -> str:
         """
         Update the cache directory with the given object.
 
@@ -270,9 +328,11 @@ class World(StateEntity, ABC):
         :param description: The object description.
         :param name: The name of the object.
         :param scale_mesh: The scale of the mesh.
+        :param mesh_transform: The mesh transform to apply to the mesh.
         :return: The path of the cached object.
         """
-        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, description, name, scale_mesh)
+        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, description, name,
+                                                               scale_mesh, mesh_transform)
 
     @property
     def simulation_time_step(self):
@@ -283,7 +343,7 @@ class World(StateEntity, ABC):
 
     @abstractmethod
     def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None,
-                               obj_type: Optional[ObjectType] = None) -> int:
+                               obj_type: Optional[Type[PhysicalObject]] = None) -> int:
         """
         Load a description file (e.g. URDF) at the given pose and returns the id of the loaded object.
 
@@ -340,6 +400,12 @@ class World(StateEntity, ABC):
         :return: The Object with the id 'id'.
         """
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
+
+    def get_scene_objects(self) -> List[Object]:
+        """
+        :return: A list of all objects in the world except the robot, floor, and apartment.
+        """
+        return [obj for obj in self.objects if obj.obj_type not in {Robot, Floor, Apartment}]
 
     def remove_visual_object(self, obj_id: int) -> bool:
         """
@@ -807,8 +873,6 @@ class World(StateEntity, ABC):
     @abstractmethod
     def get_link_color(self, link: Link) -> Color:
         """
-        This method returns the rgba_color of this link.
-
         :param link: The link for which the rgba_color should be returned.
         :return: The rgba_color as Color object with RGBA values between 0 and 1.
         """
@@ -817,31 +881,44 @@ class World(StateEntity, ABC):
     @abstractmethod
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
         """
-        Get the RGBA colors of each link in the object as a dictionary from link name to rgba_color.
-
         :param obj: The object
-        :return: A dictionary with link names as keys and a Color object for each link as value.
+        :return: The RGBA colors of each link in the object as a dictionary from link name to rgba_color.
         """
         pass
 
     @abstractmethod
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
         """
-        Return the axis aligned bounding box of this object. The return of this method are two points in
-        world coordinate frame which define a bounding box.
-
         :param obj: The object for which the bounding box should be returned.
-        :return: AxisAlignedBoundingBox object containing the min and max points of the bounding box.
+        :return: the axis aligned bounding box of this object. The return of this method are two points in
+        world coordinate frame which define a bounding box.
         """
         pass
+
+    def get_object_rotated_bounding_box(self, obj: Object) -> RotatedBoundingBox:
+        """
+        :param obj: The object for which the bounding box should be returned.
+        :return: the rotated bounding box of this object. The return of this method are two points in
+        world coordinate frame which define a bounding box.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
         """
-        Return the axis aligned bounding box of the link. The return of this method are two points in
+        :param link: The link for which the bounding box should be returned.
+        :return: The axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
         pass
+
+    def get_link_rotated_bounding_box(self, link: Link) -> RotatedBoundingBox:
+        """
+        :param link: The link for which the bounding box should be returned.
+        :return: The rotated bounding box of the link. The return of this method are two points in
+        world coordinate frame which define a bounding box.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def set_realtime(self, real_time: bool) -> None:
@@ -902,6 +979,7 @@ class World(StateEntity, ABC):
         self.disconnect_from_physics_server()
         self.reset_robot()
         self.join_threads()
+        self.ontology.destroy_individuals()
         if World.current_world == self:
             World.current_world = None
 
@@ -958,27 +1036,51 @@ class World(StateEntity, ABC):
         :param use_same_id: Whether to use the same current state id for the new saved state.
         :return: A unique id of the state
         """
-        state_id = self.save_physics_simulator_state(state_id=state_id, use_same_id=use_same_id)
+
+        sim_state_id = self.save_physics_simulator_state(state_id=state_id, use_same_id=use_same_id)
+
+        if state_id is None:
+            if self.latest_state_id is None:
+                self.latest_state_id = 0
+            else:
+                self.latest_state_id += 0 if use_same_id else 1
+            state_id = self.latest_state_id
+
         self.save_objects_state(state_id)
-        self._current_state = WorldState(state_id, self.object_states)
+
+        self._current_state = WorldState(self.object_states, sim_state_id)
+
         return super().save_state(state_id)
 
     @property
     def current_state(self) -> WorldState:
         if self._current_state is None:
-            simulator_state = None if self.conf.use_physics_simulator_state else (
+            simulator_state_id = None if not self.conf.use_physics_simulator_state else (
                 self.save_physics_simulator_state(use_same_id=True))
-            self._current_state = WorldState(simulator_state, self.object_states)
-        return WorldState(self._current_state.simulator_state_id, self.object_states)
+            self._current_state = WorldState(self.object_states, simulator_state_id)
+        return WorldState(self.object_states, self._current_state.simulator_state_id)
 
     @current_state.setter
     def current_state(self, state: WorldState) -> None:
         if self.current_state != state:
             if self.conf.use_physics_simulator_state:
                 self.restore_physics_simulator_state(state.simulator_state_id)
+                self.set_object_states_without_poses(state.object_states)
             else:
                 for obj in self.objects:
                     self.get_object_by_name(obj.name).current_state = state.object_states[obj.name]
+
+    def set_object_states_without_poses(self, states: Dict[str, ObjectState]) -> None:
+        """
+        Set the states of all objects in the World except the poses.
+
+        :param states: A dictionary with the object id as key and the object state as value.
+        """
+        for obj_name, obj_state in states.items():
+            obj = self.get_object_by_name(obj_name)
+            obj.set_attachments(obj_state.attachments)
+            obj.link_states = obj_state.link_states
+            obj.joint_states = obj_state.joint_states
 
     @property
     def object_states(self) -> Dict[str, ObjectState]:
@@ -1155,18 +1257,19 @@ class World(StateEntity, ABC):
         self.restore_state(self.original_state_id)
         if remove_saved_states:
             self.remove_saved_states()
-        self.original_state_id = self.save_state()
+        self.original_state_id = self.save_state(use_same_id=True)
 
     def remove_saved_states(self) -> None:
         """
         Remove all saved states of the World.
         """
         if self.conf.use_physics_simulator_state:
-            for state_id in self.saved_states:
-                self.remove_physics_simulator_state(state_id)
+            for state in self.saved_states.values():
+                self.remove_physics_simulator_state(state.simulator_state_id)
         else:
             self.remove_objects_saved_states()
         super().remove_saved_states()
+        self.latest_state_id = None
         self.original_state_id = None
 
     def remove_objects_saved_states(self) -> None:
@@ -1540,7 +1643,6 @@ class UseProspectionWorld:
         with UseProspectionWorld():
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
-
 
     def __init__(self):
         self.prev_world: Optional[World] = None

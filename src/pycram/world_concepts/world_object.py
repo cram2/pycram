@@ -5,13 +5,15 @@ import os
 from pathlib import Path
 
 import numpy as np
+import owlready2
 from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
+from trimesh.parent import Geometry3D
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
-                                          ContactPointsList)
+                                          ContactPointsList, RotatedBoundingBox)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
@@ -30,11 +32,13 @@ except ImportError:
     MJCF = None
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
+from ..datastructures.mixins import HasConcept
+from pycrap import PhysicalObject, ontology, Base, Agent
 
 Link = ObjectDescription.Link
 
 
-class Object(WorldEntity):
+class Object(WorldEntity, HasConcept):
     """
     Represents a spawned Object in the World.
     """
@@ -49,13 +53,16 @@ class Object(WorldEntity):
     A dictionary that maps the file extension to the corresponding ObjectDescription type.
     """
 
-    def __init__(self, name: str, obj_type: ObjectType, path: Optional[str] = None,
+    ontology_concept: Type[PhysicalObject] = PhysicalObject
+
+    def __init__(self, name: str, concept: Type[PhysicalObject], path: Optional[str] = None,
                  description: Optional[ObjectDescription] = None,
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
                  color: Color = Color(),
                  ignore_cached_files: bool = False,
-                 scale_mesh: Optional[float] = None):
+                 scale_mesh: Optional[float] = None,
+                 mesh_transform: Optional[Transform] = None):
         """
         The constructor loads the description file into the given World, if no World is specified the
         :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
@@ -63,7 +70,7 @@ class Object(WorldEntity):
         for URDFs :func:`~Object.set_color` can be used.
 
         :param name: The name of the object
-        :param obj_type: The type of the object as an ObjectType enum.
+        :param concept: The type of the object as ontological concept from PyCRAP
         :param path: The path to the source file, if only a filename is provided then the resources directories will be
          searched, it could be None in some cases when for example it is a generic object.
         :param description: The ObjectDescription of the object, this contains the joints and links of the object.
@@ -79,9 +86,14 @@ class Object(WorldEntity):
 
         pose = Pose() if pose is None else pose
 
+        # set ontology related information
+        self.ontology_concept = concept
+        if not self.world.is_prospection_world:
+            self.ontology_individual = self.ontology_concept(namespace=self.world.ontology.ontology)
+
         self.name: str = name
         self.path: Optional[str] = path
-        self.obj_type: ObjectType = obj_type
+
         self.color: Color = color
         self._resolve_description(path, description)
         self.cache_manager = self.world.cache_manager
@@ -93,11 +105,13 @@ class Object(WorldEntity):
         if path is not None:
             self.path = self.world.preprocess_object_file_and_get_its_cache_path(path, ignore_cached_files,
                                                                                  self.description, self.name,
-                                                                                 scale_mesh=scale_mesh)
+                                                                                 scale_mesh=scale_mesh,
+                                                                                 mesh_transform=mesh_transform)
 
             self.description.update_description_from_file(self.path)
 
-        if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
+        # if the object is an agent in the belief state
+        if Agent in self.ontology_concept.is_a and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
 
         self.id = self._spawn_object_and_get_id()
@@ -113,6 +127,17 @@ class Object(WorldEntity):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.add_object(self)
+
+    def get_mesh_path(self) -> str:
+        """
+        Get the path to the mesh file of the object.
+
+        :return: The path to the mesh file.
+        """
+        if self.has_one_link:
+            return self.root_link.get_mesh_path()
+        else:
+            raise ValueError("The object has more than one link, therefore the mesh path cannot be determined.")
 
     def _resolve_description(self, path: Optional[str] = None, description: Optional[ObjectDescription] = None) -> None:
         """
@@ -282,6 +307,10 @@ class Object(WorldEntity):
         The current transform of the object.
         """
         return self.get_pose().to_transform(self.tf_frame)
+
+    @property
+    def obj_type(self) -> Type[PhysicalObject]:
+        return self.ontology_concept
 
     def _spawn_object_and_get_id(self) -> int:
         """
@@ -563,8 +592,8 @@ class Object(WorldEntity):
 
     def __repr__(self):
         skip_attr = ["links", "joints", "description", "attachments"]
-        return self.__class__.__qualname__ + f"(" + ', \n'.join(
-            [f"{key}={value}" if key not in skip_attr else f"{key}: ..." for key, value in self.__dict__.items()]) + ")"
+        return self.__class__.__qualname__ + f"(name={self.name}, object_type={self.obj_type.name}, file_path={self.path}, pose={self.pose}, world={self.world})"
+
 
     def remove(self) -> None:
         """
@@ -573,7 +602,9 @@ class Object(WorldEntity):
         is currently attached to. After this call world remove object
         to remove this Object from the simulation/world.
         """
+        # owlready2.destroy_entity(self.ontology_individual)
         self.world.remove_object(self)
+
 
     def reset(self, remove_saved_states=False) -> None:
         """
@@ -1238,6 +1269,15 @@ class Object(WorldEntity):
         """
         return self.world.get_multiple_joint_positions([self.joints[joint_name] for joint_name in joint_names])
 
+    def get_positions_of_controllable_joints(self) -> Dict[str, float]:
+        """
+        Return a list of all controllable joints of this object.
+
+        :return: A list of all controllable joints.
+        """
+        return {j.name: j.position for j in self.joints.values()
+                if j.type != JointType.FIXED and not j.is_virtual}
+
     def get_positions_of_all_joints(self) -> Dict[str, float]:
         """
         Return the positions of all joints of the object as a dictionary of joint names and joint positions.
@@ -1342,7 +1382,32 @@ class Object(WorldEntity):
 
         :return: The axis aligned bounding box of this object.
         """
-        return self.world.get_object_axis_aligned_bounding_box(self)
+        if self.has_one_link:
+            return self.root_link.get_axis_aligned_bounding_box()
+        else:
+            return self.world.get_object_axis_aligned_bounding_box(self)
+
+    def get_rotated_bounding_box(self) -> RotatedBoundingBox:
+        """
+        Return the rotated bounding box of this object.
+
+        :return: The rotated bounding box of this object.
+        """
+        if self.has_one_link:
+            return self.root_link.get_rotated_bounding_box()
+        else:
+            return self.world.get_object_rotated_bounding_box(self)
+
+    def get_convex_hull(self) -> Geometry3D:
+        """
+        Return the convex hull of this object.
+
+        :return: The convex hull of this object.
+        """
+        if self.has_one_link:
+            return self.root_link.get_convex_hull()
+        else:
+            return self.world.get_object_convex_hull(self)
 
     def get_base_origin(self) -> Pose:
         """
@@ -1398,3 +1463,4 @@ class Object(WorldEntity):
 
     def __hash__(self):
         return hash((self.id, self.name, self.world))
+

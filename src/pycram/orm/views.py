@@ -3,7 +3,7 @@ from typing_extensions import Union
 import sqlalchemy.orm
 from sqlalchemy import table, inspect, event, select, engine, MetaData, Select, TableClause, ExecutableDDLElement
 from sqlalchemy.ext.compiler import compiles
-from .action_designator import PickUpAction
+from .action_designator import PickUpAction, PlaceAction
 from .base import Position, RobotState, Pose, Base, Quaternion
 from .object_designator import Object
 from .tasktree import TaskTreeNode
@@ -139,6 +139,53 @@ class PickUpWithContextView(base):
     id: Mapped[int] = __table__.c.id
     arm: Mapped[str] = __table__.c.arm
     grasp: Mapped[str] = __table__.c.grasp
+    torso_height: Mapped[float] = __table__.c.torso_height
+    relative_x: Mapped[float] = column_property(__table__.c.relative_x)
+    relative_y: Mapped[float] = column_property(__table__.c.relative_y)
+    quaternion_x: Mapped[float] = __table__.c.x
+    quaternion_y: Mapped[float] = __table__.c.y
+    quaternion_z: Mapped[float] = __table__.c.z
+    quaternion_w: Mapped[float] = __table__.c.w
+    obj_type: Mapped[str] = __table__.c.obj_type
+    status: Mapped[str] = __table__.c.status
+
+
+class PlaceWithContextView(base):
+    """
+    View for pickup performables with context.
+    """
+
+    __robot_position: Position = sqlalchemy.orm.aliased(Position, flat=True)
+    """
+    3D Vector of robot position
+    """
+
+    __robot_pose: Pose = sqlalchemy.orm.aliased(Pose, flat=True)
+    """
+    Complete robot pose
+    """
+
+    __object_position: Position = sqlalchemy.orm.aliased(Position, flat=True)
+    """
+    3D Vector for object position
+    """
+
+    __table__ = view("PlaceWithContextView", Base.metadata,
+                     (select(PlaceAction.id, PlaceAction.arm, RobotState.torso_height,
+                             (__robot_position.x-__object_position.x).label("relative_x"),
+                             (__robot_position.y-__object_position.y).label("relative_y"), Quaternion.x, Quaternion.y,
+                             Quaternion.z, Quaternion.w, Object.obj_type, TaskTreeNode.status)
+                      .join(TaskTreeNode.action.of_type(PlaceAction))
+                      .join(PlaceAction.robot_state)
+                      .join(__robot_pose, RobotState.pose)
+                      .join(__robot_position, __robot_pose.position)
+                      .join(Pose.orientation)
+                      .join(PlaceAction.object)
+                      .join(Object.pose)
+                      .join(__object_position, Pose.position)))
+
+    id: Mapped[int] = __table__.c.id
+    arm: Mapped[str] = __table__.c.arm
     torso_height: Mapped[float] = __table__.c.torso_height
     relative_x: Mapped[float] = column_property(__table__.c.relative_x)
     relative_y: Mapped[float] = column_property(__table__.c.relative_y)

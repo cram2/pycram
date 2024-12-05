@@ -7,7 +7,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.16.3
   kernelspec:
-    display_name: Python 3
+    display_name: Python 3 (ipykernel)
     language: python
     name: python3
 ---
@@ -73,18 +73,19 @@ plan.
 If you are performing a plan with a simulated robot, you need a BulletWorld.
 
 ```python
+import pycrap
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType
 
 world = BulletWorld()
-pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
+pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
 ```
 
 ```python
 from pycram.process_module import simulated_robot
 
-world.reset_bullet_world()
+world.reset_world()
 
 with simulated_robot:
     plan.perform()
@@ -104,7 +105,7 @@ from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 
-world.reset_bullet_world()
+world.reset_world()
 
 navigate = NavigateAction([Pose([1, 1, 0])])
 park = ParkArmsAction([Arms.BOTH])
@@ -166,7 +167,7 @@ from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 
-world.reset_bullet_world()
+world.reset_world()
 
 navigate = NavigateAction([Pose([1, 1, 0])])
 park = ParkArmsAction([Arms.BOTH])

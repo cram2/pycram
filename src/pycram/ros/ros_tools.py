@@ -30,8 +30,8 @@ def get_parameter(name: str) -> Any:
     return rospy.get_param(name)
 
 
-def wait_for_message(topic_name: str):
-    return rospy.wait_for_message(topic_name)
+def wait_for_message(topic_name: str, msg_type: Any):
+    return rospy.wait_for_message(topic_name, msg_type)
 
 
 def is_master_online():
@@ -41,5 +41,10 @@ def is_master_online():
 def sleep(duration: float):
     rospy.sleep(duration)
 
+
+def get_time():
+    return rospy.get_time()
+
+
 def create_timer(duration: int, callback, oneshot=False):
-    return rospy.Timer(rospy.Duration(duration), callback, oneshot=oneshot)
+    return rospy.Timer(duration, callback, oneshot=oneshot)

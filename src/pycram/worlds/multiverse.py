@@ -13,7 +13,7 @@ from ..datastructures.enums import WorldMode, JointType, ObjectType, MultiverseB
     MultiverseJointCMD
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
-from ..description import Link, Joint, ObjectDescription
+from ..description import Link, Joint
 from ..object_descriptors.mjcf import ObjectDescription as MJCF
 from ..robot_description import RobotDescription
 from ..ros.logging import logwarn, logerr
@@ -643,7 +643,7 @@ class Multiverse(World):
 
     def set_realtime(self, real_time: bool) -> None:
         logwarn("set_realtime is not implemented as an API in Multiverse, it is configured in the"
-                      "multiverse configuration file (.muv file) as rtf_required where a value of 1 means real-time")
+                "multiverse configuration file (.muv file) as rtf_required where a value of 1 means real-time")
 
     def set_gravity(self, gravity_vector: List[float]) -> None:
         logwarn("set_gravity is not implemented in Multiverse")

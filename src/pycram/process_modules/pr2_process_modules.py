@@ -1,17 +1,19 @@
 from threading import Lock
-from typing_extensions import Any
+from typing_extensions import Any, TYPE_CHECKING
 
 import actionlib
 
+from .default_process_modules import DefaultDetectingReal, DefaultDetecting
 from .. import world_reasoning as btr
 import numpy as np
 
+from .. import world_reasoning as btr
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
 from ..ros.logging import logdebug
 from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
-from ..designators.object_designator import ObjectDesignatorDescription
+
 from ..designators.motion_designator import MoveMotion, LookingMotion, \
     DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
     MoveGripperMotion, OpeningMotion, ClosingMotion
@@ -19,9 +21,12 @@ from ..robot_description import RobotDescription
 from ..datastructures.world import World
 from ..world_concepts.world_object import Object
 from ..datastructures.pose import Pose
-from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType
+from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType, MovementType
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import *
+
+if TYPE_CHECKING:
+    from ..designators.object_designator import ObjectDesignatorDescription
 
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
@@ -75,28 +80,6 @@ class Pr2MoveGripper(ProcessModule):
         for joint, state in RobotDescription.current_robot_description.get_arm_chain(
                 desig.gripper).get_static_gripper_state(motion).items():
             robot.set_joint_position(joint, state)
-
-
-class Pr2Detecting(ProcessModule):
-    """
-    This process module tries to detect an object with the given type. To be detected the object has to be in
-    the field of view of the robot.
-    """
-
-    def _execute(self, desig: DetectingMotion):
-        robot = World.robot
-        object_type = desig.object_type
-        # Should be "wide_stereo_optical_frame"
-        camera_link_name = RobotDescription.current_robot_description.get_camera_link()
-        # should be [0, 0, 1]
-        camera_description = RobotDescription.current_robot_description.cameras[
-            list(RobotDescription.current_robot_description.cameras.keys())[0]]
-        front_facing_axis = camera_description.front_facing_axis
-
-        objects = World.current_world.get_object_by_type(object_type)
-        for obj in objects:
-            if btr.visible(obj, robot.get_link_pose(camera_link_name), front_facing_axis):
-                return obj
 
 
 class Pr2MoveTCP(ProcessModule):
@@ -207,7 +190,12 @@ class Pr2NavigationReal(ProcessModule):
 
     def _execute(self, designator: MoveMotion) -> Any:
         logdebug(f"Sending goal to giskard to Move the robot")
-        giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
+        if designator.keep_joint_states:
+            joint_positions = World.current_world.robot.get_positions_of_controllable_joints()
+            giskard.set_joint_goal(joint_positions)
+        giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map",
+                                       allow_gripper_collision_=False,
+                                       use_monitor=World.current_world.conf.use_giskard_monitor)
 
 
 class Pr2MoveHeadReal(ProcessModule):
@@ -235,36 +223,6 @@ class Pr2MoveHeadReal(ProcessModule):
                                     "head_tilt_joint": new_tilt + current_tilt})
 
 
-class Pr2DetectingReal(ProcessModule):
-    """
-    Process Module for the real Pr2 that tries to detect an object fitting the given object description. Uses Robokudo
-    for perception of the environment.
-    """
-
-    def _execute(self, designator: DetectingMotion) -> Any:
-        query_result = query(ObjectDesignatorDescription(types=[designator.object_type]))
-        # print(query_result)
-        obj_pose = query_result["ClusterPoseBBAnnotator"]
-
-        lt = LocalTransformer()
-        obj_pose = lt.transform_pose(obj_pose, World.robot.get_link_tf_frame("torso_lift_link"))
-        obj_pose.orientation = [0, 0, 0, 1]
-        obj_pose.position.x += 0.05
-
-        world_obj = World.current_world.get_object_by_type(designator.object_type)
-        if world_obj:
-            world_obj[0].set_pose(obj_pose)
-            return world_obj[0]
-        elif designator.object_type == ObjectType.JEROEN_CUP:
-            cup = Object("cup", ObjectType.JEROEN_CUP, "jeroen_cup.stl", pose=obj_pose)
-            return cup
-        elif designator.object_type == ObjectType.BOWL:
-            bowl = Object("bowl", ObjectType.BOWL, "bowl.stl", pose=obj_pose)
-            return bowl
-
-        return world_obj[0]
-
-
 class Pr2MoveTCPReal(ProcessModule):
     """
     Moves the tool center point of the real PR2 while avoiding all collisions
@@ -275,10 +233,10 @@ class Pr2MoveTCPReal(ProcessModule):
         pose_in_map = lt.transform_pose(designator.target, "map")
 
         if designator.allow_gripper_collision:
-            giskard.allow_gripper_collision(designator.arm)
+            giskard.allow_gripper_collision(designator.arm.name.lower())
         giskard.achieve_cartesian_goal(pose_in_map, RobotDescription.current_robot_description.get_arm_chain(
-            designator.arm).get_tool_frame(),
-                                       "torso_lift_link")
+            designator.arm).get_tool_frame(), "torso_lift_link",
+                                       use_monitor=World.current_world.conf.use_giskard_monitor)
         # robot_description.base_link)
 
 
@@ -387,10 +345,12 @@ class Pr2Manager(ProcessModuleManager):
             return Pr2MoveHeadReal(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return Pr2Detecting(self._detecting_lock)
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED or not robokudo_found:
+            if not robokudo_found:
+                logwarn("Robokudo not found, using simulated detection")
+            return DefaultDetecting(self._detecting_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return Pr2DetectingReal(self._detecting_lock)
+            return DefaultDetectingReal(self._detecting_lock)
 
     def move_tcp(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:

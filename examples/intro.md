@@ -7,7 +7,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.16.3
   kernelspec:
-    display_name: Python 3
+    display_name: Python 3 (ipykernel)
     language: python
     name: python3
 ---
@@ -28,12 +28,17 @@ It is possible to spawn objects and robots into the BulletWorld, these objects c
 A BulletWorld can be created by simply creating an object of the BulletWorld class.
 
 ```python
+import pycrap
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
 
-world = BulletWorld(mode=WorldMode.GUI)
+world = BulletWorld(mode=WorldMode.DIRECT)
+
+milk = Object("milk", pycrap.Milk, "milk.stl")
+pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
+cereal = Object("cereal", pycrap.Cereal, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
 ```
 
 The BulletWorld allows to render images from arbitrary positions. In the following example we render images with the
@@ -72,12 +77,6 @@ Optional:
 * Color
 * Ignore Cached Files
 
-If there is only a filename and no path, PyCRAM will check in the resource directory if there is a matching file.
-
-```python
-milk = Object("Milk", ObjectType.MILK, "milk.stl")
-```
-
 Objects provide methods to change the position and rotation, change the color, attach other objects, set the state of
 joints if the objects has any or get the position and orientation of a link.
 
@@ -88,17 +87,11 @@ methods related to these will not work.
 milk.set_position(Pose([1, 0, 0]))
 ```
 
-To remove an Object from the BulletWorld just call the 'remove' method on the Object.
-
-```python
-milk.remove()
-```
-
 Since everything inside the BulletWorld is an Object, even a complex environment Object like the kitchen can be spawned
 in the same way as the milk.
 
 ```python
-kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
+kitchen = Object("kitchen", pycrap.Kitchen, "kitchen.urdf")
 ```
 
 ## Costmaps
@@ -187,35 +180,33 @@ Allows for geometric reasoning in the BulletWorld. At the moment the following t
 * {meth}`~pycram.world_reasoning.blocking`
 * {meth}`~pycram.world_reasoning.supporting`
 
-To show the geometric reasoning we first spawn a robot as well as the milk Object again.
-
-```python
-import pycram.world_reasoning as btr
-
-milk = Object("Milk", ObjectType.MILK, "milk.stl", pose=Pose([1, 0, 1]))
-pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
-```
-
 We start with testing for visibility
 
 ```python
+from pycram.world_reasoning import visible
+
 milk.set_position(Pose([1, 0, 1]))
-visible = btr.visible(milk, pr2.get_link_pose("wide_stereo_optical_frame"))
+visible = visible(milk, pr2.get_link_pose("wide_stereo_optical_frame"))
 print(f"Milk visible: {visible}")
 ```
 
 ```python
+from pycram.world_reasoning import contact
+from pycram.datastructures.world import World
+
 milk.set_position(Pose([1, 0, 0.05]))
 
-plane = BulletWorld.current_bullet_world.objects[0]
-contact = btr.contact(milk, plane)
+plane = World.current_world.objects[0]
+contact = contact(milk, plane)
 print(f"Milk is in contact with the floor: {contact}")
 ```
 
 ```python
+from pycram.world_reasoning import reachable
+
 milk.set_position(Pose([0.6, -0.5, 0.7]))
 
-reachable = btr.reachable(milk, pr2, "r_gripper_tool_frame")
+reachable = reachable(milk, pr2, "r_gripper_tool_frame")
 print(f"Milk is reachable for the PR2: {reachable}")
 ```
 
@@ -280,7 +271,7 @@ Designators are used, for example, by the PickUpAction to know which object shou
 ```python
 from pycram.designators.object_designator import *
 
-milk_desig = BelieveObject(names=["Milk"])
+milk_desig = BelieveObject(names=["milk"])
 milk_desig.resolve()
 ```
 
@@ -291,7 +282,7 @@ Location Designator can create a position in cartisian space from a symbolic des
 ```python
 from pycram.designators.object_designator import *
 
-milk_desig = BelieveObject(names=["Milk"])
+milk_desig = BelieveObject(names=["milk"])
 milk_desig.resolve()
 ```
 
@@ -303,8 +294,8 @@ Location Designators can create a position in cartesian space from a symbolic de
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
 
-robot_desig = BelieveObject(types=[ObjectType.ROBOT]).resolve()
-milk_desig = BelieveObject(names=["Milk"]).resolve()
+robot_desig = BelieveObject(types=[pycrap.Robot]).resolve()
+milk_desig = BelieveObject(names=["milk"]).resolve()
 location_desig = CostmapLocation(target=milk_desig, visible_for=robot_desig)
 
 print(f"Resolved: {location_desig.resolve()}")
@@ -335,13 +326,6 @@ To get familiar with the PyCRAM Framework we will write a simple pick and place 
 a cereal box from the kitchen counter and place it on the kitchen island. This is a simple pick and place plan.
 
 ```python
-from pycram.designators.object_designator import *
-
-cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
-
-```
-
-```python
 from pycram.datastructures.enums import Grasp
 
 cereal_desig = ObjectDesignatorDescription(names=["cereal"])
@@ -350,7 +334,7 @@ robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
 with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    MoveTorsoAction([0.3]).resolve().perform()
+    MoveTorsoAction([0.33]).resolve().perform()
 
     pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
     pickup_arm = pickup_pose.reachable_arms[0]

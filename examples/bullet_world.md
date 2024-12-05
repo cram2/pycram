@@ -22,8 +22,9 @@ First we need to import and create a BulletWorld.
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import ObjectType, WorldMode
+import pycrap
 
-world = BulletWorld(mode=WorldMode.GUI)
+world = BulletWorld(mode=WorldMode.DIRECT)
 ```
 
 This new window is the BulletWorld, PyCRAMs internal physics simulation. You can use the mouse to move the camera
@@ -41,7 +42,7 @@ To spawn new things in the BulletWorld we need to import the Object class and cr
 ```python
 from pycram.world_concepts.world_object import Object
 
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([0, 0, 1]))
+milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([0, 0, 1]))
 ```
 
 <!-- #region -->
@@ -91,7 +92,7 @@ parameter. Since attachments are bi-directional it doesn't matter on which Objec
 First we need another Object
 
 ```python
-cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1, 0, 1]))
+cereal = Object("cereal", pycrap.Cereal, "breakfast_cereal.stl", pose=Pose([1, 0, 1]))
 ```
 
 ```python
@@ -119,7 +120,7 @@ which contain every link or joint as key and a unique id, used by PyBullet, as v
 We will see this at the example of the PR2:
 
 ```python
-pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
+pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
 print(pr2.links)
 ```
 
