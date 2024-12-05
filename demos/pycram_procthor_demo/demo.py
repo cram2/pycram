@@ -32,7 +32,7 @@ number_of_test_environment = 5
 
 # Get Environments
 number_of_known_environment = len(
-    procThorInterface.get_all_environments_stored_below_dictionary(procThorInterface.source_folder))
+    procThorInterface.get_all_environments_stored_below_directory(procThorInterface.source_folder))
 print("Number of known Environments:{}".format(number_of_known_environment))
 print("Number of needed Testenvironments:{}".format(number_of_test_environment))
 
@@ -44,7 +44,7 @@ def runWorld():
     counter = 0
     works = 0
     fails = 0
-    known_environments = procThorInterface.get_all_environments_stored_below_dictionary(procThorInterface.source_folder)
+    known_environments = procThorInterface.get_all_environments_stored_below_directory(procThorInterface.source_folder)
     world = BulletWorld(WorldMode.GUI)
     apartment = None
     milk_pos = Pose([1, -1.78, 0.55], [1, 0, 0, 0])

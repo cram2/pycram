@@ -51,14 +51,9 @@ class TestProcThorInterface(unittest.TestCase):
         self.assertTrue(3 == len(found_dir))
 
     def test_get_all_environments_stored_below_dictionary(self):
-        before=self.procThorInterface.get_all_environments_stored_below_dictionary(self.test_folder_path)
+        before=self.procThorInterface.get_all_environments_stored_below_directory(self.test_folder_path)
         self.procThorInterface.download_one_random_environment()
-        after=self.procThorInterface.get_all_environments_stored_below_dictionary(self.test_folder_path)
-        print(40*'§')
-        print(before)
-        print(after)
-        print(len(after)-len(before))
-        print(40*'§')
+        after=self.procThorInterface.get_all_environments_stored_below_directory(self.test_folder_path)
         self.assertTrue(1==len(after)-len(before))
 
 
