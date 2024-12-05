@@ -12,7 +12,7 @@ from .object_designator import Object
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 
-from ..datastructures.enums import ObjectType, Arms, GripperState
+from ..datastructures.enums import ObjectType, Arms, GripperState, DetectionTechnique, DetectionState
 
 
 class Motion(MapperArgsMixin, Designator):
@@ -95,7 +95,12 @@ class DetectingMotion(Motion):
     """
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
-    object_type: Mapped[str]
+    technique: Mapped[DetectionTechnique]
+    state: Mapped[DetectionState]
+    # object_designator_description: Mapped[ObjectDesignatorDescription]
+    # object_designator_description: Mapped[str] = mapped_column(init=False)
+
+    region: Mapped[str] = mapped_column(init=False)
 
 
 class WorldStateDetectingMotion(Motion):
