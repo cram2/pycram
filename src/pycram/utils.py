@@ -162,7 +162,8 @@ class suppress_stdout_stderr(object):
 def adjust_camera_pose_based_on_target(cam_pose: Pose, target_pose: Pose,
                                        camera_description: CameraDescription) -> Pose:
     """
-    Adjust the camera pose based on the target pose.
+    Adjust the given cam_pose orientation such that it is facing the target_pose, which partly depends on the
+     front_facing_axis of the that is defined in the camera_description.
 
     :param cam_pose: The camera pose.
     :param target_pose: The target pose.

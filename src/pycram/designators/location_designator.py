@@ -13,7 +13,7 @@ from ..pose_generator_and_validator import PoseGenerator, visibility_validator, 
 from ..robot_description import RobotDescription
 from ..ros.logging import logdebug
 from ..world_concepts.world_object import Object, Link
-from ..world_reasoning import link_pose_for_joint_config, contact, is_a_picked_object, robot_will_be_in_collision_at_pose
+from ..world_reasoning import link_pose_for_joint_config, contact, is_held_object, prospect_robot_contact
 
 
 class Location(LocationDesignatorDescription):
@@ -202,7 +202,7 @@ class CostmapLocation(LocationDesignatorDescription):
         with UseProspectionWorld():
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
                 if self.check_collision_at_start and (test_robot is not None):
-                    if robot_will_be_in_collision_at_pose(test_robot, maybe_pose, self.ignore_collision_with):
+                    if prospect_robot_contact(test_robot, maybe_pose, self.ignore_collision_with):
                         continue
                 res = True
                 arms = None
@@ -317,7 +317,7 @@ class AccessingLocation(LocationDesignatorDescription):
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600,
                                             orientation_generator=lambda p, o: PoseGenerator.generate_orientation(p,
                                                                                                                   half_pose)):
-                if robot_will_be_in_collision_at_pose(test_robot, maybe_pose):
+                if prospect_robot_contact(test_robot, maybe_pose):
                     continue
                 hand_links = []
                 for description in RobotDescription.current_robot_description.get_manipulator_chains():

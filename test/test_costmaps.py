@@ -61,6 +61,21 @@ class CostmapTestCase(BulletWorldTestCase):
                              origin=Pose([0, 0, 0], [0, 0, 0, 1]))
         o.visualize()
 
+    def test_merge_costmap(self):
+        o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
+                             origin=Pose([0, 0, 0], [0, 0, 0, 1]))
+        o2 = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
+                                origin=Pose([0, 0, 0], [0, 0, 0, 1]))
+        o3 = o + o2
+        self.assertTrue(np.all(o.map == o3.map))
+        o2.map[100:120, 100:120] = 0
+        o3 = o + o2
+        self.assertTrue(np.all(o3.map[100:120, 100:120] == 0))
+        self.assertTrue(np.all(o3.map[0:100, 0:100] == o.map[0:100, 0:100]))
+        o2.map = np.zeros_like(o2.map)
+        o3 = o + o2
+        self.assertTrue(np.all(o3.map == o2.map))
+
 
 class SemanticCostmapTestCase(BulletWorldTestCase):
 
@@ -88,6 +103,7 @@ class SemanticCostmapTestCase(BulletWorldTestCase):
         for sample in iter(costmap):
             self.assertIsInstance(sample, Pose)
             self.assertTrue(costmap.valid_area.contains([sample.position.x, sample.position.y]))
+
 
 
 class ProbabilisticCostmapTestCase(BulletWorldTestCase):

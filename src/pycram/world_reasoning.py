@@ -63,8 +63,8 @@ def contact(
             return objects_are_in_contact
 
 
-def robot_will_be_in_collision_at_pose(robot: Object, pose: Pose,
-                                       ignore_collision_with: Optional[List[Object]] = None) -> bool:
+def prospect_robot_contact(robot: Object, pose: Pose,
+                           ignore_collision_with: Optional[List[Object]] = None) -> bool:
     """
     Check if the robot collides with any object in the world at the given pose.
 
@@ -83,7 +83,7 @@ def robot_will_be_in_collision_at_pose(robot: Object, pose: Pose,
             if obj.name in ([prospection_robot.name, floor.name] + ignore):
                 continue
             in_contact, contact_links = contact(prospection_robot, obj, return_links=True)
-            if in_contact and not is_a_picked_object(prospection_robot, obj, [links[0] for links in contact_links]):
+            if in_contact and not is_held_object(prospection_robot, obj, [links[0] for links in contact_links]):
                 logdebug(f"Robot is in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
                          f"at position {pose.position_as_list()} and z_angle {pose.z_angle}")
                 return True
@@ -92,7 +92,7 @@ def robot_will_be_in_collision_at_pose(robot: Object, pose: Pose,
     return False
 
 
-def is_a_picked_object(robot: Object, obj: Object, robot_contact_links: List[Link]) -> bool:
+def is_held_object(robot: Object, obj: Object, robot_contact_links: List[Link]) -> bool:
     """
     Check if the object is picked by the robot.
 

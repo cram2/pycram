@@ -3,9 +3,11 @@ from datetime import timedelta
 
 import rospy
 from tf.transformations import quaternion_from_euler
+from typing_extensions import Type
 
+import pycrap
 from pycram.datastructures.dataclasses import Color
-from pycram.datastructures.enums import ObjectType, Arms
+from pycram.datastructures.enums import Arms
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.world import UseProspectionWorld, World
 from pycram.designators.action_designator import ParkArmsAction, MoveTorsoAction, TransportAction, NavigateAction, \
@@ -17,14 +19,11 @@ from pycram.world_concepts.world_object import Object
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.worlds.multiverse import Multiverse
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
-
-
-rospy_logger = logging.getLogger('rosout')
-rospy_logger.setLevel(logging.DEBUG)
+from pycrap import PhysicalObject
 
 
 @with_simulated_robot
-def move_and_detect(obj_type: ObjectType, pick_pose: Pose):
+def move_and_detect(obj_type: Type[PhysicalObject], pick_pose: Pose):
     NavigateAction(target_locations=[Pose([1.7, 2, 0])]).resolve().perform()
 
     LookAtAction(targets=[pick_pose]).resolve().perform()
@@ -45,11 +44,11 @@ else:
     vis_publisher = None
     milk_path = "milk.xml"
 
-robot = Object('pr2', ObjectType.ROBOT, f'pr2.urdf', pose=Pose([1.3, 2.6, 0.01]))
+robot = Object('pr2', pycrap.Robot, f'pr2.urdf', pose=Pose([1.3, 2.6, 0.01]))
 WorldStateUpdater(tf_topic="/tf", joint_state_topic="/real/pr2/joint_states", update_rate=timedelta(seconds=2),
                   world=world)
-apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
-milk = Object("milk", ObjectType.MILK, milk_path, pose=Pose([0.4, 2.6, 1.34],
+apartment = Object("apartment", pycrap.Apartment, f"apartment.urdf")
+milk = Object("milk", pycrap.Milk, milk_path, pose=Pose([0.4, 2.6, 1.34],
                                                             [1, 0, 0, 0]),
               color=Color(1, 0, 0, 1))
 
@@ -79,7 +78,7 @@ with real_robot:
 
     milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
 
-    TransportAction(milk_desig, [Arms.LEFT], [Pose([2.4, 3, 1.02])]).resolve().perform()
+    TransportAction(milk_desig, [Pose([2.4, 3, 1.02])], [Arms.LEFT]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 

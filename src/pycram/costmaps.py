@@ -221,7 +221,7 @@ class Costmap:
         merge = np.logical_and(self.map > 0, other_cm.map > 0)
         new_map[merge] = self.map[merge] * other_cm.map[merge]
         max_val = np.max(new_map)
-        if max_val > 0:
+        if max_val != 0:
             new_map = (new_map / np.max(new_map)).reshape((self.height, self.width))
         else:
             new_map = new_map.reshape((self.height, self.width))
@@ -815,14 +815,21 @@ class SemanticCostmap(Costmap):
         self.link: Link = obj.get_link(link_name)
         self.resolution: float = resolution
         self.origin: Pose = obj.get_link_pose(link_name)
-        self.height: Optional[int] = None
-        self.width: Optional[int] = None
+        self.height: int = 0
+        self.width: int = 0
         self.map: np.ndarray = []
         self.generate_map()
 
         Costmap.__init__(self, resolution, self.height, self.width, self.origin, self.map)
 
     def get_edges_map(self, margin_in_meters: float, horizontal_only: bool = False) -> Costmap:
+        """
+        Return a Costmap with only the edges of the original Costmap marked as possible positions.
+
+        :param margin_in_meters: The edge thickness in meters that should be marked as possible positions.
+        :param horizontal_only: If True only the horizontal edges will be marked as possible positions.
+        :return: The modified Costmap.
+        """
         mask = np.zeros(self.map.shape)
         edge_tolerance = int(margin_in_meters / self.resolution)
         mask[:edge_tolerance] = 1
@@ -844,12 +851,11 @@ class SemanticCostmap(Costmap):
 
     def get_aabb_for_link(self) -> AxisAlignedBoundingBox:
         """
-
-        :return: The axis aligned bounding box (AABB) of the link provided when creating this costmap. To try and let
-         the AABB as close to the actual object as possible, the Object will be rotated such that the link will be in the
-        identity orientation.
+        :return: The original untransformed (doesn't take the current pose of the link into consideration, since only
+        the size is important here not the pose) axis aligned bounding box (AABB) of the link provided when creating
+         this costmap.
         """
-        return self.link.get_axis_aligned_bounding_box(False)
+        return self.link.get_axis_aligned_bounding_box_from_geometry()
 
 
 class AlgebraicSemanticCostmap(SemanticCostmap):

@@ -1,6 +1,13 @@
 from .base import PhysicalObject
 
 
+class BodyPart(PhysicalObject):
+    """
+    A body part is a part of an object's body.
+    """
+    ...
+
+
 class Container(PhysicalObject):
     """
     Any object that can contain other objects.

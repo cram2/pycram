@@ -174,6 +174,18 @@ class BoundingBox:
 class AxisAlignedBoundingBox(BoundingBox):
 
     @classmethod
+    def from_origin_and_half_extents(cls, origin: Point, half_extents: Point):
+        """
+        Set the axis-aligned bounding box from the origin of the body and half the size.
+
+        :param origin: The origin point
+        :param half_extents: The half size of the bounding box.
+        """
+        min_point = [origin.x - half_extents.x, origin.y - half_extents.y, origin.z - half_extents.z]
+        max_point = [origin.x + half_extents.x, origin.y + half_extents.y, origin.z + half_extents.z]
+        return cls.from_min_max(min_point, max_point)
+
+    @classmethod
     def from_multiple_bounding_boxes(cls, bounding_boxes: List[AxisAlignedBoundingBox]) -> 'AxisAlignedBoundingBox':
         """
         Set the axis-aligned bounding box from multiple axis-aligned bounding boxes.
@@ -849,15 +861,6 @@ class VirtualMobileBaseJoints:
         Return the axes (i.e. The axis on which the joint moves) of the virtual mobile base joints.
         """
         return {getattr(self, field.name).name: getattr(self, field.name).axes for field in fields(self)}
-
-
-@dataclass
-class MultiverseBoundingBox:
-    """
-    Dataclass for storing the bounding box of a body in the Multiverse simulation.
-    """
-    min_point: List[float]
-    max_point: List[float]
 
 
 @dataclass

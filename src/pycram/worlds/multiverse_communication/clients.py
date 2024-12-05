@@ -6,11 +6,13 @@ from threading import RLock
 
 from time import time, sleep
 
+from geometry_msgs.msg import Point
 from typing_extensions import List, Dict, Tuple, Optional, Callable, Union
 
 from .socket import MultiverseSocket, MultiverseMetaData
 from ...config.multiverse_conf import MultiverseConfig as Conf
-from ...datastructures.dataclasses import RayResult, MultiverseContactPoint, MultiverseBoundingBox
+from ...datastructures.dataclasses import RayResult, MultiverseContactPoint, \
+    AxisAlignedBoundingBox
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
 from ...datastructures.pose import Pose
@@ -537,18 +539,19 @@ class MultiverseAPI(MultiverseClient):
         self.wait: bool = False  # Whether to wait after sending the API request.
 
     def get_body_bounding_box(self, body_name: str,
-                              with_children: bool = False) -> Union[MultiverseBoundingBox, List[MultiverseBoundingBox]]:
+                              with_children: bool = False) -> Union[AxisAlignedBoundingBox, List[AxisAlignedBoundingBox]]:
         """
         Get the body bounding box from the multiverse server, they are with respect to the body's frame.
         """
         bounding_boxes_data = self._get_bounding_box(body_name, with_children)
-        multiverse_bounding_boxes = []
+        bounding_boxes = []
         for bounding_box in bounding_boxes_data:
-            min_point, max_point = bounding_box[:3], bounding_box[3:]
-            multiverse_bounding_boxes.append(MultiverseBoundingBox(min_point, max_point))
+            origin = Point(bounding_box[0], bounding_box[1], bounding_box[2])
+            size = Point(bounding_box[3], bounding_box[4], bounding_box[5])
+            bounding_boxes.append(AxisAlignedBoundingBox.from_origin_and_half_extents(origin, size))
         if with_children:
-            return multiverse_bounding_boxes
-        return multiverse_bounding_boxes[0]
+            return bounding_boxes
+        return bounding_boxes[0]
 
     def _get_bounding_box(self, body_name: str, with_children: bool = False) -> List[List[float]]:
         """

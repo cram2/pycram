@@ -18,6 +18,7 @@ from .object_designator import ObjectDesignatorDescription, BelieveObject, Objec
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty, \
     VisibleProperty
+from ..failure_handling import try_action
 from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
@@ -45,18 +46,6 @@ from ..orm.base import Pose as ORMPose
 from ..orm.object_designator import Object as ORMObject
 from ..orm.action_designator import Action as ORMAction
 from dataclasses import dataclass, field
-
-
-def try_action(action, exception, num_retries=3):
-    current_retry = 0
-    result = None
-    while current_retry < num_retries:
-        try:
-            result = action.perform()
-            break
-        except exception:
-            current_retry += 1
-    return result
 
 # ----------------------------------------------------------------------------
 # ---------------- Performables ----------------------------------------------
@@ -416,7 +405,7 @@ class NavigateActionPerformable(ActionAbstract):
     @with_tree
     def plan(self) -> None:
         motion_action = MoveMotion(self.target_location, self.keep_joint_states)
-        return try_action(motion_action, NavigationGoalNotReachedError)
+        return try_action(motion_action, failure_type=NavigationGoalNotReachedError).perform()
 
 
 

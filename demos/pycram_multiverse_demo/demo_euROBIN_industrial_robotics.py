@@ -1,4 +1,5 @@
-from pycram.datastructures.enums import ObjectType, GripperState, Arms
+import pycrap
+from pycram.datastructures.enums import GripperState, Arms
 from pycram.datastructures.world import UseProspectionWorld
 from pycram.process_module import simulated_robot, real_robot
 from pycram.world_concepts.world_object import Object
@@ -14,8 +15,8 @@ if __name__ == '__main__':
     WorldStateUpdater(tf_topic="/tf", joint_state_topic="/real/ur5e/joint_states")
 
     # Load the robot and the gripper
-    robot = Object("ur5e", ObjectType.ROBOT, "universal_robot/ur5e/urdf/ur5e.urdf")
-    gripper = Object("gripper-2F-85", ObjectType.GRIPPER, "robotiq/gripper-2F-85/gripper-2F-85.urdf")
+    robot = Object("ur5e", pycrap.Robot, "universal_robot/ur5e/urdf/ur5e.urdf")
+    gripper = Object("gripper-2F-85", pycrap.Gripper, "robotiq/gripper-2F-85/gripper-2F-85.urdf")
 
     # Attach the gripper to the robot at the wrist_3_link with the correct pose
     wrist_3_tf_frame = robot.get_link_tf_frame("wrist_3_link")

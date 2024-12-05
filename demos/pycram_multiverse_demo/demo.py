@@ -52,7 +52,7 @@ with simulated_robot:
 
     LookAtAction(targets=[Pose([2.6, 2.15, 1])]).resolve().perform()
 
-    milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
+    milk_desig = DetectAction(BelieveObject(types=[pycrap.Milk])).resolve().perform()
 
     TransportAction(milk_desig, [Pose([2.4, 3, 1.02])], [Arms.LEFT]).resolve().perform()
 

@@ -1,13 +1,17 @@
+import os
+
 import actionlib
 from control_msgs.msg import GripperCommandGoal, GripperCommandAction
 from giskard_msgs.msg import WorldResult
+from typing_extensions import Optional
 
 from giskardpy.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
-import rospy
 
 from geometry_msgs.msg import PoseStamped, Point, Quaternion
 
-from giskardpy.utils.logging import loginfo
+from pycram.helper import find_multiverse_resources_path
+import pycram.ros  # this to start the ros node
+from pycram.ros.logging import loginfo
 
 
 def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> WorldResult:
@@ -116,9 +120,8 @@ def move_arm_tool(pose_stamped: PoseStamped, arm: str):
 
 
 if __name__ == '__main__':
-    rospy.init_node('test_giskard')
 
-    multiverse_resources = '/home/bassioun/Documents/repos/Multiverse/multiverse/resources/'
+    multiverse_resources = find_multiverse_resources_path()
     cached_dir = multiverse_resources + 'cached/'
 
     giskard = GiskardWrapper()

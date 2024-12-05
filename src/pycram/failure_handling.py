@@ -1,8 +1,10 @@
+import logging
+
 from .datastructures.enums import State
-from .designator import DesignatorDescription
+from .designator import DesignatorDescription, ActionDesignatorDescription
 from .failures import PlanFailure
 from threading import Lock
-from typing_extensions import Union, Tuple, Any, List
+from typing_extensions import Union, Tuple, Any, List, Optional, Type
 from .language import Language, Monitor
 
 
@@ -15,7 +17,7 @@ class FailureHandling(Language):
     to be extended by subclasses that implement specific failure handling behaviors.
     """
 
-    def __init__(self, designator_description: Union[DesignatorDescription, Monitor]):
+    def __init__(self, designator_description: Optional[Union[DesignatorDescription, Monitor]] = None):
         """
         Initializes a new instance of the FailureHandling class.
 
@@ -169,3 +171,25 @@ class RetryMonitor(FailureHandling):
                     if exception_type in self.recovery:
                         self.recovery[exception_type].perform()
         return status, flatten(res)
+
+
+def try_action(action: Any, failure_type: Type[Exception], max_tries: int = 3):
+    """
+    A generic function to retry an action a certain number of times before giving up, with a specific failure type.
+
+    :param action: The action to be performed, it must have a perform() method.
+    :param failure_type: The type of exception to catch.
+    :param max_tries: The maximum number of attempts to retry the action. Defaults to 3.
+    """
+    current_retry = 0
+    result = None
+    while current_retry < max_tries:
+        try:
+            result = action.perform()
+            break
+        except failure_type as e:
+            logging.debug(f"Caught exception {e} during action execution. Retrying...")
+            current_retry += 1
+    if current_retry == max_tries:
+        logging.error(f"Failed to execute action {action} after {max_tries} retries.")
+    return result
