@@ -1,3 +1,4 @@
+import math
 from threading import Lock
 from typing import Union
 
@@ -5,6 +6,8 @@ from typing_extensions import Any
 
 import actionlib
 
+from .default_process_modules import DefaultMoveJoints, DefaultMoveArmJoints, DefaultMoveTCP, DefaultNavigation, \
+    DefaultMoveHead, DefaultDetecting, DefaultMoveGripper
 from .. import world_reasoning as btr
 import numpy as np
 
@@ -65,7 +68,7 @@ def update_part(state_port,ctp_port, joint_to_change_idx, joints_to_change_pos):
             part_new_states.append(part_state.get(i).asFloat32())
 
         for i in range(len(joint_to_change_idx)):
-            part_new_states[joint_to_change_idx[i]] = joints_to_change_pos[i]
+            part_new_states[joint_to_change_idx[i]] = math.degrees(joints_to_change_pos[i])
 
         yarp_bottle_msg: yarp.Bottle = yarp.Bottle()
         yarp_bottle_reply: yarp.Bottle = yarp.Bottle()
@@ -79,7 +82,7 @@ def update_part(state_port,ctp_port, joint_to_change_idx, joints_to_change_pos):
         for i in part_new_states:
             target_loc.addFloat32(i)
 
-        print(f"command Ready to send to iCub torso tcp")
+        print("command Ready to send to iCub  part tcp")
 
         ctp_port.write(yarp_bottle_msg, yarp_bottle_reply)
         reply_vocab = yarp_bottle_reply.get(0).asVocab32()
@@ -94,7 +97,7 @@ def update_part(state_port,ctp_port, joint_to_change_idx, joints_to_change_pos):
             print("another reply")
             return False
 
-class iCubNavigation(ProcessModule):
+class iCubNavigationReal(ProcessModule):
     """
     The process module to move the robot from one position to another.
     """
@@ -103,7 +106,7 @@ class iCubNavigation(ProcessModule):
         print("iCubNavigate")
 
 
-class iCubMoveHead(ProcessModule):
+class iCubMoveHeadReal(ProcessModule):
     """
         This process module moves the head to look at a specific point in the world coordinate frame.
         This point can either be a position or an object.
@@ -148,7 +151,7 @@ class iCubMoveHead(ProcessModule):
 
 
 
-class iCubMoveGripper(ProcessModule):
+class iCubMoveGripperReal(ProcessModule):
     """
     This process module controls the gripper of the robot. They can either be opened or closed.
     Furthermore, it can only moved one gripper at a time.
@@ -158,7 +161,7 @@ class iCubMoveGripper(ProcessModule):
         print("iCub Move Gripper")
 
 
-class iCubDetecting(ProcessModule):
+class iCubDetectingReal(ProcessModule):
     """
     This process module tries to detect an object with the given type. To be detected the object has to be in
     the field of view of the robot.
@@ -167,7 +170,7 @@ class iCubDetecting(ProcessModule):
     def _execute(self, desig: DetectingMotion):
         print("iCub Detect")
 
-class iCubMoveTCP(ProcessModule):
+class iCubMoveTCPReal(ProcessModule):
     """
     This process moves the tool center point of either the right or the left arm.
     """
@@ -219,7 +222,7 @@ class iCubMoveTCP(ProcessModule):
 
 
 
-class iCubMoveArmJoints(ProcessModule):
+class iCubMoveArmJointsReal(ProcessModule):
     """
     This process modules moves the joints of either the right or the left arm. The joint states can be given as
     list that should be applied or a pre-defined position can be used, such as "parking"
@@ -247,7 +250,7 @@ class iCubMoveArmJoints(ProcessModule):
 
         if right_arm_to_change is not None:
             for joint_mame , joint_pose in right_arm_to_change.items():
-                part_index,joint_index = RobotDescription.current_robot_description.get_actuated_joint_indices(joint_mame)
+                part_name,part_index,joint_index = RobotDescription.current_robot_description.get_actuated_joint_indices(joint_mame)
                 if part_index is not None:
                     if part_index == 1:
                         right_arm_to_change_joints.append(joint_index)
@@ -258,7 +261,7 @@ class iCubMoveArmJoints(ProcessModule):
                     print("error in joint name")
         if left_arm_to_change is not None:
             for joint_mame, joint_pose in left_arm_to_change.items():
-                part_index, joint_index = RobotDescription.current_robot_description.get_actuated_joint_indices(
+                part_name,part_index, joint_index = RobotDescription.current_robot_description.get_actuated_joint_indices(
                     joint_mame)
                 if part_index is not None:
                     if part_index == 2:
@@ -284,7 +287,7 @@ class iCubMoveArmJoints(ProcessModule):
 
         print("iCub Move Arm Joints")
 
-class iCubMoveJoints(ProcessModule):
+class iCubMoveJointsReal(ProcessModule):
     """
     Process Module for generic joint movements, is not confined to the arms but can move any joint of the robot
     """
@@ -312,7 +315,7 @@ class iCubMoveJoints(ProcessModule):
 
         index = 0
         for joint_mame in to_change_joints:
-            part_index,joint_index = RobotDescription.current_robot_description.get_actuated_joint_indices(joint_mame)
+            part_name,part_index,joint_index = RobotDescription.current_robot_description.get_actuated_joint_indices(joint_mame)
             if part_index is not None:
                 if part_index == 0:
                     torso_to_change_joints.append(joint_index)
@@ -354,104 +357,70 @@ class iCubWorldStateDetecting(ProcessModule):
     """
 
     def _execute(self, desig: WorldStateDetectingMotion):
-        print("iCub World State Detecting")
+        obj_type = desig.object_type
+        return list(filter(lambda obj: obj.obj_type == obj_type, World.current_world.objects))[0]
 
-
-class iCubOpen(ProcessModule):
-    """
-    Low-level implementation of opening a container in the simulation. Assumes the handle is already grasped.
-    """
-
-    def _execute(self, desig: OpeningMotion):
-        print("iCub Open")
-
-
-class iCubClose(ProcessModule):
-    """
-    Low-level implementation that lets the robot close a grasped container, in simulation
-    """
-
-    def _execute(self, desig: ClosingMotion):
-        print("iCub Close")
 
 
 
 ###########################################################
-########## Process Modules for the Real iCub ##############
+######## Process Modules for the simulated iCub ###########
 ###########################################################
 
 
-class iCubNavigationReal(ProcessModule):
+class iCubNavigation(DefaultNavigation):
     """
     Process module for the real PR2 that sends a cartesian goal to giskard to move the robot base
     """
-
-    def _execute(self, designator: MoveMotion) -> Any:
-        print("iCub Navigate Real")
+    ...
 
 
-class iCubDetectingReal(ProcessModule):
+class iCubMoveHead(DefaultMoveHead):
+    """
+        This process module moves the head to look at a specific point in the world coordinate frame.
+        This point can either be a position or an object.
+    """
+
+    ...
+
+
+class iCubDetecting(DefaultDetecting):
     """
     Process Module for the real Pr2 that tries to detect an object fitting the given object description. Uses Robokudo
     for perception of the environment.
     """
 
-    def _execute(self, designator: DetectingMotion) -> Any:
-        print("iCub Detecting Real")
+    ...
 
 
-class iCubMoveTCPReal(ProcessModule):
+class iCubMoveTCP(DefaultMoveTCP):
     """
     Moves the tool center point of the real PR2 while avoiding all collisions
     """
 
-    def _execute(self, designator: MoveTCPMotion) -> Any:
-        print("iCub Move TCP Real")
+    ...
 
 
-class iCubMoveArmJointsReal(ProcessModule):
+class iCubMoveArmJoints(DefaultMoveArmJoints):
     """
     Moves the arm joints of the real iCub to the given configuration while avoiding all collisions
     """
-
-    def _execute(self, designator: MoveArmJointsMotion) -> Any:
-        print("iCub Move Arm Joints Real")
+    ...
 
 
-class iCubMoveJointsReal(ProcessModule):
+class iCubMoveJoints(DefaultMoveJoints):
     """
     Moves any joint using giskard, avoids all collisions while doint this.
     """
-
-    def _execute(self, designator: MoveJointsMotion) -> Any:
-        print("iCub Move Joints Real")
+    ...
 
 
-class iCubMoveGripperReal(ProcessModule):
+class iCubMoveGripper(DefaultMoveGripper):
     """
     Opens or closes the gripper of the real PR2, gripper uses an action server for this instead of giskard 
     """
 
-    def _execute(self, designator: MoveGripperMotion) -> Any:
-        print("iCub Move Gripper Real")
-
-
-class iCubOpenReal(ProcessModule):
-    """
-    Tries to open an already grasped container
-    """
-
-    def _execute(self, designator: OpeningMotion) -> Any:
-        print("iCub Open Real")
-
-
-class iCubCloseReal(ProcessModule):
-    """
-    Tries to close an already grasped container
-    """
-
-    def _execute(self, designator: ClosingMotion) -> Any:
-        print("iCub Close Real")
+    ...
 
 
 class ICubManager(ProcessModuleManager):
@@ -517,9 +486,9 @@ class ICubManager(ProcessModuleManager):
 
     def looking(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return iCubMoveHead(self._looking_lock,self.gaze_client_port)
+            return iCubMoveHead(self._looking_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return iCubMoveHead(self._looking_lock,self.gaze_client_port)
+            return iCubMoveHeadReal(self._looking_lock,self.gaze_client_port)
 
     def detecting(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
@@ -529,18 +498,18 @@ class ICubManager(ProcessModuleManager):
 
     def move_tcp(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return iCubMoveTCP(self._move_tcp_lock,self.action_client_port)
+            return iCubMoveTCP(self._move_tcp_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return iCubMoveTCPReal(self._move_tcp_lock)
+            return iCubMoveTCPReal(self._move_tcp_lock,self.action_client_port)
 
     def move_arm_joints(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return iCubMoveArmJoints(self._move_arm_joints_lock,
-                                     [self.state_right_arm_port, self.state_right_arm_port],
-                                     [self.ctp_right_arm_client_port,self.ctp_right_arm_client_port])
+            return iCubMoveArmJoints(self._move_arm_joints_lock)
 
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return iCubMoveArmJointsReal(self._move_arm_joints_lock)
+            return iCubMoveArmJointsReal(self._move_arm_joints_lock,
+                                     [self.state_right_arm_port, self.state_left_arm_port],
+                                     [self.ctp_right_arm_client_port,self.ctp_left_arm_client_port])
 
     def world_state_detecting(self):
         if (ProcessModuleManager.execution_type == ExecutionType.SIMULATED or
@@ -549,11 +518,12 @@ class ICubManager(ProcessModuleManager):
 
     def move_joints(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return iCubMoveJoints(self._move_joints_lock,
-                                  [self.state_torso_port,self.state_right_arm_port,self.state_right_arm_port],
-                                  [self.ctp_torso_client_port,self.ctp_right_arm_client_port,self.ctp_right_arm_client_port])
+            return iCubMoveJoints(self._move_joints_lock)
+
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return iCubMoveJointsReal(self._move_joints_lock)
+            return iCubMoveJointsReal(self._move_joints_lock,
+                                  [self.state_torso_port,self.state_right_arm_port,self.state_left_arm_port],
+                                  [self.ctp_torso_client_port,self.ctp_right_arm_client_port,self.ctp_left_arm_client_port])
 
     def move_gripper(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
@@ -562,16 +532,10 @@ class ICubManager(ProcessModuleManager):
             return iCubMoveGripperReal(self._move_gripper_lock)
 
     def open(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return iCubOpen(self._open_lock)
-        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return iCubOpenReal(self._open_lock)
+        print("iCub doesn't perform open action from here")
 
     def close(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return iCubClose(self._close_lock)
-        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return iCubCloseReal(self._close_lock)
+        print("iCub doesn't perform close action from here")
 
 
     def config_yarp_ports(self)->bool:

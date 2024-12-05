@@ -18,7 +18,7 @@
   </group>
 
     <!-- iCub -->
-  <group if="$(eval robot == 'iCub')">
+  <group if="$(eval robot == 'icub')">
     <param name="robot_description"
               textfile="$(find icub_model)/urdf/model.urdf"/>
   </group>

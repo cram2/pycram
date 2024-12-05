@@ -1,3 +1,5 @@
+import math
+
 from ..datastructures.dataclasses import VirtualMobileBaseJoints
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
@@ -40,13 +42,13 @@ icub_description = RobotDescription("icub",
 ################################## Left Arm ##################################
 left_arm = KinematicChainDescription("left_arm", "chest", "l_hand",
                                      icub_description.urdf_object, arm_type=Arms.LEFT)
-left_arm.add_static_joint_states("park", {'l_shoulder_pitch': -80.0,
-                                          'l_shoulder_roll': 70.0,
-                                          'l_shoulder_yaw': 30.0,
-                                          'l_elbow': 70.0,
-                                          'l_wrist_prosup': -25.0,
-                                          'l_wrist_pitch': 0.0,
-                                          'l_wrist_yaw': 0.0})
+left_arm.add_static_joint_states("park", {'l_shoulder_pitch': math.radians(-80.0),
+                                          'l_shoulder_roll': math.radians(70.0),
+                                          'l_shoulder_yaw': math.radians(30.0),
+                                          'l_elbow': math.radians(70.0),
+                                          'l_wrist_prosup': math.radians(-25.0),
+                                          'l_wrist_pitch': math.radians(0.0),
+                                          'l_wrist_yaw': math.radians(0.0)})
 
 icub_description.add_kinematic_chain_description(left_arm)
 
@@ -63,13 +65,13 @@ left_arm.end_effector = left_gripper
 ################################## Right Arm ##################################
 right_arm = KinematicChainDescription("right_arm", "chest", "r_hand",
                                       icub_description.urdf_object, arm_type=Arms.RIGHT)
-right_arm.add_static_joint_states("park", {'r_shoulder_pitch': 80.0,
-                                          'r_shoulder_roll': 70.0,
-                                          'r_shoulder_yaw': 30.0,
-                                          'r_elbow': 70.0,
-                                          'r_wrist_prosup': -25.0,
-                                          'r_wrist_pitch': 0.0,
-                                          'r_wrist_yaw': 0.0})
+right_arm.add_static_joint_states("park", {'r_shoulder_pitch': math.radians(-80.0),
+                                          'r_shoulder_roll': math.radians(70.0),
+                                          'r_shoulder_yaw': math.radians(30.0),
+                                          'r_elbow': math.radians(70.0),
+                                          'r_wrist_prosup': math.radians(-25.0),
+                                          'r_wrist_pitch': math.radians(0.0),
+                                          'r_wrist_yaw': math.radians(0.0)})
 
 icub_description.add_kinematic_chain_description(right_arm)
 

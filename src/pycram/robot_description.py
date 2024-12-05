@@ -173,7 +173,7 @@ class RobotDescription:
             return self.joint_actuators.get(joint)
         return None
 
-    def get_actuated_joint_indices(self, joint_name) -> Tuple[Optional[int], Optional[int]]:
+    def get_actuated_joint_indices(self, joint_name) -> Tuple[Optional[str],Optional[int], Optional[int]]:
         """
         Given a joint name, returns the indices of the part and the joint within that part.
 
@@ -187,8 +187,8 @@ class RobotDescription:
         for part_index, (part_name, joints) in enumerate(list(self.joint_actuators.items())):
             if joint_name in joints:
                 joint_index = joints.index(joint_name)
-                return part_index, joint_index
-        return None, None
+                return part_name,part_index, joint_index
+        return None,None, None
 
     def add_kinematic_chain_description(self, chain: KinematicChainDescription):
         """
