@@ -348,7 +348,9 @@ class BelieveObjectTestCase(unittest.TestCase):
 
             LookAtAction(targets=[Pose([1, -1.78, 0.55])]).resolve().perform()
 
-            object_desig = DetectAction(BelieveObject(types=[Milk])).resolve().perform()
+            object_dict = DetectAction(technique=DetectionTechnique.TYPES,
+                                        object_designator_description=BelieveObject(types=[Milk])).resolve().perform()
+            object_desig = object_dict[0]
             TransportAction(object_desig, [Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
 
             ParkArmsAction([Arms.BOTH]).resolve().perform()
