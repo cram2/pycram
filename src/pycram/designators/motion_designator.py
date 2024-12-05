@@ -187,13 +187,14 @@ class DetectingMotion(BaseMotion):
         return obj_dict
 
     def to_sql(self) -> ORMDetectingMotion:
-        return ORMDetectingMotion(self.technique, self.state, str(self.region))
+        return ORMDetectingMotion(self.technique, self.state, str(self.object_designator_description),str(self.region))
 
     def insert(self, session: Session, *args, **kwargs) -> ORMDetectingMotion:
-        motion = super().insert(session)
-        session.add(motion)
-
-        return motion
+        pass
+        # motion = super().insert(session)
+        # session.add(motion)
+        #
+        # return motion
 
 
 @dataclass
