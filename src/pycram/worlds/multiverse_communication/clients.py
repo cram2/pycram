@@ -34,7 +34,8 @@ class MultiverseClient(MultiverseSocket):
             increase or decrease the wait time for the simulation.
         """
         meta_data = MultiverseMetaData()
-        meta_data.simulation_name = (Conf.prospection_world_prefix if is_prospection_world else "belief_state") + name
+        meta_data.simulation_name = ((Conf.prospection_world_prefix if is_prospection_world else "belief_state")
+                                     + "_" + name)
         meta_data.world_name = Conf.prospection_world_prefix if is_prospection_world else "belief_state"
         self.is_prospection_world = is_prospection_world
         super().__init__(port=str(port), meta_data=meta_data)
@@ -811,10 +812,11 @@ class MultiverseAPI(MultiverseClient):
         for contact_point in contact_data:
             contact_point_data = list(contact_point.split())
             position_and_normal = list(map(float, contact_point_data[2:]))
-            contact_points.append(MultiverseContactPoint(contact_point_data[0],
-                                                         contact_point_data[1],
-                                                         position_and_normal[:3],
-                                                         position_and_normal[3:]))
+            for i in range(0, len(position_and_normal), 6):
+                contact_points.append(MultiverseContactPoint(contact_point_data[0],
+                                                             contact_point_data[1],
+                                                             position_and_normal[i:i + 3],
+                                                             position_and_normal[i + 3:i + 6]))
         return contact_points
 
     def pause_simulation(self) -> None:
