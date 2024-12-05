@@ -12,9 +12,11 @@ from typing_extensions import List, Callable, Optional
 from ..datastructures.pose import Pose
 from ..designator import ObjectDesignatorDescription
 
+robokudo_found = False
 try:
     from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjectDesignator
     from robokudo_msgs.msg import QueryAction, QueryGoal, QueryResult
+    robokudo_found = True
 except ModuleNotFoundError as e:
     logwarn("Failed to import Robokudo messages, the real robot will not be available")
 

@@ -3,6 +3,8 @@ import time
 import unittest
 import time
 
+from anytree import RenderTree, AsciiStyle
+
 import owlready2
 from sqlalchemy import select
 import sqlalchemy.orm
@@ -80,9 +82,9 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable(0.3).perform()
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             description.resolve().perform()
 
     def test_node(self):
@@ -90,7 +92,6 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "Unittest"
         pycram.tasktree.task_tree.root.insert(self.session, )
-
         node_results = self.session.scalars(select(pycram.orm.tasktree.TaskTreeNode)).all()
         self.assertEqual(len(node_results), len(pycram.tasktree.task_tree.root))
 
@@ -155,9 +156,9 @@ class MixinTestCase(DatabaseTestCaseMixin):
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable(0.3).perform()
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             description.resolve().perform()
 
     def test_pose(self):
@@ -183,9 +184,9 @@ class ORMObjectDesignatorTestCase(DatabaseTestCaseMixin):
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable(0.3).perform()
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             description.resolve().perform()
         pycram.orm.base.ProcessMetaData().description = "Unittest"
         tt = pycram.tasktree.task_tree.root
@@ -198,7 +199,7 @@ class ORMObjectDesignatorTestCase(DatabaseTestCaseMixin):
 class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
 
     def test_code_designator_type(self):
-        action = NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]))
+        action = NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True)
         with simulated_robot:
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "code_designator_type_test"
@@ -221,7 +222,8 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
 
     def test_transportAction(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        action = TransportActionPerformable(object_description.resolve(),  Pose([1.3, 0.9, 0.9], [0, 0, 0, 1]), Arms.LEFT)
+        action = TransportActionPerformable(object_description.resolve(),
+                                            Pose([1.3, 0.9, 0.9], [0, 0, 0, 1]), Arms.LEFT, 0.03)
         with simulated_robot:
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "transportAction_test"
@@ -234,9 +236,9 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         previous_position = object_description.resolve().pose
         with simulated_robot:
-            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
-            NavigateActionPerformable(Pose([1.3, 1, 0.9], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
+            NavigateActionPerformable(Pose([1.3, 1, 0.9], [0, 0, 0, 1]), True).perform()
             PlaceActionPerformable(object_description.resolve(), Arms.LEFT, Pose([2.0, 1.6, 1.8], [0, 0, 0, 1])).perform()
         pycram.orm.base.ProcessMetaData().description = "pickUpAction_test"
         pycram.tasktree.task_tree.root.insert(self.session)
@@ -253,7 +255,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         action = DetectActionPerformable(object_description.resolve())
         with simulated_robot:
             ParkArmsActionPerformable(pycram.datastructures.enums.Arms.BOTH).perform()
-            NavigateActionPerformable(Pose([0, 1, 0], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([0, 1, 0], [0, 0, 0, 1]), True).perform()
             LookAtActionPerformable(object_description.resolve().pose).perform()
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "detectAction_test"
@@ -281,7 +283,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         with simulated_robot:
             ParkArmsActionPerformable(pycram.datastructures.enums.Arms.BOTH).perform()
             NavigateActionPerformable(Pose([1.81, 1.73, 0.0],
-                                           [0.0, 0.0, 0.594, 0.804])).perform()
+                                           [0.0, 0.0, 0.594, 0.804]), True).perform()
             OpenActionPerformable(handle_desig, arm=Arms.LEFT).perform()
             CloseActionPerformable(handle_desig, arm=Arms.LEFT).perform()
 

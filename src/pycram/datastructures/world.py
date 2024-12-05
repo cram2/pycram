@@ -9,6 +9,7 @@ from copy import copy
 
 import numpy as np
 from geometry_msgs.msg import Point
+from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
 import pycrap
@@ -20,7 +21,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           SphereVisualShape,
                                           CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                           ObjectState, WorldState, ClosestPointsList,
-                                          ContactPointsList, VirtualMobileBaseJoints)
+                                          ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox)
 from ..datastructures.enums import JointType, ObjectType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity
@@ -133,6 +134,42 @@ class World(StateEntity, ABC):
 
         self.original_state_id = self.save_state()
 
+        self.on_add_object_callbacks: List[Callable[[Object], None]] = []
+
+    def get_object_convex_hull(self, obj: Object) -> Geometry3D:
+        """
+        Get the convex hull of an object.
+
+        :param obj: The pycram object.
+        :return: The convex hull of the object as a list of Points.
+        """
+        raise NotImplementedError
+
+    def get_link_convex_hull(self, link: Link) -> Geometry3D:
+        """
+        Get the convex hull of a link of an articulated object.
+
+        :param link: The link as a AbstractLink object.
+        :return: The convex hull of the link as a list of Points.
+        """
+        raise NotImplementedError
+
+    def add_callback_on_add_object(self, callback: Callable[[Object], None]) -> None:
+        """
+        Add a callback that is called when an object is added to the world.
+
+        :param callback: The callback.
+        """
+        self.on_add_object_callbacks.append(callback)
+
+    def remove_callback_on_add_object(self, callback: Callable[[Object], None]) -> None:
+        """
+        Remove a callback that is called when an object is added to the world.
+
+        :param callback: The callback.
+        """
+        self.on_add_object_callbacks.remove(callback)
+
     @classmethod
     def get_cache_dir(cls) -> str:
         """
@@ -150,6 +187,16 @@ class World(StateEntity, ABC):
         self.objects.append(obj)
         self.add_object_to_original_state(obj)
         self.object_lock.release()
+        self.invoke_on_add_object_callbacks(obj)
+
+    def invoke_on_add_object_callbacks(self, obj: Object) -> None:
+        """
+        Invoke the object added callbacks.
+
+        :param obj: The object.
+        """
+        for callback in self.on_add_object_callbacks:
+            callback(obj)
 
     @property
     def robot_description(self) -> RobotDescription:
@@ -271,7 +318,8 @@ class World(StateEntity, ABC):
 
     def preprocess_object_file_and_get_its_cache_path(self, path: str, ignore_cached_files: bool,
                                                       description: ObjectDescription, name: str,
-                                                      scale_mesh: Optional[float] = None) -> str:
+                                                      scale_mesh: Optional[float] = None,
+                                                      mesh_transform: Optional[Transform] = None) -> str:
         """
         Update the cache directory with the given object.
 
@@ -280,9 +328,11 @@ class World(StateEntity, ABC):
         :param description: The object description.
         :param name: The name of the object.
         :param scale_mesh: The scale of the mesh.
+        :param mesh_transform: The mesh transform to apply to the mesh.
         :return: The path of the cached object.
         """
-        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, description, name, scale_mesh)
+        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, description, name,
+                                                               scale_mesh, mesh_transform)
 
     @property
     def simulation_time_step(self):
@@ -823,8 +873,6 @@ class World(StateEntity, ABC):
     @abstractmethod
     def get_link_color(self, link: Link) -> Color:
         """
-        This method returns the rgba_color of this link.
-
         :param link: The link for which the rgba_color should be returned.
         :return: The rgba_color as Color object with RGBA values between 0 and 1.
         """
@@ -833,31 +881,44 @@ class World(StateEntity, ABC):
     @abstractmethod
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
         """
-        Get the RGBA colors of each link in the object as a dictionary from link name to rgba_color.
-
         :param obj: The object
-        :return: A dictionary with link names as keys and a Color object for each link as value.
+        :return: The RGBA colors of each link in the object as a dictionary from link name to rgba_color.
         """
         pass
 
     @abstractmethod
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
         """
-        Return the axis aligned bounding box of this object. The return of this method are two points in
-        world coordinate frame which define a bounding box.
-
         :param obj: The object for which the bounding box should be returned.
-        :return: AxisAlignedBoundingBox object containing the min and max points of the bounding box.
+        :return: the axis aligned bounding box of this object. The return of this method are two points in
+        world coordinate frame which define a bounding box.
         """
         pass
+
+    def get_object_rotated_bounding_box(self, obj: Object) -> RotatedBoundingBox:
+        """
+        :param obj: The object for which the bounding box should be returned.
+        :return: the rotated bounding box of this object. The return of this method are two points in
+        world coordinate frame which define a bounding box.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
         """
-        Return the axis aligned bounding box of the link. The return of this method are two points in
+        :param link: The link for which the bounding box should be returned.
+        :return: The axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
         pass
+
+    def get_link_rotated_bounding_box(self, link: Link) -> RotatedBoundingBox:
+        """
+        :param link: The link for which the bounding box should be returned.
+        :return: The rotated bounding box of the link. The return of this method are two points in
+        world coordinate frame which define a bounding box.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def set_realtime(self, real_time: bool) -> None:

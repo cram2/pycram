@@ -72,7 +72,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         description = action_designator.PickUpAction(object_description, [Arms.LEFT], [Grasp.FRONT])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable(0.3).perform()
             description.resolve().perform()
         self.assertTrue(object_description.resolve().world_object in self.robot.attachments.keys())
@@ -82,9 +82,9 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable(0.3).perform()
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             description.resolve().perform()
         self.assertFalse(object_description.resolve().world_object in self.robot.attachments.keys())
 
@@ -148,6 +148,6 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_facing(self):
         with simulated_robot:
-            FaceAtPerformable(self.milk.pose).perform()
+            FaceAtPerformable(self.milk.pose, True).perform()
             milk_in_robot_frame = LocalTransformer().transform_to_object_frame(self.milk.pose, self.robot)
             self.assertAlmostEqual(milk_in_robot_frame.position.y, 0.)

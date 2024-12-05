@@ -7,6 +7,7 @@ from .default_process_modules import DefaultDetectingReal, DefaultDetecting
 from .. import world_reasoning as btr
 import numpy as np
 
+from .. import world_reasoning as btr
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
 from ..ros.logging import logdebug
@@ -20,7 +21,7 @@ from ..robot_description import RobotDescription
 from ..datastructures.world import World
 from ..world_concepts.world_object import Object
 from ..datastructures.pose import Pose
-from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType
+from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType, MovementType
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import *
 
@@ -189,7 +190,12 @@ class Pr2NavigationReal(ProcessModule):
 
     def _execute(self, designator: MoveMotion) -> Any:
         logdebug(f"Sending goal to giskard to Move the robot")
-        giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
+        if designator.keep_joint_states:
+            joint_positions = World.current_world.robot.get_positions_of_controllable_joints()
+            giskard.set_joint_goal(joint_positions)
+        giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map",
+                                       allow_gripper_collision_=False,
+                                       use_monitor=World.current_world.conf.use_giskard_monitor)
 
 
 class Pr2MoveHeadReal(ProcessModule):
@@ -227,10 +233,10 @@ class Pr2MoveTCPReal(ProcessModule):
         pose_in_map = lt.transform_pose(designator.target, "map")
 
         if designator.allow_gripper_collision:
-            giskard.allow_gripper_collision(designator.arm)
+            giskard.allow_gripper_collision(designator.arm.name.lower())
         giskard.achieve_cartesian_goal(pose_in_map, RobotDescription.current_robot_description.get_arm_chain(
-            designator.arm).get_tool_frame(),
-                                       "torso_lift_link")
+            designator.arm).get_tool_frame(), "torso_lift_link",
+                                       use_monitor=World.current_world.conf.use_giskard_monitor)
         # robot_description.base_link)
 
 
@@ -339,7 +345,9 @@ class Pr2Manager(ProcessModuleManager):
             return Pr2MoveHeadReal(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED or not robokudo_found:
+            if not robokudo_found:
+                logwarn("Robokudo not found, using simulated detection")
             return DefaultDetecting(self._detecting_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return DefaultDetectingReal(self._detecting_lock)
