@@ -350,7 +350,20 @@ class Link(ObjectEntity, LinkDescription, ABC):
     @current_state.setter
     def current_state(self, link_state: LinkState) -> None:
         if self.current_state != link_state:
+            if not self.all_constraint_links_belong_to_same_world(link_state):
+                raise ValueError("All constraint links must belong to the same world, since the constraint ids"
+                                 "are unique to the world and cannot be transferred between worlds.")
             self.constraint_ids = link_state.constraint_ids
+
+    def all_constraint_links_belong_to_same_world(self, other: LinkState) -> bool:
+        """
+        Check if all links belong to the same world as the links in the other link state.
+
+        :param other: The state of the other link.
+        :return: True if all links belong to the same world, False otherwise.
+        """
+        return all([link.world == other_link.world for link, other_link in zip(self.constraint_ids.keys(),
+                                                                               other.constraint_ids.keys())])
 
     def add_fixed_constraint_with_link(self, child_link: Self,
                                        child_to_parent_transform: Optional[Transform] = None) -> int:

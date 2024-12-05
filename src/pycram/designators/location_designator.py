@@ -4,7 +4,7 @@ from typing_extensions import List, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
-from ..datastructures.enums import JointType, Arms
+from ..datastructures.enums import JointType, Arms, Grasp
 from ..datastructures.pose import Pose
 from ..datastructures.world import World, UseProspectionWorld
 from ..designator import DesignatorError, LocationDesignatorDescription
@@ -107,7 +107,11 @@ class CostmapLocation(LocationDesignatorDescription):
     class Location(LocationDesignatorDescription.Location):
         reachable_arms: List[Arms]
         """
-        List of arms with which the pose can be reached, is only used when the 'rechable_for' parameter is used
+        List of arms with which the pose can be reached, is only used when the 'reachable_for' parameter is used
+        """
+        tried_grasps: List[Grasp]
+        """
+        List of grasps that were tried to reach the pose
         """
 
     def __init__(self, target: Union[Pose, ObjectDesignatorDescription.Object],
@@ -116,7 +120,8 @@ class CostmapLocation(LocationDesignatorDescription):
                  reachable_arm: Optional[Arms] = None,
                  prepose_distance: float = 0.03,
                  check_collision_at_start: bool = True,
-                 ignore_collision_with: Optional[List[Object]] = None):
+                 ignore_collision_with: Optional[List[Object]] = None,
+                 grasps: Optional[List[Grasp]] = None):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
         visible. In case of reachable the resolved location contains a list of arms with which the location is reachable.
@@ -128,6 +133,7 @@ class CostmapLocation(LocationDesignatorDescription):
         :param prepose_distance: Distance to the target pose where the robot should be checked for reachability.
         :param check_collision_at_start: If True, the designator will check for collisions at the start pose.
         :param ignore_collision_with: List of objects that should be ignored for collision checking.
+        :param grasps: List of grasps that should be tried to reach the target pose
         """
         super().__init__()
         self.target: Union[Pose, ObjectDesignatorDescription.Object] = target
@@ -137,6 +143,7 @@ class CostmapLocation(LocationDesignatorDescription):
         self.prepose_distance = prepose_distance
         self.check_collision_at_start = check_collision_at_start
         self.ignore_collision_with = ignore_collision_with if ignore_collision_with is not None else []
+        self.grasps: List[Optional[Grasp]] = grasps if grasps is not None else [None]
 
     def ground(self) -> Location:
         """
@@ -199,6 +206,7 @@ class CostmapLocation(LocationDesignatorDescription):
                         continue
                 res = True
                 arms = None
+                found_grasps = []
                 if self.visible_for:
                     visible_prospection_object = World.current_world.get_prospection_object_for_object(self.target.world_object)
                     res = res and visibility_validator(maybe_pose, test_robot, visible_prospection_object,
@@ -213,16 +221,24 @@ class CostmapLocation(LocationDesignatorDescription):
                             hand_links += description.end_effector.links
                     allowed_collision = {test_robot: hand_links}
                     allowed_collision.update({o: o.link_names for o in self.ignore_collision_with})
-                    valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
-                                                         allowed_collision=allowed_collision,
-                                                         arm=self.reachable_arm,
-                                                         prepose_distance=self.prepose_distance)
-                    if self.reachable_arm:
-                        res = res and valid and self.reachable_arm in arms
-                    else:
-                        res = res and valid
+                    for grasp in self.grasps:
+                        target_pose_oriented = target_pose.copy()
+                        if grasp is not None:
+                            grasp_quaternion = RobotDescription.current_robot_description.grasps[grasp]
+                            target_pose_oriented.multiply_quaternion(grasp_quaternion)
+                        valid, arms = reachability_validator(maybe_pose, test_robot, target_pose_oriented,
+                                                             allowed_collision=allowed_collision,
+                                                             arm=self.reachable_arm,
+                                                             prepose_distance=self.prepose_distance)
+                        if self.reachable_arm:
+                            res = res and valid and self.reachable_arm in arms
+                        else:
+                            res = res and valid
+                        if res:
+                            found_grasps.append(grasp)
+                            break
                 if res:
-                    yield self.Location(maybe_pose, arms)
+                    yield self.Location(maybe_pose, arms, found_grasps)
 
 
 class AccessingLocation(LocationDesignatorDescription):

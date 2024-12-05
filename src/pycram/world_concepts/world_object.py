@@ -1149,11 +1149,7 @@ class Object(WorldEntity, HasConcept):
         :param joint_name: The name of the joint
         :param joint_position: The target pose for this joint
         """
-        if (self.joints[joint_name].has_limits and
-                (not self.joints[joint_name].lower_limit <= joint_position <= self.joints[joint_name].upper_limit)):
-            joint_position = np.clip(joint_position, self.joints[joint_name].lower_limit,
-                                     self.joints[joint_name].upper_limit)
-            logwarn(f"Joint position for joint {joint_name} was clipped to the joint limits.")
+        self.clip_joint_positions_to_limits({joint_name: joint_position})
         if self.world.reset_joint_position(self.joints[joint_name], joint_position):
             self._update_on_joint_position_change()
 

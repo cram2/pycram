@@ -2,7 +2,7 @@ import numpy as np
 import tf
 from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional
 
-from .datastructures.enums import Arms
+from .datastructures.enums import Arms, Grasp
 from .costmaps import Costmap
 from .datastructures.pose import Pose, Transform
 from .datastructures.world import World
@@ -161,7 +161,7 @@ def reachability_validator(pose: Pose,
                            target: Union[Object, Pose],
                            prepose_distance: float = 0.03,
                            allowed_collision: Dict[Object, List] = None,
-                           arm: Optional[Arms] = None) -> Tuple[bool, List]:
+                           arm: Optional[Arms] = None) -> Tuple[bool, List[Arms]]:
     """
     This method validates if a target position is reachable for a pose candidate.
     This is done by asking the ik solver if there is a valid solution if the
@@ -191,6 +191,8 @@ def reachability_validator(pose: Pose,
     # TODO Make orientation adhere to grasping orientation
     res = False
     arms = []
+    found_grasps = []
+    original_target = target
     for description in manipulator_descs:
         retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(
             description.end_effector.tool_frame))

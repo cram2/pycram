@@ -22,7 +22,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                           ObjectState, WorldState, ClosestPointsList,
                                           ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox)
-from ..datastructures.enums import JointType, ObjectType, WorldMode, Arms
+from ..datastructures.enums import JointType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity
 from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
@@ -382,7 +382,7 @@ class World(StateEntity, ABC):
         matching_objects = list(filter(lambda obj: obj.name == name, self.objects))
         return matching_objects[0] if len(matching_objects) > 0 else None
 
-    def get_object_by_type(self, obj_type: ObjectType) -> List[Object]:
+    def get_object_by_type(self, obj_type: Type[PhysicalObject]) -> List[Object]:
         """
         Return a list of all Objects which have the type 'obj_type'.
 
@@ -526,7 +526,7 @@ class World(StateEntity, ABC):
         """
         Wrapper for :meth:`_get_joint_position` that return 0.0 for a joint if it is in the ignore joints list.
         """
-        if joint.object.obj_type == ObjectType.ROBOT and joint.name in self.robot_description.ignore_joints:
+        if joint.object.is_a_robot and joint.name in self.robot_description.ignore_joints:
             return 0.0
         return self._get_joint_position(joint)
 
@@ -787,7 +787,7 @@ class World(StateEntity, ABC):
         """
         Wrapper around :meth:`_reset_joint_position` that checks if the joint should be ignored.
         """
-        if joint.object.obj_type == ObjectType.ROBOT and self.robot_description.ignore_joints:
+        if joint.object.is_a_robot and self.robot_description.ignore_joints:
             if joint.name in self.robot_description.ignore_joints:
                 return True
         return self._reset_joint_position(joint, joint_position)
@@ -837,7 +837,7 @@ class World(StateEntity, ABC):
         """
         Wrapper around :meth:`_get_multiple_joint_positions` that checks if any of the joints should be ignored.
         """
-        filtered_joints = [joint for joint in joints if joint.object.obj_type != ObjectType.ROBOT or
+        filtered_joints = [joint for joint in joints if not joint.object.is_a_robot or
                            joint.name not in self.robot_description.ignore_joints]
         joint_positions = self._get_multiple_joint_positions(filtered_joints)
         joint_positions.update({joint.name: 0.0 for joint in joints if joint not in filtered_joints})
@@ -1839,7 +1839,6 @@ class WorldSync(threading.Thread):
         self.world.prospection_world.reset_multiple_objects_base_poses(obj_pose_dict)
         for obj, prospection_obj in self.object_to_prospection_object_map.items():
             prospection_obj.set_attachments(obj.attachments)
-            prospection_obj.link_states = obj.link_states
             prospection_obj.joint_states = obj.joint_states
 
     def check_for_equal(self) -> bool:

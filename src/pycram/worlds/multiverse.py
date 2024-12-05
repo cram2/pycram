@@ -55,12 +55,12 @@ class Multiverse(World):
     Add the MJCF description extension to the extension to description type mapping for the objects.
     """
 
-    def __init__(self, is_prospection: Optional[bool] = False,
+    def __init__(self, is_prospection_world: Optional[bool] = False,
                  clear_cache: bool = False):
         """
         Initialize the Multiverse Socket and the PyCram World.
 
-        :param is_prospection: Whether the world is prospection or not.
+        :param is_prospection_world: Whether the world is prospection or not.
         :param clear_cache: Whether to clear the cache or not.
         """
 
@@ -68,11 +68,11 @@ class Multiverse(World):
         self.saved_simulator_states: Dict = {}
         self.make_sure_multiverse_resources_are_added(clear_cache=clear_cache)
 
-        self.simulation = self.conf.prospection_world_prefix if is_prospection else "belief_state"
+        self.simulation = self.conf.prospection_world_prefix if is_prospection_world else "belief_state"
         self.client_manager = MultiverseClientManager(self.conf.simulation_wait_time_factor)
-        self._init_clients(is_prospection=is_prospection)
+        self._init_clients(is_prospection=is_prospection_world)
 
-        World.__init__(self, WorldMode.DIRECT, is_prospection)
+        World.__init__(self, WorldMode.DIRECT, is_prospection_world)
 
         self._init_constraint_and_object_id_name_map_collections()
 

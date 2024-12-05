@@ -298,7 +298,7 @@ class PickUpActionPerformable(ActionAbstract):
         adjusted_oTm = object.local_transformer.transform_pose(adjusted_pose, "map")
         # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
 
-        adjusted_oTm.multiply_quaternions(grasp)
+        adjusted_oTm.multiply_quaternion(grasp)
 
         # prepose depending on the gripper (its annoying we have to put pr2_1 here tbh
         arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.arm)
