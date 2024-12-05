@@ -239,15 +239,20 @@ class OntologyParser:
         :param cls: The class
         """
         # TODO: requiring a digit_to_string for the restrictions body.
+        # TODO: array_double will be converted to float for now, discuss
         # write is_a restrictions
         is_a = self.parse_elements(cls.is_a)
         if is_a:
             if "-" in str(is_a):
                 is_a = str(is_a).replace("-","")
+            if "array_double" in str(is_a):
+                is_a = str(is_a).replace("array_double","float")
             if "<class 'int'>" in str(is_a):
                 is_a = str(is_a).replace("<class 'int'>", "int")
             if "<class 'str'>" in str(is_a):
                 is_a = str(is_a).replace("<class 'str'>", "str")
+            if "<class 'owlready2.util.normstr'>" in str(is_a):
+                is_a = str(is_a).replace("<class 'owlready2.util.normstr'>", "normstr")
             if "<class 'float'>" in str(is_a):
                 is_a = str(is_a).replace("<class 'float'>", "float")
             is_a = f"{repr(cls)}.is_a = [{is_a}]"
@@ -270,28 +275,40 @@ class OntologyParser:
         """
         # write is_a restrictions
         is_a = self.parse_elements(prop.is_a)
-        if is_a:
-            is_a = f"{repr(prop)}.is_a = [{is_a}]"
-            self.current_file.write(is_a)
-            self.current_file.write("\n")
+        # Skip AnnotationProperties for now
+        if not "AnnotationProperty" in is_a:
+            if is_a:
+                is_a = f"{repr(prop)}.is_a = [{is_a}]"
+                self.current_file.write(is_a)
+                self.current_file.write("\n")
 
-        # write domain restrictions
-        domain_string = self.parse_elements(prop.domain)
-        if domain_string:
-            domain_string = f"{repr(prop)}.domain = [{domain_string}]"
-            self.current_file.write(domain_string)
-            self.current_file.write("\n")
+            # write domain restrictions
+            domain_string = self.parse_elements(prop.domain)
+            if domain_string:
+                domain_string = f"{repr(prop)}.domain = [{domain_string}]"
+                self.current_file.write(domain_string)
+                self.current_file.write("\n")
 
-        # write range restrictions
-        range_string = self.parse_elements(prop.range)
-        if range_string:
-            if "<class 'int'>" in str(range_string):
-                range_string = str(range_string).replace("<class 'int'>", "int")
-            if "<class 'str'>" in str(range_string):
-                range_string = str(range_string).replace("<class 'str'>", "str")
-            range_string = f"{repr(prop)}.range = [{range_string}]"
-            self.current_file.write(range_string)
-            self.current_file.write("\n")
+            # write range restrictions
+            range_string = self.parse_elements(prop.range)
+            if range_string:
+                if "<class 'int'>" in str(range_string):
+                    range_string = str(range_string).replace("<class 'int'>", "int")
+                if "<class 'str'>" in str(range_string):
+                    range_string = str(range_string).replace("<class 'str'>", "str")
+                if "<class 'owlready2.util.normstr'>" in str(range_string):
+                    range_string = str(range_string).replace("<class 'owlready2.util.normstr'>", "normstr")
+                if "<class 'float'>" in str(range_string):
+                    range_string = str(range_string).replace("<class 'float'>", "float")
+                if "array_double" in str(range_string):
+                    range_string = str(range_string).replace("array_double","float")
+                if "<class 'datetime.datetime'>" in str(range_string):
+                    range_string = str(range_string).replace("<class 'datetime.datetime'>", "datetime")
+
+
+                range_string = f"{repr(prop)}.range = [{range_string}]"
+                self.current_file.write(range_string)
+                self.current_file.write("\n")
 
     def create_individuals(self):
         """
