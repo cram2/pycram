@@ -124,7 +124,7 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
         :param object_designator: The object in question
         :return: Reasoning result with the visibility of the object
         """
-        cam_pose = World.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_frame())
+        cam_pose = World.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link())
         return ReasoningResult(visible(object_designator.resolve().world_object, cam_pose))
 
     def empty(self) -> ReasoningResult:

@@ -405,7 +405,7 @@ class NavigateActionPerformable(ActionAbstract):
     @with_tree
     def plan(self) -> None:
         motion_action = MoveMotion(self.target_location, self.keep_joint_states)
-        return try_action(motion_action, failure_type=NavigationGoalNotReachedError).perform()
+        return try_action(motion_action, failure_type=NavigationGoalNotReachedError)
 
 
 

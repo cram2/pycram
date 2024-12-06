@@ -148,7 +148,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         camera_description = self.multiverse.robot_description.get_default_camera()
         camera_link_name = camera_description.link_name
         camera_pose = robot.get_link_pose(camera_link_name)
-        camera_frame = self.multiverse.robot_description.get_camera_frame()
+        camera_frame = self.multiverse.robot_description.get_camera_frame(robot.name)
         camera_front_facing_axis = camera_description.front_facing_axis
         milk_spawn_position = np.array(camera_front_facing_axis) * 0.5
         orientation = camera_pose.to_transform(camera_frame).invert().rotation_as_list()

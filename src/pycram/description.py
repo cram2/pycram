@@ -51,8 +51,9 @@ class LinkDescription(EntityDescription):
     A link description of an object.
     """
 
-    def __init__(self, parsed_link_description: Any):
+    def __init__(self, parsed_link_description: Any, mesh_dir: Optional[str] = None):
         self.parsed_description = parsed_link_description
+        self.mesh_dir = mesh_dir
 
     @property
     @abstractmethod
@@ -216,7 +217,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
     def __init__(self, _id: int, link_description: LinkDescription, obj: Object):
         ObjectEntity.__init__(self, _id, obj)
-        LinkDescription.__init__(self, link_description.parsed_description)
+        LinkDescription.__init__(self, link_description.parsed_description, link_description.mesh_dir)
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
         self._current_pose: Optional[Pose] = None
@@ -287,8 +288,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
         :param geometry: The geometry for which the mesh path should be returned.
         :return: The path of the mesh file of this link if the geometry is a mesh.
         """
-        mesh_filename = self.get_mesh_filename(geometry)
-        return self.world.cache_manager.look_for_file_in_data_dir(pathlib.Path(mesh_filename))
+        return self.get_mesh_filename(geometry)
 
     def get_mesh_filename(self, geometry: MeshVisualShape) -> str:
         """

@@ -1,6 +1,5 @@
 from threading import Lock
 
-import rospy
 from std_msgs.msg import Float64
 from typing_extensions import Any
 
@@ -9,12 +8,8 @@ from ..datastructures.world import World
 from ..datastructures.enums import GripperState, ExecutionType
 from ..designators.motion_designator import MoveGripperMotion
 from ..process_module import ProcessModule, ProcessModuleManager
-
-
-GRIPPER_NAME = "gripper-2F-85"
-GRIPPER_CMD_TOPIC = "/gripper_command"
-OPEN_VALUE = 0.0
-CLOSE_VALUE = 255.0
+from ..ros.publisher import create_publisher
+from ..robot_descriptions.ur5e_controlled_description import GRIPPER_NAME, GRIPPER_CMD_TOPIC, OPEN_VALUE, CLOSE_VALUE
 
 
 class RobotiqMoveGripperReal(ProcessModule):
@@ -23,7 +18,7 @@ class RobotiqMoveGripperReal(ProcessModule):
     """
     def _execute(self, designator: MoveGripperMotion) -> Any:
         value = OPEN_VALUE if designator.motion == GripperState.OPEN else CLOSE_VALUE
-        publisher = rospy.Publisher(GRIPPER_CMD_TOPIC, Float64, queue_size=10, latch=True)
+        publisher = create_publisher(GRIPPER_CMD_TOPIC, Float64, queue_size=10, latch=True)
         World.current_world.step(func=lambda: publisher.publish(Float64(value)), step_seconds=0.1)
         return True
 

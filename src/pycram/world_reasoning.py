@@ -128,7 +128,7 @@ def get_visible_objects(
     if front_facing_axis is None:
         front_facing_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
 
-    camera_frame = RobotDescription.current_robot_description.get_camera_frame()
+    camera_frame = RobotDescription.current_robot_description.get_camera_frame(World.robot.name)
     world_to_cam = camera_pose.to_transform(camera_frame)
 
     cam_to_point = Transform(list(np.multiply(front_facing_axis, 2)), [0, 0, 0, 1], camera_frame,

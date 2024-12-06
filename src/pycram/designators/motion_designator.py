@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from pycrap import PhysicalObject, Location
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
 from ..datastructures.enums import MovementType
+from ..failure_handling import try_motion
 from ..failures import PerceptionObjectNotFound, ToolPoseNotReachedError
 from ..process_module import ProcessModuleManager
 from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
@@ -19,18 +20,6 @@ from ..datastructures.pose import Pose
 from ..tasktree import with_tree
 from ..designator import BaseMotion
 from ..external_interfaces.robokudo import robokudo_found
-
-
-def try_motion(motion, motion_designator_instance, exception, num_retries=3):
-    current_retry = 0
-    result = None
-    while current_retry < num_retries:
-        try:
-            result = motion.execute(motion_designator_instance)
-            break
-        except exception:
-            current_retry += 1
-    return result
 
 
 @dataclass

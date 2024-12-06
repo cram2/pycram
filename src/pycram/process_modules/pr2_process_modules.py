@@ -4,7 +4,6 @@ import actionlib
 from .default_process_modules import DefaultDetectingReal, DefaultDetecting
 from .. import world_reasoning as btr
 import numpy as np
-import rospy
 
 import pycrap
 from ..external_interfaces.move_base import query_pose_nav
@@ -24,6 +23,7 @@ from ..robot_description import RobotDescription
 from ..ros.logging import logdebug
 from ..utils import _apply_ik
 from ..world_concepts.world_object import Object
+from ..ros.data_types import Duration
 
 if TYPE_CHECKING:
     from ..designators.object_designator import ObjectDesignatorDescription
@@ -36,7 +36,8 @@ except ImportError:
 try:
     from control_msgs.msg import GripperCommandGoal, GripperCommandAction
 except ImportError:
-    logwarn("control_msgs import failed")
+    if Multiverse is not None:
+        logwarn("Import for control_msgs for gripper in Multiverse failed")
 
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
@@ -311,7 +312,7 @@ class Pr2MoveGripperMultiverse(ProcessModule):
         loginfo("Waiting for action server")
         client.wait_for_server()
         client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
-        wait = client.wait_for_result(rospy.Duration.from_sec(5))
+        wait = client.wait_for_result(Duration(5))
         # client.cancel_all_goals()
 
 

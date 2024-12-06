@@ -250,13 +250,13 @@ class RobotDescription:
                 result.append(chain)
         return result
 
-    def get_camera_frame(self) -> str:
+    def get_camera_frame(self, robot_object_name: str) -> str:
         """
         Quick method to get the name of a link of a camera. Uses the first camera in the list of cameras.
 
         :return: A name of the link of a camera
         """
-        return f"{self.name}/{self.get_camera_link()}"
+        return f"{robot_object_name}/{self.get_camera_link()}"
 
     def get_camera_link(self) -> str:
         """

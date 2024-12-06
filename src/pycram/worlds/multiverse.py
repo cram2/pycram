@@ -178,7 +178,7 @@ class Multiverse(World):
         Uses ray test to get the images for the target object. (target_pose is currently not used)
         """
         camera_description = RobotDescription.current_robot_description.get_default_camera()
-        camera_frame = RobotDescription.current_robot_description.get_camera_frame()
+        camera_frame = RobotDescription.current_robot_description.get_camera_frame(World.robot.name)
         adjusted_cam_pose = adjust_camera_pose_based_on_target(cam_pose, target_pose, camera_description)
         return self.ray_test_utils.get_images_for_target(adjusted_cam_pose, camera_description, camera_frame,
                                                          size, camera_min_distance, camera_max_distance, plot)
