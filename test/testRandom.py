@@ -14,6 +14,8 @@ from pycram.datastructures.enums import WorldMode
 from pycram.datastructures.pose import Pose
 from pycram.process_module import simulated_robot
 from pycram.world_concepts.world_object import Object
+from pycram.yarp_utils.yarp_joint_state_updater import run_icub_state_updater
+from pycram.yarp_utils.yarp_networking import interrupt_and_close
 
 
 def run_look_and_move_tcp():
@@ -62,8 +64,13 @@ class ICUBTestCase(BulletWorldTestCase):
 
 
     def test_move_joints(self):
+
+
         with real_robot:
-            MoveJointsMotion(["torso_roll"], [math.radians(20.0)]).perform()
+            yarpModule = run_icub_state_updater(['/', '--robot', 'icubSim'])
+            if yarpModule is None:
+                print("Failed to open yarp module")
+            MoveJointsMotion(["torso_roll"], [math.radians(-20.0)]).perform()
             sleep(3)
             ParkArmsActionPerformable(arm=Arms.BOTH).perform()
             sleep(3)
@@ -71,7 +78,10 @@ class ICUBTestCase(BulletWorldTestCase):
             sleep(3)
             MoveArmJointsMotion(right_arm_poses={"r_elbow": math.radians(40.0)}).perform()
             LookingMotion(Pose([-2, -2, 3])).perform()
-            sleep(3)
+            sleep(10)
+            if yarpModule is None:
+                print("stopping the module")
+                interrupt_and_close(yarpModule)
 
 
     def test_park_arms(self):

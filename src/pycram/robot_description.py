@@ -173,6 +173,20 @@ class RobotDescription:
             return self.joint_actuators.get(joint)
         return None
 
+
+    def get_actuated_joint_names(self, part_name) -> Optional[str]:
+        """
+        Given a part name, returns the actuated joints.
+
+        Args:
+            part_name (str): part name
+
+        Returns:
+            List of actuated joint names: or None
+        """
+
+        return self.joint_actuators.get(part_name)
+
     def get_actuated_joint_indices(self, joint_name) -> Tuple[Optional[str],Optional[int], Optional[int]]:
         """
         Given a joint name, returns the indices of the part and the joint within that part.

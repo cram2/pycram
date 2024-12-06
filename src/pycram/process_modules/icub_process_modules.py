@@ -1,16 +1,12 @@
 import math
 from threading import Lock
 from typing import Union
-
 from typing_extensions import Any
-
 import actionlib
-
 from .default_process_modules import DefaultMoveJoints, DefaultMoveArmJoints, DefaultMoveTCP, DefaultNavigation, \
     DefaultMoveHead, DefaultDetecting, DefaultMoveGripper
 from .. import world_reasoning as btr
 import numpy as np
-
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
 from ..ros.logging import logdebug
@@ -27,36 +23,10 @@ from ..datastructures.pose import Pose
 from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import *
-
-
 import yarp
-ACK_VOCAB = yarp.createVocab32('a','c','k')
-NO_ACK_VOCAB = yarp.createVocab32('n','a','c','k')
 
-
-def init_yarp_network():
-    if not yarp.Network.checkNetwork():
-        print("Unable to find a yarp server exiting ...")
-        return False
-
-    yarp.Network.init()
-    return True
-
-def open_rpc_client_port(port_name):
-    handle_port: yarp.RpcClient = yarp.RpcClient()
-    if not handle_port.open(port_name):
-        print(f"Can't open the port %s correctly" % port_name)
-        return False , None
-    print(f"Port %s opened correctly" % port_name)
-    return True , handle_port
-
-def open_buffered_bottle_port(port_name):
-    opened_port: yarp.BufferedPortBottle = yarp.BufferedPortBottle()
-    if not opened_port.open(port_name):
-        print(f"Can't open the port %s correctly" % port_name)
-        return False , None
-    print(f"Port %s opened correctly" % port_name)
-    return True , opened_port
+from pycram.yarp_utils.yarp_networking import NO_ACK_VOCAB, ACK_VOCAB, open_rpc_client_port, open_buffered_bottle_port, \
+    init_yarp_network
 
 
 def update_part(state_port,ctp_port, joint_to_change_idx, joints_to_change_pos):
@@ -448,9 +418,9 @@ class ICubManager(ProcessModuleManager):
         self.ctp_right_arm_client_port_name = "/pycram/ctp/right_arm:oi"
         self.ctp_left_arm_client_port_name = "/pycram/ctp/left_arm:oi"
 
-        self.state_torso_port_name = "/pycram/ctp/torso:i"
-        self.state_right_arm_port_name = "/pycram/ctp/right_arm:i"
-        self.state_left_arm_port_name = "/pycram/ctp/left_arm:i"
+        self.state_torso_port_name = "/pycram/state/torso:i"
+        self.state_right_arm_port_name = "/pycram/state/right_arm:i"
+        self.state_left_arm_port_name = "/pycram/state/left_arm:i"
 
         self.gaze_client_port = None
         self.action_client_port = None
@@ -597,33 +567,33 @@ class ICubManager(ProcessModuleManager):
         #connection_status = yarp.NetworkBase_connect(self.ctp_torso_client_port_name, "/testrpc", "tcp")
 
         if not connection_status:
-            print("action control port couldn't connect")
+            print("ctp torso control port couldn't connect")
             return False
 
         connection_status = yarp.NetworkBase_connect(self.ctp_right_arm_client_port_name, "/ctpservice/right_arm/rpc", "tcp")
         if not connection_status:
-            print("action control port couldn't connect")
+            print("ctp right_arm control port couldn't connect")
             return False
 
         connection_status = yarp.NetworkBase_connect( self.ctp_left_arm_client_port_name,"/ctpservice/left_arm/rpc", "tcp")
         if not connection_status:
-            print("action control port couldn't connect")
+            print("ctp left_arm control port couldn't connect")
             return False
 
         # status ports
         connection_status = yarp.NetworkBase_connect("/"+self.robot_name_yarp+"/torso/state:o", self.state_torso_port_name, "tcp")
         if not connection_status:
-            print("action control port couldn't connect")
+            print("state torso port couldn't connect")
             return False
 
         connection_status = yarp.NetworkBase_connect("/"+self.robot_name_yarp+"/right_arm/state:o",self.state_right_arm_port_name,  "tcp")
         if not connection_status:
-            print("action control port couldn't connect")
+            print("state right_arm port couldn't connect")
             return False
 
         connection_status = yarp.NetworkBase_connect("/"+self.robot_name_yarp+"/left_arm/state:o",self.state_left_arm_port_name , "tcp")
         if not connection_status:
-            print("action control port couldn't connect")
+            print("state left_arm port couldn't connect")
             return False
 
         return True

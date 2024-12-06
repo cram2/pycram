@@ -29,6 +29,8 @@ actuated_joints = {
                      "l_index_proximal","l_index_distal",
                      "l_middle_proximal","l_middle_distal",
                      "l_pinky"],
+        "head":["neck_pitch","neck_roll","neck_yaw",
+                "eyes_tilt","eyes_version","eyes_vergence"],
     }
 
 
