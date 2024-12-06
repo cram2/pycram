@@ -37,7 +37,7 @@ class ICUBTestCase(BulletWorldTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.world = BulletWorld(mode=WorldMode.GUI)
+        cls.world = BulletWorld(mode=WorldMode.DIRECT)
         # cls.milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
         cls.robot = Object("icub", pycrap.Robot, "icub" + cls.extension, pose=Pose([0, 0, 0.5]))
         cls.kitchen = Object("kitchen", pycrap.Kitchen, "kitchen" + cls.extension)
@@ -46,6 +46,10 @@ class ICUBTestCase(BulletWorldTestCase):
         ProcessModule.execution_delay = False
         ProcessModuleManager.execution_type = ExecutionType.SIMULATED
         cls.viz_marker_publisher = VizMarkerPublisher()
+
+    def test_move_joint_direct(self):
+        self.robot.set_joint_position("l_hand_thumb_0_joint",math.radians(30))
+
 
     def test_move_joints_simulated(self):
         with simulated_robot:
@@ -71,14 +75,14 @@ class ICUBTestCase(BulletWorldTestCase):
             if yarpModule is None:
                 print("Failed to open yarp module")
             MoveJointsMotion(["torso_roll"], [math.radians(-20.0)]).perform()
-            sleep(3)
+
             ParkArmsActionPerformable(arm=Arms.BOTH).perform()
-            sleep(3)
+
             MoveArmJointsMotion(left_arm_poses={"l_elbow": math.radians(20.0)}).perform()
-            sleep(3)
+
             MoveArmJointsMotion(right_arm_poses={"r_elbow": math.radians(40.0)}).perform()
             LookingMotion(Pose([-2, -2, 3])).perform()
-            sleep(10)
+
             if yarpModule is None:
                 print("stopping the module")
                 interrupt_and_close(yarpModule)
