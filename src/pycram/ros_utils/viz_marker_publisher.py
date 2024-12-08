@@ -245,7 +245,7 @@ class ManualMarkerPublisher:
         new_marker.id = self.current_id
         new_marker.header.frame_id = frame_id
         new_marker.ns = name
-        new_marker.header.stamp = Time.now()
+        # new_marker.header.stamp = Time.now()
         new_marker.type = marker_type
         new_marker.action = Marker.ADD
         new_marker.pose = marker_pose.pose
