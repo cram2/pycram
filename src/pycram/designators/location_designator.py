@@ -186,7 +186,9 @@ class CostmapLocation(LocationDesignatorDescription):
                 if self.reachable_for:
                     hand_links = []
                     for description in RobotDescription.current_robot_description.get_manipulator_chains():
-                        hand_links += description.end_effector.links
+                        if isinstance(self.reachable_arm, Arms):
+                            if self.reachable_arm == description.arm_type:
+                                hand_links += description.end_effector.links
                     valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
                                                          allowed_collision={test_robot: hand_links})
                     if self.reachable_arm:
