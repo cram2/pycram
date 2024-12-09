@@ -527,11 +527,15 @@ class OpenActionPerformable(ActionAbstract):
     """
     Arm that should be used for opening the container
     """
+    grasping_prepose_distance: float
+    """
+    The distance in meters the gripper should be at in the x-axis away from the handle.
+    """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMOpenAction)
 
     @with_tree
     def plan(self) -> None:
-        GraspingActionPerformable(self.arm, self.object_designator).perform()
+        GraspingActionPerformable(self.arm, self.object_designator, self.grasping_prepose_distance).perform()
         OpeningMotion(self.object_designator, self.arm).perform()
 
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
@@ -551,11 +555,15 @@ class CloseActionPerformable(ActionAbstract):
     """
     Arm that should be used for closing
     """
+    grasping_prepose_distance: float
+    """
+    The distance in meters between the gripper and the handle before approaching to grasp.
+    """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMCloseAction)
 
     @with_tree
     def plan(self) -> None:
-        GraspingActionPerformable(self.arm, self.object_designator).perform()
+        GraspingActionPerformable(self.arm, self.object_designator, self.grasping_prepose_distance).perform()
         ClosingMotion(self.object_designator, self.arm).perform()
 
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
@@ -574,6 +582,10 @@ class GraspingActionPerformable(ActionAbstract):
     """
     Object Designator for the object that should be grasped
     """
+    prepose_distance: float
+    """
+    The distance in meters the gripper should be at before grasping the object
+    """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMGraspingAction)
 
     @with_tree
@@ -589,7 +601,7 @@ class GraspingActionPerformable(ActionAbstract):
                                                    World.robot.get_link_tf_frame(gripper_name))
 
         pre_grasp = object_pose_in_gripper.copy()
-        pre_grasp.pose.position.x -= 0.1
+        pre_grasp.pose.position.x -= self.prepose_distance
 
         MoveTCPMotion(pre_grasp, self.arm).perform()
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()
@@ -1146,16 +1158,19 @@ class OpenAction(ActionDesignatorDescription):
 
     performable_class = OpenActionPerformable
 
-    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms] = None):
+    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms] = None,
+                 grasping_prepose_distance: float = 0.03):
         """
         Moves the arm of the robot to open a container.
 
         :param object_designator_description: Object designator_description describing the handle that should be used to open
         :param arms: A list of possible arms that should be used
+        :param grasping_prepose_distance: The distance in meters between gripper and handle before approaching to grasp.
         """
         super().__init__()
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[Arms] = arms
+        self.grasping_prepose_distance: float = grasping_prepose_distance
         self.knowledge_condition = GripperIsFreeProperty(self.arms)
 
     def ground(self) -> OpenActionPerformable:
@@ -1165,7 +1180,8 @@ class OpenAction(ActionDesignatorDescription):
 
         :return: A performable designator_description
         """
-        return OpenActionPerformable(self.object_designator_description.resolve(), self.arms[0])
+        return OpenActionPerformable(self.object_designator_description.resolve(), self.arms[0],
+                                     grasping_prepose_distance=self.grasping_prepose_distance)
 
     def __iter__(self) -> OpenActionPerformable:
         """
@@ -1174,7 +1190,8 @@ class OpenAction(ActionDesignatorDescription):
         :return: A performable action designator_description
         """
         ri = ReasoningInstance(self,
-                               PartialDesignator(OpenActionPerformable, self.object_designator_description, self.arms))
+                               PartialDesignator(OpenActionPerformable, self.object_designator_description, self.arms,
+                                                 self.grasping_prepose_distance))
         for desig in ri:
             yield desig
 
@@ -1188,16 +1205,20 @@ class CloseAction(ActionDesignatorDescription):
 
     performable_class = CloseActionPerformable
 
-    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms] = None):
+    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms] = None,
+                 grasping_prepose_distance: float = 0.03):
         """
         Attempts to close an open container
 
         :param object_designator_description: Object designator_description description of the handle that should be used
         :param arms: A list of possible arms to use
+        :param grasping_prepose_distance: The distance in meters between the gripper and the handle before approaching
+        to grasp.
         """
         super().__init__()
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[Arms] = arms
+        self.grasping_prepose_distance: float = grasping_prepose_distance
         self.knowledge_condition = GripperIsFreeProperty(self.arms)
 
     def ground(self) -> CloseActionPerformable:
@@ -1207,7 +1228,8 @@ class CloseAction(ActionDesignatorDescription):
 
         :return: A performable designator_description
         """
-        return CloseActionPerformable(self.object_designator_description.resolve(), self.arms[0])
+        return CloseActionPerformable(self.object_designator_description.resolve(), self.arms[0],
+                                      self.grasping_prepose_distance)
 
     def __iter__(self) -> CloseActionPerformable:
         """
@@ -1216,7 +1238,8 @@ class CloseAction(ActionDesignatorDescription):
         :yield: A performable fully parametrized Action designator
         """
         ri = ReasoningInstance(self,
-                               PartialDesignator(CloseActionPerformable, self.object_designator_description, self.arms))
+                               PartialDesignator(CloseActionPerformable, self.object_designator_description, self.arms,
+                                                 self.grasping_prepose_distance))
         for desig in ri:
             yield desig
 
@@ -1228,17 +1251,20 @@ class GraspingAction(ActionDesignatorDescription):
 
     performable_class = GraspingActionPerformable
 
-    def __init__(self, object_description: Union[ObjectDesignatorDescription, ObjectPart], arms: List[Arms] = None):
+    def __init__(self, object_description: Union[ObjectDesignatorDescription, ObjectPart], arms: List[Arms] = None,
+                 prepose_distance: float = 0.03):
         """
         Will try to grasp the object described by the given description. Grasping is done by moving into a pre grasp
         position 10 cm before the object, opening the gripper, moving to the object and then closing the gripper.
 
         :param arms: List of Arms that should be used for grasping
         :param object_description: Description of the object that should be grasped
+        :param prepose_distance: The distance in meters between the gripper and the object before approaching to grasp.
         """
         super().__init__()
         self.arms: List[Arms] = arms
         self.object_description: ObjectDesignatorDescription = object_description
+        self.prepose_distance: float = prepose_distance
 
     def ground(self) -> GraspingActionPerformable:
         """
@@ -1247,7 +1273,7 @@ class GraspingAction(ActionDesignatorDescription):
 
         :return: A performable action designator_description that contains specific arguments
         """
-        return GraspingActionPerformable(self.arms[0], self.object_description.resolve())
+        return GraspingActionPerformable(self.arms[0], self.object_description.resolve(), self.prepose_distance)
 
     def __iter__(self) -> CloseActionPerformable:
         """
@@ -1257,6 +1283,7 @@ class GraspingAction(ActionDesignatorDescription):
         :yield: A fully parametrized Action designator
         """
         ri = ReasoningInstance(self,
-                               PartialDesignator(GraspingActionPerformable, self.object_description, self.arms))
+                               PartialDesignator(GraspingActionPerformable, self.object_description, self.arms,
+                                                 self.prepose_distance))
         for desig in ri:
             yield desig

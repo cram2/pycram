@@ -10,6 +10,7 @@ from .external_interfaces.ik import request_ik
 from .failures import IKError
 from .local_transformer import LocalTransformer
 from .robot_description import RobotDescription
+from .ros.logging import logdebug
 from .world_concepts.world_object import Object
 from .world_reasoning import contact
 
@@ -181,8 +182,7 @@ def reachability_validator(pose: Pose,
         target = target.get_pose()
 
     robot.set_pose(pose)
-    # manipulator_descs = list(
-    #    filter(lambda chain: isinstance(chain[1], ManipulatorDescription), robot_description.chains.items()))
+
     if arm is not None:
         manipulator_descs = [RobotDescription.current_robot_description.get_arm_chain(arm)]
     else:
@@ -191,8 +191,6 @@ def reachability_validator(pose: Pose,
     # TODO Make orientation adhere to grasping orientation
     res = False
     arms = []
-    found_grasps = []
-    original_target = target
     for description in manipulator_descs:
         retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(
             description.end_effector.tool_frame))
@@ -205,26 +203,28 @@ def reachability_validator(pose: Pose,
         tool_frame = description.end_effector.tool_frame
 
         # TODO Make orientation adhere to grasping orientation
-        in_contact = False
 
         joint_state_before_ik = robot.get_positions_of_all_joints()
         try:
             # test the possible solution and apply it to the robot
             pose, joint_states = request_ik(target, robot, joints, tool_frame)
+            logdebug(f"Robot {description.name} can reach the the target pose")
             robot.set_pose(pose)
             robot.set_multiple_joint_positions(joint_states)
-            # _apply_ik(robot, resp, joints)
 
             in_contact = collision_check(robot, allowed_collision)
             if not in_contact:  # only check for retract pose if pose worked
+                logdebug("Robot is not in contact at target pose")
                 pose, joint_states = request_ik(retract_target_pose, robot, joints, tool_frame)
+                logdebug(f"Robot {description.name} can reach retract pose")
                 robot.set_pose(pose)
                 robot.set_multiple_joint_positions(joint_states)
-                # _apply_ik(robot, resp, joints)
                 in_contact = collision_check(robot, allowed_collision)
             if not in_contact:
+                logdebug("Robot is not in contact at retract pose")
                 arms.append(description.arm_type)
         except IKError:
+            logdebug(f"Robot {description.name} cannot reach pose")
             pass
         finally:
             robot.set_multiple_joint_positions(joint_state_before_ik)

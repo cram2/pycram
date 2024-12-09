@@ -1,9 +1,10 @@
 import dataclasses
 
+import numpy as np
 from typing_extensions import List, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
-from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
+from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap, Costmap
 from ..datastructures.enums import JointType, Arms, Grasp
 from ..datastructures.pose import Pose
 from ..datastructures.world import World, UseProspectionWorld
@@ -208,7 +209,8 @@ class CostmapLocation(LocationDesignatorDescription):
                 arms = None
                 found_grasps = []
                 if self.visible_for:
-                    visible_prospection_object = World.current_world.get_prospection_object_for_object(self.target.world_object)
+                    visible_prospection_object = World.current_world.get_prospection_object_for_object(
+                        self.target.world_object)
                     res = res and visibility_validator(maybe_pose, test_robot, visible_prospection_object,
                                                        World.current_world)
                 if self.reachable_for:
@@ -277,6 +279,36 @@ class AccessingLocation(LocationDesignatorDescription):
         """
         return next(iter(self))
 
+    @staticmethod
+    def adjust_map_for_drawer_opening(cost_map: Costmap, init_pose: Pose, goal_pose: Pose,
+                                      width: float = 0.2):
+        """
+        Adjust the cost map for opening a drawer. This is done by removing all locations between the initial and final
+        pose of the drawer/container.
+
+        :param cost_map: Costmap that should be adjusted.
+        :param init_pose: Pose of the drawer/container when it is fully closed.
+        :param goal_pose: Pose of the drawer/container when it is fully opened.
+        :param width: Width of the drawer/container.
+        """
+        motion_vector = [goal_pose.position.x - init_pose.position.x, goal_pose.position.y - init_pose.position.y,
+                         goal_pose.position.z - init_pose.position.z]
+        # remove locations between the initial and final pose
+        motion_vector_length = np.linalg.norm(motion_vector)
+        unit_motion_vector = np.array(motion_vector) / motion_vector_length
+        orthogonal_vector = np.array([unit_motion_vector[1], -unit_motion_vector[0], 0])
+        orthogonal_vector /= np.linalg.norm(orthogonal_vector)
+        orthogonal_size = width
+        map_origin_idx = cost_map.map.shape[0] // 2, cost_map.map.shape[1] // 2
+        for i in range(int(motion_vector_length / 0.02)):
+            for j in range(int(orthogonal_size / 0.02)):
+                idx = (int(map_origin_idx[0] + i * unit_motion_vector[0] + j * orthogonal_vector[0]),
+                       int(map_origin_idx[1] + i * unit_motion_vector[1] + j * orthogonal_vector[1]))
+                cost_map.map[idx] = 0
+                idx = (int(map_origin_idx[0] + i * unit_motion_vector[0] - j * orthogonal_vector[0]),
+                       int(map_origin_idx[1] + i * unit_motion_vector[1] - j * orthogonal_vector[1]))
+                cost_map.map[idx] = 0
+
     def __iter__(self) -> Location:
         """
         Creates poses from which the robot can open the drawer specified by the ObjectPart designator describing the
@@ -285,16 +317,6 @@ class AccessingLocation(LocationDesignatorDescription):
 
         :yield: A location designator containing the pose and the arms that can be used.
         """
-        # ground_pose = [[self.handle.part_pose[0][0], self.handle.part_pose[0][1], 0], self.handle.part_pose[1]]
-        ground_pose = Pose(self.handle.part_pose.position_as_list())
-        ground_pose.position.z = 0
-        occupancy = OccupancyCostmap(distance_to_obstacle=0.25, from_ros=False, size=200, resolution=0.02,
-                                     origin=ground_pose)
-        gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
-
-        final_map = occupancy + gaussian
-
-        test_robot = World.current_world.get_prospection_object_for_object(self.robot)
 
         # Find a Joint of type prismatic which is above the handle in the URDF tree
         container_joint = self.handle.world_object.find_joint_above_link(self.handle.name, JointType.PRISMATIC)
@@ -313,12 +335,27 @@ class AccessingLocation(LocationDesignatorDescription):
             container_joint: self.handle.world_object.get_joint_limits(container_joint)[1] / 1.5},
                                                self.handle.name)
 
+        ground_pose = Pose(self.handle.part_pose.position_as_list())
+        ground_pose.position.z = 0
+        occupancy = OccupancyCostmap(distance_to_obstacle=0.25, from_ros=False, size=200, resolution=0.02,
+                                     origin=ground_pose)
+        gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
+
+        final_map = occupancy + gaussian
+        joint_type = self.handle.world_object.joints[container_joint].type
+        if joint_type == JointType.PRISMATIC:
+            self.adjust_map_for_drawer_opening(final_map, init_pose, goal_pose)
+
+        test_robot = World.current_world.get_prospection_object_for_object(self.robot)
+
         with UseProspectionWorld():
+            orientation_generator = lambda p, o: PoseGenerator.generate_orientation(p, half_pose)
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600,
-                                            orientation_generator=lambda p, o: PoseGenerator.generate_orientation(p,
-                                                                                                                  half_pose)):
+                                            orientation_generator=orientation_generator):
                 if prospect_robot_contact(test_robot, maybe_pose):
+                    logdebug("Robot is initially in collision, skipping that pose")
                     continue
+                logdebug("Robot is initially in a valid pose")
                 hand_links = []
                 for description in RobotDescription.current_robot_description.get_manipulator_chains():
                     hand_links += description.end_effector.links
@@ -328,6 +365,7 @@ class AccessingLocation(LocationDesignatorDescription):
                                                                prepose_distance=self.prepose_distance)
 
                 if valid_init:
+                    logdebug(f"Found a valid init pose for accessing {self.handle.name} with arms {arms_init}")
                     valid_goal, arms_goal = reachability_validator(maybe_pose, test_robot, goal_pose,
                                                                    allowed_collision={test_robot: hand_links},
                                                                    prepose_distance=self.prepose_distance)
@@ -335,6 +373,7 @@ class AccessingLocation(LocationDesignatorDescription):
                     arms_list = list(set(arms_init).intersection(set(arms_goal)))
 
                     if valid_goal and len(arms_list) > 0:
+                        logdebug(f"Found a valid goal pose for accessing {self.handle.name} with arms {arms_list}")
                         yield self.Location(maybe_pose, arms_list)
 
 
@@ -389,7 +428,7 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         self.sem_costmap = SemanticCostmap(self.part_of.world_object, self.link_name)
         if self.edges_only or self.horizontal_edges_only:
             self.sem_costmap = self.sem_costmap.get_edges_map(self.edge_size_in_meters,
-                                                    horizontal_only=self.horizontal_edges_only)
+                                                              horizontal_only=self.horizontal_edges_only)
         height_offset = 0
         if self.for_object:
             min_p, max_p = self.for_object.world_object.get_axis_aligned_bounding_box().get_min_max_points()
