@@ -10,7 +10,7 @@ from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
-from pycram.datastructures.enums import WorldMode
+from pycram.datastructures.enums import WorldMode , GripperState
 from pycram.datastructures.pose import Pose
 from pycram.process_module import simulated_robot
 from pycram.world_concepts.world_object import Object
@@ -62,7 +62,16 @@ class ICUBTestCase(BulletWorldTestCase):
             MoveArmJointsMotion(right_arm_poses={"r_elbow": math.radians(40.0)}).perform()
             sleep(3)
             LookingMotion(Pose([-2, -2, 3])).perform()
-            sleep(100)
+            sleep(3)
+            MoveGripperMotion(GripperState.OPEN, Arms.RIGHT).perform()
+            MoveGripperMotion(GripperState.OPEN, Arms.LEFT).perform()
+            sleep(20)
+            MoveGripperMotion(GripperState.CLOSE, Arms.RIGHT).perform()
+            MoveGripperMotion(GripperState.CLOSE, Arms.LEFT).perform()
+            sleep(10)
+            MoveGripperMotion(GripperState.OPEN, Arms.RIGHT).perform()
+            MoveGripperMotion(GripperState.OPEN, Arms.LEFT).perform()
+
 
 
 
@@ -82,6 +91,14 @@ class ICUBTestCase(BulletWorldTestCase):
 
             MoveArmJointsMotion(right_arm_poses={"r_elbow": math.radians(40.0)}).perform()
             LookingMotion(Pose([-2, -2, 3])).perform()
+            MoveGripperMotion(GripperState.OPEN,Arms.LEFT).perform()
+            sleep(10)
+            MoveGripperMotion(GripperState.CLOSE,Arms.LEFT).perform()
+            MoveGripperMotion(GripperState.CLOSE, Arms.RIGHT).perform()
+            sleep(10)
+            MoveGripperMotion(GripperState.OPEN, Arms.RIGHT).perform()
+            MoveGripperMotion(GripperState.OPEN, Arms.LEFT).perform()
+            sleep(10)
 
             if yarpModule is None:
                 print("stopping the module")

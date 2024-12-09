@@ -60,6 +60,48 @@ icub_description.add_kinematic_chain_description(left_arm)
 left_gripper = EndEffectorDescription("left_gripper", "l_hand", "l_hand",
                                       icub_description.urdf_object)
 
+left_gripper.add_static_joint_states(GripperState.CLOSE, {'l_hand_index_0_joint': math.radians(-20.0),
+                                                          'l_hand_index_1_joint': math.radians(20.0),
+                                                          'l_hand_index_2_joint': math.radians(42.5),
+                                                          'l_hand_index_3_joint': math.radians(42.5),
+                                                          'l_hand_little_0_joint': math.radians(0.0),
+                                                          'l_hand_little_1_joint': math.radians(28.0),
+                                                          'l_hand_little_2_joint': math.radians(28.0),
+                                                          'l_hand_little_3_joint': math.radians(28.0),
+                                                          'l_hand_middle_0_joint': math.radians(0.0),
+                                                          'l_hand_middle_1_joint': math.radians(20.0),
+                                                          'l_hand_middle_2_joint': math.radians(42.5),
+                                                          'l_hand_middle_3_joint': math.radians(42.5),
+                                                          'l_hand_ring_0_joint': math.radians(0.0),
+                                                          'l_hand_ring_1_joint': math.radians(28.0),
+                                                          'l_hand_ring_2_joint': math.radians(28.0),
+                                                          'l_hand_ring_3_joint': math.radians(28.0),
+                                                          'l_hand_thumb_0_joint': math.radians(60.0),
+                                                          'l_hand_thumb_1_joint': math.radians(0.0),
+                                                          'l_hand_thumb_2_joint': math.radians(42.5),
+                                                          'l_hand_thumb_3_joint': math.radians(42.5)})
+
+left_gripper.add_static_joint_states(GripperState.OPEN, {'l_hand_index_0_joint': math.radians(0.0),
+                                                          'l_hand_index_1_joint': math.radians(0.0),
+                                                          'l_hand_index_2_joint': math.radians(0.0),
+                                                          'l_hand_index_3_joint': math.radians(0.0),
+                                                          'l_hand_little_0_joint': math.radians(20.0),
+                                                          'l_hand_little_1_joint': math.radians(0.0),
+                                                          'l_hand_little_2_joint': math.radians(0.0),
+                                                          'l_hand_little_3_joint': math.radians(0.0),
+                                                          'l_hand_middle_0_joint': math.radians(0.0),
+                                                          'l_hand_middle_1_joint': math.radians(0.0),
+                                                          'l_hand_middle_2_joint': math.radians(0.0),
+                                                          'l_hand_middle_3_joint': math.radians(0.0),
+                                                          'l_hand_ring_0_joint': math.radians(20.0),
+                                                          'l_hand_ring_1_joint': math.radians(0.0),
+                                                          'l_hand_ring_2_joint': math.radians(0.0),
+                                                          'l_hand_ring_3_joint': math.radians(0.0),
+                                                          'l_hand_thumb_0_joint': math.radians(0.0),
+                                                          'l_hand_thumb_1_joint': math.radians(0.0),
+                                                          'l_hand_thumb_2_joint': math.radians(0.0),
+                                                          'l_hand_thumb_3_joint': math.radians(0.0)})
+
 left_arm.end_effector = left_gripper
 
 
@@ -83,6 +125,47 @@ right_gripper = EndEffectorDescription("right_gripper", "r_hand", "r_hand",
                                        icub_description.urdf_object)
 
 
+right_gripper.add_static_joint_states(GripperState.CLOSE, {'r_hand_index_0_joint': math.radians(-20.0),
+                                                          'r_hand_index_1_joint': math.radians(20.0),
+                                                          'r_hand_index_2_joint': math.radians(42.5),
+                                                          'r_hand_index_3_joint': math.radians(42.5),
+                                                          'r_hand_little_0_joint': math.radians(0.0),
+                                                          'r_hand_little_1_joint': math.radians(28.0),
+                                                          'r_hand_little_2_joint': math.radians(28.0),
+                                                          'r_hand_little_3_joint': math.radians(28.0),
+                                                          'r_hand_middle_0_joint': math.radians(0.0),
+                                                          'r_hand_middle_1_joint': math.radians(20.0),
+                                                          'r_hand_middle_2_joint': math.radians(42.5),
+                                                          'r_hand_middle_3_joint': math.radians(42.5),
+                                                          'r_hand_ring_0_joint': math.radians(0.0),
+                                                          'r_hand_ring_1_joint': math.radians(28.0),
+                                                          'r_hand_ring_2_joint': math.radians(28.0),
+                                                          'r_hand_ring_3_joint': math.radians(28.0),
+                                                          'r_hand_thumb_0_joint': math.radians(60.0),
+                                                          'r_hand_thumb_1_joint': math.radians(0.0),
+                                                          'r_hand_thumb_2_joint': math.radians(42.5),
+                                                          'r_hand_thumb_3_joint': math.radians(42.5)})
+
+right_gripper.add_static_joint_states(GripperState.OPEN, {'r_hand_index_0_joint': math.radians(0.0),
+                                                          'r_hand_index_1_joint': math.radians(0.0),
+                                                          'r_hand_index_2_joint': math.radians(0.0),
+                                                          'r_hand_index_3_joint': math.radians(0.0),
+                                                          'r_hand_little_0_joint': math.radians(20.0),
+                                                          'r_hand_little_1_joint': math.radians(0.0),
+                                                          'r_hand_little_2_joint': math.radians(0.0),
+                                                          'r_hand_little_3_joint': math.radians(0.0),
+                                                          'r_hand_middle_0_joint': math.radians(0.0),
+                                                          'r_hand_middle_1_joint': math.radians(0.0),
+                                                          'r_hand_middle_2_joint': math.radians(0.0),
+                                                          'r_hand_middle_3_joint': math.radians(0.0),
+                                                          'r_hand_ring_0_joint': math.radians(20.0),
+                                                          'r_hand_ring_1_joint': math.radians(0.0),
+                                                          'r_hand_ring_2_joint': math.radians(0.0),
+                                                          'r_hand_ring_3_joint': math.radians(0.0),
+                                                          'r_hand_thumb_0_joint': math.radians(0.0),
+                                                          'r_hand_thumb_1_joint': math.radians(0.0),
+                                                          'r_hand_thumb_2_joint': math.radians(0.0),
+                                                          'r_hand_thumb_3_joint': math.radians(0.0)})
 right_arm.end_effector = right_gripper
 
 

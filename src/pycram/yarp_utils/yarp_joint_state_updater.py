@@ -170,120 +170,107 @@ class icub_state_updater(yarp.RFModule):
         """
         return 0.5
 
-    def update_part_state(self,part_bottle : yarp.Bottle, part_names: [str]):
+    def update_joint_degree(self,joint_name,joint_value_degree):
+        try:
+            World.robot.set_joint_position(joint_name,math.radians(joint_value_degree))
+
+        except Exception as e:
+            print(f"error in updating joint {joint_name} to {joint_value_degree} degree")
+            pass
+
+
+
+    def update_torso_state(self, part_bottle : yarp.Bottle, part_names: [str]):
         if part_bottle.size()  == len(part_names):
             for i in range(part_bottle.size()):
-                try:
-                    World.robot.set_joint_position(part_names[i],
-                                               math.radians(part_bottle.get(i).asFloat64()))
-                except:
-                    print("error in updating ",part_names[i])
-                    pass
-
+                self.update_joint_degree(part_names[i],
+                                           part_bottle.get(i).asFloat64())
         else :
             print("mismatch in part size" , part_bottle.size() , " ",   len(part_names))
 
     def update_head_state(self,head_bottle : yarp.Bottle, head_names: [str]):
-
         for i in range(4):
-            try:
-                World.robot.set_joint_position(head_names[i],
-                                           math.radians(head_bottle.get(i).asFloat64()))
-            except:
-                print("error in updating head parts ", head_names[i])
-                pass
+            self.update_joint_degree(head_names[i],
+                                       head_bottle.get(i).asFloat64())
 
 
-        try:
-            r_eye_pan = 0.5 * head_bottle.get(4).asFloat64() - 0.5 * head_bottle.get(5).asFloat64()
-            l_eye_pan = 0.5 * head_bottle.get(4).asFloat64() + 0.5 * head_bottle.get(5).asFloat64()
+        r_eye_pan = 0.5 * head_bottle.get(4).asFloat64() - 0.5 * head_bottle.get(5).asFloat64()
+        l_eye_pan = 0.5 * head_bottle.get(4).asFloat64() + 0.5 * head_bottle.get(5).asFloat64()
 
-            World.robot.set_joint_position(head_names[4],
-                                           math.radians(r_eye_pan))
+        self.update_joint_degree(head_names[4],r_eye_pan)
+        self.update_joint_degree(head_names[5],l_eye_pan)
 
-            World.robot.set_joint_position(head_names[5],
-                                           math.radians(l_eye_pan))
-        except:
-            print("error in updating head parts eyes")
-            pass
+
 
     def update_arm_state(self,arm_bottle : yarp.Bottle, arms_names: [str],arm:str):
-        try:
-            print("setting arm joints")
-            for i in range(7):
-                World.robot.set_joint_position(arms_names[i],
-                                           math.radians(arm_bottle.get(i).asFloat64()))
-                print(f"set {arms_names[i]} to {math.radians(arm_bottle.get(i).asFloat64())}")
-            print("arm joints updated")
-            ####################################################################################
-            ####################################################################################
-            World.robot.set_joint_position(f"{arm}_hand_index_0_joint",
-                                           math.radians(arm_bottle.get(7).asFloat64()/-3.0))
-            World.robot.set_joint_position(f"{arm}_hand_middle_0_joint",
-                                           0)
-            World.robot.set_joint_position(f"{arm}_hand_ring_0_joint",
-                                           math.radians(20 - (arm_bottle.get(7).asFloat64()/3.0)))
-            World.robot.set_joint_position(f"{arm}_hand_little_0_joint",
-                                           math.radians(20 - (arm_bottle.get(7).asFloat64()/3.0)))
+        for i in range(7):
+            self.update_joint_degree(arms_names[i],arm_bottle.get(i).asFloat64())
+        ####################################################################################
+        ####################################################################################
+        # hand (7) = index 0 +  ring 0 + little 0
+        self.update_joint_degree(f"{arm}_hand_index_0_joint",
+                                       arm_bottle.get(7).asFloat64()/-3.0)
+        self.update_joint_degree(f"{arm}_hand_middle_0_joint",
+                                       0)
+        self.update_joint_degree(f"{arm}_hand_ring_0_joint",
+                                       20 - (arm_bottle.get(7).asFloat64()/3.0))
+        self.update_joint_degree(f"{arm}_hand_little_0_joint",
+                                       20 - (arm_bottle.get(7).asFloat64()/3.0))
 
-            ####################################################################################
-            # thumb oppose (8) = 0
-            print(f"setting thumb joint to {math.radians(arm_bottle.get(8).asFloat64())}")
-            World.robot.set_joint_position(f"{arm}_hand_thumb_0_joint",
-                                           math.radians(arm_bottle.get(8).asFloat64()))
-            print("thumb joint set")
+        ####################################################################################
+        # thumb oppose (8) = 0
 
-            # # thumb proximal (9) = 1
-            World.robot.set_joint_position(f"{arm}_hand_thumb_1_joint",
-                                           math.radians(arm_bottle.get(9).asFloat64()))
+        self.update_joint_degree(f"{arm}_hand_thumb_0_joint",
+                                       arm_bottle.get(8).asFloat64())
 
-            # thumb distal (10) = 2 + 3
-            World.robot.set_joint_position(f"{arm}_hand_thumb_2_joint",
-                                           math.radians(0.5*arm_bottle.get(10).asFloat64()))
-            World.robot.set_joint_position(f"{arm}_hand_thumb_3_joint",
-                                           math.radians(0.5*arm_bottle.get(10).asFloat64()))
-            ####################################################################################
-            # # index proximal (11) = 1
-            World.robot.set_joint_position(f"{arm}_hand_index_1_joint",
-                                           math.radians(arm_bottle.get(11).asFloat64()))
+        # # thumb proximal (9) = 1
+        self.update_joint_degree(f"{arm}_hand_thumb_1_joint",
+                                       arm_bottle.get(9).asFloat64())
 
-            # index distal (12) = 2 + 3
-            World.robot.set_joint_position(f"{arm}_hand_index_2_joint",
-                                           math.radians(0.5 * arm_bottle.get(12).asFloat64()))
-            World.robot.set_joint_position(f"{arm}_hand_index_3_joint",
-                                           math.radians(0.5 * arm_bottle.get(12).asFloat64()))
-            ####################################################################################
-            # middle proximal (13) = 1
-            World.robot.set_joint_position(f"{arm}_hand_middle_1_joint",
-                                           math.radians(arm_bottle.get(13).asFloat64()))
+        # thumb distal (10) = 2 + 3
+        self.update_joint_degree(f"{arm}_hand_thumb_2_joint",
+                                       0.5*arm_bottle.get(10).asFloat64())
+        self.update_joint_degree(f"{arm}_hand_thumb_3_joint",
+                                       0.5*arm_bottle.get(10).asFloat64())
+        ####################################################################################
+        # # index proximal (11) = 1
+        self.update_joint_degree(f"{arm}_hand_index_1_joint",
+                                       arm_bottle.get(11).asFloat64())
 
-            # middle distal (14) = 2 + 3
-            World.robot.set_joint_position(f"{arm}_hand_middle_2_joint",
-                                           math.radians(0.5 * arm_bottle.get(14).asFloat64()))
-            World.robot.set_joint_position(f"{arm}_hand_middle_3_joint",
-                                           math.radians(0.5 * arm_bottle.get(14).asFloat64()))
-            ####################################################################################
+        # index distal (12) = 2 + 3
+        self.update_joint_degree(f"{arm}_hand_index_2_joint",
+                                       0.5 * arm_bottle.get(12).asFloat64())
+        self.update_joint_degree(f"{arm}_hand_index_3_joint",
+                                       0.5 * arm_bottle.get(12).asFloat64())
+        ####################################################################################
+        # middle proximal (13) = 1
+        self.update_joint_degree(f"{arm}_hand_middle_1_joint",
+                                       arm_bottle.get(13).asFloat64())
 
-            # Pinky (15) = 1 + 2 + 3 (little) (ring)
-            World.robot.set_joint_position(f"{arm}_hand_ring_1_joint",
-                                           math.radians(arm_bottle.get(15).asFloat64()/3.0))
-            World.robot.set_joint_position(f"{arm}_hand_ring_2_joint",
-                                           math.radians(arm_bottle.get(15).asFloat64()/3.0))
-            World.robot.set_joint_position(f"{arm}_hand_ring_3_joint",
-                                           math.radians( arm_bottle.get(15).asFloat64()/3.0))
-            ####################################################################################
-            # Pinky (15) = 1 + 2 + 3 (little) (ring)
-            World.robot.set_joint_position(f"{arm}_hand_little_1_joint",
-                                           math.radians(arm_bottle.get(15).asFloat64()/3.0))
-            World.robot.set_joint_position(f"{arm}_hand_little_2_joint",
-                                           math.radians(arm_bottle.get(15).asFloat64()/3.0))
-            World.robot.set_joint_position(f"{arm}_hand_little_3_joint",
-                                           math.radians(arm_bottle.get(15).asFloat64()/3.0))
-            ####################################################################################
-        except Exception as e:
-            print(e)
-            print("error in updating arm parts" , f"{arm}_hand_thumb_0_joint")
-            pass
+        # middle distal (14) = 2 + 3
+        self.update_joint_degree(f"{arm}_hand_middle_2_joint",
+                                       0.5 * arm_bottle.get(14).asFloat64())
+        self.update_joint_degree(f"{arm}_hand_middle_3_joint",
+                                       0.5 * arm_bottle.get(14).asFloat64())
+        ####################################################################################
+
+        # Pinky (15) = 1 + 2 + 3 (little) (ring)
+        self.update_joint_degree(f"{arm}_hand_ring_1_joint",
+                                       arm_bottle.get(15).asFloat64()/3.0)
+        self.update_joint_degree(f"{arm}_hand_ring_2_joint",
+                                       arm_bottle.get(15).asFloat64()/3.0)
+        self.update_joint_degree(f"{arm}_hand_ring_3_joint",
+                                        arm_bottle.get(15).asFloat64()/3.0)
+        ####################################################################################
+        # Pinky (15) = 1 + 2 + 3 (little) (ring)
+        self.update_joint_degree(f"{arm}_hand_little_1_joint",
+                                       arm_bottle.get(15).asFloat64()/3.0)
+        self.update_joint_degree(f"{arm}_hand_little_2_joint",
+                                       arm_bottle.get(15).asFloat64()/3.0)
+        self.update_joint_degree(f"{arm}_hand_little_3_joint",
+                                       arm_bottle.get(15).asFloat64()/3.0)
+        ####################################################################################
+
 
 
 
@@ -295,7 +282,7 @@ class icub_state_updater(yarp.RFModule):
         head_state: yarp.Bottle = self.state_head_port.read(shouldWait=False)
 
         if torso_state is not None:
-            self.update_part_state(torso_state,self.torso_joints_names)
+            self.update_torso_state(torso_state, self.torso_joints_names)
 
         if right_arm_state is not None:
             self.update_arm_state(right_arm_state,self.right_arm_joints_names,"r")
