@@ -6,7 +6,7 @@ from pycram.world_concepts.world_object import Object
 from pycram.datastructures.pose import Pose
 
 from pycram.datastructures.dataclasses import Color
-from demos.playfield.sandcastle import generic_plan
+from demos.pycram_procthor_demo.code_example import generic_plan
 from pycram import World
 from pycram.failures import PlanFailure
 from pycram.tasktree import task_tree

@@ -5,8 +5,13 @@ from pycram.datastructures.enums import ObjectType
 from pycram.datastructures.pose import Pose
 from pycram.process_module import simulated_robot, with_simulated_robot
 
-def language_plan_test():
+def generic_plan(inWorld):
+    world = inWorld
     pick_pose = Pose([1, -1.78, 0.55])
+
+    robot_desig = BelieveObject(names=["pr2"])
+    apartment_desig = BelieveObject(names=["apartment"])
+
     @with_simulated_robot
     def move_and_detect(obj_type):
         NavigateAction(target_locations=[Pose([2, -1.89, 0])]).resolve().perform()
@@ -27,3 +32,4 @@ def language_plan_test():
         TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
 
         ParkArmsAction([Arms.BOTH]).resolve().perform()
+
