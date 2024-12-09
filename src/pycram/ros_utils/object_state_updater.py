@@ -32,6 +32,8 @@ class RobotStateUpdater:
         :param joint_state_topic: Name of the joint state topic, needs to publish sensor_msgs/JointState
         """
         self.tf_listener = tf.TransformListener()
+        self.tf_listener.clear()
+
         time.sleep(1)
         self.tf_topic = tf_topic
         self.joint_state_topic = joint_state_topic
@@ -46,7 +48,8 @@ class RobotStateUpdater:
 
         :param msg: TransformStamped message published to the topic
         """
-        trans, rot = self.tf_listener.lookupTransform("/map", RobotDescription.current_robot_description.base_link, Time(0))
+        self.tf_listener.waitForTransform("map", RobotDescription.current_robot_description.base_link, Time(0.0), Duration(5))
+        trans, rot = self.tf_listener.lookupTransform("map", RobotDescription.current_robot_description.base_link, Time(0.0))
         World.robot.set_pose(Pose(trans, rot))
 
     def _subscribe_joint_state(self, msg: JointState) -> None:
