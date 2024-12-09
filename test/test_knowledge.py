@@ -87,18 +87,21 @@ class TestPartialDesignator(KnowledgeBulletTestCase):
         test_object = BelieveObject(names=["milk"])
         partial_desig = PartialDesignator(PickUpActionPerformable, test_object, arm=Arms.RIGHT)
         self.assertEqual(partial_desig.performable, PickUpActionPerformable)
-        self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": test_object, "grasp": None})
+        self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": test_object,
+                                                "grasp": None, 'prepose_distance': None})
 
     def test_partial_desig_construction_none(self):
         partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
         self.assertEqual(partial_desig.performable, PickUpActionPerformable)
-        self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": None, "grasp": None})
+        self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": None,
+                                                "grasp": None, 'prepose_distance': None})
 
     def test_partial_desig_call(self):
         partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
         new_partial_desig = partial_desig(grasp=Grasp.FRONT)
         self.assertEqual(new_partial_desig.performable, PickUpActionPerformable)
-        self.assertEqual({"arm": Arms.RIGHT, "grasp": Grasp.FRONT, "object_designator": None}, new_partial_desig.kwargs)
+        self.assertEqual({"arm": Arms.RIGHT, "grasp": Grasp.FRONT, "object_designator": None,
+                          'prepose_distance': None}, new_partial_desig.kwargs)
 
     def test_partial_desig_missing_params(self):
         partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
@@ -107,7 +110,7 @@ class TestPartialDesignator(KnowledgeBulletTestCase):
 
         new_partial = partial_desig(grasp=Grasp.FRONT)
         missing_params = new_partial.missing_parameter()
-        self.assertEqual(["object_designator"], missing_params)
+        self.assertEqual(['object_designator', 'prepose_distance'], missing_params)
 
     def test_is_iterable(self):
         self.assertTrue(PartialDesignator._is_iterable([1, 2, 3]))

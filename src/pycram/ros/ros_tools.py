@@ -42,5 +42,9 @@ def sleep(duration: float):
     rospy.sleep(duration)
 
 
+def get_time():
+    return rospy.get_time()
+
+
 def create_timer(duration: int, callback, oneshot=False):
     return rospy.Timer(duration, callback, oneshot=oneshot)

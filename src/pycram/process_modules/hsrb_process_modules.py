@@ -2,6 +2,7 @@ import numpy as np
 from threading import Lock
 from typing_extensions import Any
 
+from .default_process_modules import DefaultDetecting, DefaultDetectingReal
 from ..datastructures.enums import ExecutionType
 from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
 from ..robot_description import RobotDescription
@@ -233,11 +234,9 @@ class HSRBManager(ProcessModuleManager):
 
     def detecting(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return HSRBDetecting(self._detecting_lock)
+            return DefaultDetecting(self._detecting_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return HSRBDetectingReal(self._detecting_lock)
-        elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
-            return HSRBDetecting(self._detecting_lock)
+            return DefaultDetectingReal(self._detecting_lock)
 
     def move_tcp(self):
         if  ProcessModuleManager.execution_type == ExecutionType.REAL:

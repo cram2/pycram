@@ -70,3 +70,6 @@ class MultiverseConfig(WorldConfig):
 
     position_tolerance = 2e-2
     prismatic_joint_position_tolerance = 2e-2
+
+    use_giskard_monitor = False
+    allow_gripper_collision = False

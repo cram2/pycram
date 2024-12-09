@@ -152,11 +152,12 @@ def plan(obj, obj_desig, torso=0.2, place="countertop"):
         location = CostmapLocation(target=obj_desig, reachable_for=robot_desig)
         pose = location.resolve()
         print()
-        NavigateActionPerformable(pose.pose).perform()
+        NavigateActionPerformable(pose.pose, True).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         good_torsos.append(torso)
         picked_up_arm = pose.reachable_arms[0]
-        PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp=Grasp.FRONT).perform()
+        PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp=Grasp.FRONT,
+                                prepose_distance=0.03).perform()
 
         ParkArmsActionPerformable(Arms.BOTH).perform()
         scm = SemanticCostmapLocation(place, apartment_desig, obj_desig)
@@ -171,7 +172,7 @@ def plan(obj, obj_desig, torso=0.2, place="countertop"):
                                          reachable_arm=picked_up_arm)
         pose = place_location.resolve()
 
-        NavigateActionPerformable(pose.pose).perform()
+        NavigateActionPerformable(pose.pose, True).perform()
 
         PlaceActionPerformable(object_designator=obj_desig, target_location=pose_island.pose,
                                arm=picked_up_arm).perform()

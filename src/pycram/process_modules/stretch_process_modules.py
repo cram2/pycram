@@ -306,10 +306,10 @@ class StretchManager(ProcessModuleManager):
             return StretchMoveHeadReal(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
-            return StretchDetecting(self._detecting_lock)
-        elif ProcessModuleManager.execution_type ==  ExecutionType.REAL:
-            return StretchDetectingReal(self._detecting_lock)
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
+            return DefaultDetecting(self._detecting_lock)
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            return DefaultDetectingReal(self._detecting_lock)
 
     def move_tcp(self):
         if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:

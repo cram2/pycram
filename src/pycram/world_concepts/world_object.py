@@ -1273,6 +1273,15 @@ class Object(WorldEntity, HasConcept):
         """
         return self.world.get_multiple_joint_positions([self.joints[joint_name] for joint_name in joint_names])
 
+    def get_positions_of_controllable_joints(self) -> Dict[str, float]:
+        """
+        Return a list of all controllable joints of this object.
+
+        :return: A list of all controllable joints.
+        """
+        return {j.name: j.position for j in self.joints.values()
+                if j.type != JointType.FIXED and not j.is_virtual}
+
     def get_positions_of_all_joints(self) -> Dict[str, float]:
         """
         Return the positions of all joints of the object as a dictionary of joint names and joint positions.

@@ -1,5 +1,7 @@
 import time
 import unittest
+
+from pycram.designator import ObjectDesignatorDescription
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, FaceAtPerformable
@@ -7,7 +9,7 @@ from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
-from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp
+from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp, DetectionTechnique
 from pycram.testing import  BulletWorldTestCase
 import numpy as np
 
@@ -70,7 +72,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         description = action_designator.PickUpAction(object_description, [Arms.LEFT], [Grasp.FRONT])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable(0.3).perform()
             description.resolve().perform()
         self.assertTrue(object_description.resolve().world_object in self.robot.attachments.keys())
@@ -80,9 +82,9 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable(0.3).perform()
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             description.resolve().perform()
         self.assertFalse(object_description.resolve().world_object in self.robot.attachments.keys())
 
@@ -96,14 +98,14 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_detect(self):
         self.kitchen.set_pose(Pose([10, 10, 0]))
         self.milk.set_pose(Pose([1.5, 0, 1.2]))
-        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.DetectAction(object_description)
-        self.assertEqual(description.ground().object_designator.name, "milk")
+        object_description = ObjectDesignatorDescription(types=[Milk])
+        description = action_designator.DetectAction(technique=DetectionTechnique.TYPES, object_designator_description=object_description)
         with simulated_robot:
             detected_object = description.resolve().perform()
-        self.assertEqual(detected_object.name, "milk")
-        self.assertEqual(detected_object.obj_type, Milk)
-        self.assertEqual(detected_object.world_object, self.milk)
+
+        self.assertEqual(detected_object[0].name, "milk")
+        self.assertEqual(detected_object[0].obj_type, Milk)
+        self.assertEqual(detected_object[0].world_object.world, self.milk.world)
 
     # Skipped since open and close work only in the apartment at the moment
     @unittest.skip
@@ -146,6 +148,6 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_facing(self):
         with simulated_robot:
-            FaceAtPerformable(self.milk.pose).perform()
+            FaceAtPerformable(self.milk.pose, True).perform()
             milk_in_robot_frame = LocalTransformer().transform_to_object_frame(self.milk.pose, self.robot)
             self.assertAlmostEqual(milk_in_robot_frame.position.y, 0.)

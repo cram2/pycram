@@ -88,6 +88,17 @@ class WorldConfig:
     """
     Whether to raise an error if the goals are not achieved.
     """
+
+    use_giskard_monitor: bool = True
+    """
+    Whether to use the Giskard goal monitor when executing the goals.
+    """
+
+    allow_gripper_collision: bool = True
+    """
+    Whether to allow the gripper to collide with the objects when planning for the goals.
+    """
+
     @classmethod
     def get_pose_tolerance(cls) -> Tuple[float, float]:
         return cls.position_tolerance, cls.orientation_tolerance
