@@ -54,7 +54,7 @@ def start_demo():
 
     update_text(text_widget, 'Executing Demo: ' + task_param)
 
-    demo_selecting(environment_param, robot_name, task_param)
+    demo_selecting(apartment, robot, task_param)
 
     update_text(text_widget, 'Done with: ' + task_param)
 

@@ -59,17 +59,17 @@ def transporting_demo(apartment, robot):
                       color=Color(1, 1, 0, 1))
         bowl_target_pose = Pose([5, 3.3, 0.8], [0, 0, 1, 1])
 
-        # spoon = Object("spoon", ObjectType.SPOON, "spoon.stl", pose=Pose([2.5, 2.2, 0.85]),
-        #                color=Color(0, 0, 1, 1))
-        # spoon_target_pose = Pose([4.85, 3.3, 0.8], [0, 0, 1, 1])
-        #
-        # apartment.attach(spoon, 'cabinet10_drawer_top')
+        spoon = Object("spoon", ObjectType.SPOON, "spoon.stl", pose=Pose([2.5, 2.2, 0.85]),
+                       color=Color(0, 0, 1, 1))
+        spoon_target_pose = Pose([4.85, 3.3, 0.8], [0, 0, 1, 1])
+
+        apartment.attach(spoon, 'cabinet10_drawer_top')
 
         pick_pose = Pose([2.7, 2.15, 1])
         nav_pose = Pose([1.5, 2, 0])
 
-    robot_desig = BelieveObject(names=[robot])
-    apartment_desig = BelieveObject(names=[apartment])
+    robot_desig = BelieveObject(names=[robot.name])
+    apartment_desig = BelieveObject(names=[apartment.name])
 
     @with_simulated_robot
     def move_and_detect(obj_type):
@@ -93,7 +93,7 @@ def transporting_demo(apartment, robot):
 
         cereal_desig = move_and_detect(ObjectType.BREAKFAST_CEREAL)
 
-        if robot == "tiago_dual":
+        if robot.name == "tiago_dual":
             #cereal_target_pose = Pose([5.25, 3.4, 0.85], [0, 0, 0, -1])
             TransportAction(cereal_desig, [Arms.LEFT], [cereal_target_pose]).resolve().perform()
         else:
@@ -103,7 +103,7 @@ def transporting_demo(apartment, robot):
         bowl_desig = move_and_detect(ObjectType.BOWL)
         TransportAction(bowl_desig, [Arms.LEFT], [bowl_target_pose]).resolve().perform()
 
-        if robot == "iCub":
+        if robot.name == "iCub":
             spoon_desig = move_and_detect(ObjectType.SPOON)
 
             TransportAction(spoon_desig, [Arms.LEFT], [spoon_target_pose]).resolve().perform()
@@ -119,7 +119,7 @@ def transporting_demo(apartment, robot):
 
             OpenAction(object_designator_description=handle_desig, arms=[closed_location.arms[0]],
                        start_goal_location=[closed_location, opened_location]).resolve().perform()
-            # spoon.detach(apartment)
+            spoon.detach(apartment)
 
             # Detect and pickup the spoon
             ParkArmsAction([Arms.BOTH]).resolve().perform()
@@ -128,20 +128,20 @@ def transporting_demo(apartment, robot):
 
             spoon_desig = DetectAction(BelieveObject(types=[ObjectType.SPOON])).resolve().perform()
 
-            if robot in {"iai_donbot", "fetch"}:
+            if robot.name in {"iai_donbot", "fetch"}:
                 ParkArmsAction([Arms.BOTH]).resolve().perform()
                 PickUpAction(spoon_desig, [Arms.LEFT], [Grasp.TOP]).resolve().perform()
 
                 ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-                # # Find a pose to place the spoon, move and then place it
-                # placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(),
-                #                               reachable_arm=Arms.LEFT,
-                #                               used_grasps=[Grasp.TOP], object_in_hand=spoon_desig).resolve()
-                #
-                # NavigateAction([placing_loc.pose]).resolve().perform()
-                #
-                # PlaceAction(spoon_desig, [spoon_target_pose], [Arms.LEFT]).resolve().perform()
+                # Find a pose to place the spoon, move and then place it
+                placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(),
+                                              reachable_arm=Arms.LEFT,
+                                              used_grasps=[Grasp.TOP], object_in_hand=spoon_desig).resolve()
+
+                NavigateAction([placing_loc.pose]).resolve().perform()
+
+                PlaceAction(spoon_desig, [spoon_target_pose], [Arms.LEFT]).resolve().perform()
 
                 ParkArmsAction([Arms.BOTH]).resolve().perform()
 
@@ -173,14 +173,14 @@ def transporting_demo(apartment, robot):
 
                 MoveTorsoAction([TorsoState.MID]).resolve().perform()
 
-                # # Find a pose to place the spoon, move and then place it
-                # placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(),
-                #                               reachable_arm=pickup_arm, used_grasps=[Grasp.TOP],
-                #                               object_in_hand=spoon_desig).resolve()
-                #
-                # NavigateAction([placing_loc.pose]).resolve().perform()
-                #
-                # PlaceAction(spoon_desig, [spoon_target_pose], [pickup_arm]).resolve().perform()
+                # Find a pose to place the spoon, move and then place it
+                placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(),
+                                              reachable_arm=pickup_arm, used_grasps=[Grasp.TOP],
+                                              object_in_hand=spoon_desig).resolve()
+
+                NavigateAction([placing_loc.pose]).resolve().perform()
+
+                PlaceAction(spoon_desig, [spoon_target_pose], [pickup_arm]).resolve().perform()
 
                 ParkArmsAction([Arms.BOTH]).resolve().perform()
 
