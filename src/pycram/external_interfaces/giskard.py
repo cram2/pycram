@@ -18,6 +18,8 @@ from ..robot_description import RobotDescription
 from typing_extensions import List, Dict, Callable, Optional
 from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 from threading import Lock, RLock
+from pycram.ros import logging as log
+
 
 try:
     from giskardpy.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
@@ -173,7 +175,7 @@ def spawn_object(object: Object) -> None:
             spawn_mesh(object.name, filename, object.get_pose())
     else:
         ww = spawn_urdf(object.name, object.path, object.get_pose())
-        print("GiskardSpawnURDF Return value: {} ObjectName:{}".format(ww,object.name))
+        log.loginfo("GiskardSpawnURDF Return value: {} ObjectName:{}".format(ww,object.name))
 
 
 @init_giskard_interface
