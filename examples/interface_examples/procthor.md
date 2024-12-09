@@ -1,4 +1,4 @@
-# Procthor Interface - Creating a CEO for testing multible robots in mutliple enviromnents
+# Procthor Interface - Creating a Manager for testing multible robots in mutliple enviromnents
 
 This Notebook aims to provide an overview of the ProcThor Interface, by giving an easy-to-understand example on how to 
 use it. We will be executing a simple pick and place plan with hard coded values and store the NEEMs of these 
@@ -51,71 +51,72 @@ First let us check how many different environments are already known.
 ```python
 number_of_known_environment = len(
     procThorInterface.get_all_environments_stored_below_directory(procThorInterface.source_folder))
-print("Number of known Environments:{}".format(number_of_known_environment))
-print("Number of needed Testenvironments:{}".format(number_of_test_environment))
+log.loginfo("Number of known Environments:{}".format(number_of_known_environment))
+log.loginfo("Number of needed Testenvironments:{}".format(number_of_test_environment))
 ```
 
 Now depending on if we have to get some more, we will download some additional:
 ```python
 if number_of_known_environment < number_of_test_environment:
-    print("Downloading missing environments...")
-    procThorInterface.download_num_random_environment(number_of_test_environment-number_of_known_environment)
+    log.loginfo("Downloading missing environments...")
+    procThorInterface.download_num_random_environment(number_of_test_environment - number_of_known_environment)
 ```
 
 Now that the preparations are met we can start to run our plan for each robot (even though it is only one) and each
 environment we know:
 
 ```python
-v = 0
-works = 0
-fails = 0
-known_environments = procThorInterface.get_all_environments_stored_below_directory(procThorInterface.source_folder)
-world = BulletWorld(WorldMode.GUI)
-apartment = None
-milk_pos = Pose([1, -1.78, 0.55], [1, 0, 0, 0])
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, -1.78, 0.55], [1, 0, 0, 0]),
-              color=Color(1, 0, 0, 1))
-for robot in robots:
-    robot_obj = Object("pr2", ObjectType.ROBOT, robot, pose=Pose([1, 2, 0]))
-    for environment in known_environments:
-        v += 1
-        print("Trying plan: {} with robot: {} in: {}".format("param_plan", robot, environment["name"]))
-        try:
-            apartment = Object(environment["name"], ObjectType.ENVIRONMENT, environment["storage_place"])
-            generic_plan(world)
-            works += 1
-            print("Successfully!\n Overall successful tries: {}".format(works))
-
-        except PlanFailure as e:
-            traceback.print_exc()
-            fails += 1
-            print("Plan Fail!\n Overall failed tries: {}".format(fails))
-
-        except FileNotFoundError as e2:
-            traceback.print_exc()
-            fails += 1
-            print("Fail!\n Overall failed tries: {}".format(fails))
-
-        finally:
+from pycram.external_interfaces.pycramgym import PyCRAMGym  
+    counter = 0
+    works = 0
+    fails = 0
+    known_environments = procThorInterface.get_all_environments_stored_below_directory(procThorInterface.source_folder)
+    world = BulletWorld(WorldMode.GUI) # If we spawn and despawn the bulletworld in quick sucession we will have missing object references
+    milk_pos = Pose([1, -1.78, 0.55], [1, 0, 0, 0])
+    milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, -1.78, 0.55], [1, 0, 0, 0]),
+                  color=Color(1, 0, 0, 1))
+    for robot in robots:
+        for environment in known_environments:
+            counter += 1
+            log.loginfo("Trying plan: {} with robot: {} in: {}".format("param_plan", robot, environment["name"]))
             try:
-                process_meta_data = pycram.orm.base.ProcessMetaData()
-                process_meta_data.description = "CEO Test run number {} robot:{} enviroment:{}".format(v, robot,
-                                                                                                       environment)
-                process_meta_data.insert(session)
-                task_tree.root.insert(session)
-            except Exception as e:
-                traceback.print_exc()
-                print("Error while storing the NEEM. This should not happen.")
-            task_tree.reset_tree()
-            if World.current_world is not None and apartment is not None:
-                world.remove_object(apartment)
-                milk.set_pose(milk_pos)
-                print("reseting world")
-if World.current_world is None:
-    world.remove_object(robot_obj)
+                # apartment = Object(environment["name"], ObjectType.ENVIRONMENT, environment["storage_place"])
+                setupNr1=PyCRAMGym(environment["name"], robot, Code(language_plan_test))
 
-print("Resume:\nOverall successful tries: {}\nOverall failed tries: {}".format(works, fails))
-World.current_world.exit()
+                setupNr1.plan.perform()
+                works += 1
+                log.loginfo("Successfully!\n Overall successful tries: {}".format(works))
+
+            except PlanFailure as e:
+                traceback.print_exc()
+                fails += 1
+                log.loginfo("Plan Fail!\n Overall failed tries: {}".format(fails))
+
+            except FileNotFoundError as e2:
+                traceback.print_exc()
+                fails += 1
+                log.loginfo("Fail!\n Overall failed tries: {}".format(fails))
+
+            finally:
+                try:
+                    process_meta_data = pycram.orm.base.ProcessMetaData()
+                    process_meta_data.description = "CEO Test run number {} robot:{} enviroment:{}".format(counter,
+                                                                                                           robot,
+                                                                                                           environment)
+                    process_meta_data.insert(session)
+                    task_tree.root.insert(session)
+                except Exception as e:
+                    traceback.print_exc()
+                    log.logerr("Error while storing the NEEM. This should not happen.")
+                task_tree.reset_tree()
+                if World.current_world is not None:
+                    setupNr1.close()
+                    log.loginfo("reseting world")
+    # if World.current_world is None:
+    #     world.remove_object(robot_obj)
+
+    log.loginfo("Resume:\nOverall successful tries: {}\nOverall failed tries: {}".format(works, fails))
+    World.current_world.exit()
 ```
 
 
