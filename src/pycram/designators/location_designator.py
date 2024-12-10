@@ -300,8 +300,8 @@ class AccessingLocation(LocationDesignatorDescription):
         orthogonal_vector /= np.linalg.norm(orthogonal_vector)
         orthogonal_size = width
         map_origin_idx = cost_map.map.shape[0] // 2, cost_map.map.shape[1] // 2
-        for i in range(int(motion_vector_length / 0.02)):
-            for j in range(int(orthogonal_size / 0.02)):
+        for i in range(int(motion_vector_length / cost_map.resolution)):
+            for j in range(int(orthogonal_size / cost_map.resolution)):
                 idx = (int(map_origin_idx[0] + i * unit_motion_vector[0] + j * orthogonal_vector[0]),
                        int(map_origin_idx[1] + i * unit_motion_vector[1] + j * orthogonal_vector[1]))
                 cost_map.map[idx] = 0
