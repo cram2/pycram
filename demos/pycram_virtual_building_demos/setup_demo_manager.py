@@ -39,24 +39,24 @@ def start_demo():
     # text widget for the virtual building
     text_widget = display_loading_gif_with_text()
     update_text(text_widget, 'Loading process~ Please wait...')
-    world = BulletWorld(WorldMode.DIRECT)
-
-    # Set this to True to publish costmaps and axis marker during the demo. May slow down the simulation.
-    world.allow_publish_debug_poses = False
-
-    VizMarkerPublisher()
-    robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
-    apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
-    if robot_param not in ["pr2", "icub", "fetch", "tiago", "donbot"]:
-        VizMarkerRobotPublisher()
-    else:
-        TFBroadcaster()
+    # world = BulletWorld(WorldMode.DIRECT)
+    #
+    # # Set this to True to publish costmaps and axis marker during the demo. May slow down the simulation.
+    # world.allow_publish_debug_poses = False
+    #
+    # VizMarkerPublisher()
+    # robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
+    # apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
+    # if robot_param not in ["pr2", "icub", "fetch", "tiago", "donbot"]:
+    #     VizMarkerRobotPublisher()
+    # else:
+    #     TFBroadcaster()
 
     clear_output(wait=True)
 
     update_text(text_widget, 'Executing Demo: ' + task_param)
 
-    demo_selecting(apartment, robot, task_param)
+    demo_selecting(environment_param, robot_name, task_param)
 
     update_text(text_widget, 'Done with: ' + task_param)
 

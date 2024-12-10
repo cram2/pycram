@@ -25,7 +25,12 @@ from pycram.datastructures.dataclasses import Color
 
 
 # apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment-small{extension}")
-def transporting_demo(apartment, robot):
+def transporting_demo(apartment_name, robot_name):
+
+    robot_desig = BelieveObject(names=[robot_name])
+    apartment_desig = BelieveObject(names=[apartment_name])
+    robot = robot_desig.resolve().world_object
+    apartment = apartment_desig.resolve().world_object
 
     if robot.name == "iCub":
         milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([4.7, 4.6, 0.8]),
@@ -67,9 +72,6 @@ def transporting_demo(apartment, robot):
 
         pick_pose = Pose([2.7, 2.15, 1])
         nav_pose = Pose([1.5, 2, 0])
-
-    robot_desig = BelieveObject(names=[robot.name])
-    apartment_desig = BelieveObject(names=[apartment.name])
 
     @with_simulated_robot
     def move_and_detect(obj_type):
