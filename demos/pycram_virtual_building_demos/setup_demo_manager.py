@@ -8,7 +8,7 @@ from demos.pycram_virtual_building_demos.src.generlized_actions_demo import star
 from demos.pycram_virtual_building_demos.src.transport_demo import transporting_demo
 
 # sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
-# sys.path.insert(0, '/home/jovyan/workspace/ros/src/pycram')
+sys.path.insert(0, '/home/jovyan/workspace/ros/src/pycram')
 # sys.path.insert(0, '/home/me/IAI_work/binder_ws/src/pycram')
 
 from demos.pycram_virtual_building_demos.setup.setup_utils import display_loading_gif_with_text, update_text, \
