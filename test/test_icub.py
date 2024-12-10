@@ -77,8 +77,6 @@ class ICUBTestCase(BulletWorldTestCase):
 
 
     def test_move_joints(self):
-
-
         with real_robot:
             yarpModule = run_icub_state_updater(['/', '--robot', 'icubSim'])
             if yarpModule is None:
@@ -92,13 +90,13 @@ class ICUBTestCase(BulletWorldTestCase):
             MoveArmJointsMotion(right_arm_poses={"r_elbow": math.radians(40.0)}).perform()
             LookingMotion(Pose([-2, -2, 3])).perform()
             MoveGripperMotion(GripperState.OPEN,Arms.LEFT).perform()
-            sleep(10)
+            sleep(2)
             MoveGripperMotion(GripperState.CLOSE,Arms.LEFT).perform()
             MoveGripperMotion(GripperState.CLOSE, Arms.RIGHT).perform()
-            sleep(10)
+            sleep(2)
             MoveGripperMotion(GripperState.OPEN, Arms.RIGHT).perform()
             MoveGripperMotion(GripperState.OPEN, Arms.LEFT).perform()
-            sleep(10)
+            sleep(2)
 
             if yarpModule is None:
                 print("stopping the module")

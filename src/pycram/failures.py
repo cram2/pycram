@@ -506,3 +506,13 @@ class LinkGeometryHasNoMesh(Exception):
     def __init__(self, link_name: str, geometry_type: str):
         super().__init__(f"Link {link_name} geometry with type {geometry_type} has no mesh.")
 
+
+class YarpNetworkError(Exception):
+    def __init__(self):
+        super().__init__(f"Yarp Network Initialization Failed. Check if yarpserver is already up")
+
+
+class RobotNotInitialized(Exception):
+    def __init__(self,robot_name: str):
+        super().__init__(f"Robot ({robot_name} not correctly initialized")
+

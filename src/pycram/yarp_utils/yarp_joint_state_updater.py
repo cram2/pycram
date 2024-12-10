@@ -3,21 +3,23 @@ import sys
 from time import sleep
 
 from pycram import World
+from pycram.failures import YarpNetworkError
 from pycram.robot_description import RobotDescription
-from pycram.yarp_utils.yarp_networking import interrupt_and_close
+from pycram.ros.logging import logdebug, logwarn, loginfo, logerr
+from pycram.yarp_utils.yarp_networking import *
 import yarp
 
 
-class icub_state_updater(yarp.RFModule):
+class IcubStateUpdater(yarp.RFModule):
 
     def __init__(self):
         yarp.RFModule.__init__(self)
 
-        # handle port for the RFModule
+
         self.handle_port = yarp.Port()
         self.attach(self.handle_port)
 
-        # Define vars to receive an image
+
         self.module_name = None
         self.robot_name_yarp = None
 
@@ -26,15 +28,15 @@ class icub_state_updater(yarp.RFModule):
         self.state_left_arm_port_name = None
         self.state_head_port_name = None
 
-        self.torso_joints_name = None
-        self.right_arm_joints_name = None
-        self.left_arm_joints_name = None
-        self.head_joints_name = None
-
         self.state_torso_port = yarp.BufferedPortBottle()
         self.state_right_arm_port = yarp.BufferedPortBottle()
         self.state_left_arm_port = yarp.BufferedPortBottle()
         self.state_head_port = yarp.BufferedPortBottle()
+
+        self.torso_joints_names = None
+        self.right_arm_joints_names = None
+        self.left_arm_joints_names = None
+        self.head_joints_names = None
 
     def configure(self, rf):
         self.module_name = rf.check("name",
@@ -53,26 +55,26 @@ class icub_state_updater(yarp.RFModule):
 
         # Create handle port to read message
         if not self.handle_port.open('/' + self.module_name):
-            print("Can't open the port correctly")
+            logerr("Can't open the port correctly")
             return False
 
         if not self.state_torso_port.open(self.state_torso_port_name):
-            print(f'Can\'t open the port correctly {self.state_torso_port_name}')
+            logerr(f'Can\'t open the port correctly {self.state_torso_port_name}')
             return False
 
         if not self.state_right_arm_port.open(self.state_right_arm_port_name):
-            print(f'Can\'t open the port correctly {self.state_right_arm_port_name}')
+            logerr(f'Can\'t open the port correctly {self.state_right_arm_port_name}')
             return False
 
         if not self.state_left_arm_port.open(self.state_left_arm_port_name):
-            print(f'Can\'t open the port correctly {self.state_left_arm_port_name}')
+            logerr(f'Can\'t open the port correctly {self.state_left_arm_port_name}')
             return False
 
         if not self.state_head_port.open(self.state_head_port_name):
-            print(f'Can\'t open the port correctly {self.state_head_port_name}')
+            logerr(f'Can\'t open the port correctly {self.state_head_port_name}')
             return False
         if not self.connect_ports():
-            print("Error in connecting ports. Make sure that the robot is already up")
+            logerr("Error in connecting ports. Make sure that the robot is already up")
             return False
 
 
@@ -81,56 +83,83 @@ class icub_state_updater(yarp.RFModule):
         self.left_arm_joints_names = RobotDescription.current_robot_description.get_actuated_joint_names("left_arm")
         self.head_joints_names = ["neck_pitch","neck_roll","neck_yaw","eyes_tilt","r_eye_pan_joint","l_eye_pan_joint"]
 
-        if self.torso_joints_names is None:
-            print("Error in joint names")
-            return False
-
-        if self.right_arm_joints_names is None:
-            print("Error in joint names")
-            return False
-
-        if self.left_arm_joints_names is None:
-            print("Error in joint names")
-            return False
-
-        if self.head_joints_names is None:
-            print("Error in joint names")
-            return False
-
-        print("Initialization complete")
+        loginfo("Initialization complete")
         return True
 
     def getName(self, name):
+        """
+        Constructs a full YARP-compatible port name for the module.
+
+        This method appends a given string (`name`) to the module's base name
+        (`self.module_name`) to construct a complete port name in the YARP
+        naming convention. The port name is returned as a formatted string
+        prefixed with a forward slash (`/`), which is the standard for YARP ports.
+
+        Args:
+            name (str): The specific name to append to the module's base name.
+
+        Returns:
+            str: The fully constructed YARP-compatible port name.
+        """
         return f'/{self.module_name}{name}'
 
 
     def connect_ports(self):
-        # status ports
+        """
+        Establishes connections between the robot's state output ports and the module's state input ports.
+
+        This method uses the YARP (Yet Another Robot Platform) networking library to connect the robot's
+        state output ports (torso, right arm, left arm, head) to the corresponding state input ports in
+        the module. The connections are established using the TCP protocol to ensure reliable communication.
+
+        If any connection fails, an error message is printed to indicate which port could not connect,
+        and the method returns `False`. If all connections are successfully established, the method
+        returns `True`.
+
+        Returns:
+            bool: `True` if all ports successfully connect, `False` otherwise.
+        """
+        # Torso state port
         connection_status = yarp.NetworkBase_connect("/"+self.robot_name_yarp+"/torso/state:o", self.state_torso_port_name, "tcp")
         if not connection_status:
-            print("state torso port couldn't connect")
+            logdebug("state torso port couldn't connect")
             return False
 
+        # Right arm state port
         connection_status = yarp.NetworkBase_connect("/"+self.robot_name_yarp+"/right_arm/state:o",self.state_right_arm_port_name,  "tcp")
         if not connection_status:
-            print("state right_arm port couldn't connect")
+            logdebug("state right_arm port couldn't connect")
             return False
 
+        # Left Arm state port
         connection_status = yarp.NetworkBase_connect("/"+self.robot_name_yarp+"/left_arm/state:o",self.state_left_arm_port_name , "tcp")
         if not connection_status:
-            print("state left_arm port couldn't connect")
+            logdebug("state left_arm port couldn't connect")
             return False
 
+        # Head state port
         connection_status = yarp.NetworkBase_connect("/" + self.robot_name_yarp + "/head/state:o",
                                                      self.state_head_port_name, "tcp")
         if not connection_status:
-            print("state head port couldn't connect")
+            logdebug("state head port couldn't connect")
             return False
 
         return True
 
     def interruptModule(self):
-        print("stopping the module")
+
+        """
+        Interrupts all communication ports associated with this object.
+
+        This method is used to temporarily halt the operation of the module by
+        interrupting the communication ports. Interrupting the ports allows the
+        system to pause ongoing communication or processing without permanently
+        closing the connections.
+
+        Returns:
+            bool: `True` if all ports were successfully interrupted.
+        """
+
         self.handle_port.interrupt()
         self.state_torso_port.interrupt()
         self.state_right_arm_port.interrupt()
@@ -140,6 +169,26 @@ class icub_state_updater(yarp.RFModule):
         return True
 
     def close(self):
+        """
+        Closes all the communication ports associated with this object.
+
+        This method is responsible for ensuring that all the communication ports
+        used by the system are properly closed to free up resources and maintain
+        system integrity. The ports being closed include:
+
+        - `handle_port`: The port used for handling general rpc commands for the yarp module.
+        - `state_torso_port`: The port used for monitoring the torso's state.
+        - `state_right_arm_port`: The port used for monitoring the right arm's state.
+        - `state_left_arm_port`: The port used for monitoring the left arm's state.
+        - `state_head_port`: The port used for monitoring the head's state.
+
+        After closing all the ports, the function returns `True` to indicate
+        successful closure of all resources.
+
+        Returns:
+            bool: `True` if all ports were successfully closed.
+        """
+
         self.handle_port.close()
         self.state_torso_port.close()
         self.state_right_arm_port.close()
@@ -150,8 +199,12 @@ class icub_state_updater(yarp.RFModule):
 
     def respond(self, command, reply):
 
-        # Is the command recognized
+        """
+        Processes a command and generates an appropriate response.
 
+        This method handles incoming commands (RPC) through the port /module_name
+        Further it execute a behaviour and then replies
+        """
         reply.clear()
 
         if command.get(0).asString() == "quit":
@@ -168,14 +221,14 @@ class icub_state_updater(yarp.RFModule):
            Module refresh rate.
            Returns : The period of the module in seconds.
         """
-        return 0.5
+        return 1
 
-    def update_joint_degree(self,joint_name,joint_value_degree):
+    def update_joint_degree(self,joint_name:str,joint_value_degree:float):
         try:
             World.robot.set_joint_position(joint_name,math.radians(joint_value_degree))
 
         except Exception as e:
-            print(f"error in updating joint {joint_name} to {joint_value_degree} degree")
+            logerr(f"error in updating joint {joint_name} to {joint_value_degree} degree")
             pass
 
 
@@ -186,7 +239,7 @@ class icub_state_updater(yarp.RFModule):
                 self.update_joint_degree(part_names[i],
                                            part_bottle.get(i).asFloat64())
         else :
-            print("mismatch in part size" , part_bottle.size() , " ",   len(part_names))
+            logwarn(f"mismatch in torso joint sizes {part_bottle.size()} , {len(part_names)}")
 
     def update_head_state(self,head_bottle : yarp.Bottle, head_names: [str]):
         for i in range(4):
@@ -301,10 +354,9 @@ class icub_state_updater(yarp.RFModule):
 
 def run_icub_state_updater(args):
     if not yarp.Network.checkNetwork():
-        print("error in network check")
-        return
+        raise YarpNetworkError()
 
-    m_module = icub_state_updater()
+    m_module = IcubStateUpdater()
 
     rf = yarp.ResourceFinder()
     rf.setVerbose(True)
@@ -312,13 +364,13 @@ def run_icub_state_updater(args):
     #rf.setDefaultConfigFile('icub_joint_ipdater.ini')
 
     if rf.configure(args):
-        print("done configuration")
+        logdebug("icub_state_updater Configuration done")
         if m_module.runModuleThreaded(rf) == 0:
-            print("done running module")
+            loginfo("done running module")
             return m_module
         else:
             interrupt_and_close(m_module)
-            print("Module Failed to open")
+            logerr("Module Failed to open")
             return None
 
 

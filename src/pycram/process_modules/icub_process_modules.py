@@ -7,9 +7,11 @@ from .default_process_modules import DefaultMoveJoints, DefaultMoveArmJoints, De
     DefaultMoveHead, DefaultDetecting, DefaultMoveGripper
 from .. import world_reasoning as btr
 import numpy as np
+
+from ..failures import RobotNotInitialized
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
-from ..ros.logging import logdebug
+from ..ros.logging import logdebug, logerr
 from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
 from ..designators.object_designator import ObjectDesignatorDescription
@@ -23,10 +25,14 @@ from ..datastructures.pose import Pose
 from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType, GripperState
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import *
-import yarp
 
-from pycram.yarp_utils.yarp_networking import NO_ACK_VOCAB, ACK_VOCAB, open_rpc_client_port, open_buffered_bottle_port, \
-    init_yarp_network
+try:
+    import yarp
+    from pycram.yarp_utils.yarp_networking import *
+except ImportError:
+    logwarn("Yarp Was Not Found. You can't use iCub. Check yarp installation")
+    yarp = None
+    pass
 
 def update_hand(hand_values,ctp_port):
     yarp_bottle_msg: yarp.Bottle = yarp.Bottle()
@@ -41,19 +47,18 @@ def update_hand(hand_values,ctp_port):
     for i in hand_values:
         target_loc.addFloat32(i)
 
-    print("command Ready to send to iCub  part tcp")
 
     ctp_port.write(yarp_bottle_msg, yarp_bottle_reply)
     reply_vocab = yarp_bottle_reply.get(0).asVocab32()
 
     if reply_vocab == NO_ACK_VOCAB:
-        print("NO_ACK")
+        loginfo("Received: NO_ACK")
         return False
     elif reply_vocab == ACK_VOCAB:
-        print("ACK")
+        loginfo("Received: ACK")
         return True
     else:
-        print("another reply")
+        loginfo("Received: another reply")
         return False
 
 def update_part(state_port,ctp_port, joint_to_change_idx, joints_to_change_pos):
@@ -61,7 +66,6 @@ def update_part(state_port,ctp_port, joint_to_change_idx, joints_to_change_pos):
         part_state: yarp.Bottle = state_port.read(shouldWait=True)
         part_new_states = []
         for i in range(part_state.size()):
-            print(i, "   ", part_state.get(i).asFloat32())
             part_new_states.append(part_state.get(i).asFloat32())
 
         for i in range(len(joint_to_change_idx)):
@@ -79,19 +83,17 @@ def update_part(state_port,ctp_port, joint_to_change_idx, joints_to_change_pos):
         for i in part_new_states:
             target_loc.addFloat32(i)
 
-        print("command Ready to send to iCub  part tcp")
-
         ctp_port.write(yarp_bottle_msg, yarp_bottle_reply)
         reply_vocab = yarp_bottle_reply.get(0).asVocab32()
 
         if reply_vocab == NO_ACK_VOCAB:
-            print("NO_ACK")
+            loginfo("Received: NO_ACK")
             return False
         elif reply_vocab == ACK_VOCAB:
-            print("ACK")
+            loginfo("Received: ACK")
             return True
         else:
-            print("another reply")
+            loginfo("Received: another reply")
             return False
 
 HAND_CLOSED = [60.0,60.0,0,85.0,20,85,20,85,85]
@@ -102,7 +104,7 @@ class iCubNavigationReal(ProcessModule):
     """
 
     def _execute(self, desig: MoveMotion):
-        print("iCubNavigate")
+        loginfo("iCubNavigationReal function. No implementation ATM")
 
 
 class iCubMoveHeadReal(ProcessModule):
@@ -116,7 +118,7 @@ class iCubMoveHeadReal(ProcessModule):
         self.cmd_port = cmd_port
 
     def _execute(self, desig: LookingMotion):
-        print("iCub Move Head")
+        loginfo("iCubMoveHeadReal")
         position_target = desig.target.pose.position
         if self.cmd_port.getOutputCount():
 
@@ -129,23 +131,22 @@ class iCubMoveHeadReal(ProcessModule):
             target_loc.addFloat32(position_target.x)
             target_loc.addFloat32(position_target.y)
             target_loc.addFloat32(position_target.z)
-            print(f"command Ready to send to iCub")
             self.cmd_port .write(yarp_bottle_msg, yarp_bottle_reply)
             reply_vocab = yarp_bottle_reply.get(0).asVocab32()
 
             if reply_vocab == NO_ACK_VOCAB:
-                print("NO_ACK")
+                loginfo("Received: NO_ACK")
                 return False
             elif reply_vocab == ACK_VOCAB:
-                print("ACK")
+                loginfo("Received: ACK")
                 return True
             else:
-                print("another reply")
+                loginfo("Received: another reply")
                 return False
 
 
         else:
-            print("port is not connected")
+            logwarn("control port is not connected")
             return False
 
 
@@ -161,7 +162,7 @@ class iCubMoveGripperReal(ProcessModule):
         super().__init__(lock)
         self.state_ports = state_ports
         self.ctp_ports = ctp_ports
-        print("iCubMoveGripperReal initialized")
+        loginfo("iCubMoveGripperReal initialized")
 
 
     def _execute(self, desig: MoveGripperMotion):
@@ -187,7 +188,7 @@ class iCubMoveGripperReal(ProcessModule):
                 update_hand(HAND_OPENED, self.ctp_ports[0])
                 update_hand(HAND_OPENED, self.ctp_ports[1])
         else:
-            print ("undefined arm")
+            logwarn ("undefined arm")
 
 
 class iCubDetectingReal(ProcessModule):
@@ -197,7 +198,7 @@ class iCubDetectingReal(ProcessModule):
     """
 
     def _execute(self, desig: DetectingMotion):
-        print("iCub Detect")
+        loginfo("iCubDetectingReal. No Implementation ATM")
 
 class iCubMoveTCPReal(ProcessModule):
     """
@@ -209,7 +210,7 @@ class iCubMoveTCPReal(ProcessModule):
         self.cmd_port = cmd_port
 
     def _execute(self, desig: MoveTCPMotion):
-        print("iCub Move Head")
+        loginfo("iCubMoveTCPReal")
         position_target = desig.target.position
         if self.cmd_port.getOutputCount():
 
@@ -221,7 +222,7 @@ class iCubMoveTCPReal(ProcessModule):
             target_loc.addFloat32(position_target.x)
             target_loc.addFloat32(position_target.y)
             target_loc.addFloat32(position_target.z)
-            print(f"command Ready to send to iCub")
+
             yarp_bottle_msg.addString("side")
             if desig.arm == Arms.LEFT:
                 yarp_bottle_msg.addString("left")
@@ -234,18 +235,18 @@ class iCubMoveTCPReal(ProcessModule):
             reply_vocab = yarp_bottle_reply.get(0).asVocab32()
 
             if reply_vocab == NO_ACK_VOCAB:
-                print("NO_ACK")
+                loginfo("Received: NO_ACK")
                 return False
             elif reply_vocab == ACK_VOCAB:
-                print("ACK")
+                loginfo("Received: ACK")
                 return True
             else:
-                print("another reply")
+                loginfo("Received: another reply")
                 return False
 
 
         else:
-            print("port is not connected")
+            logwarn("port is not connected")
             return False
 
 
@@ -263,7 +264,7 @@ class iCubMoveArmJointsReal(ProcessModule):
         super().__init__(lock)
         self.state_ports = state_ports
         self.ctp_ports = ctp_ports
-        print("iCubMoveArmJoints initialized")
+        loginfo("iCubMoveArmJointsReal initialized")
 
 
     def _execute(self, desig: MoveArmJointsMotion):
@@ -285,9 +286,9 @@ class iCubMoveArmJointsReal(ProcessModule):
                         right_arm_to_change_joints.append(joint_index)
                         right_arm_to_change_joints_states.append(joint_pose)
                     else:
-                        print("error in joint name")
+                        logwarn("error in joint name. (Not part of right arm chain)")
                 else:
-                    print("error in joint name")
+                    logwarn("error in joint name")
         if left_arm_to_change is not None:
             for joint_mame, joint_pose in left_arm_to_change.items():
                 part_name,part_index, joint_index = RobotDescription.current_robot_description.get_actuated_joint_indices(
@@ -297,9 +298,9 @@ class iCubMoveArmJointsReal(ProcessModule):
                         left_arm_to_change_joints.append(joint_index)
                         left_arm_to_change_joints_states.append(joint_pose)
                     else:
-                        print("error in joint name")
+                        logwarn("error in joint name. (Not part of left arm chain)")
                 else:
-                    print("error in joint name")
+                    logwarn("error in joint name")
 
 
         update_part(self.state_ports[0],
@@ -314,8 +315,6 @@ class iCubMoveArmJointsReal(ProcessModule):
 
 
 
-        print("iCub Move Arm Joints")
-
 class iCubMoveJointsReal(ProcessModule):
     """
     Process Module for generic joint movements, is not confined to the arms but can move any joint of the robot
@@ -327,6 +326,7 @@ class iCubMoveJointsReal(ProcessModule):
         super().__init__(lock)
         self.state_ports = state_ports
         self.ctp_ports = ctp_ports
+        loginfo("iCubMoveJointsReal initialized")
 
 
 
@@ -356,7 +356,7 @@ class iCubMoveJointsReal(ProcessModule):
                     left_arm_to_change_joints.append(joint_index)
                     left_arm_to_change_joints_states.append(to_change_states[index])
                 else:
-                    print("error in index")
+                    logwarn("error in index")
 
             index += 1
 
@@ -377,7 +377,6 @@ class iCubMoveJointsReal(ProcessModule):
 
 
 
-    print("iCub Move Joints")
 
 
 class iCubWorldStateDetecting(ProcessModule):
@@ -466,6 +465,13 @@ class ICubManager(ProcessModuleManager):
         self._move_gripper_lock = Lock()
         self._open_lock = Lock()
         self._close_lock = Lock()
+
+        self.initialized = False
+
+        if yarp is None:
+            logwarn("Yarp not Found. ICubManager wasn't initialized correctly")
+            return
+
         self.yarp_network_state = init_yarp_network()
 
         # yarp related
@@ -491,44 +497,46 @@ class ICubManager(ProcessModuleManager):
         self.state_torso_port =  yarp.BufferedPortBottle()
         self.state_right_arm_port =  yarp.BufferedPortBottle()
         self.state_left_arm_port =  yarp.BufferedPortBottle()
-        self.initialized = False
+
         if self.yarp_network_state:
-            print("yarp network state detected")
+            loginfo("yarp network state detected")
             self.config_yarp_ports()
             self.connect_yarp_ports()
             self.initialized = True
         else:
-            print("yarp network state not detected")
-
-
-
-
-
+            logwarn("yarp network state not detected. ICubManager wasn't initialized correctly")
 
 
     def navigate(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            print('Navigate iCub')
             return iCubNavigation(self._navigate_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            if not self.initialized:
+                raise RobotNotInitialized()
             return iCubNavigationReal(self._navigate_lock)
 
     def looking(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return iCubMoveHead(self._looking_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            if not self.initialized:
+                raise RobotNotInitialized()
             return iCubMoveHeadReal(self._looking_lock,self.gaze_client_port)
 
     def detecting(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return iCubDetecting(self._detecting_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            if not self.initialized:
+                raise RobotNotInitialized()
             return iCubDetectingReal(self._detecting_lock)
 
     def move_tcp(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return iCubMoveTCP(self._move_tcp_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            if not self.initialized:
+                raise RobotNotInitialized()
             return iCubMoveTCPReal(self._move_tcp_lock,self.action_client_port)
 
     def move_arm_joints(self):
@@ -536,6 +544,8 @@ class ICubManager(ProcessModuleManager):
             return iCubMoveArmJoints(self._move_arm_joints_lock)
 
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            if not self.initialized:
+                raise RobotNotInitialized()
             return iCubMoveArmJointsReal(self._move_arm_joints_lock,
                                      [self.state_right_arm_port, self.state_left_arm_port],
                                      [self.ctp_right_arm_client_port,self.ctp_left_arm_client_port])
@@ -550,6 +560,8 @@ class ICubManager(ProcessModuleManager):
             return iCubMoveJoints(self._move_joints_lock)
 
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            if not self.initialized:
+                raise RobotNotInitialized()
             return iCubMoveJointsReal(self._move_joints_lock,
                                   [self.state_torso_port,self.state_right_arm_port,self.state_left_arm_port],
                                   [self.ctp_torso_client_port,self.ctp_right_arm_client_port,self.ctp_left_arm_client_port])
@@ -558,103 +570,102 @@ class ICubManager(ProcessModuleManager):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return iCubMoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            if not self.initialized:
+                raise RobotNotInitialized()
             return iCubMoveGripperReal(self._move_gripper_lock,
                                      [self.state_right_arm_port, self.state_left_arm_port],
                                      [self.ctp_right_arm_client_port,self.ctp_left_arm_client_port])
 
     def open(self):
-        print("iCub doesn't perform open action from here")
+        logwarn("iCub doesn't perform open action from here")
 
     def close(self):
-        print("iCub doesn't perform close action from here")
+        logwarn("iCub doesn't perform close action from here")
 
 
     def config_yarp_ports(self)->bool:
         suc, self.gaze_client_port = open_rpc_client_port(self.gaze_cmd_port_name)
         if not suc:
-            print("Failed to open, ", self.gaze_cmd_port_name)
+            logerr(f"Failed to open {self.gaze_cmd_port_name}")
             return False
         suc, self.action_client_port = open_rpc_client_port(self.action_cmd_port_name)
         if not suc:
-            print("Failed to open, ", self.action_cmd_port_name)
+            logerr(f"Failed to open {self.action_cmd_port_name}")
             return False
 
         suc, self.ctp_torso_client_port = open_rpc_client_port(self.ctp_torso_client_port_name)
         if not suc:
-            print("Failed to open, ", self.ctp_torso_client_port_name)
+            logerr(f"Failed to open {self.ctp_torso_client_port_name}")
             return False
 
         suc, self.ctp_right_arm_client_port = open_rpc_client_port(self.ctp_right_arm_client_port_name)
         if not suc:
-            print("Failed to open, ", self.ctp_right_arm_client_port_name)
+            logerr(f"Failed to open {self.ctp_right_arm_client_port_name}")
             return False
 
         suc, self.ctp_left_arm_client_port = open_rpc_client_port(self.ctp_left_arm_client_port_name)
         if not suc:
-            print("Failed to open, ", self.ctp_left_arm_client_port_name)
+            logerr(f"Failed to open {self.ctp_left_arm_client_port_name}")
             return False
 
         suc, self.state_torso_port = open_buffered_bottle_port(self.state_torso_port_name)
         if not suc:
-            print("Failed to open, ", self.state_torso_port_name)
+            logerr(f"Failed to open {self.state_torso_port_name}")
             return False
 
         suc, self.state_right_arm_port = open_buffered_bottle_port(self.state_right_arm_port_name)
         if not suc:
-            print("Failed to open, ", self.state_right_arm_port_name)
+            logerr(f"Failed to open {self.state_right_arm_port_name}")
             return False
 
         suc, self.state_left_arm_port = open_buffered_bottle_port(self.state_left_arm_port_name)
         if not suc:
-            print("Failed to open, ", self.state_left_arm_port_name)
+            logerr(f"Failed to open {self.state_left_arm_port_name}")
             return False
-
-
 
         return True
 
     def connect_yarp_ports(self)->bool:
         connection_status = yarp.NetworkBase_connect(self.gaze_cmd_port_name, "/iKinGazeCtrl/rpc", "tcp")
         if not connection_status:
-            print("gaze control port couldn't connect")
+            logerr("gaze control port couldn't connect")
 
         connection_status = yarp.NetworkBase_connect(self.action_cmd_port_name, "/actionsRenderingEngine/cmd:io", "tcp")
         if not connection_status:
-            print("action control port couldn't connect")
+            logerr("action control port couldn't connect")
             return False
 
         # ctp service ports
         connection_status = yarp.NetworkBase_connect(self.ctp_torso_client_port_name, "/ctpservice/torso/rpc", "tcp")
-        #connection_status = yarp.NetworkBase_connect(self.ctp_torso_client_port_name, "/testrpc", "tcp")
 
         if not connection_status:
-            print("ctp torso control port couldn't connect")
+            logerr("ctp torso control port couldn't connect")
             return False
 
         connection_status = yarp.NetworkBase_connect(self.ctp_right_arm_client_port_name, "/ctpservice/right_arm/rpc", "tcp")
         if not connection_status:
-            print("ctp right_arm control port couldn't connect")
+            logerr("ctp right_arm control port couldn't connect")
             return False
 
         connection_status = yarp.NetworkBase_connect( self.ctp_left_arm_client_port_name,"/ctpservice/left_arm/rpc", "tcp")
         if not connection_status:
-            print("ctp left_arm control port couldn't connect")
+            logerr("ctp left_arm control port couldn't connect")
             return False
 
         # status ports
         connection_status = yarp.NetworkBase_connect("/"+self.robot_name_yarp+"/torso/state:o", self.state_torso_port_name, "tcp")
         if not connection_status:
-            print("state torso port couldn't connect")
+            logerr("state torso port couldn't connect")
             return False
 
         connection_status = yarp.NetworkBase_connect("/"+self.robot_name_yarp+"/right_arm/state:o",self.state_right_arm_port_name,  "tcp")
         if not connection_status:
-            print("state right_arm port couldn't connect")
+            logerr("state right_arm port couldn't connect")
             return False
 
         connection_status = yarp.NetworkBase_connect("/"+self.robot_name_yarp+"/left_arm/state:o",self.state_left_arm_port_name , "tcp")
         if not connection_status:
-            print("state left_arm port couldn't connect")
+            logerr("state left_arm port couldn't connect")
             return False
 
         return True
@@ -666,7 +677,8 @@ class ICubManager(ProcessModuleManager):
 
 
     def disconnect_and_remove(self):
-        self.gaze_client_port .interrupt()
+        loginfo("interrupting yarp ports")
+        self.gaze_client_port.interrupt()
         self.action_client_port.interrupt()
         self.ctp_torso_client_port.interrupt()
         self.ctp_right_arm_client_port.interrupt()
@@ -675,7 +687,8 @@ class ICubManager(ProcessModuleManager):
         self.state_right_arm_port.interrupt()
         self.state_left_arm_port.interrupt()
 
-        self.gaze_client_port .close()
+        loginfo("closing yarp ports")
+        self.gaze_client_port.close()
         self.action_client_port.close()
         self.ctp_torso_client_port.close()
         self.ctp_right_arm_client_port.close()
