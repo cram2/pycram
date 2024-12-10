@@ -58,7 +58,7 @@ class URDFParser:
 
         """
         # furniture = imported_ontology.classes()
-        furniture = ["Door", "Fridge", "Handle"]
+        furniture = ["Door", "Fridge", "Handle", "Sink", "Drawer"]
         matching_list = []
         for l in link.split("_"):
             if l.capitalize() in furniture:
@@ -159,6 +159,14 @@ class URDFParser:
             # file.write("    \"\"\"Fixed base class for all links and joints.\"\"\"\n")
             file.write("    pass\n\n")
 
+            file.write("class Sink(Base):\n")
+            # file.write("    \"\"\"Fixed base class for all links and joints.\"\"\"\n")
+            file.write("    pass\n\n")
+
+            file.write("class Drawer(Base):\n")
+            # file.write("    \"\"\"Fixed base class for all links and joints.\"\"\"\n")
+            file.write("    pass\n\n")
+
         print(f"Classes written to {classes_file_path}")
 
 
@@ -194,6 +202,11 @@ class URDFParser:
             file.write("    \"\"\"Property to link a joint to its child link.\"\"\"\n")
             file.write("    pass\n\n")  # Properly indented pass statement
 
+            # Define the IsPartOf class
+            file.write("class isPartOf(BaseProperty):\n")
+            file.write("    \"\"\"Property to establish part-of relationships between links.\"\"\"\n")
+            file.write("    pass\n\n")
+
         print(f"Properties written to {properties_file_path}")
 
     def generate_restrictions_file(self):
@@ -215,15 +228,20 @@ class URDFParser:
             for joint in self.joints:
                 instance_name = joint['name']
                 joint_type = joint['type'].capitalize()
+                parent_link = joint['parent']
+                child_link = joint['child']
+
                 file.write(f"{instance_name}.is_a = [{joint_type}]\n")
                 file.write(f"{instance_name}.hasChildLink.append({joint['child']})\n")
                 file.write(f"{instance_name}.hasParentLink = [{joint['parent']}]\n")
+                file.write(f"{child_link}.isPartOf = [{parent_link}]\n")
                 file.write("\n")
 
             for link in self.links:
                 matched_furnitures = self.parse_furniture(link)
                 if matched_furnitures:
-                    file.write(f"{link}.is_a = [Links, {', '.join(matched_furnitures)}]\n")
+                    #file.write(f"{link}.is_a = [Links, {', '.join(matched_furnitures)}]\n")
+                    file.write(f"{link}.is_a = [Links, {matched_furnitures[len(matched_furnitures) - 1]}]\n")
 
         print(f"Restrictions written to {restrictions_file_path}")
 
