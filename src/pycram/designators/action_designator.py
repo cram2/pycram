@@ -298,8 +298,9 @@ class PickUpActionPerformable(ActionAbstract):
 
         # Perform the motion with the prepose and open gripper
         World.current_world.add_vis_axis(prepose)
-        MoveTCPMotion(prepose, self.arm, allow_gripper_collision=True).perform()
         MoveGripperMotion(motion=GripperState.OPEN, gripper=self.arm).perform()
+        MoveTCPMotion(prepose, self.arm, allow_gripper_collision=True).perform()
+
 
         # Perform the motion with the adjusted pose -> actual grasp and close gripper
         World.current_world.add_vis_axis(adjusted_oTm)
