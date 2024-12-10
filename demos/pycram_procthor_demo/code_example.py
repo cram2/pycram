@@ -1,8 +1,10 @@
+import pycrap
 from pycram.designators.action_designator import NavigateAction,LookAtAction,ParkArmsAction,MoveTorsoAction,DetectAction,TransportAction
-from pycram.datastructures.enums import Arms
+from pycram.datastructures.enums import Arms, DetectionTechnique
 from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import ObjectType
 from pycram.datastructures.pose import Pose
+from pycram.failures import PerceptionObjectNotFound
 from pycram.process_module import simulated_robot, with_simulated_robot
 
 def generic_plan(inWorld):
@@ -18,18 +20,21 @@ def generic_plan(inWorld):
 
         LookAtAction(targets=[pick_pose]).resolve().perform()
 
-        object_desig = DetectAction(BelieveObject(types=[obj_type])).resolve().perform()
+        object_desig = DetectAction(technique=DetectionTechnique.TYPES, object_designator_description=BelieveObject(types=[obj_type])).resolve().perform()
 
-        return object_desig
+        if len(object_desig)==0:
+            raise PerceptionObjectNotFound
 
-    with simulated_robot:
+        return object_desig[0]
+
+    with (simulated_robot):
         ParkArmsAction([Arms.BOTH]).resolve().perform()
 
         MoveTorsoAction([0.25]).resolve().perform()
 
-        milk_desig = move_and_detect(ObjectType.MILK)
+        milk_desig = move_and_detect(pycrap.Milk)
 
-        TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+        TransportAction(milk_desig,[Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
 
         ParkArmsAction([Arms.BOTH]).resolve().perform()
 

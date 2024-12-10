@@ -15,6 +15,7 @@ import traceback
 import sqlalchemy
 import pycram.orm.base
 from pycram.external_interfaces.procthor import ProcThorInterface
+import pycrap
 
 engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
 session_maker = sqlalchemy.orm.sessionmaker(bind=engine)
@@ -48,15 +49,15 @@ def runWorld():
     world = BulletWorld(WorldMode.GUI)
     apartment = None
     milk_pos = Pose([1, -1.78, 0.55], [1, 0, 0, 0])
-    milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, -1.78, 0.55], [1, 0, 0, 0]),
+    milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([1, -1.78, 0.55], [1, 0, 0, 0]),
                   color=Color(1, 0, 0, 1))
     for robot in robots:
-        robot_obj = Object("pr2", ObjectType.ROBOT, robot, pose=Pose([1, 2, 0]))
+        robot_obj = Object("pr2", pycrap.Robot, robot, pose=Pose([1, 2, 0]))
         for environment in known_environments:
             counter += 1
             print("Trying plan: {} with robot: {} in: {}".format("param_plan", robot, environment["name"]))
             try:
-                apartment = Object(environment["name"], ObjectType.ENVIRONMENT, environment["storage_place"])
+                apartment = Object(environment["name"], pycrap.Apartment, environment["storage_place"]) # Is appartment correct?
                 generic_plan(world)
                 works += 1
                 print("Successfully!\n Overall successful tries: {}".format(works))
