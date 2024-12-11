@@ -3,6 +3,7 @@ import sys
 from IPython.core.display_functions import clear_output
 
 from demos.pycram_virtual_building_demos.src.cleanup_demo import cleanup_demo
+from demos.pycram_virtual_building_demos.src.follow_binder_demo.follow_binder_demo import follow_binder_demo
 from demos.pycram_virtual_building_demos.src.follow_demo import follow_simple_example
 from demos.pycram_virtual_building_demos.src.generlized_actions_demo import start_generalized_demo
 from demos.pycram_virtual_building_demos.src.transport_demo import transporting_demo
@@ -88,6 +89,8 @@ def demo_selecting(apartment, robot, task_param):
     #     navigate_simple_example()
     if task_param == "follow":
         follow_simple_example(robot)
+    elif task_param == "follow-buttons":
+        follow_binder_demo(robot, apartment)
     elif task_param == "transporting" or task_param == "navigate":
         specialized_task = None
         # specialized_task = rospy.get_param('/nbparam_specialized_task')
