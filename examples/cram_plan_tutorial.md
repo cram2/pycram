@@ -146,11 +146,12 @@ from pycram.datastructures.enums import Grasp
 
 
 @pycram.tasktree.with_tree
-def plan(obj_desig: ObjectDesignatorDescription.Object, torso={"torso_lift_joint": 0.2}, place=counter_name):
+def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counter_name):
     world.reset_world()
     with simulated_robot:
         ParkArmsActionPerformable(Arms.BOTH).perform()
-
+        if torso is None:
+            torso={"torso_lift_joint": 0.2}
         MoveTorsoActionPerformable(torso).perform()
         location = CostmapLocation(target=obj_desig, reachable_for=robot_desig)
         pose = location.resolve()
@@ -206,7 +207,7 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso={"torso_lift_joint
 good_torsos = []
 for obj_name in object_names:
     done = False
-    torso = 0.3 if len(good_torsos) == 0 else good_torsos[-1]
+    torso = {"torso_lift_joint": 0.3}if len(good_torsos) == 0 else good_torsos[-1]
     while not done:
         try:
             plan(object_desig[obj_name], torso=torso, place=counter_name)
