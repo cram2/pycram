@@ -6,7 +6,7 @@ import os
 import networkx as nx
 import matplotlib.pyplot as plt
 from owlready2 import get_ontology
-from pycrap.parser import OntologyParser, OntologiesParser
+from pycrap.parser import OntologiesParser
 
 
 
@@ -16,6 +16,7 @@ class OntologiesParserTestCase(unittest.TestCase):
     def setUpClass(cls):
         cls.ontologies = [get_ontology("http://www.ease-crc.org/ont/SOMA.owl").load()]
         cls.directory = tempfile.mkdtemp()
+        cls.directory = os.path.join("/home/tom_sch/playground/ontologies")
         cls.parser = OntologiesParser(cls.ontologies, cls.directory)
 
     def test_parsing(self):

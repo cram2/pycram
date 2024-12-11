@@ -4,11 +4,28 @@ from os import mkdir
 import networkx as nx
 import owlready2
 import tqdm
-from owlready2 import ThingClass, PropertyClass, get_ontology
+from owlready2 import ThingClass, PropertyClass, get_ontology, LogicalClassConstruct
 from owlready2.base import *
 from typing_extensions import List, Any
 import inflection
 
+# Mapping of digits to words
+digit_map = {
+    '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
+    '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine'
+}
+
+def set_explicit_repr_for_logical_operator():
+    def explicit_repr(self):
+        s = []
+        for x in self.Classes:
+            if isinstance(x, LogicalClassConstruct):
+                s.append("(%s)" % x)
+            else:
+                s.append(repr(x))
+        return "%s([%s])" % (self.__class__.__name__, ", ".join(s))
+
+    LogicalClassConstruct.__repr__ = explicit_repr
 
 def to_snake_case(string: str) -> str:
     """
@@ -18,7 +35,6 @@ def to_snake_case(string: str) -> str:
     :return: The string in snake case.
     """
     return inflection.underscore(string)
-    return string.replace(" ", "_").lower()
 
 def to_camel_case(string: str) -> str:
     """
@@ -28,7 +44,6 @@ def to_camel_case(string: str) -> str:
     :return: The string in camel case.
     """
     return inflection.camelize(string)
-    return ''.join(x for x in string.title() if not x.isspace())
 
 def replace_types(string: str) -> str:
     """
@@ -38,7 +53,7 @@ def replace_types(string: str) -> str:
     >>> replace_types("array_double__<class 'int'>")
     "float__int"
 
-    # TODO array_double will be converted to float for now, discuss
+    # TODO array_double will be converted to float for now
     :param string: The string to convert
     :return: The string with the types replaced
     """
@@ -54,15 +69,11 @@ def replace_types(string: str) -> str:
         string = str(string).replace("<class 'owlready2.util.normstr'>", "normstr")
     if "<class 'float'>" in str(string):
         string = str(string).replace("<class 'float'>", "float")
+    if "<class 'bool'>" in str(string):
+        string = str(string).replace("<class 'bool'>", "bool")
+    if "<class 'datetime.datetime'>" in str(string):
+        string = str(string).replace("<class 'datetime.datetime'>", "datetime")
     return string
-
-
-# Mapping of digits to words
-digit_map = {
-    '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
-    '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine'
-}
-
 
 
 def update_class_names(onto: owlready2.Ontology):
@@ -72,7 +83,8 @@ def update_class_names(onto: owlready2.Ontology):
     for cls in onto.classes():
         if cls is owlready2.Thing:
             continue
-        converted_name = to_camel_case(cls.name)
+        converted_name = replace_types(cls.name)
+        converted_name = to_camel_case(converted_name)
         converted_name = ''.join(digit_map[char] if char.isdigit() else char for char in converted_name)
         type.__setattr__(cls, "_name", converted_name)
 
@@ -111,8 +123,6 @@ class AbstractParser:
     """
     The path to write the files of the parsed ontology into.
     """
-
-
 
     def __init__(self, path, indentation: int = 4):
         self.path = path
@@ -566,6 +576,7 @@ class OntologiesParser(AbstractParser):
         self.ontologies = list(set(self.ontologies))
         self.ontologies.sort(key=lambda onto: onto.name)
         self.create_dependency_graph()
+        set_explicit_repr_for_logical_operator()
 
 
     def create_base(self):
