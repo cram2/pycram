@@ -8,6 +8,7 @@ from .. import world_reasoning as btr
 import numpy as np
 
 from .. import world_reasoning as btr
+from ..external_interfaces.move_base import query_pose_nav
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
 from ..ros.logging import logdebug
@@ -21,9 +22,10 @@ from ..robot_description import RobotDescription
 from ..datastructures.world import World
 from ..world_concepts.world_object import Object
 from ..datastructures.pose import Pose
-from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType, MovementType
+from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType, MovementType, GripperState
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import *
+from ..ros.logging import loginfo, logwarn, logdebug
 
 if TYPE_CHECKING:
     from ..designators.object_designator import ObjectDesignatorDescription
@@ -31,7 +33,7 @@ if TYPE_CHECKING:
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
 except ImportError:
-    pass
+    logdebug("Pr2GripperCommandGoal not found")
 
 
 class Pr2Navigation(ProcessModule):
@@ -189,13 +191,8 @@ class Pr2NavigationReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveMotion) -> Any:
-        logdebug(f"Sending goal to giskard to Move the robot")
-        if designator.keep_joint_states:
-            joint_positions = World.current_world.robot.get_positions_of_controllable_joints()
-            giskard.set_joint_goal(joint_positions)
-        giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map",
-                                       allow_gripper_collision_=False,
-                                       use_monitor=World.current_world.conf.use_giskard_monitor)
+        logdebug(f"Sending goal to movebase to Move the robot")
+        query_pose_nav(designator.target)
 
 
 class Pr2MoveHeadReal(ProcessModule):
@@ -213,7 +210,7 @@ class Pr2MoveHeadReal(ProcessModule):
         pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_tilt_link"))
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
-        new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
+        new_tilt = np.arctan2(pose_in_tilt.position.z, np.sqrt(pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2)) * -1
 
         current_pan = robot.get_joint_position("head_pan_joint")
         current_tilt = robot.get_joint_position("head_tilt_joint")
@@ -276,15 +273,15 @@ class Pr2MoveGripperReal(ProcessModule):
             loginfo("Started gripper Movement")
 
         def done_callback(state, result):
-            loginfo(f"Reached goal {designator.motion}: {result.reached_goal}")
+            loginfo(f"Reached goal {designator.motion}")
 
         def feedback_callback(msg):
             pass
 
         goal = Pr2GripperCommandGoal()
-        goal.command.position = 0.0 if designator.motion == "close" else 0.1
+        goal.command.position = 0.0 if designator.motion == GripperState.CLOSE else 0.1
         goal.command.max_effort = 50.0
-        if designator.gripper == "right":
+        if designator.gripper == Arms.RIGHT:
             controller_topic = "r_gripper_controller/gripper_action"
         else:
             controller_topic = "l_gripper_controller/gripper_action"
