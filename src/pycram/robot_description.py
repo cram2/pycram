@@ -174,15 +174,12 @@ class RobotDescription:
         return None
 
 
-    def get_actuated_joint_names(self, part_name) -> Optional[str]:
+    def get_actuated_joint_names(self, part_name:str) -> Optional[str]:
         """
-        Given a part name, returns the actuated joints.
+        Get the list of the actuated joint names for a given part name.
 
-        Args:
-            part_name (str): part name
-
-        Returns:
-            List of actuated joint names: or None
+        :param part_name: part name
+        return:List of actuated joint names: or None
         """
 
         return self.joint_actuators.get(part_name)

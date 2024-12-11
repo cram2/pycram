@@ -1,14 +1,16 @@
 import math
 
-from pycram import World
-from pycram.failures import YarpNetworkError
-from pycram.robot_description import RobotDescription
-from pycram.ros.logging import logdebug, logwarn, loginfo, logerr
-from pycram.external_interfaces.yarp_networking import *
+from ..datastructures.world import World
+from ..failures import YarpNetworkError
+from ..robot_description import RobotDescription
+from ..ros.logging import logdebug, logwarn, loginfo, logerr
+from ..external_interfaces.yarp_networking import *
 
 
 class IcubStateUpdater(yarp.RFModule):
-
+    """
+    Joint state publisher for the real icub robot update the world
+    """
     def __init__(self):
         yarp.RFModule.__init__(self)
 
@@ -78,7 +80,7 @@ class IcubStateUpdater(yarp.RFModule):
         self.torso_joints_names =  RobotDescription.current_robot_description.get_actuated_joint_names("torso")
         self.right_arm_joints_names = RobotDescription.current_robot_description.get_actuated_joint_names("right_arm")
         self.left_arm_joints_names = RobotDescription.current_robot_description.get_actuated_joint_names("left_arm")
-        self.head_joints_names = ["neck_pitch","neck_roll","neck_yaw","eyes_tilt","r_eye_pan_joint","l_eye_pan_joint"]
+        self.head_joints_names = RobotDescription.current_robot_description.get_actuated_joint_names("head")
 
         loginfo("Initialization complete")
         return True
@@ -218,7 +220,7 @@ class IcubStateUpdater(yarp.RFModule):
            Module refresh rate.
            Returns : The period of the module in seconds.
         """
-        return 1
+        return 0.5
 
     def update_joint_degree(self,joint_name:str,joint_value_degree:float):
         try:
@@ -247,8 +249,8 @@ class IcubStateUpdater(yarp.RFModule):
         r_eye_pan = 0.5 * head_bottle.get(4).asFloat64() - 0.5 * head_bottle.get(5).asFloat64()
         l_eye_pan = 0.5 * head_bottle.get(4).asFloat64() + 0.5 * head_bottle.get(5).asFloat64()
 
-        self.update_joint_degree(head_names[4],r_eye_pan)
-        self.update_joint_degree(head_names[5],l_eye_pan)
+        self.update_joint_degree("r_eye_pan_joint",r_eye_pan)
+        self.update_joint_degree("l_eye_pan_joint",l_eye_pan)
 
 
 
@@ -326,6 +328,13 @@ class IcubStateUpdater(yarp.RFModule):
 
 
     def updateModule(self):
+        """
+        Periodically called function to update the states of different robotic components.
+
+        This function is invoked at regular intervals determined by the return value of the `getPeriod` function.
+        It reads sensor data for the torso, right arm, left arm, and head, and processes the data to update their respective states in simulation.
+
+        """
         torso_state: yarp.Bottle = self.state_torso_port.read(shouldWait=False)
         right_arm_state: yarp.Bottle = self.state_right_arm_port.read(shouldWait=False)
         left_arm_state: yarp.Bottle = self.state_left_arm_port.read(shouldWait=False)
@@ -350,6 +359,21 @@ class IcubStateUpdater(yarp.RFModule):
 
 
 def run_icub_state_updater(args):
+    """
+        Initializes and runs the iCub state updater module.
+
+        **Functionality:**
+        - Verifies if the YARP network is available; raises an error if not.
+        - Creates an instance of `IcubStateUpdater` and configures it using a `yarp.ResourceFinder`.
+        - Runs the module in a threaded manner and logs the outcome.
+
+        **Parameters:**
+        - `args`: Command-line arguments used to configure the module. ex for python calls ['/', '--robot', 'icubSim']
+
+        **Returns:**
+        - The instance of `IcubStateUpdater` if the module runs successfully.
+        - `None` if the module fails to open.
+        """
     if not yarp.Network.checkNetwork():
         raise YarpNetworkError()
 
