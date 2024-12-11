@@ -475,8 +475,8 @@ class Gui(threading.Thread):
             # Disable the side windows of the GUI
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0, physicsClientId=self.world.id)
             # Change the init camera pose
-            p.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=63, cameraPitch=-48.75,
-                                         cameraTargetPosition=[7.24, -1.1, 6.75], physicsClientId=self.world.id)
+            p.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=270.0, cameraPitch=-50,
+                                         cameraTargetPosition=[-2, 0, 1], physicsClientId=self.world.id)
 
             # Get the initial camera target location
             camera_target_position = p.getDebugVisualizerCamera(physicsClientId=self.world.id)[11]
