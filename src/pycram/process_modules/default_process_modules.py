@@ -29,22 +29,6 @@ from ..world_reasoning import visible, link_pose_for_joint_config
 if TYPE_CHECKING:
     from ..designators.object_designator import ObjectDesignatorDescription
 
-try:
-    from ..worlds.multiverse import Multiverse
-except ImportError:
-    Multiverse = type(None)
-
-try:
-    from control_msgs.msg import GripperCommandGoal, GripperCommandAction
-except ImportError:
-    if Multiverse is not None:
-        logwarn("Import for control_msgs for gripper in Multiverse failed")
-
-try:
-    from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
-except ImportError:
-    logdebug("Pr2GripperCommandGoal not found")
-
 
 class DefaultNavigation(ProcessModule):
     """
@@ -410,65 +394,13 @@ class DefaultMoveJointsReal(ProcessModule):
         giskard.achieve_joint_goal(name_to_position)
 
 
-class Pr2GripperCommandGoal:
-    pass
-
-
 class DefaultMoveGripperReal(ProcessModule):
     """
     Opens or closes the gripper of the real robot, gripper uses an action server for this instead of giskard
     """
 
     def _execute(self, designator: MoveGripperMotion):
-        def activate_callback():
-            loginfo("Started gripper Movement")
-
-        def done_callback(state, result):
-            loginfo(f"Reached goal {designator.motion}")
-
-        def feedback_callback(msg):
-            pass
-
-        goal = Pr2GripperCommandGoal()
-        goal.command.position = 0.0 if designator.motion == GripperState.CLOSE else 0.1
-        goal.command.max_effort = 50.0
-        if designator.gripper == Arms.RIGHT:
-            controller_topic = "r_gripper_controller/gripper_action"
-        else:
-            controller_topic = "l_gripper_controller/gripper_action"
-        client = actionlib.SimpleActionClient(controller_topic, Pr2GripperCommandAction)
-        loginfo("Waiting for action server")
-        client.wait_for_server()
-        client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
-        wait = client.wait_for_result()
-class DefaultMoveGripperMultiverse(ProcessModule):
-    """
-    Opens or closes the gripper of the real PR2, gripper uses an action server for this instead of giskard
-    """
-
-    def _execute(self, designator: MoveGripperMotion):
-        def activate_callback():
-            loginfo("Started gripper Movement")
-
-        def done_callback(state, result):
-            loginfo(f"Reached goal {designator.motion}: {result.reached_goal}")
-
-        def feedback_callback(msg):
-            loginfo(f"Gripper Action Feedback: {msg}")
-
-        goal = GripperCommandGoal()
-        goal.command.position = 0.0 if designator.motion == GripperState.CLOSE else 0.4
-        goal.command.max_effort = 50.0
-        if designator.gripper == "right":
-            controller_topic = "/real/pr2/right_gripper_controller/gripper_cmd"
-        else:
-            controller_topic = "/real/pr2/left_gripper_controller/gripper_cmd"
-        client = actionlib.SimpleActionClient(controller_topic, GripperCommandAction)
-        loginfo("Waiting for action server")
-        client.wait_for_server()
-        client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
-        wait = client.wait_for_result(Duration(5))
-        # client.cancel_all_goals()
+        raise NotImplementedError(f"There is DefaultMoveGripperReal process module")
 
 
 class DefaultOpenReal(ProcessModule):
@@ -511,9 +443,7 @@ class DefaultManager(ProcessModuleManager):
             return DefaultMoveHeadReal(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED or not robokudo_found:
-            if not robokudo_found:
-                logwarn("Robokudo not found, using simulated detection")
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultDetecting(self._detecting_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return DefaultDetectingReal(self._detecting_lock)
@@ -545,11 +475,7 @@ class DefaultManager(ProcessModuleManager):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            if (isinstance(World.current_world, Multiverse) and
-                    World.current_world.conf.use_multiverse_process_modules):
-                return DefaultMoveGripperMultiverse(self._move_gripper_lock)
-            else:
-                return DefaultMoveGripperReal(self._move_gripper_lock)
+            return DefaultMoveGripperReal(self._move_gripper_lock)
 
     def open(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:

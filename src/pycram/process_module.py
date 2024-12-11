@@ -26,7 +26,7 @@ class ProcessModule:
     Implementation of process modules. Process modules are the part that communicate with the outer world to execute
      designators.
     """
-    execution_delay = True
+    execution_delay = False
     """
     Adds a delay of 0.5 seconds after executing a process module, to make the execution in simulation more realistic
     """
@@ -264,6 +264,12 @@ class ProcessModuleManager(ABC):
             return cls._instance
 
     def __init__(self, robot_name):
+        """
+        Registers the Process modules for this robot. The name of the robot has to match the name given in the robot
+        description.
+        :param robot_name: Name of the robot for which these Process Modules are intended
+        """
+
         self.robot_name = robot_name
         ProcessModuleManager.available_pms.append(self)
         self._navigate_lock = Lock()
