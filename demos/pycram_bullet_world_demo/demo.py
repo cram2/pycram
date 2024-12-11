@@ -16,8 +16,8 @@ import numpy as np
 np.random.seed(420)
 extension = ObjectDescription.get_file_extension()
 
-world = BulletWorld(WorldMode.DIRECT)
-viz = VizMarkerPublisher()
+world = BulletWorld(WorldMode.GUI)
+# viz = VizMarkerPublisher()
 
 robot = Object("pr2", Robot, f"pr2{extension}", pose=Pose([1, 2, 0]))
 apartment = Object("apartment", Apartment, f"apartment{extension}")
