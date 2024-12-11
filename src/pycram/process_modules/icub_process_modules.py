@@ -20,34 +20,18 @@ except ImportError:
     yarp = None
     pass
 
-def update_hand(hand_values,ctp_port):
-    yarp_bottle_msg: yarp.Bottle = yarp.Bottle()
-    yarp_bottle_reply: yarp.Bottle = yarp.Bottle()
-    yarp_bottle_msg.addVocab32('c', 't', 'p', 'q')
-    yarp_bottle_msg.addVocab32('t', 'i', 'm', 'e')
-    yarp_bottle_msg.addFloat32(1.5)
-    yarp_bottle_msg.addVocab32('o', 'f', 'f')
-    yarp_bottle_msg.addInt32(7)
-    yarp_bottle_msg.addVocab32('p', 'o', 's')
-    target_loc: yarp.Bottle = yarp_bottle_msg.addList()
-    for i in hand_values:
-        target_loc.addFloat32(i)
 
-
-    ctp_port.write(yarp_bottle_msg, yarp_bottle_reply)
-    reply_vocab = yarp_bottle_reply.get(0).asVocab32()
-
-    if reply_vocab == NO_ACK_VOCAB:
-        loginfo("Received: NO_ACK")
-        return False
-    elif reply_vocab == ACK_VOCAB:
-        loginfo("Received: ACK")
-        return True
-    else:
-        loginfo("Received: another reply")
-        return False
 
 def update_part(state_port,ctp_port, joint_to_change_idx, joints_to_change_pos):
+    """
+    constant time position control of specified part on a robotic part using YARP communication.
+    :param state_port: a status port to get the current states of the joints for the whole part
+    :param ctp_port:the control port
+    :param joint_to_change_idx: a list of joint names to change
+    :param joints_to_change_pos: a list of joint positions
+
+    :return: bool. success/fail for the control action
+    """
     if len(joint_to_change_idx):
         part_state: yarp.Bottle = state_port.read(shouldWait=True)
         part_new_states = []
@@ -82,8 +66,7 @@ def update_part(state_port,ctp_port, joint_to_change_idx, joints_to_change_pos):
             loginfo("Received: another reply")
             return False
 
-HAND_CLOSED = [60.0,60.0,0,85.0,20,85,20,85,85]
-HAND_OPENED = [0   ,0   ,0,0   ,0 ,0 ,0 ,0 ,0]
+
 
 if yarp is not None:
     class iCubNavigationReal(ProcessModule):
@@ -101,7 +84,7 @@ if yarp is not None:
             This point can either be a position or an object.
             """
 
-        def __init__(self,lock,cmd_port:yarp.RpcClient):
+        def __init__(self,lock,cmd_port:"yarp.RpcClient"):
             super().__init__(lock)
             self.cmd_port = cmd_port
 
@@ -145,36 +128,63 @@ if yarp is not None:
         Furthermore, it can only moved one gripper at a time.
         """
         def __init__(self, lock,
-                     state_ports : [yarp.BufferedPortBottle],
-                     ctp_ports: [yarp.RpcClient]):
+                     state_ports : ["yarp.BufferedPortBottle"],
+                     ctp_ports: ["yarp.RpcClient"]):
             super().__init__(lock)
             self.state_ports = state_ports
             self.ctp_ports = ctp_ports
+            self.HAND_CLOSED = [60.0,60.0,0,85.0,20,85,20,85,85]
+            self.HAND_OPENED = [0   ,0   ,0,0   ,0 ,0 ,0 ,0 ,0]
             loginfo("iCubMoveGripperReal initialized")
 
+        def update_hand(self,hand_values, ctp_port):
+            yarp_bottle_msg: yarp.Bottle = yarp.Bottle()
+            yarp_bottle_reply: yarp.Bottle = yarp.Bottle()
+            yarp_bottle_msg.addVocab32('c', 't', 'p', 'q')
+            yarp_bottle_msg.addVocab32('t', 'i', 'm', 'e')
+            yarp_bottle_msg.addFloat32(1.5)
+            yarp_bottle_msg.addVocab32('o', 'f', 'f')
+            yarp_bottle_msg.addInt32(7)
+            yarp_bottle_msg.addVocab32('p', 'o', 's')
+            target_loc: yarp.Bottle = yarp_bottle_msg.addList()
+            for i in hand_values:
+                target_loc.addFloat32(i)
+
+            ctp_port.write(yarp_bottle_msg, yarp_bottle_reply)
+            reply_vocab = yarp_bottle_reply.get(0).asVocab32()
+
+            if reply_vocab == NO_ACK_VOCAB:
+                loginfo("Received: NO_ACK")
+                return False
+            elif reply_vocab == ACK_VOCAB:
+                loginfo("Received: ACK")
+                return True
+            else:
+                loginfo("Received: another reply")
+                return False
 
         def _execute(self, desig: MoveGripperMotion):
             gripper = desig.gripper
             required_status = desig.motion
             if gripper == Arms.RIGHT:
                 if required_status == GripperState.CLOSE:
-                    update_hand(HAND_CLOSED,self.ctp_ports[0])
+                    self.update_hand(self.HAND_CLOSED,self.ctp_ports[0])
                 else:
-                    update_hand(HAND_OPENED, self.ctp_ports[0])
+                    self.update_hand(self.HAND_OPENED, self.ctp_ports[0])
 
             elif gripper == Arms.LEFT:
                 if required_status == GripperState.CLOSE:
-                    update_hand(HAND_CLOSED, self.ctp_ports[1])
+                    self.update_hand(self.HAND_CLOSED, self.ctp_ports[1])
                 else:
-                    update_hand(HAND_OPENED, self.ctp_ports[1])
+                    self.update_hand(self.HAND_OPENED, self.ctp_ports[1])
 
             elif gripper ==Arms.BOTH:
                 if required_status == GripperState.CLOSE:
-                    update_hand(HAND_CLOSED, self.ctp_ports[0])
-                    update_hand(HAND_CLOSED, self.ctp_ports[1])
+                    self.update_hand(self.HAND_CLOSED, self.ctp_ports[0])
+                    self.update_hand(self.HAND_CLOSED, self.ctp_ports[1])
                 else:
-                    update_hand(HAND_OPENED, self.ctp_ports[0])
-                    update_hand(HAND_OPENED, self.ctp_ports[1])
+                    self.update_hand(self.HAND_OPENED, self.ctp_ports[0])
+                    self.update_hand(self.HAND_OPENED, self.ctp_ports[1])
             else:
                 logwarn ("undefined arm")
 
@@ -193,7 +203,7 @@ if yarp is not None:
         This process moves the tool center point of either the right or the left arm.
         """
 
-        def __init__(self, lock, cmd_port: yarp.RpcClient):
+        def __init__(self, lock, cmd_port: "yarp.RpcClient"):
             super().__init__(lock)
             self.cmd_port = cmd_port
 
@@ -247,8 +257,8 @@ if yarp is not None:
         """
 
         def __init__(self, lock,
-                     state_ports : [yarp.BufferedPortBottle],
-                     ctp_ports: [yarp.RpcClient]):
+                     state_ports : ["yarp.BufferedPortBottle"],
+                     ctp_ports: ["yarp.RpcClient"]):
             super().__init__(lock)
             self.state_ports = state_ports
             self.ctp_ports = ctp_ports
@@ -309,8 +319,8 @@ if yarp is not None:
         """
 
         def __init__(self, lock,
-                     state_ports : [yarp.BufferedPortBottle],
-                     ctp_ports: [yarp.RpcClient]):
+                     state_ports : ["yarp.BufferedPortBottle"],
+                     ctp_ports: ["yarp.RpcClient"]):
             super().__init__(lock)
             self.state_ports = state_ports
             self.ctp_ports = ctp_ports

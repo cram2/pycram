@@ -6,7 +6,6 @@ from ..robot_description import RobotDescription
 from ..ros.logging import logdebug, logwarn, loginfo, logerr
 try:
     from ..external_interfaces.yarp_networking import *
-
 except ImportError:
     yarp = None
     logwarn("no yarp installation found")
@@ -99,11 +98,8 @@ if yarp is not None:
             naming convention. The port name is returned as a formatted string
             prefixed with a forward slash (`/`), which is the standard for YARP ports.
 
-            Args:
-                name (str): The specific name to append to the module's base name.
-
-            Returns:
-                str: The fully constructed YARP-compatible port name.
+            :param: name (str): The specific name to append to the module's base name.
+            :return: The fully constructed YARP-compatible port name.
             """
             return f'/{self.module_name}{name}'
 
@@ -120,8 +116,7 @@ if yarp is not None:
             and the method returns `False`. If all connections are successfully established, the method
             returns `True`.
 
-            Returns:
-                bool: `True` if all ports successfully connect, `False` otherwise.
+            :return bool: `True` if all ports successfully connect, `False` otherwise.
             """
             # Torso state port
             connection_status = yarp.NetworkBase_connect("/"+self.robot_name_yarp+"/torso/state:o", self.state_torso_port_name, "tcp")
@@ -160,8 +155,7 @@ if yarp is not None:
             system to pause ongoing communication or processing without permanently
             closing the connections.
 
-            Returns:
-                bool: `True` if all ports were successfully interrupted.
+            :return  bool: `True` if all ports were successfully interrupted.
             """
 
             self.handle_port.interrupt()
@@ -180,17 +174,10 @@ if yarp is not None:
             used by the system are properly closed to free up resources and maintain
             system integrity. The ports being closed include:
 
-            - `handle_port`: The port used for handling general rpc commands for the yarp module.
-            - `state_torso_port`: The port used for monitoring the torso's state.
-            - `state_right_arm_port`: The port used for monitoring the right arm's state.
-            - `state_left_arm_port`: The port used for monitoring the left arm's state.
-            - `state_head_port`: The port used for monitoring the head's state.
-
             After closing all the ports, the function returns `True` to indicate
             successful closure of all resources.
 
-            Returns:
-                bool: `True` if all ports were successfully closed.
+            :returns `True` if all ports were successfully closed or 'false'
             """
 
             self.handle_port.close()
@@ -367,17 +354,13 @@ if yarp is not None:
         """
             Initializes and runs the iCub state updater module.
 
-            **Functionality:**
             - Verifies if the YARP network is available; raises an error if not.
             - Creates an instance of `IcubStateUpdater` and configures it using a `yarp.ResourceFinder`.
             - Runs the module in a threaded manner and logs the outcome.
 
-            **Parameters:**
-            - `args`: Command-line arguments used to configure the module. ex for python calls ['/', '--robot', 'icubSim']
+            :param: Command-line arguments used to configure the module. ex for python calls ['/', '--robot', 'icubSim']
 
-            **Returns:**
-            - The instance of `IcubStateUpdater` if the module runs successfully.
-            - `None` if the module fails to open.
+            :return: The instance of `IcubStateUpdater` if the module runs successfully.`None` if the module fails to open.
             """
         if not yarp.Network.checkNetwork():
             raise YarpNetworkError()
