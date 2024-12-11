@@ -23,3 +23,7 @@ repositories:
     type: git
     url: https://github.com/orocos/orocos_kinematics_dynamics.git
     version: v1.5.1
+  fetch_ros:
+    type: git
+    url: https://github.com/ZebraDevs/fetch_ros.git
+    version: ros1
