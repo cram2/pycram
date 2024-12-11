@@ -7,7 +7,6 @@ from ..datastructures.enums import Arms, Grasp, GripperState, GripperType
 from ..ros.ros_tools import get_ros_package_path
 
 from ..helper import get_robot_mjcf_path
-import icub_models
 
 filename = get_ros_package_path('icub_model') + '/urdf/model' + '.urdf'
 
