@@ -7,6 +7,7 @@ import tqdm
 from owlready2 import ThingClass, PropertyClass, get_ontology
 from owlready2.base import *
 from typing_extensions import List, Any
+import inflection
 
 
 def to_snake_case(string: str) -> str:
@@ -16,6 +17,7 @@ def to_snake_case(string: str) -> str:
     :param string: The string to convert.
     :return: The string in snake case.
     """
+    return inflection.underscore(string)
     return string.replace(" ", "_").lower()
 
 def to_camel_case(string: str) -> str:
@@ -25,6 +27,7 @@ def to_camel_case(string: str) -> str:
     :param string: The string to convert.
     :return: The string in camel case.
     """
+    return inflection.camelize(string)
     return ''.join(x for x in string.title() if not x.isspace())
 
 def replace_types(string: str) -> str:
@@ -35,6 +38,7 @@ def replace_types(string: str) -> str:
     >>> replace_types("array_double__<class 'int'>")
     "float__int"
 
+    # TODO array_double will be converted to float for now, discuss
     :param string: The string to convert
     :return: The string with the types replaced
     """
@@ -51,6 +55,37 @@ def replace_types(string: str) -> str:
     if "<class 'float'>" in str(string):
         string = str(string).replace("<class 'float'>", "float")
     return string
+
+
+# Mapping of digits to words
+digit_map = {
+    '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
+    '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine'
+}
+
+
+
+def update_class_names(onto: owlready2.Ontology):
+    """
+    Update the class names to match python conventions.
+    """
+    for cls in onto.classes():
+        if cls is owlready2.Thing:
+            continue
+        converted_name = to_camel_case(cls.name)
+        converted_name = ''.join(digit_map[char] if char.isdigit() else char for char in converted_name)
+        type.__setattr__(cls, "_name", converted_name)
+
+def update_property_names(onto: owlready2.Ontology):
+    """
+    Update the property names to match python conventions of functions and members.
+    """
+    for prop in onto.properties():
+        converted_name = to_snake_case(prop.name)
+        converted_name = ''.join(digit_map[char] if char.isdigit() else char for char in converted_name)
+        type.__setattr__(prop, "original_name", prop.name)
+        type.__setattr__(prop, "_name", converted_name)
+
 
 class AbstractParser:
     """
@@ -105,7 +140,6 @@ class AbstractParser:
         :return: The path to the file.
         """
         return f"{os.path.join(self.path, file_name)}{self.file_extension}"
-
 
 
 class OntologyParser(AbstractParser):
@@ -171,18 +205,8 @@ class OntologyParser(AbstractParser):
         super().__init__(path, indentation)
         self.ontology = ontology
         self.dependencies = dependencies
+        # TODO update class and property names here to match python conventions
 
-    def digit_to_string(self, cls):
-        # Mapping of digits to words
-        digit_map = {
-            '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
-            '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine'
-        }
-
-        # Replace each digit with its corresponding word
-        converted_name = ''.join(digit_map[char] if char.isdigit() else char for char in cls)
-
-        return converted_name
 
     def parse(self):
         """
@@ -267,19 +291,6 @@ class OntologyParser(AbstractParser):
         self.import_individuals()
         self.current_file.write("\n" * 2)
 
-        for cls in self.ontology.classes():
-            if cls.name[0].isdigit():
-                original_name = cls.name
-                new_name = self.digit_to_string(original_name)
-                if new_name != original_name:
-                    cls.name = new_name
-
-            if "-" in cls.name:
-                original_name = cls.name
-                new_name = cls.name.replace("-", "")
-                if new_name != original_name:
-                    cls.name = new_name
-
         elements = list(self.ontology.classes()) + list(self.ontology.properties())
 
         for element in tqdm.tqdm(elements, desc="Parsing restrictions"):
@@ -302,8 +313,6 @@ class OntologyParser(AbstractParser):
 
         :param cls: The class
         """
-        # TODO: requiring a digit_to_string for the restrictions body.
-        # TODO: array_double will be converted to float for now, discuss
         # write is_a restrictions
         is_a = self.parse_elements(cls.is_a)
         if is_a:
@@ -382,7 +391,9 @@ class OntologyParser(AbstractParser):
         :param individual: The individual.
         """
         for prop in individual.get_properties():
-            self.current_file.write(f"{individual.name}.{repr(prop)} = {individual.__getattr__(repr(prop))}")
+            if "original_name" not in dir(prop):
+                continue
+            self.current_file.write(f"{individual.name}.{prop.name} = {individual.__getattr__(prop.original_name)}")
             self.current_file.write("\n")
 
     def import_classes(self):
@@ -480,18 +491,8 @@ class OntologyParser(AbstractParser):
         Parse a class without restrictions.
         :param cls: The class.
         """
-        if cls.name[0].isdigit():
-            # Prepend "I" to make the class name valid
-            #modified_class_name = "I" + cls.name
-            modified_class_name = self.digit_to_string(cls.name)
-        else:
-            modified_class_name = cls.name
-
-        if "-" in modified_class_name:
-            modified_class_name = modified_class_name.replace("-", "")
-
         inherited_classes_sting = "Base"
-        self.current_file.write(f"class {modified_class_name}({inherited_classes_sting}):\n")
+        self.current_file.write(f"class {repr(cls)}({inherited_classes_sting}):\n")
         self.write_docstring(cls)
         self.current_file.write("\n\n")
 
@@ -586,7 +587,7 @@ class OntologiesParser(AbstractParser):
         """
         Create the base class for concepts.
         """
-        self.current_file.write("class Base(Thing):\n")
+        self.current_file.write("class Base(Thing, metaclass=ThingClass):\n")
         self.current_file.write(self.apply_indent_to("namespace = ontology"))
         self.current_file.write("\n" * 3)
 
@@ -631,16 +632,18 @@ class OntologiesParser(AbstractParser):
 
     def create_ontologies(self):
         self.destroy_all_ontologies()
-        if self.clear_existing:
-            for onto in self.ontologies:
-                ontology_path = os.path.join(self.path, to_snake_case(onto.name))
-                if os.path.exists(ontology_path):
-                    shutil.rmtree(ontology_path)
 
         for onto in nx.topological_sort(self.dependency_graph):
             loaded_onto: owlready2.Ontology = get_ontology(onto.base_iri).load()
+            update_class_names(loaded_onto)
+            update_property_names(loaded_onto)
             # Create the directory for the ontology
             ontology_path = os.path.join(self.path, to_snake_case(loaded_onto.name))
+
+            if self.clear_existing:
+                if os.path.exists(ontology_path):
+                    shutil.rmtree(ontology_path)
+
             mkdir(ontology_path)
 
             # Parse the ontology
