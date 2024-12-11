@@ -594,7 +594,7 @@ class OntologiesParser(AbstractParser):
         self.current_file.write("import tempfile\n")
         self.current_file.write("\n" * 2)
         self.current_file.write("ontology_file = tempfile.NamedTemporaryFile()\n")
-        self.current_file.write('ontology = owlready2.get_ontology("file://" + ontology_file.name).load()\n')
+        self.current_file.write('ontology = get_ontology("file://" + ontology_file.name).load()\n')
         self.current_file.write("\n" * 2)
         self.create_base_class()
         self.create_base_property()
