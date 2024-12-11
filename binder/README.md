@@ -99,7 +99,8 @@ RUN cd pycram \
   && cd src/neem_interface_python \
   && git clone https://github.com/benjaminalt/neem-interface.git src/neem-interface
 
-RUN pip install --requirement ${PYCRAM_WS}/src/pycram/requirements.txt --user \
+RUN pip install --requirement ${PYCRAM_WS}/src/pycram/requirements.txt --user 
+RUN pip install --requirement ${PYCRAM_WS}/src/pycram/src/neem_interface_python/requirements.txt --user \
   && pip cache purge
 ```
 
@@ -447,3 +448,15 @@ with simulated_robot:
                  arms=["left"],
                  grasps=["left", "right"]).resolve().perform()
 ```
+
+
+
+
+
+
+
+
+
+
+
+

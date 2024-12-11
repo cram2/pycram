@@ -2,7 +2,7 @@
   "globalOptions": {
     "background": "#111111",
     "colladaLoader": "collada2",
-    "fixedFrame": "simulated/map"
+    "fixedFrame": "pycram/map"
   },
   "viewerOptions": {
     "camera": {
@@ -40,11 +40,11 @@
       "type": "grid"
     },
     {
-      "isShown": false,
+      "isShown": true,
       "name": "Robot model",
       "options": {
         "param": "robot_description",
-        "tfPrefix": "simulated/pr2"
+        "tfPrefix": "/pycram/pycram_robot"
       },
       "type": "urdf"
     },
@@ -65,8 +65,15 @@
         "topic": "/pycram/viz_marker"
       },
       "type": "markerArray"
+    },
+   {
+      "isShown": true,
+      "name": "Marker array",
+      "options": {
+        "topic": "/pycram/viz_marker_robot"
+      },
+      "type": "markerArray"
     }
-
   
   ]
 }
