@@ -6,7 +6,7 @@ ontology_file = tempfile.NamedTemporaryFile()
 ontology = owlready2.get_ontology("file://" + ontology_file.name).load()
 
 
-class Base(Thing):
+class Base(Thing, metaclass=ThingClass):
     namespace = ontology
 
 

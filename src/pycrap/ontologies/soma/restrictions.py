@@ -3,15 +3,15 @@ from .classes import *
 from .individuals import *
 
 
-Affordance.is_a = [Relation, describes.only(Disposition), definesBearer.exactly(1, Role), definesTrigger.exactly(1, Role), definesTask.exactly(1, Task)]
+Affordance.is_a = [Relation, describes.only(Disposition), defines_bearer.exactly(1, Role), defines_trigger.exactly(1, Role), defines_task.exactly(1, Task)]
 
-Concept.is_a = [SocialObject, isDefinedIn.some(Description), hasPart.only(Concept)]
+Concept.is_a = [SocialObject, is_defined_in.some(Description), has_part.only(Concept)]
 
-Task.is_a = [EventType, hasPart.only(Task), isExecutedIn.only(Action), isTaskDefinedIn.only(Description), isTaskOf.only(Role)]
+Task.is_a = [EventType, has_part.only(Task), is_executed_in.only(Action), is_task_defined_in.only(Description), is_task_of.only(Role)]
 
-Disposition.is_a = [Extrinsic, isDescribedBy.exactly(1, Affordance), isDescribedBy.exactly(1, Affordance & definesBearer.exactly(1, Role) & definesEventType.exactly(1, EventType) & definesTrigger.exactly(1, Role))]
+Disposition.is_a = [Extrinsic, is_described_by.exactly(1, Affordance), is_described_by.exactly(1, And([Affordance, defines_bearer.exactly(1, Role), defines_event_type.exactly(1, EventType), defines_trigger.exactly(1, Role)]))]
 
-Role.is_a = [Concept, classifies.only(Object), hasPart.only(Role)]
+Role.is_a = [Concept, classifies.only(Object), has_part.only(Role)]
 
 Setpoint.is_a = [Parameter]
 
@@ -19,78 +19,78 @@ Entity.is_a = [Thing]
 
 Answer.is_a = [Message]
 
-Message.is_a = [Item, hasTask.some(CommunicationTask), classifies.only(InformationRealization)]
+Message.is_a = [Item, has_task.some(CommunicationTask), classifies.only(InformationRealization)]
 
-Event.is_a = [Entity, hasParticipant.some(Object), hasTimeInterval.some(TimeInterval), hasConstituent.only(Event), hasPart.only(Event)]
+Event.is_a = [Entity, has_participant.some(Object), has_time_interval.some(TimeInterval), has_constituent.only(Event), has_part.only(Event)]
 
-Transition.is_a = [Situation, includesEvent.some(Event), includesObject.some(Object), isSettingFor.some(Process), isSettingFor.some(Situation & precedes.some(Event & precedes.some(Situation))), includesTime.min(3, TimeInterval), isSettingFor.min(2, Situation)]
+Transition.is_a = [Situation, includes_event.some(Event), includes_object.some(Object), is_setting_for.some(Process), is_setting_for.some(And([Situation, precedes.some(And([Event, precedes.some(Situation)]))])), includes_time.min(3, TimeInterval), is_setting_for.min(2, Situation)]
 
-PhysicalObject.is_a = [Object, hasPart.only(PhysicalObject)]
+PhysicalObject.is_a = [Object, has_part.only(PhysicalObject)]
 
 Description.is_a = [SocialObject]
 
 EventType.is_a = [Concept, classifies.only(Event)]
 
-Parameter.is_a = [Concept, classifies.only(Region), hasPart.only(Parameter)]
+Parameter.is_a = [Concept, classifies.only(Region), has_part.only(Parameter)]
 
-ProcessType.is_a = [EventType, classifies.only(Process), hasPart.only(ProcessType), isDefinedIn.only(Description)]
+ProcessType.is_a = [EventType, classifies.only(Process), has_part.only(ProcessType), is_defined_in.only(Description)]
 
 InformationObject.is_a = [InformationEntity, SocialObject]
 
-Quality.is_a = [Entity, hasRegion.some(Region), isQualityOf.some(Entity), hasConstituent.only(Quality), hasPart.only(Quality)]
+Quality.is_a = [Entity, has_region.some(Region), is_quality_of.some(Entity), has_constituent.only(Quality), has_part.only(Quality)]
 
-OrderedElement.is_a = [Singleton, follows.only(OrderedElement), precedes.only(OrderedElement), isOrderedBy.exactly(1, Order)]
+OrderedElement.is_a = [Singleton, follows.only(OrderedElement), precedes.only(OrderedElement), is_ordered_by.exactly(1, Order)]
 
 MotionProcess.is_a = [PhysicsProcess]
 
-Motion.is_a = [ProcessType, isExecutedMotionIn.only(MotionProcess)]
+Motion.is_a = [ProcessType, is_executed_motion_in.only(MotionProcess)]
 
-Collection.is_a = [SocialObject, hasPart.only(Collection)]
+Collection.is_a = [SocialObject, has_part.only(Collection)]
 
 System.is_a = [SocialObject]
 
-Action.is_a = [Event, hasParticipant.some(Agent), executesTask.min(1, Thing)]
+Action.is_a = [Event, has_participant.some(Agent), executes_task.min(1, Thing)]
 
-Region.is_a = [Abstract, hasConstituent.only(Region), hasPart.only(Region), overlaps.only(Region), precedes.only(Region)]
+Region.is_a = [Abstract, has_constituent.only(Region), has_part.only(Region), overlaps.only(Region), precedes.only(Region)]
 
-Binding.is_a = [Relation, CounterfactualBinding | FactualBinding, RoleFillerBinding | RoleRoleBinding, Inverse(hasBinding).some(Description), hasBindingFiller.exactly(1, Entity), hasBindingRole.exactly(1, Parameter | Role)]
+Binding.is_a = [Relation, Or([CounterfactualBinding, FactualBinding]), Or([RoleFillerBinding, RoleRoleBinding]), Inverse(has_binding).some(Description), has_binding_filler.exactly(1, Entity), has_binding_role.exactly(1, Or([Parameter, Role]))]
 
-Joint.is_a = [PhysicalBody, hasChildLink.exactly(1, PhysicalObject), hasParentLink.exactly(1, PhysicalObject), hasJointState.max(1, JointState)]
-Joint.equivalent_to = [FixedJoint | MovableJoint]
+Joint.is_a = [PhysicalBody, has_child_link.exactly(1, PhysicalObject), has_parent_link.exactly(1, PhysicalObject), has_joint_state.max(1, JointState)]
+Joint.equivalent_to = [Or([FixedJoint, MovableJoint])]
 
-Color.is_a = [Extrinsic, hasRegion.some(ColorRegion), hasRegion.only(ColorRegion)]
+Color.is_a = [Extrinsic, has_region.some(ColorRegion), has_region.only(ColorRegion)]
 
-Object.is_a = [Entity, hasLocation.some(Entity), isParticipantIn.some(Event), hasConstituent.only(Object), hasPart.only(Object), isClassifiedBy.only(Role)]
+Object.is_a = [Entity, has_location.some(Entity), is_participant_in.some(Event), has_constituent.only(Object), has_part.only(Object), is_classified_by.only(Role)]
 
 ExecutionStateRegion.is_a = [Region]
 ExecutionStateRegion.equivalent_to = [OneOf([ExecutionState_Active, ExecutionState_Cancelled, ExecutionState_Failed, ExecutionState_Paused, ExecutionState_Pending, ExecutionState_Succeeded])]
 
-Feature.is_a = [Object, hasPart.only(Feature), isFeatureOf.exactly(1, PhysicalObject)]
+Feature.is_a = [Object, has_part.only(Feature), is_feature_of.exactly(1, PhysicalObject)]
 
-Workflow.is_a = [Plan, definesRole.some(Role), definesTask.some(Task)]
+Workflow.is_a = [Plan, defines_role.some(Role), defines_task.some(Task)]
 
-FrictionAttribute.is_a = [PhysicalAttribute, hasFrictionValue.exactly(1, float)]
+FrictionAttribute.is_a = [PhysicalAttribute, has_friction_value.exactly(1, float)]
 
 Goal.is_a = [Description]
 
-StateTransition.is_a = [Transition, hasInitialScene.some(Scene), hasTerminalScene.some(Scene), includesEvent.some(Action), satisfies.some(ImageSchemaTheory)]
+StateTransition.is_a = [Transition, has_initial_scene.some(Scene), has_terminal_scene.some(Scene), includes_event.some(Action), satisfies.some(ImageSchemaTheory)]
 
-Scene.is_a = [Situation, includesEvent.some(State), satisfies.some(ImageSchemaTheory)]
+Scene.is_a = [Situation, includes_event.some(State), satisfies.some(ImageSchemaTheory)]
 
 SituationTransition.is_a = [Transition]
 
 Situation.is_a = [Entity, satisfies.some(Description)]
 
 NonmanifestedSituation.is_a = [Situation]
-NonmanifestedSituation.equivalent_to = [Situation & manifestsIn.exactly(0, Event)]
+NonmanifestedSituation.equivalent_to = [And([Situation, manifests_in.exactly(0, Event)])]
 
 JointLimit.is_a = [PhysicalAttribute]
 
-JointState.is_a = [PhysicalAttribute, hasJointPosition.exactly(1, float), hasJointVelocity.exactly(1, float), hasJointEffort.max(1, float)]
+JointState.is_a = [PhysicalAttribute, has_joint_position.exactly(1, float), has_joint_velocity.exactly(1, float), has_joint_effort.max(1, float)]
 
-Localization.is_a = [Extrinsic, hasRegion.some(SpaceRegion), hasRegion.only(SpaceRegion)]
+Localization.is_a = [Extrinsic, has_region.some(SpaceRegion), has_region.only(SpaceRegion)]
 
-MassAttribute.is_a = [PhysicalAttribute, hasMassValue.exactly(1, float)]
+MassAttribute.is_a = [PhysicalAttribute, has_mass_value.exactly(1, float)]
 
 NetForce.is_a = [ForceAttribute]
 
@@ -98,31 +98,31 @@ Process.is_a = [Event]
 
 State.is_a = [Event]
 
-Succedence.is_a = [Relation, Inverse(hasSuccedence).some(Description), hasPredecessor.exactly(1, TaskInvocation), hasSuccessor.exactly(1, TaskInvocation)]
+Succedence.is_a = [Relation, Inverse(has_succedence).some(Description), has_predecessor.exactly(1, TaskInvocation), has_successor.exactly(1, TaskInvocation)]
 
 Agent.is_a = [Object]
 
-Preference.is_a = [SocialQuality, isPreferenceOf.only(Agent)]
+Preference.is_a = [SocialQuality, is_preference_of.only(Agent)]
 
-Shape.is_a = [Intrinsic, hasRegion.some(ShapeRegion), hasRegion.only(ShapeRegion)]
+Shape.is_a = [Intrinsic, has_region.some(ShapeRegion), has_region.only(ShapeRegion)]
 
-ShapeRegion.is_a = [Region, hasSpaceRegion.max(1, SixDPose)]
+ShapeRegion.is_a = [Region, has_space_region.max(1, SixDPose)]
 
-SoftwareInstance.is_a = [Thing, SocialAgent & actsFor.some(Agent), isDesignedBy.some(Software)]
+SoftwareInstance.is_a = [Thing, And([SocialAgent, acts_for.some(Agent)]), is_designed_by.some(Software)]
 
 SpaceRegion.is_a = [Region]
 
-StateType.is_a = [EventType, classifies.only(State), hasPart.only(StateType)]
+StateType.is_a = [EventType, classifies.only(State), has_part.only(StateType)]
 
 Relation.is_a = [Description]
 
-PhysicalArtifact.is_a = [PhysicalObject, isDescribedBy.some(Plan)]
+PhysicalArtifact.is_a = [PhysicalObject, is_described_by.some(Plan)]
 
-PhysicalEffector.is_a = [FunctionalPart, Inverse(hasPart).some(PhysicalAgent)]
+PhysicalEffector.is_a = [FunctionalPart, Inverse(has_part).some(PhysicalAgent)]
 
 PhysicalPlace.is_a = [PhysicalObject]
 
-QueryingTask.is_a = [IllocutionaryTask, isTaskOf.some(Query), classifies.only(hasParticipant.some(InterrogativeClause))]
+QueryingTask.is_a = [IllocutionaryTask, is_task_of.some(Query), classifies.only(has_participant.some(InterrogativeClause))]
 
 Design.is_a = [Description]
 
@@ -130,21 +130,21 @@ MotionDescription.is_a = [ProcessFlow]
 
 Order.is_a = [FormalEntity, orders.some(OrderedElement)]
 
-Plan.is_a = [Description, hasComponent.some(Goal)]
+Plan.is_a = [Description, has_component.some(Goal)]
 
-Transient.is_a = [Object, transitionsFrom.some(Object)]
+Transient.is_a = [Object, transitions_from.some(Object)]
 
-ColorRegion.is_a = [PhysicalAttribute, isRegionFor.only(Color)]
+ColorRegion.is_a = [PhysicalAttribute, is_region_for.only(Color)]
 
-InformationRealization.is_a = [InformationEntity, Event | PhysicalObject | Quality, realizes.some(InformationObject), realizesSelfInformation.has_self()]
+InformationRealization.is_a = [InformationEntity, Or([Event, PhysicalObject, Quality]), realizes.some(InformationObject), realizes_self_information.has_self()]
 
-ForceAttribute.is_a = [PhysicalAttribute, hasForceValue.exactly(1, float)]
+ForceAttribute.is_a = [PhysicalAttribute, has_force_value.exactly(1, float)]
 
 TimeInterval.is_a = [Region]
 
-PhysicalAttribute.is_a = [Region, isRegionFor.only(PhysicalObject)]
+PhysicalAttribute.is_a = [Region, is_region_for.only(PhysicalObject)]
 
-API_Specification.is_a = [InterfaceSpecification]
+APISpecification.is_a = [InterfaceSpecification]
 
 InterfaceSpecification.is_a = [Design]
 
@@ -158,13 +158,13 @@ Instrument.is_a = [ResourceRole]
 
 Accident.is_a = [Event]
 
-ActionExecutionPlan.is_a = [Plan, definesTask.only(hasParameter.some(Status))]
+ActionExecutionPlan.is_a = [Plan, defines_task.only(has_parameter.some(Status))]
 
 Status.is_a = [Parameter]
 
 Actuating.is_a = [PhysicalTask]
 
-PhysicalTask.is_a = [Task, classifies.only(Action & (hasParticipant.some(PhysicalAgent) | hasParticipant.some(PhysicalObject)))]
+PhysicalTask.is_a = [Task, classifies.only(And([Action, (Or([has_participant.some(PhysicalAgent), has_participant.some(PhysicalObject)]))]))]
 
 AestheticDesign.is_a = [Design]
 
@@ -182,8 +182,8 @@ Alteration.is_a = [ProcessType]
 
 AlterativeInteraction.is_a = [ForceInteraction]
 
-ForceInteraction.is_a = [ProcessType, isProcessTypeOf.some(Agonist), isProcessTypeOf.some(Antagonist)]
-ForceInteraction.equivalent_to = [AlterativeInteraction | PreservativeInteraction]
+ForceInteraction.is_a = [ProcessType, is_process_type_of.some(Agonist), is_process_type_of.some(Antagonist)]
+ForceInteraction.equivalent_to = [Or([AlterativeInteraction, PreservativeInteraction])]
 
 PreservativeInteraction.is_a = [ForceInteraction]
 
@@ -196,48 +196,48 @@ DexterityDiagnosis.is_a = [BehavioralDiagnosis]
 Masterful.is_a = [DexterityDiagnosis]
 
 AnsweringTask.is_a = [Thing]
-AnsweringTask.equivalent_to = [IllocutionaryTask & classifies.only(isReactionTo.only(isClassifiedBy.some(CommandingTask))), isTaskOf.some(Answer)]
+AnsweringTask.equivalent_to = [And([IllocutionaryTask, classifies.only(is_reaction_to.only(is_classified_by.some(CommandingTask)))]), is_task_of.some(Answer)]
 
-CommandingTask.is_a = [IllocutionaryTask, classifies.only(hasParticipant.some(ImperativeClause))]
+CommandingTask.is_a = [IllocutionaryTask, classifies.only(has_participant.some(ImperativeClause))]
 
-IllocutionaryTask.is_a = [Thing, CommunicationTask & classifies.only(hasParticipant.only(Agent | SocialObject))]
+IllocutionaryTask.is_a = [Thing, And([CommunicationTask, classifies.only(has_participant.only(Or([Agent, SocialObject])))])]
 
 Antagonist.is_a = [Patient]
 
 Appliance.is_a = [DesignedArtifact]
 
-DesignedArtifact.is_a = [PhysicalArtifact, isDescribedBy.some(Design)]
+DesignedArtifact.is_a = [PhysicalArtifact, is_described_by.some(Design)]
 
 Approaching.is_a = [Locomotion]
 
 Locomotion.is_a = [BodyMovement, DirectedMotion]
 
-ArchiveFile.is_a = [Digital_File]
-ArchiveFile.equivalent_to = [Digital_File & realizes.some(ArchiveText)]
+ArchiveFile.is_a = [DigitalFile]
+ArchiveFile.equivalent_to = [And([DigitalFile, realizes.some(ArchiveText)])]
 
 ArchiveText.is_a = [Thing]
-ArchiveText.equivalent_to = [Structured_Text & expresses.some(FileConfiguration), isGivenMeaningBy.some(ArchiveFormat)]
+ArchiveText.equivalent_to = [And([StructuredText, expresses.some(FileConfiguration)]), is_given_meaning_by.some(ArchiveFormat)]
 
-Digital_File.is_a = [InformationRealization, realizes.some(Structured_Text), hasNameString.some(str)]
+DigitalFile.is_a = [InformationRealization, realizes.some(StructuredText), has_name_string.some(str)]
 
-ArchiveFormat.is_a = [File_format, givesMeaningTo.only(ArchiveText)]
+ArchiveFormat.is_a = [FileFormat, gives_meaning_to.only(ArchiveText)]
 
-File_format.is_a = [Computer_Language]
+FileFormat.is_a = [ComputerLanguage]
 
 FileConfiguration.is_a = [Thing]
-FileConfiguration.equivalent_to = [Configuration & hasMember.only(Digital_File)]
+FileConfiguration.equivalent_to = [And([Configuration, has_member.only(DigitalFile)])]
 
-Structured_Text.is_a = [Thing]
-Structured_Text.equivalent_to = [Text & isGivenMeaningBy.some(FormalLanguage)]
+StructuredText.is_a = [Thing]
+StructuredText.equivalent_to = [And([Text, is_given_meaning_by.some(FormalLanguage)])]
 
 AreaSurveying.is_a = [Perceiving]
 
-Perceiving.is_a = [Thing, InformationAcquisition & PhysicalTask]
+Perceiving.is_a = [Thing, And([InformationAcquisition, PhysicalTask])]
 
 Arm.is_a = [Limb]
 
 Limb.is_a = [PhysicalEffector]
-Limb.equivalent_to = [Arm | Leg]
+Limb.equivalent_to = [Or([Arm, Leg])]
 
 Arranging.is_a = [Constructing]
 
@@ -249,7 +249,7 @@ PhysicalAgent.is_a = [Agent, PhysicalObject]
 
 Assembling.is_a = [Constructing]
 
-AssertionTask.is_a = [IllocutionaryTask, classifies.only(hasParticipant.some(DeclarativeClause))]
+AssertionTask.is_a = [IllocutionaryTask, classifies.only(has_participant.some(DeclarativeClause))]
 
 DeclarativeClause.is_a = [ClausalObject]
 
@@ -271,7 +271,7 @@ Barrier.is_a = [Restrictor]
 
 Restrictor.is_a = [Instrument]
 
-BehavioralDiagnosis.is_a = [Diagnosis, hasConstituent.some(Goal)]
+BehavioralDiagnosis.is_a = [Diagnosis, has_constituent.some(Goal)]
 
 Diagnosis.is_a = [Description]
 
@@ -285,29 +285,29 @@ FactualBinding.is_a = [Binding]
 
 RoleFillerBinding.is_a = [Binding]
 
-RoleRoleBinding.is_a = [Binding, hasBindingFiller.only(Parameter | Role)]
+RoleRoleBinding.is_a = [Binding, has_binding_filler.only(Or([Parameter, Role]))]
 
-Blockage.is_a = [Disposition, affordsBearer.only(Barrier), affordsTrigger.only(BlockedObject)]
+Blockage.is_a = [Disposition, affords_bearer.only(Barrier), affords_trigger.only(BlockedObject)]
 
 BlockedObject.is_a = [Patient]
 
-BodyMovement.is_a = [Motion, classifies.only(hasParticipant.some(PhysicalAgent) | hasParticipant.some(PhysicalObject & isPartOf.some(PhysicalAgent)))]
+BodyMovement.is_a = [Motion, classifies.only(Or([has_participant.some(PhysicalAgent), has_participant.some(And([PhysicalObject, is_part_of.some(PhysicalAgent)]))]))]
 
 Boiling.is_a = [Vaporizing]
 
-Vaporizing.is_a = [PhaseTransition, isProcessTypeOf.some(AlteredObject & classifies.only(Substance))]
+Vaporizing.is_a = [PhaseTransition, is_process_type_of.some(And([AlteredObject, classifies.only(Substance)]))]
 
-BoxShape.is_a = [ShapeRegion, hasHeight.exactly(1, float), hasLength.exactly(1, float), hasWidth.exactly(1, float)]
+BoxShape.is_a = [ShapeRegion, has_height.exactly(1, float), has_length.exactly(1, float), has_width.exactly(1, float)]
 
-CanCut.is_a = [Variability, affordsBearer.only(Cutter), affordsTrigger.only(CutObject)]
+CanCut.is_a = [Variability, affords_bearer.only(Cutter), affords_trigger.only(CutObject)]
 
-Variability.is_a = [Disposition, affordsBearer.only(Tool), affordsTrigger.only(AlteredObject)]
+Variability.is_a = [Disposition, affords_bearer.only(Tool), affords_trigger.only(AlteredObject)]
 
 Cutter.is_a = [Tool]
 
 CutObject.is_a = [AlteredObject]
 
-Capability.is_a = [Disposition, isDescribedBy.exactly(1, Affordance & definesBearer.exactly(1, Role) & definesTrigger.exactly(1, Role) & definesTask.exactly(1, Task))]
+Capability.is_a = [Disposition, is_described_by.exactly(1, And([Affordance, defines_bearer.exactly(1, Role), defines_trigger.exactly(1, Role), defines_task.exactly(1, Task)]))]
 
 Capacity.is_a = [Intrinsic]
 
@@ -321,7 +321,7 @@ CausalEventRole.is_a = [CausativeRole]
 
 EventAdjacentRole.is_a = [Role]
 
-CausedMotionTheory.is_a = [ImageSchemaTheory, defines.some(CausalEventRole), defines.some(Instrument), defines.some(Patient), defines.some(PerformerRole), hasPart.some(SourcePathGoalTheory)]
+CausedMotionTheory.is_a = [ImageSchemaTheory, defines.some(CausalEventRole), defines.some(Instrument), defines.some(Patient), defines.some(PerformerRole), has_part.some(SourcePathGoalTheory)]
 
 ImageSchemaTheory.is_a = [SchematicTheory]
 
@@ -329,11 +329,11 @@ PerformerRole.is_a = [CausativeRole, classifies.only(Agent)]
 
 SourcePathGoalTheory.is_a = [ImageSchemaTheory, defines.some(Destination), defines.some(Origin), defines.some(PathRole)]
 
-Channel.is_a = [PathRole, hasTask.some(CommunicationTask)]
+Channel.is_a = [PathRole, has_task.some(CommunicationTask)]
 
 PathRole.is_a = [SpatioTemporalRole]
 
-CommunicationTask.is_a = [Task, isTaskOf.some(Channel) & isTaskOf.some(Message) & isTaskOf.some(Receiver) & isTaskOf.some(Sender), classifies.only(hasParticipant.only(Agent | SocialObject))]
+CommunicationTask.is_a = [Task, And([is_task_of.some(Channel), is_task_of.some(Message), is_task_of.some(Receiver), is_task_of.some(Sender)]), classifies.only(has_participant.only(Or([Agent, SocialObject])))]
 
 CheckingObjectPresence.is_a = [Perceiving]
 
@@ -343,9 +343,9 @@ Choice.is_a = [ResultRole]
 
 ResultRole.is_a = [GoalRole]
 
-CircularCylinder.is_a = [CylinderShape, hasRadius.exactly(1, float)]
+CircularCylinder.is_a = [CylinderShape, has_radius.exactly(1, float)]
 
-CylinderShape.is_a = [ShapeRegion, hasRadius.some(float), hasLength.exactly(1, float)]
+CylinderShape.is_a = [ShapeRegion, has_radius.some(float), has_length.exactly(1, float)]
 
 Classifier.is_a = [StatisticalReasoner]
 
@@ -359,28 +359,28 @@ Clean.is_a = [CleanlinessRegion]
 
 CleanlinessRegion.is_a = [Region]
 
-Cleaning.is_a = [ModifyingPhysicalObject, isTaskAffordedBy.some(Purification)]
+Cleaning.is_a = [ModifyingPhysicalObject, is_task_afforded_by.some(Purification)]
 
 ModifyingPhysicalObject.is_a = [PhysicalTask]
 
-Purification.is_a = [Variability, affordsSetpoint.only(classifies.only(Clean & isRegionFor.only(Cleanliness))), affordsTrigger.only(classifies.only(PhysicalObject))]
+Purification.is_a = [Variability, affords_setpoint.only(classifies.only(And([Clean, is_region_for.only(Cleanliness)]))), affords_trigger.only(classifies.only(PhysicalObject))]
 
-Cleanliness.is_a = [SocialQuality, hasRegion.some(CleanlinessRegion), hasRegion.only(CleanlinessRegion)]
+Cleanliness.is_a = [SocialQuality, has_region.some(CleanlinessRegion), has_region.only(CleanlinessRegion)]
 
 SocialQuality.is_a = [Quality]
 
-ClientServer_Specification.is_a = [InterfaceSpecification, definesRole.some(ClientRole) & definesRole.some(ServerRole)]
+ClientServerSpecification.is_a = [InterfaceSpecification, And([defines_role.some(ClientRole), defines_role.some(ServerRole)])]
 
-ClientRole.is_a = [InterfaceComponentRole, isDefinedIn.some(ClientServer_Specification)]
+ClientRole.is_a = [InterfaceComponentRole, is_defined_in.some(ClientServerSpecification)]
 
-ServerRole.is_a = [InterfaceComponentRole, isDefinedIn.some(ClientServer_Specification)]
+ServerRole.is_a = [InterfaceComponentRole, is_defined_in.some(ClientServerSpecification)]
 
 InterfaceComponentRole.is_a = [SoftwareRole]
-InterfaceComponentRole.equivalent_to = [SoftwareRole & isDefinedIn.only(InterfaceSpecification)]
+InterfaceComponentRole.equivalent_to = [And([SoftwareRole, is_defined_in.only(InterfaceSpecification)])]
 
 Closing.is_a = [Actuating]
 
-Delivering.is_a = [Actuating, isTaskAffordedBy.some(Shifting)]
+Delivering.is_a = [Actuating, is_task_afforded_by.some(Shifting)]
 
 Fetching.is_a = [PhysicalAcquiring]
 
@@ -410,32 +410,32 @@ CommitedObject.is_a = [ConnectedObject]
 
 ConnectedObject.is_a = [Patient]
 
-CommunicationAction.is_a = [Action, hasParticipant.some(LinguisticObject)]
+CommunicationAction.is_a = [Action, has_participant.some(LinguisticObject)]
 
 LinguisticObject.is_a = [InformationObject]
 
 CommunicationReport.is_a = [CommunicationTask]
 
-Receiver.is_a = [ExperiencerRole, hasTask.some(CommunicationTask)]
+Receiver.is_a = [ExperiencerRole, has_task.some(CommunicationTask)]
 
-Sender.is_a = [PerformerRole, hasTask.some(CommunicationTask)]
+Sender.is_a = [PerformerRole, has_task.some(CommunicationTask)]
 
-SocialObject.is_a = [Object, isExpressedBy.some(InformationObject), hasPart.only(SocialObject)]
+SocialObject.is_a = [Object, is_expressed_by.some(InformationObject), has_part.only(SocialObject)]
 
-CommunicationTopic.is_a = [ResourceRole, classifies.only(SocialObject & isParticipantIn.some(isClassifiedBy.some(CommunicationTask)))]
+CommunicationTopic.is_a = [ResourceRole, classifies.only(And([SocialObject, is_participant_in.some(is_classified_by.some(CommunicationTask))]))]
 
 ResourceRole.is_a = [EventAdjacentRole]
 
-Composing.is_a = [Variability, affordsTrigger.only(ConnectedObject)]
+Composing.is_a = [Variability, affords_trigger.only(ConnectedObject)]
 
-Computer_Language.is_a = [FormalLanguage]
+ComputerLanguage.is_a = [FormalLanguage]
 
-FormalLanguage.is_a = [Language, givesMeaningTo.only(Structured_Text)]
+FormalLanguage.is_a = [Language, gives_meaning_to.only(StructuredText)]
 
-Computer_Program.is_a = [Thing]
-Computer_Program.equivalent_to = [Structured_Text & isGivenMeaningBy.some(Programming_Language), Structured_Text & expresses.some(Algorithm)]
+ComputerProgram.is_a = [Thing]
+ComputerProgram.equivalent_to = [And([StructuredText, is_given_meaning_by.some(ProgrammingLanguage)]), And([StructuredText, expresses.some(Algorithm)])]
 
-Programming_Language.is_a = [Computer_Language, givesMeaningTo.only(Computer_Program)]
+ProgrammingLanguage.is_a = [ComputerLanguage, gives_meaning_to.only(ComputerProgram)]
 
 Conclusion.is_a = [CreatedObject, Knowledge]
 
@@ -443,23 +443,23 @@ CreatedObject.is_a = [Patient]
 
 Knowledge.is_a = [Item]
 
-ConditionalSuccedence.is_a = [Succedence, hasBinding.only(CounterfactualBinding)]
+ConditionalSuccedence.is_a = [Succedence, has_binding.only(CounterfactualBinding)]
 
 Configuration.is_a = [Description, describes.some(StateType)]
 
-Connectivity.is_a = [Disposition, affordsBearer.only(ConnectedObject), affordsTrigger.only(ConnectedObject)]
+Connectivity.is_a = [Disposition, affords_bearer.only(ConnectedObject), affords_trigger.only(ConnectedObject)]
 
-ContactState.is_a = [StateType, classifies.only(hasParticipant.min(2, PhysicalObject))]
+ContactState.is_a = [StateType, classifies.only(has_participant.min(2, PhysicalObject))]
 
 Container.is_a = [Restrictor]
 
-Containment.is_a = [Disposition, affordsBearer.only(Container), affordsTrigger.only(IncludedObject), isDispositionOf.only(hasQuality.some(Capacity))]
+Containment.is_a = [Disposition, affords_bearer.only(Container), affords_trigger.only(IncludedObject), is_disposition_of.only(has_quality.some(Capacity))]
 
 IncludedObject.is_a = [Patient]
 
-ContainmentState.is_a = [FunctionalControl, isStateTypeOf.some(Container & classifies.only(hasDisposition.some(Containment)))]
+ContainmentState.is_a = [FunctionalControl, is_state_type_of.some(And([Container, classifies.only(has_disposition.some(Containment))]))]
 
-FunctionalControl.is_a = [StateType, isStateTypeOf.some(Item), isStateTypeOf.some(Restrictor)]
+FunctionalControl.is_a = [StateType, is_state_type_of.some(Item), is_state_type_of.some(Restrictor)]
 
 ContainmentTheory.is_a = [ControlTheory]
 
@@ -473,7 +473,7 @@ FunctionalSpatialSchemaTheory.is_a = [ImageSchemaTheory, defines.some(LocatumRol
 
 Cover.is_a = [Barrier]
 
-Coverage.is_a = [Blockage, affordsBearer.only(Cover), affordsTrigger.only(CoveredObject)]
+Coverage.is_a = [Blockage, affords_bearer.only(Cover), affords_trigger.only(CoveredObject)]
 
 CoveredObject.is_a = [BlockedObject]
 
@@ -485,9 +485,9 @@ ExecutableSchematicTheory.is_a = [SchematicTheory, defines.some(PerformerRole)]
 
 CrackingTheory.is_a = [ExecutableSchematicTheory, defines.some(Instrument), defines.some(Patient)]
 
-Creation.is_a = [ProcessType, isProcessTypeOf.some(CreatedObject)]
+Creation.is_a = [ProcessType, is_process_type_of.some(CreatedObject)]
 
-Cuttability.is_a = [Disposition, affordsBearer.only(CutObject), affordsTrigger.only(Cutter)]
+Cuttability.is_a = [Disposition, affords_bearer.only(CutObject), affords_trigger.only(Cutter)]
 
 Tool.is_a = [Instrument]
 
@@ -499,17 +499,17 @@ SoftwareRole.is_a = [Role, classifies.only(Software)]
 
 Deciding.is_a = [DerivingInformation]
 
-DerivingInformation.is_a = [InformationAcquisition, isTaskOfInputRole.some(Premise) & isTaskOfOutputRole.some(Conclusion)]
+DerivingInformation.is_a = [InformationAcquisition, And([is_task_of_input_role.some(Premise), is_task_of_output_role.some(Conclusion)])]
 
 DeductiveReasoning.is_a = [Reasoning]
 
-Deformation.is_a = [Alteration, isProcessTypeOf.exactly(1, ShapedObject)]
+Deformation.is_a = [Alteration, is_process_type_of.exactly(1, ShapedObject)]
 
-ShapedObject.is_a = [AlteredObject, isTriggerDefinedIn.some(describesQuality.only(Shape)), classifies.only(hasQuality.some(Shape))]
+ShapedObject.is_a = [AlteredObject, is_trigger_defined_in.some(describes_quality.only(Shape)), classifies.only(has_quality.some(Shape))]
 
-FluidFlow.is_a = [Motion, isProcessTypeOf.some(MovedObject)]
+FluidFlow.is_a = [Motion, is_process_type_of.some(MovedObject)]
 
-Shifting.is_a = [Variability, affordsSetpoint.only(classifies.only(Localization)), affordsTrigger.only(MovedObject)]
+Shifting.is_a = [Variability, affords_setpoint.only(classifies.only(Localization)), affords_trigger.only(MovedObject)]
 
 DependentPlace.is_a = [Feature]
 
@@ -517,18 +517,18 @@ Deposit.is_a = [Instrument]
 
 DepositedObject.is_a = [Patient]
 
-Deposition.is_a = [Disposition, affordsBearer.only(Deposit), affordsTrigger.only(DepositedObject)]
+Deposition.is_a = [Disposition, affords_bearer.only(Deposit), affords_trigger.only(DepositedObject)]
 
 InformationAcquisition.is_a = [Thing]
-InformationAcquisition.equivalent_to = [MentalTask & isTaskOfOutputRole.some(Knowledge)]
+InformationAcquisition.equivalent_to = [And([MentalTask, is_task_of_output_role.some(Knowledge)])]
 
 Premise.is_a = [Knowledge]
 
-DesignedComponent.is_a = [FunctionalPart, DesignedArtifact, hasDisposition.some(Connectivity)]
+DesignedComponent.is_a = [FunctionalPart, DesignedArtifact, has_disposition.some(Connectivity)]
 
-FunctionalPart.is_a = [PhysicalBody, isComponentOf.only(Agent | DesignedArtifact)]
+FunctionalPart.is_a = [PhysicalBody, is_component_of.only(Or([Agent, DesignedArtifact]))]
 
-DesignedContainer.is_a = [DesignedArtifact, hasDisposition.some(Containment)]
+DesignedContainer.is_a = [DesignedArtifact, has_disposition.some(Containment)]
 
 DesignedFurniture.is_a = [DesignedArtifact]
 
@@ -540,14 +540,14 @@ Location.is_a = [SpatioTemporalRole]
 
 DestroyedObject.is_a = [Patient]
 
-Destruction.is_a = [ProcessType, isProcessTypeOf.some(DestroyedObject)]
+Destruction.is_a = [ProcessType, is_process_type_of.some(DestroyedObject)]
 
 DetectedObject.is_a = [Patient]
 
 DeviceState.is_a = [Intrinsic]
 
 DeviceStateRange.is_a = [Region]
-DeviceStateRange.equivalent_to = [DeviceTurnedOff | DeviceTurnedOn]
+DeviceStateRange.equivalent_to = [Or([DeviceTurnedOff, DeviceTurnedOn])]
 
 DeviceTurnedOff.is_a = [DeviceStateRange]
 
@@ -587,7 +587,7 @@ Effort.is_a = [Parameter]
 
 EnclosedObject.is_a = [IncludedObject]
 
-Enclosing.is_a = [Containment, affordsTrigger.only(EnclosedObject)]
+Enclosing.is_a = [Containment, affords_trigger.only(EnclosedObject)]
 
 EndEffectorPositioning.is_a = [Manipulating]
 
@@ -598,19 +598,19 @@ Episode.is_a = [Situation]
 ExcludedObject.is_a = [Patient]
 
 ExecutableFile.is_a = [Thing]
-ExecutableFile.equivalent_to = [Digital_File & realizes.some(Executable_Code)]
+ExecutableFile.equivalent_to = [And([DigitalFile, realizes.some(ExecutableCode)])]
 
-Executable_Code.is_a = [Computer_Program]
-Executable_Code.equivalent_to = [Computer_Program & isGivenMeaningBy.some(ExecutableFormat)]
+ExecutableCode.is_a = [ComputerProgram]
+ExecutableCode.equivalent_to = [And([ComputerProgram, is_given_meaning_by.some(ExecutableFormat)])]
 
-ExecutableFormat.is_a = [File_format, givesMeaningTo.only(Executable_Code)]
+ExecutableFormat.is_a = [FileFormat, gives_meaning_to.only(ExecutableCode)]
 
 SchematicTheory.is_a = [Theory]
 
 ExecutableSoftware.is_a = [Thing]
-ExecutableSoftware.equivalent_to = [Software & hasMember.some(ExecutableFile)]
+ExecutableSoftware.equivalent_to = [And([Software, has_member.some(ExecutableFile)])]
 
-Software.is_a = [Design, describes.some(Software_Configuration), describes.only(SoftwareInstance | Software_Configuration)]
+Software.is_a = [Design, describes.some(SoftwareConfiguration), describes.only(Or([SoftwareInstance, SoftwareConfiguration]))]
 
 RelationAdjacentRole.is_a = [Role]
 
@@ -618,7 +618,7 @@ ExperiencerRole.is_a = [PerformerRole]
 
 ExtractedObject.is_a = [Patient]
 
-PhysicalQuality.is_a = [Quality, isQualityOf.exactly(1, PhysicalObject)]
+PhysicalQuality.is_a = [Quality, is_quality_of.exactly(1, PhysicalObject)]
 
 FailedAttempt.is_a = [Unsuccessfulness]
 
@@ -632,15 +632,15 @@ PhysicalAcquiring.is_a = [ModifyingPhysicalObject]
 
 Configuration.is_a = [Collection]
 
-Finger.is_a = [Limb, isPartOf.some(Hand)]
+Finger.is_a = [Limb, is_part_of.some(Hand)]
 
 Hand.is_a = [PrehensileEffector]
 
-FixedJoint.is_a = [Joint, hasJointState.exactly(0, Entity)]
+FixedJoint.is_a = [Joint, has_joint_state.exactly(0, Entity)]
 
-MovableJoint.is_a = [Joint, hasJointState.exactly(1, JointState)]
+MovableJoint.is_a = [Joint, has_joint_state.exactly(1, JointState)]
 
-Flipping.is_a = [Actuating, isTaskAffordedBy.some(Shifting)]
+Flipping.is_a = [Actuating, is_task_afforded_by.some(Shifting)]
 
 FloatingJoint.is_a = [MovableJoint]
 
@@ -648,7 +648,7 @@ Fluid.is_a = [Substance]
 
 Substance.is_a = [PhysicalBody]
 
-MovedObject.is_a = [AlteredObject, isTriggerDefinedIn.some(describesQuality.only(Localization)), classifies.only(hasQuality.some(Localization))]
+MovedObject.is_a = [AlteredObject, is_trigger_defined_in.some(describes_quality.only(Localization)), classifies.only(has_quality.some(Localization))]
 
 Focusing.is_a = [AttentionShift]
 
@@ -656,11 +656,11 @@ Foolishness.is_a = [Amateurish]
 
 ForgettingIncorrectInformation.is_a = [InformationDismissal]
 
-InformationDismissal.is_a = [MentalTask, isTaskOfInputRole.some(ExcludedObject & Knowledge)]
+InformationDismissal.is_a = [MentalTask, is_task_of_input_role.some(And([ExcludedObject, Knowledge]))]
 
 ForgettingIrrelevantInformation.is_a = [InformationDismissal]
 
-Language.is_a = [System, givesMeaningTo.only(Text)]
+Language.is_a = [System, gives_meaning_to.only(Text)]
 
 Item.is_a = [Patient]
 
@@ -676,13 +676,13 @@ RelatumRole.is_a = [SpatialRelationRole, classifies.only(PhysicalObject)]
 
 GetTaskParameter.is_a = [Planning]
 
-Planning.is_a = [Deciding, isTaskOf.some(classifies.some(Plan))]
+Planning.is_a = [Deciding, is_task_of.some(classifies.some(Plan))]
 
 GraphDatabase.is_a = [Database]
 
 GraphQueryLanguage.is_a = [QueryLanguage]
 
-QueryLanguage.is_a = [Computer_Language]
+QueryLanguage.is_a = [ComputerLanguage]
 
 GraspTransfer.is_a = [Grasping]
 
@@ -693,7 +693,7 @@ Graspability.is_a = [Disposition]
 Releasing.is_a = [Manipulating]
 
 GraspingMotion.is_a = [PrehensileMotion]
-GraspingMotion.equivalent_to = [IntermediateGrasp | PowerGrasp | PrecisionGrasp]
+GraspingMotion.equivalent_to = [Or([IntermediateGrasp, PowerGrasp, PrecisionGrasp])]
 
 IntermediateGrasp.is_a = [GraspingMotion]
 
@@ -701,8 +701,8 @@ PowerGrasp.is_a = [GraspingMotion]
 
 PrecisionGrasp.is_a = [GraspingMotion]
 
-PrehensileMotion.is_a = [DirectedMotion, isProcessTypeOf.some(MovedObject & classifies.only(PrehensileEffector))]
-PrehensileMotion.equivalent_to = [GraspingMotion | ReleasingMotion]
+PrehensileMotion.is_a = [DirectedMotion, is_process_type_of.some(And([MovedObject, classifies.only(PrehensileEffector)]))]
+PrehensileMotion.equivalent_to = [Or([GraspingMotion, ReleasingMotion])]
 
 ReleasingMotion.is_a = [PrehensileMotion]
 
@@ -714,9 +714,9 @@ PrehensileEffector.is_a = [PhysicalEffector]
 
 HardwareDiagnosis.is_a = [TechnicalDiagnosis]
 
-TechnicalDiagnosis.is_a = [FunctionalDiagnosis, hasConstituent.some(DesignedArtifact)]
+TechnicalDiagnosis.is_a = [FunctionalDiagnosis, has_constituent.some(DesignedArtifact)]
 
-HasQualityRegion.is_a = [Relation, hasQuality.exactly(1, Quality), hasRegion.exactly(1, Region)]
+HasQualityRegion.is_a = [Relation, has_quality.exactly(1, Quality), has_region.exactly(1, Region)]
 
 Head.is_a = [FunctionalPart]
 
@@ -726,22 +726,22 @@ HeadTurning.is_a = [HeadMovement]
 
 Holding.is_a = [Manipulating]
 
-HostRole.is_a = [InterfaceComponentRole, isDefinedIn.some(PluginSpecification)]
+HostRole.is_a = [InterfaceComponentRole, is_defined_in.some(PluginSpecification)]
 
-PluginSpecification.is_a = [API_Specification, definesRole.some(HostRole) & definesRole.some(PluginRole)]
+PluginSpecification.is_a = [APISpecification, And([defines_role.some(HostRole), defines_role.some(PluginRole)])]
 
-Humanreadable_Programming_Language.is_a = [Programming_Language, givesMeaningTo.only(Source_Code)]
+HumanreadableProgrammingLanguage.is_a = [ProgrammingLanguage, gives_meaning_to.only(SourceCode)]
 
-Source_Code.is_a = [Computer_Program]
-Source_Code.equivalent_to = [Computer_Program & isGivenMeaningBy.some(Humanreadable_Programming_Language)]
+SourceCode.is_a = [ComputerProgram]
+SourceCode.equivalent_to = [And([ComputerProgram, is_given_meaning_by.some(HumanreadableProgrammingLanguage)])]
 
 HumanActivityRecording.is_a = [RecordedEpisode]
 
-RecordedEpisode.is_a = [Episode, includesRecord.some(InformationObject)]
+RecordedEpisode.is_a = [Episode, includes_record.some(InformationObject)]
 
 Imagining.is_a = [InformationAcquisition]
 
-Impediment.is_a = [Blockage, affordsBearer.only(Obstacle), affordsTrigger.only(RestrictedObject)]
+Impediment.is_a = [Blockage, affords_bearer.only(Obstacle), affords_trigger.only(RestrictedObject)]
 
 Obstacle.is_a = [Barrier]
 
@@ -757,15 +757,15 @@ Infeasibility.is_a = [Unsuccessfulness]
 
 InferenceRules.is_a = [Knowledge]
 
-InformationRetrieval.is_a = [InformationAcquisition, isTaskOfOutputRole.some(Knowledge)]
+InformationRetrieval.is_a = [InformationAcquisition, is_task_of_output_role.some(Knowledge)]
 
-InformationStorage.is_a = [MentalTask, isTaskOfInputRole.some(Knowledge & StoredObject)]
+InformationStorage.is_a = [MentalTask, is_task_of_input_role.some(And([Knowledge, StoredObject]))]
 
 StoredObject.is_a = [EnclosedObject]
 
 InsertedObject.is_a = [EnclosedObject]
 
-Insertion.is_a = [Enclosing, affordsTrigger.only(InsertedObject)]
+Insertion.is_a = [Enclosing, affords_trigger.only(InsertedObject)]
 
 Instructions.is_a = [Item]
 
@@ -777,14 +777,14 @@ Introspecting.is_a = [InformationAcquisition]
 
 KineticFrictionAttribute.is_a = [FrictionAttribute]
 
-KinoDynamicData.is_a = [InformationObject, isAbout.only(PhysicalObject)]
+KinoDynamicData.is_a = [InformationObject, is_about.only(PhysicalObject)]
 
-KnowledgeRepresentationLanguage.is_a = [Computer_Language]
+KnowledgeRepresentationLanguage.is_a = [ComputerLanguage]
 
 Labeling.is_a = [Interpreting]
 
 Text.is_a = [Thing]
-Text.equivalent_to = [InformationObject & isGivenMeaningBy.some(Language)]
+Text.equivalent_to = [And([InformationObject, is_given_meaning_by.some(Language)])]
 
 Leaning.is_a = [PosturalMoving]
 
@@ -794,20 +794,20 @@ Learning.is_a = [InformationStorage]
 
 Leg.is_a = [Limb]
 
-LimbMotion.is_a = [DirectedMotion, isProcessTypeOf.some(MovedObject & classifies.only(Limb))]
+LimbMotion.is_a = [DirectedMotion, is_process_type_of.some(And([MovedObject, classifies.only(Limb)]))]
 
-Linkage.is_a = [Connectivity, affordsBearer.only(LinkedObject), affordsTrigger.only(LinkedObject)]
+Linkage.is_a = [Connectivity, affords_bearer.only(LinkedObject), affords_trigger.only(LinkedObject)]
 
 LinkedObject.is_a = [ConnectedObject]
 
-LinkageState.is_a = [StateType, isStateTypeOf.some(LinkedObject)]
+LinkageState.is_a = [StateType, is_state_type_of.some(LinkedObject)]
 
 SpatioTemporalRole.is_a = [EventAdjacentRole]
 
 SpatialRelationRole.is_a = [RelationAdjacentRole]
 
 LocutionaryAction.is_a = [Thing]
-LocutionaryAction.equivalent_to = [CommunicationAction & hasParticipant.some(Agent)]
+LocutionaryAction.equivalent_to = [And([CommunicationAction, has_participant.some(Agent)])]
 
 LookingAt.is_a = [PhysicalTask]
 
@@ -817,21 +817,21 @@ Lowering.is_a = [Actuating]
 
 PhysicalAction.is_a = [Action]
 
-Markup_Language.is_a = [Computer_Language]
+MarkupLanguage.is_a = [ComputerLanguage]
 
 Material.is_a = [Intrinsic]
 
-MedicalDiagnosis.is_a = [FunctionalDiagnosis, hasConstituent.some(Organism)]
+MedicalDiagnosis.is_a = [FunctionalDiagnosis, has_constituent.some(Organism)]
 
 Organism.is_a = [BiologicalObject, PhysicalAgent]
 
 Memorizing.is_a = [Learning]
 
-MentalAction.is_a = [Action, hasParticipant.only(Agent | SocialObject)]
+MentalAction.is_a = [Action, has_participant.only(Or([Agent, SocialObject]))]
 
-MeshShape.is_a = [ShapeRegion, hasFilePath.exactly(1, str), hasShapeScale.max(1, float)]
+MeshShape.is_a = [ShapeRegion, has_file_path.exactly(1, str), has_shape_scale.max(1, float)]
 
-MeshShapeData.is_a = [InformationObject, isAbout.only(PhysicalObject)]
+MeshShapeData.is_a = [InformationObject, is_about.only(PhysicalObject)]
 
 MetaCognitionEvaluationTopic.is_a = [MetaCognitionTopic]
 
@@ -855,30 +855,30 @@ MonitoringJointState.is_a = [Proprioceiving]
 
 Proprioceiving.is_a = [PhysicalTask]
 
-ProcessFlow.is_a = [Description, definesProcess.some(ProcessType)]
+ProcessFlow.is_a = [Description, defines_process.some(ProcessType)]
 
-PhysicsProcess.is_a = [Process, hasParticipant.some(PhysicalObject)]
+PhysicsProcess.is_a = [Process, has_participant.some(PhysicalObject)]
 
 MovingAway.is_a = [Locomotion]
 
 MovingTo.is_a = [Navigating]
 
-Natural_Language.is_a = [Language, givesMeaningTo.only(Natural_Language_Text)]
+NaturalLanguage.is_a = [Language, gives_meaning_to.only(NaturalLanguageText)]
 
-Natural_Language_Text.is_a = [Thing]
-Natural_Language_Text.equivalent_to = [Text & isGivenMeaningBy.some(Natural_Language)]
+NaturalLanguageText.is_a = [Thing]
+NaturalLanguageText.equivalent_to = [And([Text, is_given_meaning_by.some(NaturalLanguage)])]
 
-Ontology.is_a = [Structured_Text]
-Ontology.equivalent_to = [Structured_Text & isGivenMeaningBy.some(Ontology_Language)]
+Ontology.is_a = [StructuredText]
+Ontology.equivalent_to = [And([StructuredText, is_given_meaning_by.some(OntologyLanguage)])]
 
-Ontology_Language.is_a = [KnowledgeRepresentationLanguage, givesMeaningTo.only(Ontology)]
+OntologyLanguage.is_a = [KnowledgeRepresentationLanguage, gives_meaning_to.only(Ontology)]
 
 Option.is_a = [ResourceRole]
 
 FormalEntity.is_a = [Abstract]
 
 Singleton.is_a = [Thing]
-Singleton.equivalent_to = [Set & encapsulates.exactly(1, Entity)]
+Singleton.equivalent_to = [And([Set, encapsulates.exactly(1, Entity)])]
 
 Orienting.is_a = [Positioning]
 
@@ -890,25 +890,25 @@ ParkingArms.is_a = [AssumingArmPose]
 
 PhaseTransition.is_a = [Alteration]
 
-PhysicalAccessibility.is_a = [StateType, isStateTypeOf.some(Item), isStateTypeOf.some(Restrictor)]
+PhysicalAccessibility.is_a = [StateType, is_state_type_of.some(Item), is_state_type_of.some(Restrictor)]
 
-PhysicalBlockage.is_a = [StateType, isStateTypeOf.some(Item), isStateTypeOf.some(Restrictor)]
+PhysicalBlockage.is_a = [StateType, is_state_type_of.some(Item), is_state_type_of.some(Restrictor)]
 
 PhysicalExistence.is_a = [PhysicalState]
 
-PhysicalState.is_a = [State, hasParticipant.some(PhysicalObject)]
+PhysicalState.is_a = [State, has_participant.some(PhysicalObject)]
 
 PlacingTheory.is_a = [ExecutableSchematicTheory, defines.some(Destination), defines.some(Patient)]
 
 PlanarJoint.is_a = [MovableJoint]
 
-PluginRole.is_a = [InterfaceComponentRole, isDefinedIn.some(PluginSpecification)]
+PluginRole.is_a = [InterfaceComponentRole, is_defined_in.some(PluginSpecification)]
 
-Pourable.is_a = [Disposition, affordsBearer.only(PouredObject)]
+Pourable.is_a = [Disposition, affords_bearer.only(PouredObject)]
 
 PouredObject.is_a = [Patient]
 
-Pouring.is_a = [Actuating, isTaskAffordedBy.some(Pourable)]
+Pouring.is_a = [Actuating, is_task_afforded_by.some(Pourable)]
 
 PouringInto.is_a = [Pouring]
 
@@ -918,17 +918,17 @@ Prediction.is_a = [Prospecting]
 
 Prospecting.is_a = [DerivingInformation]
 
-Predilection.is_a = [SocialRelation, describes.only(Preference | (Order & orders.only(encapsulates.only(Situation))))]
+Predilection.is_a = [SocialRelation, describes.only(Or([Preference, (And([Order, orders.only(encapsulates.only(Situation))]))]))]
 
 SocialRelation.is_a = [Relation]
 
 PreferenceOrder.is_a = [SocialRelation, orders.some(OrderedElement), orders.only(encapsulates.only(Description)), describes.only(Preference)]
 
-PreferenceRegion.is_a = [SocialObjectAttribute, isRegionFor.some(Preference)]
+PreferenceRegion.is_a = [SocialObjectAttribute, is_region_for.some(Preference)]
 
-SocialObjectAttribute.is_a = [Region, isRegionFor.only(SocialObject)]
+SocialObjectAttribute.is_a = [Region, is_region_for.only(SocialObject)]
 
-PrismaticJoint.is_a = [MovableJoint, hasJointLimit.exactly(1, JointLimit)]
+PrismaticJoint.is_a = [MovableJoint, has_joint_limit.exactly(1, JointLimit)]
 
 Progression.is_a = [Situation]
 Progression.equivalent_to = [satisfies.some(ProcessFlow)]
@@ -948,7 +948,7 @@ QualityTransition.is_a = [Transition]
 Query.is_a = [Message]
 
 QueryAnsweringTask.is_a = [Thing]
-QueryAnsweringTask.equivalent_to = [AnsweringTask & classifies.only(isReactionTo.only(isClassifiedBy.some(QueryingTask)))]
+QueryAnsweringTask.equivalent_to = [And([AnsweringTask, classifies.only(is_reaction_to.only(is_classified_by.some(QueryingTask)))])]
 
 QueryEngine.is_a = [SoftwareRole]
 
@@ -962,7 +962,7 @@ RecipientRole.is_a = [BeneficiaryRole]
 
 RedColor.is_a = [ColorRegion]
 
-Reification.is_a = [Description, isReificationOf.exactly(1, normstr)]
+Reification.is_a = [Description, is_reification_of.exactly(1, normstr)]
 
 RelationalDatabase.is_a = [Database]
 
@@ -970,7 +970,7 @@ RelationalQueryLanguage.is_a = [QueryLanguage]
 
 RelevantPart.is_a = [Feature]
 
-Remembering.is_a = [Thing, InformationRetrieval & Retrospecting]
+Remembering.is_a = [Thing, And([InformationRetrieval, Retrospecting])]
 
 Retrospecting.is_a = [InformationAcquisition]
 
@@ -978,7 +978,7 @@ RemovedObject.is_a = [ExcludedObject]
 
 Replanning.is_a = [Planning]
 
-RevoluteJoint.is_a = [HingeJoint, hasJointLimit.exactly(1, JointLimit)]
+RevoluteJoint.is_a = [HingeJoint, has_joint_limit.exactly(1, JointLimit)]
 
 Room.is_a = [PhysicalPlace]
 
@@ -988,29 +988,29 @@ Surface.is_a = [PhysicalPlace]
 
 Rubbing.is_a = [DirectedMotion]
 
-Theory.is_a = [Description, hasComponent.some(Relation)]
+Theory.is_a = [Description, has_component.some(Relation)]
 
 SelectedObject.is_a = [Role]
 
 Selecting.is_a = [Deciding]
 
-SelectingItem.is_a = [GetTaskParameter, isTaskOfOutputRole.some(SelectedObject & classifies.only(PhysicalObject))]
+SelectingItem.is_a = [GetTaskParameter, is_task_of_output_role.some(And([SelectedObject, classifies.only(PhysicalObject)]))]
 
 SelfReflection.is_a = [MetacognitiveControlling]
 
-Serving.is_a = [Delivering, classifies.only(Action & (hasParticipant.some(PhysicalAgent) | hasParticipant.some(PhysicalObject)))]
+Serving.is_a = [Delivering, classifies.only(And([Action, (Or([has_participant.some(PhysicalAgent), has_participant.some(PhysicalObject)]))]))]
 
 SettingGripper.is_a = [AssumingPose]
 
-SixDPose.is_a = [SpaceRegion, hasPositionData.exactly(1, str)]
+SixDPose.is_a = [SpaceRegion, has_position_data.exactly(1, str)]
 
-Shaping.is_a = [Variability, affordsSetpoint.only(classifies.only(Shape)), affordsTrigger.only(ShapedObject)]
+Shaping.is_a = [Variability, affords_setpoint.only(classifies.only(Shape)), affords_trigger.only(ShapedObject)]
 
 Sharpness.is_a = [Intrinsic]
 
 Simulating.is_a = [Prospecting]
 
-Simulation_Reasoner.is_a = [Reasoner]
+SimulationReasoner.is_a = [Reasoner]
 
 Set.is_a = [FormalEntity]
 
@@ -1020,17 +1020,17 @@ Slicing.is_a = [Cutting]
 
 Sluggishness.is_a = [Amateurish]
 
-SocialState.is_a = [State, hasParticipant.some(Agent)]
+SocialState.is_a = [State, has_participant.some(Agent)]
 
-Software_Configuration.is_a = [Configuration, isDescribedBy.exactly(1, Software)]
+SoftwareConfiguration.is_a = [Configuration, is_described_by.exactly(1, Software)]
 
-SocialAgent.is_a = [Agent, SocialObject, actsThrough.some(PhysicalAgent)]
+SocialAgent.is_a = [Agent, SocialObject, acts_through.some(PhysicalAgent)]
 
 SoftwareLibrary.is_a = [Software]
 
 SourceMaterialRole.is_a = [ResourceRole]
 
-SphereShape.is_a = [ShapeRegion, hasRadius.exactly(1, float)]
+SphereShape.is_a = [ShapeRegion, has_radius.exactly(1, float)]
 
 Standing.is_a = [PosturalMoving]
 
@@ -1040,19 +1040,19 @@ StatusFailure.is_a = [Region]
 
 StimulusRole.is_a = [CausativeRole]
 
-Stirring.is_a = [Mixing, isTaskAffordedBy.some(Composing)]
+Stirring.is_a = [Mixing, is_task_afforded_by.some(Composing)]
 
-Storage.is_a = [Enclosing, affordsTrigger.only(StoredObject)]
+Storage.is_a = [Enclosing, affords_trigger.only(StoredObject)]
 
 StructuralDesign.is_a = [Design]
 
-TaskInvocation.is_a = [Workflow, hasBinding.only(FactualBinding), definesTask.exactly(1, Task)]
+TaskInvocation.is_a = [Workflow, has_binding.only(FactualBinding), defines_task.exactly(1, Task)]
 
 SuccessDiagnosis.is_a = [BehavioralDiagnosis]
 
 Successfulness.is_a = [SuccessDiagnosis]
 
-SupportState.is_a = [FunctionalControl, isStateTypeOf.some(Supporter & classifies.only(hasDisposition.some(Deposition)))]
+SupportState.is_a = [FunctionalControl, is_state_type_of.some(And([Supporter, classifies.only(has_disposition.some(Deposition))]))]
 
 Supporter.is_a = [Restrictor]
 
@@ -1066,11 +1066,11 @@ Tapping.is_a = [DirectedMotion]
 
 Taxis.is_a = [BodyMovement]
 
-Temperature.is_a = [Intrinsic, hasRegion.some(TemperatureRegion), hasRegion.only(TemperatureRegion)]
+Temperature.is_a = [Intrinsic, has_region.some(TemperatureRegion), has_region.only(TemperatureRegion)]
 
 TemperatureRegion.is_a = [Region]
 
-Tempering.is_a = [Variability, affordsSetpoint.only(classifies.only(Temperature))]
+Tempering.is_a = [Variability, affords_setpoint.only(classifies.only(Temperature))]
 
 ThinkAloud.is_a = [CommunicationReport]
 
@@ -1106,264 +1106,264 @@ UnavailableSoftware.is_a = [SoftwareDiagnosis]
 
 VideoData.is_a = [InformationObject]
 
-ThreeDPosition.is_a = [SpaceRegion, hasPositionData.exactly(1, str)]
+ThreeDPosition.is_a = [SpaceRegion, has_position_data.exactly(1, str)]
 
-hasColorValue.is_a = [DatatypeProperty, hasRegionDataValue]
-hasColorValue.domain = [ColorRegion]
+has_color_value.is_a = [DatatypeProperty, has_region_data_value]
+has_color_value.domain = [ColorRegion]
 
-hasRegionDataValue.is_a = [DatatypeProperty, hasDataValue]
-hasRegionDataValue.domain = [Region]
+has_region_data_value.is_a = [DatatypeProperty, has_data_value]
+has_region_data_value.domain = [Region]
 
-hasDataFormat.is_a = [DatatypeProperty, hasDataValue]
-hasDataFormat.domain = [InformationRealization]
-hasDataFormat.range = [str]
+has_data_format.is_a = [DatatypeProperty, has_data_value]
+has_data_format.domain = [InformationRealization]
+has_data_format.range = [str]
 
-hasDataValue.is_a = [DatatypeProperty]
-hasDataValue.domain = [Entity]
+has_data_value.is_a = [DatatypeProperty]
+has_data_value.domain = [Entity]
 
-hasDepth.is_a = [DatatypeProperty, hasShapeParameter]
-hasDepth.domain = [ShapeRegion]
-hasDepth.range = [float]
+has_depth.is_a = [DatatypeProperty, has_shape_parameter]
+has_depth.domain = [ShapeRegion]
+has_depth.range = [float]
 
-hasShapeParameter.is_a = [DatatypeProperty, hasRegionDataValue]
-hasShapeParameter.domain = [ShapeRegion]
-hasShapeParameter.range = [float | float | float | str]
+has_shape_parameter.is_a = [DatatypeProperty, has_region_data_value]
+has_shape_parameter.domain = [ShapeRegion]
+has_shape_parameter.range = [Or([float, float, float, str])]
 
-hasEventBegin.is_a = [DatatypeProperty, hasEventTime]
-hasEventBegin.domain = [Event]
-hasEventBegin.range = [float]
+has_event_begin.is_a = [DatatypeProperty, has_event_time]
+has_event_begin.domain = [Event]
+has_event_begin.range = [float]
 
-hasEventTime.is_a = [DatatypeProperty, hasDataValue]
-hasEventTime.domain = [Event]
-hasEventTime.range = [float]
+has_event_time.is_a = [DatatypeProperty, has_data_value]
+has_event_time.domain = [Event]
+has_event_time.range = [float]
 
-hasEventEnd.is_a = [DatatypeProperty, hasEventTime]
-hasEventEnd.domain = [Event]
-hasEventEnd.range = [float]
+has_event_end.is_a = [DatatypeProperty, has_event_time]
+has_event_end.domain = [Event]
+has_event_end.range = [float]
 
-hasFilePath.is_a = [DatatypeProperty, hasDataValue]
-hasFilePath.domain = [Entity]
-hasFilePath.range = [str]
+has_file_path.is_a = [DatatypeProperty, has_data_value]
+has_file_path.domain = [Entity]
+has_file_path.range = [str]
 
-hasForceValue.is_a = [DatatypeProperty, hasRegionDataValue]
-hasForceValue.domain = [ForceAttribute]
-hasForceValue.range = [float]
+has_force_value.is_a = [DatatypeProperty, has_region_data_value]
+has_force_value.domain = [ForceAttribute]
+has_force_value.range = [float]
 
-hasFrictionValue.is_a = [DatatypeProperty, hasRegionDataValue]
-hasFrictionValue.domain = [FrictionAttribute]
-hasFrictionValue.range = [float]
+has_friction_value.is_a = [DatatypeProperty, has_region_data_value]
+has_friction_value.domain = [FrictionAttribute]
+has_friction_value.range = [float]
 
-hasHSVValue.is_a = [DatatypeProperty, hasColorValue]
-hasHSVValue.domain = [ColorRegion]
-hasHSVValue.range = [str]
+has_hsv_value.is_a = [DatatypeProperty, has_color_value]
+has_hsv_value.domain = [ColorRegion]
+has_hsv_value.range = [str]
 
-hasHeight.is_a = [DatatypeProperty, hasShapeParameter]
-hasHeight.domain = [ShapeRegion]
-hasHeight.range = [float]
+has_height.is_a = [DatatypeProperty, has_shape_parameter]
+has_height.domain = [ShapeRegion]
+has_height.range = [float]
 
-hasIntervalBegin.is_a = [DatatypeProperty, hasIntervalTime]
-hasIntervalBegin.domain = [TimeInterval]
-hasIntervalBegin.range = [float]
+has_interval_begin.is_a = [DatatypeProperty, has_interval_time]
+has_interval_begin.domain = [TimeInterval]
+has_interval_begin.range = [float]
 
-hasIntervalTime.is_a = [DatatypeProperty, hasRegionDataValue]
-hasIntervalTime.domain = [TimeInterval]
-hasIntervalTime.range = [float]
+has_interval_time.is_a = [DatatypeProperty, has_region_data_value]
+has_interval_time.domain = [TimeInterval]
+has_interval_time.range = [float]
 
-hasIntervalEnd.is_a = [DatatypeProperty, hasIntervalTime]
-hasIntervalEnd.domain = [TimeInterval]
-hasIntervalEnd.range = [float]
+has_interval_end.is_a = [DatatypeProperty, has_interval_time]
+has_interval_end.domain = [TimeInterval]
+has_interval_end.range = [float]
 
-hasJointEffort.is_a = [DatatypeProperty, hasJointParameter]
-hasJointEffort.domain = [JointState]
-hasJointEffort.range = [float]
+has_joint_effort.is_a = [DatatypeProperty, has_joint_parameter]
+has_joint_effort.domain = [JointState]
+has_joint_effort.range = [float]
 
-hasJointParameter.is_a = [DatatypeProperty, hasRegionDataValue]
-hasJointParameter.domain = [PhysicalAttribute]
-hasJointParameter.range = [float]
+has_joint_parameter.is_a = [DatatypeProperty, has_region_data_value]
+has_joint_parameter.domain = [PhysicalAttribute]
+has_joint_parameter.range = [float]
 
-hasJointEffortLimit.is_a = [DatatypeProperty, hasJointParameter]
-hasJointEffortLimit.domain = [JointLimit]
-hasJointEffortLimit.range = [float]
+has_joint_effort_limit.is_a = [DatatypeProperty, has_joint_parameter]
+has_joint_effort_limit.domain = [JointLimit]
+has_joint_effort_limit.range = [float]
 
-hasJointPosition.is_a = [DatatypeProperty, hasJointParameter]
-hasJointPosition.domain = [JointState]
-hasJointPosition.range = [float]
+has_joint_position.is_a = [DatatypeProperty, has_joint_parameter]
+has_joint_position.domain = [JointState]
+has_joint_position.range = [float]
 
-hasJointPositionMax.is_a = [DatatypeProperty, hasJointParameter]
-hasJointPositionMax.domain = [JointLimit]
-hasJointPositionMax.range = [float]
+has_joint_position_max.is_a = [DatatypeProperty, has_joint_parameter]
+has_joint_position_max.domain = [JointLimit]
+has_joint_position_max.range = [float]
 
-hasJointPositionMin.is_a = [DatatypeProperty, hasJointParameter]
-hasJointPositionMin.domain = [JointLimit]
-hasJointPositionMin.range = [float]
+has_joint_position_min.is_a = [DatatypeProperty, has_joint_parameter]
+has_joint_position_min.domain = [JointLimit]
+has_joint_position_min.range = [float]
 
-hasJointVelocity.is_a = [DatatypeProperty, hasJointParameter]
-hasJointVelocity.domain = [JointState]
-hasJointVelocity.range = [float]
+has_joint_velocity.is_a = [DatatypeProperty, has_joint_parameter]
+has_joint_velocity.domain = [JointState]
+has_joint_velocity.range = [float]
 
-hasJointVelocityLimit.is_a = [DatatypeProperty, hasJointParameter]
-hasJointVelocityLimit.domain = [JointLimit]
-hasJointVelocityLimit.range = [float]
+has_joint_velocity_limit.is_a = [DatatypeProperty, has_joint_parameter]
+has_joint_velocity_limit.domain = [JointLimit]
+has_joint_velocity_limit.range = [float]
 
-hasLength.is_a = [DatatypeProperty, hasShapeParameter]
-hasLength.domain = [ShapeRegion]
-hasLength.range = [float]
+has_length.is_a = [DatatypeProperty, has_shape_parameter]
+has_length.domain = [ShapeRegion]
+has_length.range = [float]
 
-hasMassValue.is_a = [DatatypeProperty, hasRegionDataValue]
-hasMassValue.domain = [MassAttribute]
-hasMassValue.range = [float]
+has_mass_value.is_a = [DatatypeProperty, has_region_data_value]
+has_mass_value.domain = [MassAttribute]
+has_mass_value.range = [float]
 
-hasNameString.is_a = [DatatypeProperty, hasDataValue]
-hasNameString.domain = [Entity]
-hasNameString.range = [str]
+has_name_string.is_a = [DatatypeProperty, has_data_value]
+has_name_string.domain = [Entity]
+has_name_string.range = [str]
 
-hasPersistentIdentifier.is_a = [DatatypeProperty, hasDataValue]
-hasPersistentIdentifier.domain = [InformationRealization]
-hasPersistentIdentifier.range = [str]
+has_persistent_identifier.is_a = [DatatypeProperty, has_data_value]
+has_persistent_identifier.domain = [InformationRealization]
+has_persistent_identifier.range = [str]
 
-hasPositionData.is_a = [DatatypeProperty, hasSpaceParameter]
-hasPositionData.domain = [SpaceRegion]
-hasPositionData.range = [str]
+has_position_data.is_a = [DatatypeProperty, has_space_parameter]
+has_position_data.domain = [SpaceRegion]
+has_position_data.range = [str]
 
-hasSpaceParameter.is_a = [DatatypeProperty, hasRegionDataValue]
-hasSpaceParameter.domain = [SpaceRegion]
+has_space_parameter.is_a = [DatatypeProperty, has_region_data_value]
+has_space_parameter.domain = [SpaceRegion]
 
-hasPriority.is_a = [DatatypeProperty, hasDataValue]
-hasPriority.domain = [Task]
+has_priority.is_a = [DatatypeProperty, has_data_value]
+has_priority.domain = [Task]
 
-hasRGBValue.is_a = [DatatypeProperty, hasColorValue]
-hasRGBValue.domain = [ColorRegion]
-hasRGBValue.range = [str]
+has_rgb_value.is_a = [DatatypeProperty, has_color_value]
+has_rgb_value.domain = [ColorRegion]
+has_rgb_value.range = [str]
 
-hasRadius.is_a = [DatatypeProperty, hasShapeParameter]
-hasRadius.domain = [ShapeRegion]
-hasRadius.range = [float]
+has_radius.is_a = [DatatypeProperty, has_shape_parameter]
+has_radius.domain = [ShapeRegion]
+has_radius.range = [float]
 
-hasReferenceFrame.is_a = [DatatypeProperty, hasSpaceParameter]
-hasReferenceFrame.domain = [SpaceRegion]
-hasReferenceFrame.range = [str]
+has_reference_frame.is_a = [DatatypeProperty, has_space_parameter]
+has_reference_frame.domain = [SpaceRegion]
+has_reference_frame.range = [str]
 
-hasShapeScale.is_a = [DatatypeProperty, hasShapeParameter]
-hasShapeScale.domain = [ShapeRegion]
-hasShapeScale.range = [float]
+has_shape_scale.is_a = [DatatypeProperty, has_shape_parameter]
+has_shape_scale.domain = [ShapeRegion]
+has_shape_scale.range = [float]
 
-hasWidth.is_a = [DatatypeProperty, hasShapeParameter]
-hasWidth.domain = [ShapeRegion]
-hasWidth.range = [float]
+has_width.is_a = [DatatypeProperty, has_shape_parameter]
+has_width.domain = [ShapeRegion]
+has_width.range = [float]
 
-isReificationOf.is_a = [DatatypeProperty, hasDataValue]
-isReificationOf.domain = [Description]
-isReificationOf.range = [normstr]
+is_reification_of.is_a = [DatatypeProperty, has_data_value]
+is_reification_of.domain = [Description]
+is_reification_of.range = [normstr]
 
 affects.is_a = [ObjectProperty, precedes]
 
-precedes.is_a = [ObjectProperty, TransitiveProperty, associatedWith]
+precedes.is_a = [ObjectProperty, TransitiveProperty, associated_with]
 precedes.domain = [Entity]
 precedes.range = [Entity]
 
-isAffectedBy.is_a = [ObjectProperty, follows]
+is_affected_by.is_a = [ObjectProperty, follows]
 
-affordanceDefines.is_a = [ObjectProperty, defines]
-affordanceDefines.domain = [Affordance]
-affordanceDefines.range = [Concept]
+affordance_defines.is_a = [ObjectProperty, defines]
+affordance_defines.domain = [Affordance]
+affordance_defines.range = [Concept]
 
-defines.is_a = [ObjectProperty, usesConcept]
+defines.is_a = [ObjectProperty, uses_concept]
 defines.domain = [Description]
 defines.range = [Concept]
 
-isDefinedInAffordance.is_a = [ObjectProperty, isDefinedIn]
-isDefinedInAffordance.domain = [Concept]
-isDefinedInAffordance.range = [Affordance]
+is_defined_in_affordance.is_a = [ObjectProperty, is_defined_in]
+is_defined_in_affordance.domain = [Concept]
+is_defined_in_affordance.range = [Affordance]
 
-affordanceDefinesTask.is_a = [ObjectProperty, affordanceDefines, definesTask]
-affordanceDefinesTask.domain = [Affordance]
-affordanceDefinesTask.range = [Task]
+affordance_defines_task.is_a = [ObjectProperty, affordance_defines, defines_task]
+affordance_defines_task.domain = [Affordance]
+affordance_defines_task.range = [Task]
 
-definesTask.is_a = [ObjectProperty, defines]
-definesTask.domain = [Description]
-definesTask.range = [Task]
+defines_task.is_a = [ObjectProperty, defines]
+defines_task.domain = [Description]
+defines_task.range = [Task]
 
-isTaskDefinedInAffordance.is_a = [ObjectProperty, isDefinedInAffordance, isTaskDefinedIn]
-isTaskDefinedInAffordance.domain = [Task]
-isTaskDefinedInAffordance.range = [Affordance]
+is_task_defined_in_affordance.is_a = [ObjectProperty, is_defined_in_affordance, is_task_defined_in]
+is_task_defined_in_affordance.domain = [Task]
+is_task_defined_in_affordance.range = [Affordance]
 
-affordsBearer.is_a = [ObjectProperty, affordsConcept]
-affordsBearer.domain = [Disposition]
-affordsBearer.range = [Role]
+affords_bearer.is_a = [ObjectProperty, affords_concept]
+affords_bearer.domain = [Disposition]
+affords_bearer.range = [Role]
 
-affordsConcept.is_a = [ObjectProperty, associatedWith]
-affordsConcept.domain = [Disposition]
-affordsConcept.range = [Concept]
+affords_concept.is_a = [ObjectProperty, associated_with]
+affords_concept.domain = [Disposition]
+affords_concept.range = [Concept]
 
-isBearerAffordedBy.is_a = [ObjectProperty, isConceptAffordedBy]
-isBearerAffordedBy.domain = [Role]
-isBearerAffordedBy.range = [Disposition]
+is_bearer_afforded_by.is_a = [ObjectProperty, is_concept_afforded_by]
+is_bearer_afforded_by.domain = [Role]
+is_bearer_afforded_by.range = [Disposition]
 
-isDescribedBy.is_a = [ObjectProperty, associatedWith]
-isDescribedBy.domain = [Entity]
-isDescribedBy.range = [Description]
+is_described_by.is_a = [ObjectProperty, associated_with]
+is_described_by.domain = [Entity]
+is_described_by.range = [Description]
 
-definesBearer.is_a = [ObjectProperty, definesRole]
-definesBearer.domain = [Affordance]
-definesBearer.range = [Role]
+defines_bearer.is_a = [ObjectProperty, defines_role]
+defines_bearer.domain = [Affordance]
+defines_bearer.range = [Role]
 
-associatedWith.is_a = [ObjectProperty, SymmetricProperty, TransitiveProperty]
-associatedWith.domain = [Entity]
-associatedWith.range = [Entity]
+associated_with.is_a = [ObjectProperty, SymmetricProperty, TransitiveProperty]
+associated_with.domain = [Entity]
+associated_with.range = [Entity]
 
-isConceptAffordedBy.is_a = [ObjectProperty, associatedWith]
-isConceptAffordedBy.domain = [Concept]
-isConceptAffordedBy.range = [Disposition]
+is_concept_afforded_by.is_a = [ObjectProperty, associated_with]
+is_concept_afforded_by.domain = [Concept]
+is_concept_afforded_by.range = [Disposition]
 
-affordsPerformer.is_a = [ObjectProperty, affordsConcept]
-affordsPerformer.domain = [Disposition]
-affordsPerformer.range = [Role]
+affords_performer.is_a = [ObjectProperty, affords_concept]
+affords_performer.domain = [Disposition]
+affords_performer.range = [Role]
 
-isPerformerAffordedBy.is_a = [ObjectProperty, isConceptAffordedBy]
-isPerformerAffordedBy.domain = [Role]
-isPerformerAffordedBy.range = [Disposition]
+is_performer_afforded_by.is_a = [ObjectProperty, is_concept_afforded_by]
+is_performer_afforded_by.domain = [Role]
+is_performer_afforded_by.range = [Disposition]
 
-definesPerformer.is_a = [ObjectProperty, definesRole]
-definesPerformer.domain = [Affordance]
-definesPerformer.range = [Role]
+defines_performer.is_a = [ObjectProperty, defines_role]
+defines_performer.domain = [Affordance]
+defines_performer.range = [Role]
 
-affordsSetpoint.is_a = [ObjectProperty, affordsConcept]
-affordsSetpoint.domain = [Disposition]
-affordsSetpoint.range = [Setpoint]
+affords_setpoint.is_a = [ObjectProperty, affords_concept]
+affords_setpoint.domain = [Disposition]
+affords_setpoint.range = [Setpoint]
 
-isSetpointAffordedBy.is_a = [ObjectProperty, isConceptAffordedBy]
-isSetpointAffordedBy.domain = [Setpoint]
-isSetpointAffordedBy.range = [Disposition]
+is_setpoint_afforded_by.is_a = [ObjectProperty, is_concept_afforded_by]
+is_setpoint_afforded_by.domain = [Setpoint]
+is_setpoint_afforded_by.range = [Disposition]
 
-definesSetpoint.is_a = [ObjectProperty, definesParameter]
-definesSetpoint.domain = [Description]
-definesSetpoint.range = [Setpoint]
+defines_setpoint.is_a = [ObjectProperty, defines_parameter]
+defines_setpoint.domain = [Description]
+defines_setpoint.range = [Setpoint]
 
-affordsTask.is_a = [ObjectProperty, affordsConcept]
-affordsTask.domain = [Disposition]
-affordsTask.range = [Task]
+affords_task.is_a = [ObjectProperty, affords_concept]
+affords_task.domain = [Disposition]
+affords_task.range = [Task]
 
-isTaskAffordedBy.is_a = [ObjectProperty, isConceptAffordedBy]
-isTaskAffordedBy.domain = [Task]
-isTaskAffordedBy.range = [Disposition]
+is_task_afforded_by.is_a = [ObjectProperty, is_concept_afforded_by]
+is_task_afforded_by.domain = [Task]
+is_task_afforded_by.range = [Disposition]
 
-affordsTrigger.is_a = [ObjectProperty, affordsConcept]
-affordsTrigger.domain = [Disposition]
-affordsTrigger.range = [Role]
+affords_trigger.is_a = [ObjectProperty, affords_concept]
+affords_trigger.domain = [Disposition]
+affords_trigger.range = [Role]
 
-isTriggerAffordedBy.is_a = [ObjectProperty, isConceptAffordedBy]
-isTriggerAffordedBy.domain = [Role]
-isTriggerAffordedBy.range = [Disposition]
+is_trigger_afforded_by.is_a = [ObjectProperty, is_concept_afforded_by]
+is_trigger_afforded_by.domain = [Role]
+is_trigger_afforded_by.range = [Disposition]
 
-definesTrigger.is_a = [ObjectProperty, definesRole]
-definesTrigger.domain = [Affordance]
-definesTrigger.range = [Role]
+defines_trigger.is_a = [ObjectProperty, defines_role]
+defines_trigger.domain = [Affordance]
+defines_trigger.range = [Role]
 
 after.is_a = [ObjectProperty, TransitiveProperty, follows]
 after.domain = [Entity]
 after.range = [Entity]
 
-follows.is_a = [ObjectProperty, TransitiveProperty, associatedWith]
+follows.is_a = [ObjectProperty, TransitiveProperty, associated_with]
 follows.domain = [Entity]
 follows.range = [Entity]
 
@@ -1371,41 +1371,41 @@ before.is_a = [ObjectProperty, TransitiveProperty, precedes]
 before.domain = [Entity]
 before.range = [Entity]
 
-answers.is_a = [ObjectProperty, relatesToAnotherRole]
+answers.is_a = [ObjectProperty, relates_to_another_role]
 answers.domain = [Answer]
 answers.range = [Message]
 
-relatesToAnotherRole.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
-relatesToAnotherRole.domain = [Role]
-relatesToAnotherRole.range = [Role]
+relates_to_another_role.is_a = [ObjectProperty, SymmetricProperty, associated_with]
+relates_to_another_role.domain = [Role]
+relates_to_another_role.range = [Role]
 
-hasAnswer.is_a = [ObjectProperty, relatesToAnotherRole]
-hasAnswer.domain = [Message]
-hasAnswer.range = [Answer]
+has_answer.is_a = [ObjectProperty, relates_to_another_role]
+has_answer.domain = [Message]
+has_answer.range = [Answer]
 
 causes.is_a = [ObjectProperty, TransitiveProperty, affects]
 
-isReactionTo.is_a = [ObjectProperty, TransitiveProperty, isAffectedBy]
-isReactionTo.domain = [Event]
-isReactionTo.range = [Event]
+is_reaction_to.is_a = [ObjectProperty, TransitiveProperty, is_affected_by]
+is_reaction_to.domain = [Event]
+is_reaction_to.range = [Event]
 
-causesTransition.is_a = [ObjectProperty, isEventIncludedIn]
-causesTransition.domain = [Event]
-causesTransition.range = [Transition]
+causes_transition.is_a = [ObjectProperty, is_event_included_in]
+causes_transition.domain = [Event]
+causes_transition.range = [Transition]
 
-isEventIncludedIn.is_a = [ObjectProperty, hasSetting]
-isEventIncludedIn.domain = [Event]
-isEventIncludedIn.range = [Situation]
+is_event_included_in.is_a = [ObjectProperty, has_setting]
+is_event_included_in.domain = [Event]
+is_event_included_in.range = [Situation]
 
-isCausedByEvent.is_a = [ObjectProperty, includesEvent]
-isCausedByEvent.domain = [Transition]
-isCausedByEvent.range = [Event]
+is_caused_by_event.is_a = [ObjectProperty, includes_event]
+is_caused_by_event.domain = [Transition]
+is_caused_by_event.range = [Event]
 
-coOccurs.is_a = [ObjectProperty, SymmetricProperty, overlaps]
-coOccurs.domain = [Event]
-coOccurs.range = [Event]
+co_occurs.is_a = [ObjectProperty, SymmetricProperty, overlaps]
+co_occurs.domain = [Event]
+co_occurs.range = [Event]
 
-overlaps.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
+overlaps.is_a = [ObjectProperty, SymmetricProperty, associated_with]
 overlaps.domain = [Entity]
 overlaps.range = [Entity]
 
@@ -1413,889 +1413,889 @@ contains.is_a = [ObjectProperty, overlaps]
 contains.domain = [Entity]
 contains.range = [Entity]
 
-isContainedIn.is_a = [ObjectProperty, overlaps]
-isContainedIn.domain = [Entity]
-isContainedIn.range = [Entity]
+is_contained_in.is_a = [ObjectProperty, overlaps]
+is_contained_in.domain = [Entity]
+is_contained_in.range = [Entity]
 
-containsEvent.is_a = [ObjectProperty, TransitiveProperty, coOccurs, contains]
-containsEvent.domain = [Event]
-containsEvent.range = [Event]
+contains_event.is_a = [ObjectProperty, TransitiveProperty, co_occurs, contains]
+contains_event.domain = [Event]
+contains_event.range = [Event]
 
-during.is_a = [ObjectProperty, TransitiveProperty, coOccurs, isContainedIn]
+during.is_a = [ObjectProperty, TransitiveProperty, co_occurs, is_contained_in]
 during.domain = [Event]
 during.range = [Event]
 
-containsObject.is_a = [ObjectProperty, TransitiveProperty, contains, isLocationOf]
-containsObject.domain = [PhysicalObject]
-containsObject.range = [PhysicalObject]
+contains_object.is_a = [ObjectProperty, TransitiveProperty, contains, is_location_of]
+contains_object.domain = [PhysicalObject]
+contains_object.range = [PhysicalObject]
 
-isLocationOf.is_a = [ObjectProperty, associatedWith]
-isLocationOf.domain = [Entity]
-isLocationOf.range = [Entity]
+is_location_of.is_a = [ObjectProperty, associated_with]
+is_location_of.domain = [Entity]
+is_location_of.range = [Entity]
 
-isInsideOf.is_a = [ObjectProperty, TransitiveProperty, isContainedIn, hasLocation]
-isInsideOf.domain = [PhysicalObject]
-isInsideOf.range = [PhysicalObject]
+is_inside_of.is_a = [ObjectProperty, TransitiveProperty, is_contained_in, has_location]
+is_inside_of.domain = [PhysicalObject]
+is_inside_of.range = [PhysicalObject]
 
-coversObject.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, interactsWith]
-coversObject.domain = [PhysicalObject]
-coversObject.range = [PhysicalObject]
+covers_object.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, interacts_with]
+covers_object.domain = [PhysicalObject]
+covers_object.range = [PhysicalObject]
 
-interactsWith.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
-interactsWith.domain = [PhysicalObject]
-interactsWith.range = [PhysicalObject]
+interacts_with.is_a = [ObjectProperty, SymmetricProperty, associated_with]
+interacts_with.domain = [PhysicalObject]
+interacts_with.range = [PhysicalObject]
 
-isCoveredByObject.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, interactsWith]
-isCoveredByObject.domain = [PhysicalObject]
-isCoveredByObject.range = [PhysicalObject]
+is_covered_by_object.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, interacts_with]
+is_covered_by_object.domain = [PhysicalObject]
+is_covered_by_object.range = [PhysicalObject]
 
-definesRole.is_a = [ObjectProperty, defines]
-definesRole.domain = [Description]
-definesRole.range = [Role]
+defines_role.is_a = [ObjectProperty, defines]
+defines_role.domain = [Description]
+defines_role.range = [Role]
 
-isBearerDefinedIn.is_a = [ObjectProperty, isRoleDefinedIn]
-isBearerDefinedIn.domain = [Role]
-isBearerDefinedIn.range = [Affordance]
+is_bearer_defined_in.is_a = [ObjectProperty, is_role_defined_in]
+is_bearer_defined_in.domain = [Role]
+is_bearer_defined_in.range = [Affordance]
 
-definesEventType.is_a = [ObjectProperty, defines]
-definesEventType.domain = [Description]
-definesEventType.range = [EventType]
+defines_event_type.is_a = [ObjectProperty, defines]
+defines_event_type.domain = [Description]
+defines_event_type.range = [EventType]
 
-isEventTypeDefinedIn.is_a = [ObjectProperty, isDefinedIn]
-isEventTypeDefinedIn.domain = [EventType]
-isEventTypeDefinedIn.range = [Description]
+is_event_type_defined_in.is_a = [ObjectProperty, is_defined_in]
+is_event_type_defined_in.domain = [EventType]
+is_event_type_defined_in.range = [Description]
 
-definesInput.is_a = [ObjectProperty, definesParticipant]
-definesInput.domain = [Description]
-definesInput.range = [Parameter | Role]
+defines_input.is_a = [ObjectProperty, defines_participant]
+defines_input.domain = [Description]
+defines_input.range = [Or([Parameter, Role])]
 
-definesParticipant.is_a = [ObjectProperty, defines]
-definesParticipant.domain = [Description]
-definesParticipant.range = [Concept]
+defines_participant.is_a = [ObjectProperty, defines]
+defines_participant.domain = [Description]
+defines_participant.range = [Concept]
 
-definesOutput.is_a = [ObjectProperty, definesParticipant]
-definesOutput.domain = [Description]
-definesOutput.range = [Parameter | Role]
+defines_output.is_a = [ObjectProperty, defines_participant]
+defines_output.domain = [Description]
+defines_output.range = [Or([Parameter, Role])]
 
-definesParameter.is_a = [ObjectProperty, defines]
-definesParameter.domain = [Description]
-definesParameter.range = [Parameter]
+defines_parameter.is_a = [ObjectProperty, defines]
+defines_parameter.domain = [Description]
+defines_parameter.range = [Parameter]
 
-isParameterDefinedIn.is_a = [ObjectProperty, isDefinedIn]
-isParameterDefinedIn.domain = [Parameter]
-isParameterDefinedIn.range = [Description]
+is_parameter_defined_in.is_a = [ObjectProperty, is_defined_in]
+is_parameter_defined_in.domain = [Parameter]
+is_parameter_defined_in.range = [Description]
 
-isPerformerDefinedIn.is_a = [ObjectProperty, isRoleDefinedIn]
-isPerformerDefinedIn.domain = [Role]
-isPerformerDefinedIn.range = [Description]
+is_performer_defined_in.is_a = [ObjectProperty, is_role_defined_in]
+is_performer_defined_in.domain = [Role]
+is_performer_defined_in.range = [Description]
 
-definesProcess.is_a = [ObjectProperty, defines]
-definesProcess.domain = [Description]
-definesProcess.range = [ProcessType]
+defines_process.is_a = [ObjectProperty, defines]
+defines_process.domain = [Description]
+defines_process.range = [ProcessType]
 
-isProcessDefinedIn.is_a = [ObjectProperty, isDefinedIn]
-isProcessDefinedIn.domain = [ProcessType]
-isProcessDefinedIn.range = [Description]
+is_process_defined_in.is_a = [ObjectProperty, is_defined_in]
+is_process_defined_in.domain = [ProcessType]
+is_process_defined_in.range = [Description]
 
-isSetpointDefinedIn.is_a = [ObjectProperty, isParameterDefinedIn]
-isSetpointDefinedIn.domain = [Setpoint]
-isSetpointDefinedIn.range = [Description]
+is_setpoint_defined_in.is_a = [ObjectProperty, is_parameter_defined_in]
+is_setpoint_defined_in.domain = [Setpoint]
+is_setpoint_defined_in.range = [Description]
 
-isTriggerDefinedIn.is_a = [ObjectProperty, isRoleDefinedIn]
-isTriggerDefinedIn.domain = [Role]
-isTriggerDefinedIn.range = [Affordance]
+is_trigger_defined_in.is_a = [ObjectProperty, is_role_defined_in]
+is_trigger_defined_in.domain = [Role]
+is_trigger_defined_in.range = [Affordance]
 
-derivedFrom.is_a = [ObjectProperty, TransitiveProperty, associatedWith]
-derivedFrom.domain = [InformationObject]
-derivedFrom.range = [InformationObject]
+derived_from.is_a = [ObjectProperty, TransitiveProperty, associated_with]
+derived_from.domain = [InformationObject]
+derived_from.range = [InformationObject]
 
-isSourceFor.is_a = [ObjectProperty, TransitiveProperty, associatedWith]
-isSourceFor.domain = [InformationObject]
-isSourceFor.range = [InformationObject]
+is_source_for.is_a = [ObjectProperty, TransitiveProperty, associated_with]
+is_source_for.domain = [InformationObject]
+is_source_for.range = [InformationObject]
 
-describesQuality.is_a = [ObjectProperty, describes]
-describesQuality.domain = [Description]
-describesQuality.range = [Quality]
+describes_quality.is_a = [ObjectProperty, describes]
+describes_quality.domain = [Description]
+describes_quality.range = [Quality]
 
-describes.is_a = [ObjectProperty, associatedWith]
+describes.is_a = [ObjectProperty, associated_with]
 describes.domain = [Description]
 describes.range = [Entity]
 
-isQualityDescribedBy.is_a = [ObjectProperty, isDescribedBy]
-isQualityDescribedBy.domain = [Quality]
-isQualityDescribedBy.range = [Description]
+is_quality_described_by.is_a = [ObjectProperty, is_described_by]
+is_quality_described_by.domain = [Quality]
+is_quality_described_by.range = [Description]
 
-directlyCauses.is_a = [ObjectProperty, causes]
-directlyCauses.domain = [Event]
-directlyCauses.range = [Event]
+directly_causes.is_a = [ObjectProperty, causes]
+directly_causes.domain = [Event]
+directly_causes.range = [Event]
 
-isDirectReactionTo.is_a = [ObjectProperty, isReactionTo]
-isDirectReactionTo.domain = [Event]
-isDirectReactionTo.range = [Event]
+is_direct_reaction_to.is_a = [ObjectProperty, is_reaction_to]
+is_direct_reaction_to.domain = [Event]
+is_direct_reaction_to.range = [Event]
 
-hasTerminalScene.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, hasTerminalState]
-hasTerminalScene.domain = [StateTransition]
-hasTerminalScene.range = [Scene]
+has_terminal_scene.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, has_terminal_state]
+has_terminal_scene.domain = [StateTransition]
+has_terminal_scene.range = [Scene]
 
-includesEvent.is_a = [ObjectProperty, isSettingFor]
-includesEvent.domain = [Situation]
-includesEvent.range = [Event]
+includes_event.is_a = [ObjectProperty, is_setting_for]
+includes_event.domain = [Situation]
+includes_event.range = [Event]
 
-directlyDerivedFrom.is_a = [ObjectProperty, derivedFrom]
+directly_derived_from.is_a = [ObjectProperty, derived_from]
 
-isDirectSourceFor.is_a = [ObjectProperty, isSourceFor]
+is_direct_source_for.is_a = [ObjectProperty, is_source_for]
 
-encapsulates.is_a = [ObjectProperty, associatedWith]
+encapsulates.is_a = [ObjectProperty, associated_with]
 encapsulates.domain = [OrderedElement]
 encapsulates.range = [Entity]
 
-encodes.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
+encodes.is_a = [ObjectProperty, SymmetricProperty, associated_with]
 encodes.domain = [InformationObject]
 encodes.range = [InformationObject]
 
-executesMotion.is_a = [ObjectProperty, isOccurrenceOf]
-executesMotion.domain = [MotionProcess]
-executesMotion.range = [Motion]
+executes_motion.is_a = [ObjectProperty, is_occurrence_of]
+executes_motion.domain = [MotionProcess]
+executes_motion.range = [Motion]
 
-isOccurrenceOf.is_a = [ObjectProperty, isClassifiedBy]
-isOccurrenceOf.domain = [Event]
-isOccurrenceOf.range = [EventType]
+is_occurrence_of.is_a = [ObjectProperty, is_classified_by]
+is_occurrence_of.domain = [Event]
+is_occurrence_of.range = [EventType]
 
-isExecutedMotionIn.is_a = [ObjectProperty, isOccurringIn]
-isExecutedMotionIn.domain = [Motion]
-isExecutedMotionIn.range = [MotionProcess]
+is_executed_motion_in.is_a = [ObjectProperty, is_occurring_in]
+is_executed_motion_in.domain = [Motion]
+is_executed_motion_in.range = [MotionProcess]
 
-finishedBy.is_a = [ObjectProperty, TransitiveProperty, coOccurs]
-finishedBy.domain = [Event]
-finishedBy.range = [Event]
+finished_by.is_a = [ObjectProperty, TransitiveProperty, co_occurs]
+finished_by.domain = [Event]
+finished_by.range = [Event]
 
-finishes.is_a = [ObjectProperty, TransitiveProperty, coOccurs]
+finishes.is_a = [ObjectProperty, TransitiveProperty, co_occurs]
 finishes.domain = [Event]
 finishes.range = [Event]
 
-firstMember.is_a = [ObjectProperty, hasMember]
-firstMember.domain = [Collection]
-firstMember.range = [Entity]
-
-hasMember.is_a = [ObjectProperty, associatedWith]
-hasMember.domain = [Collection]
-hasMember.range = [Entity]
-
-givesMeaningTo.is_a = [ObjectProperty, associatedWith]
-givesMeaningTo.domain = [System]
-givesMeaningTo.range = [InformationObject]
-
-isGivenMeaningBy.is_a = [ObjectProperty, associatedWith]
-isGivenMeaningBy.domain = [InformationObject]
-isGivenMeaningBy.range = [System]
-
-hasAction.is_a = [ObjectProperty, hasConstituent]
-hasAction.domain = [Action]
-hasAction.range = [Action]
-
-hasConstituent.is_a = [ObjectProperty, associatedWith]
-hasConstituent.domain = [Entity]
-hasConstituent.range = [Entity]
-
-hasAlterationResult.is_a = [ObjectProperty, hasRegion]
-hasAlterationResult.domain = [Action]
-hasAlterationResult.range = [Region]
-
-hasRegion.is_a = [ObjectProperty, associatedWith]
-hasRegion.domain = [Entity]
-hasRegion.range = [Region]
-
-isAlterationResultOf.is_a = [ObjectProperty, isRegionFor]
-isAlterationResultOf.domain = [Region]
-isAlterationResultOf.range = [Action]
-
-hasBinding.is_a = [ObjectProperty, hasPart]
-hasBinding.domain = [Description]
-hasBinding.range = [Binding]
-
-hasPart.is_a = [ObjectProperty, TransitiveProperty, ReflexiveProperty, associatedWith]
-hasPart.domain = [Entity]
-hasPart.range = [Entity]
-
-hasBindingFiller.is_a = [ObjectProperty, describes]
-hasBindingFiller.domain = [Binding]
-hasBindingFiller.range = [Entity]
-
-hasBindingRole.is_a = [ObjectProperty, hasPart]
-hasBindingRole.domain = [Binding]
-hasBindingRole.range = [Parameter | Role]
-
-hasChildLink.is_a = [ObjectProperty, hasConstituent]
-hasChildLink.domain = [Joint]
-hasChildLink.range = [PhysicalObject]
-
-isChildLinkOf.is_a = [ObjectProperty, isConstituentOf]
-isChildLinkOf.domain = [PhysicalObject]
-isChildLinkOf.range = [Joint]
-
-hasColor.is_a = [ObjectProperty, hasQuality]
-hasColor.domain = [PhysicalObject]
-hasColor.range = [Color]
-
-hasQuality.is_a = [ObjectProperty, associatedWith]
-hasQuality.domain = [Entity]
-hasQuality.range = [Quality]
-
-isColorOf.is_a = [ObjectProperty, isQualityOf]
-isColorOf.domain = [Color]
-isColorOf.range = [PhysicalObject]
-
-hasDisposition.is_a = [ObjectProperty, hasQuality]
-hasDisposition.domain = [Object]
-hasDisposition.range = [Disposition]
-
-isDispositionOf.is_a = [ObjectProperty, isQualityOf]
-isDispositionOf.domain = [Disposition]
-isDispositionOf.range = [Object]
-
-hasEndLink.is_a = [ObjectProperty, hasLink]
-hasEndLink.domain = [PhysicalObject]
-hasEndLink.range = [PhysicalObject]
-
-hasLink.is_a = [ObjectProperty, hasComponent]
-hasLink.domain = [PhysicalObject]
-hasLink.range = [PhysicalObject]
-
-isEndLinkOf.is_a = [ObjectProperty, isLinkOf]
-isEndLinkOf.domain = [PhysicalObject]
-isEndLinkOf.range = [PhysicalObject]
-
-hasExecutionState.is_a = [ObjectProperty, hasRegion]
-hasExecutionState.domain = [Action]
-hasExecutionState.range = [ExecutionStateRegion]
-
-hasFeature.is_a = [ObjectProperty, hasConstituent]
-hasFeature.domain = [PhysicalObject]
-hasFeature.range = [Feature]
-
-isFeatureOf.is_a = [ObjectProperty, isConstituentOf]
-isFeatureOf.domain = [Feature]
-isFeatureOf.range = [PhysicalObject]
-
-hasFirstStep.is_a = [ObjectProperty, hasStep]
-hasFirstStep.domain = [Workflow]
-hasFirstStep.range = [Task]
-
-hasStep.is_a = [ObjectProperty, definesTask]
-hasStep.domain = [Workflow]
-hasStep.range = [Task]
-
-isFirstStepOf.is_a = [ObjectProperty, isStepOf]
-isFirstStepOf.domain = [Task]
-isFirstStepOf.range = [Workflow]
-
-hasFrictionAttribute.is_a = [ObjectProperty, hasRegion]
-hasFrictionAttribute.domain = [PhysicalObject]
-hasFrictionAttribute.range = [FrictionAttribute]
-
-hasGoal.is_a = [ObjectProperty, isDescribedBy]
-hasGoal.domain = [Entity]
-hasGoal.range = [Goal]
-
-hasInitialScene.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, hasInitialState]
-hasInitialScene.domain = [StateTransition]
-hasInitialScene.range = [Scene]
-
-hasInitialState.is_a = [ObjectProperty, includesSituation]
-hasInitialState.domain = [Transition]
-hasInitialState.range = [Situation]
-
-isInitialSceneOf.is_a = [ObjectProperty, isInitialStateOf]
-isInitialSceneOf.domain = [Scene]
-isInitialSceneOf.range = [StateTransition]
-
-hasInitialSituation.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, hasInitialState]
-hasInitialSituation.domain = [SituationTransition]
-hasInitialSituation.range = [Situation, Not(NonmanifestedSituation)]
-
-isInitialSituationOf.is_a = [ObjectProperty, isInitialStateOf]
-isInitialSituationOf.domain = [Situation]
-isInitialSituationOf.range = [SituationTransition]
-
-includesSituation.is_a = [ObjectProperty, isSettingFor]
-includesSituation.domain = [Situation]
-includesSituation.range = [Situation]
-
-isInitialStateOf.is_a = [ObjectProperty, isSituationIncludedIn]
-isInitialStateOf.domain = [Situation]
-isInitialStateOf.range = [Transition]
-
-hasInputParameter.is_a = [ObjectProperty, hasParameter]
-hasInputParameter.domain = [EventType]
-hasInputParameter.range = [Parameter]
-
-hasParameter.is_a = [ObjectProperty, isRelatedToConcept]
-hasParameter.domain = [Concept]
-hasParameter.range = [Parameter]
-
-isInputParameterFor.is_a = [ObjectProperty, isParameterFor]
-isInputParameterFor.domain = [Parameter]
-isInputParameterFor.range = [EventType]
-
-hasJointLimit.is_a = [ObjectProperty, hasRegion]
-hasJointLimit.domain = [Joint]
-hasJointLimit.range = [JointLimit]
-
-isJointLimitOf.is_a = [ObjectProperty, isRegionFor]
-isJointLimitOf.domain = [JointLimit]
-isJointLimitOf.range = [Joint]
-
-hasJointState.is_a = [ObjectProperty, hasRegion]
-hasJointState.domain = [Joint]
-hasJointState.range = [JointState]
-
-isJointStateOf.is_a = [ObjectProperty, isRegionFor]
-isJointStateOf.domain = [JointState]
-isJointStateOf.range = [Joint]
-
-hasComponent.is_a = [ObjectProperty, AsymmetricProperty, hasProperPart]
-hasComponent.domain = [Entity]
-hasComponent.range = [Entity]
-
-isLinkOf.is_a = [ObjectProperty, isComponentOf]
-isLinkOf.domain = [PhysicalObject]
-isLinkOf.range = [PhysicalObject]
-
-hasLocalization.is_a = [ObjectProperty, hasQuality]
-hasLocalization.domain = [PhysicalObject]
-hasLocalization.range = [Localization]
-
-isLocalizationOf.is_a = [ObjectProperty, isQualityOf]
-isLocalizationOf.domain = [Localization]
-isLocalizationOf.range = [PhysicalObject]
-
-hasMassAttribute.is_a = [ObjectProperty, hasRegion]
-hasMassAttribute.domain = [PhysicalObject]
-hasMassAttribute.range = [MassAttribute]
-
-isMassAttributeOf.is_a = [ObjectProperty, isRegionFor]
-isMassAttributeOf.domain = [MassAttribute]
-isMassAttributeOf.range = [PhysicalObject]
-
-hasNetForce.is_a = [ObjectProperty, hasRegion]
-hasNetForce.domain = [PhysicalObject]
-hasNetForce.range = [NetForce]
-
-isNetForceOf.is_a = [ObjectProperty, isRegionFor]
-isNetForceOf.domain = [NetForce]
-isNetForceOf.range = [PhysicalObject]
-
-hasNextStep.is_a = [ObjectProperty, directlyPrecedes]
-hasNextStep.domain = [Task]
-hasNextStep.range = [Task]
-
-directlyPrecedes.is_a = [ObjectProperty, precedes]
-directlyPrecedes.domain = [Entity]
-directlyPrecedes.range = [Entity]
-
-hasPreviousStep.is_a = [ObjectProperty, directlyFollows]
-hasPreviousStep.domain = [Task]
-hasPreviousStep.range = [Task]
-
-hasOutputParameter.is_a = [ObjectProperty, hasParameter]
-hasOutputParameter.domain = [EventType]
-hasOutputParameter.range = [Parameter]
-
-isOutputParameterFor.is_a = [ObjectProperty, isParameterFor]
-isOutputParameterFor.domain = [Parameter]
-isOutputParameterFor.range = [EventType]
-
-hasParentLink.is_a = [ObjectProperty, hasConstituent]
-hasParentLink.domain = [Joint]
-hasParentLink.range = [PhysicalObject]
+first_member.is_a = [ObjectProperty, has_member]
+first_member.domain = [Collection]
+first_member.range = [Entity]
+
+has_member.is_a = [ObjectProperty, associated_with]
+has_member.domain = [Collection]
+has_member.range = [Entity]
+
+gives_meaning_to.is_a = [ObjectProperty, associated_with]
+gives_meaning_to.domain = [System]
+gives_meaning_to.range = [InformationObject]
+
+is_given_meaning_by.is_a = [ObjectProperty, associated_with]
+is_given_meaning_by.domain = [InformationObject]
+is_given_meaning_by.range = [System]
+
+has_action.is_a = [ObjectProperty, has_constituent]
+has_action.domain = [Action]
+has_action.range = [Action]
+
+has_constituent.is_a = [ObjectProperty, associated_with]
+has_constituent.domain = [Entity]
+has_constituent.range = [Entity]
+
+has_alteration_result.is_a = [ObjectProperty, has_region]
+has_alteration_result.domain = [Action]
+has_alteration_result.range = [Region]
+
+has_region.is_a = [ObjectProperty, associated_with]
+has_region.domain = [Entity]
+has_region.range = [Region]
+
+is_alteration_result_of.is_a = [ObjectProperty, is_region_for]
+is_alteration_result_of.domain = [Region]
+is_alteration_result_of.range = [Action]
+
+has_binding.is_a = [ObjectProperty, has_part]
+has_binding.domain = [Description]
+has_binding.range = [Binding]
+
+has_part.is_a = [ObjectProperty, TransitiveProperty, ReflexiveProperty, associated_with]
+has_part.domain = [Entity]
+has_part.range = [Entity]
+
+has_binding_filler.is_a = [ObjectProperty, describes]
+has_binding_filler.domain = [Binding]
+has_binding_filler.range = [Entity]
+
+has_binding_role.is_a = [ObjectProperty, has_part]
+has_binding_role.domain = [Binding]
+has_binding_role.range = [Or([Parameter, Role])]
+
+has_child_link.is_a = [ObjectProperty, has_constituent]
+has_child_link.domain = [Joint]
+has_child_link.range = [PhysicalObject]
+
+is_child_link_of.is_a = [ObjectProperty, is_constituent_of]
+is_child_link_of.domain = [PhysicalObject]
+is_child_link_of.range = [Joint]
+
+has_color.is_a = [ObjectProperty, has_quality]
+has_color.domain = [PhysicalObject]
+has_color.range = [Color]
+
+has_quality.is_a = [ObjectProperty, associated_with]
+has_quality.domain = [Entity]
+has_quality.range = [Quality]
+
+is_color_of.is_a = [ObjectProperty, is_quality_of]
+is_color_of.domain = [Color]
+is_color_of.range = [PhysicalObject]
+
+has_disposition.is_a = [ObjectProperty, has_quality]
+has_disposition.domain = [Object]
+has_disposition.range = [Disposition]
+
+is_disposition_of.is_a = [ObjectProperty, is_quality_of]
+is_disposition_of.domain = [Disposition]
+is_disposition_of.range = [Object]
+
+has_end_link.is_a = [ObjectProperty, has_link]
+has_end_link.domain = [PhysicalObject]
+has_end_link.range = [PhysicalObject]
+
+has_link.is_a = [ObjectProperty, has_component]
+has_link.domain = [PhysicalObject]
+has_link.range = [PhysicalObject]
+
+is_end_link_of.is_a = [ObjectProperty, is_link_of]
+is_end_link_of.domain = [PhysicalObject]
+is_end_link_of.range = [PhysicalObject]
+
+has_execution_state.is_a = [ObjectProperty, has_region]
+has_execution_state.domain = [Action]
+has_execution_state.range = [ExecutionStateRegion]
+
+has_feature.is_a = [ObjectProperty, has_constituent]
+has_feature.domain = [PhysicalObject]
+has_feature.range = [Feature]
+
+is_feature_of.is_a = [ObjectProperty, is_constituent_of]
+is_feature_of.domain = [Feature]
+is_feature_of.range = [PhysicalObject]
+
+has_first_step.is_a = [ObjectProperty, has_step]
+has_first_step.domain = [Workflow]
+has_first_step.range = [Task]
+
+has_step.is_a = [ObjectProperty, defines_task]
+has_step.domain = [Workflow]
+has_step.range = [Task]
+
+is_first_step_of.is_a = [ObjectProperty, is_step_of]
+is_first_step_of.domain = [Task]
+is_first_step_of.range = [Workflow]
+
+has_friction_attribute.is_a = [ObjectProperty, has_region]
+has_friction_attribute.domain = [PhysicalObject]
+has_friction_attribute.range = [FrictionAttribute]
+
+has_goal.is_a = [ObjectProperty, is_described_by]
+has_goal.domain = [Entity]
+has_goal.range = [Goal]
+
+has_initial_scene.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, has_initial_state]
+has_initial_scene.domain = [StateTransition]
+has_initial_scene.range = [Scene]
+
+has_initial_state.is_a = [ObjectProperty, includes_situation]
+has_initial_state.domain = [Transition]
+has_initial_state.range = [Situation]
+
+is_initial_scene_of.is_a = [ObjectProperty, is_initial_state_of]
+is_initial_scene_of.domain = [Scene]
+is_initial_scene_of.range = [StateTransition]
+
+has_initial_situation.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, has_initial_state]
+has_initial_situation.domain = [SituationTransition]
+has_initial_situation.range = [Situation, Not(NonmanifestedSituation)]
+
+is_initial_situation_of.is_a = [ObjectProperty, is_initial_state_of]
+is_initial_situation_of.domain = [Situation]
+is_initial_situation_of.range = [SituationTransition]
+
+includes_situation.is_a = [ObjectProperty, is_setting_for]
+includes_situation.domain = [Situation]
+includes_situation.range = [Situation]
+
+is_initial_state_of.is_a = [ObjectProperty, is_situation_included_in]
+is_initial_state_of.domain = [Situation]
+is_initial_state_of.range = [Transition]
+
+has_input_parameter.is_a = [ObjectProperty, has_parameter]
+has_input_parameter.domain = [EventType]
+has_input_parameter.range = [Parameter]
+
+has_parameter.is_a = [ObjectProperty, is_related_to_concept]
+has_parameter.domain = [Concept]
+has_parameter.range = [Parameter]
+
+is_input_parameter_for.is_a = [ObjectProperty, is_parameter_for]
+is_input_parameter_for.domain = [Parameter]
+is_input_parameter_for.range = [EventType]
+
+has_joint_limit.is_a = [ObjectProperty, has_region]
+has_joint_limit.domain = [Joint]
+has_joint_limit.range = [JointLimit]
+
+is_joint_limit_of.is_a = [ObjectProperty, is_region_for]
+is_joint_limit_of.domain = [JointLimit]
+is_joint_limit_of.range = [Joint]
+
+has_joint_state.is_a = [ObjectProperty, has_region]
+has_joint_state.domain = [Joint]
+has_joint_state.range = [JointState]
+
+is_joint_state_of.is_a = [ObjectProperty, is_region_for]
+is_joint_state_of.domain = [JointState]
+is_joint_state_of.range = [Joint]
+
+has_component.is_a = [ObjectProperty, AsymmetricProperty, has_proper_part]
+has_component.domain = [Entity]
+has_component.range = [Entity]
+
+is_link_of.is_a = [ObjectProperty, is_component_of]
+is_link_of.domain = [PhysicalObject]
+is_link_of.range = [PhysicalObject]
+
+has_localization.is_a = [ObjectProperty, has_quality]
+has_localization.domain = [PhysicalObject]
+has_localization.range = [Localization]
+
+is_localization_of.is_a = [ObjectProperty, is_quality_of]
+is_localization_of.domain = [Localization]
+is_localization_of.range = [PhysicalObject]
+
+has_mass_attribute.is_a = [ObjectProperty, has_region]
+has_mass_attribute.domain = [PhysicalObject]
+has_mass_attribute.range = [MassAttribute]
+
+is_mass_attribute_of.is_a = [ObjectProperty, is_region_for]
+is_mass_attribute_of.domain = [MassAttribute]
+is_mass_attribute_of.range = [PhysicalObject]
+
+has_net_force.is_a = [ObjectProperty, has_region]
+has_net_force.domain = [PhysicalObject]
+has_net_force.range = [NetForce]
+
+is_net_force_of.is_a = [ObjectProperty, is_region_for]
+is_net_force_of.domain = [NetForce]
+is_net_force_of.range = [PhysicalObject]
+
+has_next_step.is_a = [ObjectProperty, directly_precedes]
+has_next_step.domain = [Task]
+has_next_step.range = [Task]
+
+directly_precedes.is_a = [ObjectProperty, precedes]
+directly_precedes.domain = [Entity]
+directly_precedes.range = [Entity]
+
+has_previous_step.is_a = [ObjectProperty, directly_follows]
+has_previous_step.domain = [Task]
+has_previous_step.range = [Task]
+
+has_output_parameter.is_a = [ObjectProperty, has_parameter]
+has_output_parameter.domain = [EventType]
+has_output_parameter.range = [Parameter]
+
+is_output_parameter_for.is_a = [ObjectProperty, is_parameter_for]
+is_output_parameter_for.domain = [Parameter]
+is_output_parameter_for.range = [EventType]
+
+has_parent_link.is_a = [ObjectProperty, has_constituent]
+has_parent_link.domain = [Joint]
+has_parent_link.range = [PhysicalObject]
 
-isParentLinkOf.is_a = [ObjectProperty, isConstituentOf]
-isParentLinkOf.domain = [PhysicalObject]
-isParentLinkOf.range = [Joint]
+is_parent_link_of.is_a = [ObjectProperty, is_constituent_of]
+is_parent_link_of.domain = [PhysicalObject]
+is_parent_link_of.range = [Joint]
 
-hasPhase.is_a = [ObjectProperty, hasConstituent]
-hasPhase.domain = [Action | Process]
-hasPhase.range = [State | Process]
+has_phase.is_a = [ObjectProperty, has_constituent]
+has_phase.domain = [Or([Action, Process])]
+has_phase.range = [Or([State, Process])]
 
-hasPhysicalComponent.is_a = [ObjectProperty, hasComponent]
-hasPhysicalComponent.domain = [PhysicalObject]
-hasPhysicalComponent.range = [PhysicalObject]
+has_physical_component.is_a = [ObjectProperty, has_component]
+has_physical_component.domain = [PhysicalObject]
+has_physical_component.range = [PhysicalObject]
 
-hasPredecessor.is_a = [ObjectProperty, hasPart]
-hasPredecessor.domain = [Succedence]
-hasPredecessor.range = [Workflow]
+has_predecessor.is_a = [ObjectProperty, has_part]
+has_predecessor.domain = [Succedence]
+has_predecessor.range = [Workflow]
 
-hasPreference.is_a = [ObjectProperty, hasQuality]
-hasPreference.domain = [Agent]
-hasPreference.range = [Preference]
+has_preference.is_a = [ObjectProperty, has_quality]
+has_preference.domain = [Agent]
+has_preference.range = [Preference]
 
-isPreferenceOf.is_a = [ObjectProperty, isQualityOf]
-isPreferenceOf.domain = [Preference]
-isPreferenceOf.range = [Agent]
+is_preference_of.is_a = [ObjectProperty, is_quality_of]
+is_preference_of.domain = [Preference]
+is_preference_of.range = [Agent]
 
-directlyFollows.is_a = [ObjectProperty, follows]
-directlyFollows.domain = [Entity]
-directlyFollows.range = [Entity]
+directly_follows.is_a = [ObjectProperty, follows]
+directly_follows.domain = [Entity]
+directly_follows.range = [Entity]
 
-hasProcessType.is_a = [ObjectProperty, isRelatedToConcept]
-hasProcessType.domain = [Role]
-hasProcessType.range = [ProcessType]
+has_process_type.is_a = [ObjectProperty, is_related_to_concept]
+has_process_type.domain = [Role]
+has_process_type.range = [ProcessType]
 
-isRelatedToConcept.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
-isRelatedToConcept.domain = [Concept]
-isRelatedToConcept.range = [Concept]
+is_related_to_concept.is_a = [ObjectProperty, SymmetricProperty, associated_with]
+is_related_to_concept.domain = [Concept]
+is_related_to_concept.range = [Concept]
 
-isProcessTypeOf.is_a = [ObjectProperty, isRelatedToConcept]
-isProcessTypeOf.domain = [ProcessType]
-isProcessTypeOf.range = [Role]
+is_process_type_of.is_a = [ObjectProperty, is_related_to_concept]
+is_process_type_of.domain = [ProcessType]
+is_process_type_of.range = [Role]
 
-hasQuale.is_a = [ObjectProperty, hasRegion]
-hasQuale.domain = [Quality]
-hasQuale.range = [Region]
+has_quale.is_a = [ObjectProperty, has_region]
+has_quale.domain = [Quality]
+has_quale.range = [Region]
 
-isQualeOf.is_a = [ObjectProperty, isRegionFor]
-isQualeOf.domain = [Region]
-isQualeOf.range = [Quality]
+is_quale_of.is_a = [ObjectProperty, is_region_for]
+is_quale_of.domain = [Region]
+is_quale_of.range = [Quality]
 
-hasRootLink.is_a = [ObjectProperty, hasLink]
-hasRootLink.domain = [PhysicalObject]
-hasRootLink.range = [PhysicalObject]
+has_root_link.is_a = [ObjectProperty, has_link]
+has_root_link.domain = [PhysicalObject]
+has_root_link.range = [PhysicalObject]
 
-isRootLinkOf.is_a = [ObjectProperty, isLinkOf]
-isRootLinkOf.domain = [PhysicalObject]
-isRootLinkOf.range = [PhysicalObject]
+is_root_link_of.is_a = [ObjectProperty, is_link_of]
+is_root_link_of.domain = [PhysicalObject]
+is_root_link_of.range = [PhysicalObject]
 
-hasShape.is_a = [ObjectProperty, hasQuality]
-hasShape.domain = [PhysicalObject]
-hasShape.range = [Shape]
+has_shape.is_a = [ObjectProperty, has_quality]
+has_shape.domain = [PhysicalObject]
+has_shape.range = [Shape]
 
-isShapeOf.is_a = [ObjectProperty, isQualityOf]
-isShapeOf.domain = [Shape]
-isShapeOf.range = [PhysicalObject]
+is_shape_of.is_a = [ObjectProperty, is_quality_of]
+is_shape_of.domain = [Shape]
+is_shape_of.range = [PhysicalObject]
 
-hasShapeRegion.is_a = [ObjectProperty, hasRegion]
-hasShapeRegion.domain = [Shape | PhysicalObject]
-hasShapeRegion.range = [ShapeRegion]
+has_shape_region.is_a = [ObjectProperty, has_region]
+has_shape_region.domain = [Or([Shape, PhysicalObject])]
+has_shape_region.range = [ShapeRegion]
 
-isShapeRegionOf.is_a = [ObjectProperty, isRegionFor]
-isShapeRegionOf.domain = [ShapeRegion]
-isShapeRegionOf.range = [Shape | PhysicalObject]
+is_shape_region_of.is_a = [ObjectProperty, is_region_for]
+is_shape_region_of.domain = [ShapeRegion]
+is_shape_region_of.range = [Or([Shape, PhysicalObject])]
 
-hasSoftwareAgent.is_a = [ObjectProperty, involvesAgent]
-hasSoftwareAgent.domain = [Event]
-hasSoftwareAgent.range = [SoftwareInstance]
+has_software_agent.is_a = [ObjectProperty, involves_agent]
+has_software_agent.domain = [Event]
+has_software_agent.range = [SoftwareInstance]
 
-involvesAgent.is_a = [ObjectProperty, hasParticipant]
-involvesAgent.domain = [Event]
-involvesAgent.range = [Agent]
+involves_agent.is_a = [ObjectProperty, has_participant]
+involves_agent.domain = [Event]
+involves_agent.range = [Agent]
 
-hasSpaceRegion.is_a = [ObjectProperty, hasRegion]
-hasSpaceRegion.domain = [Localization | ShapeRegion | PhysicalObject]
-hasSpaceRegion.range = [SpaceRegion]
+has_space_region.is_a = [ObjectProperty, has_region]
+has_space_region.domain = [Or([Localization, ShapeRegion, PhysicalObject])]
+has_space_region.range = [SpaceRegion]
 
-isSpaceRegionFor.is_a = [ObjectProperty, isRegionFor]
-isSpaceRegionFor.domain = [SpaceRegion]
-isSpaceRegionFor.range = [Localization | PhysicalObject]
+is_space_region_for.is_a = [ObjectProperty, is_region_for]
+is_space_region_for.domain = [SpaceRegion]
+is_space_region_for.range = [Or([Localization, PhysicalObject])]
 
-hasStateType.is_a = [ObjectProperty, isRelatedToConcept]
-hasStateType.domain = [Role]
-hasStateType.range = [StateType]
+has_state_type.is_a = [ObjectProperty, is_related_to_concept]
+has_state_type.domain = [Role]
+has_state_type.range = [StateType]
 
-isStateTypeOf.is_a = [ObjectProperty, isRelatedToConcept]
-isStateTypeOf.domain = [StateType]
-isStateTypeOf.range = [Role]
+is_state_type_of.is_a = [ObjectProperty, is_related_to_concept]
+is_state_type_of.domain = [StateType]
+is_state_type_of.range = [Role]
 
-hasStatus.is_a = [ObjectProperty, hasQuality]
-
-isStepOf.is_a = [ObjectProperty, isTaskDefinedIn]
-isStepOf.domain = [Task]
-isStepOf.range = [Workflow]
-
-hasSuccedence.is_a = [ObjectProperty, hasPart]
-hasSuccedence.domain = [Workflow]
-hasSuccedence.range = [Succedence]
-
-hasSuccessor.is_a = [ObjectProperty, hasPart]
-hasSuccessor.domain = [Succedence]
-hasSuccessor.range = [Workflow]
-
-hasTask.is_a = [ObjectProperty, hasPart]
-hasTask.domain = [Relation | Workflow]
-hasTask.range = [Task]
-
-hasTerminalState.is_a = [ObjectProperty, includesSituation]
-hasTerminalState.domain = [Transition]
-hasTerminalState.range = [Situation]
-
-isTerminalSceneOf.is_a = [ObjectProperty, isTerminalStateOf]
-isTerminalSceneOf.domain = [Scene]
-isTerminalSceneOf.range = [StateTransition]
-
-hasTerminalSituation.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, hasTerminalState]
-hasTerminalSituation.domain = [SituationTransition]
-hasTerminalSituation.range = [Situation, Not(NonmanifestedSituation)]
-
-isTerminalSituationOf.is_a = [ObjectProperty, isTerminalStateOf]
-isTerminalSituationOf.domain = [Situation]
-isTerminalSituationOf.range = [SituationTransition]
-
-isTerminalStateOf.is_a = [ObjectProperty, isSituationIncludedIn]
-isTerminalStateOf.domain = [Situation]
-isTerminalStateOf.range = [Transition]
-
-includesConcept.is_a = [ObjectProperty, includesObject]
-includesConcept.domain = [Situation]
-includesConcept.range = [Concept]
-
-includesObject.is_a = [ObjectProperty, isSettingFor]
-includesObject.domain = [Situation]
-includesObject.range = [Object]
-
-isConceptIncludedIn.is_a = [ObjectProperty, isObjectIncludedIn]
-isConceptIncludedIn.domain = [Concept]
-isConceptIncludedIn.range = [Situation]
-
-includesRecord.is_a = [ObjectProperty, isReferenceOf]
-includesRecord.domain = [Event]
-includesRecord.range = [InformationObject]
-
-isReferenceOf.is_a = [ObjectProperty, associatedWith]
-isReferenceOf.domain = [Entity]
-isReferenceOf.range = [InformationObject]
-
-isRecordIncludedBy.is_a = [ObjectProperty, isAbout]
-isRecordIncludedBy.domain = [InformationObject]
-isRecordIncludedBy.range = [Event]
-
-isSettingFor.is_a = [ObjectProperty, associatedWith]
-isSettingFor.domain = [Situation]
-isSettingFor.range = [Entity]
-
-isSituationIncludedIn.is_a = [ObjectProperty, hasSetting]
-isSituationIncludedIn.domain = [Situation]
-isSituationIncludedIn.range = [Situation]
-
-involvesArtifact.is_a = [ObjectProperty, hasParticipant]
-involvesArtifact.domain = [Event]
-involvesArtifact.range = [PhysicalArtifact]
-
-hasParticipant.is_a = [ObjectProperty, associatedWith]
-hasParticipant.domain = [Event]
-hasParticipant.range = [Object]
-
-isArtifactInvolvedIn.is_a = [ObjectProperty, isParticipantIn]
-isArtifactInvolvedIn.domain = [PhysicalArtifact]
-isArtifactInvolvedIn.range = [Event]
+has_status.is_a = [ObjectProperty, has_quality]
+
+is_step_of.is_a = [ObjectProperty, is_task_defined_in]
+is_step_of.domain = [Task]
+is_step_of.range = [Workflow]
+
+has_succedence.is_a = [ObjectProperty, has_part]
+has_succedence.domain = [Workflow]
+has_succedence.range = [Succedence]
+
+has_successor.is_a = [ObjectProperty, has_part]
+has_successor.domain = [Succedence]
+has_successor.range = [Workflow]
+
+has_task.is_a = [ObjectProperty, has_part]
+has_task.domain = [Or([Relation, Workflow])]
+has_task.range = [Task]
+
+has_terminal_state.is_a = [ObjectProperty, includes_situation]
+has_terminal_state.domain = [Transition]
+has_terminal_state.range = [Situation]
+
+is_terminal_scene_of.is_a = [ObjectProperty, is_terminal_state_of]
+is_terminal_scene_of.domain = [Scene]
+is_terminal_scene_of.range = [StateTransition]
+
+has_terminal_situation.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, has_terminal_state]
+has_terminal_situation.domain = [SituationTransition]
+has_terminal_situation.range = [Situation, Not(NonmanifestedSituation)]
+
+is_terminal_situation_of.is_a = [ObjectProperty, is_terminal_state_of]
+is_terminal_situation_of.domain = [Situation]
+is_terminal_situation_of.range = [SituationTransition]
+
+is_terminal_state_of.is_a = [ObjectProperty, is_situation_included_in]
+is_terminal_state_of.domain = [Situation]
+is_terminal_state_of.range = [Transition]
+
+includes_concept.is_a = [ObjectProperty, includes_object]
+includes_concept.domain = [Situation]
+includes_concept.range = [Concept]
+
+includes_object.is_a = [ObjectProperty, is_setting_for]
+includes_object.domain = [Situation]
+includes_object.range = [Object]
+
+is_concept_included_in.is_a = [ObjectProperty, is_object_included_in]
+is_concept_included_in.domain = [Concept]
+is_concept_included_in.range = [Situation]
+
+includes_record.is_a = [ObjectProperty, is_reference_of]
+includes_record.domain = [Event]
+includes_record.range = [InformationObject]
+
+is_reference_of.is_a = [ObjectProperty, associated_with]
+is_reference_of.domain = [Entity]
+is_reference_of.range = [InformationObject]
+
+is_record_included_by.is_a = [ObjectProperty, is_about]
+is_record_included_by.domain = [InformationObject]
+is_record_included_by.range = [Event]
+
+is_setting_for.is_a = [ObjectProperty, associated_with]
+is_setting_for.domain = [Situation]
+is_setting_for.range = [Entity]
+
+is_situation_included_in.is_a = [ObjectProperty, has_setting]
+is_situation_included_in.domain = [Situation]
+is_situation_included_in.range = [Situation]
+
+involves_artifact.is_a = [ObjectProperty, has_participant]
+involves_artifact.domain = [Event]
+involves_artifact.range = [PhysicalArtifact]
+
+has_participant.is_a = [ObjectProperty, associated_with]
+has_participant.domain = [Event]
+has_participant.range = [Object]
+
+is_artifact_involved_in.is_a = [ObjectProperty, is_participant_in]
+is_artifact_involved_in.domain = [PhysicalArtifact]
+is_artifact_involved_in.range = [Event]
 
-involvesEffector.is_a = [ObjectProperty, hasParticipant]
-involvesEffector.domain = [Event]
-involvesEffector.range = [PhysicalEffector]
+involves_effector.is_a = [ObjectProperty, has_participant]
+involves_effector.domain = [Event]
+involves_effector.range = [PhysicalEffector]
 
-isEffectorInvolvedIn.is_a = [ObjectProperty, isParticipantIn]
-isEffectorInvolvedIn.domain = [PhysicalEffector]
-isEffectorInvolvedIn.range = [Event]
+is_effector_involved_in.is_a = [ObjectProperty, is_participant_in]
+is_effector_involved_in.domain = [PhysicalEffector]
+is_effector_involved_in.range = [Event]
 
-involvesPlace.is_a = [ObjectProperty, hasParticipant]
-involvesPlace.domain = [Event]
-involvesPlace.range = [PhysicalPlace]
+involves_place.is_a = [ObjectProperty, has_participant]
+involves_place.domain = [Event]
+involves_place.range = [PhysicalPlace]
 
-isPlaceInvolvedIn.is_a = [ObjectProperty, isParticipantIn]
-isPlaceInvolvedIn.domain = [PhysicalPlace]
-isPlaceInvolvedIn.range = [Event]
+is_place_involved_in.is_a = [ObjectProperty, is_participant_in]
+is_place_involved_in.domain = [PhysicalPlace]
+is_place_involved_in.range = [Event]
 
-isRegionFor.is_a = [ObjectProperty, associatedWith]
-isRegionFor.domain = [Region]
-isRegionFor.range = [Entity]
+is_region_for.is_a = [ObjectProperty, associated_with]
+is_region_for.domain = [Region]
+is_region_for.range = [Entity]
 
-isAnsweredBy.is_a = [ObjectProperty, involvesAgent]
-isAnsweredBy.domain = [Event]
-isAnsweredBy.range = [Agent]
+is_answered_by.is_a = [ObjectProperty, involves_agent]
+is_answered_by.domain = [Event]
+is_answered_by.range = [Agent]
 
-isParticipantIn.is_a = [ObjectProperty, associatedWith]
-isParticipantIn.domain = [Object]
-isParticipantIn.range = [Event]
+is_participant_in.is_a = [ObjectProperty, associated_with]
+is_participant_in.domain = [Object]
+is_participant_in.range = [Event]
 
-isAskedBy.is_a = [ObjectProperty, involvesAgent]
-isAskedBy.domain = [QueryingTask]
-isAskedBy.range = [Agent]
+is_asked_by.is_a = [ObjectProperty, involves_agent]
+is_asked_by.domain = [QueryingTask]
+is_asked_by.range = [Agent]
 
-isRoleDefinedIn.is_a = [ObjectProperty, isDefinedIn]
-isRoleDefinedIn.domain = [Role]
-isRoleDefinedIn.range = [Description]
+is_role_defined_in.is_a = [ObjectProperty, is_defined_in]
+is_role_defined_in.domain = [Role]
+is_role_defined_in.range = [Description]
 
-isConstituentOf.is_a = [ObjectProperty, associatedWith]
-isConstituentOf.domain = [Entity]
-isConstituentOf.range = [Entity]
+is_constituent_of.is_a = [ObjectProperty, associated_with]
+is_constituent_of.domain = [Entity]
+is_constituent_of.range = [Entity]
 
-isQualityOf.is_a = [ObjectProperty, associatedWith]
-isQualityOf.domain = [Quality]
-isQualityOf.range = [Entity]
+is_quality_of.is_a = [ObjectProperty, associated_with]
+is_quality_of.domain = [Quality]
+is_quality_of.range = [Entity]
 
-isObjectIncludedIn.is_a = [ObjectProperty, hasSetting]
-isObjectIncludedIn.domain = [Object]
-isObjectIncludedIn.range = [Situation]
+is_object_included_in.is_a = [ObjectProperty, has_setting]
+is_object_included_in.domain = [Object]
+is_object_included_in.range = [Situation]
 
-isCreatedOutputOf.is_a = [ObjectProperty, isOutputRoleOf]
-isCreatedOutputOf.domain = [Role]
-isCreatedOutputOf.range = [Task]
+is_created_output_of.is_a = [ObjectProperty, is_output_role_of]
+is_created_output_of.domain = [Role]
+is_created_output_of.range = [Task]
 
-isOutputRoleOf.is_a = [ObjectProperty, hasTask]
-isOutputRoleOf.domain = [Role]
-isOutputRoleOf.range = [Task]
+is_output_role_of.is_a = [ObjectProperty, has_task]
+is_output_role_of.domain = [Role]
+is_output_role_of.range = [Task]
 
-isTaskOfCreatedRole.is_a = [ObjectProperty, isTaskOfOutputRole]
-isTaskOfCreatedRole.domain = [Task]
-isTaskOfCreatedRole.range = [Role]
+is_task_of_created_role.is_a = [ObjectProperty, is_task_of_output_role]
+is_task_of_created_role.domain = [Task]
+is_task_of_created_role.range = [Role]
 
-isDefinedIn.is_a = [ObjectProperty, isConceptUsedIn]
-isDefinedIn.domain = [Concept]
-isDefinedIn.range = [Description]
+is_defined_in.is_a = [ObjectProperty, is_concept_used_in]
+is_defined_in.domain = [Concept]
+is_defined_in.range = [Description]
 
-isDepositOf.is_a = [ObjectProperty, isLocationOf]
-isDepositOf.domain = [PhysicalObject]
-isDepositOf.range = [PhysicalObject]
+is_deposit_of.is_a = [ObjectProperty, is_location_of]
+is_deposit_of.domain = [PhysicalObject]
+is_deposit_of.range = [PhysicalObject]
 
-isOntopOf.is_a = [ObjectProperty, hasLocation]
-isOntopOf.domain = [PhysicalObject]
-isOntopOf.range = [PhysicalObject]
+is_ontop_of.is_a = [ObjectProperty, has_location]
+is_ontop_of.domain = [PhysicalObject]
+is_ontop_of.range = [PhysicalObject]
 
-isDesignFor.is_a = [ObjectProperty, describes]
-isDesignFor.domain = [Design]
-isDesignFor.range = [Object]
+is_design_for.is_a = [ObjectProperty, describes]
+is_design_for.domain = [Design]
+is_design_for.range = [Object]
 
-isDesignedBy.is_a = [ObjectProperty, isDescribedBy]
-isDesignedBy.domain = [Object]
-isDesignedBy.range = [Design]
+is_designed_by.is_a = [ObjectProperty, is_described_by]
+is_designed_by.domain = [Object]
+is_designed_by.range = [Design]
 
-isRealizedBy.is_a = [ObjectProperty, associatedWith]
-isRealizedBy.domain = [InformationObject]
-isRealizedBy.range = [InformationRealization]
+is_realized_by.is_a = [ObjectProperty, associated_with]
+is_realized_by.domain = [InformationObject]
+is_realized_by.range = [InformationRealization]
 
-hasRole.is_a = [ObjectProperty, isClassifiedBy]
-hasRole.domain = [Object]
-hasRole.range = [Role]
+has_role.is_a = [ObjectProperty, is_classified_by]
+has_role.domain = [Object]
+has_role.range = [Role]
 
-isInputRoleOf.is_a = [ObjectProperty, hasTask]
-isInputRoleOf.domain = [Role]
-isInputRoleOf.range = [Task]
+is_input_role_of.is_a = [ObjectProperty, has_task]
+is_input_role_of.domain = [Role]
+is_input_role_of.range = [Task]
 
-isRoleOf.is_a = [ObjectProperty, classifies]
-isRoleOf.domain = [Role]
-isRoleOf.range = [Object]
+is_role_of.is_a = [ObjectProperty, classifies]
+is_role_of.domain = [Role]
+is_role_of.range = [Object]
 
-realizes.is_a = [ObjectProperty, associatedWith]
+realizes.is_a = [ObjectProperty, associated_with]
 realizes.domain = [InformationRealization]
 realizes.range = [InformationObject]
 
-isOccurringIn.is_a = [ObjectProperty, classifies]
-isOccurringIn.domain = [EventType]
-isOccurringIn.range = [Event]
+is_occurring_in.is_a = [ObjectProperty, classifies]
+is_occurring_in.domain = [EventType]
+is_occurring_in.range = [Event]
 
-isExecutorDefinedIn.is_a = [ObjectProperty]
+is_executor_defined_in.is_a = [ObjectProperty]
 
-isParameterFor.is_a = [ObjectProperty, isRelatedToConcept]
-isParameterFor.domain = [Parameter]
-isParameterFor.range = [Concept]
+is_parameter_for.is_a = [ObjectProperty, is_related_to_concept]
+is_parameter_for.domain = [Parameter]
+is_parameter_for.range = [Concept]
 
-hasTask.is_a = [ObjectProperty, isRelatedToConcept]
-hasTask.domain = [Role]
-hasTask.range = [Task]
+has_task.is_a = [ObjectProperty, is_related_to_concept]
+has_task.domain = [Role]
+has_task.range = [Task]
 
-isTaskOfInputRole.is_a = [ObjectProperty, isTaskOf]
-isTaskOfInputRole.domain = [Task]
-isTaskOfInputRole.range = [Role]
+is_task_of_input_role.is_a = [ObjectProperty, is_task_of]
+is_task_of_input_role.domain = [Task]
+is_task_of_input_role.range = [Role]
 
-hasLocation.is_a = [ObjectProperty, associatedWith]
-hasLocation.domain = [Entity]
-hasLocation.range = [Entity]
+has_location.is_a = [ObjectProperty, associated_with]
+has_location.domain = [Entity]
+has_location.range = [Entity]
 
-isComponentOf.is_a = [ObjectProperty, AsymmetricProperty, isPropertPartOf]
-isComponentOf.domain = [Entity]
-isComponentOf.range = [Entity]
+is_component_of.is_a = [ObjectProperty, AsymmetricProperty, is_propert_part_of]
+is_component_of.domain = [Entity]
+is_component_of.range = [Entity]
 
-isLinkedTo.is_a = [ObjectProperty, SymmetricProperty, hasLocation]
-isLinkedTo.domain = [PhysicalObject]
-isLinkedTo.range = [PhysicalObject]
+is_linked_to.is_a = [ObjectProperty, SymmetricProperty, has_location]
+is_linked_to.domain = [PhysicalObject]
+is_linked_to.range = [PhysicalObject]
 
-isMotionDescriptionFor.is_a = [ObjectProperty, describes]
-isMotionDescriptionFor.domain = [MotionDescription]
-isMotionDescriptionFor.range = [Motion]
+is_motion_description_for.is_a = [ObjectProperty, describes]
+is_motion_description_for.domain = [MotionDescription]
+is_motion_description_for.range = [Motion]
 
-isMovedByAgent.is_a = [ObjectProperty, interactsWith]
-isMovedByAgent.domain = [PhysicalObject]
-isMovedByAgent.range = [Agent]
+is_moved_by_agent.is_a = [ObjectProperty, interacts_with]
+is_moved_by_agent.domain = [PhysicalObject]
+is_moved_by_agent.range = [Agent]
 
-movesObject.is_a = [ObjectProperty, interactsWith]
-movesObject.domain = [Agent]
-movesObject.range = [PhysicalObject]
+moves_object.is_a = [ObjectProperty, interacts_with]
+moves_object.domain = [Agent]
+moves_object.range = [PhysicalObject]
 
-isClassifiedBy.is_a = [ObjectProperty, associatedWith]
-isClassifiedBy.domain = [Entity]
-isClassifiedBy.range = [Concept]
+is_classified_by.is_a = [ObjectProperty, associated_with]
+is_classified_by.domain = [Entity]
+is_classified_by.range = [Concept]
 
-classifies.is_a = [ObjectProperty, associatedWith]
+classifies.is_a = [ObjectProperty, associated_with]
 classifies.domain = [Concept]
 classifies.range = [Entity]
 
-isOrderedBy.is_a = [ObjectProperty, associatedWith]
-isOrderedBy.domain = [OrderedElement]
-isOrderedBy.range = [Order]
+is_ordered_by.is_a = [ObjectProperty, associated_with]
+is_ordered_by.domain = [OrderedElement]
+is_ordered_by.range = [Order]
 
-orders.is_a = [ObjectProperty, associatedWith]
+orders.is_a = [ObjectProperty, associated_with]
 orders.domain = [Order]
 orders.range = [OrderedElement]
 
-isTaskOfOutputRole.is_a = [ObjectProperty, isTaskOf]
-isTaskOfOutputRole.domain = [Task]
-isTaskOfOutputRole.range = [Role]
+is_task_of_output_role.is_a = [ObjectProperty, is_task_of]
+is_task_of_output_role.domain = [Task]
+is_task_of_output_role.range = [Role]
 
-isPerformedBy.is_a = [ObjectProperty, involvesAgent]
-isPerformedBy.domain = [Action]
-isPerformedBy.range = [Agent]
+is_performed_by.is_a = [ObjectProperty, involves_agent]
+is_performed_by.domain = [Action]
+is_performed_by.range = [Agent]
 
-isPhysicallyContainedIn.is_a = [ObjectProperty, isLocationOf]
-isPhysicallyContainedIn.domain = [Entity]
-isPhysicallyContainedIn.range = [Entity]
+is_physically_contained_in.is_a = [ObjectProperty, is_location_of]
+is_physically_contained_in.domain = [Entity]
+is_physically_contained_in.range = [Entity]
 
-isPlanFor.is_a = [ObjectProperty, describes]
-isPlanFor.domain = [Plan]
-isPlanFor.range = [Task]
+is_plan_for.is_a = [ObjectProperty, describes]
+is_plan_for.domain = [Plan]
+is_plan_for.range = [Task]
 
-isAbout.is_a = [ObjectProperty, associatedWith]
-isAbout.domain = [InformationObject]
-isAbout.range = [Entity]
+is_about.is_a = [ObjectProperty, associated_with]
+is_about.domain = [InformationObject]
+is_about.range = [Entity]
 
-isReplacedBy.is_a = [ObjectProperty, before]
-isReplacedBy.domain = [State]
-isReplacedBy.range = [State]
+is_replaced_by.is_a = [ObjectProperty, before]
+is_replaced_by.domain = [State]
+is_replaced_by.range = [State]
 
 replaces.is_a = [ObjectProperty, after]
 replaces.domain = [State]
 replaces.range = [State]
 
-hasSetting.is_a = [ObjectProperty, associatedWith]
-hasSetting.domain = [Entity]
-hasSetting.range = [Situation]
+has_setting.is_a = [ObjectProperty, associated_with]
+has_setting.domain = [Entity]
+has_setting.range = [Situation]
 
-isTaskDefinedIn.is_a = [ObjectProperty, isDefinedIn]
-isTaskDefinedIn.domain = [Task]
-isTaskDefinedIn.range = [Description]
+is_task_defined_in.is_a = [ObjectProperty, is_defined_in]
+is_task_defined_in.domain = [Task]
+is_task_defined_in.range = [Description]
 
-isSupportedBy.is_a = [ObjectProperty, interactsWith, hasCommonBoundary]
-isSupportedBy.domain = [Entity]
-isSupportedBy.range = [Entity]
+is_supported_by.is_a = [ObjectProperty, interacts_with, has_common_boundary]
+is_supported_by.domain = [Entity]
+is_supported_by.range = [Entity]
 
-hasCommonBoundary.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
-hasCommonBoundary.domain = [Entity]
-hasCommonBoundary.range = [Entity]
+has_common_boundary.is_a = [ObjectProperty, SymmetricProperty, associated_with]
+has_common_boundary.domain = [Entity]
+has_common_boundary.range = [Entity]
 
-supports.is_a = [ObjectProperty, interactsWith, hasCommonBoundary]
+supports.is_a = [ObjectProperty, interacts_with, has_common_boundary]
 supports.domain = [Entity]
 supports.range = [Entity]
 
-isTaskOf.is_a = [ObjectProperty, isRelatedToConcept]
-isTaskOf.domain = [Task]
-isTaskOf.range = [Role]
+is_task_of.is_a = [ObjectProperty, is_related_to_concept]
+is_task_of.domain = [Task]
+is_task_of.range = [Role]
 
-isTerminatedBy.is_a = [ObjectProperty, associatedWith]
-isTerminatedBy.domain = [Event]
-isTerminatedBy.range = [Event]
+is_terminated_by.is_a = [ObjectProperty, associated_with]
+is_terminated_by.domain = [Event]
+is_terminated_by.range = [Event]
 
-terminates.is_a = [ObjectProperty, associatedWith]
+terminates.is_a = [ObjectProperty, associated_with]
 terminates.domain = [Event]
 terminates.range = [Event]
 
-meets.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, directlyPrecedes]
+meets.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, directly_precedes]
 meets.domain = [Entity]
 meets.range = [Entity]
 
-metBy.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, directlyFollows]
-metBy.domain = [Entity]
-metBy.range = [Entity]
+met_by.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, directly_follows]
+met_by.domain = [Entity]
+met_by.range = [Entity]
 
-overlappedBy.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, overlaps]
-overlappedBy.domain = [Entity]
-overlappedBy.range = [Entity]
+overlapped_by.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, overlaps]
+overlapped_by.domain = [Entity]
+overlapped_by.range = [Entity]
 
-overlappedOn.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, overlaps]
-overlappedOn.domain = [Entity]
-overlappedOn.range = [Entity]
+overlapped_on.is_a = [ObjectProperty, AsymmetricProperty, IrreflexiveProperty, overlaps]
+overlapped_on.domain = [Entity]
+overlapped_on.range = [Entity]
 
-simultaneous.is_a = [ObjectProperty, SymmetricProperty, TransitiveProperty, coOccurs]
+simultaneous.is_a = [ObjectProperty, SymmetricProperty, TransitiveProperty, co_occurs]
 simultaneous.domain = [Event]
 simultaneous.range = [Event]
 
-startedBy.is_a = [ObjectProperty, TransitiveProperty, coOccurs]
-startedBy.domain = [Event]
-startedBy.range = [Event]
+started_by.is_a = [ObjectProperty, TransitiveProperty, co_occurs]
+started_by.domain = [Event]
+started_by.range = [Event]
 
-starts.is_a = [ObjectProperty, TransitiveProperty, coOccurs]
+starts.is_a = [ObjectProperty, TransitiveProperty, co_occurs]
 starts.domain = [Event]
 starts.range = [Event]
 
-transitionsBack.is_a = [ObjectProperty, transitionsFrom, transitionsTo]
-transitionsBack.domain = [Transient]
-transitionsBack.range = [Object]
+transitions_back.is_a = [ObjectProperty, transitions_from, transitions_to]
+transitions_back.domain = [Transient]
+transitions_back.range = [Object]
 
-transitionsFrom.is_a = [ObjectProperty, hasCommonBoundary]
-transitionsFrom.domain = [Transient]
-transitionsFrom.range = [Object]
+transitions_from.is_a = [ObjectProperty, has_common_boundary]
+transitions_from.domain = [Transient]
+transitions_from.range = [Object]
 
-transitionsTo.is_a = [ObjectProperty, hasCommonBoundary]
-transitionsTo.domain = [Transient]
-transitionsTo.range = [Object]
+transitions_to.is_a = [ObjectProperty, has_common_boundary]
+transitions_to.domain = [Transient]
+transitions_to.range = [Object]
 
-hasExpectedTerminalSituation.is_a = [ObjectProperty, hasTerminalSituation, hasPostcondition]
-hasExpectedTerminalSituation.domain = [SituationTransition]
-hasExpectedTerminalSituation.range = [Situation]
+has_expected_terminal_situation.is_a = [ObjectProperty, has_terminal_situation, has_postcondition]
+has_expected_terminal_situation.domain = [SituationTransition]
+has_expected_terminal_situation.range = [Situation]
 
-hasPostcondition.is_a = [ObjectProperty, directlyPrecedes]
-hasPostcondition.domain = [Event | Situation]
-hasPostcondition.range = [Event | Situation]
+has_postcondition.is_a = [ObjectProperty, directly_precedes]
+has_postcondition.domain = [Or([Event, Situation])]
+has_postcondition.range = [Or([Event, Situation])]
 
-hasRequiredInitialSituation.is_a = [ObjectProperty, hasInitialSituation, hasPrecondition]
-hasRequiredInitialSituation.domain = [SituationTransition]
-hasRequiredInitialSituation.range = [Situation]
+has_required_initial_situation.is_a = [ObjectProperty, has_initial_situation, has_precondition]
+has_required_initial_situation.domain = [SituationTransition]
+has_required_initial_situation.range = [Situation]
 
-hasPrecondition.is_a = [ObjectProperty, directlyFollows]
-hasPrecondition.domain = [Event | Situation]
-hasPrecondition.range = [Event | Situation]
+has_precondition.is_a = [ObjectProperty, directly_follows]
+has_precondition.domain = [Or([Event, Situation])]
+has_precondition.range = [Or([Event, Situation])]
 
-manifestsIn.is_a = [ObjectProperty, includesEvent]
+manifests_in.is_a = [ObjectProperty, includes_event]
 
-preventedBy.is_a = [ObjectProperty, hasSetting]
-preventedBy.domain = [Situation]
-preventedBy.range = [Situation]
+prevented_by.is_a = [ObjectProperty, has_setting]
+prevented_by.domain = [Situation]
+prevented_by.range = [Situation]
 
-prevents.is_a = [ObjectProperty, isSettingFor]
+prevents.is_a = [ObjectProperty, is_setting_for]
 prevents.domain = [Situation]
 prevents.range = [Situation]
 
-actsFor.is_a = [ObjectProperty, associatedWith]
-actsFor.domain = [Agent]
-actsFor.range = [SocialAgent]
+acts_for.is_a = [ObjectProperty, associated_with]
+acts_for.domain = [Agent]
+acts_for.range = [SocialAgent]
 
-executesTask.is_a = [ObjectProperty, isClassifiedBy]
-executesTask.domain = [Action]
-executesTask.range = [Task]
+executes_task.is_a = [ObjectProperty, is_classified_by]
+executes_task.domain = [Action]
+executes_task.range = [Task]
 
-expresses.is_a = [ObjectProperty, associatedWith]
+expresses.is_a = [ObjectProperty, associated_with]
 expresses.domain = [InformationObject]
 expresses.range = [SocialObject]
 
-isExecutedIn.is_a = [ObjectProperty, classifies]
-isExecutedIn.domain = [Task]
-isExecutedIn.range = [Action]
+is_executed_in.is_a = [ObjectProperty, classifies]
+is_executed_in.domain = [Task]
+is_executed_in.range = [Action]
 
-isExpressedBy.is_a = [ObjectProperty, associatedWith]
-isExpressedBy.domain = [SocialObject]
-isExpressedBy.range = [InformationObject]
+is_expressed_by.is_a = [ObjectProperty, associated_with]
+is_expressed_by.domain = [SocialObject]
+is_expressed_by.range = [InformationObject]
 
-isPartOf.is_a = [ObjectProperty, TransitiveProperty, ReflexiveProperty, associatedWith]
-isPartOf.domain = [Entity]
-isPartOf.range = [Entity]
+is_part_of.is_a = [ObjectProperty, TransitiveProperty, ReflexiveProperty, associated_with]
+is_part_of.domain = [Entity]
+is_part_of.range = [Entity]
 
-satisfies.is_a = [ObjectProperty, associatedWith]
+satisfies.is_a = [ObjectProperty, associated_with]
 satisfies.domain = [Situation]
 satisfies.range = [Description]
 

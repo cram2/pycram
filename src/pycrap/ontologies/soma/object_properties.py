@@ -14,12 +14,12 @@ class precedes(BaseProperty):
     Subproperties can be defined in order to distinguish the different uses.
     """
     
-class isAffectedBy(BaseProperty):
+class is_affected_by(BaseProperty):
     """
     Simple relationship between two actions to express that a variation in the course or outcome of the object (the affector) would have resulted in a variation in the subject (the affectee), e.g., a planning task that sets parameters such as goal position affects the subsequently executed pick-and-place task that uses that parameter.
     """
     
-class affordanceDefines(BaseProperty):
+class affordance_defines(BaseProperty):
     """
     A relation between an Affordance and a Concept (often an EventType).
     """
@@ -29,112 +29,112 @@ class defines(BaseProperty):
     A relation between a Description and a Concept, e.g. a Workflow for a governmental Organization defines the Role 'officer', or 'the Italian Traffic Law defines the role Vehicle'.
     """
     
-class isDefinedInAffordance(BaseProperty):
+class is_defined_in_affordance(BaseProperty):
     """
     A relation between a Concept and an Affordance.
     """
     
-class affordanceDefinesTask(BaseProperty):
+class affordance_defines_task(BaseProperty):
     """
     A relation between an Affordance and a Task
     """
     
-class definesTask(BaseProperty):
+class defines_task(BaseProperty):
     """
     A relation between a description and a task, e.g. the recipe for a cake defines the task 'boil'.
     """
     
-class isTaskDefinedInAffordance(BaseProperty):
+class is_task_defined_in_affordance(BaseProperty):
     """
     A relation between a Task and an Affordance, such that the task is defined in terms of using the affordance.
     """
     
-class affordsBearer(BaseProperty):
+class affords_bearer(BaseProperty):
     """
     Relates a disposition to the bearer role defined by the affordance describing the disposition.
     """
     
-class affordsConcept(BaseProperty):
+class affords_concept(BaseProperty):
     """
     A relation between a disposition and a concept defined in the affordance that describes the disposition.
     """
     
-class isBearerAffordedBy(BaseProperty):
+class is_bearer_afforded_by(BaseProperty):
     """
     Relates a disposition to the bearer role defined by the affordance describing the disposition.
     """
     
-class isDescribedBy(BaseProperty):
+class is_described_by(BaseProperty):
     """
     The relation between an Entity and a Description: a Description gives a unity to a Collection of parts (the components), or constituents, by assigning a Role to each of them in the context of a whole Object (the system).
     A same Entity can be given different descriptions, for example, an old cradle can be given a unifying Description based on the original aesthetic design, the functionality it was built for, or a new aesthetic functionality in which it can be used as a flower pot.
     """
     
-class definesBearer(BaseProperty):
+class defines_bearer(BaseProperty):
     """
     Relates an affordance which is a relation between a bearer and a trigger, to the role of the bearer when the affordance is manifested.
     """
     
-class associatedWith(BaseProperty):
+class associated_with(BaseProperty):
     """
     A catch-all object property, useful for alignment and querying purposes.
     It is declared as both transitive and symmetric, in order to reason an a maximal closure of associations between individuals.
     """
     
-class isConceptAffordedBy(BaseProperty):
+class is_concept_afforded_by(BaseProperty):
     """
     A relation between a disposition and a concept defined in the affordance that describes the disposition.
     """
     
-class affordsPerformer(BaseProperty):
+class affords_performer(BaseProperty):
     """
     Relates a disposition to the performer role defined by the affordance describing the disposition.
     """
     
-class isPerformerAffordedBy(BaseProperty):
+class is_performer_afforded_by(BaseProperty):
     ...
     
-class definesPerformer(BaseProperty):
+class defines_performer(BaseProperty):
     """
     Relates an affordance which is a relation between a bearer and a trigger, to the role of the performer when the affordance is manifested.
     """
     
-class affordsSetpoint(BaseProperty):
+class affords_setpoint(BaseProperty):
     """
     Relates a disposition to the setpoint parameter defined by the affordance describing the disposition.
     """
     
-class isSetpointAffordedBy(BaseProperty):
+class is_setpoint_afforded_by(BaseProperty):
     """
     Relates a disposition to the setpoint parameter defined by the affordance describing the disposition.
     """
     
-class definesSetpoint(BaseProperty):
+class defines_setpoint(BaseProperty):
     """
     Defines the dedicated goal region of a description.
     """
     
-class affordsTask(BaseProperty):
+class affords_task(BaseProperty):
     """
     Relates a disposition to the task defined by the affordance describing the disposition.
     """
     
-class isTaskAffordedBy(BaseProperty):
+class is_task_afforded_by(BaseProperty):
     """
     Relates a disposition to the task defined by the affordance describing the disposition.
     """
     
-class affordsTrigger(BaseProperty):
+class affords_trigger(BaseProperty):
     """
     Relates a disposition to the trigger role defined by the affordance describing the disposition.
     """
     
-class isTriggerAffordedBy(BaseProperty):
+class is_trigger_afforded_by(BaseProperty):
     """
     Relates a disposition to the trigger role defined by the affordance describing the disposition.
     """
     
-class definesTrigger(BaseProperty):
+class defines_trigger(BaseProperty):
     """
     Relates an affordance which is a relation between a bearer and a trigger, to the role of the trigger when the affordance is manifested.
     """
@@ -159,12 +159,12 @@ class before(BaseProperty):
 class answers(BaseProperty):
     ...
     
-class relatesToAnotherRole(BaseProperty):
+class relates_to_another_role(BaseProperty):
     """
     Simple top-level property for relations between two roles.
     """
     
-class hasAnswer(BaseProperty):
+class has_answer(BaseProperty):
     """
     The relation between a message and its answer.
     """
@@ -172,7 +172,7 @@ class hasAnswer(BaseProperty):
 class causes(BaseProperty):
     ...
     
-class isReactionTo(BaseProperty):
+class is_reaction_to(BaseProperty):
     """
     Simple relationship between two actions to express that the subject (the reaction) would not have occured if it were not for the object (the cause), e.g., a Communication Action classified as an Answering Task is a reaction to another Communication Task classified as a Query Task and would not have occured without the other. An example without Agents involved would be some domino stone would not have toppled without the first one toppling.
     
@@ -181,20 +181,20 @@ class isReactionTo(BaseProperty):
     This relation is seen as transitive.
     """
     
-class causesTransition(BaseProperty):
+class causes_transition(BaseProperty):
     """
     A Transition between two Situations is always the result of some Event, and the causesTransition relation should be used to record the causal relation from the Event to the Transition.
     """
     
-class isEventIncludedIn(BaseProperty):
+class is_event_included_in(BaseProperty):
     ...
     
-class isCausedByEvent(BaseProperty):
+class is_caused_by_event(BaseProperty):
     """
     A relation recording that a Transition is the result of some Event.
     """
     
-class coOccurs(BaseProperty):
+class co_occurs(BaseProperty):
     """
     A schematic relation between any events that also implies that one event is temporally contained in the other.
     
@@ -212,12 +212,12 @@ class contains(BaseProperty):
     A schematic relation asserting containment, understood in a very broad sense, by one Entity of another. The relation is defined with domain and range of maximum generality, as it is possible to construe containment to apply between Events, between Objects, between Qualities and so on. Care should be taken when using it that the construal of containment makes sense and is useful. If a clearer relation expresses the connection between two Entities, use that relation instead. For example, rather than saying an Event contains an Object, it is probably better to say the Event has that Object as a participant. More specific versions of this relation exist, e.g. containsEvent, so it is likely that there will be few situations where it should be used itself. However, by acting as a superproperty to several relations, it captures a core similarity between these and enables taxonomy-based similarity metrics.
     """
     
-class isContainedIn(BaseProperty):
+class is_contained_in(BaseProperty):
     """
     The inverse of the contains relation. See the contains relation for details.
     """
     
-class containsEvent(BaseProperty):
+class contains_event(BaseProperty):
     """
     `A contains event B` means that A strictly starts before, and ends after B, i.e. B is wholly contained in A.
     """
@@ -227,58 +227,58 @@ class during(BaseProperty):
     `A during B` means that B strictly starts before, and ends after A, i.e. A is wholly contained in B.
     """
     
-class containsObject(BaseProperty):
+class contains_object(BaseProperty):
     """
     A spatial relation holding between a container, and objects it contains.
     """
     
-class isLocationOf(BaseProperty):
+class is_location_of(BaseProperty):
     """
     A generic, relative localization, holding between any entities. E.g. 'Rome is the seat of the Pope', 'the liver is the location of the tumor'.
     For 'absolute' locations, see SpaceRegion
     """
     
-class isInsideOf(BaseProperty):
+class is_inside_of(BaseProperty):
     """
     A spatial relation holding between an object (the container), and objects it contains.
     """
     
-class coversObject(BaseProperty):
+class covers_object(BaseProperty):
     """
     A relationship from an object (the coverer) that blocks access to another or its interior (the coveree).
     """
     
-class interactsWith(BaseProperty):
+class interacts_with(BaseProperty):
     """
     A relation between objects that interact with each other.
     """
     
-class isCoveredByObject(BaseProperty):
+class is_covered_by_object(BaseProperty):
     """
     A relation from an object (the coveree) which is itself, or has its interior, prevented from being accessed from outside by a coverer.
     """
     
-class definesRole(BaseProperty):
+class defines_role(BaseProperty):
     """
     A relation between a description and a role, e.g. the recipe for a cake defines the role 'ingredient'.
     """
     
-class isBearerDefinedIn(BaseProperty):
+class is_bearer_defined_in(BaseProperty):
     """
     Relates an affordance which is a relation between a bearer and a trigger, to the role of the bearer when the affordance is manifested.
     """
     
-class definesEventType(BaseProperty):
+class defines_event_type(BaseProperty):
     ...
     
-class isEventTypeDefinedIn(BaseProperty):
+class is_event_type_defined_in(BaseProperty):
     """
     A relation between an event type and a description, e.g. an event that is described by the Affordance of an object to be cut with a knife.
     
     The distinction to 'is task defined in' is necessary to let Dispositions and Affordances not only describe which tasks might be afforded by objects, but also whihc processes (where there is no agent). For example, the fall of a knife from a shelf slicing a loaf of bread on impact is , in the absence of an executing agent, not a task but merely a process, the possibility of which is nevertheless described by the dispositions of the knife and the loaf.
     """
     
-class definesInput(BaseProperty):
+class defines_input(BaseProperty):
     """
     The defined participant is an "input": 
     
@@ -286,14 +286,14 @@ class definesInput(BaseProperty):
     - some region/value which informs the way in which the Task will be executed.
     """
     
-class definesParticipant(BaseProperty):
+class defines_participant(BaseProperty):
     """
     A Description definesParticipant a Concept to classify participants in Events associated to that Description.
     
     The prototypical example is a Task, which is a concept to classify Actions (a form of Event). A Task may define several Roles, with which to classify participants in the event of that Task's execution.
     """
     
-class definesOutput(BaseProperty):
+class defines_output(BaseProperty):
     """
     Defines an "output" participant:
     
@@ -301,52 +301,52 @@ class definesOutput(BaseProperty):
     - a Region/value that has been demarcated/computed as a result of the execution of a Task.
     """
     
-class definesParameter(BaseProperty):
+class defines_parameter(BaseProperty):
     """
     A relation between a description and a parameter.
     """
     
-class isParameterDefinedIn(BaseProperty):
+class is_parameter_defined_in(BaseProperty):
     """
     A relation between a description and a parameter.
     """
     
-class isPerformerDefinedIn(BaseProperty):
+class is_performer_defined_in(BaseProperty):
     """
     Relates an affordance which is a relation between a bearer and a trigger, to the role of the performer when the affordance is manifested.
     """
     
-class definesProcess(BaseProperty):
+class defines_process(BaseProperty):
     """
     A relation between a description and a process type.
     """
     
-class isProcessDefinedIn(BaseProperty):
+class is_process_defined_in(BaseProperty):
     """
     A relation between a process type and a description that defines it.
     """
     
-class isSetpointDefinedIn(BaseProperty):
+class is_setpoint_defined_in(BaseProperty):
     """
     Defines the dedicated goal region of a description.
     """
     
-class isTriggerDefinedIn(BaseProperty):
+class is_trigger_defined_in(BaseProperty):
     """
     Relates an affordance which is a relation between a bearer and a trigger, to the role of the trigger when the affordance is manifested.
     """
     
-class derivedFrom(BaseProperty):
+class derived_from(BaseProperty):
     """
     The (transitive) relation between an information object and another which it has been derived from.
     """
     
-class isSourceFor(BaseProperty):
+class is_source_for(BaseProperty):
     """
     The (transitive) relation between an information object and another which was derived from the former.
     """
     
-class describesQuality(BaseProperty):
+class describes_quality(BaseProperty):
     """
     Relates a description to a quality that it describes.
     """
@@ -357,37 +357,37 @@ class describes(BaseProperty):
     A same Entity can be given different descriptions, for example, an old cradle can be given a unifying Description based on the original aesthetic design, the functionality it was built for, or a new aesthetic functionality in which it can be used as a flower pot.
     """
     
-class isQualityDescribedBy(BaseProperty):
+class is_quality_described_by(BaseProperty):
     """
     Relates a description to a quality it describes.
     """
     
-class directlyCauses(BaseProperty):
+class directly_causes(BaseProperty):
     """
     Non-transitive version of "causes".
     """
     
-class isDirectReactionTo(BaseProperty):
+class is_direct_reaction_to(BaseProperty):
     """
     Non-transitive version of "is reaction to".
     """
     
-class hasTerminalScene(BaseProperty):
+class has_terminal_scene(BaseProperty):
     """
     A relation between StateTransitions and Scenes, which identifies the scene the transition is expected to end at.
     """
     
-class includesEvent(BaseProperty):
+class includes_event(BaseProperty):
     """
     A relation between situations and events, e.g. 'this morning I've prepared my coffee and had my fingers burnt' (i.e.: the preparation of my coffee this morning included a burning of my fingers).
     """
     
-class directlyDerivedFrom(BaseProperty):
+class directly_derived_from(BaseProperty):
     """
     The relation between an information object and another which it has been derived from.
     """
     
-class isDirectSourceFor(BaseProperty):
+class is_direct_source_for(BaseProperty):
     """
     The (transitive) relation between an information object and another which was derived from the former.
     """
@@ -402,22 +402,22 @@ class encodes(BaseProperty):
     The relation between two Information Objects that have the same meaning, but are formatted differently. E.g., a text written in UTF-8 encodes a text in a natural writing system (letters) and vice versa.
     """
     
-class executesMotion(BaseProperty):
+class executes_motion(BaseProperty):
     """
     A relation between an motion process and a motion event type, e.g. 'lifting an object' executes the motion process 'lifting'.
     """
     
-class isOccurrenceOf(BaseProperty):
+class is_occurrence_of(BaseProperty):
     """
     A relation between an event and an event type, e.g. 'taking the cup from the table' is an occurence of the motion 'approaching'.
     """
     
-class isExecutedMotionIn(BaseProperty):
+class is_executed_motion_in(BaseProperty):
     """
     A relation between an motion process and a motion event type, e.g. 'lifting an object' executes the motion process 'lifting'.
     """
     
-class finishedBy(BaseProperty):
+class finished_by(BaseProperty):
     """
     `A finishes B` means that A ends exactly where B ends, and that B strictly starts before A.  As in "I finish my day by taking a shower".
     """
@@ -427,32 +427,32 @@ class finishes(BaseProperty):
     `A finishes B` means that A ends exactly where B ends, and that B strictly starts before A.  As in "I finish my day by taking a shower".
     """
     
-class firstMember(BaseProperty):
+class first_member(BaseProperty):
     """
     A relation between a collection and a member of it that is least according to some ordering. This ordering can be arbitrary, i.e. the order in which Entities are recorded in the Collection.
     """
     
-class hasMember(BaseProperty):
+class has_member(BaseProperty):
     """
     A relation between collections and entities, e.g. 'my collection of saxophones includes an old Adolphe Sax original alto' (i.e. my collection has member an Adolphe Sax alto).
     """
     
-class givesMeaningTo(BaseProperty):
+class gives_meaning_to(BaseProperty):
     """
     The relation between a System and Information Object that is given meaning to by said system, e.g., a Language might give meaning to some word, sentence, text, etc., but without the knowledge of said System (Language), the text will not make sense to a reader.
     """
     
-class isGivenMeaningBy(BaseProperty):
+class is_given_meaning_by(BaseProperty):
     """
     The relation between an Information Object and a System that gives meaning to said object, e.g., a word, sentence, text, etc. might be given meaning by a Language and without the knowledge of said System (Language), the text will not make sense to a reader.
     """
     
-class hasAction(BaseProperty):
+class has_action(BaseProperty):
     """
     A relation from an Action to a component Action.
     """
     
-class hasConstituent(BaseProperty):
+class has_constituent(BaseProperty):
     """
     'Constituency' depends on some layering of  the world described by the ontology. For example, scientific granularities (e.g. body-organ-tissue-cell) or ontological 'strata' (e.g. social-mental-biological-physical) are  typical layerings. 
     Intuitively, a constituent is a part belonging to a lower layer. Since layering is actually a partition of the world described by the ontology, constituents are not properly classified as parts, although this kinship can be intuitive for common sense.
@@ -461,27 +461,27 @@ class hasConstituent(BaseProperty):
     In all these examples, we notice a typical discontinuity between the constituted and the constituent object: e.g. a social system is conceptualized at a different layer from the persons that constitute it, a person is conceptualized at a different layer from the molecules that constitute them, and a river is conceptualized at a different layer from the atoms that constitute it.
     """
     
-class hasAlterationResult(BaseProperty):
+class has_alteration_result(BaseProperty):
     """
     Relates an action that alters an object to the region that the alteration reached during the action.
     """
     
-class hasRegion(BaseProperty):
+class has_region(BaseProperty):
     """
     A relation between entities and regions, e.g. 'the number of wheels of that truck is 12', 'the time of the experiment is August 9th, 2004', 'the whale has been localized at 34 degrees E, 20 degrees S'.
     """
     
-class isAlterationResultOf(BaseProperty):
+class is_alteration_result_of(BaseProperty):
     """
     Relates an action that alters an object to the region that the alteration reached during the action.
     """
     
-class hasBinding(BaseProperty):
+class has_binding(BaseProperty):
     """
     Asserts that in a context described by Description, a Binding relation holds.
     """
     
-class hasPart(BaseProperty):
+class has_part(BaseProperty):
     """
     A schematic relation between any entities, e.g. 'the human body has a brain as part', '20th century contains year 1923', 'World War II includes the Pearl Harbour event'.
     
@@ -494,7 +494,7 @@ class hasPart(BaseProperty):
     Subproperties and restrictions can be used to specialize hasPart for objects, events, etc.
     """
     
-class hasBindingFiller(BaseProperty):
+class has_binding_filler(BaseProperty):
     """
     Indicates that an Entity is described by a Binding, in that it is associated with the Role/Parameter that the Binding binds it to. The Binding is only valid in some descriptive context such as a Workflow or Narrative.
     
@@ -503,515 +503,515 @@ class hasBindingFiller(BaseProperty):
     Only RoleFillerBindings can have general Entities as fillers. RoleRoleBindings can only connect to Roles or Parameters via this property.
     """
     
-class hasBindingRole(BaseProperty):
+class has_binding_role(BaseProperty):
     """
     Indicates that a Role/Parameter is going to be associated to some filler, or other Role/Parameter, by a Binding. The Binding is only valid in some descriptive context such as a Narrative or Workflow.
     """
     
-class hasChildLink(BaseProperty):
+class has_child_link(BaseProperty):
     """
     Relates a joint to the link it connects which is closer to the end of the kinematic chain.
     """
     
-class isChildLinkOf(BaseProperty):
+class is_child_link_of(BaseProperty):
     """
     Relates a joint to the link it connects which is closer to the end of the kinematic chain.
     """
     
-class hasColor(BaseProperty):
+class has_color(BaseProperty):
     """
     Relates an object to its color quality.
     """
     
-class hasQuality(BaseProperty):
+class has_quality(BaseProperty):
     """
     A relation between entities and qualities, e.g. 'Dmitri's skin is yellowish'.
     """
     
-class isColorOf(BaseProperty):
+class is_color_of(BaseProperty):
     """
     Relates a color quality to the object the color belongs to.
     """
     
-class hasDisposition(BaseProperty):
+class has_disposition(BaseProperty):
     """
     Associates an object to one of its dispositions.
     """
     
-class isDispositionOf(BaseProperty):
+class is_disposition_of(BaseProperty):
     """
     Associates a disposition quality to the object holding it.
     """
     
-class hasEndLink(BaseProperty):
+class has_end_link(BaseProperty):
     """
     Relates an object to kinematic components at the end of the kinematic chain.
     """
     
-class hasLink(BaseProperty):
+class has_link(BaseProperty):
     """
     Relates an object to its kinematic components.
     """
     
-class isEndLinkOf(BaseProperty):
+class is_end_link_of(BaseProperty):
     """
     Relates an object to kinematic components at the end of the kinematic chain.
     """
     
-class hasExecutionState(BaseProperty):
+class has_execution_state(BaseProperty):
     """
     A relation from an Action to its execution state.
     """
     
-class hasFeature(BaseProperty):
+class has_feature(BaseProperty):
     """
     Associates a physical object to one of its features.
     """
     
-class isFeatureOf(BaseProperty):
+class is_feature_of(BaseProperty):
     """
     Associates a feature to the physical object it belongs to.
     """
     
-class hasFirstStep(BaseProperty):
+class has_first_step(BaseProperty):
     """
     A relation from a Workflow to its first Task.
     """
     
-class hasStep(BaseProperty):
+class has_step(BaseProperty):
     """
     A relation between a Workflow and a Task it contains.
     """
     
-class isFirstStepOf(BaseProperty):
+class is_first_step_of(BaseProperty):
     """
     A relation stating that some task is the first one in a workflow.
     """
     
-class hasFrictionAttribute(BaseProperty):
+class has_friction_attribute(BaseProperty):
     """
     A relation between physical objects and their friction attribute.
     """
     
-class hasGoal(BaseProperty):
+class has_goal(BaseProperty):
     """
     A relation from an Entity to a Goal it pursues. Agents can pursue Goals, and Tasks are also construed as pursuing Goals.
     """
     
-class hasInitialScene(BaseProperty):
+class has_initial_scene(BaseProperty):
     """
     A relation between StateTransitions and Scenes, which identifies the scene the transition starts from.
     """
     
-class hasInitialState(BaseProperty):
+class has_initial_state(BaseProperty):
     """
     A relation which connects a Transition to the Situation it starts from.
     """
     
-class isInitialSceneOf(BaseProperty):
+class is_initial_scene_of(BaseProperty):
     """
     A relation between StateTransitions and Scenes, which identifies the scene the transition starts from.
     """
     
-class hasInitialSituation(BaseProperty):
+class has_initial_situation(BaseProperty):
     """
     A relation between SituationTransitions and Situations, which identifies the Situation the transition starts from.
     """
     
-class isInitialSituationOf(BaseProperty):
+class is_initial_situation_of(BaseProperty):
     """
     A relation between SituationTransitions and Situations, which identifies the Situation the transition starts from.
     """
     
-class includesSituation(BaseProperty):
+class includes_situation(BaseProperty):
     """
     A relation recording that a Situation has a (sub) Situation as participant in some role.
     """
     
-class isInitialStateOf(BaseProperty):
+class is_initial_state_of(BaseProperty):
     """
     A relation recording that a Situation was where a Transition began.
     """
     
-class hasInputParameter(BaseProperty):
+class has_input_parameter(BaseProperty):
     """
     A relation between a Task and one of its input parameters.
     A relation from an EventType (typically, a Task) and a parameter describing some state of affairs before the event classified by the EventType takes place, and which contributes towards that event happening.
     """
     
-class hasParameter(BaseProperty):
+class has_parameter(BaseProperty):
     """
     A Concept can have a Parameter that constrains the attributes that a classified Entity can have in a certain Situation, e.g. a 4WheelDriver Role definedIn the ItalianTrafficLaw has a MinimumAge parameter on the Amount 16.
     """
     
-class isInputParameterFor(BaseProperty):
+class is_input_parameter_for(BaseProperty):
     """
     A relation between a Task and one of its input parameters.
     A relation from a Parameter to an EventType (typically, a Task). The parameter describes some state of affairs that precedes and will contribute to the event classified by the EventType.
     """
     
-class hasJointLimit(BaseProperty):
+class has_joint_limit(BaseProperty):
     """
     Relates a joint to its physical limits.
     """
     
-class isJointLimitOf(BaseProperty):
+class is_joint_limit_of(BaseProperty):
     """
     Relates a joint to its physical limits.
     """
     
-class hasJointState(BaseProperty):
+class has_joint_state(BaseProperty):
     """
     Relates a joint to its state.
     """
     
-class isJointStateOf(BaseProperty):
+class is_joint_state_of(BaseProperty):
     """
     Relates a joint to its state.
     """
     
-class hasComponent(BaseProperty):
+class has_component(BaseProperty):
     """
     The hasProperPart relation without transitivity, holding between an Object (the system) and another (the component), and assuming a Design that structures the Object.
     """
     
-class isLinkOf(BaseProperty):
+class is_link_of(BaseProperty):
     """
     Relates an object to its kinematic components.
     """
     
-class hasLocalization(BaseProperty):
+class has_localization(BaseProperty):
     """
     Relates an object to its localization quality.
     """
     
-class isLocalizationOf(BaseProperty):
+class is_localization_of(BaseProperty):
     """
     Relates a localization quality to the object the localization belongs to.
     """
     
-class hasMassAttribute(BaseProperty):
+class has_mass_attribute(BaseProperty):
     """
     A relation between physical objects and their mass.
     """
     
-class isMassAttributeOf(BaseProperty):
+class is_mass_attribute_of(BaseProperty):
     """
     A relation between physical objects and their mass.
     """
     
-class hasNetForce(BaseProperty):
+class has_net_force(BaseProperty):
     """
     A relation between a physical object and the total force acting on it.
     """
     
-class isNetForceOf(BaseProperty):
+class is_net_force_of(BaseProperty):
     """
     A relation between a physical object and the total force acting on it.
     """
     
-class hasNextStep(BaseProperty):
+class has_next_step(BaseProperty):
     """
     An ordering relation between tasks in a workflow, saying that a task is followed by another.
     """
     
-class directlyPrecedes(BaseProperty):
+class directly_precedes(BaseProperty):
     """
     The intransitive precedes relation. For example, Monday directly precedes Tuesday. Directness of precedence depends on the designer conceptualization.
     """
     
-class hasPreviousStep(BaseProperty):
+class has_previous_step(BaseProperty):
     """
     An ordering relation between tasks in some workflow, stating that a task is preceded by another.
     """
     
-class hasOutputParameter(BaseProperty):
+class has_output_parameter(BaseProperty):
     """
     A relation between a Task and one of its output parameters.
     A relation from an EventType (typically a Task) to a Parameter describing an outcome of the event classified by the EventType.
     """
     
-class isOutputParameterFor(BaseProperty):
+class is_output_parameter_for(BaseProperty):
     """
     A relation between a Task and one of its output parameters.
     A relation from a Parameter to an EventType (typically, a Task). The parameter describes an outcome of the event classified by the EventType.
     """
     
-class hasParentLink(BaseProperty):
+class has_parent_link(BaseProperty):
     """
     Relates a joint to the link it connects which is closer to the root of the kinematic chain.
     """
     
-class isParentLinkOf(BaseProperty):
+class is_parent_link_of(BaseProperty):
     """
     Relates a joint to the link it connects which is closer to the root of the kinematic chain.
     """
     
-class hasPhase(BaseProperty):
+class has_phase(BaseProperty):
     """
     A relation used to describe the structure of an Action or Process in terms of phases, i.e. subprocesses and states that occur during its unfolding.
     """
     
-class hasPhysicalComponent(BaseProperty):
+class has_physical_component(BaseProperty):
     """
     A relation used to describe the structure of a PhysicalObject in terms of physical components, i.e. what other PhysicalObjects are components of it.
     """
     
-class hasPredecessor(BaseProperty):
+class has_predecessor(BaseProperty):
     """
     Indicates that a Task is the predecessor in a Succedence Relation; that is, this is the task to execute first.
     """
     
-class hasPreference(BaseProperty):
+class has_preference(BaseProperty):
     ...
     
-class isPreferenceOf(BaseProperty):
+class is_preference_of(BaseProperty):
     """
     Relates a preference quality to the agent the preference belongs to.
     """
     
-class directlyFollows(BaseProperty):
+class directly_follows(BaseProperty):
     """
     The intransitive follows relation. For example, Wednesday directly precedes Thursday. Directness of precedence depends on the designer conceptualization.
     """
     
-class hasProcessType(BaseProperty):
+class has_process_type(BaseProperty):
     """
     A relation between roles and process types, e.g. a catalysator is needed to trigger some chemical reaction.
     """
     
-class isRelatedToConcept(BaseProperty):
+class is_related_to_concept(BaseProperty):
     """
     Any relation between concepts, e.g. superordinated, conceptual parthood, having a parameter, having a task, superordination, etc.
     """
     
-class isProcessTypeOf(BaseProperty):
+class is_process_type_of(BaseProperty):
     """
     A relation between roles and process types, e.g. a catalysator is needed to trigger some chemical reaction.
     """
     
-class hasQuale(BaseProperty):
+class has_quale(BaseProperty):
     """
     Relates a quality to its "value", called quale, which is an atomic quality region.
     """
     
-class isQualeOf(BaseProperty):
+class is_quale_of(BaseProperty):
     """
     Relates a quality to its "value", called quale, which is an atomic quality region.
     """
     
-class hasRootLink(BaseProperty):
+class has_root_link(BaseProperty):
     """
     Relates an object to kinematic components at the root of the kinematic chain.
     """
     
-class isRootLinkOf(BaseProperty):
+class is_root_link_of(BaseProperty):
     """
     Relates an object to kinematic components at the root of the kinematic chain.
     """
     
-class hasShape(BaseProperty):
+class has_shape(BaseProperty):
     """
     Relates an object to its shape quality.
     """
     
-class isShapeOf(BaseProperty):
+class is_shape_of(BaseProperty):
     """
     Relates a shape quality to the object the shape belongs to.
     """
     
-class hasShapeRegion(BaseProperty):
+class has_shape_region(BaseProperty):
     """
     A relation between physical objects and their shape attribute.
     """
     
-class isShapeRegionOf(BaseProperty):
+class is_shape_region_of(BaseProperty):
     """
     Relates a shape to a physical object that has it.
     """
     
-class hasSoftwareAgent(BaseProperty):
+class has_software_agent(BaseProperty):
     """
     A relation from an Event and the SoftwareAgent responsible for making that Event happen.
     """
     
-class involvesAgent(BaseProperty):
+class involves_agent(BaseProperty):
     """
     Agent participation.
     """
     
-class hasSpaceRegion(BaseProperty):
+class has_space_region(BaseProperty):
     """
     Relates an entity to a space region.
     """
     
-class isSpaceRegionFor(BaseProperty):
+class is_space_region_for(BaseProperty):
     """
     Relates a space region to an entity.
     """
     
-class hasStateType(BaseProperty):
+class has_state_type(BaseProperty):
     """
     A relation between roles and state types, e.g. 'the chair is the supporter of the person sitting on it'.
     """
     
-class isStateTypeOf(BaseProperty):
+class is_state_type_of(BaseProperty):
     """
     A relation between roles and state types, e.g. 'the chair is the supporter of the person sitting on it'.
     """
     
-class hasStatus(BaseProperty):
+class has_status(BaseProperty):
     """
     A relation from an Entity to a Quality that is indicative of the Entity's state, e.g. if it is a device, its state of operation.
     """
     
-class isStepOf(BaseProperty):
+class is_step_of(BaseProperty):
     """
     A relation stating that a task is a step in a workflow.
     """
     
-class hasSuccedence(BaseProperty):
+class has_succedence(BaseProperty):
     """
     A relation between a Workflow and a Succedence that appears in it.
     """
     
-class hasSuccessor(BaseProperty):
+class has_successor(BaseProperty):
     """
     Indicates that a Task is the successor in a Succedence Relation: that is, it is the Task to execute last.
     """
     
-class hasTask(BaseProperty):
+class has_task(BaseProperty):
     """
     A relation to indicate that a Task is part of a Workflow or ordering Relation: that is, the task may be executed during the execution of the Workflow, or there exists some Relation between the Tasks that informs how their executions are to be located in time.
     """
     
-class hasTerminalState(BaseProperty):
+class has_terminal_state(BaseProperty):
     """
     A relation from a Transition to the Situation it ends in.
     """
     
-class isTerminalSceneOf(BaseProperty):
+class is_terminal_scene_of(BaseProperty):
     """
     A relation between StateTransitions and Scenes, which identifies the scene the transition is expected to end at.
     """
     
-class hasTerminalSituation(BaseProperty):
+class has_terminal_situation(BaseProperty):
     """
     A relation between SituationTransitions and Situations, which identifies the Situation the transition ends at.
     """
     
-class isTerminalSituationOf(BaseProperty):
+class is_terminal_situation_of(BaseProperty):
     """
     A relation between SituationTransitions and Situations, which identifies the Situation the transition ends at.
     """
     
-class isTerminalStateOf(BaseProperty):
+class is_terminal_state_of(BaseProperty):
     """
     A relation recording that a Situation was where a Transition ended.
     """
     
-class includesConcept(BaseProperty):
+class includes_concept(BaseProperty):
     """
     A relation recording that a Situation has a Concept as participant in some sort of role.
     """
     
-class includesObject(BaseProperty):
+class includes_object(BaseProperty):
     """
     A relation between situations and objects, e.g. 'this morning I've prepared my coffee and had my fingers burnt' (i.e.: the preparation of my coffee this morning included me).
     """
     
-class isConceptIncludedIn(BaseProperty):
+class is_concept_included_in(BaseProperty):
     """
     A relation recording that a Concept participates in a Situation in some way.
     """
     
-class includesRecord(BaseProperty):
+class includes_record(BaseProperty):
     """
     A relationship indicating that an Event has been recorded by an InformationObject
     """
     
-class isReferenceOf(BaseProperty):
+class is_reference_of(BaseProperty):
     """
     A relation between information objects and any Entity (including information objects). It can be used to talk about e.g. entities are references of proper nouns: the proper noun 'Leonardo da Vinci' isAbout the Person Leonardo da Vinci; as well as to talk about sets of entities that can be described by a common noun: the common noun 'person' isAbout the set of all persons in a domain of discourse, which can be represented in DOLCE-Ultralite as an individual of the class: Collection .
     The isReferenceOf relation is irreflexive, differently from its inverse isAbout.
     """
     
-class isRecordIncludedBy(BaseProperty):
+class is_record_included_by(BaseProperty):
     """
     A relationship indicating that an InformationObject is a recording of an Event.
     """
     
-class isSettingFor(BaseProperty):
+class is_setting_for(BaseProperty):
     """
     A relation between situations and entities, e.g. 'this morning I've prepared my coffee with a new fantastic Arabica', i.e.: the preparation of my coffee this morning is the setting for (an amount of) a new fantastic Arabica.
     """
     
-class isSituationIncludedIn(BaseProperty):
+class is_situation_included_in(BaseProperty):
     """
     A relation recording that a Situation participates in another in some role, or can be considered as a subsituation of the other.
     """
     
-class involvesArtifact(BaseProperty):
+class involves_artifact(BaseProperty):
     """
     Artifact participation.
     """
     
-class hasParticipant(BaseProperty):
+class has_participant(BaseProperty):
     """
     A relation between an object and a process, e.g. 'John took part in the discussion', 'a large mass of snow fell during the avalanche', or 'a cook, some sugar, flour, etc. are all present in the cooking of a cake'.
     """
     
-class isArtifactInvolvedIn(BaseProperty):
+class is_artifact_involved_in(BaseProperty):
     """
     Artifact participation.
     """
     
-class involvesEffector(BaseProperty):
+class involves_effector(BaseProperty):
     """
     Effector participation.
     """
     
-class isEffectorInvolvedIn(BaseProperty):
+class is_effector_involved_in(BaseProperty):
     """
     Effector participation.
     """
     
-class involvesPlace(BaseProperty):
+class involves_place(BaseProperty):
     """
     A relation recording that an Event makes some use of a PhysicalPlace. Typically this place is where the Event is located.
     """
     
-class isPlaceInvolvedIn(BaseProperty):
+class is_place_involved_in(BaseProperty):
     """
     A relation recording that a PhysicalPlace is involved in some Event; typically, this is where the Event is located.
     """
     
-class isRegionFor(BaseProperty):
+class is_region_for(BaseProperty):
     """
     A relation between entities and regions, e.g. 'the color of my car is red'.
     """
     
-class isAnsweredBy(BaseProperty):
+class is_answered_by(BaseProperty):
     """
     A relation from a Query to an Agent who answers it.
     """
     
-class isParticipantIn(BaseProperty):
+class is_participant_in(BaseProperty):
     """
     A relation between an object and a process, e.g. 'John took part in the discussion', 'a large mass of snow fell during the avalanche', or 'a cook, some sugar, flour, etc. are all present in the cooking of a cake'.
     """
     
-class isAskedBy(BaseProperty):
+class is_asked_by(BaseProperty):
     """
     A relation from a Query to the Agent who asks it.
     """
     
-class isRoleDefinedIn(BaseProperty):
+class is_role_defined_in(BaseProperty):
     """
     A relation between a description and a role, e.g. the role 'Ingredient' is defined in the recipe for a cake.
     """
     
-class isConstituentOf(BaseProperty):
+class is_constituent_of(BaseProperty):
     """
     'Constituency' depends on some layering of  the world described by the ontology. For example, scientific granularities (e.g. body-organ-tissue-cell) or ontological 'strata' (e.g. social-mental-biological-physical) are  typical layerings. 
     Intuitively, a constituent is a part belonging to a lower layer. Since layering is actually a partition of the world described by the ontology, constituents are not properly classified as parts, although this kinship can be intuitive for common sense.
@@ -1020,70 +1020,70 @@ class isConstituentOf(BaseProperty):
     In all these examples, we notice a typical discontinuity between the constituted and the constituent object: e.g. a social system is conceptualized at a different layer from the persons that constitute it, a person is conceptualized at a different layer from the molecules that constitute them, and a river is conceptualized at a different layer from the atoms that constitute it.
     """
     
-class isQualityOf(BaseProperty):
+class is_quality_of(BaseProperty):
     """
     A relation between entities and qualities, e.g. 'Dmitri's skin is yellowish'.
     """
     
-class isObjectIncludedIn(BaseProperty):
+class is_object_included_in(BaseProperty):
     ...
     
-class isCreatedOutputOf(BaseProperty):
+class is_created_output_of(BaseProperty):
     """
     A relation between a created output role and its Task. The difference to isOutputRoleOf is that the latter is also applicable, e.g., for Deciding between objects, where the selected object is not created, but still an outcome of that task.
     """
     
-class isOutputRoleOf(BaseProperty):
+class is_output_role_of(BaseProperty):
     """
     A relation between an output roles and its Task.
     """
     
-class isTaskOfCreatedRole(BaseProperty):
+class is_task_of_created_role(BaseProperty):
     """
     A relation between a Task and one of its output roles. The difference to IsTaskOfOutputRole is that the latter is also applicable, e.g., for Deciding between objects, where the selected object is not created, but still an outcome of that task.
     """
     
-class isDefinedIn(BaseProperty):
+class is_defined_in(BaseProperty):
     """
     A relation between a Description and a Concept, e.g. a Workflow for a governmental Organization defines the Role 'officer', or 'the Italian Traffic Law defines the role Vehicle'.
     """
     
-class isDepositOf(BaseProperty):
+class is_deposit_of(BaseProperty):
     """
     A spatial relation holding between an object (the deposit), and objects that are located ontop of it.
     """
     
-class isOntopOf(BaseProperty):
+class is_ontop_of(BaseProperty):
     """
     A spatial relation holding between an object (the deposit), and objects that are located ontop of it.
     """
     
-class isDesignFor(BaseProperty):
+class is_design_for(BaseProperty):
     """
     A special relation between a Design and an Object, to indicate that the Design describes a way to construct the Object.
     """
     
-class isDesignedBy(BaseProperty):
+class is_designed_by(BaseProperty):
     """
     A special relation between a Design and an Object, to indicate that the Object is described by the Design.
     """
     
-class isRealizedBy(BaseProperty):
+class is_realized_by(BaseProperty):
     """
     A relation between an information realization and an information object, e.g. the paper copy of the Italian Constitution realizes the text of the Constitution.
     """
     
-class hasRole(BaseProperty):
+class has_role(BaseProperty):
     """
     A relation between an object and a role, e.g. the person 'John' has role 'student'.
     """
     
-class isInputRoleOf(BaseProperty):
+class is_input_role_of(BaseProperty):
     """
     A relation between an input roles and its Task.
     """
     
-class isRoleOf(BaseProperty):
+class is_role_of(BaseProperty):
     """
     A relation between an object and a role, e.g. 'student' is the role of 'John'.
     """
@@ -1093,61 +1093,61 @@ class realizes(BaseProperty):
     A relation between an information realization and an information object, e.g. the paper copy of the Italian Constitution realizes the text of the Constitution.
     """
     
-class isOccurringIn(BaseProperty):
+class is_occurring_in(BaseProperty):
     """
     A relation between an event and an event type, e.g. 'taking the cup from the table' is an occurence of the motion 'approaching'.
     """
     
-class isExecutorDefinedIn(BaseProperty):
+class is_executor_defined_in(BaseProperty):
     ...
     
-class isParameterFor(BaseProperty):
+class is_parameter_for(BaseProperty):
     """
     A Concept can have a Parameter that constrains the attributes that a classified Entity can have in a certain Situation, e.g. a 4WheelDriver Role definedIn the ItalianTrafficLaw has a MinimumAge parameter on the Amount 16.
     """
     
-class hasTask(BaseProperty):
+class has_task(BaseProperty):
     """
     A relation between roles and tasks, e.g. 'students have the duty of giving exams' (i.e. the Role 'student' hasTask the Task 'giving exams').
     """
     
-class isTaskOfInputRole(BaseProperty):
+class is_task_of_input_role(BaseProperty):
     """
     A relation between a Task and one of its input roles.
     """
     
-class hasLocation(BaseProperty):
+class has_location(BaseProperty):
     """
     A generic, relative spatial location, holding between any entities. E.g. 'the cat is on the mat', 'Omar is in Samarcanda', 'the wound is close to the femural artery'.
     For 'absolute' locations, see SpaceRegion
     """
     
-class isComponentOf(BaseProperty):
+class is_component_of(BaseProperty):
     """
     The asymmetric isProperPartOf relation without transitivity, holding between an Object (the system) and another (the component), and assuming a Design that structures the Object.
     """
     
-class isLinkedTo(BaseProperty):
+class is_linked_to(BaseProperty):
     """
     A spatial relation holding between objects that are linked with each other such that they resist spatial separation.
     """
     
-class isMotionDescriptionFor(BaseProperty):
+class is_motion_description_for(BaseProperty):
     """
     A special relation between a Motion Plan and a Motion, to indicate that the Motion Plan describes a way to achieve the Motion.
     """
     
-class isMovedByAgent(BaseProperty):
+class is_moved_by_agent(BaseProperty):
     """
     A relation from an object to an agent who causes it to move.
     """
     
-class movesObject(BaseProperty):
+class moves_object(BaseProperty):
     """
     A relation from an agent to an object that the agent causes to move.
     """
     
-class isClassifiedBy(BaseProperty):
+class is_classified_by(BaseProperty):
     """
     A relation between a Concept and an Entity, e.g. 'John is considered a typical rude man'; your last concert constitutes the achievement of a lifetime; '20-year-old means she's mature enough'.
     """
@@ -1157,7 +1157,7 @@ class classifies(BaseProperty):
     A relation between a Concept and an Entity, e.g. the Role 'student' classifies a Person 'John'.
     """
     
-class isOrderedBy(BaseProperty):
+class is_ordered_by(BaseProperty):
     """
     The relation between an 'Order item' and the 'Order' that sorts them (via the relations 'precedes' and 'follows')
     """
@@ -1167,27 +1167,27 @@ class orders(BaseProperty):
     The relation between an 'Order' and the sorted 'Order item' (sorted via the relations 'precedes' and 'follows' between the 'Order item's)
     """
     
-class isTaskOfOutputRole(BaseProperty):
+class is_task_of_output_role(BaseProperty):
     """
     A relation between a Task and one of its output roles.
     """
     
-class isPerformedBy(BaseProperty):
+class is_performed_by(BaseProperty):
     """
     A relation from an Action to the Agent who performs it.
     """
     
-class isPhysicallyContainedIn(BaseProperty):
+class is_physically_contained_in(BaseProperty):
     """
     A spatial relation holding between an object (the container), and objects it contains.
     """
     
-class isPlanFor(BaseProperty):
+class is_plan_for(BaseProperty):
     """
     A special relation between a Plan and a Task, to indicate that the Plan describes a way to achieve the Task.
     """
     
-class isAbout(BaseProperty):
+class is_about(BaseProperty):
     """
     A relation between an information object and an Entity (including information objects). It can be used to talk about entities that are references of proper nouns: the proper noun 'Leonardo da Vinci' isAbout the Person Leonardo da Vinci; as well as to talk about sets of entities that can be described by a common noun: the common noun 'person' isAbout the set of all persons in a domain of discourse, which can be represented in DOLCE-Ultralite as an individual of the class: dul:Collection.
     A specific sentence may use common nouns with either a singular or plural reference, or it can even refer to all possible references (e.g. in a lexicographic definition): all those uses are kinds of aboutness.
@@ -1196,7 +1196,7 @@ class isAbout(BaseProperty):
     If a reflexivity exists in general, it rather concerns its realisation, which is always associated with an event, e.g. an utterance, which makes the information denoting itself, besides its aboutness. This is implemented in DUL with the dul:realizesSelfInformation property, which is used with local reflexivity in the dul:InformationRealization class.
     """
     
-class isReplacedBy(BaseProperty):
+class is_replaced_by(BaseProperty):
     """
     The relation between a State that is replaced by another, e.g., the state of a bowl of fruits containing some objects is replaced by a new containment state when one object is taken away (in this example, we simplified the relation between the State and its type).
     """
@@ -1206,23 +1206,23 @@ class replaces(BaseProperty):
     The relation between a State that replaces another, e.g., the state of a bowl of fruits containing some objects is replaced by a new containment state when one object is taken away (in this example, we simplified the relation between the State and its type).
     """
     
-class hasSetting(BaseProperty):
+class has_setting(BaseProperty):
     """
     A relation between entities and situations, e.g. 'this morning I've prepared my coffee with a new fantastic Arabica', i.e.: (an amount of) a new fantastic Arabica hasSetting the preparation of my coffee this morning.
     """
     
-class isTaskDefinedIn(BaseProperty):
+class is_task_defined_in(BaseProperty):
     """
     A relation between a description and a task, e.g. the task 'boil' is defined in a recipe for a cake.
     """
     
-class isSupportedBy(BaseProperty):
+class is_supported_by(BaseProperty):
     """
     A relation between an object (the supporter) and another object (the supportee) where the supporter cancels the effect of gravity on the supportee.
     Relates a supportee to one of its supporters.
     """
     
-class hasCommonBoundary(BaseProperty):
+class has_common_boundary(BaseProperty):
     """
     A relation to encode either formal or informal characterizations of 'boundaries' common to two different entities: an Event that ends when another begins, two abstract regions that have a common topological boundary, two objects that are said to be 'in contact' from a commonsense perspective, etc.
     """
@@ -1233,12 +1233,12 @@ class supports(BaseProperty):
     Relates a supportee to one of its supporters.
     """
     
-class isTaskOf(BaseProperty):
+class is_task_of(BaseProperty):
     """
     A relation between roles and tasks, e.g. 'students have the duty of giving exams' (i.e. the Role 'student' hasTask the Task 'giving exams').
     """
     
-class isTerminatedBy(BaseProperty):
+class is_terminated_by(BaseProperty):
     """
     The association between an Event that is terminated by another Event, e.g., the Action of picking an apple from a bowl of fruits terminates the State of containment between the apple and the bowl.
     """
@@ -1253,17 +1253,17 @@ class meets(BaseProperty):
     A relation between entities, expressing a 'sequence' schema where one of the entities exactly ends where the other entity starts.
     """
     
-class metBy(BaseProperty):
+class met_by(BaseProperty):
     """
     A relation between entities, expressing a 'sequence' schema where one of the entities exactly ends where the other entity starts.
     """
     
-class overlappedBy(BaseProperty):
+class overlapped_by(BaseProperty):
     """
     A schematic relation between any entities that also implies ordering, e.g. "she has worked into the night".
     """
     
-class overlappedOn(BaseProperty):
+class overlapped_on(BaseProperty):
     """
     A schematic relation between any entities that also implies ordering, e.g. "she has worked into the night".
     """
@@ -1273,7 +1273,7 @@ class simultaneous(BaseProperty):
     `A simultaneous B` means that A strictly starts and ends at the same time instant as B, i.e. their temporal extend is equal.
     """
     
-class startedBy(BaseProperty):
+class started_by(BaseProperty):
     """
     `A starts B` means that A starts exactly where B starts, and that A strictly ends before B. As in "I start my day with a coffee".
     """
@@ -1283,51 +1283,51 @@ class starts(BaseProperty):
     `A starts B` means that A starts exactly where B starts, and that A strictly ends before B. As in "I start my day with a coffee".
     """
     
-class transitionsBack(BaseProperty):
+class transitions_back(BaseProperty):
     """
     A property which relates a Transient to an Object it both changes from and changes into. This is useful to model objects which, through participation in a process, transform themselves so that an ontological reclassification is necessary, however this transformation is reversible and at the end of the process the objects revert to their previous kind. An example of this is catalysts in chemistry.
     """
     
-class transitionsFrom(BaseProperty):
+class transitions_from(BaseProperty):
     """
     A property which relates a Transient to an Object it changes from. This is useful to model objects which, through participation in a process, transform themselves so that an ontological reclassification is necessary. An example of this is dough undergoing the Maillard reaction through baking.
     """
     
-class transitionsTo(BaseProperty):
+class transitions_to(BaseProperty):
     """
     A property which relates a Transient to an Object it changes into. This is useful to model objects which, through participation in a process, transform themselves so that an ontological reclassification is necessary. An example of this is baked dough eventually becoming bread by completing a baking process.
     """
     
-class hasExpectedTerminalSituation(BaseProperty):
+class has_expected_terminal_situation(BaseProperty):
     """
     A relation between a Transition and the Situation it is expected to, and does actually, end at. You can assert this relationship when the observed outcome of a transition matches expectations.
     """
     
-class hasPostcondition(BaseProperty):
+class has_postcondition(BaseProperty):
     """
     Direct succession applied to situations. 
     E.g., 'A postcondition of our Plan is to have things settled'.
     This should be taken to mean that the postcondition is the situation expected to follow the current situation. Whether the expectation is met is another issue.
     """
     
-class hasRequiredInitialSituation(BaseProperty):
+class has_required_initial_situation(BaseProperty):
     """
     A relationship between a Situation x and another Situation y that precedes it, such that without y manifesting, it would be impossible for x to manifest.
     """
     
-class hasPrecondition(BaseProperty):
+class has_precondition(BaseProperty):
     """
     Direct precedence applied to situations. 
     E.g., 'A precondition to declare war against a foreign country is claiming to find nuclear weapons in it'.
     This should be taken to mean: a precondition is a situation without which the current situation would not be possible.
     """
     
-class manifestsIn(BaseProperty):
+class manifests_in(BaseProperty):
     """
     A relationship indicating that a Situation is realized in an Event that actually happened.
     """
     
-class preventedBy(BaseProperty):
+class prevented_by(BaseProperty):
     """
     A relationship indicating a Situation is prevented by another from manifesting.
     """
@@ -1337,12 +1337,12 @@ class prevents(BaseProperty):
     A relationship indicating that a situation does or would prevent another from manifesting. Useful for reasoning about planning (what to do to avoid some bad outcome) and failure recovery (what aspects of the world state prevent continuing the plan?).
     """
     
-class actsFor(BaseProperty):
+class acts_for(BaseProperty):
     """
     The relation holding between any Agent, and a SocialAgent. In principle, a SocialAgent requires at least one PhysicalAgent in order to act, but this dependency can be 'delegated'; e.g. a university can be acted for by a department, which on its turm is acted for by physical agents.
     """
     
-class executesTask(BaseProperty):
+class executes_task(BaseProperty):
     """
     A relation between an action and a task, e.g. 'putting some water in a pot and putting the pot on a fire until the water starts bubbling' executes the task 'boiling'.
     """
@@ -1394,19 +1394,19 @@ class expresses(BaseProperty):
     This is only a first step to provide a framework, in which one can model different aspects of meaning. A more developed ontology should approach the problem of integrating the different uses of 'expresses', so that different theories, resources, methods can interoperate.
     """
     
-class isExecutedIn(BaseProperty):
+class is_executed_in(BaseProperty):
     """
     A relation between an action and a task, e.g. 'putting some water in a pot and putting the pot on a fire until the water starts bubbling' executes the task 'boiling'.
     """
     
-class isExpressedBy(BaseProperty):
+class is_expressed_by(BaseProperty):
     """
     A relation between a dul:SocialObject (the 'meaning') and a dul:InformationObject (the 'expression'). 
     For example: 'A Beehive is a structure in which bees are kept, typically in the form of a dome or box.' (Oxford dictionary)'; 'the term Beehive expresses the concept Beehive in my apiculture ontology'.
     The intuition for 'meaning' is intended to be very broad. A separate, large comment is included in the encoding of 'expresses', for those who want to investigate more on what kind of meaning can be represented in what form.
     """
     
-class isPartOf(BaseProperty):
+class is_part_of(BaseProperty):
     """
     A relation between any entities, e.g. 'brain is a part of the human body'. See dul:hasPart for additional documentation.
     """

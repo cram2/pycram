@@ -554,7 +554,7 @@ class PhysicalAttribute(Base):
     """
     
 
-class API_Specification(Base):
+class APISpecification(Base):
     """
     An application programming interface (API) is a way for two or more computer programs to communicate with each other. It is a type of software interface, offering a service to other pieces of software. A document or standard that describes how to build or use an API is called an API specification.
     
@@ -813,7 +813,7 @@ class ArchiveText(Base):
     """
     
 
-class Digital_File(Base):
+class DigitalFile(Base):
     """
     Any file that exists as a digital resource (but not its content), e.g., a text file actually laying on some hard drive, but not the contained text.
     """
@@ -827,7 +827,7 @@ class ArchiveFormat(Base):
     """
     
 
-class File_format(Base):
+class FileFormat(Base):
     """
     A File Format is a standard way that information is encoded for storage in a computer file. It specifies how bits are used to encode information in a digital storage medium.
     
@@ -841,7 +841,7 @@ class FileConfiguration(Base):
     """
     
 
-class Structured_Text(Base):
+class StructuredText(Base):
     """
     Any Text that adheres to some rules that are in any way more specific than natural language and that cannot be made sense of without knowing said rules.
     """
@@ -1291,7 +1291,7 @@ class SocialQuality(Base):
     """
     
 
-class ClientServer_Specification(Base):
+class ClientServerSpecification(Base):
     """
     An API Secification that describes the well known Client-Server pattern:
     
@@ -1481,7 +1481,7 @@ class Composing(Base):
     """
     
 
-class Computer_Language(Base):
+class ComputerLanguage(Base):
     """
     A computer language is a formal language used in communication with a computer.
     
@@ -1497,13 +1497,13 @@ class FormalLanguage(Base):
     """
     
 
-class Computer_Program(Base):
+class ComputerProgram(Base):
     """
     The Program itself (the specific set of instruction in a Programming Language), not the file that it is contained in nor the implemented algorithm!
     """
     
 
-class Programming_Language(Base):
+class ProgrammingLanguage(Base):
     """
     Any Programming Language, including both human-readable like Java and non-human-readable languages like binary machine code.
     """
@@ -2058,7 +2058,7 @@ class ExecutableFile(Base):
     """
     
 
-class Executable_Code(Base):
+class ExecutableCode(Base):
     """
     Executable Code is Code that when compiled / interpreted, has some clear entrance point and can be executed. Note the difference to an Executable File, which is the file that contains such (compiled) code.
     """
@@ -2453,13 +2453,13 @@ class PluginSpecification(Base):
     """
     
 
-class Humanreadable_Programming_Language(Base):
+class HumanreadableProgrammingLanguage(Base):
     """
     A Programming language like Java, Python etc. but not binary machine code.
     """
     
 
-class Source_Code(Base):
+class SourceCode(Base):
     """
     The Source Code itself (the specific set of instruction in a human-readable Programming Language), not the file that it is contained in nor the implemented algorithm!
     """
@@ -2724,7 +2724,7 @@ class PhysicalAction(Base):
     """
     
 
-class Markup_Language(Base):
+class MarkupLanguage(Base):
     """
     Markup refers to data included in an electronic document which is distinct from the document's content in that it is typically not included in representations of the document for end users, for example on paper or a computer screen, or in an audio stream. Markup is often used to control the display of the document or to enrich its content to facilitate automated processing. A markup language is a set of rules governing what markup information may be included in a document and how it is combined with the content of the document in a way to facilitate use by humans and computer programs.
     
@@ -2868,7 +2868,7 @@ class MovingTo(Base):
     """
     
 
-class Natural_Language(Base):
+class NaturalLanguage(Base):
     """
     A Natural Language is any language that has evolved naturally in humans through use and repetition without conscious planning or premeditation.
     
@@ -2876,7 +2876,7 @@ class Natural_Language(Base):
     """
     
 
-class Natural_Language_Text(Base):
+class NaturalLanguageText(Base):
     """
     A Text in a Natural Language.
     """
@@ -2890,7 +2890,7 @@ class Ontology(Base):
     """
     
 
-class Ontology_Language(Base):
+class OntologyLanguage(Base):
     """
     An Ontology Language is a Knowledge Representation Language to describe knowledge about properties of a subject area and how they are related, by defining a set of concepts and categories that represent the subject using logic. Examples are the different OWL Profiles.
     
@@ -3342,7 +3342,7 @@ class Simulating(Base):
     """
     
 
-class Simulation_Reasoner(Base):
+class SimulationReasoner(Base):
     """
     A Simulation-based Reasoner is a simulation that is used as a reasoner, where the explicit knowledge corresponds to the initial situation, and the implicit knowlegde corresponds to the situation that is derived from that by simulating some unfolding processes.
     """
@@ -3381,7 +3381,7 @@ class SocialState(Base):
     """
     
 
-class Software_Configuration(Base):
+class SoftwareConfiguration(Base):
     ...
     
 

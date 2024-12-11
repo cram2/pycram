@@ -2,6 +2,7 @@ import tempfile
 
 import owlready2
 from typing_extensions import Dict, Any
+from .ontologies.base import Base, ontology as default_pycrap_ontology
 
 
 class Ontology:

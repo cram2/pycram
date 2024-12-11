@@ -14,18 +14,18 @@ class defines(BaseProperty):
     A relation between a Description and a Concept, e.g. a Workflow for a governmental Organization defines the Role 'officer', or 'the Italian Traffic Law defines the role Vehicle'.
     """
     
-class definesTask(BaseProperty):
+class defines_task(BaseProperty):
     """
     A relation between a description and a task, e.g. the recipe for a cake defines the task 'boil'.
     """
     
-class isDescribedBy(BaseProperty):
+class is_described_by(BaseProperty):
     """
     The relation between an Entity and a Description: a Description gives a unity to a Collection of parts (the components), or constituents, by assigning a Role to each of them in the context of a whole Object (the system).
     A same Entity can be given different descriptions, for example, an old cradle can be given a unifying Description based on the original aesthetic design, the functionality it was built for, or a new aesthetic functionality in which it can be used as a flower pot.
     """
     
-class associatedWith(BaseProperty):
+class associated_with(BaseProperty):
     """
     A catch-all object property, useful for alignment and querying purposes.
     It is declared as both transitive and symmetric, in order to reason an a maximal closure of associations between individuals.
@@ -38,7 +38,7 @@ class follows(BaseProperty):
     It can be used between tasks, processes or time intervals, and subproperties would fit best in order to distinguish the different uses.
     """
     
-class isEventIncludedIn(BaseProperty):
+class is_event_included_in(BaseProperty):
     ...
     
 class overlaps(BaseProperty):
@@ -47,13 +47,13 @@ class overlaps(BaseProperty):
     Subproperties and restrictions can be used to specialize overlaps for objects, events, time intervals, etc.
     """
     
-class isLocationOf(BaseProperty):
+class is_location_of(BaseProperty):
     """
     A generic, relative localization, holding between any entities. E.g. 'Rome is the seat of the Pope', 'the liver is the location of the tumor'.
     For 'absolute' locations, see SpaceRegion
     """
     
-class definesRole(BaseProperty):
+class defines_role(BaseProperty):
     """
     A relation between a description and a role, e.g. the recipe for a cake defines the role 'ingredient'.
     """
@@ -64,17 +64,17 @@ class describes(BaseProperty):
     A same Entity can be given different descriptions, for example, an old cradle can be given a unifying Description based on the original aesthetic design, the functionality it was built for, or a new aesthetic functionality in which it can be used as a flower pot.
     """
     
-class includesEvent(BaseProperty):
+class includes_event(BaseProperty):
     """
     A relation between situations and events, e.g. 'this morning I've prepared my coffee and had my fingers burnt' (i.e.: the preparation of my coffee this morning included a burning of my fingers).
     """
     
-class hasMember(BaseProperty):
+class has_member(BaseProperty):
     """
     A relation between collections and entities, e.g. 'my collection of saxophones includes an old Adolphe Sax original alto' (i.e. my collection has member an Adolphe Sax alto).
     """
     
-class hasConstituent(BaseProperty):
+class has_constituent(BaseProperty):
     """
     'Constituency' depends on some layering of  the world described by the ontology. For example, scientific granularities (e.g. body-organ-tissue-cell) or ontological 'strata' (e.g. social-mental-biological-physical) are  typical layerings. 
     Intuitively, a constituent is a part belonging to a lower layer. Since layering is actually a partition of the world described by the ontology, constituents are not properly classified as parts, although this kinship can be intuitive for common sense.
@@ -83,12 +83,12 @@ class hasConstituent(BaseProperty):
     In all these examples, we notice a typical discontinuity between the constituted and the constituent object: e.g. a social system is conceptualized at a different layer from the persons that constitute it, a person is conceptualized at a different layer from the molecules that constitute them, and a river is conceptualized at a different layer from the atoms that constitute it.
     """
     
-class hasRegion(BaseProperty):
+class has_region(BaseProperty):
     """
     A relation between entities and regions, e.g. 'the number of wheels of that truck is 12', 'the time of the experiment is August 9th, 2004', 'the whale has been localized at 34 degrees E, 20 degrees S'.
     """
     
-class hasPart(BaseProperty):
+class has_part(BaseProperty):
     """
     A schematic relation between any entities, e.g. 'the human body has a brain as part', '20th century contains year 1923', 'World War II includes the Pearl Harbour event'.
     
@@ -101,78 +101,78 @@ class hasPart(BaseProperty):
     Subproperties and restrictions can be used to specialize hasPart for objects, events, etc.
     """
     
-class hasQuality(BaseProperty):
+class has_quality(BaseProperty):
     """
     A relation between entities and qualities, e.g. 'Dmitri's skin is yellowish'.
     """
     
-class hasParameter(BaseProperty):
+class has_parameter(BaseProperty):
     """
     A Concept can have a Parameter that constrains the attributes that a classified Entity can have in a certain Situation, e.g. a 4WheelDriver Role definedIn the ItalianTrafficLaw has a MinimumAge parameter on the Amount 16.
     """
     
-class hasComponent(BaseProperty):
+class has_component(BaseProperty):
     """
     The hasProperPart relation without transitivity, holding between an Object (the system) and another (the component), and assuming a Design that structures the Object.
     """
     
-class directlyPrecedes(BaseProperty):
+class directly_precedes(BaseProperty):
     """
     The intransitive precedes relation. For example, Monday directly precedes Tuesday. Directness of precedence depends on the designer conceptualization.
     """
     
-class directlyFollows(BaseProperty):
+class directly_follows(BaseProperty):
     """
     The intransitive follows relation. For example, Wednesday directly precedes Thursday. Directness of precedence depends on the designer conceptualization.
     """
     
-class isRelatedToConcept(BaseProperty):
+class is_related_to_concept(BaseProperty):
     """
     Any relation between concepts, e.g. superordinated, conceptual parthood, having a parameter, having a task, superordination, etc.
     """
     
-class involvesAgent(BaseProperty):
+class involves_agent(BaseProperty):
     """
     Agent participation.
     """
     
-class includesObject(BaseProperty):
+class includes_object(BaseProperty):
     """
     A relation between situations and objects, e.g. 'this morning I've prepared my coffee and had my fingers burnt' (i.e.: the preparation of my coffee this morning included me).
     """
     
-class isReferenceOf(BaseProperty):
+class is_reference_of(BaseProperty):
     """
     A relation between information objects and any Entity (including information objects). It can be used to talk about e.g. entities are references of proper nouns: the proper noun 'Leonardo da Vinci' isAbout the Person Leonardo da Vinci; as well as to talk about sets of entities that can be described by a common noun: the common noun 'person' isAbout the set of all persons in a domain of discourse, which can be represented in DOLCE-Ultralite as an individual of the class: Collection .
     The isReferenceOf relation is irreflexive, differently from its inverse isAbout.
     """
     
-class isSettingFor(BaseProperty):
+class is_setting_for(BaseProperty):
     """
     A relation between situations and entities, e.g. 'this morning I've prepared my coffee with a new fantastic Arabica', i.e.: the preparation of my coffee this morning is the setting for (an amount of) a new fantastic Arabica.
     """
     
-class hasParticipant(BaseProperty):
+class has_participant(BaseProperty):
     """
     A relation between an object and a process, e.g. 'John took part in the discussion', 'a large mass of snow fell during the avalanche', or 'a cook, some sugar, flour, etc. are all present in the cooking of a cake'.
     """
     
-class isRegionFor(BaseProperty):
+class is_region_for(BaseProperty):
     """
     A relation between entities and regions, e.g. 'the color of my car is red'.
     """
     
-class isParticipantIn(BaseProperty):
+class is_participant_in(BaseProperty):
     """
     A relation between an object and a process, e.g. 'John took part in the discussion', 'a large mass of snow fell during the avalanche', or 'a cook, some sugar, flour, etc. are all present in the cooking of a cake'.
     """
     
-class isRoleDefinedIn(BaseProperty):
+class is_role_defined_in(BaseProperty):
     """
     A relation between a description and a role, e.g. the role 'Ingredient' is defined in the recipe for a cake.
     """
     
-class isConstituentOf(BaseProperty):
+class is_constituent_of(BaseProperty):
     """
     'Constituency' depends on some layering of  the world described by the ontology. For example, scientific granularities (e.g. body-organ-tissue-cell) or ontological 'strata' (e.g. social-mental-biological-physical) are  typical layerings. 
     Intuitively, a constituent is a part belonging to a lower layer. Since layering is actually a partition of the world described by the ontology, constituents are not properly classified as parts, although this kinship can be intuitive for common sense.
@@ -181,30 +181,30 @@ class isConstituentOf(BaseProperty):
     In all these examples, we notice a typical discontinuity between the constituted and the constituent object: e.g. a social system is conceptualized at a different layer from the persons that constitute it, a person is conceptualized at a different layer from the molecules that constitute them, and a river is conceptualized at a different layer from the atoms that constitute it.
     """
     
-class isQualityOf(BaseProperty):
+class is_quality_of(BaseProperty):
     """
     A relation between entities and qualities, e.g. 'Dmitri's skin is yellowish'.
     """
     
-class isObjectIncludedIn(BaseProperty):
+class is_object_included_in(BaseProperty):
     ...
     
-class isDefinedIn(BaseProperty):
+class is_defined_in(BaseProperty):
     """
     A relation between a Description and a Concept, e.g. a Workflow for a governmental Organization defines the Role 'officer', or 'the Italian Traffic Law defines the role Vehicle'.
     """
     
-class isRealizedBy(BaseProperty):
+class is_realized_by(BaseProperty):
     """
     A relation between an information realization and an information object, e.g. the paper copy of the Italian Constitution realizes the text of the Constitution.
     """
     
-class hasRole(BaseProperty):
+class has_role(BaseProperty):
     """
     A relation between an object and a role, e.g. the person 'John' has role 'student'.
     """
     
-class isRoleOf(BaseProperty):
+class is_role_of(BaseProperty):
     """
     A relation between an object and a role, e.g. 'student' is the role of 'John'.
     """
@@ -214,28 +214,28 @@ class realizes(BaseProperty):
     A relation between an information realization and an information object, e.g. the paper copy of the Italian Constitution realizes the text of the Constitution.
     """
     
-class isParameterFor(BaseProperty):
+class is_parameter_for(BaseProperty):
     """
     A Concept can have a Parameter that constrains the attributes that a classified Entity can have in a certain Situation, e.g. a 4WheelDriver Role definedIn the ItalianTrafficLaw has a MinimumAge parameter on the Amount 16.
     """
     
-class hasTask(BaseProperty):
+class has_task(BaseProperty):
     """
     A relation between roles and tasks, e.g. 'students have the duty of giving exams' (i.e. the Role 'student' hasTask the Task 'giving exams').
     """
     
-class hasLocation(BaseProperty):
+class has_location(BaseProperty):
     """
     A generic, relative spatial location, holding between any entities. E.g. 'the cat is on the mat', 'Omar is in Samarcanda', 'the wound is close to the femural artery'.
     For 'absolute' locations, see SpaceRegion
     """
     
-class isComponentOf(BaseProperty):
+class is_component_of(BaseProperty):
     """
     The asymmetric isProperPartOf relation without transitivity, holding between an Object (the system) and another (the component), and assuming a Design that structures the Object.
     """
     
-class isClassifiedBy(BaseProperty):
+class is_classified_by(BaseProperty):
     """
     A relation between a Concept and an Entity, e.g. 'John is considered a typical rude man'; your last concert constitutes the achievement of a lifetime; '20-year-old means she's mature enough'.
     """
@@ -245,7 +245,7 @@ class classifies(BaseProperty):
     A relation between a Concept and an Entity, e.g. the Role 'student' classifies a Person 'John'.
     """
     
-class isAbout(BaseProperty):
+class is_about(BaseProperty):
     """
     A relation between an information object and an Entity (including information objects). It can be used to talk about entities that are references of proper nouns: the proper noun 'Leonardo da Vinci' isAbout the Person Leonardo da Vinci; as well as to talk about sets of entities that can be described by a common noun: the common noun 'person' isAbout the set of all persons in a domain of discourse, which can be represented in DOLCE-Ultralite as an individual of the class: dul:Collection.
     A specific sentence may use common nouns with either a singular or plural reference, or it can even refer to all possible references (e.g. in a lexicographic definition): all those uses are kinds of aboutness.
@@ -254,44 +254,44 @@ class isAbout(BaseProperty):
     If a reflexivity exists in general, it rather concerns its realisation, which is always associated with an event, e.g. an utterance, which makes the information denoting itself, besides its aboutness. This is implemented in DUL with the dul:realizesSelfInformation property, which is used with local reflexivity in the dul:InformationRealization class.
     """
     
-class hasSetting(BaseProperty):
+class has_setting(BaseProperty):
     """
     A relation between entities and situations, e.g. 'this morning I've prepared my coffee with a new fantastic Arabica', i.e.: (an amount of) a new fantastic Arabica hasSetting the preparation of my coffee this morning.
     """
     
-class isTaskDefinedIn(BaseProperty):
+class is_task_defined_in(BaseProperty):
     """
     A relation between a description and a task, e.g. the task 'boil' is defined in a recipe for a cake.
     """
     
-class hasCommonBoundary(BaseProperty):
+class has_common_boundary(BaseProperty):
     """
     A relation to encode either formal or informal characterizations of 'boundaries' common to two different entities: an Event that ends when another begins, two abstract regions that have a common topological boundary, two objects that are said to be 'in contact' from a commonsense perspective, etc.
     """
     
-class isTaskOf(BaseProperty):
+class is_task_of(BaseProperty):
     """
     A relation between roles and tasks, e.g. 'students have the duty of giving exams' (i.e. the Role 'student' hasTask the Task 'giving exams').
     """
     
-class hasPostcondition(BaseProperty):
+class has_postcondition(BaseProperty):
     """
     Direct succession applied to situations. 
     E.g., 'A postcondition of our Plan is to have things settled'.
     """
     
-class hasPrecondition(BaseProperty):
+class has_precondition(BaseProperty):
     """
     Direct precedence applied to situations. 
     E.g., 'A precondition to declare war against a foreign country is claiming to find nuclear weapons in it'.
     """
     
-class actsFor(BaseProperty):
+class acts_for(BaseProperty):
     """
     The relation holding between any Agent, and a SocialAgent. In principle, a SocialAgent requires at least one PhysicalAgent in order to act, but this dependency can be 'delegated'; e.g. a university can be acted for by a department, which on its turm is acted for by physical agents.
     """
     
-class executesTask(BaseProperty):
+class executes_task(BaseProperty):
     """
     A relation between an action and a task, e.g. 'putting some water in a pot and putting the pot on a fire until the water starts bubbling' executes the task 'boiling'.
     """
@@ -343,19 +343,19 @@ class expresses(BaseProperty):
     This is only a first step to provide a framework, in which one can model different aspects of meaning. A more developed ontology should approach the problem of integrating the different uses of 'expresses', so that different theories, resources, methods can interoperate.
     """
     
-class isExecutedIn(BaseProperty):
+class is_executed_in(BaseProperty):
     """
     A relation between an action and a task, e.g. 'putting some water in a pot and putting the pot on a fire until the water starts bubbling' executes the task 'boiling'.
     """
     
-class isExpressedBy(BaseProperty):
+class is_expressed_by(BaseProperty):
     """
     A relation between a dul:SocialObject (the 'meaning') and a dul:InformationObject (the 'expression'). 
     For example: 'A Beehive is a structure in which bees are kept, typically in the form of a dome or box.' (Oxford dictionary)'; 'the term Beehive expresses the concept Beehive in my apiculture ontology'.
     The intuition for 'meaning' is intended to be very broad. A separate, large comment is included in the encoding of 'expresses', for those who want to investigate more on what kind of meaning can be represented in what form.
     """
     
-class isPartOf(BaseProperty):
+class is_part_of(BaseProperty):
     """
     A relation between any entities, e.g. 'brain is a part of the human body'. See dul:hasPart for additional documentation.
     """
@@ -365,12 +365,12 @@ class satisfies(BaseProperty):
     A relation between a Situation and a Description, e.g. the execution of a Plan satisfies that plan.
     """
     
-class realizesSelfInformation(BaseProperty):
+class realizes_self_information(BaseProperty):
     """
     This relation is a workaround to enable local reflexivity axioms (Self) working with non-simple properties; in this case, dul:realizesInformation About.
     """
     
-class actsThrough(BaseProperty):
+class acts_through(BaseProperty):
     """
     The relation holding between a PhysicalAgent and a SocialAgent. In principle, a SocialAgent requires at least one PhysicalAgent in order to act, but this dependency can be 'delegated', e.g. a university can be acted for by a department, which is acted for by physical agents. AKA isActedBy
     """
@@ -381,7 +381,7 @@ class characterizes(BaseProperty):
     E.g. the collection of vintage saxophones is characterized by the Concept 'manufactured by hand', while it gets covered by the Concept 'Saxophone' with the Parameter 'Vintage'.
     """
     
-class isCharacterizedBy(BaseProperty):
+class is_characterized_by(BaseProperty):
     ...
     
 class conceptualizes(BaseProperty):
@@ -390,22 +390,22 @@ class conceptualizes(BaseProperty):
     Conceptualizations can be distinguished into different forms, primarily based on the type of SocialObject that is conceptualized. Descriptions and concepts can be 'assumed', situations can be 'believed' or 'known', plans can be 'adopted', etc. (see ontology: http://www.ontologydesignpatterns.org/ont/dul/Conceptualization.owl.
     """
     
-class isConceptualizedBy(BaseProperty):
+class is_conceptualized_by(BaseProperty):
     """
     A relation stating that an Agent is internally representing a Description . E.g., 'John believes in the conspiracy theory'; 'Niels Bohr created a solar-system metaphor for his atomic theory'; 'Jacques assumes all swans are white'; 'the task force shares the attack plan'.
     """
     
-class concretelyExpresses(BaseProperty):
+class concretely_expresses(BaseProperty):
     """
     A relation between an InformationRealization and a Description, e.g. 'the printout of the Italian Constitution concretelyExpresses the Italian Constitution'. It should be supplied also with a rule stating that the InformationRealization realizes an InformationObject that expresses the Description
     """
     
-class isConcretelyExpressedBy(BaseProperty):
+class is_concretely_expressed_by(BaseProperty):
     """
     A relation between an InformationRealization and a Description, e.g. 'the printout of the Italian Constitution concretelyExpresses the Italian Constitution'. It should be supplied also with a rule stating that the InformationRealization realizes an InformationObject that expresses the Description
     """
     
-class coparticipatesWith(BaseProperty):
+class coparticipates_with(BaseProperty):
     """
     A relation between two objects participating in a same Event; e.g., 'Vitas and Jimmy are playing tennis'.
     """
@@ -416,13 +416,13 @@ class covers(BaseProperty):
     E.g. the collection of vintage saxophones is covered by the Concept 'Saxophone' with the Parameter 'Vintage'.
     """
     
-class isCoveredBy(BaseProperty):
+class is_covered_by(BaseProperty):
     """
     A relation between concepts and collections, where a Concept is said to cover a Collection; it corresponds to a link between the (reified) intensional and extensional interpretations of a (reified) class.
     E.g. the collection of vintage saxophones is covered by the Concept 'Saxophone' with the Parameter 'Vintage'.
     """
     
-class usesConcept(BaseProperty):
+class uses_concept(BaseProperty):
     """
     A generic relation holding between a Description and a Concept. In order to be used, a Concept must be previously definedIn another Description. This last condition cannot be encoded for object properties in OWL.
     """
@@ -434,110 +434,110 @@ class expands(BaseProperty):
     An 'intention' to expand must be present (unless purely formal theories are considered, but even in this case a criterion of relevance is usually active).
     """
     
-class isRelatedToDescription(BaseProperty):
+class is_related_to_description(BaseProperty):
     """
     Any relation between descriptions.
     """
     
-class isExpandedIn(BaseProperty):
+class is_expanded_in(BaseProperty):
     """
     A partial order relation that holds between descriptions. It represents the proper part relation between a description and another description featuring the same properties as the former, with at least one additional one.
     Descriptions can be expanded either by adding other descriptions as parts, or by refining concepts that are used by them. 
     An 'intention' to expand must be present (unless purely formal theories are considered, but even in this case a criterion of relevance is usually active).
     """
     
-class expressesConcept(BaseProperty):
+class expresses_concept(BaseProperty):
     """
     A relation between an InformationObject and a Concept , e.g. the term "dog" expresses the Concept "dog". For expressing a relational meaning, see the more general object property: expresses
     """
     
-class isConceptExpressedBy(BaseProperty):
+class is_concept_expressed_by(BaseProperty):
     """
     A relation between an InformationObject and a Concept , e.g. the term "dog" expresses the Concept "dog". For expressing a relational meaning, see the more general object property: expresses
     """
     
-class farFrom(BaseProperty):
+class far_from(BaseProperty):
     """
     Generic distance relation between any Entity(s). E.g. Rome is far from Beijing, astronomy is far from necromancy.
     """
     
-class hasProperPart(BaseProperty):
+class has_proper_part(BaseProperty):
     """
     Asymmetric (so including irreflexive) parthood.
     """
     
-class hasConstraint(BaseProperty):
+class has_constraint(BaseProperty):
     """
     A relation between parameters and entities. It allows to assert generic constraints (encoded as parameters), e.g. MinimumAgeForDriving isConstraintFor John (where John is a legal subject under the TrafficLaw).
     The intended semantics (not expressible in OWL) is that a Parameter isParameterFor a Concept that classifies an Entity; moreover, it entails that a Parameter parametrizes a Region that isRegionFor that Entity.
     """
     
-class isConstraintFor(BaseProperty):
+class is_constraint_for(BaseProperty):
     """
     A relation between parameters and entities. It allows to assert generic constraints (encoded as parameters), e.g. MinimumAgeForDriving isConstraintFor John (where John is a legal subject under the TrafficLaw).
     The intended semantics (not expressible in OWL) is that a Parameter isConstraintFor and Entity if the Parameter isParameterFor a Concept that classifies that Entity; moreover, it entails that a Parameter parametrizes a Region that isRegionFor that Entity. The use in OWL is therefore a shortcut to annotate what Parameter constrains what Entity
     """
     
-class isMemberOf(BaseProperty):
+class is_member_of(BaseProperty):
     """
     A relation between collections and entities, e.g. 'the Night Watch by Rembrandt is in the Rijksmuseum collection'; 'Davide is member of the Pen Club', 'Igor is one the subjects chosen for the experiment'.
     """
     
-class includesWhole(BaseProperty):
+class includes_whole(BaseProperty):
     ...
     
-class includesPart(BaseProperty):
+class includes_part(BaseProperty):
     ...
     
-class isPostconditionOf(BaseProperty):
+class is_postcondition_of(BaseProperty):
     """
     Direct succession applied to situations. 
     E.g., 'Taking some rest is a postcondition of my search for a hotel'.
     """
     
-class isPreconditionOf(BaseProperty):
+class is_precondition_of(BaseProperty):
     """
     Direct precedence applied to situations. 
     E.g., 'claiming to find nuclear weapons in a foreign country is a precondition to declare war against it'.
     """
     
-class isPropertPartOf(BaseProperty):
+class is_propert_part_of(BaseProperty):
     """
     http://www.ontologydesignpatterns.org/ont/dul/DUL.owl
     """
     
-class hasTimeInterval(BaseProperty):
+class has_time_interval(BaseProperty):
     """
     The generic relation between events and time intervals.
     """
     
-class isTimeIntervalOf(BaseProperty):
+class is_time_interval_of(BaseProperty):
     """
     The generic relation between time intervals and events.
     """
     
-class includesAction(BaseProperty):
+class includes_action(BaseProperty):
     """
     A relation between situations and actions, e.g. 'this morning I've prepared my coffee and had my fingers burnt' (i.e.: the preparation of my coffee this morning included a burning of my fingers).
     """
     
-class isActionIncludedIn(BaseProperty):
+class is_action_included_in(BaseProperty):
     ...
     
-class includesAgent(BaseProperty):
+class includes_agent(BaseProperty):
     """
     A relation between situations and persons, e.g. 'this morning I've prepared my coffee and had my fingers burnt' (i.e.: the preparation of my coffee this morning included me).
     """
     
-class isAgentIncludedIn(BaseProperty):
+class is_agent_included_in(BaseProperty):
     ...
     
-class includesTime(BaseProperty):
+class includes_time(BaseProperty):
     """
     A relation between situations and time intervals, e.g. 'this morning I've prepared my coffee and had my fingers burnt' (i.e.: preparing my coffee was held this morning). A data value attached to the time interval typically complements this modelling pattern.
     """
     
-class isTimeIncludedIn(BaseProperty):
+class is_time_included_in(BaseProperty):
     ...
     
 class introduces(BaseProperty):
@@ -545,36 +545,36 @@ class introduces(BaseProperty):
     A relation between a Description and a SocialAgent, e.g. a Constitutional Charter introduces the SocialAgent 'PresidentOfRepublic'.
     """
     
-class isIntroducedBy(BaseProperty):
+class is_introduced_by(BaseProperty):
     """
     A relation between a Description and a SocialAgent, e.g. a Constitutional Charter introduces the SocialAgent 'PresidentOfRepublic'.
     """
     
-class isAgentInvolvedIn(BaseProperty):
+class is_agent_involved_in(BaseProperty):
     """
     Agent participation.
     """
     
-class isConceptUsedIn(BaseProperty):
+class is_concept_used_in(BaseProperty):
     """
     A more generic relation holding between a Description and a Concept. In order to be used, a Concept must be previously definedIn another Description
     """
     
-class isObservableAt(BaseProperty):
+class is_observable_at(BaseProperty):
     """
     A relation to represent a (past, present or future) TimeInterval at which an Entity is observable.
     In order to encode a specific time, a data value should be related to the TimeInterval. 
     An alternative way of representing time is the datatype property: hasIntervalDate
     """
     
-class isTimeOfObservationOf(BaseProperty):
+class is_time_of_observation_of(BaseProperty):
     """
     A relation to represent a (past, present or future) TimeInterval at which an Entity is observable.
     In order to encode a specific time, a data value should be related to the TimeInterval. 
     An alternative way of representing time is the datatype property: hasIntervalDate
     """
     
-class isParametrizedBy(BaseProperty):
+class is_parametrized_by(BaseProperty):
     """
     The relation between a Parameter, e.g. 'MajorAge', and a Region, e.g. '>17 year'.
     """
@@ -585,22 +585,22 @@ class parametrizes(BaseProperty):
     For a more data-oriented relation, see hasDataValue
     """
     
-class isReferenceOfInformationRealizedBy(BaseProperty):
+class is_reference_of_information_realized_by(BaseProperty):
     """
     The relation between entities and information realizations, e.g. between Italy and a paper copy of the text of the Italian Constitution.
     """
     
-class realizesInformationAbout(BaseProperty):
+class realizes_information_about(BaseProperty):
     """
     The relation between entities and information realizations, e.g. between Italy and a paper copy of the text of the Italian Constitution.
     """
     
-class isSatisfiedBy(BaseProperty):
+class is_satisfied_by(BaseProperty):
     """
     A relation between a Situation and a Description, e.g. the execution of a Plan satisfies that plan.
     """
     
-class isSpecializedBy(BaseProperty):
+class is_specialized_by(BaseProperty):
     """
     A partial order relation that holds between social objects. It represents the subsumption relation between e.g. a Concept and another Concept that is broader in extensional interpretation, but narrowe in intensional interpretation.
     E.g. PhDStudent Role specializes Student Role
@@ -613,17 +613,17 @@ class specializes(BaseProperty):
     Another possible use is between a Collection that isCoveredBy a Concept A, and another Collection that isCoveredBy a Concept B that on its turm specializes A. For example, the 70,000 series Selmer Mark VI saxophone Collection specializes the Selmer Mark VI saxophone Collection.
     """
     
-class isSubordinatedTo(BaseProperty):
+class is_subordinated_to(BaseProperty):
     """
     Direct succession applied to concepts. E.g. the role 'Officer' is subordinated to 'Director'.
     """
     
-class isSuperordinatedTo(BaseProperty):
+class is_superordinated_to(BaseProperty):
     """
     Direct precedence applied to concepts. E.g. the role 'Executive' is superordinated to 'DepartmentManager'.
     """
     
-class isUnifiedBy(BaseProperty):
+class is_unified_by(BaseProperty):
     """
     A Collection has a unification criterion, provided by a Description; for example, a community of practice can be unified by a shared theory or interest, e.g. the community that makes research on mirror neurons shares some core knowledge about mirror neurons, which can be represented as a Description MirrorNeuronTheory that unifies the community. There can be several unifying descriptions.
     """
@@ -633,12 +633,12 @@ class unifies(BaseProperty):
     A Collection has a unification criterion, provided by a Description; for example, a community of practice can be unified by a shared theory or interest, e.g. the community that makes research on mirror neurons shares some core knowledge about mirror neurons, which can be represented as a Description MirrorNeuronTheory that unifies the community. There can be several unifying descriptions.
     """
     
-class nearTo(BaseProperty):
+class near_to(BaseProperty):
     """
     Generic distance relation between any Entity(s). E.g. Rome is near to Florence, astronomy is near to physics.
     """
     
-class sameSettingAs(BaseProperty):
+class same_setting_as(BaseProperty):
     """
     A relation between two entities participating in a same Situation; e.g., 'Our company provides an antivenom service' (the situation is the service, the two entities are the company and the antivenom).
     """

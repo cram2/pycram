@@ -2,12 +2,12 @@ from .dependencies import *
 from .classes import *
 
 
-class hasRegionDataValue(BaseProperty):
+class has_region_data_value(BaseProperty):
     """
     A datatype property that encodes values for a Region, e.g. a float for the Region Height.
     """
     
-class hasDataValue(BaseProperty):
+class has_data_value(BaseProperty):
     """
     A datatype property that encodes values from a datatype for an Entity. 
     There are several ways to encode values in DOLCE (Ultralite):
@@ -24,17 +24,17 @@ class hasDataValue(BaseProperty):
     Patterns (4) and (5) should be used instead when a constraint or a selection is modeled, independently from the actual observation of values in the real world.
     """
     
-class hasEventDate(BaseProperty):
+class has_event_date(BaseProperty):
     """
     A datatype property that encodes values from xsd:dateTime for an Event; a same Event can have more than one xsd:dateTime value: begin date, end date, date at which the interval holds, etc.
     """
     
-class hasIntervalDate(BaseProperty):
+class has_interval_date(BaseProperty):
     """
     A datatype property that encodes values from xsd:dateTime for a TimeInterval; a same TimeInterval can have more than one xsd:dateTime value: begin date, end date, date at which the interval holds, etc.
     """
     
-class hasParameterDataValue(BaseProperty):
+class has_parameter_data_value(BaseProperty):
     """
     Parametrizes values from a datatype. For example, a Parameter MinimumAgeForDriving hasParameterDataValue 18 on datatype xsd:int, in the Italian traffic code. In this example, MinimumAgeForDriving isDefinedIn the Norm ItalianTrafficCodeAgeDriving.
     More complex parametrization requires workarounds. E.g. AgeRangeForDrugUsage could parametrize data value: 14 to 50 on the datatype: xsd:int. Since complex datatypes are not allowed in OWL1.0, a solution to this can only work by creating two 'sub-parameters': MinimumAgeForDrugUsage (that hasParameterDataValue 14) and MaximumAgeForDrugUsage (that hasParameterDataValue 50), which are components of (cf. hasComponent) the main Parameter AgeRangeForDrugUsage.

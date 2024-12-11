@@ -12,9 +12,10 @@ relevant changes before running this script.
 
 def main():
     ontologies = [
-        # get_ontology("http://www.ease-crc.org/ont/SOMA.owl").load(),
-        get_ontology("https://raw.githubusercontent.com/hawkina/soma/refs/heads/soma-cram/owl/CROMA.owl").load(),
+        get_ontology("http://www.ease-crc.org/ont/SOMA.owl").load(),
+        # get_ontology("https://raw.githubusercontent.com/hawkina/soma/refs/heads/soma-cram/owl/CROMA.owl").load(),
         # get_ontology("https://raw.githubusercontent.com/hawkina/suturo_knowledge/refs/heads/neems/suturo_knowledge/owl/suturo.owl").load(),
+        # get_ontology("https://raw.githubusercontent.com/knowrob/knowrob/refs/heads/dev/owl/URDF.owl").load()
     ]
 
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "src", "pycrap", "ontologies")

@@ -2,22 +2,22 @@ from .dependencies import *
 from .classes import *
 
 
-class hasColorValue(BaseProperty):
+class has_color_value(BaseProperty):
     """
     Associates a ColorRegion to numerical data describing the color.
     """
     
-class hasRegionDataValue(BaseProperty):
+class has_region_data_value(BaseProperty):
     """
     A datatype property that encodes values for a Region, e.g. a float for the Region Height.
     """
     
-class hasDataFormat(BaseProperty):
+class has_data_format(BaseProperty):
     """
     A property linking an InformationRealization to a string specifying a format name, e.g. URDF or STL.
     """
     
-class hasDataValue(BaseProperty):
+class has_data_value(BaseProperty):
     """
     A datatype property that encodes values from a datatype for an Entity. 
     There are several ways to encode values in DOLCE (Ultralite):
@@ -34,162 +34,162 @@ class hasDataValue(BaseProperty):
     Patterns (4) and (5) should be used instead when a constraint or a selection is modeled, independently from the actual observation of values in the real world.
     """
     
-class hasDepth(BaseProperty):
+class has_depth(BaseProperty):
     """
     The depth of a shape.
     """
     
-class hasShapeParameter(BaseProperty):
+class has_shape_parameter(BaseProperty):
     """
     Associates a SpaceRegion to some parameter value describing its shape. This is a fairly generic property, and to capture the semantics of the information associated to the SpaceRegion, its more specific subproperties should be used.
     """
     
-class hasEventBegin(BaseProperty):
+class has_event_begin(BaseProperty):
     """
     A relation recording when an Event started. In this case, we think of the Event as something unfolding over some span of time.
     """
     
-class hasEventTime(BaseProperty):
+class has_event_time(BaseProperty):
     """
     Superproperty of hasEventBegin and hasEventEnd, records that an Event happened, or was happening, at a particular time. Using the subproperties captures the richer semantics of that time relative to the event. Using only this superproperty may be appropriate when the Event is construed to take place at a single instant of time.
     """
     
-class hasEventEnd(BaseProperty):
+class has_event_end(BaseProperty):
     """
     A relation recording when an Event ended. In this case, we think of the Event as something unfolding over some span of time.
     """
     
-class hasFilePath(BaseProperty):
+class has_file_path(BaseProperty):
     """
     Associates an entity to some file containing data about it. For example, can be used to describe physical objects via a mesh file.
     """
     
-class hasForceValue(BaseProperty):
+class has_force_value(BaseProperty):
     """
     A value that quantifies a force given in Newton.
     """
     
-class hasFrictionValue(BaseProperty):
+class has_friction_value(BaseProperty):
     """
     The coefficient of friction denotes the ratio of friction force between touching objects. The coefficient is dimensionless.
     """
     
-class hasHSVValue(BaseProperty):
+class has_hsv_value(BaseProperty):
     """
     Associates a ColorRegion to numerical data describing the color. This data uses the Hue-Saturation-Value color space.
     """
     
-class hasHeight(BaseProperty):
+class has_height(BaseProperty):
     """
     The height of a shape.
     """
     
-class hasIntervalBegin(BaseProperty):
+class has_interval_begin(BaseProperty):
     """
     A relation recording when some TimeInterval started.
     """
     
-class hasIntervalTime(BaseProperty):
+class has_interval_time(BaseProperty):
     """
     Superproperty of relations used to connect moments in time to a TimeInterval.
     """
     
-class hasIntervalEnd(BaseProperty):
+class has_interval_end(BaseProperty):
     """
     A relation recording when a TimeInterval ended.
     """
     
-class hasJointEffort(BaseProperty):
+class has_joint_effort(BaseProperty):
     """
     The effort applied in a joint given in N (prismatic joint) or N*m (hinged joints).
     """
     
-class hasJointParameter(BaseProperty):
+class has_joint_parameter(BaseProperty):
     """
     Assigns a value for an attribute of a joint.
     """
     
-class hasJointEffortLimit(BaseProperty):
+class has_joint_effort_limit(BaseProperty):
     """
     The maximum effort applied in a joint given in N (prismatic joint) or N*m (hinged joints).
     """
     
-class hasJointPosition(BaseProperty):
+class has_joint_position(BaseProperty):
     """
     The position of a joint given in m (prismatic joints) or rad (hinged joints).
     """
     
-class hasJointPositionMax(BaseProperty):
+class has_joint_position_max(BaseProperty):
     """
     The maximum position of a joint given in m (prismatic joints) or rad (hinged joints).
     """
     
-class hasJointPositionMin(BaseProperty):
+class has_joint_position_min(BaseProperty):
     """
     The minimum position of a joint given in m (prismatic joints) or rad (hinged joints).
     """
     
-class hasJointVelocity(BaseProperty):
+class has_joint_velocity(BaseProperty):
     """
     The velocity of a joint given in m/s (prismatic joints) or rad/s (hinged joints).
     """
     
-class hasJointVelocityLimit(BaseProperty):
+class has_joint_velocity_limit(BaseProperty):
     """
     The maximum velocity of a joint given in m/s (prismatic joints) or rad/s (hinged joints).
     """
     
-class hasLength(BaseProperty):
+class has_length(BaseProperty):
     """
     The length of a shape.
     """
     
-class hasMassValue(BaseProperty):
+class has_mass_value(BaseProperty):
     """
     The mass value of a physical object in kilogram.
     """
     
-class hasNameString(BaseProperty):
+class has_name_string(BaseProperty):
     """
     A relation recording some identifier associated to an Entity.
     """
     
-class hasPersistentIdentifier(BaseProperty):
+class has_persistent_identifier(BaseProperty):
     """
     A property linking an InformationRealization to a persistent identifier such as a DOI, which can then be used to obtain an address at which the realization (i.e. digital file) can be retrieved.
     """
     
-class hasPositionData(BaseProperty):
+class has_position_data(BaseProperty):
     """
     Associates a spatial region to a position.
     """
     
-class hasSpaceParameter(BaseProperty):
+class has_space_parameter(BaseProperty):
     """
     Associates a SpaceRegion to some parameter value describing it. This is a fairly generic property, and to capture the semantics of the information associated to the SpaceRegion, its more specific subproperties should be used.
     """
     
-class hasPriority(BaseProperty):
+class has_priority(BaseProperty):
     """
     A relation asserting some entity has a particular priority.
     """
     
-class hasRGBValue(BaseProperty):
+class has_rgb_value(BaseProperty):
     """
     Associates a ColorRegion to numerical data describing the color. This data uses the Red-Green-Blue color space.
     """
     
-class hasRadius(BaseProperty):
+class has_radius(BaseProperty):
     """
     The radius of a circular or oval shape.
     """
     
-class hasReferenceFrame(BaseProperty):
+class has_reference_frame(BaseProperty):
     """
     Gives the name associated to the local coordinate frame of a SpaceRegion.
     """
     
-class hasShapeScale(BaseProperty):
+class has_shape_scale(BaseProperty):
     """
     The scale of a shape, given as a vector of three real numbers to adjust x, y, z components of vertex vectors. In cases where a shape needs to be flipped compared to the shape described by a mesh, one of the scale components will be negative. 
     
@@ -198,12 +198,12 @@ class hasShapeScale(BaseProperty):
     In robotics, it is not uncommon to encounter shapes that are flipped compared to the shape in a mesh file. This is because robots often have bilateral symmetry, thus it makes sense to reuse the same meshes for corresponding links of the left and right arms.
     """
     
-class hasWidth(BaseProperty):
+class has_width(BaseProperty):
     """
     The width of a shape.
     """
     
-class isReificationOf(BaseProperty):
+class is_reification_of(BaseProperty):
     """
     An auxiliary property that is used to generate object individuals, called reifications, from any other Entity, e.g. from relations, classes, data types. These reifications can then be used in DL axioms as any other named individual.
     """

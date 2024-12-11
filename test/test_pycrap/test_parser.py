@@ -16,7 +16,7 @@ class OntologiesParserTestCase(unittest.TestCase):
     def setUpClass(cls):
         cls.ontologies = [get_ontology("http://www.ease-crc.org/ont/SOMA.owl").load()]
         cls.directory = tempfile.mkdtemp()
-        cls.directory = os.path.join("/home/tom_sch/playground/ontologies")
+        # cls.directory = os.path.join(os.path.expanduser("~") ,"playground/ontologies")
         cls.parser = OntologiesParser(cls.ontologies, cls.directory)
 
     def test_parsing(self):

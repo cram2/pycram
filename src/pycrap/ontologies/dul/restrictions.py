@@ -4,39 +4,39 @@ from .individuals import *
 
 
 
-Concept.is_a = [SocialObject, isDefinedIn.some(Description), hasPart.only(Concept)]
+Concept.is_a = [SocialObject, is_defined_in.some(Description), has_part.only(Concept)]
 
-Task.is_a = [EventType, hasPart.only(Task), isExecutedIn.only(Action), isTaskDefinedIn.only(Description), isTaskOf.only(Role)]
+Task.is_a = [EventType, has_part.only(Task), is_executed_in.only(Action), is_task_defined_in.only(Description), is_task_of.only(Role)]
 
-Role.is_a = [Concept, classifies.only(Object), hasPart.only(Role)]
+Role.is_a = [Concept, classifies.only(Object), has_part.only(Role)]
 
 Entity.is_a = [Thing]
 
-Event.is_a = [Entity, hasParticipant.some(Object), hasTimeInterval.some(TimeInterval), hasConstituent.only(Event), hasPart.only(Event)]
+Event.is_a = [Entity, has_participant.some(Object), has_time_interval.some(TimeInterval), has_constituent.only(Event), has_part.only(Event)]
 
-Transition.is_a = [Situation, includesEvent.some(Event), includesObject.some(Object), isSettingFor.some(Process), isSettingFor.some(Situation & precedes.some(Event & precedes.some(Situation))), includesTime.min(3, TimeInterval), isSettingFor.min(2, Situation)]
+Transition.is_a = [Situation, includes_event.some(Event), includes_object.some(Object), is_setting_for.some(Process), is_setting_for.some(And([Situation, precedes.some(And([Event, precedes.some(Situation)]))])), includes_time.min(3, TimeInterval), is_setting_for.min(2, Situation)]
 
-PhysicalObject.is_a = [Object, hasPart.only(PhysicalObject)]
+PhysicalObject.is_a = [Object, has_part.only(PhysicalObject)]
 
 Description.is_a = [SocialObject]
 
 EventType.is_a = [Concept, classifies.only(Event)]
 
-Parameter.is_a = [Concept, classifies.only(Region), hasPart.only(Parameter)]
+Parameter.is_a = [Concept, classifies.only(Region), has_part.only(Parameter)]
 
 InformationObject.is_a = [InformationEntity, SocialObject]
 
-Quality.is_a = [Entity, hasRegion.some(Region), isQualityOf.some(Entity), hasConstituent.only(Quality), hasPart.only(Quality)]
+Quality.is_a = [Entity, has_region.some(Region), is_quality_of.some(Entity), has_constituent.only(Quality), has_part.only(Quality)]
 
-Collection.is_a = [SocialObject, hasPart.only(Collection)]
+Collection.is_a = [SocialObject, has_part.only(Collection)]
 
-Action.is_a = [Event, hasParticipant.some(Agent), executesTask.min(1, Thing)]
+Action.is_a = [Event, has_participant.some(Agent), executes_task.min(1, Thing)]
 
-Region.is_a = [Abstract, hasConstituent.only(Region), hasPart.only(Region), overlaps.only(Region), precedes.only(Region)]
+Region.is_a = [Abstract, has_constituent.only(Region), has_part.only(Region), overlaps.only(Region), precedes.only(Region)]
 
-Object.is_a = [Entity, hasLocation.some(Entity), isParticipantIn.some(Event), hasConstituent.only(Object), hasPart.only(Object), isClassifiedBy.only(Role)]
+Object.is_a = [Entity, has_location.some(Entity), is_participant_in.some(Event), has_constituent.only(Object), has_part.only(Object), is_classified_by.only(Role)]
 
-Workflow.is_a = [Plan, definesRole.some(Role), definesTask.some(Task)]
+Workflow.is_a = [Plan, defines_role.some(Role), defines_task.some(Task)]
 
 Goal.is_a = [Description]
 
@@ -50,27 +50,27 @@ SpaceRegion.is_a = [Region]
 
 Relation.is_a = [Description]
 
-PhysicalArtifact.is_a = [PhysicalObject, isDescribedBy.some(Plan)]
+PhysicalArtifact.is_a = [PhysicalObject, is_described_by.some(Plan)]
 
 PhysicalPlace.is_a = [PhysicalObject]
 
 Design.is_a = [Description]
 
-Plan.is_a = [Description, hasComponent.some(Goal)]
+Plan.is_a = [Description, has_component.some(Goal)]
 
-InformationRealization.is_a = [InformationEntity, Event | PhysicalObject | Quality, realizes.some(InformationObject), realizesSelfInformation.has_self()]
+InformationRealization.is_a = [InformationEntity, Or([Event, PhysicalObject, Quality]), realizes.some(InformationObject), realizes_self_information.has_self()]
 
 TimeInterval.is_a = [Region]
 
-PhysicalAttribute.is_a = [Region, isRegionFor.only(PhysicalObject)]
+PhysicalAttribute.is_a = [Region, is_region_for.only(PhysicalObject)]
 
-DesignedArtifact.is_a = [PhysicalArtifact, isDescribedBy.some(Design)]
+DesignedArtifact.is_a = [PhysicalArtifact, is_described_by.some(Design)]
 
 PhysicalAgent.is_a = [Agent, PhysicalObject]
 
 Diagnosis.is_a = [Description]
 
-SocialObject.is_a = [Object, isExpressedBy.some(InformationObject), hasPart.only(SocialObject)]
+SocialObject.is_a = [Object, is_expressed_by.some(InformationObject), has_part.only(SocialObject)]
 
 Configuration.is_a = [Collection]
 
@@ -84,13 +84,13 @@ FormalEntity.is_a = [Abstract]
 
 SocialRelation.is_a = [Relation]
 
-SocialObjectAttribute.is_a = [Region, isRegionFor.only(SocialObject)]
+SocialObjectAttribute.is_a = [Region, is_region_for.only(SocialObject)]
 
-Theory.is_a = [Description, hasComponent.some(Relation)]
+Theory.is_a = [Description, has_component.some(Relation)]
 
 Set.is_a = [FormalEntity]
 
-SocialAgent.is_a = [Agent, SocialObject, actsThrough.some(PhysicalAgent)]
+SocialAgent.is_a = [Agent, SocialObject, acts_through.some(PhysicalAgent)]
 
 Abstract.is_a = [Entity]
 
@@ -100,14 +100,14 @@ BiologicalObject.is_a = [PhysicalBody]
 
 ChemicalObject.is_a = [PhysicalBody]
 
-Classification.is_a = [TimeIndexedRelation, isSettingFor.some(Concept), isSettingFor.some(Entity), isSettingFor.some(TimeInterval)]
+Classification.is_a = [TimeIndexedRelation, is_setting_for.some(Concept), is_setting_for.some(Entity), is_setting_for.some(TimeInterval)]
 
 TimeIndexedRelation.is_a = [Situation]
-TimeIndexedRelation.equivalent_to = [Situation & isSettingFor.some(TimeInterval)]
+TimeIndexedRelation.equivalent_to = [And([Situation, is_setting_for.some(TimeInterval)])]
 
-Collective.is_a = [Collection, hasMember.only(Agent)]
+Collective.is_a = [Collection, has_member.only(Agent)]
 
-CollectiveAgent.is_a = [SocialAgent, actsThrough.some(Agent), isIntroducedBy.some(Description)]
+CollectiveAgent.is_a = [SocialAgent, acts_through.some(Agent), is_introduced_by.some(Description)]
 
 Community.is_a = [CollectiveAgent]
 
@@ -117,7 +117,7 @@ DesignedSubstance.is_a = [DesignedArtifact, FunctionalSubstance]
 
 FunctionalSubstance.is_a = [Substance]
 
-Group.is_a = [CollectiveAgent, isDescribedBy.some(Plan)]
+Group.is_a = [CollectiveAgent, is_described_by.some(Plan)]
 
 InformationEntity.is_a = [Entity]
 
@@ -133,28 +133,28 @@ Person.is_a = [Agent]
 
 Norm.is_a = [Description]
 
-ObjectAggregate.is_a = [Thing, Object & hasPart.some(Object & isMemberOf.some(Collection))]
+ObjectAggregate.is_a = [Thing, And([Object, has_part.some(And([Object, is_member_of.some(Collection)]))])]
 
 Organization.is_a = [SocialAgent]
 
-Parthood.is_a = [TimeIndexedRelation, includesPart.some(Entity), includesWhole.some(Entity)]
+Parthood.is_a = [TimeIndexedRelation, includes_part.some(Entity), includes_whole.some(Entity)]
 
 Pattern.is_a = [Relation]
 
 Personification.is_a = [SocialAgent]
 
-Place.is_a = [SocialObject, isLocationOf.min(1, Thing)]
+Place.is_a = [SocialObject, is_location_of.min(1, Thing)]
 
 PlanExecution.is_a = [Situation]
 PlanExecution.equivalent_to = [satisfies.some(Plan)]
 
-Project.is_a = [Plan, definesRole.some(Role), definesTask.some(Task)]
+Project.is_a = [Plan, defines_role.some(Role), defines_task.some(Task)]
 
-Right.is_a = [Description, definesRole.min(2, Thing), definesTask.min(1, Thing)]
+Right.is_a = [Description, defines_role.min(2, Thing), defines_task.min(1, Thing)]
 
-SocialPerson.is_a = [Person, SocialAgent, actsThrough.exactly(1, Thing)]
+SocialPerson.is_a = [Person, SocialAgent, acts_through.exactly(1, Thing)]
 
-SpatioTemporalRegion.is_a = [Region, hasConstituent.some(SpaceRegion), hasConstituent.some(TimeInterval)]
+SpatioTemporalRegion.is_a = [Region, has_constituent.some(SpaceRegion), has_constituent.some(TimeInterval)]
 
 TypeCollection.is_a = [Collection]
 
@@ -163,460 +163,460 @@ UnitOfMeasure.is_a = [Parameter, parametrizes.some(Region)]
 WorkflowExecution.is_a = [Situation]
 WorkflowExecution.equivalent_to = [satisfies.some(Workflow)]
 
-hasRegionDataValue.is_a = [DatatypeProperty, hasDataValue]
-hasRegionDataValue.domain = [Region]
+has_region_data_value.is_a = [DatatypeProperty, has_data_value]
+has_region_data_value.domain = [Region]
 
-hasDataValue.is_a = [DatatypeProperty]
-hasDataValue.domain = [Entity]
+has_data_value.is_a = [DatatypeProperty]
+has_data_value.domain = [Entity]
 
-hasEventDate.is_a = [DatatypeProperty, hasDataValue]
-hasEventDate.domain = [Event]
-hasEventDate.range = [<class 'datetime.datetime'>]
+has_event_date.is_a = [DatatypeProperty, has_data_value]
+has_event_date.domain = [Event]
+has_event_date.range = [datetime]
 
-hasIntervalDate.is_a = [DatatypeProperty, hasRegionDataValue]
-hasIntervalDate.domain = [TimeInterval]
-hasIntervalDate.range = [<class 'datetime.datetime'>]
+has_interval_date.is_a = [DatatypeProperty, has_region_data_value]
+has_interval_date.domain = [TimeInterval]
+has_interval_date.range = [datetime]
 
-hasParameterDataValue.is_a = [DatatypeProperty, hasDataValue]
-hasParameterDataValue.domain = [Parameter]
+has_parameter_data_value.is_a = [DatatypeProperty, has_data_value]
+has_parameter_data_value.domain = [Parameter]
 
-precedes.is_a = [ObjectProperty, TransitiveProperty, associatedWith]
+precedes.is_a = [ObjectProperty, TransitiveProperty, associated_with]
 precedes.domain = [Entity]
 precedes.range = [Entity]
 
-defines.is_a = [ObjectProperty, usesConcept]
+defines.is_a = [ObjectProperty, uses_concept]
 defines.domain = [Description]
 defines.range = [Concept]
 
-definesTask.is_a = [ObjectProperty, defines]
-definesTask.domain = [Description]
-definesTask.range = [Task]
+defines_task.is_a = [ObjectProperty, defines]
+defines_task.domain = [Description]
+defines_task.range = [Task]
 
-isDescribedBy.is_a = [ObjectProperty, associatedWith]
-isDescribedBy.domain = [Entity]
-isDescribedBy.range = [Description]
+is_described_by.is_a = [ObjectProperty, associated_with]
+is_described_by.domain = [Entity]
+is_described_by.range = [Description]
 
-associatedWith.is_a = [ObjectProperty, SymmetricProperty, TransitiveProperty]
-associatedWith.domain = [Entity]
-associatedWith.range = [Entity]
+associated_with.is_a = [ObjectProperty, SymmetricProperty, TransitiveProperty]
+associated_with.domain = [Entity]
+associated_with.range = [Entity]
 
-follows.is_a = [ObjectProperty, TransitiveProperty, associatedWith]
+follows.is_a = [ObjectProperty, TransitiveProperty, associated_with]
 follows.domain = [Entity]
 follows.range = [Entity]
 
-isEventIncludedIn.is_a = [ObjectProperty, hasSetting]
-isEventIncludedIn.domain = [Event]
-isEventIncludedIn.range = [Situation]
+is_event_included_in.is_a = [ObjectProperty, has_setting]
+is_event_included_in.domain = [Event]
+is_event_included_in.range = [Situation]
 
-overlaps.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
+overlaps.is_a = [ObjectProperty, SymmetricProperty, associated_with]
 overlaps.domain = [Entity]
 overlaps.range = [Entity]
 
-isLocationOf.is_a = [ObjectProperty, associatedWith]
-isLocationOf.domain = [Entity]
-isLocationOf.range = [Entity]
+is_location_of.is_a = [ObjectProperty, associated_with]
+is_location_of.domain = [Entity]
+is_location_of.range = [Entity]
 
-definesRole.is_a = [ObjectProperty, defines]
-definesRole.domain = [Description]
-definesRole.range = [Role]
+defines_role.is_a = [ObjectProperty, defines]
+defines_role.domain = [Description]
+defines_role.range = [Role]
 
-describes.is_a = [ObjectProperty, associatedWith]
+describes.is_a = [ObjectProperty, associated_with]
 describes.domain = [Description]
 describes.range = [Entity]
 
-includesEvent.is_a = [ObjectProperty, isSettingFor]
-includesEvent.domain = [Situation]
-includesEvent.range = [Event]
+includes_event.is_a = [ObjectProperty, is_setting_for]
+includes_event.domain = [Situation]
+includes_event.range = [Event]
 
-hasMember.is_a = [ObjectProperty, associatedWith]
-hasMember.domain = [Collection]
-hasMember.range = [Entity]
+has_member.is_a = [ObjectProperty, associated_with]
+has_member.domain = [Collection]
+has_member.range = [Entity]
 
-hasConstituent.is_a = [ObjectProperty, associatedWith]
-hasConstituent.domain = [Entity]
-hasConstituent.range = [Entity]
+has_constituent.is_a = [ObjectProperty, associated_with]
+has_constituent.domain = [Entity]
+has_constituent.range = [Entity]
 
-hasRegion.is_a = [ObjectProperty, associatedWith]
-hasRegion.domain = [Entity]
-hasRegion.range = [Region]
+has_region.is_a = [ObjectProperty, associated_with]
+has_region.domain = [Entity]
+has_region.range = [Region]
 
-hasPart.is_a = [ObjectProperty, TransitiveProperty, ReflexiveProperty, associatedWith]
-hasPart.domain = [Entity]
-hasPart.range = [Entity]
+has_part.is_a = [ObjectProperty, TransitiveProperty, ReflexiveProperty, associated_with]
+has_part.domain = [Entity]
+has_part.range = [Entity]
 
-hasQuality.is_a = [ObjectProperty, associatedWith]
-hasQuality.domain = [Entity]
-hasQuality.range = [Quality]
+has_quality.is_a = [ObjectProperty, associated_with]
+has_quality.domain = [Entity]
+has_quality.range = [Quality]
 
-hasParameter.is_a = [ObjectProperty, isRelatedToConcept]
-hasParameter.domain = [Concept]
-hasParameter.range = [Parameter]
+has_parameter.is_a = [ObjectProperty, is_related_to_concept]
+has_parameter.domain = [Concept]
+has_parameter.range = [Parameter]
 
-hasComponent.is_a = [ObjectProperty, AsymmetricProperty, hasProperPart]
-hasComponent.domain = [Entity]
-hasComponent.range = [Entity]
+has_component.is_a = [ObjectProperty, AsymmetricProperty, has_proper_part]
+has_component.domain = [Entity]
+has_component.range = [Entity]
 
-directlyPrecedes.is_a = [ObjectProperty, precedes]
-directlyPrecedes.domain = [Entity]
-directlyPrecedes.range = [Entity]
+directly_precedes.is_a = [ObjectProperty, precedes]
+directly_precedes.domain = [Entity]
+directly_precedes.range = [Entity]
 
-directlyFollows.is_a = [ObjectProperty, follows]
-directlyFollows.domain = [Entity]
-directlyFollows.range = [Entity]
+directly_follows.is_a = [ObjectProperty, follows]
+directly_follows.domain = [Entity]
+directly_follows.range = [Entity]
 
-isRelatedToConcept.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
-isRelatedToConcept.domain = [Concept]
-isRelatedToConcept.range = [Concept]
+is_related_to_concept.is_a = [ObjectProperty, SymmetricProperty, associated_with]
+is_related_to_concept.domain = [Concept]
+is_related_to_concept.range = [Concept]
 
-involvesAgent.is_a = [ObjectProperty, hasParticipant]
-involvesAgent.domain = [Event]
-involvesAgent.range = [Agent]
+involves_agent.is_a = [ObjectProperty, has_participant]
+involves_agent.domain = [Event]
+involves_agent.range = [Agent]
 
-includesObject.is_a = [ObjectProperty, isSettingFor]
-includesObject.domain = [Situation]
-includesObject.range = [Object]
+includes_object.is_a = [ObjectProperty, is_setting_for]
+includes_object.domain = [Situation]
+includes_object.range = [Object]
 
-isReferenceOf.is_a = [ObjectProperty, associatedWith]
-isReferenceOf.domain = [Entity]
-isReferenceOf.range = [InformationObject]
+is_reference_of.is_a = [ObjectProperty, associated_with]
+is_reference_of.domain = [Entity]
+is_reference_of.range = [InformationObject]
 
-isSettingFor.is_a = [ObjectProperty, associatedWith]
-isSettingFor.domain = [Situation]
-isSettingFor.range = [Entity]
+is_setting_for.is_a = [ObjectProperty, associated_with]
+is_setting_for.domain = [Situation]
+is_setting_for.range = [Entity]
 
-hasParticipant.is_a = [ObjectProperty, associatedWith]
-hasParticipant.domain = [Event]
-hasParticipant.range = [Object]
+has_participant.is_a = [ObjectProperty, associated_with]
+has_participant.domain = [Event]
+has_participant.range = [Object]
 
-isRegionFor.is_a = [ObjectProperty, associatedWith]
-isRegionFor.domain = [Region]
-isRegionFor.range = [Entity]
+is_region_for.is_a = [ObjectProperty, associated_with]
+is_region_for.domain = [Region]
+is_region_for.range = [Entity]
 
-isParticipantIn.is_a = [ObjectProperty, associatedWith]
-isParticipantIn.domain = [Object]
-isParticipantIn.range = [Event]
+is_participant_in.is_a = [ObjectProperty, associated_with]
+is_participant_in.domain = [Object]
+is_participant_in.range = [Event]
 
-isRoleDefinedIn.is_a = [ObjectProperty, isDefinedIn]
-isRoleDefinedIn.domain = [Role]
-isRoleDefinedIn.range = [Description]
+is_role_defined_in.is_a = [ObjectProperty, is_defined_in]
+is_role_defined_in.domain = [Role]
+is_role_defined_in.range = [Description]
 
-isConstituentOf.is_a = [ObjectProperty, associatedWith]
-isConstituentOf.domain = [Entity]
-isConstituentOf.range = [Entity]
+is_constituent_of.is_a = [ObjectProperty, associated_with]
+is_constituent_of.domain = [Entity]
+is_constituent_of.range = [Entity]
 
-isQualityOf.is_a = [ObjectProperty, associatedWith]
-isQualityOf.domain = [Quality]
-isQualityOf.range = [Entity]
+is_quality_of.is_a = [ObjectProperty, associated_with]
+is_quality_of.domain = [Quality]
+is_quality_of.range = [Entity]
 
-isObjectIncludedIn.is_a = [ObjectProperty, hasSetting]
-isObjectIncludedIn.domain = [Object]
-isObjectIncludedIn.range = [Situation]
+is_object_included_in.is_a = [ObjectProperty, has_setting]
+is_object_included_in.domain = [Object]
+is_object_included_in.range = [Situation]
 
-isDefinedIn.is_a = [ObjectProperty, isConceptUsedIn]
-isDefinedIn.domain = [Concept]
-isDefinedIn.range = [Description]
+is_defined_in.is_a = [ObjectProperty, is_concept_used_in]
+is_defined_in.domain = [Concept]
+is_defined_in.range = [Description]
 
-isRealizedBy.is_a = [ObjectProperty, associatedWith]
-isRealizedBy.domain = [InformationObject]
-isRealizedBy.range = [InformationRealization]
+is_realized_by.is_a = [ObjectProperty, associated_with]
+is_realized_by.domain = [InformationObject]
+is_realized_by.range = [InformationRealization]
 
-hasRole.is_a = [ObjectProperty, isClassifiedBy]
-hasRole.domain = [Object]
-hasRole.range = [Role]
+has_role.is_a = [ObjectProperty, is_classified_by]
+has_role.domain = [Object]
+has_role.range = [Role]
 
-isRoleOf.is_a = [ObjectProperty, classifies]
-isRoleOf.domain = [Role]
-isRoleOf.range = [Object]
+is_role_of.is_a = [ObjectProperty, classifies]
+is_role_of.domain = [Role]
+is_role_of.range = [Object]
 
-realizes.is_a = [ObjectProperty, associatedWith]
+realizes.is_a = [ObjectProperty, associated_with]
 realizes.domain = [InformationRealization]
 realizes.range = [InformationObject]
 
-isParameterFor.is_a = [ObjectProperty, isRelatedToConcept]
-isParameterFor.domain = [Parameter]
-isParameterFor.range = [Concept]
+is_parameter_for.is_a = [ObjectProperty, is_related_to_concept]
+is_parameter_for.domain = [Parameter]
+is_parameter_for.range = [Concept]
 
-hasTask.is_a = [ObjectProperty, isRelatedToConcept]
-hasTask.domain = [Role]
-hasTask.range = [Task]
+has_task.is_a = [ObjectProperty, is_related_to_concept]
+has_task.domain = [Role]
+has_task.range = [Task]
 
-hasLocation.is_a = [ObjectProperty, associatedWith]
-hasLocation.domain = [Entity]
-hasLocation.range = [Entity]
+has_location.is_a = [ObjectProperty, associated_with]
+has_location.domain = [Entity]
+has_location.range = [Entity]
 
-isComponentOf.is_a = [ObjectProperty, AsymmetricProperty, isPropertPartOf]
-isComponentOf.domain = [Entity]
-isComponentOf.range = [Entity]
+is_component_of.is_a = [ObjectProperty, AsymmetricProperty, is_propert_part_of]
+is_component_of.domain = [Entity]
+is_component_of.range = [Entity]
 
-isClassifiedBy.is_a = [ObjectProperty, associatedWith]
-isClassifiedBy.domain = [Entity]
-isClassifiedBy.range = [Concept]
+is_classified_by.is_a = [ObjectProperty, associated_with]
+is_classified_by.domain = [Entity]
+is_classified_by.range = [Concept]
 
-classifies.is_a = [ObjectProperty, associatedWith]
+classifies.is_a = [ObjectProperty, associated_with]
 classifies.domain = [Concept]
 classifies.range = [Entity]
 
-isAbout.is_a = [ObjectProperty, associatedWith]
-isAbout.domain = [InformationObject]
-isAbout.range = [Entity]
+is_about.is_a = [ObjectProperty, associated_with]
+is_about.domain = [InformationObject]
+is_about.range = [Entity]
 
-hasSetting.is_a = [ObjectProperty, associatedWith]
-hasSetting.domain = [Entity]
-hasSetting.range = [Situation]
+has_setting.is_a = [ObjectProperty, associated_with]
+has_setting.domain = [Entity]
+has_setting.range = [Situation]
 
-isTaskDefinedIn.is_a = [ObjectProperty, isDefinedIn]
-isTaskDefinedIn.domain = [Task]
-isTaskDefinedIn.range = [Description]
+is_task_defined_in.is_a = [ObjectProperty, is_defined_in]
+is_task_defined_in.domain = [Task]
+is_task_defined_in.range = [Description]
 
-hasCommonBoundary.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
-hasCommonBoundary.domain = [Entity]
-hasCommonBoundary.range = [Entity]
+has_common_boundary.is_a = [ObjectProperty, SymmetricProperty, associated_with]
+has_common_boundary.domain = [Entity]
+has_common_boundary.range = [Entity]
 
-isTaskOf.is_a = [ObjectProperty, isRelatedToConcept]
-isTaskOf.domain = [Task]
-isTaskOf.range = [Role]
+is_task_of.is_a = [ObjectProperty, is_related_to_concept]
+is_task_of.domain = [Task]
+is_task_of.range = [Role]
 
-hasPostcondition.is_a = [ObjectProperty, directlyPrecedes]
-hasPostcondition.domain = [Event | Situation]
-hasPostcondition.range = [Event | Situation]
+has_postcondition.is_a = [ObjectProperty, directly_precedes]
+has_postcondition.domain = [Or([Event, Situation])]
+has_postcondition.range = [Or([Event, Situation])]
 
-hasPrecondition.is_a = [ObjectProperty, directlyFollows]
-hasPrecondition.domain = [Event | Situation]
-hasPrecondition.range = [Event | Situation]
+has_precondition.is_a = [ObjectProperty, directly_follows]
+has_precondition.domain = [Or([Event, Situation])]
+has_precondition.range = [Or([Event, Situation])]
 
-actsFor.is_a = [ObjectProperty, associatedWith]
-actsFor.domain = [Agent]
-actsFor.range = [SocialAgent]
+acts_for.is_a = [ObjectProperty, associated_with]
+acts_for.domain = [Agent]
+acts_for.range = [SocialAgent]
 
-executesTask.is_a = [ObjectProperty, isClassifiedBy]
-executesTask.domain = [Action]
-executesTask.range = [Task]
+executes_task.is_a = [ObjectProperty, is_classified_by]
+executes_task.domain = [Action]
+executes_task.range = [Task]
 
-expresses.is_a = [ObjectProperty, associatedWith]
+expresses.is_a = [ObjectProperty, associated_with]
 expresses.domain = [InformationObject]
 expresses.range = [SocialObject]
 
-isExecutedIn.is_a = [ObjectProperty, classifies]
-isExecutedIn.domain = [Task]
-isExecutedIn.range = [Action]
+is_executed_in.is_a = [ObjectProperty, classifies]
+is_executed_in.domain = [Task]
+is_executed_in.range = [Action]
 
-isExpressedBy.is_a = [ObjectProperty, associatedWith]
-isExpressedBy.domain = [SocialObject]
-isExpressedBy.range = [InformationObject]
+is_expressed_by.is_a = [ObjectProperty, associated_with]
+is_expressed_by.domain = [SocialObject]
+is_expressed_by.range = [InformationObject]
 
-isPartOf.is_a = [ObjectProperty, TransitiveProperty, ReflexiveProperty, associatedWith]
-isPartOf.domain = [Entity]
-isPartOf.range = [Entity]
+is_part_of.is_a = [ObjectProperty, TransitiveProperty, ReflexiveProperty, associated_with]
+is_part_of.domain = [Entity]
+is_part_of.range = [Entity]
 
-satisfies.is_a = [ObjectProperty, associatedWith]
+satisfies.is_a = [ObjectProperty, associated_with]
 satisfies.domain = [Situation]
 satisfies.range = [Description]
 
-realizesSelfInformation.is_a = [ObjectProperty, realizesInformationAbout]
+realizes_self_information.is_a = [ObjectProperty, realizes_information_about]
 
-actsThrough.is_a = [ObjectProperty, associatedWith]
-actsThrough.domain = [SocialAgent]
-actsThrough.range = [Agent]
+acts_through.is_a = [ObjectProperty, associated_with]
+acts_through.domain = [SocialAgent]
+acts_through.range = [Agent]
 
-characterizes.is_a = [ObjectProperty, associatedWith]
+characterizes.is_a = [ObjectProperty, associated_with]
 characterizes.domain = [Concept]
 characterizes.range = [Collection]
 
-isCharacterizedBy.is_a = [ObjectProperty, associatedWith]
-isCharacterizedBy.domain = [Collection]
-isCharacterizedBy.range = [Concept]
+is_characterized_by.is_a = [ObjectProperty, associated_with]
+is_characterized_by.domain = [Collection]
+is_characterized_by.range = [Concept]
 
-conceptualizes.is_a = [ObjectProperty, associatedWith]
+conceptualizes.is_a = [ObjectProperty, associated_with]
 conceptualizes.domain = [Agent]
 conceptualizes.range = [SocialObject]
 
-isConceptualizedBy.is_a = [ObjectProperty, associatedWith]
-isConceptualizedBy.domain = [SocialObject]
-isConceptualizedBy.range = [Agent]
+is_conceptualized_by.is_a = [ObjectProperty, associated_with]
+is_conceptualized_by.domain = [SocialObject]
+is_conceptualized_by.range = [Agent]
 
-concretelyExpresses.is_a = [ObjectProperty, associatedWith]
-concretelyExpresses.domain = [InformationRealization]
-concretelyExpresses.range = [SocialObject]
+concretely_expresses.is_a = [ObjectProperty, associated_with]
+concretely_expresses.domain = [InformationRealization]
+concretely_expresses.range = [SocialObject]
 
-isConcretelyExpressedBy.is_a = [ObjectProperty, associatedWith]
-isConcretelyExpressedBy.domain = [SocialObject]
-isConcretelyExpressedBy.range = [InformationRealization]
+is_concretely_expressed_by.is_a = [ObjectProperty, associated_with]
+is_concretely_expressed_by.domain = [SocialObject]
+is_concretely_expressed_by.range = [InformationRealization]
 
-coparticipatesWith.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
-coparticipatesWith.domain = [Object]
-coparticipatesWith.range = [Object]
+coparticipates_with.is_a = [ObjectProperty, SymmetricProperty, associated_with]
+coparticipates_with.domain = [Object]
+coparticipates_with.range = [Object]
 
-covers.is_a = [ObjectProperty, associatedWith]
+covers.is_a = [ObjectProperty, associated_with]
 covers.domain = [Concept]
 covers.range = [Collection]
 
-isCoveredBy.is_a = [ObjectProperty, associatedWith]
-isCoveredBy.domain = [Collection]
-isCoveredBy.range = [Concept]
+is_covered_by.is_a = [ObjectProperty, associated_with]
+is_covered_by.domain = [Collection]
+is_covered_by.range = [Concept]
 
-usesConcept.is_a = [ObjectProperty, associatedWith]
-usesConcept.domain = [Description]
-usesConcept.range = [Concept]
+uses_concept.is_a = [ObjectProperty, associated_with]
+uses_concept.domain = [Description]
+uses_concept.range = [Concept]
 
-expands.is_a = [ObjectProperty, isRelatedToDescription]
+expands.is_a = [ObjectProperty, is_related_to_description]
 expands.domain = [Description]
 expands.range = [Description]
 
-isRelatedToDescription.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
-isRelatedToDescription.domain = [Description]
-isRelatedToDescription.range = [Description]
+is_related_to_description.is_a = [ObjectProperty, SymmetricProperty, associated_with]
+is_related_to_description.domain = [Description]
+is_related_to_description.range = [Description]
 
-isExpandedIn.is_a = [ObjectProperty, isRelatedToDescription]
-isExpandedIn.domain = [Description]
-isExpandedIn.range = [Description]
+is_expanded_in.is_a = [ObjectProperty, is_related_to_description]
+is_expanded_in.domain = [Description]
+is_expanded_in.range = [Description]
 
-expressesConcept.is_a = [ObjectProperty, expresses]
-expressesConcept.domain = [InformationObject]
-expressesConcept.range = [Concept]
+expresses_concept.is_a = [ObjectProperty, expresses]
+expresses_concept.domain = [InformationObject]
+expresses_concept.range = [Concept]
 
-isConceptExpressedBy.is_a = [ObjectProperty, isExpressedBy]
-isConceptExpressedBy.domain = [Concept]
-isConceptExpressedBy.range = [InformationObject]
+is_concept_expressed_by.is_a = [ObjectProperty, is_expressed_by]
+is_concept_expressed_by.domain = [Concept]
+is_concept_expressed_by.range = [InformationObject]
 
-farFrom.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
-farFrom.domain = [Entity]
-farFrom.range = [Entity]
+far_from.is_a = [ObjectProperty, SymmetricProperty, associated_with]
+far_from.domain = [Entity]
+far_from.range = [Entity]
 
-hasProperPart.is_a = [ObjectProperty, TransitiveProperty, hasPart]
+has_proper_part.is_a = [ObjectProperty, TransitiveProperty, has_part]
 
-hasConstraint.is_a = [ObjectProperty, isClassifiedBy]
-hasConstraint.domain = [Entity]
-hasConstraint.range = [Parameter]
+has_constraint.is_a = [ObjectProperty, is_classified_by]
+has_constraint.domain = [Entity]
+has_constraint.range = [Parameter]
 
-isConstraintFor.is_a = [ObjectProperty, classifies]
-isConstraintFor.domain = [Parameter]
-isConstraintFor.range = [Entity]
+is_constraint_for.is_a = [ObjectProperty, classifies]
+is_constraint_for.domain = [Parameter]
+is_constraint_for.range = [Entity]
 
-isMemberOf.is_a = [ObjectProperty, associatedWith]
-isMemberOf.domain = [Entity]
-isMemberOf.range = [Collection]
+is_member_of.is_a = [ObjectProperty, associated_with]
+is_member_of.domain = [Entity]
+is_member_of.range = [Collection]
 
-includesWhole.is_a = [ObjectProperty, isSettingFor]
+includes_whole.is_a = [ObjectProperty, is_setting_for]
 
-includesPart.is_a = [ObjectProperty, isSettingFor]
+includes_part.is_a = [ObjectProperty, is_setting_for]
 
-isPostconditionOf.is_a = [ObjectProperty, directlyFollows]
-isPostconditionOf.domain = [Event | Situation]
-isPostconditionOf.range = [Event | Situation]
+is_postcondition_of.is_a = [ObjectProperty, directly_follows]
+is_postcondition_of.domain = [Or([Event, Situation])]
+is_postcondition_of.range = [Or([Event, Situation])]
 
-isPreconditionOf.is_a = [ObjectProperty, directlyPrecedes]
-isPreconditionOf.domain = [Event | Situation]
-isPreconditionOf.range = [Event | Situation]
+is_precondition_of.is_a = [ObjectProperty, directly_precedes]
+is_precondition_of.domain = [Or([Event, Situation])]
+is_precondition_of.range = [Or([Event, Situation])]
 
-isPropertPartOf.is_a = [ObjectProperty, TransitiveProperty, isPartOf]
+is_propert_part_of.is_a = [ObjectProperty, TransitiveProperty, is_part_of]
 
-hasTimeInterval.is_a = [ObjectProperty, hasRegion]
-hasTimeInterval.domain = [Event]
-hasTimeInterval.range = [TimeInterval]
+has_time_interval.is_a = [ObjectProperty, has_region]
+has_time_interval.domain = [Event]
+has_time_interval.range = [TimeInterval]
 
-isTimeIntervalOf.is_a = [ObjectProperty, isRegionFor]
-isTimeIntervalOf.domain = [TimeInterval]
-isTimeIntervalOf.range = [Event]
+is_time_interval_of.is_a = [ObjectProperty, is_region_for]
+is_time_interval_of.domain = [TimeInterval]
+is_time_interval_of.range = [Event]
 
-includesAction.is_a = [ObjectProperty, includesEvent]
-includesAction.domain = [Situation]
-includesAction.range = [Action]
+includes_action.is_a = [ObjectProperty, includes_event]
+includes_action.domain = [Situation]
+includes_action.range = [Action]
 
-isActionIncludedIn.is_a = [ObjectProperty, isEventIncludedIn]
-isActionIncludedIn.domain = [Action]
-isActionIncludedIn.range = [Situation]
+is_action_included_in.is_a = [ObjectProperty, is_event_included_in]
+is_action_included_in.domain = [Action]
+is_action_included_in.range = [Situation]
 
-includesAgent.is_a = [ObjectProperty, includesObject]
-includesAgent.domain = [Situation]
-includesAgent.range = [Agent]
+includes_agent.is_a = [ObjectProperty, includes_object]
+includes_agent.domain = [Situation]
+includes_agent.range = [Agent]
 
-isAgentIncludedIn.is_a = [ObjectProperty, isObjectIncludedIn]
-isAgentIncludedIn.domain = [Agent]
-isAgentIncludedIn.range = [Situation]
+is_agent_included_in.is_a = [ObjectProperty, is_object_included_in]
+is_agent_included_in.domain = [Agent]
+is_agent_included_in.range = [Situation]
 
-includesTime.is_a = [ObjectProperty, isSettingFor]
-includesTime.domain = [Situation]
-includesTime.range = [TimeInterval]
+includes_time.is_a = [ObjectProperty, is_setting_for]
+includes_time.domain = [Situation]
+includes_time.range = [TimeInterval]
 
-isTimeIncludedIn.is_a = [ObjectProperty, hasSetting]
-isTimeIncludedIn.domain = [TimeInterval]
-isTimeIncludedIn.range = [Situation]
+is_time_included_in.is_a = [ObjectProperty, has_setting]
+is_time_included_in.domain = [TimeInterval]
+is_time_included_in.range = [Situation]
 
-introduces.is_a = [ObjectProperty, associatedWith]
+introduces.is_a = [ObjectProperty, associated_with]
 introduces.domain = [Description]
 introduces.range = [SocialAgent]
 
-isIntroducedBy.is_a = [ObjectProperty, associatedWith]
-isIntroducedBy.domain = [SocialAgent]
-isIntroducedBy.range = [Description]
+is_introduced_by.is_a = [ObjectProperty, associated_with]
+is_introduced_by.domain = [SocialAgent]
+is_introduced_by.range = [Description]
 
-isAgentInvolvedIn.is_a = [ObjectProperty, isParticipantIn]
-isAgentInvolvedIn.domain = [Agent]
-isAgentInvolvedIn.range = [Event]
+is_agent_involved_in.is_a = [ObjectProperty, is_participant_in]
+is_agent_involved_in.domain = [Agent]
+is_agent_involved_in.range = [Event]
 
-isConceptUsedIn.is_a = [ObjectProperty, associatedWith]
-isConceptUsedIn.domain = [Concept]
-isConceptUsedIn.range = [Description]
+is_concept_used_in.is_a = [ObjectProperty, associated_with]
+is_concept_used_in.domain = [Concept]
+is_concept_used_in.range = [Description]
 
-isObservableAt.is_a = [ObjectProperty, hasRegion]
-isObservableAt.domain = [Entity]
-isObservableAt.range = [TimeInterval]
+is_observable_at.is_a = [ObjectProperty, has_region]
+is_observable_at.domain = [Entity]
+is_observable_at.range = [TimeInterval]
 
-isTimeOfObservationOf.is_a = [ObjectProperty, isRegionFor]
-isTimeOfObservationOf.domain = [TimeInterval]
-isTimeOfObservationOf.range = [Entity]
+is_time_of_observation_of.is_a = [ObjectProperty, is_region_for]
+is_time_of_observation_of.domain = [TimeInterval]
+is_time_of_observation_of.range = [Entity]
 
-isParametrizedBy.is_a = [ObjectProperty, isClassifiedBy]
-isParametrizedBy.domain = [Region]
-isParametrizedBy.range = [Parameter]
+is_parametrized_by.is_a = [ObjectProperty, is_classified_by]
+is_parametrized_by.domain = [Region]
+is_parametrized_by.range = [Parameter]
 
 parametrizes.is_a = [ObjectProperty, classifies]
 parametrizes.domain = [Parameter]
 parametrizes.range = [Region]
 
-isReferenceOfInformationRealizedBy.is_a = [ObjectProperty, associatedWith]
-isReferenceOfInformationRealizedBy.domain = [Entity]
-isReferenceOfInformationRealizedBy.range = [InformationRealization]
+is_reference_of_information_realized_by.is_a = [ObjectProperty, associated_with]
+is_reference_of_information_realized_by.domain = [Entity]
+is_reference_of_information_realized_by.range = [InformationRealization]
 
-realizesInformationAbout.is_a = [ObjectProperty, associatedWith]
-realizesInformationAbout.domain = [InformationRealization]
-realizesInformationAbout.range = [Entity]
+realizes_information_about.is_a = [ObjectProperty, associated_with]
+realizes_information_about.domain = [InformationRealization]
+realizes_information_about.range = [Entity]
 
-isSatisfiedBy.is_a = [ObjectProperty, associatedWith]
-isSatisfiedBy.domain = [Description]
-isSatisfiedBy.range = [Situation]
+is_satisfied_by.is_a = [ObjectProperty, associated_with]
+is_satisfied_by.domain = [Description]
+is_satisfied_by.range = [Situation]
 
-isSpecializedBy.is_a = [ObjectProperty, TransitiveProperty, associatedWith]
-isSpecializedBy.domain = [SocialObject]
-isSpecializedBy.range = [SocialObject]
+is_specialized_by.is_a = [ObjectProperty, TransitiveProperty, associated_with]
+is_specialized_by.domain = [SocialObject]
+is_specialized_by.range = [SocialObject]
 
-specializes.is_a = [ObjectProperty, TransitiveProperty, associatedWith]
+specializes.is_a = [ObjectProperty, TransitiveProperty, associated_with]
 specializes.domain = [SocialObject]
 specializes.range = [SocialObject]
 
-isSubordinatedTo.is_a = [ObjectProperty, directlyFollows, isRelatedToConcept]
-isSubordinatedTo.domain = [Concept]
-isSubordinatedTo.range = [Concept]
+is_subordinated_to.is_a = [ObjectProperty, directly_follows, is_related_to_concept]
+is_subordinated_to.domain = [Concept]
+is_subordinated_to.range = [Concept]
 
-isSuperordinatedTo.is_a = [ObjectProperty, directlyPrecedes, isRelatedToConcept]
-isSuperordinatedTo.domain = [Concept]
-isSuperordinatedTo.range = [Concept]
+is_superordinated_to.is_a = [ObjectProperty, directly_precedes, is_related_to_concept]
+is_superordinated_to.domain = [Concept]
+is_superordinated_to.range = [Concept]
 
-isUnifiedBy.is_a = [ObjectProperty, associatedWith]
-isUnifiedBy.domain = [Collection]
-isUnifiedBy.range = [Description]
+is_unified_by.is_a = [ObjectProperty, associated_with]
+is_unified_by.domain = [Collection]
+is_unified_by.range = [Description]
 
-unifies.is_a = [ObjectProperty, associatedWith]
+unifies.is_a = [ObjectProperty, associated_with]
 unifies.domain = [Description]
 unifies.range = [Collection]
 
-nearTo.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
-nearTo.domain = [Entity]
-nearTo.range = [Entity]
+near_to.is_a = [ObjectProperty, SymmetricProperty, associated_with]
+near_to.domain = [Entity]
+near_to.range = [Entity]
 
-sameSettingAs.is_a = [ObjectProperty, SymmetricProperty, associatedWith]
-sameSettingAs.domain = [Entity]
-sameSettingAs.range = [Entity]
+same_setting_as.is_a = [ObjectProperty, SymmetricProperty, associated_with]
+same_setting_as.domain = [Entity]
+same_setting_as.range = [Entity]
 
 
 
