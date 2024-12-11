@@ -4,12 +4,12 @@ import unittest
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
-    NavigateActionPerformable, FaceAtPerformable
+    NavigateActionPerformable, FaceAtPerformable, MoveTorsoAction
 from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
-from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp, DetectionTechnique
+from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp, DetectionTechnique, TorsoState
 from pycram.testing import  BulletWorldTestCase
 import numpy as np
 
@@ -20,11 +20,12 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     """Testcase for the grounding methods of action designators."""
 
     def test_move_torso(self):
-        description = action_designator.MoveTorsoAction([0.3])
-        self.assertEqual(description.ground().position, 0.3)
+        description = action_designator.MoveTorsoAction([TorsoState.HIGH])
+        torso_joint = RobotDescription.current_robot_description.torso_joint
+        self.assertEqual(description.ground().joint_positions[torso_joint], 0.3)
         with simulated_robot:
             description.resolve().perform()
-        self.assertEqual(self.world.robot.get_joint_position(RobotDescription.current_robot_description.torso_joint),
+        self.assertEqual(self.world.robot.get_joint_position(torso_joint),
                          0.3)
 
     def test_set_gripper(self):
@@ -73,7 +74,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoActionPerformable(0.3).perform()
+            MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
             description.resolve().perform()
         self.assertTrue(object_description.resolve().world_object in self.robot.attachments.keys())
 
@@ -83,7 +84,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoActionPerformable(0.3).perform()
+            MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             description.resolve().perform()
         self.assertFalse(object_description.resolve().world_object in self.robot.attachments.keys())
@@ -127,7 +128,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                                                               [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])],
                                                         [Arms.LEFT])
         with simulated_robot:
-            action_designator.MoveTorsoAction([0.2]).resolve().perform()
+            action_designator.MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
             description.resolve().perform()
         self.assertEqual(description.ground().object_designator.name, "milk")
         milk_position = np.array(self.milk.get_pose().position_as_list())

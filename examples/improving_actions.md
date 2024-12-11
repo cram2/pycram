@@ -203,8 +203,9 @@ from pycram.designators.action_designator import ParkArmsActionPerformable
 
 world.reset_world()
 milk.set_pose(Pose([0.5, 3.15, 1.04]))
+torso_joint = RobotDescription.current_robot_description.torso_joint
 with simulated_robot:
-    MoveTorsoActionPerformable(0.3).perform()
+    MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
     for sample in fpa:
         try:
             ParkArmsActionPerformable(Arms.RIGHT).perform()

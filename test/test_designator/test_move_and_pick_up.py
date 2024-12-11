@@ -6,9 +6,9 @@ from random_events.variable import Continuous, Symbolic
 from sortedcontainers import SortedSet
 
 from pycram.testing import BulletWorldTestCase
-from pycram.datastructures.enums import ObjectType, Arms, Grasp
+from pycram.datastructures.enums import ObjectType, Arms, Grasp, TorsoState
 from pycram.designator import ObjectDesignatorDescription
-from pycram.designators.action_designator import MoveTorsoActionPerformable
+from pycram.designators.action_designator import MoveTorsoActionPerformable, MoveTorsoAction
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import (MoveAndPickUp,
                                                                                            Arms as PMArms,
                                                                                            Grasp as PMGrasp)
@@ -51,7 +51,7 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
         with simulated_robot:
             for action in move_and_pick.iter_with_mode():
                 try:
-                    MoveTorsoActionPerformable(0.3).perform()
+                    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
                     action.perform()
                     return  # Success
                 except PlanFailure as e:

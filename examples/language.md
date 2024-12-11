@@ -200,7 +200,7 @@ world.reset_world()
 
 navigate = NavigateAction([Pose([1, 1, 0])])
 park = ParkArmsAction([Arms.BOTH])
-move_torso = MoveTorsoAction([0.3])
+move_torso = MoveTorsoAction([TorsoState.HIGH]) 
 
 plan = navigate | park + move_torso
 
@@ -286,9 +286,10 @@ You can see an example of how to use Repeat below.
 ```python
 from pycram.designators.action_designator import *
 from pycram.process_module import simulated_robot
+from pycram.datastructures.enums import TorsoState
 
-move_torso_up = MoveTorsoAction([0.3])
-move_torso_down = MoveTorsoAction([0.])
+move_torso_up = MoveTorsoAction([TorsoState.HIGH])
+move_torso_down = MoveTorsoAction([TorsoState.LOW])
 
 plan = (move_torso_up + move_torso_down) * 5
 
@@ -311,9 +312,10 @@ from pycram.designators.action_designator import *
 from pycram.process_module import simulated_robot
 from pycram.language import Monitor
 import time
+from pycram.datastructures.enums import TorsoState
 
-move_torso_up = MoveTorsoAction([0.3])
-move_torso_down = MoveTorsoAction([0.])
+move_torso_up = MoveTorsoAction([TorsoState.HIGH])
+move_torso_down = MoveTorsoAction([TorsoState.LOW])
 
 
 def monitor_func():

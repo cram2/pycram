@@ -146,7 +146,7 @@ from pycram.datastructures.enums import Grasp
 
 
 @pycram.tasktree.with_tree
-def plan(obj_desig: ObjectDesignatorDescription.Object, torso=0.2, place=counter_name):
+def plan(obj_desig: ObjectDesignatorDescription.Object, torso={"torso_lift_joint": 0.2}, place=counter_name):
     world.reset_world()
     with simulated_robot:
         ParkArmsActionPerformable(Arms.BOTH).perform()
