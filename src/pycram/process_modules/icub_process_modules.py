@@ -559,7 +559,7 @@ class ICubManager(ProcessModuleManager):
 
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             if not self.initialized:
-                raise RobotNotInitialized()
+                raise RobotNotInitialized("icub")
             return iCubMoveJointsReal(self._move_joints_lock,
                                   [self.state_torso_port,self.state_right_arm_port,self.state_left_arm_port],
                                   [self.ctp_torso_client_port,self.ctp_right_arm_client_port,self.ctp_left_arm_client_port])
@@ -569,7 +569,7 @@ class ICubManager(ProcessModuleManager):
             return iCubMoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             if not self.initialized:
-                raise RobotNotInitialized()
+                raise RobotNotInitialized("icub")
             return iCubMoveGripperReal(self._move_gripper_lock,
                                      [self.state_right_arm_port, self.state_left_arm_port],
                                      [self.ctp_right_arm_client_port,self.ctp_left_arm_client_port])
