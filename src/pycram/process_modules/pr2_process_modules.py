@@ -1,6 +1,3 @@
-import actionlib
-from control_msgs.msg import GripperCommandGoal, GripperCommandAction
-
 from .default_process_modules import *
 from ..datastructures.enums import GripperState, Arms, ExecutionType
 from ..datastructures.world import World
