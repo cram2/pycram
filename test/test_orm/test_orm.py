@@ -289,8 +289,8 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
             ParkArmsActionPerformable(pycram.datastructures.enums.Arms.BOTH).perform()
             NavigateActionPerformable(Pose([1.81, 1.73, 0.0],
                                            [0.0, 0.0, 0.594, 0.804]), True).perform()
-            OpenActionPerformable(handle_desig, arm=Arms.LEFT).perform()
-            CloseActionPerformable(handle_desig, arm=Arms.LEFT).perform()
+            OpenActionPerformable(handle_desig, arm=Arms.LEFT, grasping_prepose_distance=0.03).perform()
+            CloseActionPerformable(handle_desig, arm=Arms.LEFT, grasping_prepose_distance=0.03).perform()
 
         pycram.orm.base.ProcessMetaData().description = "open_and_closeAction_test"
         pycram.tasktree.task_tree.root.insert(self.session)

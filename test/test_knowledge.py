@@ -6,7 +6,6 @@ from pycram.datastructures.pose import Pose
 from pycram.designators.action_designator import PickUpAction, PickUpActionPerformable, OpenAction
 from pycram.designators.object_designator import BelieveObject, ObjectPart
 from pycram.knowledge.knowledge_engine import KnowledgeEngine
-from pycram.process_modules.pr2_process_modules import Pr2MoveArmJoints
 
 
 class TestKnowledgeSource(KnowledgeSourceTestCase):

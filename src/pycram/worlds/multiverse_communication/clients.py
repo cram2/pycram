@@ -2,17 +2,21 @@ import datetime
 import logging
 import os
 import threading
+from threading import RLock
+
 from time import time, sleep
 
+from geometry_msgs.msg import Point
 from typing_extensions import List, Dict, Tuple, Optional, Callable, Union
 
 from .socket import MultiverseSocket, MultiverseMetaData
 from ...config.multiverse_conf import MultiverseConfig as Conf
-from ...datastructures.dataclasses import RayResult, MultiverseContactPoint
+from ...datastructures.dataclasses import RayResult, MultiverseContactPoint, \
+    AxisAlignedBoundingBox
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
 from ...datastructures.pose import Pose
-from ...ros.logging import logwarn
+from ...failures import FailedAPIResponse
 from ...utils import wxyz_to_xyzw
 from ...world_concepts.constraints import Constraint
 from ...world_concepts.world_object import Object, Link
@@ -32,9 +36,9 @@ class MultiverseClient(MultiverseSocket):
             increase or decrease the wait time for the simulation.
         """
         meta_data = MultiverseMetaData()
-        meta_data.simulation_name = (Conf.prospection_world_prefix if is_prospection_world else "") + name
-        meta_data.world_name = ((Conf.prospection_world_prefix if is_prospection_world else "")
-                                + meta_data.world_name)
+        meta_data.simulation_name = ((Conf.prospection_world_prefix if is_prospection_world else "belief_state")
+                                     + "_" + name)
+        meta_data.world_name = Conf.prospection_world_prefix if is_prospection_world else "belief_state"
         self.is_prospection_world = is_prospection_world
         super().__init__(port=str(port), meta_data=meta_data)
         self.simulation_wait_time_factor = simulation_wait_time_factor
@@ -320,21 +324,20 @@ class MultiverseWriter(MultiverseClient):
         """
         super().__init__(name, port, is_prospection_world, simulation_wait_time_factor=simulation_wait_time_factor)
         self.simulation = simulation
+        self.lock = RLock()
 
-    def spawn_robot_with_actuators(self, robot_name: str, position: List[float], orientation: List[float],
+    def spawn_robot_with_actuators(self, robot_name: str,
                                    actuator_joint_commands: Optional[Dict[str, List[str]]] = None) -> None:
         """
         Spawn the robot with controlled actuators in the simulation.
 
         :param robot_name: The name of the robot.
-        :param position: The position of the robot.
-        :param orientation: The orientation of the robot.
         :param actuator_joint_commands: A dictionary mapping actuator names to joint command names.
         """
         send_meta_data = {robot_name: [BodyProperty.POSITION.value, BodyProperty.ORIENTATION.value,
                                        BodyProperty.RELATIVE_VELOCITY.value]}
         relative_velocity = [0.0] * 6
-        data = [self.sim_time, *position, *orientation, *relative_velocity]
+        data = [self.sim_time] + [0.0] * 3 + [1, 0, 0, 0] + relative_velocity
         self.send_data_to_server(data, send_meta_data=send_meta_data, receive_meta_data=actuator_joint_commands)
 
     def _reset_request_meta_data(self, set_simulation_name: bool = True):
@@ -440,9 +443,12 @@ class MultiverseWriter(MultiverseClient):
         body_names = list(response_meta_data["send"].keys())
         flattened_data = [value for body_name in body_names for data in body_data[body_name].values()
                           for value in data]
+        self.lock.acquire()
         self.send_data = [self.sim_time, *flattened_data]
         self.send_and_receive_data()
-        return self.response_meta_data
+        response_meta_data = self.response_meta_data
+        self.lock.release()
+        return response_meta_data
 
     def send_meta_data_and_get_response(self, send_meta_data: Dict) -> Dict:
         """
@@ -451,10 +457,13 @@ class MultiverseWriter(MultiverseClient):
         :param send_meta_data: The metadata to be sent.
         :return: The response from the server.
         """
+        self.lock.acquire()
         self._reset_request_meta_data()
         self.request_meta_data["send"] = send_meta_data
         self.send_and_receive_meta_data()
-        return self.response_meta_data
+        response_meta_data = self.response_meta_data
+        self.lock.release()
+        return response_meta_data
 
     def send_data_to_server(self, data: List,
                             send_meta_data: Optional[Dict] = None,
@@ -469,6 +478,7 @@ class MultiverseWriter(MultiverseClient):
         :param set_simulation_name: Whether to set the simulation name to the value of self.simulation.
         :return: The response from the server.
         """
+        self.lock.acquire()
         self._reset_request_meta_data(set_simulation_name=set_simulation_name)
         if send_meta_data:
             self.request_meta_data["send"] = send_meta_data
@@ -477,7 +487,9 @@ class MultiverseWriter(MultiverseClient):
         self.send_and_receive_meta_data()
         self.send_data = data
         self.send_and_receive_data()
-        return self.response_meta_data
+        response_meta_data = self.response_meta_data
+        self.lock.release()
+        return response_meta_data
 
 
 class MultiverseController(MultiverseWriter):
@@ -507,7 +519,7 @@ class MultiverseAPI(MultiverseClient):
     """
     The wait time for the API request in seconds.
     """
-    APIs_THAT_NEED_WAIT_TIME: List[API] = [API.ATTACH]
+    APIs_THAT_NEED_WAIT_TIME: List[API] = [API.ATTACH, API.DETACH]
 
     def __init__(self, name: str, port: int, simulation: str, is_prospection_world: bool = False,
                  simulation_wait_time_factor: float = 1.0):
@@ -525,6 +537,31 @@ class MultiverseAPI(MultiverseClient):
         super().__init__(name, port, is_prospection_world, simulation_wait_time_factor=simulation_wait_time_factor)
         self.simulation = simulation
         self.wait: bool = False  # Whether to wait after sending the API request.
+
+    def get_body_bounding_box(self, body_name: str,
+                              with_children: bool = False) -> Union[AxisAlignedBoundingBox, List[AxisAlignedBoundingBox]]:
+        """
+        Get the body bounding box from the multiverse server, they are with respect to the body's frame.
+        """
+        bounding_boxes_data = self._get_bounding_box(body_name, with_children)
+        bounding_boxes = []
+        for bounding_box in bounding_boxes_data:
+            origin = Point(bounding_box[0], bounding_box[1], bounding_box[2])
+            size = Point(bounding_box[3], bounding_box[4], bounding_box[5])
+            bounding_boxes.append(AxisAlignedBoundingBox.from_origin_and_half_extents(origin, size))
+        if with_children:
+            return bounding_boxes
+        return bounding_boxes[0]
+
+    def _get_bounding_box(self, body_name: str, with_children: bool = False) -> List[List[float]]:
+        """
+        Get the body bounding box from the multiverse server.
+        """
+        params = [body_name]
+        if with_children:
+            params.append("with_children")
+        response = self._request_single_api_callback(API.GET_BOUNDING_BOX, *params)[0]
+        return [list(map(float, bounding_box.split())) for bounding_box in response]
 
     def save(self, save_name: str, save_directory: Optional[str] = None) -> str:
         """
@@ -557,7 +594,7 @@ class MultiverseAPI(MultiverseClient):
         :param save_directory: The save directory.
         :return: The save path.
         """
-        return save_name if save_directory is None else os.path.join(save_directory, save_name)
+        return save_name if not save_directory else os.path.join(save_directory, save_name)
 
     def attach(self, constraint: Constraint) -> None:
         """
@@ -666,18 +703,26 @@ class MultiverseAPI(MultiverseClient):
         """
         return self._request_single_api_callback(API.EXIST, obj.name)[0] == 'yes'
 
-    def get_contact_points(self, obj: Object) -> List[MultiverseContactPoint]:
+    def get_resultant_force_and_torque_on_object(self, obj: Object) -> Tuple[List[float], List[float]]:
         """
-        Request the contact points of an object, this includes the object names and the contact forces and torques.
+        Get the resultant force and torque on the object.
 
         :param obj: The object.
-        :return: The contact points of the object as a list of MultiverseContactPoint.
+        :return: The resultant force and torque on the object.
         """
-        api_response_data = self._get_contact_points(obj.name)
-        body_names = api_response_data[API.GET_CONTACT_BODIES]
-        contact_efforts = self._parse_constraint_effort(api_response_data[API.GET_CONSTRAINT_EFFORT])
-        return [MultiverseContactPoint(body_names[i], contact_efforts[:3], contact_efforts[3:])
-                for i in range(len(body_names))]
+        effort = self._request_single_api_callback(API.GET_CONSTRAINT_EFFORT, obj.name)
+        return self._parse_constraint_effort(effort)
+
+    def get_contact_points_between_bodies(self, body_1_name: str, body_2_name: str) -> List[MultiverseContactPoint]:
+        """
+        Request the contact points between two bodies.
+
+        :param body_1_name: The name of the first body.
+        :param body_2_name: The name of the second body.
+        :return: The contact points between the bodies as a list of MultiverseContactPoint.
+        """
+        points = self._request_single_api_callback(API.GET_CONTACT_POINTS, body_1_name, body_2_name)
+        return self._parse_contact_points(body_1_name, body_2_name, points)
 
     def get_objects_intersected_with_rays(self, from_positions: List[List[float]],
                                           to_positions: List[List[float]]) -> List[RayResult]:
@@ -733,7 +778,7 @@ class MultiverseAPI(MultiverseClient):
         return " ".join([f"{position[0]} {position[1]} {position[2]}" for position in positions])
 
     @staticmethod
-    def _parse_constraint_effort(contact_effort: List[str]) -> List[float]:
+    def _parse_constraint_effort(contact_effort: List[str]) -> Tuple[List[float], List[float]]:
         """
         Parse the contact effort of an object.
 
@@ -741,21 +786,41 @@ class MultiverseAPI(MultiverseClient):
         :return: The contact effort of the object as a list of floats.
         """
         contact_effort = contact_effort[0].split()
-        if 'failed' in contact_effort:
-            logwarn("Failed to get contact effort")
-            return [0.0] * 6
-        return list(map(float, contact_effort))
+        contact_effort = list(map(float, contact_effort))
+        forces, torques = contact_effort[:3], contact_effort[3:]
+        return forces, torques
 
-    def _get_contact_points(self, object_name) -> Dict[API, List]:
+    @staticmethod
+    def _parse_contact_points(body_1, body_2, contact_points: List[str]) -> List[MultiverseContactPoint]:
         """
-        Request the contact points of an object.
+        Parse the contact points of an object.
 
-        :param object_name: The name of the object.
-        :return: The contact points api response as a dictionary.
+        :param body_1: The name of the first body.
+        :param body_2: The name of the second body.
+        :param contact_points: The contact points of the object as a list of strings.
+        :return: The contact positions, and normal vectors as a list of MultiverseContactPoint.
         """
-        return self._request_apis_callbacks({API.GET_CONTACT_BODIES: [object_name],
-                                             API.GET_CONSTRAINT_EFFORT: [object_name]
-                                             })
+        contact_point_data = [list(map(float, contact_point.split())) for contact_point in contact_points]
+        return [MultiverseContactPoint(body_1, body_2, point[:3], point[3:]) for point in contact_point_data]
+
+    def get_contact_points(self, body_name: str) -> List[MultiverseContactPoint]:
+        """
+        Get the contact points of a body from the multiverse server.
+
+        :param body_name: The name of the body.
+        """
+        contact_data = self._request_single_api_callback(API.GET_CONTACT_BODIES_AND_POINTS,
+                                                         body_name, "with_children")
+        contact_points = []
+        for contact_point in contact_data:
+            contact_point_data = list(contact_point.split())
+            position_and_normal = list(map(float, contact_point_data[2:]))
+            for i in range(0, len(position_and_normal), 6):
+                contact_points.append(MultiverseContactPoint(contact_point_data[0],
+                                                             contact_point_data[1],
+                                                             position_and_normal[i:i + 3],
+                                                             position_and_normal[i + 3:i + 6]))
+        return contact_points
 
     def pause_simulation(self) -> None:
         """
@@ -790,11 +855,26 @@ class MultiverseAPI(MultiverseClient):
         for api_name, params in api_data.items():
             self._add_api_request(api_name.value, *params)
         self._send_api_request()
-        responses = self._get_all_apis_responses()
         if self.wait:
             sleep(self.API_REQUEST_WAIT_TIME.total_seconds() * self.simulation_wait_time_factor)
             self.wait = False
+        responses = self._get_all_apis_responses()
+        self.validate_apis_response(api_data, responses)
         return responses
+
+    @staticmethod
+    def validate_apis_response(api_data: Dict[API, List], responses: Dict[API, List[str]]):
+        """
+        Validate the responses from the multiverse server and raise error if an api request failed.
+
+        :param api_data: The data of the api request which has the api name and the arguments.
+        :param responses: The responses of the given api requests.
+        :raises FailedAPIResponse: when one of the responses reports that the request failed.
+        """
+        for api_name, response in responses.items():
+            for val in response:
+                if 'failed' in val:
+                    raise FailedAPIResponse(response, api_name, api_data[api_name])
 
     def _get_all_apis_responses(self) -> Dict[API, List[str]]:
         """

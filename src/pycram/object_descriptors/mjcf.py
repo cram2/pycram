@@ -1,3 +1,4 @@
+import glob
 import os
 import pathlib
 from xml.etree import ElementTree as ET
@@ -34,8 +35,9 @@ class LinkDescription(AbstractLinkDescription):
     A class that represents a link description of an object.
     """
 
-    def __init__(self, mjcf_description: mjcf.Element):
+    def __init__(self, mjcf_description: mjcf.Element, mesh_dir: Optional[str] = None):
         super().__init__(mjcf_description)
+        self.mesh_dir = mesh_dir
 
     @property
     def geometry(self) -> Union[List[VisualShape], VisualShape, None]:
@@ -50,8 +52,7 @@ class LinkDescription(AbstractLinkDescription):
         else:
             return [self._get_visual_shape(geom) for geom in all_geoms]
 
-    @staticmethod
-    def _get_visual_shape(mjcf_geometry) -> Union[VisualShape, None]:
+    def _get_visual_shape(self, mjcf_geometry) -> Union[VisualShape, None]:
         """
         :param mjcf_geometry: The MJCFGeometry to get the visual shape for.
         :return: The VisualShape of the given MJCFGeometry object.
@@ -64,8 +65,26 @@ class LinkDescription(AbstractLinkDescription):
             return SphereVisualShape(Color(), [0, 0, 0], mjcf_geometry.size[0])
         if mjcf_geometry.type == MJCFGeomType.MESH.value:
             mesh_filename = mjcf_geometry.mesh.file.prefix + mjcf_geometry.mesh.file.extension
+            mesh_filename = self.look_for_file_in_mesh_dir(mesh_filename)
             return MeshVisualShape(Color(), [0, 0, 0], mjcf_geometry.mesh.scale, mesh_filename)
         return None
+
+    def look_for_file_in_mesh_dir(self, file_name: str) -> str:
+        """
+        Look for a file in the mesh directory of the object.
+
+        :param file_name: The name of the file.
+        :return: The path to the file.
+        """
+        # search for the file in the mesh directory
+        if self.mesh_dir is not None:
+            if os.path.exists(os.path.join(self.mesh_dir, file_name)):
+                return os.path.join(self.mesh_dir, file_name)
+            else:
+                # use glob to search for the file in the mesh directory
+                files = glob.glob(os.path.join(self.mesh_dir, '**', file_name), recursive=True)
+                if len(files) > 0:
+                    return files[0]
 
     @property
     def origin(self) -> Union[Pose, None]:
@@ -336,6 +355,14 @@ class ObjectDescription(AbstractObjectDescription):
         self._links = None
         self._joints = None
         self.virtual_joint_names = []
+        self._meshes_dir: Optional[str] = None
+
+    @property
+    def mesh_dir(self) -> Optional[str]:
+        try:
+            return getattr(self.parsed_description.compiler, self.MESH_DIR_ATTR)
+        except AttributeError:
+            return None
 
     @property
     def child_map(self) -> Dict[str, List[Tuple[str, str]]]:
@@ -464,6 +491,8 @@ class ObjectDescription(AbstractObjectDescription):
         for rel_dir_attrib in [self.MESH_DIR_ATTR, self.TEXTURE_DIR_ATTR]:
             rel_dir = compiler.get(rel_dir_attrib)
             abs_dir = str(pathlib.Path(os.path.join(model_dir, rel_dir)).resolve())
+            if rel_dir_attrib == self.MESH_DIR_ATTR:
+                self._meshes_dir = abs_dir
             compiler.set(rel_dir_attrib, abs_dir)
         return ET.tostring(root, encoding='unicode', method='xml')
 
@@ -486,7 +515,7 @@ class ObjectDescription(AbstractObjectDescription):
         :return: A list of link descriptions of this object.
         """
         if self._links is None:
-            self._links = [LinkDescription(link) for link in self.parsed_description.find_all('body')]
+            self._links = [LinkDescription(link, self.mesh_dir) for link in self.parsed_description.find_all('body')]
         return self._links
 
     def get_root(self) -> str:

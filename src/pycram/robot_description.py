@@ -114,11 +114,12 @@ class RobotDescription:
     virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None
     """
     Virtual mobile base joint names for mobile robots, these joints are not part of the URDF, however they are used to
-     move the robot in the simulation (e.g. set_pose for the robot would actually move these joints)
+    move the robot in the simulation (e.g. set_pose for the robot would actually move these joints)
     """
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
-                 virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None):
+                 virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None,
+                 ignore_joints: Optional[List[str]] = None):
         """
         Initialize the RobotDescription. The URDF is loaded from the given path and used as basis for the kinematic
         chains.
@@ -130,11 +131,13 @@ class RobotDescription:
         :param urdf_path: Path to the URDF file of the robot
         :param virtual_mobile_base_joints: Virtual mobile base joint names for mobile robots
         :param mjcf_path: Path to the MJCF file of the robot
+        :param ignore_joints: List of joint names that are not used.
         """
         self.name = name
         self.base_link = base_link
         self.torso_link = torso_link
         self.torso_joint = torso_joint
+        self.ignore_joints = ignore_joints if ignore_joints else []
         with suppress_stdout_stderr():
             # Since parsing URDF causes a lot of warning messages which can't be deactivated, we suppress them
             self.urdf_object = URDFObject(urdf_path)
@@ -247,21 +250,21 @@ class RobotDescription:
                 result.append(chain)
         return result
 
+    def get_camera_frame(self, robot_object_name: str) -> str:
+        """
+        Quick method to get the name of a link of a camera. Uses the first camera in the list of cameras.
+
+        :return: A name of the link of a camera
+        """
+        return f"{robot_object_name}/{self.get_camera_link()}"
+
     def get_camera_link(self) -> str:
         """
         Quick method to get the name of a link of a camera. Uses the first camera in the list of cameras.
 
         :return: A name of the link of a camera
         """
-        return self.cameras[list(self.cameras.keys())[0]].link_name
-
-    def get_camera_frame(self) -> str:
-        """
-        Quick method to get the name of a link of a camera. Uses the first camera in the list of cameras.
-
-        :return: A name of the link of a camera
-        """
-        return f"{self.name}/{self.cameras[list(self.cameras.keys())[0]].link_name}"
+        return self.get_default_camera().link_name
 
     def get_default_camera(self) -> CameraDescription:
         """
@@ -630,8 +633,14 @@ class EndEffectorDescription:
     """
     Distance the gripper can open, in cm
     """
+    gripper_object_name: Optional[str] = None
+    """
+    Name of the gripper of the robot if it has one, this is used when the gripper is a different Object with its own
+    description file outside the robot description file.
+    """
 
-    def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject):
+    def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject,
+                 gripper_object_name: Optional[str] = None):
         """
         Initialize the EndEffectorDescription object.
 
@@ -639,6 +648,7 @@ class EndEffectorDescription:
         :param start_link: Root link of the end effector, every link below this link in the URDF is part of the end effector
         :param tool_frame: Name of the tool frame link in the URDf
         :param urdf_object: URDF object of the robot
+        :param gripper_object_name: Name of the gripper if it is a separate Object outside the robot description.
         """
         self.name: str = name
         self.start_link: str = start_link
@@ -648,6 +658,8 @@ class EndEffectorDescription:
         self.joint_names: List[str] = []
         self.static_joint_states: Dict[GripperState, Dict[str, float]] = {}
         self._init_links_joints()
+        self.gripper_object_name = gripper_object_name
+
 
     def _init_links_joints(self):
         """

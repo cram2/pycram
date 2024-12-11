@@ -1,9 +1,12 @@
+import logging
+
 from .datastructures.enums import State
-from .designator import DesignatorDescription
+from .designator import DesignatorDescription, ActionDesignatorDescription, BaseMotion
 from .failures import PlanFailure
 from threading import Lock
-from typing_extensions import Union, Tuple, Any, List
+from typing_extensions import Union, Tuple, Any, List, Optional, Type, Callable
 from .language import Language, Monitor
+from .process_module import ProcessModule
 
 
 class FailureHandling(Language):
@@ -15,7 +18,7 @@ class FailureHandling(Language):
     to be extended by subclasses that implement specific failure handling behaviors.
     """
 
-    def __init__(self, designator_description: Union[DesignatorDescription, Monitor]):
+    def __init__(self, designator_description: Optional[Union[DesignatorDescription, Monitor]] = None):
         """
         Initializes a new instance of the FailureHandling class.
 
@@ -169,3 +172,56 @@ class RetryMonitor(FailureHandling):
                     if exception_type in self.recovery:
                         self.recovery[exception_type].perform()
         return status, flatten(res)
+
+
+def try_action(action: Any, failure_type: Type[Exception], max_tries: int = 3):
+    """
+    A generic function to retry an action a certain number of times before giving up, with a specific failure type.
+
+    :param action: The action to be performed, it must have a perform() method.
+    :param failure_type: The type of exception to catch.
+    :param max_tries: The maximum number of attempts to retry the action. Defaults to 3.
+    """
+    return try_method(method=lambda: action.perform(),
+                      failure_type=failure_type,
+                      max_tries=max_tries,
+                      name="action")
+
+
+def try_motion(motion: ProcessModule, motion_designator_instance: BaseMotion,
+               failure_type: Type[Exception], max_tries: int = 3):
+    """
+    A generic function to retry a motion a certain number of times before giving up, with a specific exception.
+
+    :param motion: The motion to be executed.
+    :param motion_designator_instance: The instance of the motion designator that has the description of the motion.
+    :param failure_type: The type of exception to catch.
+    :param max_tries: The maximum number of attempts to retry the motion.
+    """
+    return try_method(method=lambda: motion.execute(motion_designator_instance),
+                      failure_type=failure_type,
+                      max_tries=max_tries,
+                      name="motion")
+
+
+def try_method(method: Callable, failure_type: Type[Exception], max_tries: int = 3, name: str = "method"):
+    """
+    A generic function to retry a method a certain number of times before giving up, with a specific exception.
+
+    :param method: The method to be called.
+    :param failure_type: The type of exception to catch.
+    :param max_tries: The maximum number
+    :param name: The name of the method to be called.
+    """
+    current_retry = 0
+    result = None
+    while current_retry < max_tries:
+        try:
+            result = method()
+            break
+        except failure_type as e:
+            logging.debug(f"Caught exception {e} during {name} execution {method}. Retrying...")
+            current_retry += 1
+    if current_retry == max_tries:
+        logging.error(f"Failed to execute {name} {method} after {max_tries} retries.")
+    return result

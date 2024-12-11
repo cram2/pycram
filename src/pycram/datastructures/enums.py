@@ -65,9 +65,11 @@ class ObjectType(int, Enum):
     BREAKFAST_CEREAL = auto()
     JEROEN_CUP = auto()
     ROBOT = auto()
+    GRIPPER = auto()
     ENVIRONMENT = auto()
     GENERIC_OBJECT = auto()
     HUMAN = auto()
+    IMAGINED_SURFACE = auto()
 
 
 class State(int, Enum):
@@ -242,8 +244,11 @@ class MultiverseAPIName(Enum):
     """
     Enum for the different APIs of the Multiverse.
     """
+    GET_CONTACT_POINTS = "get_contact_points"
     GET_CONTACT_BODIES = "get_contact_bodies"
+    GET_CONTACT_BODIES_AND_POINTS = "get_contact_bodies_and_points"
     GET_CONSTRAINT_EFFORT = "get_constraint_effort"
+    GET_BOUNDING_BOX = "get_bounding_box"
     ATTACH = "attach"
     DETACH = "detach"
     GET_RAYS = "get_rays"
