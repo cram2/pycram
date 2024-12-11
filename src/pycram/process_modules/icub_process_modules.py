@@ -1,34 +1,20 @@
 import math
-from threading import Lock
-from typing import Union
-from typing_extensions import Any
-import actionlib
 from .default_process_modules import DefaultMoveJoints, DefaultMoveArmJoints, DefaultMoveTCP, DefaultNavigation, \
     DefaultMoveHead, DefaultDetecting, DefaultMoveGripper
-from .. import world_reasoning as btr
-import numpy as np
 
 from ..failures import RobotNotInitialized
 from ..process_module import ProcessModule, ProcessModuleManager
-from ..external_interfaces.ik import request_ik
-from ..ros.logging import logdebug, logerr
-from ..utils import _apply_ik
-from ..local_transformer import LocalTransformer
-from ..designators.object_designator import ObjectDesignatorDescription
+from ..ros.logging import logerr
 from ..designators.motion_designator import MoveMotion, LookingMotion, \
     DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
-    MoveGripperMotion, OpeningMotion, ClosingMotion
+    MoveGripperMotion
 from ..robot_description import RobotDescription
 from ..datastructures.world import World
-from ..world_concepts.world_object import Object
-from ..datastructures.pose import Pose
-from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType, GripperState
-from ..external_interfaces import giskard
+from ..datastructures.enums import Arms, ExecutionType, GripperState
 from ..external_interfaces.robokudo import *
 
 try:
-    import yarp
-    from pycram.yarp_utils.yarp_networking import *
+    from pycram.external_interfaces.yarp_networking import *
 except ImportError:
     logwarn("Yarp Was Not Found. You can't use iCub. Check yarp installation")
     yarp = None
@@ -512,7 +498,7 @@ class ICubManager(ProcessModuleManager):
             return iCubNavigation(self._navigate_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             if not self.initialized:
-                raise RobotNotInitialized()
+                raise RobotNotInitialized("icub")
             return iCubNavigationReal(self._navigate_lock)
 
     def looking(self):
@@ -520,7 +506,7 @@ class ICubManager(ProcessModuleManager):
             return iCubMoveHead(self._looking_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             if not self.initialized:
-                raise RobotNotInitialized()
+                raise RobotNotInitialized("icub")
             return iCubMoveHeadReal(self._looking_lock,self.gaze_client_port)
 
     def detecting(self):
@@ -528,7 +514,7 @@ class ICubManager(ProcessModuleManager):
             return iCubDetecting(self._detecting_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             if not self.initialized:
-                raise RobotNotInitialized()
+                raise RobotNotInitialized("icub")
             return iCubDetectingReal(self._detecting_lock)
 
     def move_tcp(self):
@@ -536,7 +522,7 @@ class ICubManager(ProcessModuleManager):
             return iCubMoveTCP(self._move_tcp_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             if not self.initialized:
-                raise RobotNotInitialized()
+                raise RobotNotInitialized("icub")
             return iCubMoveTCPReal(self._move_tcp_lock,self.action_client_port)
 
     def move_arm_joints(self):
@@ -545,7 +531,7 @@ class ICubManager(ProcessModuleManager):
 
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             if not self.initialized:
-                raise RobotNotInitialized()
+                raise RobotNotInitialized("icub")
             return iCubMoveArmJointsReal(self._move_arm_joints_lock,
                                      [self.state_right_arm_port, self.state_left_arm_port],
                                      [self.ctp_right_arm_client_port,self.ctp_left_arm_client_port])

@@ -1,13 +1,10 @@
 import math
-import sys
-from time import sleep
 
 from pycram import World
 from pycram.failures import YarpNetworkError
 from pycram.robot_description import RobotDescription
 from pycram.ros.logging import logdebug, logwarn, loginfo, logerr
-from pycram.yarp_utils.yarp_networking import *
-import yarp
+from pycram.external_interfaces.yarp_networking import *
 
 
 class IcubStateUpdater(yarp.RFModule):
