@@ -1,5 +1,8 @@
 from threading import Lock
 import numpy as np
+
+from .default_process_modules import DefaultManager
+from .donbot_process_modules import _park_arms
 from .. import world_reasoning as btr
 from ..utils import _apply_ik
 from ..designators.motion_designator import *
@@ -184,20 +187,12 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
     _apply_ik(robot, inv)
 
 
-class BoxyManager(ProcessModuleManager):
+class BoxyManager(DefaultManager):
 
     def __init__(self):
-        super().__init__("boxy")
-        self._navigate_lock = Lock()
-        self._looking_lock = Lock()
-        self._detecting_lock = Lock()
-        self._move_tcp_lock = Lock()
-        self._move_arm_joints_lock = Lock()
-        self._world_state_detecting_lock = Lock()
-        self._move_joints_lock = Lock()
-        self._move_gripper_lock = Lock()
-        self._open_lock = Lock()
-        self._close_lock = Lock()
+        super().__init__()
+        self.robot_name = "boxy"
+
 
     def navigate(self):
         if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:

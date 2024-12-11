@@ -1,27 +1,49 @@
-from threading import Lock
-from typing_extensions import List
+import inspect
 
+import actionlib
 import numpy as np
 import rospy
+from typing_extensions import List, TYPE_CHECKING
 
-import pycram.datastructures.dataclasses
-from ..datastructures.dataclasses import Color
+from pycrap import *
 from ..datastructures.enums import JointType
+from ..datastructures.world import World
+from ..designators.motion_designator import *
+from ..external_interfaces import giskard
 from ..external_interfaces.ik import request_ik
+from ..external_interfaces.move_base import query_pose_nav
 from ..external_interfaces.robokudo import query_all_objects, query_object, query_human, query_specific_region, \
-    query_human_attributes, query_waving_human, stop_query
-from ..ros.ros_tools import get_time
-from ..utils import _apply_ik, map_color_names_to_rgba
+    query_human_attributes, query_waving_human
+from ..failures import NavigationGoalNotReachedError
+from ..local_transformer import LocalTransformer
+from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..process_module import ProcessModule
 from ..robot_description import RobotDescription
-from ..local_transformer import LocalTransformer
-from ..designators.motion_designator import *
-from ..world_reasoning import visible, link_pose_for_joint_config
+from ..ros.data_types import Duration
+from ..ros.logging import logdebug, loginfo, logwarn
+from ..ros.ros_tools import get_time
+from ..utils import _apply_ik, map_color_names_to_rgba
 from ..world_concepts.world_object import Object
-from ..datastructures.world import World
-from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
-from pycrap import *
-import inspect
+from ..world_reasoning import visible, link_pose_for_joint_config
+
+if TYPE_CHECKING:
+    from ..designators.object_designator import ObjectDesignatorDescription
+
+try:
+    from ..worlds.multiverse import Multiverse
+except ImportError:
+    Multiverse = type(None)
+
+try:
+    from control_msgs.msg import GripperCommandGoal, GripperCommandAction
+except ImportError:
+    if Multiverse is not None:
+        logwarn("Import for control_msgs for gripper in Multiverse failed")
+
+try:
+    from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
+except ImportError:
+    logdebug("Pr2GripperCommandGoal not found")
 
 
 class DefaultNavigation(ProcessModule):
@@ -45,23 +67,17 @@ class DefaultMoveHead(ProcessModule):
         robot = World.robot
 
         local_transformer = LocalTransformer()
-
-        pan_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[0]
-        tilt_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[1]
-
-        pan_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[0]
-        tilt_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[1]
-        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link))
-        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link))
+        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_pan_link"))
+        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_tilt_link"))
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
 
-        current_pan = robot.get_joint_position(pan_joint)
-        current_tilt = robot.get_joint_position(tilt_joint)
+        current_pan = robot.get_joint_position("head_pan_joint")
+        current_tilt = robot.get_joint_position("head_tilt_joint")
 
-        robot.set_joint_position(pan_joint, new_pan + current_pan)
-        robot.set_joint_position(tilt_joint, new_tilt + current_tilt)
+        robot.set_joint_position("head_pan_joint", new_pan + current_pan)
+        robot.set_joint_position("head_tilt_joint", new_tilt + current_tilt)
 
 
 class DefaultMoveGripper(ProcessModule):
@@ -302,32 +318,202 @@ class DefaultDetectingReal(ProcessModule):
 
             return object_dict
 
+class DefaultNavigationReal(ProcessModule):
+    """
+    Process module for the real robot that sends a cartesian goal to giskard to move the robot base
+    """
+
+    def _execute(self, designator: MoveMotion):
+        logdebug(f"Sending goal to movebase to Move the robot")
+        query_pose_nav(designator.target)
+        if not World.current_world.robot.pose.almost_equal(designator.target, 0.05, 3):
+            raise NavigationGoalNotReachedError(World.current_world.robot.pose, designator.target)
+
+class DefaultMoveHeadReal(ProcessModule):
+    """
+    Process module for controlling the real robot's head to look at a specified position.
+    Uses the same calculations as the simulated version to orient the head.
+    """
+
+    def _execute(self, desig: LookingMotion):
+        target = desig.target
+        robot = World.robot
+
+        local_transformer = LocalTransformer()
+        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_pan_link"))
+        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_tilt_link"))
+
+        new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
+        new_tilt = np.arctan2(pose_in_tilt.position.z, np.sqrt(pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2)) * -1
+
+        current_pan = robot.get_joint_position("head_pan_joint")
+        current_tilt = robot.get_joint_position("head_tilt_joint")
+
+        giskard.avoid_all_collisions()
+        giskard.achieve_joint_goal({"head_pan_joint": new_pan + current_pan,
+                                    "head_tilt_joint": new_tilt + current_tilt})
+
+
+class DefaultMoveTCPReal(ProcessModule):
+    """
+    Moves the tool center point of the real robot while avoiding all collisions
+    """
+
+    def _execute(self, designator: MoveTCPMotion):
+        lt = LocalTransformer()
+        pose_in_map = lt.transform_pose(designator.target, "map")
+        tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
+        root_link = "map"
+
+        gripper_that_can_collide = designator.arm if designator.allow_gripper_collision else None
+        if designator.allow_gripper_collision:
+            giskard.allow_gripper_collision(designator.arm.name.lower())
+
+        if designator.movement_type == MovementType.STRAIGHT_TRANSLATION:
+            giskard.achieve_straight_translation_goal(pose_in_map.position_as_list(), tip_link, root_link)
+        elif designator.movement_type == MovementType.STRAIGHT_CARTESIAN:
+            giskard.achieve_straight_cartesian_goal(pose_in_map, tip_link, root_link)
+        elif designator.movement_type == MovementType.TRANSLATION:
+            giskard.achieve_translation_goal(pose_in_map.position_as_list(), tip_link, root_link)
+        elif designator.movement_type == MovementType.CARTESIAN:
+            giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
+                                           grippers_that_can_collide=gripper_that_can_collide,
+                                           use_monitor=designator.monitor_motion)
+        if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.01, 3):
+            raise ToolPoseNotReachedError(World.current_world.robot.get_link_pose(tip_link), designator.target)
+
+
+
+class DefaultMoveArmJointsReal(ProcessModule):
+    """
+    Moves the arm joints of the real robot to the given configuration while avoiding all collisions
+    """
+
+    def _execute(self, designator: MoveArmJointsMotion):
+        joint_goals = {}
+        if designator.left_arm_poses:
+            joint_goals.update(designator.left_arm_poses)
+        if designator.right_arm_poses:
+            joint_goals.update(designator.right_arm_poses)
+        giskard.avoid_all_collisions()
+        giskard.achieve_joint_goal(joint_goals)
+
+
+class DefaultMoveJointsReal(ProcessModule):
+    """
+    Moves any joint using giskard, avoids all collisions while doint this.
+    """
+
+    def _execute(self, designator: MoveJointsMotion):
+        name_to_position = dict(zip(designator.names, designator.positions))
+        giskard.avoid_all_collisions()
+        giskard.achieve_joint_goal(name_to_position)
+
+
+class Pr2GripperCommandGoal:
+    pass
+
+
+class DefaultMoveGripperReal(ProcessModule):
+    """
+    Opens or closes the gripper of the real robot, gripper uses an action server for this instead of giskard
+    """
+
+    def _execute(self, designator: MoveGripperMotion):
+        def activate_callback():
+            loginfo("Started gripper Movement")
+
+        def done_callback(state, result):
+            loginfo(f"Reached goal {designator.motion}")
+
+        def feedback_callback(msg):
+            pass
+
+        goal = Pr2GripperCommandGoal()
+        goal.command.position = 0.0 if designator.motion == GripperState.CLOSE else 0.1
+        goal.command.max_effort = 50.0
+        if designator.gripper == Arms.RIGHT:
+            controller_topic = "r_gripper_controller/gripper_action"
+        else:
+            controller_topic = "l_gripper_controller/gripper_action"
+        client = actionlib.SimpleActionClient(controller_topic, Pr2GripperCommandAction)
+        loginfo("Waiting for action server")
+        client.wait_for_server()
+        client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
+        wait = client.wait_for_result()
+class DefaultMoveGripperMultiverse(ProcessModule):
+    """
+    Opens or closes the gripper of the real PR2, gripper uses an action server for this instead of giskard
+    """
+
+    def _execute(self, designator: MoveGripperMotion):
+        def activate_callback():
+            loginfo("Started gripper Movement")
+
+        def done_callback(state, result):
+            loginfo(f"Reached goal {designator.motion}: {result.reached_goal}")
+
+        def feedback_callback(msg):
+            loginfo(f"Gripper Action Feedback: {msg}")
+
+        goal = GripperCommandGoal()
+        goal.command.position = 0.0 if designator.motion == GripperState.CLOSE else 0.4
+        goal.command.max_effort = 50.0
+        if designator.gripper == "right":
+            controller_topic = "/real/pr2/right_gripper_controller/gripper_cmd"
+        else:
+            controller_topic = "/real/pr2/left_gripper_controller/gripper_cmd"
+        client = actionlib.SimpleActionClient(controller_topic, GripperCommandAction)
+        loginfo("Waiting for action server")
+        client.wait_for_server()
+        client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
+        wait = client.wait_for_result(Duration(5))
+        # client.cancel_all_goals()
+
+
+class DefaultOpenReal(ProcessModule):
+    """
+    Tries to open an already grasped container
+    """
+
+    def _execute(self, designator: OpeningMotion):
+        giskard.achieve_open_container_goal(
+            RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
+            designator.object_part.name)
+
+
+class DefaultCloseReal(ProcessModule):
+    """
+    Tries to close an already grasped container
+    """
+
+    def _execute(self, designator: ClosingMotion):
+        giskard.achieve_close_container_goal(
+            RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
+            designator.object_part.name)
+
 
 class DefaultManager(ProcessModuleManager):
 
     def __init__(self):
         super().__init__("default")
-        self._navigate_lock = Lock()
-        self._looking_lock = Lock()
-        self._detecting_lock = Lock()
-        self._move_tcp_lock = Lock()
-        self._move_arm_joints_lock = Lock()
-        self._world_state_detecting_lock = Lock()
-        self._move_joints_lock = Lock()
-        self._move_gripper_lock = Lock()
-        self._open_lock = Lock()
-        self._close_lock = Lock()
 
     def navigate(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultNavigation(self._navigate_lock)
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            return DefaultNavigationReal(self._navigate_lock)
 
     def looking(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveHead(self._looking_lock)
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            return DefaultMoveHeadReal(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED or not robokudo_found:
+            if not robokudo_found:
+                logwarn("Robokudo not found, using simulated detection")
             return DefaultDetecting(self._detecting_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return DefaultDetectingReal(self._detecting_lock)
@@ -335,27 +521,44 @@ class DefaultManager(ProcessModuleManager):
     def move_tcp(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveTCP(self._move_tcp_lock)
+        elif ProcessModuleManager.execution_type == "real":
+            return DefaultMoveTCPReal(self._move_tcp_lock)
 
     def move_arm_joints(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveArmJoints(self._move_arm_joints_lock)
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            return DefaultMoveArmJointsReal(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
+        if (ProcessModuleManager.execution_type == ExecutionType.SIMULATED or
+                ProcessModuleManager.execution_type == ExecutionType.REAL):
             return DefaultWorldStateDetecting(self._world_state_detecting_lock)
 
     def move_joints(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveJoints(self._move_joints_lock)
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            return DefaultMoveJointsReal(self._move_joints_lock)
 
     def move_gripper(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveGripper(self._move_gripper_lock)
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            if (isinstance(World.current_world, Multiverse) and
+                    World.current_world.conf.use_multiverse_process_modules):
+                return DefaultMoveGripperMultiverse(self._move_gripper_lock)
+            else:
+                return DefaultMoveGripperReal(self._move_gripper_lock)
 
     def open(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultOpen(self._open_lock)
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            return DefaultOpenReal(self._open_lock)
 
     def close(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultClose(self._close_lock)
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            return DefaultCloseReal(self._close_lock)
