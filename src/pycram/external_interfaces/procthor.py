@@ -3,9 +3,9 @@ import os
 
 import requests
 from bs4 import BeautifulSoup
-from pycram.ros import ros_tools
+from ..ros import ros_tools
 from typing_extensions import Dict, Set
-from pycram.ros import logging as log
+from ..ros import logging as log
 
 filename = ros_tools.get_ros_package_path('pycram')
 
