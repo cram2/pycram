@@ -6,8 +6,7 @@ ProcessModule -- implementation of process modules.
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 import inspect
-import threading
-from threading import Lock
+from threading import Lock, get_ident
 import time
 from abc import ABC
 from typing_extensions import Callable, Type, Any, Union
@@ -57,7 +56,7 @@ class ProcessModule:
         :param designator: The designator_description to execute.
         :return: Return of the Process Module if there is any
         """
-        if threading.get_ident() in Language.block_list:
+        if get_ident() in Language.block_list:
             return None
         with self._lock:
             ret = self._execute(designator)
