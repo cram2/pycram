@@ -3,10 +3,10 @@ repositories:
     type: git
     url: https://github.com/code-iai/iai_maps.git
     version: master
-  iai_robots:
+  vrb-robots:
     type: git
-    url: http://github.com/LucaKro/iai_robots.git
-    version: armar6
+    url: https://github.com/code-iai/vrb-robots.git
+    version: master
   pr2_common:
     type: git
     url: https://github.com/PR2/pr2_common.git
@@ -23,7 +23,3 @@ repositories:
     type: git
     url: https://github.com/orocos/orocos_kinematics_dynamics.git
     version: v1.5.1
-  fetch_ros:
-    type: git
-    url: https://github.com/ZebraDevs/fetch_ros.git
-    version: ros1

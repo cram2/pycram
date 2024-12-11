@@ -62,6 +62,11 @@ RUN git clone https://github.com/code-iai/iai_tiago.git
 WORKDIR  ${PYCRAM_WS}/src/iai_tiago/
 RUN git submodule update --init
 
+# fetch resources
+WORKDIR ${PYCRAM_WS}/src/
+WORKDIR  ${PYCRAM_WS}/src/external-robots/
+RUN git submodule update --init
+
 # Build pycram workspace
 WORKDIR  ${PYCRAM_WS}
 USER root
@@ -85,6 +90,5 @@ CMD ["jupyter", "lab", "--allow-root", "--NotebookApp.token=''", "--no-browser",
 RUN pip install https://raw.githubusercontent.com/yxzhan/jupyterlab-rviz/master/dist/jupyterlab_rviz-0.3.1.tar.gz
 RUN mkdir -p /home/${NB_USER}/.ipython/profile_default/startup/
 
+#todo add here the correct link
 RUN curl https://raw.githubusercontent.com/sunava/pycram/revision-binder-all-robots/binder/01-import.py -o /home/${NB_USER}/.ipython/profile_default/startup/01-import.py
-# RUN curl https://raw.githubusercontent.com/LucaKro/pycram/revision-binder-all-robots/binder/01-import.py -o /home/${NB_USER}/.ipython/profile_default/startup/01-import.py
-

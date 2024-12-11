@@ -1,8 +1,6 @@
 import sys
-
-from demos.pycram_virtual_building_demos.setup.setup_utils import get_robot_name
-
 sys.path.insert(0, '/home/jovyan/workspace/ros/src/pycram')
+from demos.pycram_virtual_building_demos.setup.setup_utils import get_robot_name
 
 from demos.pycram_virtual_building_demos.setup.setup_launch_robot import launch_pr2, launch_hsrb, launch_stretch, \
     launch_tiago, launch_justin, launch_donbot, launch_armar, launch_icub, launch_fetch
