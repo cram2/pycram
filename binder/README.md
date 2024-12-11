@@ -455,6 +455,111 @@ with simulated_robot:
 
 
 
+# Uploading Your Jupyter Notebook to Binder
+
+To share your Jupyter notebook via Binder, follow these steps. **Note:** The first time you start your Binder, **it will not work right away** (this happens only the first time).
+
+### Instructions from Copycat (von LE k3ks):
+Here’s a quick overview of how to share your Binder link without using "simple mode."
+
+1. **Step 1**: Click on the **"Binder"** button, as shown in the first image below (the red highlighted area).
+   
+   ![](https://hackmd.informatik.uni-bremen.de/uploads/af929e39-fe51-4cf2-a444-c15c93186abe.png)
+
+2. **Step 2**: A window like the second image will open. Copy the link that appears.
+
+   ![](https://hackmd.informatik.uni-bremen.de/uploads/31431f6b-a998-4727-aa31-f8a5ff428244.png)
+
+3. **Step 3**: That’s it! Now you have a shareable link for your Jupyter notebook.
+
+---
+
+### Important: Local Testing (Without the VIB Website, but still in BINDER)
+
+If you want to test your notebook **locally** using the link you’ve copied, you may need to add some extra parameters to the end of the link, depending on the number of drop-down menus your task requires.
+
+Add the following to the end of your link:
+```
+%3Fenvironments%3Dapartment%26robots%3Dpr2%26tasks%3Dnavigate
+```
+Make sure to include all special symbols (`%`, `3F`, `26`, etc.).
+
+If you are planning to test new robots on your own branch first before merging it with the main branch, make sure to **temporarily** update the last line inside the dockerfile, to make sure `curl` reads the correct `binder/01-import.py` file. 
+**Important!** Then, before merging with the main branch, make sure to revert the curl address to its original state! 
+
+---
+
+# The Startup File -> Complete Local Testing without website and binder possible here:
+
+This startup file is designed to run specific setup actions **automatically** when the Jupyter notebook opens. It gets installed during the Binder build process.
+
+**Important!** If you have a new robot model, it must be added to this file.
+
+For **local testing** (without Binder building), you need to copy the startup file into the following directory on your local system:```~/.ipython/profile_default/startup/```
+
+
+In this context, we use something called `irepl`. If you're interested in learning more about using REPL in `pycram`, feel free to ask me. Otherwise, I can’t help you! 😋
+
+**Important!** In line 3 of the startup file, you’ll need to specify the path to your `pycram` root directory.
+
+After that, things should work fine for local testing. If you open a Jupyter notebook, your configurations will start automatically. **Note:** If you’re using PyCharm, the notebook may not launch directly, but you can open it in Firefox or Chrome (this happens due to the kernel's idle start behavior). 
+
+**Important!** Don’t forget to also set the following ROS parameters:
+```
+rosparam set /nbparam_environments apartment
+rosparam set /nbparam_robots pr2
+rosparam set /nbparam_tasks navigate
+```
+
+
+# Adding the Demo
+
+Simply add the demo here: 
+demo/pycram_virtual_building_demos/setup_demo_manger.py  https://github.com/sunava/pycram/blob/ddd9104fc0878f33b22b05fc386cda9057514376/demos/pycram_virtual_building_demos/setup_demo_manager.py#L66
+
+### Example: The Startup File Code (`01-import.py`)
+
+This script is located here for reference: [01-import.py](https://github.com/sunava/pycram/blob/binder-all-robots/binder/01-import.py)
+
+```python
+import sys
+import rospy
+from pycram.datastructures.enums import ObjectType, WorldMode
+from pycram.object_descriptors.urdf import ObjectDescription
+from pycram.ros.tf_broadcaster import TFBroadcaster
+from pycram.ros.viz_marker_publisher import VizMarkerPublisher
+from pycram.world_concepts.world_object import Object
+from pycram.worlds.bullet_world import BulletWorld
+from demos.pycram_virtual_building_demos.setup.setup_launch_robot import launch_pr2, launch_hsrb, launch_stretch, launch_tiago
+
+# Set up the pycram root path
+sys.path.insert(0, '/home/jovyan/workspace/ros/src/pycram')
+
+# Getting parameters for robot and environment
+robot_param = rospy.get_param('/nbparam_robots')
+environment_param = rospy.get_param('/nbparam_environments')
+
+# Launching the appropriate robot
+if robot_param == 'pr2':
+    launch_pr2()
+elif robot_param == 'hsrb':
+    launch_hsrb()
+elif robot_param == 'stretch':
+    launch_stretch()
+elif robot_param == 'tiago':
+    launch_tiago()
+
+# Set up world and robot objects
+extension = ObjectDescription.get_file_extension()
+world = BulletWorld(WorldMode.DIRECT)
+VizMarkerPublisher()
+tf = TFBroadcaster()
+
+# Initialize the robot and environment in the world
+Object(robot_param, ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
+Object("environment", ObjectType.ENVIRONMENT, f"{environment_param}-small{extension}")
+
+
 
 
 
