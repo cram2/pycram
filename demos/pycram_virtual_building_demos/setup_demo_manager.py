@@ -9,6 +9,7 @@ from demos.pycram_virtual_building_demos.src.transport_demo import transporting_
 
 # sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
 sys.path.insert(0, '/home/jovyan/workspace/ros/src/pycram')
+# sys.path.insert(0, '/home/me/IAI_work/binder_ws/src/pycram')
 
 from demos.pycram_virtual_building_demos.setup.setup_utils import display_loading_gif_with_text, update_text, \
     get_robot_name
@@ -34,11 +35,10 @@ def start_demo():
 
     robot_name = get_robot_name(robot_param)
 
-    # extension = ObjectDescription.get_file_extension()
-    # # text widget for the virtual building
+    extension = ObjectDescription.get_file_extension()
+    # text widget for the virtual building
     text_widget = display_loading_gif_with_text()
     update_text(text_widget, 'Loading process~ Please wait...')
-    #
     # world = BulletWorld(WorldMode.DIRECT)
     #
     # # Set this to True to publish costmaps and axis marker during the demo. May slow down the simulation.
@@ -47,7 +47,9 @@ def start_demo():
     # VizMarkerPublisher()
     # robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
     # apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
-    # if not robot.name == "Armar6":
+    # if robot_param not in ["pr2", "icub", "fetch", "tiago", "donbot"]:
+    #     VizMarkerRobotPublisher()
+    # else:
     #     TFBroadcaster()
 
     clear_output(wait=True)

@@ -49,7 +49,8 @@ def get_robot_name(robot_name: str):
         'donbot': 'iai_donbot',
         'tiago': 'tiago_dual',
         'armar': 'Armar6',
-        'icub': 'iCub'
+        'icub': 'iCub',
+        'fetch': 'fetch'
     }
 
     return robot_name_map.get(robot_name, robot_name)

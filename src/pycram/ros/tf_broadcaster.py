@@ -57,6 +57,7 @@ class TFBroadcaster:
             pose = obj.get_pose()
             pose.header.stamp = rospy.Time.now()
             self._append_pose_to_tf_message(obj.tf_frame, pose, tf2_msg)
+            self._append_pose_to_tf_message(f"pycram_robot/{obj.root_link_name}", pose, tf2_msg)
             for link in obj.link_name_to_id.keys():
                 link_pose = obj.get_link_pose(link)
                 link_pose.header.stamp = rospy.Time.now()
