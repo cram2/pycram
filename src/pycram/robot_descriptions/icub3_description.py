@@ -1,10 +1,10 @@
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import Arms, Grasp, GripperState, GripperType
+from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState
 import rospkg
 
 rospack = rospkg.RosPack()
-filename = rospack.get_path('pycram') + '/resources/robots/' + "iCub" + '.urdf'
+filename = rospack.get_path('pycram') + '/resources/robots/' + "iCub3" + '.urdf'
 
 icub_description = RobotDescription("iCub3", "base_footprint", "torso_1", "torso_pitch",
                                     filename)
@@ -144,11 +144,11 @@ right_arm.end_effector = right_gripper
 torso = KinematicChainDescription("torso", "root_link", "chest",
                                   icub_description.urdf_object)
 
-# torso.add_static_joint_states(TorsoState.HIGH, {"torso_roll": 0})
-#
-# torso.add_static_joint_states(TorsoState.MID, {"torso_roll": 0})
-#
-# torso.add_static_joint_states(TorsoState.LOW, {"torso_roll": 0})
+torso.add_static_joint_states(TorsoState.HIGH, {"torso_roll": 0})
+
+torso.add_static_joint_states(TorsoState.MID, {"torso_roll": 0})
+
+torso.add_static_joint_states(TorsoState.LOW, {"torso_roll": 0})
 
 icub_description.add_kinematic_chain_description(torso)
 
