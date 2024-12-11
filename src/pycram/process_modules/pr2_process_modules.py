@@ -25,7 +25,7 @@ except ImportError:
 try:
     from ..worlds import Multiverse
 except ImportError:
-    Multiverse = NoneType
+    Multiverse = type(None)
 
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2

@@ -448,13 +448,7 @@ class TransportActionPerformable(ActionAbstract):
         for pose in pickup_loc:
             if self.arm in pose.reachable_arms:
                 pickup_pose = pose
-                NavigateActionPerformable(pickup_pose.pose).perform()
-                robot = robot_desig.resolve().world_object
-                if robot.pose.almost_equal(pickup_pose.pose, 0.1, 3):
-                    break
-                else:
-                    pickup_pose = None
-                    continue
+                break
         if not pickup_pose:
             raise ObjectUnfetchable(
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
