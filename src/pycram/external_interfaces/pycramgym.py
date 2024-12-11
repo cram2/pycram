@@ -1,8 +1,9 @@
-from pycram.language import Language
-from pycram.world_concepts.world_object import Object, World
-from pycram.datastructures.enums import ObjectType
-from pycram.datastructures.pose import Pose
+from ..language import Language
+from ..world_concepts.world_object import Object, World
+from ..datastructures.enums import ObjectType
+from ..datastructures.pose import Pose
 import gymnasium as gym
+import pycrap
 
 class PyCRAMGym(gym.Env):
     """
@@ -11,18 +12,29 @@ class PyCRAMGym(gym.Env):
     """
 
     world: str # should be World currently not possible because spawning multiple bullet worlds leads to problems
+    """
+    The world should be an real World Object, but sadly this is not possible, because if we close and open multiple 
+    bulletworlds in quick succession, then there is a problem with objects not being loaded properly. Thus we decided to
+    let the user create the world they want to use and just load the environment urdf of the file they give to this class
+    """
     robot: str # name to search for robot
+    """
+    The robot should be a real Robot Object, but in order to stay in line with the world it is just the name of the 
+    urdf that will be loaded as a robot.
+    """
     plan: Language # plan language object that can performed
-
+    """
+    Plan langauge object that can get executed. 
+    """
 
     def __init__(self, inWorld: str, inRobot: str, inPlan: Language):
         super().__init__()
         if World.current_world is not None:
             if inRobot.endswith('.urdf'):
-                self.robot = Object(inRobot.split('.urdf')[0], ObjectType.ROBOT, inRobot, pose=Pose([1, 2, 0]))
+                self.robot = Object(inRobot.split('.urdf')[0], pycrap.Robot, inRobot, pose=Pose([1, 2, 0]))
             else:
-                self.robot = Object(inRobot, ObjectType.ROBOT, inRobot+".urdf", pose=Pose([1, 2, 0]))
-            self.world = Object(inWorld, ObjectType.ENVIRONMENT, inWorld + ".urdf")
+                self.robot = Object(inRobot, pycrap.Robot, inRobot+".urdf", pose=Pose([1, 2, 0]))
+            self.world = Object(inWorld, pycrap.Apartment, inWorld + ".urdf")
             self.plan = inPlan
 
     def step(self, action: gym.core.ActType):
