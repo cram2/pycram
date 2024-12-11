@@ -1,14 +1,14 @@
 from IPython.core.display_functions import display
 from ipywidgets import widgets
 
-from variable_handler import VariableHandler
+from demos.pycram_hsrb_follow.variable_handler import VariableHandler
 from pycram.designators.action_designator import *
 from pycram.process_module import simulated_robot
 from pycram.world_concepts.world_object import Object
 from pycrap import Robot, Milk, Apartment
 
 
-def follow_binder_demo(robot = None, apartment = None):
+def follow_binder_demo(robot_name = None, apartment_name = None):
     """
     Starts the "follow" demo in a binder conform version.
     Original demo from Jule Schulz relies on Keyboard input which cannot be natively used in a binder environment.
@@ -19,11 +19,17 @@ def follow_binder_demo(robot = None, apartment = None):
     vh = VariableHandler()
 
     # Objects
-    if robot is None:
+    if robot_name is None:
         robot = Object('hsrb', Robot, f"hsrb.urdf", pose=Pose([1, 2, 0]))
+    else:
+        robot_desig = BelieveObject(names=[robot_name])
+        robot = robot_desig.resolve().world_object
 
-    if apartment is None:
+    if apartment_name is None:
         apartment = Object('apartment', Apartment, f"apartment-small.urdf")
+    else:
+        apartment_desig = BelieveObject(names=[apartment_name])
+        apartment = apartment_desig.resolve().world_object
 
     human = Object("human", Milk, "human.stl", pose=Pose([2, 0, 0], vh.ori_s))
 

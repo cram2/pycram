@@ -1,6 +1,6 @@
 from IPython.core.display_functions import clear_output
 
-from pycram.ros.viz_marker_publisher import VizMarkerPublisher, AxisMarkerPublisher
+#from pycram.ros.viz_marker_publisher import VizMarkerPublisher, AxisMarkerPublisher
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
