@@ -1,12 +1,31 @@
+import shutil
 from os import mkdir
 
 import networkx as nx
 import owlready2
 import tqdm
-from owlready2 import ThingClass, PropertyClass
+from owlready2 import ThingClass, PropertyClass, get_ontology, LogicalClassConstruct
 from owlready2.base import *
 from typing_extensions import List, Any
+import inflection
 
+# Mapping of digits to words
+digit_map = {
+    '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
+    '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine'
+}
+
+def set_explicit_repr_for_logical_operator():
+    def explicit_repr(self):
+        s = []
+        for x in self.Classes:
+            if isinstance(x, LogicalClassConstruct):
+                s.append("(%s)" % x)
+            else:
+                s.append(repr(x))
+        return "%s([%s])" % (self.__class__.__name__, ", ".join(s))
+
+    LogicalClassConstruct.__repr__ = explicit_repr
 
 def to_snake_case(string: str) -> str:
     """
@@ -15,7 +34,7 @@ def to_snake_case(string: str) -> str:
     :param string: The string to convert.
     :return: The string in snake case.
     """
-    return string.replace(" ", "_").lower()
+    return inflection.underscore(string)
 
 def to_camel_case(string: str) -> str:
     """
@@ -24,29 +43,80 @@ def to_camel_case(string: str) -> str:
     :param string: The string to convert.
     :return: The string in camel case.
     """
-    return ''.join(x for x in string.title() if not x.isspace())
+    return inflection.camelize(string)
 
-class OntologyParser:
+def replace_types(string: str) -> str:
     """
-    A class that parses everything from an owlready2 compatible ontology into python files that
-    represent the same ontology.
+    Replace the types in a string with python types
 
-    It will create several files in a directory specified by the constructor:
-    - base: A file that contains an intermediate based class and temporary ontology definitions such that a user
-    can configure it at the end of the process.
-    - classes: A file that contains all classes from the ontology without any restrictions.
-    - object_properties: A file the contains all object properties from the ontology without any restrictions.
-    - data_properties: A file the contains all data properties from the ontology without any restrictions.
-    - restrictions: The restrictions for all classes and properties.
-    - individuals: All indivduals with the resepctive properties from the ontology.
-    - __init__.py: A package initialization that loads the content of all files.
+    Example:
+    >>> replace_types("array_double__<class 'int'>")
+    "float__int"
 
-    TODO: Labels metadata and SWRL is not parsed
+    # TODO array_double will be converted to float for now
+    :param string: The string to convert
+    :return: The string with the types replaced
+    """
+    if "-" in str(string):
+        string = str(string).replace("-", "")
+    if "array_double" in str(string):
+        string = str(string).replace("array_double", "float")
+    if "<class 'int'>" in str(string):
+        string = str(string).replace("<class 'int'>", "int")
+    if "<class 'str'>" in str(string):
+        string = str(string).replace("<class 'str'>", "str")
+    if "<class 'owlready2.util.normstr'>" in str(string):
+        string = str(string).replace("<class 'owlready2.util.normstr'>", "normstr")
+    if "<class 'float'>" in str(string):
+        string = str(string).replace("<class 'float'>", "float")
+    if "<class 'bool'>" in str(string):
+        string = str(string).replace("<class 'bool'>", "bool")
+    if "<class 'datetime.datetime'>" in str(string):
+        string = str(string).replace("<class 'datetime.datetime'>", "datetime")
+    return string
+
+
+def update_class_names(onto: owlready2.Ontology):
+    """
+    Update the class names to match python conventions.
+    """
+    for cls in onto.classes():
+        if cls is owlready2.Thing:
+            continue
+        converted_name = replace_types(cls.name)
+        converted_name = to_camel_case(converted_name)
+        converted_name = ''.join(digit_map[char] if char.isdigit() else char for char in converted_name)
+        type.__setattr__(cls, "_name", converted_name)
+
+def update_property_names(onto: owlready2.Ontology):
+    """
+    Update the property names to match python conventions of functions and members.
+    """
+    for prop in onto.properties():
+        converted_name = to_snake_case(prop.name)
+        converted_name = ''.join(digit_map[char] if char.isdigit() else char for char in converted_name)
+        type.__setattr__(prop, "original_name", prop.name)
+        type.__setattr__(prop, "_name", converted_name)
+
+
+class AbstractParser:
+    """
+    An abstract class for parsing
     """
 
-    ontology: owlready2.Ontology
+    current_file: Any
     """
-    The ontology to parse.
+    The current file where contents are written into.
+    """
+
+    indentation: int
+    """
+    The indentation to use for the python file.
+    """
+
+    file_extension: str = ".py"
+    """
+    The file extension for the python file.
     """
 
     path: str
@@ -54,9 +124,55 @@ class OntologyParser:
     The path to write the files of the parsed ontology into.
     """
 
-    base_file_name: str = "base"
+    def __init__(self, path, indentation: int = 4):
+        self.path = path
+        self.indentation = indentation
+
+    def apply_indent_to(self, string):
+        """
+        Indent a statement at the beginning of every new line.
+
+        :param string: The statement.
+        :return: The indented string.
+        """
+        return " " * self.indentation + string.replace('\n', '\n' + ' ' * self.indentation)
+
+    def path_for_file(self, file_name):
+        """
+        Generate the path for a file.
+
+        Example:
+        >>> parser = AbstractParser("/tmp")
+        >>> parser.path_for_file("base")
+            "/tmp/base.py"
+
+        :param file_name: The file name.
+        :return: The path to the file.
+        """
+        return f"{os.path.join(self.path, file_name)}{self.file_extension}"
+
+
+class OntologyParser(AbstractParser):
     """
-    The file name where the base classes are written to.
+    A class that parses everything from an owlready2 compatible ontology into python files that
+    represent the same ontology.
+
+    It will create several files in a directory specified by the constructor:
+    - dependencies: A file that the imports from other packages/modules that are needed to define this ontology.
+    - classes: A file that contains all classes from the ontology without any restrictions.
+    - object_properties: A file the contains all object properties from the ontology without any restrictions.
+    - data_properties: A file the contains all data properties from the ontology without any restrictions.
+    - restrictions: The restrictions for all classes and properties.
+    - individuals: All individuals with the respective properties from the ontology.
+    - __init__.py: A package initialization that loads the content of all files and hence sets the restrictions
+                   and so on.
+
+    TODO: Labels metadata and SWRL is not parsed
+    """
+
+    ontology: owlready2.Ontology
+    """
+    The ontology to parse.
     """
 
     classes_file_name: str = "classes"
@@ -70,47 +186,43 @@ class OntologyParser:
     """
 
     data_properties_file_name: str = "data_properties"
+    """
+    The file name where all elements from ontology.data_properties() are written to.
+    """
 
     restrictions_file_name: str = "restrictions"
+    """
+    The file name where all restrictions are written to.
+    """
 
     individuals_file_name: str = "individuals"
-
-    file_extension: str = ".py"
-
-    indentation = 4
     """
-    The indentation to use for the python file.
+    The file name where all individuals are written to.
     """
 
-    current_file: Any
+    dependencies_file_name: str = "dependencies"
     """
-    The current file where definitions are written into.
+    The file name where all dependencies are written to.
     """
 
-    def __init__(self, ontology: owlready2.Ontology, path: str):
+    dependencies: List[owlready2.Ontology]
+    """
+    The other ontologies that have to be imported.
+    """
+
+    def __init__(self, ontology: owlready2.Ontology, dependencies: List[owlready2.Ontology], path: str,
+                 indentation: int = 4):
+        super().__init__(path, indentation)
         self.ontology = ontology
-        self.path = path
-        render_func_without_namespace = lambda entity: entity.name
-        owlready2.set_render_func(render_func_without_namespace)
+        self.dependencies = dependencies
+        # TODO update class and property names here to match python conventions
 
 
-    def digit_to_string(self, cls):
-        # Mapping of digits to words
-        digit_map = {
-            '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
-            '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine'
-        }
-
-        # Replace each digit with its corresponding word
-        converted_name = ''.join(digit_map[char] if char.isdigit() else char for char in cls)
-
-        return converted_name
-
-    def parse(self, additional_imports=None):
+    def parse(self):
         """
         Parses the ontology into a python file.
         """
-        self.create_base(additional_imports)
+        self.create_dependencies()
         self.create_classes()
         self.create_object_properties()
         self.create_data_properties()
@@ -119,50 +231,35 @@ class OntologyParser:
         # create swrl rules
         self.create_init()
 
+    def create_dependencies(self):
+        self.current_file = open(self.path_for_file(self.dependencies_file_name), "w")
+        self.current_file.write("from ..base import *\n")
+        for dependency in self.dependencies:
+            self.current_file.write(f"from ..{to_snake_case(dependency.name)} import *\n")
+        self.current_file.close()
+
     def create_init(self):
         """
         Create the __init__.py
         """
         self.current_file = open(self.path_for_file("__init__"), "w")
-        self.import_from_classes()
-        self.import_from_properties()
+        self.import_classes()
+        self.import_properties()
         self.import_individuals()
         self.current_file.close()
 
-    def create_base(self, additional_imports=None):
+    def import_dependencies(self):
         """
-        Create the base.py
+        Import from the dependencies.
         """
-        self.current_file = open(self.path_for_file(self.base_file_name), "w")
-        self.create_base_imports(additional_imports)
-        self.current_file.write("\n" * 2)
-        self.current_file.write("ontology_file = tempfile.NamedTemporaryFile()\n")
-        self.current_file.write('ontology = owlready2.get_ontology("file://" + ontology_file.name).load()\n')
-        self.current_file.write("\n" * 2)
-        self.create_base_class()
-        self.create_base_property()
-        self.current_file.close()
-
-    def path_for_file(self, file_name):
-        """
-        Generate the path for a file.
-
-        Example:
-        >>> parser = OntologyParser(ontology, "/tmp")
-        >>> parser.path_for_file("base")
-            "/tmp/base.py"
-
-        :param file_name: The file name.
-        :return: The path to the file.
-        """
-        return f"{os.path.join(self.path, file_name)}{self.file_extension}"
+        self.current_file.write(f"from .{self.dependencies_file_name} import *\n")
 
     def create_classes(self):
         """
         Create the classes.py
         """
         self.current_file = open(self.path_for_file(self.classes_file_name), "w")
-        self.import_from_base()
+        self.import_dependencies()
         self.current_file.write("\n" * 2)
         classes = list(self.ontology.classes())
         for cls in tqdm.tqdm(classes, desc="Parsing classes"):
@@ -174,7 +271,7 @@ class OntologyParser:
         Create the object_properties.py
         """
         self.current_file = open(self.path_for_file(self.object_properties_file_name), "w")
-        self.import_from_base()
+        self.import_dependencies()
         self.current_file.write("\n" * 2)
         properties = list(self.ontology.object_properties())
         for prop in tqdm.tqdm(properties, desc="Parsing object properties"):
@@ -186,8 +283,8 @@ class OntologyParser:
         Create the data_properties.py
         """
         self.current_file = open(self.path_for_file(self.data_properties_file_name), "w")
-        self.import_from_base()
-        self.import_from_classes()
+        self.import_dependencies()
+        self.import_classes()
         self.current_file.write("\n" * 2)
         properties = list(self.ontology.data_properties())
         for prop in tqdm.tqdm(properties, desc="Parsing data properties"):
@@ -199,22 +296,10 @@ class OntologyParser:
         Create the restrictions.py
         """
         self.current_file = open(self.path_for_file(self.restrictions_file_name), "w")
-        self.import_from_classes()
+        self.import_dependencies()
+        self.import_classes()
         self.import_individuals()
         self.current_file.write("\n" * 2)
-
-        for cls in self.ontology.classes():
-            if cls.name[0].isdigit():
-                original_name = cls.name
-                new_name = self.digit_to_string(original_name)
-                if new_name != original_name:
-                    cls.name = new_name
-
-            if "-" in cls.name:
-                original_name = cls.name
-                new_name = cls.name.replace("-", "")
-                if new_name != original_name:
-                    cls.name = new_name
 
         elements = list(self.ontology.classes()) + list(self.ontology.properties())
 
@@ -238,24 +323,10 @@ class OntologyParser:
 
         :param cls: The class
         """
-        # TODO: requiring a digit_to_string for the restrictions body.
-        # TODO: array_double will be converted to float for now, discuss
         # write is_a restrictions
         is_a = self.parse_elements(cls.is_a)
         if is_a:
-            if "-" in str(is_a):
-                is_a = str(is_a).replace("-","")
-            if "array_double" in str(is_a):
-                is_a = str(is_a).replace("array_double","float")
-            if "<class 'int'>" in str(is_a):
-                is_a = str(is_a).replace("<class 'int'>", "int")
-            if "<class 'str'>" in str(is_a):
-                is_a = str(is_a).replace("<class 'str'>", "str")
-            if "<class 'owlready2.util.normstr'>" in str(is_a):
-                is_a = str(is_a).replace("<class 'owlready2.util.normstr'>", "normstr")
-            if "<class 'float'>" in str(is_a):
-                is_a = str(is_a).replace("<class 'float'>", "float")
-            is_a = f"{repr(cls)}.is_a = [{is_a}]"
+            is_a = f"{repr(cls)}.is_a = [{replace_types(str(is_a))}]"
             self.current_file.write(is_a)
             self.current_file.write("\n")
 
@@ -292,21 +363,7 @@ class OntologyParser:
             # write range restrictions
             range_string = self.parse_elements(prop.range)
             if range_string:
-                if "<class 'int'>" in str(range_string):
-                    range_string = str(range_string).replace("<class 'int'>", "int")
-                if "<class 'str'>" in str(range_string):
-                    range_string = str(range_string).replace("<class 'str'>", "str")
-                if "<class 'owlready2.util.normstr'>" in str(range_string):
-                    range_string = str(range_string).replace("<class 'owlready2.util.normstr'>", "normstr")
-                if "<class 'float'>" in str(range_string):
-                    range_string = str(range_string).replace("<class 'float'>", "float")
-                if "array_double" in str(range_string):
-                    range_string = str(range_string).replace("array_double","float")
-                if "<class 'datetime.datetime'>" in str(range_string):
-                    range_string = str(range_string).replace("<class 'datetime.datetime'>", "datetime")
-
-
-                range_string = f"{repr(prop)}.range = [{range_string}]"
+                range_string = f"{repr(prop)}.range = [{replace_types(str(range_string))}]"
                 self.current_file.write(range_string)
                 self.current_file.write("\n")
 
@@ -315,9 +372,9 @@ class OntologyParser:
         Create all individuals of the ontology.
         """
         self.current_file = open(f"{os.path.join(self.path, self.individuals_file_name)}{self.file_extension}", "w")
-        self.import_from_base()
-        self.import_from_classes()
-        self.import_from_properties()
+        self.import_dependencies()
+        self.import_classes()
+        self.import_properties()
         self.current_file.write("\n" * 2)
 
         individuals = list(self.ontology.individuals())
@@ -344,55 +401,23 @@ class OntologyParser:
         :param individual: The individual.
         """
         for prop in individual.get_properties():
-            self.current_file.write(f"{individual.name}.{repr(prop)} = {individual.__getattr__(repr(prop))}")
+            if "original_name" not in dir(prop):
+                continue
+            self.current_file.write(f"{individual.name}.{prop.name} = {individual.__getattr__(prop.original_name)}")
             self.current_file.write("\n")
 
-    def create_base_imports(self, additional_imports=None):
-        """
-        Create the imports for the base.py
-        """
-        self.current_file.write("from owlready2 import *\n")
-        self.current_file.write("import tempfile\n")
-
-        # Additional imports for other ontologies
-        if additional_imports:
-            for import_path in additional_imports:
-                self.current_file.write(f"from {import_path} import *\n")
-
-    def import_from_base(self):
-        """
-        Create the import statement to get everything from the base.py
-        """
-        self.current_file.write("from .base import *\n")
-
-    def import_from_classes(self):
+    def import_classes(self):
         """
         Create the import statement to get everything from the classes.py
         """
         self.current_file.write("from .classes import *\n")
 
-    def import_from_properties(self):
+    def import_properties(self):
         """
         Create the import statement to get everything from the properties
         """
         self.current_file.write("from .object_properties import *\n")
         self.current_file.write("from .data_properties import *\n")
-
-    def create_base_class(self):
-        """
-        Create the base class for concepts.
-        """
-        self.current_file.write("class Base(Thing):\n")
-        self.current_file.write(self.apply_indent_to("namespace = ontology"))
-        self.current_file.write("\n" * 3)
-
-    def create_base_property(self):
-        """
-        Create the base class for properties.
-        """
-        self.current_file.write("class BaseProperty(ObjectProperty):\n")
-        self.current_file.write(self.apply_indent_to("namespace = ontology"))
-        self.current_file.write("\n" * 3)
 
     def apply_indent_to(self, string):
         """
@@ -470,26 +495,14 @@ class OntologyParser:
         self.current_file.write(is_a)
         self.current_file.write("\n")
 
-
-
     # TODO: Decide upon a better solution for the hyphen symbol
     def parse_class(self, cls):
         """
         Parse a class without restrictions.
         :param cls: The class.
         """
-        if cls.name[0].isdigit():
-            # Prepend "I" to make the class name valid
-            #modified_class_name = "I" + cls.name
-            modified_class_name = self.digit_to_string(cls.name)
-        else:
-            modified_class_name = cls.name
-
-        if "-" in modified_class_name:
-            modified_class_name = modified_class_name.replace("-", "")
-
         inherited_classes_sting = "Base"
-        self.current_file.write(f"class {modified_class_name}({inherited_classes_sting}):\n")
+        self.current_file.write(f"class {repr(cls)}({inherited_classes_sting}):\n")
         self.write_docstring(cls)
         self.current_file.write("\n\n")
 
@@ -503,7 +516,7 @@ class OntologyParser:
         self.current_file.write("\n")
 
 
-class OntologiesParser:
+class OntologiesParser(AbstractParser):
     """
     Class that parses multiple ontologies at once.
 
@@ -528,11 +541,6 @@ class OntologiesParser:
     The ontologies to parse.
     """
 
-    path: str
-    """
-    The path to write the packages of the parsed ontology into.
-    """
-
     include_imported_ontologies = True
     """
     If True, the imported ontologies are also parsed.
@@ -543,17 +551,71 @@ class OntologiesParser:
     The dependency graph of the ontologies.
     """
 
-    def __init__(self, ontologies: List[owlready2.Ontology], path: str):
+    base_file_name: str = "base"
+    """
+    The file name where the base classes are written to.
+    """
+
+    clear_existing: bool = True
+    """
+    If True, the existing directories are cleared.
+    """
+
+    def __init__(self, ontologies: List[owlready2.Ontology], path: str, indentation: int = 4):
+
+        render_func_without_namespace = lambda entity: entity.name
+        owlready2.set_render_func(render_func_without_namespace)
+
+        super().__init__(path, indentation)
         self.ontologies = ontologies
-        self.path = path
 
         if self.include_imported_ontologies:
             self.ontologies += [imported for onto in self.ontologies for imported in onto.imported_ontologies]
 
         # make ontologies unique
         self.ontologies = list(set(self.ontologies))
-
+        self.ontologies.sort(key=lambda onto: onto.name)
         self.create_dependency_graph()
+        set_explicit_repr_for_logical_operator()
+
+
+    def create_base(self):
+        """
+        Create the base file
+        """
+        self.current_file = open(self.path_for_file(self.base_file_name), "w")
+        self.current_file.write("from owlready2 import *\n")
+        self.current_file.write("import tempfile\n")
+        self.current_file.write("\n" * 2)
+        self.current_file.write("ontology_file = tempfile.NamedTemporaryFile()\n")
+        self.current_file.write('ontology = owlready2.get_ontology("file://" + ontology_file.name).load()\n')
+        self.current_file.write("\n" * 2)
+        self.create_base_class()
+        self.create_base_property()
+        self.current_file.close()
+
+    def create_base_class(self):
+        """
+        Create the base class for concepts.
+        """
+        self.current_file.write("class Base(Thing, metaclass=ThingClass):\n")
+        self.current_file.write(self.apply_indent_to("namespace = ontology"))
+        self.current_file.write("\n" * 3)
+
+    def create_base_property(self):
+        """
+        Create the base class for properties.
+        """
+        self.current_file.write("class BaseProperty(ObjectProperty):\n")
+        self.current_file.write(self.apply_indent_to("namespace = ontology"))
+        self.current_file.write("\n" * 3)
+
+    def destroy_all_ontologies(self):
+        """
+        Destroy all ontologies.
+        """
+        for onto in self.ontologies:
+            onto.destroy()
 
     def create_dependency_graph(self):
         """
@@ -565,40 +627,39 @@ class OntologiesParser:
             for imported in onto.imported_ontologies:
                 self.dependency_graph.add_edge(imported, onto)
 
+    def parse(self):
+        self.create_base()
+        self.create_ontologies()
 
-
-    # def create_ontologies(self):
-    #     for onto in nx.topological_sort(self.dependency_graph):
-    #         mkdir(os.path.join(self.path, to_snake_case(onto.name)))
-    #         print(to_snake_case(onto.name))
-    #         parser = OntologyParser(onto, os.path.join(self.path, to_snake_case(onto.name)))
-    #         # Determine which ontologies depend on this one
-    #         dependents = [to_snake_case(dep.name) for dep in self.dependency_graph.successors(onto)]
-    #         additional_imports = [f"..{dep}" for dep in dependents]
-    #
-    #         # Parse the ontology, passing its dependents for imports
-    #         parser.parse(additional_imports)
+    def create_init(self):
+        """
+        Create the __init__.py
+        """
+        self.current_file = open(self.path_for_file("__init__"), "w")
+        self.current_file.write("from .base import *\n")
+        for onto in self.ontologies:
+            self.current_file.write(f"from .{to_snake_case(onto.name)} import *\n")
+        self.current_file.close()
 
     def create_ontologies(self):
-        for node, successors in self.dependency_graph.adjacency():
-            print(f"{node.name}: {[succ.name for succ in successors]}")
+        self.destroy_all_ontologies()
 
-        self.dependency_graph = nx.reverse(self.dependency_graph, copy=True)
         for onto in nx.topological_sort(self.dependency_graph):
-
+            loaded_onto: owlready2.Ontology = get_ontology(onto.base_iri).load()
+            update_class_names(loaded_onto)
+            update_property_names(loaded_onto)
             # Create the directory for the ontology
-            ontology_path = os.path.join(self.path, to_snake_case(onto.name))
+            ontology_path = os.path.join(self.path, to_snake_case(loaded_onto.name))
+
+            if self.clear_existing:
+                if os.path.exists(ontology_path):
+                    shutil.rmtree(ontology_path)
+
             mkdir(ontology_path)
 
             # Parse the ontology
-            parser = OntologyParser(onto, ontology_path)
+            parser = OntologyParser(loaded_onto, list(self.dependency_graph.predecessors(onto)), ontology_path)
+            parser.parse()
 
-            # Determine which ontologies depend on this one
-            dependents = [to_snake_case(dep.name) for dep in self.dependency_graph.successors(onto)]
-            print(f"Dependents of {onto.name}: {dependents}")
-
-            additional_imports = [f"..{dep}" for dep in dependents]
-            print(f"Imports added to {onto.name}: {additional_imports}")
-
-            # Parse the ontology, passing its dependents for imports
-            parser.parse(additional_imports)
+        # Create the __init__.py
+        self.create_init()
