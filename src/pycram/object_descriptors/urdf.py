@@ -108,7 +108,7 @@ class JointDescription(AbstractJointDescription):
 
     @property
     def has_limits(self) -> bool:
-        return bool(self.parsed_description.limit)
+        return bool(self.parsed_description.limit) and not self.type == JointType.CONTINUOUS
 
     @property
     def type(self) -> JointType:

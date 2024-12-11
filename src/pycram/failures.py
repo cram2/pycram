@@ -1,10 +1,11 @@
+from __future__ import annotations
 from pathlib import Path
 
 from typing_extensions import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
-    from .datastructures.enums import JointType
+    from .datastructures.enums import JointType, MultiverseAPIName, Arms
 
 
 class PlanFailure(Exception):
@@ -306,6 +307,11 @@ class Grasping(Task):
         super().__init__(*args, **kwargs)
 
 
+class ObjectNotGraspedError(Grasping):
+    def __init__(self, obj: Object, arm: Arms, *args, **kwargs):
+        super().__init__(f"object {obj.name} was not grasped by arm {arm}", *args, **kwargs)
+
+
 class Looking(Task):
     """"""
 
@@ -435,6 +441,22 @@ class CollisionError(PlanFailure):
         super().__init__(*args, **kwargs)
 
 
+class NavigationGoalNotReachedError(PlanFailure):
+    def __init__(self, current_pose, goal_pose):
+        super().__init__(f"Navigation goal not reached. Current pose: {current_pose}, goal pose: {goal_pose}")
+
+
+class ToolPoseNotReachedError(PlanFailure):
+    def __init__(self, current_pose, goal_pose):
+        super().__init__(f"Tool pose not reached. Current pose: {current_pose}, goal pose: {goal_pose}")
+
+
+class FailedAPIResponse(Exception):
+    def __init__(self, api_response: List[str], api_name: MultiverseAPIName, *args, **kwargs):
+        super().__init__(f"{api_name} api request with arguments {args} and keyword arguments {kwargs}"
+                         f" failed with response {api_response}")
+
+
 """
 The following exceptions are used in the PyCRAM framework to handle errors related to the world and the objects in it.
 They are usually related to a bug in the code or a misuse of the framework (e.g. logical errors in the code).
@@ -505,4 +527,3 @@ class LinkHasNoGeometry(Exception):
 class LinkGeometryHasNoMesh(Exception):
     def __init__(self, link_name: str, geometry_type: str):
         super().__init__(f"Link {link_name} geometry with type {geometry_type} has no mesh.")
-

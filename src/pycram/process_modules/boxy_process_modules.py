@@ -128,13 +128,13 @@ class BoxyDetecting(ProcessModule):
         robot = World.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
-        cam_frame_name = RobotDescription.current_robot_description.get_camera_frame()
+        cam_link_name = RobotDescription.current_robot_description.get_camera_link()
         # should be [0, 0, 1]
         front_facing_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
 
         objects = World.current_world.get_object_by_type(object_type)
         for obj in objects:
-            if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
+            if btr.visible(obj, robot.get_link_pose(cam_link_name), front_facing_axis):
                 return obj
 
 

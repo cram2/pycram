@@ -6,6 +6,7 @@ _block -- wrap multiple statements into a single block.
 Classes:
 GeneratorList -- implementation of generator list wrappers.
 """
+from __future__ import annotations
 from inspect import isgeneratorfunction
 import os
 import math
@@ -13,7 +14,8 @@ import math
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
-from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING
+from tf.transformations import quaternion_about_axis, quaternion_multiply
+from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence
 
 from .datastructures.dataclasses import Color
 from .datastructures.pose import Pose
@@ -157,6 +159,106 @@ class suppress_stdout_stderr(object):
             os.close(fd)
 
 
+def adjust_camera_pose_based_on_target(cam_pose: Pose, target_pose: Pose,
+                                       camera_description: CameraDescription) -> Pose:
+    """
+    Adjust the given cam_pose orientation such that it is facing the target_pose, which partly depends on the
+     front_facing_axis of the that is defined in the camera_description.
+
+    :param cam_pose: The camera pose.
+    :param target_pose: The target pose.
+    :param camera_description: The camera description.
+    :return: The adjusted camera pose.
+    """
+    quaternion = get_quaternion_between_camera_and_target(cam_pose, target_pose, camera_description)
+    # apply the rotation to the camera pose using quaternion multiplication
+    return apply_quaternion_to_pose(cam_pose, quaternion)
+
+
+def get_quaternion_between_camera_and_target(cam_pose: Pose, target_pose: Pose,
+                                             camera_description: 'CameraDescription') -> np.ndarray:
+    """
+    Get the quaternion between the camera and the target.
+
+    :param cam_pose: The camera pose.
+    :param target_pose: The target pose.
+    :param camera_description: The camera description.
+    :return: The quaternion between the camera and the target.
+    """
+    # Get the front facing axis of the camera in the world frame
+    front_facing_axis = transform_vector_using_pose(camera_description.front_facing_axis, cam_pose)
+    front_facing_axis = front_facing_axis - np.array(cam_pose.position_as_list())
+
+    # Get the vector from the camera to the target
+    camera_to_target = get_vector_between_poses(cam_pose, target_pose)
+
+    # Get the quaternion between the camera and target
+    return get_quaternion_between_two_vectors(front_facing_axis, camera_to_target)
+
+
+def get_vector_between_poses(pose1: Pose, pose2: Pose) -> np.ndarray:
+    """
+    Get the vector between two poses.
+
+    :param pose1: The first pose.
+    :param pose2: The second pose.
+    :return: The vector between the two poses.
+    """
+    return np.array(pose2.position_as_list()) - np.array(pose1.position_as_list())
+
+
+def transform_vector_using_pose(vector: Sequence, pose: Pose) -> np.ndarray:
+    """
+    Transform a vector using a pose.
+
+    :param vector: The vector.
+    :param pose: The pose.
+    :return: The transformed vector.
+    """
+    vector = np.array(vector).reshape(1, 3)
+    return pose.to_transform("pose").apply_transform_to_array_of_points(vector).flatten()
+
+
+def apply_quaternion_to_pose(pose: Pose, quaternion: np.ndarray) -> Pose:
+    """
+    Apply a quaternion to a pose.
+
+    :param pose: The pose.
+    :param quaternion: The quaternion.
+    :return: The new pose.
+    """
+    pose_quaternion = np.array(pose.orientation_as_list())
+    new_quaternion = quaternion_multiply(quaternion, pose_quaternion)
+    return Pose(pose.position_as_list(), new_quaternion.tolist())
+
+
+def get_quaternion_between_two_vectors(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
+    """
+    Get the quaternion between two vectors.
+
+    :param v1: The first vector.
+    :param v2: The second vector.
+    :return: The quaternion between the two vectors.
+    """
+    axis, angle = get_axis_angle_between_two_vectors(v1, v2)
+    return quaternion_about_axis(angle, axis)
+
+
+def get_axis_angle_between_two_vectors(v1: np.ndarray, v2: np.ndarray) -> Tuple[np.ndarray, float]:
+    """
+    Get the axis and angle between two vectors.
+
+    :param v1: The first vector.
+    :param v2: The second vector.
+    :return: The axis and angle between the two vectors.
+    """
+    v1 = v1 / np.linalg.norm(v1)
+    v2 = v2 / np.linalg.norm(v2)
+    axis = np.cross(v1, v2)
+    angle = np.arccos(np.dot(v1, v2) - 1e-9)  # to avoid numerical errors
+    return axis, angle
+
+
 class RayTestUtils:
 
     def __init__(self, ray_test_batch: Callable, object_id_to_name: Dict = None):
@@ -256,10 +358,13 @@ class RayTestUtils:
         :param camera_pose: The camera pose.
         :param camera_min_distance: The minimum distance from which the camera can see.
         """
-        camera_pose_in_camera_frame = self.local_transformer.transform_pose(camera_pose, camera_frame)
+        camera_transform = camera_pose.to_transform("camera_pose")
+        self.local_transformer.update_transforms([camera_transform])
+        camera_pose_in_camera_frame = Pose(frame="camera_pose")
+        # camera_pose_in_camera_frame = self.local_transformer.transform_pose(camera_pose, camera_frame)
         start_position = (np.array(camera_description.front_facing_axis) * camera_min_distance
                           + np.array(camera_pose_in_camera_frame.position_as_list()))
-        start_pose = Pose(start_position.tolist(), camera_pose_in_camera_frame.orientation_as_list(), camera_frame)
+        start_pose = Pose(start_position.tolist(), camera_pose_in_camera_frame.orientation_as_list(), "camera_pose")
         return self.local_transformer.transform_pose(start_pose, "map")
 
     def get_camera_rays_end_positions(self, camera_description: 'CameraDescription', camera_frame: str,
@@ -292,7 +397,7 @@ class RayTestUtils:
         :param points: The points to transform.
         :return: The transformed points.
         """
-        cam_to_world_transform = camera_pose.to_transform(camera_frame)
+        cam_to_world_transform = camera_pose.to_transform("camera_pose")
         return cam_to_world_transform.apply_transform_to_array_of_points(points)
 
     @staticmethod

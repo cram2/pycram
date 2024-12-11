@@ -1,6 +1,6 @@
 #!/bin/bash
 source /opt/ros/noetic/setup.bash
-source ~/cram_ws/devel/setup.bash
+source ~/catkin_ws/devel/setup.bash
 roscd pycram/examples
 rm -rf tmp
 mkdir tmp

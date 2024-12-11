@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 from copy import deepcopy, copy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, fields, field
 
 import numpy as np
 import trimesh
@@ -171,6 +172,18 @@ class BoundingBox:
 
 @dataclass
 class AxisAlignedBoundingBox(BoundingBox):
+
+    @classmethod
+    def from_origin_and_half_extents(cls, origin: Point, half_extents: Point):
+        """
+        Set the axis-aligned bounding box from the origin of the body and half the size.
+
+        :param origin: The origin point
+        :param half_extents: The half size of the bounding box.
+        """
+        min_point = [origin.x - half_extents.x, origin.y - half_extents.y, origin.z - half_extents.z]
+        max_point = [origin.x + half_extents.x, origin.y + half_extents.y, origin.z + half_extents.z]
+        return cls.from_min_max(min_point, max_point)
 
     @classmethod
     def from_multiple_bounding_boxes(cls, bounding_boxes: List[AxisAlignedBoundingBox]) -> 'AxisAlignedBoundingBox':
@@ -633,14 +646,11 @@ class ContactPoint:
     link_b: Link
     position_on_object_a: Optional[List[float]] = None
     position_on_object_b: Optional[List[float]] = None
-    normal_on_b: Optional[List[float]] = None  # normal on object b pointing towards object a
-    distance: Optional[float] = None
+    normal_on_b: Optional[List[float]] = None  # the contact normal vector on object b pointing towards object a
+    distance: Optional[float] = None  # distance between the two objects (+ve for separation, -ve for penetration)
     normal_force: Optional[List[float]] = None  # normal force applied during last step simulation
     lateral_friction_1: Optional[LateralFriction] = None
     lateral_friction_2: Optional[LateralFriction] = None
-    force_x_in_world_frame: Optional[float] = None
-    force_y_in_world_frame: Optional[float] = None
-    force_z_in_world_frame: Optional[float] = None
 
     def __str__(self):
         return f"ContactPoint: {self.link_a.object.name} - {self.link_b.object.name}"
@@ -798,36 +808,59 @@ class TextAnnotation:
 
 
 @dataclass
+class VirtualJoint:
+    """
+    A virtual (not real) joint that is most likely used for simulation purposes.
+    """
+    name: str
+    type_: JointType
+    axes: Optional[Point] = None
+
+    @property
+    def type(self):
+        return self.type_
+
+    @property
+    def is_virtual(self):
+        return True
+
+    def __hash__(self):
+        return hash(self.name)
+
+
+@dataclass
 class VirtualMobileBaseJoints:
     """
     Dataclass for storing the names, types and axes of the virtual mobile base joints of a mobile robot.
     """
-    translation_x: Optional[str] = VirtualMobileBaseJointName.LINEAR_X.value
-    translation_y: Optional[str] = VirtualMobileBaseJointName.LINEAR_Y.value
-    angular_z: Optional[str] = VirtualMobileBaseJointName.ANGULAR_Z.value
+    translation_x: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_X.value,
+                                                         JointType.PRISMATIC,
+                                                         Point(1, 0, 0))
+    translation_y: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_Y.value,
+                                                         JointType.PRISMATIC,
+                                                         Point(0, 1, 0))
+    angular_z: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.ANGULAR_Z.value,
+                                                     JointType.REVOLUTE,
+                                                     Point(0, 0, 1))
 
     @property
     def names(self) -> List[str]:
         """
         Return the names of the virtual mobile base joints.
         """
-        return [self.translation_x, self.translation_y, self.angular_z]
+        return [getattr(self, field.name).name for field in fields(self)]
 
     def get_types(self) -> Dict[str, JointType]:
         """
         Return the joint types of the virtual mobile base joints.
         """
-        return {self.translation_x: JointType.PRISMATIC,
-                self.translation_y: JointType.PRISMATIC,
-                self.angular_z: JointType.REVOLUTE}
+        return {getattr(self, field.name).name: getattr(self, field.name).type_ for field in fields(self)}
 
     def get_axes(self) -> Dict[str, Point]:
         """
         Return the axes (i.e. The axis on which the joint moves) of the virtual mobile base joints.
         """
-        return {self.translation_x: Point(1, 0, 0),
-                self.translation_y: Point(0, 1, 0),
-                self.angular_z: Point(0, 0, 1)}
+        return {getattr(self, field.name).name: getattr(self, field.name).axes for field in fields(self)}
 
 
 @dataclass
@@ -862,11 +895,12 @@ class RayResult:
 @dataclass
 class MultiverseContactPoint:
     """
-    A dataclass to store the contact point returned from Multiverse.
+    A dataclass to store all the contact data returned from Multiverse for a single object.
     """
-    body_name: str
-    contact_force: List[float]
-    contact_torque: List[float]
+    body_1: str
+    body_2: str
+    position: List[float]
+    normal: List[float]
 
 
 @dataclass

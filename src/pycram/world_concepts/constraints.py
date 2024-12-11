@@ -253,7 +253,7 @@ class Attachment(AbstractConstraint):
         """
         Remove the constraint between the parent and the child links if one exists.
         """
-        if self.child_link in self.parent_link.constraint_ids:
+        if self.child_link in self.parent_link.constraint_ids.keys():
             self.parent_link.remove_constraint_with_link(self.child_link)
 
     def get_inverse(self) -> 'Attachment':

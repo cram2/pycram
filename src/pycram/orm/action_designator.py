@@ -107,6 +107,7 @@ class OpenAction(ObjectMixin, Action):
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[Arms]
+    grasping_prepose_distance: Mapped[float]
 
 
 class CloseAction(ObjectMixin, Action):
@@ -114,6 +115,7 @@ class CloseAction(ObjectMixin, Action):
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[Arms]
+    grasping_prepose_distance: Mapped[float]
 
 
 class GraspingAction(ObjectMixin, Action):
@@ -121,6 +123,7 @@ class GraspingAction(ObjectMixin, Action):
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[Arms]
+    prepose_distance: Mapped[float]
 
 
 class FaceAtAction(PoseMixin, Action):

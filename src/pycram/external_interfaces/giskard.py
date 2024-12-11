@@ -119,11 +119,13 @@ def removing_of_objects() -> None:
 
 
 @init_giskard_interface
-def sync_worlds() -> None:
+def sync_worlds(projection: bool = False) -> None:
     """
     Synchronizes the World and the Giskard belief state, this includes adding and removing objects to the Giskard
     belief state such that it matches the objects present in the World and moving the robot to the position it is
     currently at in the World.
+
+    :param projection: Whether the sync in projection mode or reality.
     """
     add_gripper_groups()
     world_object_names = set()
@@ -136,10 +138,11 @@ def sync_worlds() -> None:
                                            obj.joints.values()))
             joint_config_filtered = {joint.name: joint_config[joint.name] for joint in non_fixed_joints}
 
-            giskard_wrapper.monitors.add_set_seed_configuration(joint_config_filtered,
-                                                                RobotDescription.current_robot_description.name)
-            giskard_wrapper.monitors.add_set_seed_odometry(_pose_to_pose_stamped(obj.get_pose()),
-                                                           RobotDescription.current_robot_description.name)
+            if projection:
+                giskard_wrapper.monitors.add_set_seed_configuration(joint_config_filtered,
+                                                                    RobotDescription.current_robot_description.name)
+                giskard_wrapper.monitors.add_set_seed_odometry(_pose_to_pose_stamped(obj.get_pose()),
+                                                               RobotDescription.current_robot_description.name)
     giskard_object_names = set(giskard_wrapper.get_group_names())
     robot_name = {RobotDescription.current_robot_description.name}
     if not world_object_names.union(robot_name).issubset(giskard_object_names):
@@ -554,7 +557,7 @@ def projection_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str) ->
     :param root_link: The starting link of the chain which should be used to achieve this goal
     :return: MoveResult message for this goal
     """
-    sync_worlds()
+    sync_worlds(projection=True)
     giskard_wrapper.set_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
     return giskard_wrapper.projection()
 
@@ -573,7 +576,7 @@ def projection_cartesian_goal_with_approach(approach_pose: Pose, goal_pose: Pose
     :param robot_base_link: The base link of the robot
     :return: A trajectory calculated to move the tip_link to the goal_pose
     """
-    sync_worlds()
+    sync_worlds(projection=True)
     giskard_wrapper.allow_all_collisions()
     giskard_wrapper.set_cart_goal(_pose_to_pose_stamped(approach_pose), robot_base_link, "map")
     giskard_wrapper.projection()
@@ -592,7 +595,7 @@ def projection_joint_goal(goal_poses: Dict[str, float], allow_collisions: bool =
     :param allow_collisions: If all collisions should be allowed for this goal
     :return: MoveResult message for this goal
     """
-    sync_worlds()
+    sync_worlds(projection=True)
     if allow_collisions:
         giskard_wrapper.allow_all_collisions()
     giskard_wrapper.set_joint_goal(goal_poses)

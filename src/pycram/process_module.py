@@ -285,8 +285,14 @@ class ProcessModuleManager(ABC):
                 f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
             return
 
+        robot_description = RobotDescription.current_robot_description
+        chains = robot_description.get_manipulator_chains()
+        gripper_name = [chain.end_effector.gripper_object_name for chain in chains
+                        if chain.end_effector.gripper_object_name]
+        gripper_name = gripper_name[0] if len(gripper_name) > 0 else None
         for pm_manager in ProcessModuleManager.available_pms:
-            if pm_manager.robot_name == RobotDescription.current_robot_description.name:
+            if pm_manager.robot_name == robot_description.name or\
+                    ((pm_manager.robot_name == gripper_name) and gripper_name):
                 manager = pm_manager
             if pm_manager.robot_name == "default":
                 _default_manager = pm_manager
@@ -302,7 +308,7 @@ class ProcessModuleManager(ABC):
                          f", and no default process modules available")
             return None
 
-    def navigate(self) -> Type[ProcessModule]:
+    def navigate(self) -> ProcessModule:
         """
         Get the Process Module for navigating the robot with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
@@ -312,7 +318,7 @@ class ProcessModuleManager(ABC):
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
 
-    def pick_up(self) -> Type[ProcessModule]:
+    def pick_up(self) -> ProcessModule:
         """
         Get the Process Module for picking up with respect to the :py:attr:`~ProcessModuleManager.execution_type`
 
@@ -321,7 +327,7 @@ class ProcessModuleManager(ABC):
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
 
-    def place(self) -> Type[ProcessModule]:
+    def place(self) -> ProcessModule:
         """
         Get the Process Module for placing with respect to the :py:attr:`~ProcessModuleManager.execution_type`
 
@@ -330,7 +336,7 @@ class ProcessModuleManager(ABC):
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
 
-    def looking(self) -> Type[ProcessModule]:
+    def looking(self) -> ProcessModule:
         """
         Get the Process Module for looking at a point with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
@@ -340,7 +346,7 @@ class ProcessModuleManager(ABC):
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
 
-    def detecting(self) -> Type[ProcessModule]:
+    def detecting(self) -> ProcessModule:
         """
         Get the Process Module for detecting an object with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
@@ -350,7 +356,7 @@ class ProcessModuleManager(ABC):
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
 
-    def move_tcp(self) -> Type[ProcessModule]:
+    def move_tcp(self) -> ProcessModule:
         """
         Get the Process Module for moving the Tool Center Point with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
@@ -360,7 +366,7 @@ class ProcessModuleManager(ABC):
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
 
-    def move_arm_joints(self) -> Type[ProcessModule]:
+    def move_arm_joints(self) -> ProcessModule:
         """
         Get the Process Module for moving the joints of the robot arm
         with respect to the :py:attr:`~ProcessModuleManager.execution_type`
@@ -370,7 +376,7 @@ class ProcessModuleManager(ABC):
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
 
-    def world_state_detecting(self) -> Type[ProcessModule]:
+    def world_state_detecting(self) -> ProcessModule:
         """
         Get the Process Module for detecting an object using the world state with respect to the
         :py:attr:`~ProcessModuleManager.execution_type`
@@ -380,7 +386,7 @@ class ProcessModuleManager(ABC):
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
 
-    def move_joints(self) -> Type[ProcessModule]:
+    def move_joints(self) -> ProcessModule:
         """
         Get the Process Module for moving any joint of the robot with respect to the
         :py:attr:`~ProcessModuleManager.execution_type`
@@ -390,7 +396,7 @@ class ProcessModuleManager(ABC):
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
 
-    def move_gripper(self) -> Type[ProcessModule]:
+    def move_gripper(self) -> ProcessModule:
         """
         Get the Process Module for moving the gripper with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
@@ -400,7 +406,7 @@ class ProcessModuleManager(ABC):
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
 
-    def open(self) -> Type[ProcessModule]:
+    def open(self) -> ProcessModule:
         """
         Get the Process Module for opening drawers with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
@@ -410,7 +416,7 @@ class ProcessModuleManager(ABC):
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
 
-    def close(self) -> Type[ProcessModule]:
+    def close(self) -> ProcessModule:
         """
         Get the Process Module for closing drawers with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
