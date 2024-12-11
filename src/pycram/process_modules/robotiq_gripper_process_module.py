@@ -3,7 +3,7 @@ from threading import Lock
 from std_msgs.msg import Float64
 from typing_extensions import Any
 
-from .default_process_modules import DefaultMoveGripper
+from .default_process_modules import DefaultMoveGripper, DefaultManager
 from ..datastructures.world import World
 from ..datastructures.enums import GripperState, ExecutionType
 from ..designators.motion_designator import MoveGripperMotion
@@ -23,11 +23,11 @@ class RobotiqMoveGripperReal(ProcessModule):
         return True
 
 
-class RobotiqManager(ProcessModuleManager):
+class RobotiqManager(DefaultManager):
 
     def __init__(self):
-        super().__init__(GRIPPER_NAME)
-        self._move_gripper_lock = Lock()
+        super().__init__()
+        self.robot_name = GRIPPER_NAME
 
     def move_gripper(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
