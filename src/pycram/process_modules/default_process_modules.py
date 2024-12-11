@@ -67,16 +67,19 @@ class DefaultMoveHead(ProcessModule):
 class DefaultMoveGripper(ProcessModule):
     """
     This process module controls the gripper of the robot. They can either be opened or closed.
-    Furthermore, it can only moved one gripper at a time.
+    Furthermore, it can only move one gripper at a time.
     """
 
     def _execute(self, desig: MoveGripperMotion):
-        robot = World.robot
+        robot_description = RobotDescription.current_robot_description
         gripper = desig.gripper
+        arm_chain = robot_description.get_arm_chain(gripper)
+        if arm_chain.end_effector.gripper_object_name is not None:
+            robot = World.current_world.get_object_by_name(arm_chain.end_effector.gripper_object_name)
+        else:
+            robot = World.robot
         motion = desig.motion
-        for joint, state in RobotDescription.current_robot_description.get_arm_chain(gripper).get_static_gripper_state(
-                motion).items():
-            robot.set_joint_position(joint, state)
+        robot.set_multiple_joint_positions(arm_chain.get_static_gripper_state(motion))
 
 
 class DefaultDetecting(ProcessModule):
@@ -88,7 +91,7 @@ class DefaultDetecting(ProcessModule):
 
     def _execute(self, designator: DetectingMotion):
         robot = World.robot
-        cam_frame_name = RobotDescription.current_robot_description.get_camera_link()
+        cam_link_name = RobotDescription.current_robot_description.get_camera_link()
         camera_description = RobotDescription.current_robot_description.cameras[
             list(RobotDescription.current_robot_description.cameras.keys())[0]]
         front_facing_axis = camera_description.front_facing_axis
@@ -113,7 +116,7 @@ class DefaultDetecting(ProcessModule):
         elif designator.technique == DetectionTechnique.HUMAN_WAVING:
             raise NotImplementedError("Detection by waving human is not yet implemented in simulation")
         for obj in world_objects:
-            if visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
+            if visible(obj, robot.get_link_pose(cam_link_name), front_facing_axis):
                 query_result.append(obj)
         if query_result is None:
             raise PerceptionObjectNotFound(

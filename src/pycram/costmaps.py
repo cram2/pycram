@@ -20,6 +20,9 @@ from typing_extensions import Tuple, List, Optional, Iterator
 
 from .datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
 from .datastructures.pose import Pose, Transform
+from .ros.logging import logwarn
+from .datastructures.dataclasses import AxisAlignedBoundingBox
+from .datastructures.pose import Pose
 from .datastructures.world import UseProspectionWorld
 from .datastructures.world import World
 from .description import Link
@@ -214,10 +217,15 @@ class Costmap:
         elif self.resolution != other_cm.resolution:
             raise ValueError("To merge two costmaps their resolution must be equal.")
         new_map = np.zeros((self.height, self.width))
-        # A nunpy array of the positions where both costmaps are greater than 0
+        # A numpy array of the positions where both costmaps are greater than 0
         merge = np.logical_and(self.map > 0, other_cm.map > 0)
         new_map[merge] = self.map[merge] * other_cm.map[merge]
-        new_map = (new_map / np.max(new_map)).reshape((self.height, self.width))
+        max_val = np.max(new_map)
+        if max_val != 0:
+            new_map = (new_map / np.max(new_map)).reshape((self.height, self.width))
+        else:
+            new_map = new_map.reshape((self.height, self.width))
+            logwarn("Merged costmap is empty.")
         return Costmap(self.resolution, self.height, self.width, self.origin, new_map)
 
     def __add__(self, other: Costmap) -> Costmap:
@@ -446,6 +454,7 @@ class OccupancyCostmap(Costmap):
         # 16383 is the maximal number of rays that can be processed in a batch
         i = 0
         j = 0
+        floor_id = self.world.get_object_by_name("floor").id
         for n in self._chunks(np.array(rays), 16380):
             r_t = World.current_world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
             while r_t is None:
@@ -454,10 +463,10 @@ class OccupancyCostmap(Costmap):
             if World.robot:
                 attached_objs_id = [o.id for o in self.world.robot.attachments.keys()]
                 res[i:j] = [
-                    1 if ray[0] == -1 or ray[0] == self.world.robot.id or ray[0] in attached_objs_id else 0 for
+                    1 if ray[0] in [-1, self.world.robot.id, floor_id] + attached_objs_id else 0 for
                     ray in r_t]
             else:
-                res[i:j] = [1 if ray[0] == -1 else 0 for ray in r_t]
+                res[i:j] = [1 if ray[0] in [-1, floor_id] else 0 for ray in r_t]
             i += len(n)
 
         res = np.flip(np.reshape(np.array(res), (size, size)))
@@ -505,7 +514,9 @@ class VisibilityCostmap(Costmap):
                  size: Optional[int] = 100,
                  resolution: Optional[float] = 0.02,
                  origin: Optional[Pose] = None,
-                 world: Optional[World] = None):
+                 world: Optional[World] = None,
+                 target_object: Optional[Object] = None,
+                 robot: Optional[Object] = None):
         """
         Visibility Costmaps show for every position around the origin pose if the origin can be seen from this pose.
         The costmap is able to deal with height differences of the camera while in a single position, for example, if
@@ -522,6 +533,8 @@ class VisibilityCostmap(Costmap):
         :param origin: The pose in world coordinate frame around which the
             costmap should be created.
         :param world: The World for which the costmap should be created.
+        :param target_object: The object that should be visible.
+        :param robot: The robot for which the visibility costmap should be created.
         """
         if (11 * size ** 2 + size ** 3) * 2 > psutil.virtual_memory().available:
             raise OSError("Not enough free RAM to calculate a costmap of this size")
@@ -535,8 +548,52 @@ class VisibilityCostmap(Costmap):
         # for pr2 = 1.6
         self.min_height: float = min_height
         self.origin: Pose = Pose() if not origin else origin
+        self.target_object: Optional[Object] = target_object
+        self.robot: Optional[Object] = robot
         self._generate_map()
         Costmap.__init__(self, resolution, size, size, self.origin, self.map)
+
+    @property
+    def robot(self) -> Optional[Object]:
+        return self._robot
+
+    @robot.setter
+    def robot(self, robot: Optional[Object]) -> None:
+        if robot is not None:
+            self._robot = World.current_world.get_prospection_object_for_object(robot)
+            self.robot_original_pose = self._robot.pose
+        else:
+            self._robot = None
+            self.robot_original_pose = None
+
+    @property
+    def target_object(self) -> Optional[Object]:
+        return self._target_object
+
+    @target_object.setter
+    def target_object(self, target_object: Optional[Object]) -> None:
+        if target_object is not None:
+            self._target_object = World.current_world.get_prospection_object_for_object(target_object)
+            self.target_original_pose = self._target_object.pose
+        else:
+            self._target_object = None
+            self.target_original_pose = None
+
+    def move_target_and_robot_far_away(self):
+        if self.target_object is not None:
+            self.target_object.set_pose(Pose([self.origin.position.x + self.size * self.resolution * 2,
+                                              self.origin.position.y + self.size * self.resolution * 2,
+                                              self.target_original_pose.position.z]))
+        if self.robot is not None:
+            self.robot.set_pose(Pose([self.origin.position.x + self.size * self.resolution * 3,
+                                      self.origin.position.y + self.size * self.resolution * 3,
+                                      self.robot_original_pose.position.z]))
+
+    def return_target_and_robot_to_their_original_position(self):
+        if self.target_original_pose is not None:
+            self.target_object.set_pose(self.target_original_pose)
+        if self.robot_original_pose is not None:
+            self.robot.set_pose(self.robot_original_pose)
 
     def _create_images(self) -> List[np.ndarray]:
         """
@@ -549,6 +606,8 @@ class VisibilityCostmap(Costmap):
         """
         images = []
         camera_pose = self.origin
+
+        self.move_target_and_robot_far_away()
 
         with UseProspectionWorld():
             origin_copy = self.origin.copy()
@@ -568,8 +627,11 @@ class VisibilityCostmap(Costmap):
             origin_copy.position.x += 1
             images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
 
-        for i in range(0, 4):
-            images[i] = self._depth_buffer_to_meter(images[i])
+        self.return_target_and_robot_to_their_original_position()
+
+        if not World.current_world.conf.depth_images_are_in_meter:
+            for i in range(0, 4):
+                images[i] = self._depth_buffer_to_meter(images[i])
         return images
 
     def _depth_buffer_to_meter(self, buffer: np.ndarray) -> np.ndarray:
@@ -738,27 +800,44 @@ class SemanticCostmap(Costmap):
     table surface.
     """
 
-    def __init__(self, object, urdf_link_name, size=100, resolution=0.02, world=None):
+    def __init__(self, obj: Object, link_name: str, resolution: float = 0.02, world: Optional[World] = None):
         """
         Creates a semantic costmap for the given parameter. The semantic costmap will be on top of the link of the given
         Object.
 
-        :param object: The object of which the link is a part
-        :param urdf_link_name: The link name, as stated in the URDF
-        :param resolution: Resolution of the final costmap
+        :param obj: The object of which the link is a part
+        :param link_name: The link name, as stated in the description of the object
+        :param resolution: Resolution of the final costmap (how much meters one pixel represents)
         :param world: The World from which the costmap should be created
         """
         self.world: World = world if world else World.current_world
-        self.object: Object = object
-        self.link: Link = object.get_link(urdf_link_name)
+        self.object: Object = obj
+        self.link: Link = obj.get_link(link_name)
         self.resolution: float = resolution
-        self.origin: Pose = object.get_link_pose(urdf_link_name)
+        self.origin: Pose = obj.get_link_pose(link_name)
         self.height: int = 0
         self.width: int = 0
         self.map: np.ndarray = []
         self.generate_map()
 
         Costmap.__init__(self, resolution, self.height, self.width, self.origin, self.map)
+
+    def get_edges_map(self, margin_in_meters: float, horizontal_only: bool = False) -> Costmap:
+        """
+        Return a Costmap with only the edges of the original Costmap marked as possible positions.
+
+        :param margin_in_meters: The edge thickness in meters that should be marked as possible positions.
+        :param horizontal_only: If True only the horizontal edges will be marked as possible positions.
+        :return: The modified Costmap.
+        """
+        mask = np.zeros(self.map.shape)
+        edge_tolerance = int(margin_in_meters / self.resolution)
+        mask[:edge_tolerance] = 1
+        mask[-edge_tolerance:] = 1
+        if not horizontal_only:
+            mask[:, :edge_tolerance] = 1
+            mask[:, -edge_tolerance:] = 1
+        return Costmap(self.resolution, self.height, self.width, self.origin, mask)
 
     def generate_map(self) -> None:
         """
@@ -772,18 +851,11 @@ class SemanticCostmap(Costmap):
 
     def get_aabb_for_link(self) -> AxisAlignedBoundingBox:
         """
-
-        :return: The axis aligned bounding box (AABB) of the link provided when creating this costmap. To try and let
-         the AABB as close to the actual object as possible, the Object will be rotated such that the link will be in the
-        identity orientation.
+        :return: The original untransformed (doesn't take the current pose of the link into consideration, since only
+        the size is important here not the pose) axis aligned bounding box (AABB) of the link provided when creating
+         this costmap.
         """
-        prospection_object = World.current_world.get_prospection_object_for_object(self.object)
-        with UseProspectionWorld():
-            prospection_object.set_orientation(Pose(orientation=[0, 0, 0, 1]))
-            link_pose_trans = self.link.transform
-            inverse_trans = link_pose_trans.invert()
-            prospection_object.set_orientation(inverse_trans.to_pose())
-            return self.link.get_axis_aligned_bounding_box()
+        return self.link.get_axis_aligned_bounding_box_from_geometry()
 
 
 class AlgebraicSemanticCostmap(SemanticCostmap):

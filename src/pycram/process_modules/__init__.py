@@ -4,6 +4,7 @@ from .donbot_process_modules import DonbotManager
 from .hsrb_process_modules import HSRBManager
 from .default_process_modules import DefaultManager
 from .stretch_process_modules import StretchManager
+from .robotiq_gripper_process_module import RobotiqManager
 from .tiago_process_modules import TiagoManager
 from .icub_process_modules import ICubManager
 
@@ -15,3 +16,4 @@ DefaultManager()
 StretchManager()
 ICubManager()
 TiagoManager()
+RobotiqManager()

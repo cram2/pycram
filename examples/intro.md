@@ -134,7 +134,7 @@ o = cm.OccupancyCostmap(0.2, from_ros=False, size=300, resolution=0.02, origin=P
 ```
 
 ```python
-s = cm.SemanticCostmap(kitchen, "kitchen_island_surface", size=100, resolution=0.02)
+s = cm.SemanticCostmap(kitchen, "kitchen_island_surface", resolution=0.02)
 
 g = cm.GaussianCostmap(200, 15, resolution=0.02)
 ```

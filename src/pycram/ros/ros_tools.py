@@ -46,5 +46,5 @@ def get_time():
     return rospy.get_time()
 
 
-def create_timer(duration: int, callback, oneshot=False):
+def create_timer(duration: rospy.Duration, callback, oneshot=False):
     return rospy.Timer(duration, callback, oneshot=oneshot)

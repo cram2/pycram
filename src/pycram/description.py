@@ -51,8 +51,9 @@ class LinkDescription(EntityDescription):
     A link description of an object.
     """
 
-    def __init__(self, parsed_link_description: Any):
+    def __init__(self, parsed_link_description: Any, mesh_dir: Optional[str] = None):
         self.parsed_description = parsed_link_description
+        self.mesh_dir = mesh_dir
 
     @property
     @abstractmethod
@@ -216,7 +217,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
     def __init__(self, _id: int, link_description: LinkDescription, obj: Object):
         ObjectEntity.__init__(self, _id, obj)
-        LinkDescription.__init__(self, link_description.parsed_description)
+        LinkDescription.__init__(self, link_description.parsed_description, link_description.mesh_dir)
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
         self._current_pose: Optional[Pose] = None
@@ -287,8 +288,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
         :param geometry: The geometry for which the mesh path should be returned.
         :return: The path of the mesh file of this link if the geometry is a mesh.
         """
-        mesh_filename = self.get_mesh_filename(geometry)
-        return self.world.cache_manager.look_for_file_in_data_dir(pathlib.Path(mesh_filename))
+        return self.get_mesh_filename(geometry)
 
     def get_mesh_filename(self, geometry: MeshVisualShape) -> str:
         """
@@ -350,7 +350,20 @@ class Link(ObjectEntity, LinkDescription, ABC):
     @current_state.setter
     def current_state(self, link_state: LinkState) -> None:
         if self.current_state != link_state:
+            if not self.all_constraint_links_belong_to_same_world(link_state):
+                raise ValueError("All constraint links must belong to the same world, since the constraint ids"
+                                 "are unique to the world and cannot be transferred between worlds.")
             self.constraint_ids = link_state.constraint_ids
+
+    def all_constraint_links_belong_to_same_world(self, other: LinkState) -> bool:
+        """
+        Check if all links belong to the same world as the links in the other link state.
+
+        :param other: The state of the other link.
+        :return: True if all links belong to the same world, False otherwise.
+        """
+        return all([link.world == other_link.world for link, other_link in zip(self.constraint_ids.keys(),
+                                                                               other.constraint_ids.keys())])
 
     def add_fixed_constraint_with_link(self, child_link: Self,
                                        child_to_parent_transform: Optional[Transform] = None) -> int:

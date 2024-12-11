@@ -1,6 +1,13 @@
 from .base import PhysicalObject
 
 
+class BodyPart(PhysicalObject):
+    """
+    A body part is a part of an object's body.
+    """
+    ...
+
+
 class Container(PhysicalObject):
     """
     Any object that can contain other objects.
@@ -38,6 +45,12 @@ class Pringles(Food):
 class Milk(Food):
     """
     A white liquid produced by the mammary glands of mammals.
+    """
+
+
+class Bread(Food):
+    """
+    A type of food prepared from a dough of flour and water.
     """
 
 

@@ -11,9 +11,10 @@ from geometry_msgs.msg import Point, Quaternion
 from trimesh.parent import Geometry3D
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
+import pycrap
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
-                                          ContactPointsList, RotatedBoundingBox)
+                                          ContactPointsList, RotatedBoundingBox, VirtualJoint)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
@@ -167,21 +168,22 @@ class Object(WorldEntity, HasConcept):
         :param pose: The target pose.
         """
         goal = self.get_mobile_base_joint_goal(pose)
+        goal = {vj.name: pos for vj, pos in goal.items()}
         self.set_multiple_joint_positions(goal)
 
-    def get_mobile_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
+    def get_mobile_base_joint_goal(self, pose: Pose) -> Dict[VirtualJoint, float]:
         """
         Get the goal for the mobile base joints of a mobile robot to reach a target pose.
 
         :param pose: The target pose.
         :return: The goal for the mobile base joints.
         """
-        target_translation, target_angle = self.get_mobile_base_pose_difference(pose)
+        # target_translation, target_angle = self.get_mobile_base_pose_difference(pose)
         # Get the joints of the base link
         mobile_base_joints = self.world.get_robot_mobile_base_joints()
-        return {mobile_base_joints.translation_x: target_translation.x,
-                mobile_base_joints.translation_y: target_translation.y,
-                mobile_base_joints.angular_z: target_angle}
+        return {mobile_base_joints.translation_x: pose.position.x,
+                mobile_base_joints.translation_y: pose.position.y,
+                mobile_base_joints.angular_z: pose.z_angle}
 
     def get_mobile_base_pose_difference(self, pose: Pose) -> Tuple[Point, float]:
         """
@@ -444,7 +446,8 @@ class Object(WorldEntity, HasConcept):
         """
         The names of the joints as a list.
         """
-        return self.world.get_object_joint_names(self)
+        joint_names = self.world.get_object_joint_names(self)
+        return joint_names
 
     def get_link(self, link_name: str) -> ObjectDescription.Link:
         """
@@ -509,14 +512,15 @@ class Object(WorldEntity, HasConcept):
         """
         return self.links[link_name].tf_frame
 
-    def get_link_axis_aligned_bounding_box(self, link_name: str) -> AxisAlignedBoundingBox:
+    def get_link_axis_aligned_bounding_box(self, link_name: str, transform_to_link_pose: bool = True) -> AxisAlignedBoundingBox:
         """
         Return the axis aligned bounding box of the link with the given name.
 
         :param link_name: The name of the link.
+        :param transform_to_link_pose: If True, the bounding box will be transformed to fit link pose.
         :return: The axis aligned bounding box of the link.
         """
-        return self.links[link_name].get_axis_aligned_bounding_box()
+        return self.links[link_name].get_axis_aligned_bounding_box(transform_to_link_pose)
 
     def get_transform_between_links(self, from_link: str, to_link: str) -> Transform:
         """
@@ -621,13 +625,23 @@ class Object(WorldEntity, HasConcept):
         if remove_saved_states:
             self.remove_saved_states()
 
-    def has_type_environment(self) -> bool:
+    @property
+    def is_an_environment(self) -> bool:
         """
         Check if the object is of type environment.
 
         :return: True if the object is of type environment, False otherwise.
         """
-        return self.obj_type == ObjectType.ENVIRONMENT
+        return issubclass(self.obj_type, pycrap.Location) or issubclass(self.obj_type, pycrap.Floor)
+
+    @property
+    def is_a_robot(self) -> bool:
+        """
+        Check if the object is a robot.
+
+        :return: True if the object is a robot, False otherwise.
+        """
+        return issubclass(self.obj_type, pycrap.Robot)
 
     def attach(self,
                child_object: Object,
@@ -1139,6 +1153,7 @@ class Object(WorldEntity, HasConcept):
         :param joint_name: The name of the joint
         :param joint_position: The target pose for this joint
         """
+        self.clip_joint_positions_to_limits({joint_name: joint_position})
         if self.world.reset_joint_position(self.joints[joint_name], joint_position):
             self._update_on_joint_position_change()
 
@@ -1157,6 +1172,18 @@ class Object(WorldEntity, HasConcept):
                            for joint_name, joint_position in joint_positions.items()}
         if self.world.set_multiple_joint_positions(joint_positions):
             self._update_on_joint_position_change()
+
+    def clip_joint_positions_to_limits(self, joint_positions: Dict[str, float]) -> Dict[str, float]:
+        """
+        Clip the given joint positions to the joint limits.
+
+        :param joint_positions: A dictionary with the joint names as keys and the target positions as values.
+        :return: A dictionary with the joint names as keys and the clipped positions as values.
+        """
+        return {joint_name: np.clip(joint_position, self.joints[joint_name].lower_limit,
+                                    self.joints[joint_name].upper_limit)
+                if self.joints[joint_name].has_limits else joint_position
+                for joint_name, joint_position in joint_positions.items()}
 
     def _update_on_joint_position_change(self):
         self.update_pose()
@@ -1380,14 +1407,15 @@ class Object(WorldEntity, HasConcept):
         """
         return self.world.get_colors_of_object_links(self)
 
-    def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+    def get_axis_aligned_bounding_box(self, transform_to_object_pose: bool = True) -> AxisAlignedBoundingBox:
         """
         Return the axis aligned bounding box of this object.
 
+        :param transform_to_object_pose: If True, the bounding box will be transformed to fit object pose.
         :return: The axis aligned bounding box of this object.
         """
         if self.has_one_link:
-            return self.root_link.get_axis_aligned_bounding_box()
+            return self.root_link.get_axis_aligned_bounding_box(transform_to_object_pose)
         else:
             return self.world.get_object_axis_aligned_bounding_box(self)
 
@@ -1457,7 +1485,7 @@ class Object(WorldEntity, HasConcept):
         :param world: The world to which the object should be copied.
         :return: The copied object in the given world.
         """
-        obj = Object(self.name, self.obj_type, self.path, self.description, self.get_pose(),
+        obj = Object(self.name, self.obj_type, self.path, self.description, self.original_pose,
                      world, self.color)
         return obj
 

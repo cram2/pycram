@@ -1,34 +1,43 @@
-from threading import Lock
-from typing_extensions import Any, TYPE_CHECKING
-
+from typing_extensions import TYPE_CHECKING
 import actionlib
 
 from .default_process_modules import DefaultDetectingReal, DefaultDetecting
 from .. import world_reasoning as btr
 import numpy as np
 
-from .. import world_reasoning as btr
+import pycrap
 from ..external_interfaces.move_base import query_pose_nav
-from ..process_module import ProcessModule, ProcessModuleManager
-from ..external_interfaces.ik import request_ik
-from ..ros.logging import logdebug
-from ..utils import _apply_ik
-from ..local_transformer import LocalTransformer
-
+from .. import world_reasoning as btr
+from ..datastructures.enums import JointType, Arms, ExecutionType, GripperState, MovementType
+from ..datastructures.world import World
 from ..designators.motion_designator import MoveMotion, LookingMotion, \
     DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
     MoveGripperMotion, OpeningMotion, ClosingMotion
-from ..robot_description import RobotDescription
-from ..datastructures.world import World
-from ..world_concepts.world_object import Object
-from ..datastructures.pose import Pose
-from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType, MovementType, GripperState
 from ..external_interfaces import giskard
+from ..external_interfaces.ik import request_ik
 from ..external_interfaces.robokudo import *
-from ..ros.logging import loginfo, logwarn, logdebug
+from ..failures import NavigationGoalNotReachedError, ToolPoseNotReachedError
+from ..local_transformer import LocalTransformer
+from ..process_module import ProcessModule, ProcessModuleManager
+from ..robot_description import RobotDescription
+from ..ros.logging import logdebug
+from ..utils import _apply_ik
+from ..world_concepts.world_object import Object
+from ..ros.data_types import Duration
 
 if TYPE_CHECKING:
     from ..designators.object_designator import ObjectDesignatorDescription
+
+try:
+    from ..worlds.multiverse import Multiverse
+except ImportError:
+    Multiverse = type(None)
+
+try:
+    from control_msgs.msg import GripperCommandGoal, GripperCommandAction
+except ImportError:
+    if Multiverse is not None:
+        logwarn("Import for control_msgs for gripper in Multiverse failed")
 
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
@@ -193,6 +202,8 @@ class Pr2NavigationReal(ProcessModule):
     def _execute(self, designator: MoveMotion) -> Any:
         logdebug(f"Sending goal to movebase to Move the robot")
         query_pose_nav(designator.target)
+        if not World.current_world.robot.pose.almost_equal(designator.target, 0.05, 3):
+            raise NavigationGoalNotReachedError(World.current_world.robot.pose, designator.target)
 
 
 class Pr2MoveHeadReal(ProcessModule):
@@ -228,13 +239,25 @@ class Pr2MoveTCPReal(ProcessModule):
     def _execute(self, designator: MoveTCPMotion) -> Any:
         lt = LocalTransformer()
         pose_in_map = lt.transform_pose(designator.target, "map")
+        tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
+        root_link = "map"
 
+        gripper_that_can_collide = designator.arm if designator.allow_gripper_collision else None
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm.name.lower())
-        giskard.achieve_cartesian_goal(pose_in_map, RobotDescription.current_robot_description.get_arm_chain(
-            designator.arm).get_tool_frame(), "torso_lift_link",
-                                       use_monitor=World.current_world.conf.use_giskard_monitor)
-        # robot_description.base_link)
+
+        if designator.movement_type == MovementType.STRAIGHT_TRANSLATION:
+            giskard.achieve_straight_translation_goal(pose_in_map.position_as_list(), tip_link, root_link)
+        elif designator.movement_type == MovementType.STRAIGHT_CARTESIAN:
+            giskard.achieve_straight_cartesian_goal(pose_in_map, tip_link, root_link)
+        elif designator.movement_type == MovementType.TRANSLATION:
+            giskard.achieve_translation_goal(pose_in_map.position_as_list(), tip_link, root_link)
+        elif designator.movement_type == MovementType.CARTESIAN:
+            giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
+                                           grippers_that_can_collide=gripper_that_can_collide,
+                                           use_monitor=designator.monitor_motion)
+        if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.01, 3):
+            raise ToolPoseNotReachedError(World.current_world.robot.get_link_pose(tip_link), designator.target)
 
 
 class Pr2MoveArmJointsReal(ProcessModule):
@@ -261,6 +284,36 @@ class Pr2MoveJointsReal(ProcessModule):
         name_to_position = dict(zip(designator.names, designator.positions))
         giskard.avoid_all_collisions()
         giskard.achieve_joint_goal(name_to_position)
+
+
+class Pr2MoveGripperMultiverse(ProcessModule):
+    """
+    Opens or closes the gripper of the real PR2, gripper uses an action server for this instead of giskard
+    """
+
+    def _execute(self, designator: MoveGripperMotion) -> Any:
+        def activate_callback():
+            loginfo("Started gripper Movement")
+
+        def done_callback(state, result):
+            loginfo(f"Reached goal {designator.motion}: {result.reached_goal}")
+
+        def feedback_callback(msg):
+            loginfo(f"Gripper Action Feedback: {msg}")
+
+        goal = GripperCommandGoal()
+        goal.command.position = 0.0 if designator.motion == GripperState.CLOSE else 0.4
+        goal.command.max_effort = 50.0
+        if designator.gripper == "right":
+            controller_topic = "/real/pr2/right_gripper_controller/gripper_cmd"
+        else:
+            controller_topic = "/real/pr2/left_gripper_controller/gripper_cmd"
+        client = actionlib.SimpleActionClient(controller_topic, GripperCommandAction)
+        loginfo("Waiting for action server")
+        client.wait_for_server()
+        client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
+        wait = client.wait_for_result(Duration(5))
+        # client.cancel_all_goals()
 
 
 class Pr2MoveGripperReal(ProcessModule):
@@ -376,7 +429,11 @@ class Pr2Manager(ProcessModuleManager):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2MoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return Pr2MoveGripperReal(self._move_gripper_lock)
+            if (isinstance(World.current_world, Multiverse) and
+                    World.current_world.conf.use_multiverse_process_modules):
+                return Pr2MoveGripperMultiverse(self._move_gripper_lock)
+            else:
+                return Pr2MoveGripperReal(self._move_gripper_lock)
 
     def open(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:

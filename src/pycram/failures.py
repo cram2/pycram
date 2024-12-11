@@ -1,10 +1,11 @@
+from __future__ import annotations
 from pathlib import Path
 
 from typing_extensions import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
-    from .datastructures.enums import JointType
+    from .datastructures.enums import JointType, MultiverseAPIName, Arms
 
 
 class PlanFailure(Exception):
@@ -306,6 +307,11 @@ class Grasping(Task):
         super().__init__(*args, **kwargs)
 
 
+class ObjectNotGraspedError(Grasping):
+    def __init__(self, obj: Object, arm: Arms, *args, **kwargs):
+        super().__init__(f"object {obj.name} was not grasped by arm {arm}", *args, **kwargs)
+
+
 class Looking(Task):
     """"""
 
@@ -433,6 +439,22 @@ class ReasoningError(PlanFailure):
 class CollisionError(PlanFailure):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class NavigationGoalNotReachedError(PlanFailure):
+    def __init__(self, current_pose, goal_pose):
+        super().__init__(f"Navigation goal not reached. Current pose: {current_pose}, goal pose: {goal_pose}")
+
+
+class ToolPoseNotReachedError(PlanFailure):
+    def __init__(self, current_pose, goal_pose):
+        super().__init__(f"Tool pose not reached. Current pose: {current_pose}, goal pose: {goal_pose}")
+
+
+class FailedAPIResponse(Exception):
+    def __init__(self, api_response: List[str], api_name: MultiverseAPIName, *args, **kwargs):
+        super().__init__(f"{api_name} api request with arguments {args} and keyword arguments {kwargs}"
+                         f" failed with response {api_response}")
 
 
 """
