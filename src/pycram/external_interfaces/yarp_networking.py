@@ -22,7 +22,7 @@ def init_yarp_network():
     yarp.Network.init()
     return True
 
-def open_rpc_client_port(port_name:str)->Tuple[bool, Optional[yarp.yarp.RpcClient]]:
+def open_rpc_client_port(port_name:str)->Tuple[bool, Optional[yarp.RpcClient]]:
     """
         Opens a YARP RpcClient port with the specified name.
 
