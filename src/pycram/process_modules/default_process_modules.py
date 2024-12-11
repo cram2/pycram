@@ -173,7 +173,7 @@ class DefaultWorldStateDetecting(ProcessModule):
 
     def _execute(self, desig: WorldStateDetectingMotion):
         obj_type = desig.object_type
-        return list(filter(lambda obj: obj.type == obj_type, World.current_world.objects))[0]
+        return list(filter(lambda obj: obj.obj_type == obj_type, World.current_world.objects))[0]
 
 
 class DefaultOpen(ProcessModule):
