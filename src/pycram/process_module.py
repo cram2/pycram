@@ -6,7 +6,7 @@ ProcessModule -- implementation of process modules.
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 import inspect
-import threading
+from threading import Lock, get_ident
 import time
 from abc import ABC
 from typing_extensions import Callable, Type, Any, Union
@@ -56,7 +56,7 @@ class ProcessModule:
         :param designator: The designator_description to execute.
         :return: Return of the Process Module if there is any
         """
-        if threading.get_ident() in Language.block_list:
+        if get_ident() in Language.block_list:
             return None
         with self._lock:
             ret = self._execute(designator)
@@ -267,15 +267,29 @@ class ProcessModuleManager(ABC):
         """
         Registers the Process modules for this robot. The name of the robot has to match the name given in the robot
         description.
-
         :param robot_name: Name of the robot for which these Process Modules are intended
         """
+
         self.robot_name = robot_name
         ProcessModuleManager.available_pms.append(self)
+        self._navigate_lock = Lock()
+        self._pick_up_lock = Lock()
+        self._place_lock = Lock()
+        self._looking_lock = Lock()
+        self._detecting_lock = Lock()
+        self._move_tcp_lock = Lock()
+        self._move_arm_joints_lock = Lock()
+        self._world_state_detecting_lock = Lock()
+        self._move_joints_lock = Lock()
+        self._move_gripper_lock = Lock()
+        self._open_lock = Lock()
+        self._close_lock = Lock()
 
     @staticmethod
     def get_manager() -> Union[ProcessModuleManager, None]:
         """
+        Returns the Process Module manager for the currently loaded robot or None if there is no Manager.
+
         :return: ProcessModuleManager instance of the current robot
         """
         manager = None
