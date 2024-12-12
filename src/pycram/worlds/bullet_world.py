@@ -10,7 +10,7 @@ import pycram_bullet as p
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Any
 
-from pycrap import Floor
+from pycrap.ontologies import Floor
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
     ClosestPoint, LateralFriction, ContactPoint, ContactPointsList, ClosestPointsList
 from ..datastructures.enums import ObjectType, WorldMode, JointType
