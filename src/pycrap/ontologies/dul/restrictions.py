@@ -1,3 +1,5 @@
+import datetime
+
 from .dependencies import *
 from .classes import *
 from .individuals import *
@@ -171,11 +173,11 @@ has_data_value.domain = [Entity]
 
 has_event_date.is_a = [DatatypeProperty, has_data_value]
 has_event_date.domain = [Event]
-has_event_date.range = [datetime]
+has_event_date.range = [datetime.datetime]
 
 has_interval_date.is_a = [DatatypeProperty, has_region_data_value]
 has_interval_date.domain = [TimeInterval]
-has_interval_date.range = [datetime]
+has_interval_date.range = [datetime.datetime]
 
 has_parameter_data_value.is_a = [DatatypeProperty, has_data_value]
 has_parameter_data_value.domain = [Parameter]

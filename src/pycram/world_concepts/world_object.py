@@ -36,6 +36,7 @@ from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
 from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, has_child_link, has_parent_link
 from pycrap.urdf_parser import parse_furniture, parse_joint_types
+from pycrap.ontologies import PhysicalObject, Agent
 
 Link = ObjectDescription.Link
 

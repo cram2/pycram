@@ -1,8 +1,8 @@
 import unittest
-from pycram.testing import BulletWorldTestCase, EmptyBulletWorldTestCase
+
 from pycram.designators.object_designator import *
-from pycram.datastructures.enums import ObjectType
-from pycrap import Milk, Food, Cereal
+from pycram.testing import BulletWorldTestCase
+from pycrap.ontologies import Milk, Food
 
 
 class TestObjectDesignator(BulletWorldTestCase):
@@ -30,8 +30,6 @@ class OntologyObjectDesignatorDescriptionTestCase(BulletWorldTestCase):
         self.assertEqual(len(odd.search_result), 2)
         result_in_world = list(odd.__iter__())
         self.assertEqual(len(result_in_world), 2)
-
-
 
 
 if __name__ == '__main__':

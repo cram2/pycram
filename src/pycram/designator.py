@@ -5,15 +5,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
 from inspect import isgenerator, isgeneratorfunction
 
-from pycrap import PhysicalObject, Agent
+from pycrap.ontologies import PhysicalObject, Agent
 from .ros.logging import logwarn, loginfo
-
-try:
-    import owlready2
-except ImportError:
-    owlready2 = None
-    logwarn("owlready2 is not installed!")
-
 from sqlalchemy.orm.session import Session
 
 from .datastructures.world import World
@@ -37,9 +30,6 @@ from .orm.motion_designator import Motion as ORMMotionDesignator
 
 from .orm.base import RobotState, ProcessMetaData
 from .tasktree import with_tree
-
-if TYPE_CHECKING:
-    from .ontology.ontology_common import OntologyConceptHolder
 
 
 class DesignatorError(Exception):

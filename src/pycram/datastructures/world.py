@@ -11,8 +11,10 @@ import numpy as np
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
-import pycrap
-from pycrap import PhysicalObject
+
+from pycrap.ontologies import PhysicalObject
+from pycrap.ontology_wrapper import OntologyWrapper
+
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
@@ -74,7 +76,7 @@ class World(StateEntity, ABC):
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
 
-    ontology: Optional[pycrap.OntologyWrapper] = None
+    ontology: Optional[OntologyWrapper] = None
     """
     The ontology of this world.
     """
@@ -93,7 +95,7 @@ class World(StateEntity, ABC):
 
         StateEntity.__init__(self)
 
-        self.ontology = pycrap.OntologyWrapper()
+        self.ontology = OntologyWrapper()
 
         self.latest_state_id: Optional[int] = None
 

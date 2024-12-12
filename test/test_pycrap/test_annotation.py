@@ -1,28 +1,26 @@
 import unittest
 
-from pycram.testing import EmptyBulletWorldTestCase
-from pycram.world_concepts.world_object import Object
-from pycrap import Table, Ontology, Board, PhysicalObject, has_part
+from pycrap.ontologies import DesignedFurniture, Surface
+from pycrap.ontology_wrapper import OntologyWrapper
 
 
 class TableConceptTestCase(unittest.TestCase):
+    """
+    Test some basic ontology queries.
+    """
 
     def setUp(self):
-        self.ontology = Ontology()
+        self.ontology = OntologyWrapper()
 
     def test_table_creation(self):
-        table_without_parts = Table()
-        table_with_parts = Table()
-        table_top = Board()
+        table_without_parts = DesignedFurniture()
+        table_with_parts = DesignedFurniture()
+        table_top = Surface()
         table_with_parts.has_part = [table_top]
-        result = list(self.ontology.search(is_a=Table, has_part=self.ontology.search(is_a=Board)))
+        result = list(self.ontology.search(is_a=DesignedFurniture, has_part=self.ontology.search(is_a=Surface)))
         self.assertEqual(len(result), 1)
+        tables = list(self.ontology.search(type=DesignedFurniture))
+        self.assertEqual(len(tables), 2)
 
-
-
-
-class AnnotationTestCase(EmptyBulletWorldTestCase):
-
-    def test_tagging_of_tables(self):
-        table = Object("table", Table, "table" + self.extension)
-        print(type(table.description))
+    def tearDown(self):
+        self.ontology.destroy_individuals()

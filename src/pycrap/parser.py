@@ -76,7 +76,7 @@ def replace_types(string: str) -> str:
     if "<class 'bool'>" in str(string):
         string = str(string).replace("<class 'bool'>", "bool")
     if "<class 'datetime.datetime'>" in str(string):
-        string = str(string).replace("<class 'datetime.datetime'>", "datetime")
+        string = str(string).replace("<class 'datetime.datetime'>", "datetime.datetime")
     return string
 
 
@@ -250,7 +250,14 @@ class OntologyParser(AbstractParser):
         self.import_classes()
         self.import_properties()
         self.import_individuals()
+        self.import_restrictions()
         self.current_file.close()
+
+    def import_restrictions(self):
+        """
+        Write the import statement that imports restrictions.
+        """
+        self.current_file.write("from .restrictions import *\n")
 
     def import_dependencies(self):
         """

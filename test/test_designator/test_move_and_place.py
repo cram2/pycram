@@ -12,7 +12,7 @@ from pycram.designators.action_designator import MoveTorsoActionPerformable, Nav
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import (MoveAndPlace)
 from pycram.failures import PlanFailure
 from pycram.process_module import simulated_robot
-from pycrap import Milk
+from pycrap.ontologies import Milk
 
 
 class MoveAndPlaceTestCase(BulletWorldTestCase):
