@@ -9,7 +9,7 @@ from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.dataclasses import Color
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
-from pycrap import Robot, Apartment, Milk, Cereal, Spoon, Bowl
+from pycrap.ontologies import Robot, Apartment, Milk, Cereal, Spoon, Bowl
 import numpy as np
 
 
