@@ -29,7 +29,7 @@ from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.designators.object_designator import *
 from pycram.datastructures.pose import Pose
-from pycram.datastructures.enums import ObjectType, WorldMode
+from pycram.datastructures.enums import ObjectType, WorldMode, TorsoState
 import anytree
 import pycram.failures
 import pycrap
@@ -56,7 +56,7 @@ Finally, we create a plan where the robot parks his arms, walks to the kitchen c
 def plan():
     with simulated_robot:
         ParkArmsActionPerformable(Arms.BOTH).perform()
-        MoveTorsoAction([0.22]).resolve().perform()
+        MoveTorsoAction([TorsoState.MID]).resolve().perform()
         pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
         pickup_arm = pickup_pose.reachable_arms[0]
         NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()

@@ -94,6 +94,15 @@ class Shape(Enum):
     CAPSULE = 7
 
 
+class TorsoState(Enum):
+    """
+    Enum for the different states of the torso.
+    """
+    HIGH = auto()
+    MID = auto()
+    LOW = auto()
+
+
 class WorldMode(Enum):
     """
     Enum for the different modes of the world.

@@ -326,7 +326,7 @@ To get familiar with the PyCRAM Framework we will write a simple pick and place 
 a cereal box from the kitchen counter and place it on the kitchen island. This is a simple pick and place plan.
 
 ```python
-from pycram.datastructures.enums import Grasp
+from pycram.datastructures.enums import Grasp, TorsoState
 
 cereal_desig = ObjectDesignatorDescription(names=["cereal"])
 kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
@@ -334,7 +334,7 @@ robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
 with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    MoveTorsoAction([0.33]).resolve().perform()
+    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
 
     pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
     pickup_arm = pickup_pose.reachable_arms[0]

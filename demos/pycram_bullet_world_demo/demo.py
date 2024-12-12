@@ -50,7 +50,7 @@ def move_and_detect(obj_type):
 with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    MoveTorsoAction([0.25]).resolve().perform()
+    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
 
     milk_desig = move_and_detect(Milk)
 
@@ -89,7 +89,7 @@ with simulated_robot:
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    MoveTorsoAction([0.15]).resolve().perform()
+    MoveTorsoAction([TorsoState.MID]).resolve().perform()
 
     # Find a pose to place the spoon, move and then place it
     spoon_target_pose = Pose([4.85, 3.3, 0.8], [0, 0, 1, 1])
