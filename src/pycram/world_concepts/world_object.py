@@ -33,7 +33,7 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
-from pycrap.ontologies import PhysicalObject, Agent
+from pycrap.ontologies import PhysicalObject, Agent, Floor, Location, Robot
 
 Link = ObjectDescription.Link
 
@@ -631,7 +631,7 @@ class Object(WorldEntity, HasConcept):
 
         :return: True if the object is of type environment, False otherwise.
         """
-        return issubclass(self.obj_type, pycrap.Location) or issubclass(self.obj_type, pycrap.Floor)
+        return issubclass(self.obj_type, Location) or issubclass(self.obj_type, Floor)
 
     @property
     def is_a_robot(self) -> bool:
@@ -640,7 +640,7 @@ class Object(WorldEntity, HasConcept):
 
         :return: True if the object is a robot, False otherwise.
         """
-        return issubclass(self.obj_type, pycrap.Robot)
+        return issubclass(self.obj_type, Robot)
 
     def attach(self,
                child_object: Object,

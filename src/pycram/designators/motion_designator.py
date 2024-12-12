@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
-from pycrap.ontologies import PhysicalObject
+from pycrap.ontologies import PhysicalObject, Location
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
 from ..datastructures.enums import MovementType
 from ..failure_handling import try_motion

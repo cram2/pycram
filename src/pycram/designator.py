@@ -1,13 +1,13 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
 from inspect import isgenerator, isgeneratorfunction
 
-from pycrap.ontologies import PhysicalObject, Agent
 from typing_extensions import get_type_hints
-from pycrap import PhysicalObject, Agent
+from pycrap.ontologies import PhysicalObject, Agent
 from .datastructures.property import Property, EmptyProperty
 from .ros.logging import logwarn, loginfo
 from sqlalchemy.orm.session import Session
