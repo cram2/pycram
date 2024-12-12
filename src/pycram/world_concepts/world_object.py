@@ -35,7 +35,7 @@ from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
 from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, has_child_link, has_parent_link
-from pycrap.urdf_parser import parse_furniture
+from pycrap.urdf_parser import parse_furniture, parse_joint_types
 
 Link = ObjectDescription.Link
 
@@ -406,7 +406,8 @@ class Object(WorldEntity, HasConcept):
             individual = ontology_concept(joint_name, namespace=self.world.ontology.ontology)
             individual.is_a = [ontology_concept, has_child_link.some(
                 self.get_joint_child_link(joint_name).name), has_parent_link.some(
-                self.get_joint_parent_link(joint_name).name)]
+                self.get_joint_parent_link(joint_name).name),
+                               parse_joint_types(self.get_joint_type(joint_name).name)]
             link_individual = self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name))
             old_restrictions = link_individual.is_a
             link_individual.is_a = [*old_restrictions, is_part_of.some(self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_parent_link(joint_name).name)))]

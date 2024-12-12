@@ -3,6 +3,7 @@ import os
 from typing import List, Any
 
 import pycrap
+from pycrap import FixedJoint, PlanarJoint, RevoluteJoint, FloatingJoint, HingeJoint, ContinuousJoint
 
 
 def parse_furniture(link):
@@ -14,6 +15,12 @@ def parse_furniture(link):
                 matched_furniture.append(c)
     if matched_furniture:
         return matched_furniture[len(matched_furniture)-1]
+
+def parse_joint_types(joint):
+    joint_types = [FixedJoint, PlanarJoint, RevoluteJoint, FloatingJoint, HingeJoint, ContinuousJoint]
+    for j in joint_types:
+        if str(joint).lower() in str(j).lower():
+            return j
 
 class URDFParser:
 
