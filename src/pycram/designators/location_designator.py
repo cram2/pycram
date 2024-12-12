@@ -215,9 +215,18 @@ class CostmapLocation(LocationDesignatorDescription):
                                                        World.current_world)
                 if self.reachable_for:
                     hand_links = []
-                    if self.reachable_arm is not None:
-                        hand_links = RobotDescription.current_robot_description.get_arm_chain(
-                            self.reachable_arm).end_effector.links
+
+                    if self.reachable_arm:
+                        arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.reachable_arm)
+                        hand_links += arm_chain.end_effector.links
+                    else:
+                        for chain in RobotDescription.current_robot_description.get_manipulator_chains():
+                            hand_links += chain.end_effector.links
+                    valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
+                                                         allowed_collision={test_robot: hand_links})
+                    if self.reachable_arm:
+                        res = res and valid and self.reachable_arm in arms
+
                     else:
                         for description in RobotDescription.current_robot_description.get_manipulator_chains():
                             hand_links += description.end_effector.links
