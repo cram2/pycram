@@ -17,3 +17,7 @@ Food.is_a = [PhysicalObject]
 Apartment.is_a = [Room, Location]
 
 Cup.is_a = [Container, PhysicalObject]
+
+Spoon.is_a = [PhysicalObject]
+
+Bowl.is_a = [Container, PhysicalObject]

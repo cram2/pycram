@@ -33,3 +33,9 @@ class Apartment(Base):
 
 class Cup(Base):
     ...
+
+class Spoon(Base):
+    ...
+
+class Bowl(Base):
+    ...
