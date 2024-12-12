@@ -26,7 +26,7 @@ from pycram.tasktree import with_tree, task_tree
 from pycram.orm.views import PickUpWithContextView
 from pycram.datastructures.enums import Arms, Grasp, GripperState, ObjectType
 from pycram.worlds.bullet_world import BulletWorld
-from pycrap import ontology, Apartment, Robot, Milk
+from pycrap import ontology_wrapper, Apartment, Robot, Milk
 
 
 class DatabaseTestCaseMixin(BulletWorldTestCase):

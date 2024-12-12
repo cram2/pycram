@@ -11,7 +11,7 @@ from .process_module import ProcessModule
 from .datastructures.enums import ObjectType, WorldMode
 from .object_descriptors.urdf import ObjectDescription
 from .ros_utils.viz_marker_publisher import VizMarkerPublisher
-from pycrap import ontology, Milk, Robot, Kitchen, Cereal
+from pycrap import ontology_wrapper, Milk, Robot, Kitchen, Cereal
 import owlready2
 
 class EmptyBulletWorldTestCase(unittest.TestCase):

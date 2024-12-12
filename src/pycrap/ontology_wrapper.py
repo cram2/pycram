@@ -5,7 +5,7 @@ from typing_extensions import Dict, Any
 from .ontologies.base import Base, ontology as default_pycrap_ontology
 
 
-class Ontology:
+class OntologyWrapper:
     """
     Wrapper class for user-friendly access of the owlready2 ontology class.
 
@@ -57,6 +57,8 @@ class Ontology:
 
     def search(self, *args, **kwargs):
         """
+        Check https://owlready2.readthedocs.io/en/latest/onto.html#simple-queries for details.
+
         :return: The search results of the ontology.
         """
         return self.ontology.search(*args, **kwargs)

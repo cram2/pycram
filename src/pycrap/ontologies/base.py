@@ -1,9 +1,9 @@
-from owlready2 import *
+from owlready2 import Thing, ThingClass, ObjectProperty, get_ontology, And, Or, Not, OneOf, Inverse, normstr, DatatypeProperty, TransitiveProperty, SymmetricProperty, AsymmetricProperty, ReflexiveProperty, IrreflexiveProperty, datetime 
 import tempfile
 
 
 ontology_file = tempfile.NamedTemporaryFile()
-ontology = owlready2.get_ontology("file://" + ontology_file.name).load()
+ontology = get_ontology("file://" + ontology_file.name).load()
 
 
 class Base(Thing, metaclass=ThingClass):

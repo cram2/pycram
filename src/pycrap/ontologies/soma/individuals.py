@@ -33,5 +33,5 @@ FailWFNondeterministicContinuation.comment = ['A particular kind of failure: it 
 
 FailWFUninterpretableTask.comment = ['A particular kind of failure: a task is not recognized and not associated to anything that could execute it, nor to a workflow that could detail its structure into simpler structure.']
 
-RDFType.is_reification_of = ['http://www.w3.org/2001/XMLSchema#type']
+# RDFType.is_reification_of = ['http://www.w3.org/2001/XMLSchema#type']
 

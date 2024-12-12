@@ -32,7 +32,7 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
-from pycrap import PhysicalObject, ontology, Base, Agent
+from pycrap import PhysicalObject, ontology_wrapper, Base, Agent
 
 Link = ObjectDescription.Link
 
