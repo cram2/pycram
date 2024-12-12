@@ -1,19 +1,20 @@
 import shutil
 from os import mkdir
 
+import inflection
 import networkx as nx
 import owlready2
 import tqdm
 from owlready2 import ThingClass, PropertyClass, get_ontology, LogicalClassConstruct
 from owlready2.base import *
 from typing_extensions import List, Any
-import inflection
 
 # Mapping of digits to words
 digit_map = {
     '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
     '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine'
 }
+
 
 def set_explicit_repr_for_logical_operator():
     def explicit_repr(self):
@@ -27,6 +28,7 @@ def set_explicit_repr_for_logical_operator():
 
     LogicalClassConstruct.__repr__ = explicit_repr
 
+
 def to_snake_case(string: str) -> str:
     """
     Convert a string to snake case.
@@ -36,6 +38,7 @@ def to_snake_case(string: str) -> str:
     """
     return inflection.underscore(string)
 
+
 def to_camel_case(string: str) -> str:
     """
     Convert a string to camel case.
@@ -44,6 +47,7 @@ def to_camel_case(string: str) -> str:
     :return: The string in camel case.
     """
     return inflection.camelize(string)
+
 
 def replace_types(string: str) -> str:
     """
@@ -87,6 +91,7 @@ def update_class_names(onto: owlready2.Ontology):
         converted_name = to_camel_case(converted_name)
         converted_name = ''.join(digit_map[char] if char.isdigit() else char for char in converted_name)
         type.__setattr__(cls, "_name", converted_name)
+
 
 def update_property_names(onto: owlready2.Ontology):
     """
@@ -216,7 +221,6 @@ class OntologyParser(AbstractParser):
         self.ontology = ontology
         self.dependencies = dependencies
         # TODO update class and property names here to match python conventions
-
 
     def parse(self):
         """
@@ -578,17 +582,19 @@ class OntologiesParser(AbstractParser):
         self.create_dependency_graph()
         set_explicit_repr_for_logical_operator()
 
-
     def create_base(self):
         """
         Create the base file
         """
         self.current_file = open(self.path_for_file(self.base_file_name), "w")
-        self.current_file.write("from owlready2 import *\n")
+        self.current_file.write(
+            "from owlready2 import Thing, ThingClass, ObjectProperty, get_ontology, And, Or, Not, OneOf, Inverse, "
+            "normstr, DatatypeProperty, TransitiveProperty, SymmetricProperty, AsymmetricProperty, ReflexiveProperty, "
+            "IrreflexiveProperty, datetime \n")
         self.current_file.write("import tempfile\n")
         self.current_file.write("\n" * 2)
         self.current_file.write("ontology_file = tempfile.NamedTemporaryFile()\n")
-        self.current_file.write('ontology = owlready2.get_ontology("file://" + ontology_file.name).load()\n')
+        self.current_file.write('ontology = get_ontology("file://" + ontology_file.name).load()\n')
         self.current_file.write("\n" * 2)
         self.create_base_class()
         self.create_base_property()
