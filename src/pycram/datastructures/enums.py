@@ -317,3 +317,10 @@ class FilterConfig(Enum):
     Currently supported: Butterworth
     """
     butterworth = 1
+
+class TorsoState(Enum):
+    """
+    Temporary enum for TorsoState until the correct implementation is merged from Luca Krohm
+    """
+
+    HIGH = 0.3

@@ -16,6 +16,11 @@
   
 3. [Tutorial](#tutorial)
    1. [Pick up object with Visualization](#pickup)
+   2. [Upload your notebook to Binder](#sharing)
+4. [Testing](#testing)
+   1. [In Binder (without the VIB Website)](#testing-binder)
+   2. [Local setup](#testing-local)
+5. [Adding the demo](#adding-demo)
  
 </h3>
 
@@ -450,16 +455,21 @@ with simulated_robot:
 ```
 
 
+<a name="sharing">
+<summary style="text-align: center;"><b><h2>
+                       Uploading Your Jupyter Notebook to Binder
+</h2></b></summary>
 
+To share your Jupyter notebook via Binder, follow these steps. 
 
+**Note:** The first time you start your Binder, **it will not work right away** (this happens only the first time).
 
+<summary style="text-align: left;"><b><h3>
+                       Instructions:
+</h3></b></summary>
 
+Author: Phillip Kehr
 
-# Uploading Your Jupyter Notebook to Binder
-
-To share your Jupyter notebook via Binder, follow these steps. **Note:** The first time you start your Binder, **it will not work right away** (this happens only the first time).
-
-### Instructions from Copycat (von LE k3ks):
 Here’s a quick overview of how to share your Binder link without using "simple mode."
 
 1. **Step 1**: Click on the **"Binder"** button, as shown in the first image below (the red highlighted area).
@@ -474,7 +484,15 @@ Here’s a quick overview of how to share your Binder link without using "simple
 
 ---
 
-### Important: Local Testing (Without the VIB Website, but still in BINDER)
+<a name="testing">
+<summary style="text-align: center;"><b><h1>
+                       Testing demos
+</h1></b></summary>
+
+<a name="testing-binder">
+<summary style="text-align: center;"><b><h2>
+                       In Binder (without the VIB Website)
+</h2></b></summary>
 
 If you want to test your notebook **locally** using the link you’ve copied, you may need to add some extra parameters to the end of the link, depending on the number of drop-down menus your task requires.
 
@@ -488,8 +506,10 @@ If you are planning to test new robots on your own branch first before merging i
 **Important!** Then, before merging with the main branch, make sure to revert the curl address to its original state! 
 
 ---
-
-# The Startup File -> Complete Local Testing without website and binder possible here:
+<a name="testing-local">
+<summary style="text-align: center;"><b><h2>
+                       Complete local testing
+</h2></b></summary>
 
 This startup file is designed to run specific setup actions **automatically** when the Jupyter notebook opens. It gets installed during the Binder build process.
 
@@ -511,8 +531,10 @@ rosparam set /nbparam_robots pr2
 rosparam set /nbparam_tasks navigate
 ```
 
-
-# Adding the Demo
+<a name="adding-demo">
+<summary style="text-align: center;"><b><h1>
+                       Adding the Demo
+</h1></b></summary>
 
 Simply add the demo here: 
 demo/pycram_virtual_building_demos/setup_demo_manger.py  https://github.com/sunava/pycram/blob/ddd9104fc0878f33b22b05fc386cda9057514376/demos/pycram_virtual_building_demos/setup_demo_manager.py#L66
