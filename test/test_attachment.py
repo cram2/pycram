@@ -5,7 +5,7 @@ from pycram.datastructures.enums import ObjectType
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.world import UseProspectionWorld
 from pycram.world_concepts.world_object import Object
-from pycrap import Milk, Cereal
+from pycrap.ontologies import Milk, Cereal
 
 
 class TestAttachment(BulletWorldTestCase):

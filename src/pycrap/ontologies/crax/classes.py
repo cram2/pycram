@@ -4,3 +4,23 @@ class Floor(Base):
     """
     The floor of the world.
     """
+
+class Milk(Base):
+    """
+    A milk carton.
+    """
+
+class Robot(Base):
+    """
+    The robot.
+    """
+
+class Cereal(Base):
+    """
+    A cereal box.
+    """
+
+class Kitchen(Base):
+    """
+    A kitchen.
+    """
