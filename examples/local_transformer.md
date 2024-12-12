@@ -28,7 +28,6 @@ from pycram.world_concepts.world_object import Object
 from pycram.datastructures.pose import Transform, Pose
 from pycram.local_transformer import LocalTransformer
 from pycram.datastructures.enums import WorldMode
-import pycrap
 ```
 
 ## Initializing the World
@@ -55,10 +54,11 @@ These objects will be used in subsequent tasks, to provide the frames to which w
 ```python
 from pycram.worlds.bullet_world import Object
 from pycram.datastructures.enums import ObjectType
+from pycrap.ontologies import Kitchen, Milk, Bowl
 
-kitchen = Object("kitchen", pycrap.Kitchen, "kitchen.urdf")
-milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([0.9, 1, 0.95]))
-bowl = Object("bowl", pycrap.Bowl, "bowl.stl", pose=Pose([1.6, 1, 0.90]))
+kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
+milk = Object("milk", Milk, "milk.stl", pose=Pose([0.9, 1, 0.95]))
+bowl = Object("bowl", Bowl, "bowl.stl", pose=Pose([1.6, 1, 0.90]))
 ```
 
 ## Creating a Local Transfomer

@@ -36,7 +36,6 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
-import pycrap
 world = BulletWorld(WorldMode.DIRECT)
 ```
 
@@ -49,12 +48,11 @@ description which will be used to describe objects in the real world.
 Since {meth}`~pycram.designators.object_designator.BelieveObject` describes Objects in the BulletWorld we create a few.
 
 ```python
-import pycrap
-
-kitchen = Object("kitchen", pycrap.Kitchen, "kitchen.urdf")
-milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-cereal = Object("froot_loops", pycrap.Cereal, "breakfast_cereal.stl", pose=Pose([1.3, 0.9, 0.95]))
-spoon = Object("spoon", pycrap.Spoon, "spoon.stl", pose=Pose([1.3, 1.1, 0.87]))
+from pycrap.ontologies import Milk, Cereal, Kitchen, Spoon
+kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
+milk = Object("milk", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+cereal = Object("froot_loops", Cereal, "breakfast_cereal.stl", pose=Pose([1.3, 0.9, 0.95]))
+spoon = Object("spoon", Spoon, "spoon.stl", pose=Pose([1.3, 1.1, 0.87]))
 ```
 
 Now that we have objects we can create an object designator to describe them. For the start we want an object designator
@@ -75,7 +73,7 @@ the world.
 ```python
 from pycram.designators.object_designator import BelieveObject
 
-object_description = BelieveObject(types=[pycrap.Milk, pycrap.Cereal])
+object_description = BelieveObject(types=[Milk, Cereal])
 
 print(object_description.resolve())
 ```
@@ -109,7 +107,7 @@ For this we need some objects, so if you didn't already spawn them you can use t
 ```python
 from pycram.designators.object_designator import BelieveObject
 
-object_description = BelieveObject(types=[pycrap.Milk, pycrap.Cereal])
+object_description = BelieveObject(types=[Milk, Cereal])
 
 for obj in object_description:
     print(obj, "\n")

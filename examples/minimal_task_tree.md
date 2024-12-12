@@ -32,17 +32,17 @@ from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import ObjectType, WorldMode
 import anytree
 import pycram.failures
-import pycrap
 ```
 
 Next we will create a bullet world with a PR2 in a kitchen containing milk and cereal.
 
 ```python
+from pycrap.ontologies import Milk, Cereal, Robot, Kitchen
 world = BulletWorld(WorldMode.DIRECT)
-pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
-kitchen = Object("kitchen", pycrap.Kitchen, "kitchen.urdf")
-milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-cereal = Object("cereal", pycrap.Cereal, "breakfast_cereal.stl", pose=Pose([1.3, 0.7, 0.95]))
+pr2 = Object("pr2", Robot, "pr2.urdf")
+kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
+milk = Object("milk", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=Pose([1.3, 0.7, 0.95]))
 milk_desig = ObjectDesignatorDescription(names=["milk"])
 cereal_desig = ObjectDesignatorDescription(names=["cereal"])
 robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
