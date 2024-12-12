@@ -384,9 +384,11 @@ class Object(WorldEntity, HasConcept):
                 self.links[link_name] = self.description.Link(link_id, link_description, self)
 
             individual = ontology_concept(name=link_name, namespace=self.world.ontology.ontology)
-            individual.is_a = []
-            individual.is_a.append(ontology_concept)
-            individual.is_a.append(parse_furniture(link_name))
+            if parse_furniture(link_name):
+                individual.is_a = [ontology_concept, parse_furniture(link_name)]
+            else:
+                individual.is_a = [ontology_concept]
+
         self.update_link_transforms()
 
     def _init_joints(self):
@@ -405,10 +407,9 @@ class Object(WorldEntity, HasConcept):
             individual.is_a = [ontology_concept, has_child_link.some(
                 self.get_joint_child_link(joint_name).name), has_parent_link.some(
                 self.get_joint_parent_link(joint_name).name)]
-            #print(self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name)))
             link_individual = self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name))
-            link_individual.is_a = [is_part_of.some(self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_parent_link(joint_name).name)))]
-            #self.world.ontology.individual.has_parent_link.append(self.get_joint_parent_link(joint_name))
+            old_restrictions = link_individual.is_a
+            link_individual.is_a = [*old_restrictions, is_part_of.some(self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_parent_link(joint_name).name)))]
 
 
     def is_joint_virtual(self, name: str):

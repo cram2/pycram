@@ -12,8 +12,8 @@ def parse_furniture(link):
         for l in link.split('_'):
             if l.capitalize() in str(c):
                 matched_furniture.append(c)
-
-    return matched_furniture[len(matched_furniture)-1]
+    if matched_furniture:
+        return matched_furniture[len(matched_furniture)-1]
 
 class URDFParser:
 
