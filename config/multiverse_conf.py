@@ -47,8 +47,7 @@ class MultiverseConfig(WorldConfig):
     similar to bullet_world which uses the bullet physics engine.
     """
 
-    use_controller: bool = False
-    use_controller = use_controller and not use_static_mode
+    use_controller: bool = True
     """
     Only used when use_static_mode is False. This turns on the controller for the robot joints.
     """
@@ -58,15 +57,24 @@ class MultiverseConfig(WorldConfig):
     The default description type for the objects.
     """
 
-    use_physics_simulator_state: bool = True
+    use_physics_simulator_state: bool = False
     """
     Whether to use the physics simulator state when restoring or saving the world state.
     """
 
-    clear_cache_at_start = False
+    validate_goals = True
+
+    clear_cache_at_start = True
 
     let_pycram_move_attached_objects = False
     let_pycram_handle_spawning = False
 
     position_tolerance = 2e-2
     prismatic_joint_position_tolerance = 2e-2
+
+    use_giskard_monitor = False
+    allow_gripper_collision = True
+
+    use_multiverse_process_modules = True
+
+    depth_images_are_in_meter = True

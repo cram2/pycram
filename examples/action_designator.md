@@ -244,9 +244,9 @@ from pycram.datastructures.enums import Arms
 milk_desig = BelieveObject(names=["milk"])
 
 description = TransportAction(milk_desig,
-                              [Arms.LEFT],
                               [Pose([2.4, 1.8, 1], 
-                                       [0, 0, 0, 1])])
+                                       [0, 0, 0, 1])],
+                              [Arms.LEFT])
 with simulated_robot:
     MoveTorsoAction([0.2]).resolve().perform()
     description.resolve().perform()

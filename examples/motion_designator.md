@@ -27,11 +27,11 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
-from pycrap.ontologies import Robot, Milk
+import pycrap
 
 world = BulletWorld(WorldMode.DIRECT)
-pr2 = Object("pr2", Robot, "pr2.urdf")
-milk = Object("milk", Milk, "milk.stl", pose=Pose([1.5, 0, 1]))
+pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
+milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([1.5, 0, 1]))
 ```
 
 ## Move
@@ -105,22 +105,30 @@ with simulated_robot:
 ## Detecting
 
 This is the motion designator implementation of detecting, if an object with the given object type is in the field of
-view (FOV) this motion designator will return an object designator describing the object.
+view (FOV) this motion designator will return a list of  object designators describing the objects. It is important to specify the 
+technique and state of the detection. You can also optional specify a region in which the object should be detected.
+
 
 Since we need an object that we can detect, we will spawn a milk for this.
 
 ```python
 from pycram.designators.motion_designator import DetectingMotion, LookingMotion
 from pycram.process_module import simulated_robot
+from pycram.datastructures.pose import Pose
+from pycram.datastructures.enums import DetectionTechnique, DetectionState
+from pycrap import  Milk
+from pycram.designators.object_designator import BelieveObject
+
 
 with simulated_robot:
     LookingMotion(target=Pose([1.5, 0, 1], [0, 0, 0, 1])).perform()
 
-    motion_description = DetectingMotion(object_type=Milk)
+    motion_description = DetectingMotion(technique=DetectionTechnique.TYPES,state=DetectionState.START, object_designator_description=BelieveObject(types=[Milk]),
+                               region=None)
 
     obj = motion_description.perform()
 
-    print(obj)
+    print(obj[0])
 ```
 
 ## Move Arm Joints
@@ -151,7 +159,7 @@ from pycram.designators.motion_designator import WorldStateDetectingMotion
 from pycram.process_module import simulated_robot
 
 with simulated_robot:
-    motion_description = WorldStateDetectingMotion(object_type=Milk)
+    motion_description = WorldStateDetectingMotion(object_type=pycrap.Milk)
 
     obj = motion_description.perform()
 

@@ -42,11 +42,23 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
-from pycrap.ontologies import Apartment, Robot, Milk
+import pycrap
 
-world = BulletWorld(WorldMode.DIRECT)
-apartment = Object("apartment", Apartment, "apartment.urdf")
-pr2 = Object("pr2", Robot, "pr2.urdf")
+use_multiverse = False
+viz_marker_publisher = None
+if use_multiverse:
+    try:
+        from pycram.worlds.multiverse import Multiverse
+        world = Multiverse()
+    except ImportError:
+        raise ImportError("Multiverse is not installed, please install it to use it.")
+else:
+    from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
+    world = BulletWorld()
+    viz_marker_publisher = VizMarkerPublisher()
+    
+apartment = Object("apartment", pycrap.Apartment, "apartment.urdf")
+pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
 ```
 
 Next up we will create the location designator description, the {meth}`~pycram.designators.location_designator.CostmapLocation` that we will be using needs a
@@ -79,7 +91,7 @@ PR2 will be set to 0.2 since otherwise the arms of the robot will be too low to 
 
 ```python
 pr2.set_joint_position("torso_lift_joint", 0.2)
-milk = Object("milk", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
 
 ```
 
@@ -139,7 +151,8 @@ from pycram.designators.object_designator import BelieveObject
 kitchen_desig = BelieveObject(names=["apartment"]).resolve()
 milk_desig = BelieveObject(names=["milk"]).resolve()
 
-location_description = SemanticCostmapLocation(urdf_link_name="island_countertop",
+counter_name = "counter_sink_stove" if use_multiverse else "island_countertop"
+location_description = SemanticCostmapLocation(link_name=counter_name,
                                                part_of=kitchen_desig,
                                                for_object=milk_desig)
 
@@ -178,13 +191,14 @@ spawned it in a previous example. Furthermore, we need a robot, so we also spawn
 ```python
 from pycram.designators.object_designator import *
 from pycram.designators.location_designator import *
-from pycram.datastructures.enums import ObjectType
 
 apartment_desig = BelieveObject(names=["apartment"])
-handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig.resolve())
-robot_desig = BelieveObject(types=[Robot])
+handle_name = "cabinet10_drawer1_handle" if use_multiverse else "handle_cab10_t"
+handle_desig = ObjectPart(names=[handle_name], part_of=apartment_desig.resolve())
+robot_desig = BelieveObject(types=[pycrap.Robot])
 
-access_location = AccessingLocation(handle_desig.resolve(), robot_desig.resolve()).resolve()
+access_location = AccessingLocation(handle_desig.resolve(), robot_desig.resolve(),
+                                    prepose_distance=0.03).resolve()
 print(access_location.pose)
 ```
 
@@ -212,5 +226,7 @@ if "/giskard" in rosnode.get_node_names():
 If you are finished with this example you can close the world with the following cell:
 
 ```python
+if viz_marker_publisher is not None:
+    viz_marker_publisher._stop_publishing()
 world.exit()
 ```

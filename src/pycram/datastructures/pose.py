@@ -311,7 +311,7 @@ class Pose(PoseStamped):
 
         return pose
 
-    def multiply_quaternions(self, quaternion: List) -> None:
+    def multiply_quaternion(self, quaternion: List) -> None:
         """
         Multiply the quaternion of this Pose with the given quaternion, the result will be the new orientation of this
         Pose.
@@ -380,8 +380,8 @@ class Transform(TransformStamped):
         homogeneous_transform = self.get_homogeneous_matrix()
         # add the homogeneous coordinate, by adding a column of ones to the position vectors, becoming 4xN matrix
         homogenous_points = np.concatenate((points, np.ones((points.shape[0], 1))), axis=1).T
-        rays_end_positions = homogeneous_transform @ homogenous_points
-        return rays_end_positions[:3, :].T
+        transformed_points = homogeneous_transform @ homogenous_points
+        return transformed_points[:3, :].T
 
     def get_homogeneous_matrix(self) -> np.ndarray:
         """

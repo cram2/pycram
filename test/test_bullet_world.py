@@ -228,7 +228,7 @@ class BulletWorldTest(BulletWorldTestCase):
 class BulletWorldTestGUI(BulletWorldGUITestCase):
     def test_add_vis_axis(self):
         time.sleep(10)
-        self.world.add_vis_axis(self.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_frame()))
+        self.world.add_vis_axis(self.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link()))
         self.assertTrue(len(self.world.vis_axis) == 1)
         self.world.remove_vis_axis()
         self.assertTrue(len(self.world.vis_axis) == 0)
