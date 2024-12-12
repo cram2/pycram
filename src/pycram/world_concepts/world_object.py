@@ -10,6 +10,8 @@ from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
+from pycrap import is_part_of
+import pycrap
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList)
@@ -32,7 +34,8 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
-from pycrap import PhysicalObject, ontology, Base, Agent
+from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, has_child_link, has_parent_link
+from pycrap.urdf_parser import parse_furniture
 
 Link = ObjectDescription.Link
 
@@ -372,6 +375,7 @@ class Object(WorldEntity, HasConcept):
         corresponding link objects.
         """
         self.links = {}
+        ontology_concept = pycrap.ontologies.PhysicalObject
         for link_name, link_id in self.link_name_to_id.items():
             link_description = self.description.get_link_by_name(link_name)
             if link_name == self.description.get_root():
@@ -379,6 +383,10 @@ class Object(WorldEntity, HasConcept):
             else:
                 self.links[link_name] = self.description.Link(link_id, link_description, self)
 
+            individual = ontology_concept(name=link_name, namespace=self.world.ontology.ontology)
+            individual.is_a = []
+            individual.is_a.append(ontology_concept)
+            individual.is_a.append(parse_furniture(link_name))
         self.update_link_transforms()
 
     def _init_joints(self):
@@ -387,10 +395,21 @@ class Object(WorldEntity, HasConcept):
         corresponding joint objects
         """
         self.joints = {}
+
+        ontology_concept = pycrap.ontologies.Joint
         for joint_name, joint_id in self.joint_name_to_id.items():
             parsed_joint_description = self.description.get_joint_by_name(joint_name)
             is_virtual = self.is_joint_virtual(joint_name)
             self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
+            individual = ontology_concept(joint_name, namespace=self.world.ontology.ontology)
+            individual.is_a = [ontology_concept, has_child_link.some(
+                self.get_joint_child_link(joint_name).name), has_parent_link.some(
+                self.get_joint_parent_link(joint_name).name)]
+            #print(self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name)))
+            link_individual = self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name))
+            link_individual.is_a = [is_part_of.some(self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_parent_link(joint_name).name)))]
+            #self.world.ontology.individual.has_parent_link.append(self.get_joint_parent_link(joint_name))
+
 
     def is_joint_virtual(self, name: str):
         """

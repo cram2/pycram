@@ -2,6 +2,18 @@ import xml.etree.ElementTree as ET
 import os
 from typing import List, Any
 
+import pycrap
+
+
+def parse_furniture(link):
+    #furniture = ["Door", "Fridge", "Handle", "Sink", "Drawer", "Table", "Leg"]
+    matched_furniture = []
+    for c in pycrap.ontologies.base.ontology.classes():
+        for l in link.split('_'):
+            if l.capitalize() in str(c):
+                matched_furniture.append(c)
+
+    return matched_furniture[len(matched_furniture)-1]
 
 class URDFParser:
 
