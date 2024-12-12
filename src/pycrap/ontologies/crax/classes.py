@@ -24,3 +24,12 @@ class Kitchen(Base):
     """
     A kitchen.
     """
+
+class Food(Base):
+    ...
+
+class Apartment(Base):
+    ...
+
+class Cup(Base):
+    ...
