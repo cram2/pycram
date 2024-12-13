@@ -11,6 +11,7 @@ from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, U
 from pycrap import PhysicalObject
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
     AxisAlignedBoundingBox, RotatedBoundingBox
+from .mixins import HasConcept
 from ..local_transformer import LocalTransformer
 from ..ros.data_types import Time
 
@@ -155,7 +156,7 @@ class WorldEntity(StateEntity, ABC):
         return hash((self.id, self.name, self.parent_entity))
 
 
-class PhysicalBody(WorldEntity, ABC):
+class PhysicalBody(WorldEntity, HasConcept, ABC):
     """
     A class that represents a physical body in the world that has some related physical properties.
     """
@@ -167,6 +168,7 @@ class PhysicalBody(WorldEntity, ABC):
 
     def __init__(self, body_id: int, world: World):
         WorldEntity.__init__(self, body_id, world)
+        HasConcept.__init__(self)
         self.local_transformer = LocalTransformer()
         self._is_translating: Optional[bool] = None
         self._is_rotating: Optional[bool] = None
