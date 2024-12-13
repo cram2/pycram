@@ -29,7 +29,6 @@ except ImportError:
 
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
-    from control_msgs.msg import GripperCommandGoal, GripperCommandAction
 except ImportError:
     logdebug("Pr2GripperCommandGoal not found")
 
