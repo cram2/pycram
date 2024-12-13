@@ -945,15 +945,6 @@ class VirtualMobileBaseJoints:
 
 
 @dataclass
-class MultiverseBoundingBox:
-    """
-    Dataclass for storing the bounding box of a body in the Multiverse simulation.
-    """
-    min_point: List[float]
-    max_point: List[float]
-
-
-@dataclass
 class MultiverseMetaData:
     """Meta data for the Multiverse Client, the simulation_name should be non-empty and unique for each simulation"""
     world_name: str = "world"
@@ -980,15 +971,6 @@ class RayResult:
         return: Whether the ray intersects with a body.
         """
         return self.distance >= 0 and self.body_name != ""
-
-
-@dataclass
-class MultiverseObjectContactData:
-    """
-    A dataclass to store all the contact data returned from Multiverse for a single object.
-    """
-    body_names: List[str]
-    data: List[MultiverseContactPoint]
 
 
 @dataclass
