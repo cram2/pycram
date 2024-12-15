@@ -253,19 +253,6 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
                 if isinstance(geom, MeshVisualShape) else geom.get_axis_aligned_bounding_box()
         return bounding_box
 
-    def get_axis_aligned_bounding_box_from_geometry(self) -> AxisAlignedBoundingBox:
-        if isinstance(self.geometry, List):
-            all_boxes = [geom.get_axis_aligned_bounding_box(self.get_mesh_path(geom))
-                         if isinstance(geom, MeshVisualShape) else geom.get_axis_aligned_bounding_box()
-                         for geom in self.geometry
-                         ]
-            bounding_box = AxisAlignedBoundingBox.from_multiple_bounding_boxes(all_boxes)
-        else:
-            geom = self.geometry
-            bounding_box = geom.get_axis_aligned_bounding_box(self.get_mesh_path(geom)) \
-                if isinstance(geom, MeshVisualShape) else geom.get_axis_aligned_bounding_box()
-        return bounding_box
-
     def get_convex_hull(self) -> Geometry3D:
         """
         :return: The convex hull of the link geometry.

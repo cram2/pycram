@@ -710,6 +710,10 @@ class ContactPoint:
     lateral_friction_1: Optional[LateralFriction] = None
     lateral_friction_2: Optional[LateralFriction] = None
 
+    @property
+    def normal(self) -> List[float]:
+        return self.normal_on_body_b
+
     def __str__(self):
         return f"ContactPoint: {self.body_a.name} - {self.body_b.name}"
 
@@ -795,7 +799,7 @@ class ContactPointsList(list):
         :param obj: An instance of the Object class that represents the object.
         :return: A list of Link instances that represent the links in contact of the object.
         """
-        return [point.body_b for point in self if point.body_b.parent == obj]
+        return [point.body_b for point in self if point.body_b.parent_entity == obj]
 
     def get_points_of_object(self, obj: Object) -> 'ContactPointsList':
         """
@@ -813,7 +817,16 @@ class ContactPointsList(list):
         :param link: An instance of the Link class that represents the link that the points are related to.
         :return: A ContactPointsList instance that represents the contact points of the link.
         """
-        return ContactPointsList([point for point in self if link == point.body_b])
+        return self.get_points_of_body(link)
+
+    def get_points_of_body(self, body: PhysicalBody) -> 'ContactPointsList':
+        """
+        Get the points of the body.
+
+        :param body: An instance of the PhysicalBody class that represents the body that the points are related to.
+        :return: A ContactPointsList instance that represents the contact points of the body.
+        """
+        return ContactPointsList([point for point in self if body == point.body_b])
 
     def get_objects_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Object]:
         """
@@ -860,7 +873,7 @@ class ContactPointsList(list):
 
         :return: A list of Object instances that represent the objects that have points in the list.
         """
-        return list({point.body_b.parent for point in self if isinstance(point.body_b.parent, Object)})
+        return list({point.body_b.parent_entity for point in self})
 
     def __str__(self):
         return f"ContactPointsList: {', '.join([point.__str__() for point in self])}"
