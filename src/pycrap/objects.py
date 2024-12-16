@@ -96,7 +96,13 @@ class Cereal(Food):
     """
 
 
-class Floor(PhysicalObject):
+class Supporter(PhysicalObject):
+    """
+    An object that supports another object.
+    """
+
+
+class Floor(Supporter):
     """
     The lower surface of a room.
     """
