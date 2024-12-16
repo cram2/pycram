@@ -8,7 +8,8 @@ from geometry_msgs.msg import Vector3
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
-from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape
+from pycrap import Floor
+from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape, Color
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
 from ..designator import ObjectDesignatorDescription
@@ -16,6 +17,7 @@ from ..ros.data_types import Duration, Time
 from ..ros.logging import loginfo, logwarn, logerr
 from ..ros.publisher import create_publisher
 from ..ros.ros_tools import sleep
+from ..world_concepts.world_object import Object
 
 
 class VizMarkerPublisher:
@@ -23,7 +25,7 @@ class VizMarkerPublisher:
     Publishes an Array of visualization marker which represent the situation in the World
     """
 
-    def __init__(self, topic_name="/pycram/viz_marker", interval=0.1):
+    def __init__(self, topic_name="/pycram/viz_marker", interval=0.1, spawn_floor = True):
         """
         The Publisher creates an Array of Visualization marker with a Marker for each link of each Object in the
         World. This Array is published with a rate of interval.
@@ -33,6 +35,9 @@ class VizMarkerPublisher:
         """
         self.topic_name = topic_name
         self.interval = interval
+
+        if spawn_floor:
+            _ = Object("plane_colored", Floor, f"plane_colored.urdf")
 
         self.pub = create_publisher(self.topic_name, MarkerArray, queue_size=10)
 
