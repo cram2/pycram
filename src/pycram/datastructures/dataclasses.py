@@ -224,7 +224,7 @@ class AxisAlignedBoundingBox(BoundingBox):
     def merge_multiple_bounding_boxes_into_mesh(bounding_boxes: List[AxisAlignedBoundingBox],
                                                 save_mesh_to: Optional[str] = None,
                                                 use_random_events: bool = True,
-                                                plot: bool = False) -> Union[PolyData, Interval]:
+                                                plot: bool = True) -> Union[PolyData, Interval]:
         """
         Merge multiple axis-aligned bounding boxes into a single mesh.
 
@@ -240,7 +240,7 @@ class AxisAlignedBoundingBox(BoundingBox):
             z = Continuous("z")
 
             all_intervals = [(box.get_min(), box.get_max()) for box in bounding_boxes]
-            interval = None
+            event = SimpleEvent()
             for min_point, max_point in all_intervals:
                 event = SimpleEvent({x: closed(min_point[0], max_point[0]), y: closed(min_point[1], max_point[1]),
                                      z: closed(min_point[2], max_point[2])}).as_composite_set()
@@ -248,12 +248,12 @@ class AxisAlignedBoundingBox(BoundingBox):
                     interval = event
                 else:
                     interval = interval.union_with(event) - interval.intersection_with(event)
-            simplified_intervals = interval.make_disjoint()
+            vertices, faces = AxisAlignedBoundingBox.get_mesh_data_from_interval(interval)
             if plot:
-                fig = go.Figure(simplified_intervals.plot(), interval.plotly_layout())
+                fig = go.Figure(interval.plot(), interval.plotly_layout())
                 fig.update_layout(title="Merged Bounding Boxes")
                 fig.show()
-            return simplified_intervals
+            return interval
         else:
             all_points = [point for box in bounding_boxes for point in box.get_points_list()]
             cloud = pv.PolyData(all_points)
@@ -264,6 +264,34 @@ class AxisAlignedBoundingBox(BoundingBox):
             if save_mesh_to is not None:
                 shell.save(save_mesh_to)
             return shell
+
+    @staticmethod
+    def get_mesh_data_from_interval(interval: Interval) -> Tuple[np.ndarray, np.ndarray]:
+        # form cartesian product of all intervals
+        intervals = [value.simple_sets for _, value in sorted(self.items())]
+        simple_events = list(itertools.product(*intervals))
+        traces = []
+
+        # shortcut for the dimensions
+        x, y, z = 0, 1, 2
+
+        # for every atomic interval
+        for simple_event in simple_events:
+            # Create a 3D mesh trace for the rectangle
+            traces.append(go.Mesh3d(
+                # 8 vertices of a cube
+                x=[simple_event[x].lower, simple_event[x].lower, simple_event[x].upper, simple_event[x].upper,
+                   simple_event[x].lower, simple_event[x].lower, simple_event[x].upper, simple_event[x].upper],
+                y=[simple_event[y].lower, simple_event[y].upper, simple_event[y].upper, simple_event[y].lower,
+                   simple_event[y].lower, simple_event[y].upper, simple_event[y].upper, simple_event[y].lower],
+                z=[simple_event[z].lower, simple_event[z].lower, simple_event[z].lower, simple_event[z].lower,
+                   simple_event[z].upper, simple_event[z].upper, simple_event[z].upper, simple_event[z].upper],
+                # i, j and k give the vertices of triangles
+                i=[7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
+                j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
+                k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
+                flatshading=True
+            ))
 
     def merge_with_other_box(self, other_box: 'AxisAlignedBoundingBox',
                              get_mesh: bool = False,

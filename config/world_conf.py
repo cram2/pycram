@@ -2,8 +2,8 @@ import math
 import os
 
 from typing_extensions import Tuple, Type
-from pycram.description import ObjectDescription
-from pycram.object_descriptors.urdf import ObjectDescription as URDF
+from ..description import ObjectDescription
+from ..object_descriptors.urdf import ObjectDescription as URDF
 
 
 class WorldConfig:
