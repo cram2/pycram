@@ -5,7 +5,7 @@ from dataclasses import field
 from typing import Optional
 
 import git
-import rospkg
+import pathlib
 import sqlalchemy.sql.functions
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, Session, relationship, \
@@ -21,9 +21,8 @@ def get_pycram_version_from_git() -> Optional[str]:
     This assumes that you have gitpython installed and that the PyCRAM git repository on your system can be found
     with "roscd pycram".
     """
-
-    r = rospkg.RosPack()
-    repo = git.Repo(path=r.get_path('pycram'))
+    path = pathlib.Path(__file__).parent.joinpath('..').joinpath('..').resolve()
+    repo = git.Repo(path)
     return repo.head.object.hexsha
 
 
