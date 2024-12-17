@@ -4,14 +4,14 @@ from __future__ import annotations
 import math
 import datetime
 
-from tf.transformations import euler_from_quaternion
+from tf_transformations import euler_from_quaternion, translation_matrix, quaternion_matrix
 from typing_extensions import List, Union, Optional, Sized, Self
 
 import numpy as np
 import sqlalchemy.orm
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
-from tf import transformations
+# from tf import transformations
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
 from pycram.ros.ros1.data_types import Time
 from ..validation.error_checkers import calculate_pose_error
@@ -387,8 +387,8 @@ class Transform(TransformStamped):
         """
         :return: The homogeneous matrix of this Transform
         """
-        translation = transformations.translation_matrix(self.translation_as_list())
-        rotation = transformations.quaternion_matrix(self.rotation_as_list())
+        translation = translation_matrix(self.translation_as_list())
+        rotation = quaternion_matrix(self.rotation_as_list())
         return np.dot(translation, rotation)
 
     @classmethod

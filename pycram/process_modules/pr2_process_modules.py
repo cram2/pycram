@@ -1,13 +1,14 @@
 from typing_extensions import TYPE_CHECKING
 
-import actionlib
+# import actionlib
 
 from .. import world_reasoning as btr
 import numpy as np
 
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
-from pycram.ros.ros1.logging import logdebug
+from ..ros.ros1.logging import logdebug
+from ..ros.ros1.action_lib import create_action_client
 from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
 
@@ -331,7 +332,8 @@ class Pr2MoveGripperReal(ProcessModule):
             controller_topic = "r_gripper_controller/gripper_action"
         else:
             controller_topic = "l_gripper_controller/gripper_action"
-        client = actionlib.SimpleActionClient(controller_topic, Pr2GripperCommandAction)
+        # client = actionlib.SimpleActionClient(controller_topic, Pr2GripperCommandAction)
+        client = create_action_client(controller_topic, Pr2GripperCommandAction)
         loginfo("Waiting for action server")
         client.wait_for_server()
         client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
