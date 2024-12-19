@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 import trimesh
 from geometry_msgs.msg import Point
 from trimesh.parent import Geometry3D
-from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, Sequence
+from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Sequence
 
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
     MeshVisualShape, RotatedBoundingBox
@@ -57,7 +57,7 @@ class LinkDescription(EntityDescription):
     """
 
     def __init__(self, parsed_link_description: Any, mesh_dir: Optional[str] = None):
-        self.parsed_description = parsed_link_description
+        super().__init__(parsed_link_description)
         self.mesh_dir = mesh_dir
 
     @property
@@ -357,7 +357,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         return all([link.world == other_link.world for link, other_link in zip(self.constraint_ids.keys(),
                                                                                other.constraint_ids.keys())])
 
-    def add_fixed_constraint_with_link(self, child_link: Self,
+    def add_fixed_constraint_with_link(self, child_link: Link,
                                        child_to_parent_transform: Optional[Transform] = None) -> int:
         """
         Add a fixed constraint between this link and the given link, to create attachments for example.
@@ -722,6 +722,27 @@ class ObjectDescription(EntityDescription):
         :param lower_limit: The lower limit of the joint.
         :param upper_limit: The upper limit of the joint.
         :param is_virtual: True if the joint is virtual, False otherwise.
+        """
+        pass
+
+    @abstractmethod
+    def merge_description(self, other: ObjectDescription, parent_link: Optional[str] = None,
+                          child_link: Optional[str] = None,
+                          joint_type: JointType = JointType.FIXED,
+                          axis: Optional[Point] = None,
+                          lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
+                          child_pose_wrt_parent: Optional[Pose] = None) -> None:
+        """
+        Merge the description of this object with the description of the other object.
+
+        :param other: The object description to merge with this one.
+        :param parent_link: The name of the parent link of the joint connecting the two objects.
+        :param child_link: The name of the child link of the joint connecting the two objects.
+        :param joint_type: The type of the joint connecting the two objects.
+        :param axis: The axis of the joint connecting the two objects.
+        :param lower_limit: The lower limit of the joint connecting the two objects.
+        :param upper_limit: The upper limit of the joint connecting the two objects.
+        :param child_pose_wrt_parent: The pose of the child link with respect to the parent link.
         """
         pass
 

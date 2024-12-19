@@ -36,3 +36,17 @@ class DescriptionTest(BulletWorldTestCase):
         cache_path = os.path.join(cache_path, f"{self.robot.description.name}.urdf")
         self.robot.description.generate_from_description_file(pr2_path, cache_path)
         self.assertTrue(self.world.cache_manager.is_cached(self.robot.name, self.robot.description))
+
+    def test_merge_descriptions(self):
+        milk_link_name = self.milk.description.get_root()
+        milk_joints_num = len(self.milk.description.joints)
+        cereal_joints_num = len(self.cereal.description.joints)
+        milk_link_num = len(self.milk.description.links)
+        cereal_link_num = len(self.cereal.description.links)
+        self.cereal.description.merge_description(self.milk.description)
+        self.assertEqual(len(self.cereal.description.joints), milk_joints_num + cereal_joints_num + 1)
+        self.assertEqual(len(self.cereal.description.links), milk_link_num + cereal_link_num)
+        self.assertTrue(f"{self.cereal.root_link.name}_{self.milk.root_link.name}_joint"
+                        in self.cereal.description.joint_map.keys())
+        self.assertTrue(milk_link_name not in self.cereal.description.link_map.keys())
+        self.assertTrue(f"{self.milk.description.name}_{milk_link_name}" in self.cereal.description.link_map.keys())
