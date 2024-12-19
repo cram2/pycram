@@ -13,8 +13,9 @@ def remove_digits(string):
 def parse_furniture(link):
     #furniture = ["Door", "Fridge", "Handle", "Sink", "Drawer", "Table", "Leg"]
     matched_furniture = []
-    for c in pycrap.ontologies.base.ontology.classes():
-        for l in link.split('_'):
+
+    for l in link.split('_'):
+        for c in pycrap.ontologies.base.ontology.classes():
             clean_l = remove_digits(l).capitalize()  # Remove digits and capitalize
             # print(f"clsname: {c[0]}, link: {clean_l}")
             if clean_l == str(c).split(".")[1]:
