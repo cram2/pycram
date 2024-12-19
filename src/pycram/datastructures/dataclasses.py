@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from abc import ABC, abstractmethod
 from copy import deepcopy, copy
 from dataclasses import dataclass, fields, field
@@ -240,7 +239,7 @@ class AxisAlignedBoundingBox(BoundingBox):
             z = Continuous("z")
 
             all_intervals = [(box.get_min(), box.get_max()) for box in bounding_boxes]
-            event = SimpleEvent()
+            interval = None
             for min_point, max_point in all_intervals:
                 event = SimpleEvent({x: closed(min_point[0], max_point[0]), y: closed(min_point[1], max_point[1]),
                                      z: closed(min_point[2], max_point[2])}).as_composite_set()
@@ -248,7 +247,6 @@ class AxisAlignedBoundingBox(BoundingBox):
                     interval = event
                 else:
                     interval = interval.union_with(event) - interval.intersection_with(event)
-            vertices, faces = AxisAlignedBoundingBox.get_mesh_data_from_interval(interval)
             if plot:
                 fig = go.Figure(interval.plot(), interval.plotly_layout())
                 fig.update_layout(title="Merged Bounding Boxes")
@@ -264,110 +262,6 @@ class AxisAlignedBoundingBox(BoundingBox):
             if save_mesh_to is not None:
                 shell.save(save_mesh_to)
             return shell
-
-    @staticmethod
-    def get_mesh_data_from_interval(interval: Interval) -> Tuple[np.ndarray, np.ndarray]:
-        # form cartesian product of all intervals
-        intervals = [value.simple_sets for _, value in sorted(self.items())]
-        simple_events = list(itertools.product(*intervals))
-        traces = []
-
-        # shortcut for the dimensions
-        x, y, z = 0, 1, 2
-
-        # for every atomic interval
-        for simple_event in simple_events:
-            # Create a 3D mesh trace for the rectangle
-            traces.append(go.Mesh3d(
-                # 8 vertices of a cube
-                x=[simple_event[x].lower, simple_event[x].lower, simple_event[x].upper, simple_event[x].upper,
-                   simple_event[x].lower, simple_event[x].lower, simple_event[x].upper, simple_event[x].upper],
-                y=[simple_event[y].lower, simple_event[y].upper, simple_event[y].upper, simple_event[y].lower,
-                   simple_event[y].lower, simple_event[y].upper, simple_event[y].upper, simple_event[y].lower],
-                z=[simple_event[z].lower, simple_event[z].lower, simple_event[z].lower, simple_event[z].lower,
-                   simple_event[z].upper, simple_event[z].upper, simple_event[z].upper, simple_event[z].upper],
-                # i, j and k give the vertices of triangles
-                i=[7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
-                j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
-                k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
-                flatshading=True
-            ))
-
-    def merge_with_other_box(self, other_box: 'AxisAlignedBoundingBox',
-                             get_mesh: bool = False,
-                             save_mesh_to: Optional[str] = None) -> Union[List[List[float]], trimesh.parent.Geometry3D]:
-        """
-        Merge the axis-aligned bounding box with another axis-aligned bounding box.
-
-        :param other_box: The other axis-aligned bounding box.
-        :param get_mesh: If True, return the mesh of the merged bounding boxes.
-        :param save_mesh_to: The file path to save the mesh to.
-        :return: The points of the final shape as a list of lists of floats or the mesh of the merged bounding boxes.
-        """
-        intersection_points, inside_points = self.get_intersection_points_with_other_box(other_box,
-                                                                                         return_inside_points=True,
-                                                                                         as_list=True)
-        all_points = [point for box in [self, other_box] for point in box.get_points_list()
-                      if point not in inside_points]
-        all_points.extend(intersection_points)
-
-        if get_mesh:
-            # create a mesh from the points
-            mesh = trimesh.Trimesh(vertices=np.array(all_points), faces=trimesh.convex.convex_hull(all_points))
-            if save_mesh_to is not None:
-                mesh.export(save_mesh_to)
-            return mesh
-        else:
-            return all_points
-
-    def get_intersection_points_with_other_box(self, other_box: 'AxisAlignedBoundingBox',
-                                               return_inside_points: bool = False,
-                                               as_list: bool = False) -> Union[Tuple[List, List], List]:
-        """
-        Get the intersection points with another axis-aligned bounding box.
-
-        :param other_box: The other axis-aligned bounding box.
-        :param return_inside_points: If True, return the points that are inside the bounding boxes.
-        :param as_list: If True, return the points as a list of lists of floats.
-        :return: The intersection points as a list of points.
-        """
-        intersection_box = self.get_intersection_box_with_other_box(other_box)
-        intersection_points = []
-        inside_points = []
-        for point in intersection_box.get_points():
-            if not self.is_point_inside(point) and not other_box.is_point_inside(point):
-                intersection_points.append(get_point_as_list(point) if as_list else point)
-            elif return_inside_points:
-                inside_points.append(get_point_as_list(point) if as_list else point)
-        if return_inside_points:
-            return intersection_points, inside_points
-        return intersection_points
-
-    def get_intersection_box_with_other_box(self, other_box: 'AxisAlignedBoundingBox') -> 'AxisAlignedBoundingBox':
-        """
-        Get the intersection box with another axis-aligned bounding box.
-
-        :param other_box: The other axis-aligned bounding box.
-        :return: The intersection box.
-        """
-        min_x = max(self.min_x, other_box.min_x)
-        min_y = max(self.min_y, other_box.min_y)
-        min_z = max(self.min_z, other_box.min_z)
-        max_x = min(self.max_x, other_box.max_x)
-        max_y = min(self.max_y, other_box.max_y)
-        max_z = min(self.max_z, other_box.max_z)
-        return AxisAlignedBoundingBox(min_x, min_y, min_z, max_x, max_y, max_z)
-
-    def is_point_inside(self, point: Point) -> bool:
-        """
-        Check if a point is inside the axis-aligned bounding box.
-
-        :param point: The point to check
-        :return: True if the point is inside the bounding box, False otherwise
-        """
-        return (self.min_x < point.x < self.max_x
-                and self.min_y < point.y < self.max_y
-                and self.min_z < point.z < self.max_z)
 
     def get_transformed_box(self, transform: Transform) -> 'AxisAlignedBoundingBox':
         """
