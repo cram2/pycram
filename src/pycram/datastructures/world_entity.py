@@ -325,7 +325,7 @@ class PhysicalBody(WorldEntity, HasConcept, ABC):
         """
         return self.world.get_body_contact_points(self)
 
-    def get_contact_points_with_body(self, body: 'PhysicalBody') -> ContactPointsList:
+    def get_contact_points_with_body(self, body: PhysicalBody) -> ContactPointsList:
         """
         :param body: The body to get the contact points with.
         :return: The contact points of this body with the given body.
@@ -340,7 +340,7 @@ class PhysicalBody(WorldEntity, HasConcept, ABC):
         """
         return self.world.get_body_closest_points(self, max_distance)
 
-    def get_closest_points_with_body(self, body: 'PhysicalBody', max_distance: float) -> ClosestPointsList:
+    def get_closest_points_with_body(self, body: PhysicalBody, max_distance: float) -> ClosestPointsList:
         """
         :param body: The body to get the points with.
         :param max_distance: The maximum distance to consider a body as close, only points closer than or equal to this
