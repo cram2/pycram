@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 from geometry_msgs.msg import Point
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
-from typing_extensions import Union, List, Optional, Dict, Tuple, Type
+from typing_extensions import Union, List, Optional, Dict, Tuple, Type, Self
 from urdf_parser_py import urdf
 from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as URDF_Cylinder,
                                  Sphere as URDF_Sphere, Mesh as URDF_Mesh)
@@ -287,7 +287,8 @@ class ObjectDescription(AbstractObjectDescription):
                           joint_type: JointType = JointType.FIXED,
                           axis: Optional[Point] = None,
                           lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
-                          child_pose_wrt_parent: Optional[Pose] = None) -> None:
+                          child_pose_wrt_parent: Optional[Pose] = None,
+                          in_place: bool = False) -> Union[ObjectDescription, Self]:
         other_description = other.parsed_description
         if child_pose_wrt_parent is None:
             child_pose_wrt_parent = Pose()
@@ -296,85 +297,29 @@ class ObjectDescription(AbstractObjectDescription):
         child_link = f"{other_description.name}_" + original_child_link
         parent_link = parent_link if parent_link is not None else self.get_root()
 
+        description = self if in_place else copy.deepcopy(self)
+
         # Add the links of the other description to this description
         for link in other_description.links:
             # Change the name of the link to avoid name conflicts
             link = copy.deepcopy(link)
             link.name = f'{other_description.name}_{link.name}'
-            self.add_link_from_parsed_description(link)
+            description.add_link_from_parsed_description(link)
 
         # Add the joints of the other description to this description
         for joint in other_description.joints:
             # Change the name of the joint to avoid name conflicts
             joint = copy.deepcopy(joint)
             joint.name = f'{other_description.name}_{joint.name}'
-            self.add_joint_from_parsed_description(joint)
+            description.add_joint_from_parsed_description(joint)
 
         # Add the joint between the parent and child link
-        self.add_joint(f'{parent_link}_{original_child_link}_joint', child_link, joint_type,
-                       axis=axis, origin=child_pose_wrt_parent, parent=parent_link,
-                       lower_limit=lower_limit, upper_limit=upper_limit)
+        description.add_joint(f'{parent_link}_{original_child_link}_joint', child_link, joint_type,
+                              axis=axis, origin=child_pose_wrt_parent, parent=parent_link,
+                              lower_limit=lower_limit, upper_limit=upper_limit)
 
-        self.write_description_to_file(self.parsed_description.to_xml_string(), self.original_path)
-
-    def merge_description_using_et(self, other: ObjectDescription, parent_link: Optional[str] = None,
-                                   child_link: Optional[str] = None,
-                                   joint_type: JointType = JointType.FIXED,
-                                   axis: Optional[Point] = None,
-                                   lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
-                                   child_pose_wrt_parent: Optional[Pose] = None) -> None:
-        """
-        Merge the description of another object into this object description using the element tree library.
-        parameters are the same as in :meth:`pycram.description.ObjectDescription.merge_description`.
-        """
-        other_description = other.parsed_description
-        if child_pose_wrt_parent is None:
-            child_pose_wrt_parent = Pose()
-        other_et = ET.fromstring(other_description.to_xml_string())
-        my_et = ET.fromstring(self.parsed_description.to_xml_string())
-        # Add the links of the other description to this description
-        for link in other_et.findall('link'):
-            # Change the name of the link to avoid name conflicts
-            link.set('name', f'{other_description.name}_{link.get("name")}')
-            my_et.append(link)
-        # Add the joints of the other description to this description
-        for joint in other_et.findall('joint'):
-            # Change the name of the joint to avoid name conflicts
-            joint.set('name', f'{other_description.name}_{joint.get("name")}')
-            my_et.append(joint)
-        # Add the joint between the parent and child link
-        parent_link = parent_link if parent_link is not None else self.get_root()
-        child_link = child_link if child_link is not None else other.get_root()
-        joint = ET.Element('joint')
-        joint.set('name', f'{parent_link}_{child_link}_joint')
-        joint.set('type', JointDescription.pycram_type_map[joint_type])
-        if axis is not None:
-            axis_et = ET.Element('axis')
-            axis_et.set('xyz', ' '.join(map(str, [axis.x, axis.y, axis.z])))
-            joint.append(axis_et)
-        if lower_limit is not None or upper_limit is not None:
-            limit = ET.Element('limit')
-            if lower_limit is not None:
-                limit.set('lower', str(lower_limit))
-            if upper_limit is not None:
-                limit.set('upper', str(upper_limit))
-            joint.append(limit)
-        origin = ET.Element('origin')
-        origin.set('xyz', ' '.join(map(str, child_pose_wrt_parent.position_as_list())))
-        origin.set('rpy', ' '.join(map(str, euler_from_quaternion(child_pose_wrt_parent.orientation_as_list()))))
-        joint.append(origin)
-        parent = ET.Element('parent')
-        parent.set('link', parent_link)
-        joint.append(parent)
-        child = ET.Element('child')
-        child_link = f'{other_description.name}_{child_link}'
-        child.set('link', child_link)
-        joint.append(child)
-        my_et.append(joint)
-        str_description = ET.tostring(my_et, encoding='unicode')
-        self.write_description_to_file(str_description, self.original_path)
-        self.parsed_description = URDF.from_xml_string(str_description)
-        self._init_description()
+        description.write_description_to_file(description.parsed_description.to_xml_string(), description.xml_path)
+        return description
 
     def _init_description(self) -> None:
         self._init_links()

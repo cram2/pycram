@@ -10,7 +10,7 @@ import owlready2
 from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
 from trimesh.parent import Geometry3D
-from typing_extensions import Type, Optional, Dict, Tuple, List, Union
+from typing_extensions import Type, Optional, Dict, Tuple, List, Union, Self
 
 import pycrap
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
@@ -387,6 +387,7 @@ class Object(PhysicalBody):
             logging.error(
                 "The File could not be loaded. Please note that the path has to be either a URDF, stl or obj file or"
                 " the name of an URDF string on the parameter server.")
+            logging.error(e)
             os.remove(path)
             raise e
 
@@ -643,20 +644,18 @@ class Object(PhysicalBody):
         return np.array(self.get_position_as_list()) - np.array(self.get_base_position_as_list())
 
     def __repr__(self):
-        skip_attr = ["links", "joints", "description", "attachments"]
-        return self.__class__.__qualname__ + f"(name={self.name}, object_type={self.obj_type.name}, file_path={self.path}, pose={self.pose}, world={self.world})"
+        return self.__class__.__qualname__ + (f"(name={self.name}, object_type={self.obj_type.name},"
+                                              f" file_path={self.path}, pose={self.pose}, world={self.world})")
 
-
-    def remove(self) -> None:
+    def remove(self, remove_from_simulator: bool = True) -> None:
         """
         Remove this object from the World it currently resides in.
         For the object to be removed it has to be detached from all objects it
-        is currently attached to. After this call world remove object
-        to remove this Object from the simulation/world.
-        """
-        # owlready2.destroy_entity(self.ontology_individual)
-        self.world.remove_object(self)
+        is currently attached to. Then remove this Object from the simulation/world if remove_from_simulator is True.
 
+        :param remove_from_simulator: If True the object will be removed from the simulator.
+        """
+        self.world.remove_object(self, remove_from_simulator=remove_from_simulator)
 
     def reset(self, remove_saved_states=False) -> None:
         """
@@ -690,6 +689,24 @@ class Object(PhysicalBody):
         :return: True if the object is a robot, False otherwise.
         """
         return issubclass(self.obj_type, pycrap.Robot)
+
+    def merge(self, other: Object, name: Optional[str] = None, pose: Optional[Pose] = None) -> Object:
+        """
+        Merge the object with another object. This is done by merging the descriptions of the objects,
+        removing the other object and updating the links and joints of this object.
+
+        :param other: The object to merge with.
+        :param name: The name of the merged object.
+        :param pose: The pose of the merged object.
+        :return: The merged object.
+        """
+        pose = self.pose if pose is None else pose
+        child_pose = self.local_transformer.transform_pose(other.pose, self.tf_frame)
+        description = self.description.merge_description(other.description, child_pose_wrt_parent=child_pose)
+        name = self.name if name is None else name
+        other.remove()
+        self.remove()
+        return Object(name, self.obj_type, self.path, description=description, pose=pose, world=self.world)
 
     def attach(self,
                child_object: Object,

@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 import trimesh
 from geometry_msgs.msg import Point
 from trimesh.parent import Geometry3D
-from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Sequence
+from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Sequence, Self
 
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
     MeshVisualShape, RotatedBoundingBox
@@ -657,8 +657,8 @@ class ObjectDescription(EntityDescription):
         self._link_map: Optional[Dict[str, Any]] = None
         self._joint_map: Optional[Dict[str, Any]] = None
         self.original_path: Optional[str] = path
-
         if path:
+            self.xml_path = path if path.endswith((".xml", ".urdf", ".xml")) else None
             self.update_description_from_file(path)
         else:
             self._parsed_description = None
@@ -731,7 +731,8 @@ class ObjectDescription(EntityDescription):
                           joint_type: JointType = JointType.FIXED,
                           axis: Optional[Point] = None,
                           lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
-                          child_pose_wrt_parent: Optional[Pose] = None) -> None:
+                          child_pose_wrt_parent: Optional[Pose] = None,
+                          in_place: bool = False) -> Union[ObjectDescription, Self]:
         """
         Merge the description of this object with the description of the other object.
 
@@ -743,6 +744,8 @@ class ObjectDescription(EntityDescription):
         :param lower_limit: The lower limit of the joint connecting the two objects.
         :param upper_limit: The upper limit of the joint connecting the two objects.
         :param child_pose_wrt_parent: The pose of the child link with respect to the parent link.
+        :param in_place: True if the merge should be done in place, False otherwise.
+        :return: The merged object description, could be a new object description if in_place is False else self.
         """
         pass
 
@@ -752,6 +755,7 @@ class ObjectDescription(EntityDescription):
 
         :param path: The path of the file to update from.
         """
+        self.xml_path = path
         self._parsed_description = self.load_description(path)
 
     def update_description_from_string(self, description_string: str) -> None:

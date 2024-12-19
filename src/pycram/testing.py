@@ -70,7 +70,5 @@ class BulletWorldTestCase(EmptyBulletWorldTestCase):
         cls.cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
                             pose=Pose([1.3, 0.7, 0.95]))
 
-
-
 class BulletWorldGUITestCase(BulletWorldTestCase):
     render_mode = WorldMode.GUI

@@ -166,6 +166,14 @@ class TestObject(BulletWorldTestCase):
         self.assertNotEqual(self.milk, self.cereal)
         self.assertNotEqual(self.milk, self.world)
 
+    def test_merge(self):
+        cereal = Object("cereal2", Food, "breakfast_cereal.stl")
+        milk = Object("milk2", Milk, "milk.stl")
+        cereal_milk = cereal.merge(milk)
+        self.assertEqual(len(cereal_milk.links), len(cereal.links) + len(milk.links))
+        self.assertEqual(len(cereal_milk.joints), len(cereal.joints) + len(milk.joints) + 1)
+        cereal_milk.remove()
+
 
 class GenericObjectTestCase(BulletWorldTestCase):
 
@@ -183,7 +191,7 @@ class OntologyIntegrationTestCase(BulletWorldTestCase):
         r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.individuals()))
         self.assertEqual(len(r), 1)
 
-        milk2  = Object("milk2", Milk, "milk.stl")
+        milk2 = Object("milk2", Milk, "milk.stl")
 
         r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.individuals()))
 
