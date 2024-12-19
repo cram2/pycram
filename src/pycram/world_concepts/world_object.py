@@ -33,7 +33,9 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
-from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, has_child_link, has_parent_link, is_part_of
+from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, \
+    has_child_link, has_parent_link, is_part_of, Robot
+
 from pycrap.urdf_parser import parse_furniture, parse_joint_types
 
 Link = ObjectDescription.Link
