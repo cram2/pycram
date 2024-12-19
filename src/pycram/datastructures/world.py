@@ -9,6 +9,7 @@ from copy import copy
 
 import numpy as np
 from geometry_msgs.msg import Point
+from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
 
@@ -22,8 +23,8 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           SphereVisualShape,
                                           CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                           ObjectState, WorldState, ClosestPointsList,
-                                          ContactPointsList, VirtualMobileBaseJoints)
-from ..datastructures.enums import JointType, ObjectType, WorldMode, Arms
+                                          ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox)
+from ..datastructures.enums import JointType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity
 from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
@@ -81,7 +82,8 @@ class World(StateEntity, ABC):
     The ontology of this world.
     """
 
-    def __init__(self, mode: WorldMode, is_prospection_world: bool = False, clear_cache: bool = False):
+    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False,
+                 clear_cache: bool = False):
         """
         Create a new simulation, the mode decides if the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
@@ -135,6 +137,42 @@ class World(StateEntity, ABC):
 
         self.original_state_id = self.save_state()
 
+        self.on_add_object_callbacks: List[Callable[[Object], None]] = []
+
+    def get_object_convex_hull(self, obj: Object) -> Geometry3D:
+        """
+        Get the convex hull of an object.
+
+        :param obj: The pycram object.
+        :return: The convex hull of the object as a list of Points.
+        """
+        raise NotImplementedError
+
+    def get_link_convex_hull(self, link: Link) -> Geometry3D:
+        """
+        Get the convex hull of a link of an articulated object.
+
+        :param link: The link as a AbstractLink object.
+        :return: The convex hull of the link as a list of Points.
+        """
+        raise NotImplementedError
+
+    def add_callback_on_add_object(self, callback: Callable[[Object], None]) -> None:
+        """
+        Add a callback that is called when an object is added to the world.
+
+        :param callback: The callback.
+        """
+        self.on_add_object_callbacks.append(callback)
+
+    def remove_callback_on_add_object(self, callback: Callable[[Object], None]) -> None:
+        """
+        Remove a callback that is called when an object is added to the world.
+
+        :param callback: The callback.
+        """
+        self.on_add_object_callbacks.remove(callback)
+
     @classmethod
     def get_cache_dir(cls) -> str:
         """
@@ -152,6 +190,16 @@ class World(StateEntity, ABC):
         self.objects.append(obj)
         self.add_object_to_original_state(obj)
         self.object_lock.release()
+        self.invoke_on_add_object_callbacks(obj)
+
+    def invoke_on_add_object_callbacks(self, obj: Object) -> None:
+        """
+        Invoke the object added callbacks.
+
+        :param obj: The object.
+        """
+        for callback in self.on_add_object_callbacks:
+            callback(obj)
 
     @property
     def robot_description(self) -> RobotDescription:
@@ -256,8 +304,7 @@ class World(StateEntity, ABC):
         if self.is_prospection_world:  # then no need to add another prospection world
             self.prospection_world = None
         else:
-            self.prospection_world: World = self.__class__(WorldMode.DIRECT,
-                                                           True)
+            self.prospection_world: World = self.__class__(is_prospection_world=True)
 
     def _sync_prospection_world(self):
         """
@@ -268,12 +315,12 @@ class World(StateEntity, ABC):
             self.world_sync = None
         else:
             self.world_sync: WorldSync = WorldSync(self, self.prospection_world)
-            self.pause_world_sync()
             self.world_sync.start()
 
     def preprocess_object_file_and_get_its_cache_path(self, path: str, ignore_cached_files: bool,
                                                       description: ObjectDescription, name: str,
-                                                      scale_mesh: Optional[float] = None) -> str:
+                                                      scale_mesh: Optional[float] = None,
+                                                      mesh_transform: Optional[Transform] = None) -> str:
         """
         Update the cache directory with the given object.
 
@@ -282,9 +329,11 @@ class World(StateEntity, ABC):
         :param description: The object description.
         :param name: The name of the object.
         :param scale_mesh: The scale of the mesh.
+        :param mesh_transform: The mesh transform to apply to the mesh.
         :return: The path of the cached object.
         """
-        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, description, name, scale_mesh)
+        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, description, name,
+                                                               scale_mesh, mesh_transform)
 
     @property
     def simulation_time_step(self):
@@ -335,7 +384,7 @@ class World(StateEntity, ABC):
         matching_objects = list(filter(lambda obj: obj.name == name, self.objects))
         return matching_objects[0] if len(matching_objects) > 0 else None
 
-    def get_object_by_type(self, obj_type: ObjectType) -> List[Object]:
+    def get_object_by_type(self, obj_type: Type[PhysicalObject]) -> List[Object]:
         """
         Return a list of all Objects which have the type 'obj_type'.
 
@@ -352,6 +401,12 @@ class World(StateEntity, ABC):
         :return: The Object with the id 'id'.
         """
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
+
+    def get_scene_objects(self) -> List[Object]:
+        """
+        :return: A list of all objects in the world except the robot, floor, and apartment.
+        """
+        return [obj for obj in self.objects if obj.obj_type not in {Robot, Floor, Apartment}]
 
     def remove_visual_object(self, obj_id: int) -> bool:
         """
@@ -405,7 +460,7 @@ class World(StateEntity, ABC):
             self.objects.remove(obj)
             self.remove_object_from_original_state(obj)
 
-        if World.robot == obj:
+        if World.robot == obj and not self.is_prospection_world:
             World.robot = None
 
         self.object_lock.release()
@@ -469,8 +524,16 @@ class World(StateEntity, ABC):
         """
         pass
 
-    @abstractmethod
     def get_joint_position(self, joint: Joint) -> float:
+        """
+        Wrapper for :meth:`_get_joint_position` that return 0.0 for a joint if it is in the ignore joints list.
+        """
+        if joint.object.is_a_robot and joint.name in self.robot_description.ignore_joints:
+            return 0.0
+        return self._get_joint_position(joint)
+
+    @abstractmethod
+    def _get_joint_position(self, joint: Joint) -> float:
         """
         Get the position of a joint of an articulated object
 
@@ -559,7 +622,8 @@ class World(StateEntity, ABC):
         """
         pass
 
-    def simulate(self, seconds: float, real_time: Optional[bool] = False) -> None:
+    def simulate(self, seconds: float, real_time: Optional[bool] = False,
+                 func: Optional[Callable[[], None]] = None) -> None:
         """
         Simulate Physics in the World for a given amount of seconds. Usually this simulation is faster than real
         time. By setting the 'real_time' parameter this simulation is slowed down such that the simulated time is equal
@@ -567,11 +631,12 @@ class World(StateEntity, ABC):
 
         :param seconds: The amount of seconds that should be simulated.
         :param real_time: If the simulation should happen in real time or faster.
+        :param func: A function that should be called during the simulation
         """
         self.set_realtime(real_time)
         for i in range(0, int(seconds * self.conf.simulation_frequency)):
             curr_time = Time().now()
-            self.step()
+            self.step(func)
             for objects, callbacks in self.coll_callbacks.items():
                 contact_points = self.get_contact_points_between_two_objects(objects[0], objects[1])
                 if len(contact_points) > 0:
@@ -720,9 +785,18 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
+    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
+        """
+        Wrapper around :meth:`_reset_joint_position` that checks if the joint should be ignored.
+        """
+        if joint.object.is_a_robot and self.robot_description.ignore_joints:
+            if joint.name in self.robot_description.ignore_joints:
+                return True
+        return self._reset_joint_position(joint, joint_position)
+
     @validate_joint_position
     @abstractmethod
-    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
+    def _reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         """
         Reset the joint position instantly without physics simulation
 
@@ -736,9 +810,19 @@ class World(StateEntity, ABC):
         """
         pass
 
+    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
+        """
+        Wrapper around :meth:`_set_multiple_joint_positions` that checks if any of the joints should be ignored.
+        """
+        filtered_joint_positions = copy(joint_positions)
+        for joint, position in joint_positions.items():
+            if joint.name in self.robot_description.ignore_joints:
+                filtered_joint_positions.pop(joint)
+        return self._set_multiple_joint_positions(filtered_joint_positions)
+
     @validate_multiple_joint_positions
     @abstractmethod
-    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
+    def _set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         """
         Set the positions of multiple joints of an articulated object.
 
@@ -751,8 +835,18 @@ class World(StateEntity, ABC):
         """
         pass
 
-    @abstractmethod
     def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
+        """
+        Wrapper around :meth:`_get_multiple_joint_positions` that checks if any of the joints should be ignored.
+        """
+        filtered_joints = [joint for joint in joints if not joint.object.is_a_robot or
+                           joint.name not in self.robot_description.ignore_joints]
+        joint_positions = self._get_multiple_joint_positions(filtered_joints)
+        joint_positions.update({joint.name: 0.0 for joint in joints if joint not in filtered_joints})
+        return joint_positions
+
+    @abstractmethod
+    def _get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
         """
         Get the positions of multiple joints of an articulated object.
 
@@ -790,9 +884,13 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def step(self):
+    def step(self, func: Optional[Callable[[], None]] = None, step_seconds: Optional[float] = None) -> None:
         """
-        Step the world simulation using forward dynamics
+        Step the world simulation using forward dynamics.
+
+        :param func: An optional function to be called during the step.
+        :param step_seconds: The amount of seconds to step the simulation if None the simulation is stepped by the
+        simulation time step.
         """
         pass
 
@@ -819,8 +917,6 @@ class World(StateEntity, ABC):
     @abstractmethod
     def get_link_color(self, link: Link) -> Color:
         """
-        This method returns the rgba_color of this link.
-
         :param link: The link for which the rgba_color should be returned.
         :return: The rgba_color as Color object with RGBA values between 0 and 1.
         """
@@ -829,31 +925,42 @@ class World(StateEntity, ABC):
     @abstractmethod
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
         """
-        Get the RGBA colors of each link in the object as a dictionary from link name to rgba_color.
-
         :param obj: The object
-        :return: A dictionary with link names as keys and a Color object for each link as value.
+        :return: The RGBA colors of each link in the object as a dictionary from link name to rgba_color.
         """
         pass
 
-    @abstractmethod
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
         """
-        Return the axis aligned bounding box of this object. The return of this method are two points in
-        world coordinate frame which define a bounding box.
-
         :param obj: The object for which the bounding box should be returned.
-        :return: AxisAlignedBoundingBox object containing the min and max points of the bounding box.
+        :return: the axis aligned bounding box of this object. The return of this method are two points in
+        world coordinate frame which define a bounding box.
         """
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
+    def get_object_rotated_bounding_box(self, obj: Object) -> RotatedBoundingBox:
+        """
+        :param obj: The object for which the bounding box should be returned.
+        :return: the rotated bounding box of this object. The return of this method are two points in
+        world coordinate frame which define a bounding box.
+        """
+        raise NotImplementedError
+
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
         """
-        Return the axis aligned bounding box of the link. The return of this method are two points in
+        :param link: The link for which the bounding box should be returned.
+        :return: The axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        pass
+        raise NotImplementedError
+
+    def get_link_rotated_bounding_box(self, link: Link) -> RotatedBoundingBox:
+        """
+        :param link: The link for which the bounding box should be returned.
+        :return: The rotated bounding box of the link. The return of this method are two points in
+        world coordinate frame which define a bounding box.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def set_realtime(self, real_time: bool) -> None:
@@ -959,16 +1066,16 @@ class World(StateEntity, ABC):
         Terminate the world sync thread.
         """
         self.world_sync.terminate = True
-        self.resume_world_sync()
         self.world_sync.join()
 
-    def save_state(self, state_id: Optional[int] = None, use_same_id: bool = False) -> int:
+    def save_state(self, state_id: Optional[int] = None, use_same_id: bool = False, to_file: bool = False) -> int:
         """
         Return the id of the saved state of the World. The saved state contains the states of all the objects and
         the state of the physics simulator.
 
         :param state_id: The id of the saved state.
         :param use_same_id: Whether to use the same current state id for the new saved state.
+        :param to_file: Whether to save the state to a file.
         :return: A unique id of the state
         """
 
@@ -985,7 +1092,7 @@ class World(StateEntity, ABC):
 
         self._current_state = WorldState(self.object_states, sim_state_id)
 
-        return super().save_state(state_id)
+        return super().save_state(state_id, self.get_cache_dir() if to_file else None)
 
     @property
     def current_state(self) -> WorldState:
@@ -1016,6 +1123,8 @@ class World(StateEntity, ABC):
             obj.set_attachments(obj_state.attachments)
             obj.link_states = obj_state.link_states
             obj.joint_states = obj_state.joint_states
+            if obj.name == self.robot.name and len(self.robot_virtual_joints) > 0:
+                obj.set_mobile_robot_pose(obj_state.pose)
 
     @property
     def object_states(self) -> Dict[str, ObjectState]:
@@ -1199,8 +1308,9 @@ class World(StateEntity, ABC):
         Remove all saved states of the World.
         """
         if self.conf.use_physics_simulator_state:
-            for state in self.saved_states.values():
-                self.remove_physics_simulator_state(state.simulator_state_id)
+            simulator_state_ids = set([state.simulator_state_id for state in self.saved_states.values()])
+            for ssid in simulator_state_ids:
+                self.remove_physics_simulator_state(ssid)
         else:
             self.remove_objects_saved_states()
         super().remove_saved_states()
@@ -1496,7 +1606,8 @@ class World(StateEntity, ABC):
         """
         Resume the world synchronization.
         """
-        self.world_sync.sync_lock.release()
+        if self.world_sync.sync_lock.locked():
+            self.world_sync.sync_lock.release()
 
     def add_vis_axis(self, pose: Pose) -> int:
         """
@@ -1549,6 +1660,13 @@ class World(StateEntity, ABC):
         remover_func(*args, **kwargs)
         self.update_simulator_state_id_in_original_state()
 
+    def update_original_state(self) -> int:
+        """
+        Update the original state of the world.
+        :return: The id of the updated original state.
+        """
+        return self.save_state(self.original_state_id, use_same_id=True)
+
     def update_simulator_state_id_in_original_state(self, use_same_id: bool = False) -> None:
         """
         Update the simulator state id in the original state if use_physics_simulator_state is True in the configuration.
@@ -1578,6 +1696,7 @@ class UseProspectionWorld:
         with UseProspectionWorld():
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
+
     def __init__(self):
         self.prev_world: Optional[World] = None
         # The previous world is saved to restore it after the with block is exited.
@@ -1639,10 +1758,8 @@ class WorldSync(threading.Thread):
         """
         while not self.terminate:
             self.sync_lock.acquire()
-            if not self.terminate:
-                self.sync_worlds()
-            self.sync_lock.release()
             time.sleep(WorldSync.WAIT_TIME_AS_N_SIMULATION_STEPS * self.world.simulation_time_step)
+            self.sync_lock.release()
 
     def get_world_object(self, prospection_object: Object) -> Object:
         """
@@ -1724,7 +1841,6 @@ class WorldSync(threading.Thread):
         self.world.prospection_world.reset_multiple_objects_base_poses(obj_pose_dict)
         for obj, prospection_obj in self.object_to_prospection_object_map.items():
             prospection_obj.set_attachments(obj.attachments)
-            prospection_obj.link_states = obj.link_states
             prospection_obj.joint_states = obj.joint_states
 
     def check_for_equal(self) -> bool:

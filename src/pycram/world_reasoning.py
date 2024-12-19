@@ -6,8 +6,9 @@ from .datastructures.pose import Pose, Transform
 from .datastructures.world import World, UseProspectionWorld
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .robot_description import RobotDescription
+from .ros.logging import logdebug
 from .utils import RayTestUtils
-from .world_concepts.world_object import Object
+from .world_concepts.world_object import Object, Link
 from .config import world_conf as conf
 
 
@@ -36,7 +37,7 @@ def stable(obj: Object) -> bool:
 def contact(
         object1: Object,
         object2: Object,
-        return_links: bool = False) -> Union[bool, Tuple[bool, List]]:
+        return_links: bool = False) -> Union[bool, Tuple[bool, List[Tuple[Link, Link]]]]:
     """
     Checks if two objects are in contact or not. If the links should be returned then the output will also contain a
     list of tuples where the first element is the link name of 'object1' and the second element is the link name of
@@ -62,6 +63,56 @@ def contact(
             return objects_are_in_contact
 
 
+def prospect_robot_contact(robot: Object, pose: Pose,
+                           ignore_collision_with: Optional[List[Object]] = None) -> bool:
+    """
+    Check if the robot collides with any object in the world at the given pose.
+
+    :param robot: The robot object
+    :param pose: The pose to check for collision
+    :param ignore_collision_with: A list of objects to ignore collision with
+    :return: True if the robot collides with any object, False otherwise
+    """
+    with UseProspectionWorld():
+        prospection_robot = World.current_world.get_prospection_object_for_object(robot)
+        prospection_robot.set_pose(pose)
+        floor = prospection_robot.world.get_object_by_name("floor")
+        ignore_collision_with = [] if ignore_collision_with is None else ignore_collision_with
+        ignore = [o.name for o in ignore_collision_with]
+        for obj in prospection_robot.world.objects:
+            if obj.name in ([prospection_robot.name, floor.name] + ignore):
+                continue
+            in_contact, contact_links = contact(prospection_robot, obj, return_links=True)
+            if in_contact and not is_held_object(prospection_robot, obj, [links[0] for links in contact_links]):
+                logdebug(f"Robot is in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
+                         f"at position {pose.position_as_list()} and z_angle {pose.z_angle}")
+                return True
+            logdebug(f"Robot is not in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
+                     f"at position {pose.position_as_list()} and z_angle {pose.z_angle}")
+    return False
+
+
+def is_held_object(robot: Object, obj: Object, robot_contact_links: List[Link]) -> bool:
+    """
+    Check if the object is picked by the robot.
+
+    :param robot: The robot object
+    :param obj: The object to check if it is picked
+    :param robot_contact_links: The links of the robot that are in contact with the object
+    :return: True if the object is picked by the robot, False otherwise
+    """
+    picked_object = False
+    if obj in robot.attachments:
+        arm_chains = RobotDescription.current_robot_description.get_manipulator_chains()
+        for chain in arm_chains:
+            gripper_links = chain.end_effector.links
+            if (robot.attachments[obj].parent_link.name in gripper_links
+                    and all(link.name in gripper_links for link in robot_contact_links)):
+                picked_object = True
+                continue
+    return picked_object
+
+
 def get_visible_objects(
         camera_pose: Pose,
         front_facing_axis: Optional[List[float]] = None,
@@ -77,7 +128,7 @@ def get_visible_objects(
     if front_facing_axis is None:
         front_facing_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
 
-    camera_frame = RobotDescription.current_robot_description.get_camera_frame()
+    camera_frame = RobotDescription.current_robot_description.get_camera_frame(World.robot.name)
     world_to_cam = camera_pose.to_transform(camera_frame)
 
     cam_to_point = Transform(list(np.multiply(front_facing_axis, 2)), [0, 0, 0, 1], camera_frame,

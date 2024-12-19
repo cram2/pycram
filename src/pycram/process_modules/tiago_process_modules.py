@@ -1,6 +1,7 @@
 from threading import Lock
 
 import numpy as np
+from .default_process_modules import *
 
 from ..datastructures.world import World
 from ..datastructures.enums import ExecutionType, ObjectType
@@ -10,7 +11,8 @@ from ..designators.motion_designator import MoveMotion, DetectingMotion, MoveTCP
 from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModuleManager, ProcessModule
 from .default_process_modules import DefaultOpen, DefaultClose, DefaultMoveGripper, DefaultMoveJoints, DefaultMoveTCP, \
-    DefaultNavigation, DefaultMoveHead, DefaultDetecting, DefaultMoveArmJoints, DefaultWorldStateDetecting
+    DefaultNavigation, DefaultMoveHead, DefaultDetecting, DefaultMoveArmJoints, DefaultWorldStateDetecting, \
+    DefaultDetectingReal
 from ..robot_description import RobotDescription
 from ..ros.logging import logdebug
 from ..external_interfaces import giskard
@@ -99,11 +101,6 @@ class TiagoMoveJointsReal(ProcessModule):
         giskard.avoid_all_collisions()
         giskard.achieve_joint_goal(name_to_position)
 
-class TiagoMoveGripperReal(ProcessModule):
-    def _execute(self, designator: MoveGripperMotion):
-        pass
-        # TODO implement for the new tiago gripper
-
 class TiagoOpenReal(ProcessModule):
     def _execute(self, designator: OpeningMotion):
         giskard.achieve_open_container_goal(
@@ -118,20 +115,12 @@ class TiagoCloseReal(ProcessModule):
 
 
 
-class TiagoManager(ProcessModuleManager):
+class TiagoManager(DefaultManager):
 
     def __init__(self):
-        super().__init__("tiago_dual")
-        self._navigate_lock = Lock()
-        self._looking_lock = Lock()
-        self._detecting_lock = Lock()
-        self._move_tcp_lock = Lock()
-        self._move_arm_joints_lock = Lock()
-        self._world_state_detecting_lock = Lock()
-        self._move_joints_lock = Lock()
-        self._move_gripper_lock = Lock()
-        self._open_lock = Lock()
-        self._close_lock = Lock()
+        super().__init__()
+        self.robot_name = "tiago_dual"
+
 
     def navigate(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
@@ -144,12 +133,6 @@ class TiagoManager(ProcessModuleManager):
             return DefaultMoveHead(self._looking_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return TiagoMoveHeadReal(self._looking_lock)
-
-    def detecting(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return DefaultDetecting(self._detecting_lock)
-        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return TiagoDetectingReal(self._detecting_lock)
 
     def move_tcp(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
@@ -178,7 +161,7 @@ class TiagoManager(ProcessModuleManager):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return TiagoMoveGripperReal(self._move_gripper_lock)
+            return DefaultMoveGripperReal(self._move_gripper_lock)
 
     def open(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:

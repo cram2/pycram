@@ -75,12 +75,15 @@ session = sqlalchemy.orm.sessionmaker(bind=engine)()
 Now we construct an empty world with just a floating milk, where we can learn about PickUp actions.
 
 ```python
+from pycrap.ontologies import Robot, Milk
+
 world = BulletWorld(WorldMode.DIRECT)
 print(world.prospection_world)
-robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+robot = Object("pr2", Robot, "pr2.urdf")
+milk = Object("milk", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
 viz_marker_publisher = VizMarkerPublisher()
-milk_description = ObjectDesignatorDescription(types=[ObjectType.MILK]).ground()
+viz_marker_publisher = VizMarkerPublisher()
+milk_description = ObjectDesignatorDescription(types=[Milk]).ground()
 ```
 
 Next, we create a default, probabilistic model that describes how to pick up objects. We visualize the default policy.
@@ -164,10 +167,11 @@ Next, we put the learned model to the test in a complex environment, where the m
 area.
 
 ```python
-kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "apartment.urdf")
+from pycrap.ontologies import Apartment
+kitchen = Object("apartment", Apartment, "apartment.urdf")
 
 milk.set_pose(Pose([0.5, 3.15, 1.04]))
-milk_description = ObjectDesignatorDescription(types=[ObjectType.MILK]).ground()
+milk_description = ObjectDesignatorDescription(types=[Milk]).ground()
 fpa = MoveAndPickUp(milk_description, arms=[Arms.LEFT, Arms.RIGHT],
                     grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP], policy=model)
 fpa.sample_amount = 200

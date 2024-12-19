@@ -1,17 +1,21 @@
 import atexit
+from datetime import timedelta
+
 import tf
 import time 
 
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
+from typing_extensions import Optional
+
 from ..datastructures.world import World
-from ..robot_descriptions import robot_description
+from ..robot_description import RobotDescription
 from ..datastructures.pose import Pose
 from ..ros.data_types import Time, Duration
 from ..ros.ros_tools import wait_for_message, create_timer
 
 
-class RobotStateUpdater:
+class WorldStateUpdater:
     """
     Updates the robot in the World with information of the real robot published to ROS topics.
     Infos used to update the robot are:
@@ -20,7 +24,8 @@ class RobotStateUpdater:
         * The current joint state of the robot
     """
 
-    def __init__(self, tf_topic: str, joint_state_topic: str):
+    def __init__(self, tf_topic: str, joint_state_topic: str, update_rate: timedelta = timedelta(milliseconds=100),
+                 world: Optional[World] = None) -> None:
         """
         The robot state updater uses a TF topic and a joint state topic to get the current state of the robot.
 
@@ -31,20 +36,33 @@ class RobotStateUpdater:
         time.sleep(1)
         self.tf_topic = tf_topic
         self.joint_state_topic = joint_state_topic
-
-        self.tf_timer = create_timer(Duration().from_sec(0.1), self._subscribe_tf)
-        self.joint_state_timer = create_timer(Duration().from_sec(0.1), self._subscribe_joint_state)
+        self.world: Optional[World] = world
+        self.tf_timer = create_timer(Duration().from_sec(update_rate.total_seconds()), self._subscribe_tf)
+        self.joint_state_timer = create_timer(Duration().from_sec(update_rate.total_seconds()),
+                                              self._subscribe_joint_state)
 
         atexit.register(self._stop_subscription)
 
     def _subscribe_tf(self, msg: TransformStamped) -> None:
         """
-        Callback for the TF timer, will do a lookup of the transform between map frame and the robot base frame.
+        Callback for the TF timer, will do a lookup of the transform between map frame and the objects frames.
 
         :param msg: TransformStamped message published to the topic
         """
-        trans, rot = self.tf_listener.lookupTransform("/map", robot_description.base_frame, Time(0))
-        World.robot.set_pose(Pose(trans, rot))
+        if self.world is None:
+            if not World.current_world.is_prospection_world:
+                self.world = World.current_world
+            else:
+                return
+        for obj in self.world.objects:
+            if obj.name == self.world.robot.name:
+                tf_frame = RobotDescription.current_robot_description.base_link
+            elif obj.is_an_environment:
+                continue
+            else:
+                tf_frame = obj.tf_frame
+            trans, rot = self.tf_listener.lookupTransform("/map", tf_frame, Time(0))
+            obj.set_pose(Pose(trans, rot))
 
     def _subscribe_joint_state(self, msg: JointState) -> None:
         """
@@ -56,8 +74,8 @@ class RobotStateUpdater:
         """
         try:
             msg = wait_for_message(self.joint_state_topic, JointState)
-            for name, position in zip(msg.name, msg.position):
-                World.robot.set_joint_position(name, position)
+            joint_positions = dict(zip(msg.name, msg.position))
+            World.robot.set_multiple_joint_positions(joint_positions)
         except AttributeError:
             pass
 
@@ -67,3 +85,4 @@ class RobotStateUpdater:
         """
         self.tf_timer.shutdown()
         self.joint_state_timer.shutdown()
+

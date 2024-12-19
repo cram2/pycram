@@ -35,12 +35,14 @@ class LinkDescription(AbstractLinkDescription, HasConcept):
 
 
     @property
-    def geometry(self) -> Union[VisualShape, None]:
+    def geometry(self) -> Union[List[VisualShape], VisualShape, None]:
         """
         :return: The geometry type of the URDF collision element of this link.
         """
         if self.collision is None:
             return None
+        if isinstance(self.collision, List):
+            return [self._get_visual_shape(coll.geometry) for coll in self.collision]
         urdf_geometry = self.collision.geometry
         return self._get_visual_shape(urdf_geometry)
 
@@ -65,18 +67,23 @@ class LinkDescription(AbstractLinkDescription, HasConcept):
     def origin(self) -> Union[Pose, None]:
         if self.collision is None:
             return None
-        if self.collision.origin is None:
+        coll = self.collision[0] if isinstance(self.collision, List) else self.collision
+        if coll.origin is None:
             return None
-        return Pose(self.collision.origin.xyz,
-                    quaternion_from_euler(*self.collision.origin.rpy).tolist())
+        return Pose(coll.origin.xyz,
+                    quaternion_from_euler(*coll.origin.rpy).tolist())
 
     @property
     def name(self) -> str:
         return self.parsed_description.name
 
     @property
-    def collision(self) -> Collision:
-        return self.parsed_description.collision
+    def collision(self) -> Union[Collision, List[Collision], None]:
+        if self.parsed_description.collisions:
+            if len(self.parsed_description.collisions) == 1:
+                return self.parsed_description.collisions[0]
+            else:
+                return self.parsed_description.collisions
 
 
 class JointDescription(AbstractJointDescription):
@@ -104,7 +111,7 @@ class JointDescription(AbstractJointDescription):
 
     @property
     def has_limits(self) -> bool:
-        return bool(self.parsed_description.limit)
+        return bool(self.parsed_description.limit) and not self.type == JointType.CONTINUOUS
 
     @property
     def type(self) -> JointType:

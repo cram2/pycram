@@ -32,22 +32,29 @@ from pycram.world_concepts.world_object import Object
 import anytree
 import pycram.failures
 import numpy as np
-from pycrap.ontologies import Robot, Milk, Cereal, Spoon, Bowl, Apartment
+from pycrap.ontologies import Milk, Cereal, Robot, Kitchen, Spoon, Apartment, Bowl
 
 np.random.seed(4)
 
-world = BulletWorld()
+use_multiverse = False
+viz_marker_publisher = None
+if use_multiverse:
+    try:
+        from pycram.worlds.multiverse import Multiverse
+        world = Multiverse()
+    except ImportError:
+        raise ImportError("Multiverse is not installed, please install it to use it.")
+else:
+    from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
+    world = BulletWorld()
+    viz_marker_publisher = VizMarkerPublisher()
+    
 robot = Object("pr2", Robot, "pr2.urdf")
 robot_desig = ObjectDesignatorDescription(names=['pr2']).resolve()
-apartment = Object("apartment", Apartment, "apartment.urdf", pose=Pose([-1.5, -2.5, 0]))
+apartment = Object("apartment", Apartment, "apartment.urdf")
 apartment_desig = ObjectDesignatorDescription(names=['apartment']).resolve()
-table_top = apartment.get_link_position("cooktop")
-# milk = Object("milk", "milk", "milk.stl", position=[table_top[0]-0.15, table_top[1], table_top[2]])
-# milk.set_position(position=milk.get_position(), base=True)
-# cereal = Object("cereal", "cereal", "breakfast_cereal.stl", position=table_top)
-# cereal.set_position(position=[table_top[0]-0.1, table_top[1] + 0.5, table_top[2]], base=True)
-# milk_desig = ObjectDesignator(ObjectDesignatorDescription(name="milk", type="milk"))
-# cereal_desig = ObjectDesignator(ObjectDesignatorDescription(name="cereal", type="cereal"))
+table_top_name = "stove" if use_multiverse else "cooktop"
+table_top = apartment.get_link_position(table_top_name)
 ```
 
 ```python
@@ -68,11 +75,8 @@ def get_n_random_positions(pose_list, n=4, dist=0.5, random=True):
     for i in range(len(positions) - 1):
         pos_idx = np.random.choice(all_indices) if random else all_indices[i]
         diff = np.absolute(np.linalg.norm(n_positions - positions[pos_idx], axis=1))
-        # print(diff)
         min_diff = np.min(diff)
-        # print(min_diff)
         if min_diff >= dist:
-            # print("found")
             n_positions[found_count, :] = positions[pos_idx]
             found_indices.append(pos_idx)
             found_count += 1
@@ -80,30 +84,22 @@ def get_n_random_positions(pose_list, n=4, dist=0.5, random=True):
         if found_count == n:
             break
     found_poses = [pose_list[i] for i in found_indices]
-    # found_positions = [positions[i] for i in found_indices]
-    # for i in range(len(found_positions)):
-    #     print(found_poses[i][0])
-    #     print(found_positions[i])
-    #     assert np.allclose(found_positions[i],found_poses[i][0])
-    # for i in range(len(found_poses)):
-    #     for j in range(i+1,len(found_poses)):
-    #         pos1 = np.array(found_poses[i][0])
-    #         pos2 = np.array(found_poses[j][0])
-    #         diff = np.absolute(np.linalg.norm(pos1 - pos2))
-    #         print(diff)
-    #         assert diff >= dist
     return found_poses
-
-
-
 ```
 
 ```python
+from tf.transformations import quaternion_from_euler
+
 from pycram.costmaps import SemanticCostmap
 from pycram.pose_generator_and_validator import PoseGenerator
 
-scm = SemanticCostmap(apartment, "island_countertop")
-poses_list = list(PoseGenerator(scm, number_of_samples=-1))
+counter_name = "counter_sink_stove" if use_multiverse else "island_countertop"
+counter_link = apartment.get_link(counter_name)
+counter_bounds = counter_link.get_axis_aligned_bounding_box()
+scm = SemanticCostmap(apartment, counter_name)
+# take only 6 cms from edges as viable region
+edges_cm = scm.get_edges_map(0.06, horizontal_only=True)
+poses_list = list(PoseGenerator(edges_cm, number_of_samples=-1))
 poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x.position_as_list()))
 object_poses = get_n_random_positions(poses_list)
 object_names = ["bowl", "breakfast_cereal", "spoon"]
@@ -111,11 +107,18 @@ object_types = [Bowl, Cereal, Spoon]
 objects = {}
 object_desig = {}
 for obj_name, obj_type, obj_pose in zip(object_names, object_types, object_poses):
+    if obj_pose.position.x > counter_link.position.x:
+        z_angle = np.pi
+    else:
+        z_angle = 0
+    orientation = quaternion_from_euler(0, 0, z_angle).tolist()
     objects[obj_name] = Object(obj_name, obj_type, obj_name + ".stl",
-                               pose=Pose([obj_pose.position.x, obj_pose.position.y, table_top.z]))
+                               pose=Pose([obj_pose.position.x, obj_pose.position.y, table_top.z],
+                                         orientation))
     objects[obj_name].move_base_to_origin_pose()
     objects[obj_name].original_pose = objects[obj_name].pose
     object_desig[obj_name] = ObjectDesignatorDescription(names=[obj_name], types=[obj_type]).resolve()
+world.update_original_state()
 ```
 
 If You want to visualize all apartment frames
@@ -142,7 +145,7 @@ from pycram.datastructures.enums import Grasp
 
 
 @pycram.tasktree.with_tree
-def plan(obj, obj_desig, torso=0.2, place="countertop"):
+def plan(obj_desig: ObjectDesignatorDescription.Object, torso=0.2, place=counter_name):
     world.reset_world()
     with simulated_robot:
         ParkArmsActionPerformable(Arms.BOTH).perform()
@@ -151,29 +154,50 @@ def plan(obj, obj_desig, torso=0.2, place="countertop"):
         location = CostmapLocation(target=obj_desig, reachable_for=robot_desig)
         pose = location.resolve()
         print()
-        NavigateActionPerformable(pose.pose).perform()
+        NavigateActionPerformable(pose.pose, True).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         good_torsos.append(torso)
         picked_up_arm = pose.reachable_arms[0]
-        PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp=Grasp.FRONT).perform()
+        grasp = Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else Grasp.FRONT
+        PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp=grasp,
+                                prepose_distance=0.03).perform()
 
         ParkArmsActionPerformable(Arms.BOTH).perform()
-        scm = SemanticCostmapLocation(place, apartment_desig, obj_desig)
-        scm = iter(scm)
-        pose_island = None
-        for i in range(np.random.randint(5, 15)):
-            pose_island = next(scm)
-        print(pose_island)
-
-
-        place_location = CostmapLocation(target=pose_island.pose, reachable_for=robot_desig,
-                                         reachable_arm=picked_up_arm)
-        pose = place_location.resolve()
-
-        NavigateActionPerformable(pose.pose).perform()
-
-        PlaceActionPerformable(object_designator=obj_desig, target_location=pose_island.pose,
+        scm = SemanticCostmapLocation(place, apartment_desig, obj_desig, horizontal_edges_only=True, edge_size_in_meters=0.08)
+        scm_iter = iter(scm)
+        n_retries = 0
+        found = False
+        while not found:
+            try:
+                print(f"Trying {n_retries} to find a place")
+                if n_retries == 0:
+                    pose_island = next(scm_iter)
+                    cost_map_size = len(np.where(scm.sem_costmap.map > 0)[0])
+                    print(f"cost_map_size: {cost_map_size}")
+                else:
+                    for _ in range(np.random.randint(100, 110)):
+                        pose_island = next(scm_iter)
+                print("found pose_island")
+                if pose_island.pose.position.x > counter_link.position.x:
+                    z_angle = np.pi
+                else:
+                    z_angle = 0
+                orientation = quaternion_from_euler(0, 0, z_angle).tolist()
+                pose_island.pose = Pose(pose_island.pose.position_as_list(), orientation)
+                pose_island.pose.position.z += 0.07
+                print(pose_island.pose.position)
+                place_location = CostmapLocation(target=pose_island.pose, reachable_for=robot_desig, reachable_arm=picked_up_arm)
+                pose = place_location.resolve()
+                NavigateActionPerformable(pose.pose, True).perform()
+                PlaceActionPerformable(object_designator=obj_desig, target_location=pose_island.pose,
                                arm=picked_up_arm).perform()
+                found = True
+            except (StopIteration, IKError) as e:
+                print("Retrying")
+                print(e)
+                n_retries += 1
+                if n_retries > 3:
+                    raise StopIteration("No place found")
 
         ParkArmsActionPerformable(Arms.BOTH).perform()
 
@@ -181,15 +205,16 @@ def plan(obj, obj_desig, torso=0.2, place="countertop"):
 good_torsos = []
 for obj_name in object_names:
     done = False
-    torso = 0.25 if len(good_torsos) == 0 else good_torsos[-1]
+    torso = 0.3 if len(good_torsos) == 0 else good_torsos[-1]
     while not done:
         try:
-            plan(objects[obj_name], object_desig[obj_name], torso=torso, place="island_countertop")
+            plan(object_desig[obj_name], torso=torso, place=counter_name)
             done = True
+            print(f"Object {obj_name} placed")
             objects[obj_name].original_pose = objects[obj_name].pose
+            world.update_original_state()
         except (StopIteration, IKError) as e:
             print(type(e))
-            print(e)
             print("no solution")
             torso += 0.05
             if torso > 0.3:
@@ -201,84 +226,7 @@ Now we get the task tree from its module and render it. Rendering can be done wi
 anytree package. We will use ascii rendering here for ease of displaying.
 
 ```python
-tt = pycram.tasktree.task_tree
-print(anytree.RenderTree(tt, style=anytree.render.AsciiStyle()))
-```
-
-As we see every task in the plan got recorded correctly. It is noticeable that the tree begins with a NoOperation node.
-This is done because several, not connected, plans that get executed after each other should still appear in the task
-tree. Hence, a NoOperation node is the root of any tree. If we re-execute the plan we would see them appear in the same
-tree even though they are not connected.
-
-```python
-world.reset_world()
-plan(objects["bowl"], object_desig["bowl"], torso=0.25)
-print(anytree.RenderTree(tt, style=anytree.render.AsciiStyle()))
-```
-
-Projecting a plan in a new environment with its own task tree that only exists while the projected plan is running can
-be done with the ``with`` keyword. When this is done, both the bullet world and task tree are saved and new, freshly
-reset objects are available. At the end of a with block the old state is restored. The root for such things is then
-called ``simulation()``.
-
-```python
-with pycram.tasktree.SimulatedTaskTree() as stt:
-    print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
-print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
-```
-
-Task tree can be manipulated with ordinary anytree manipulation. If we for example want to discard the second plan, we
-would write:
-
-```python
-tt.root.children = (tt.root.children[0],)
-print(anytree.RenderTree(tt, style=anytree.render.AsciiStyle()))
-```
-
-We can now re-execute this (modified) plan by executing the leaf in pre-ordering iteration using the anytree
-functionality. This will not append the re-execution to the task tree.
-
-```python
-world.reset_world()
-with simulated_robot:
-    [node.action.perform() for node in tt.root.leaves]
-print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
-```
-
-Nodes in the task tree contain additional information about the status and time of a task.
-
-```python
-print(pycram.tasktree.task_tree.children[0])
-```
-
-The task tree can also be reset to an empty one by invoking:
-
-```python
-pycram.tasktree.task_tree.reset_tree()
-print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
-```
-
-If a plan fails using the PlanFailure exception, the plan will stop and raise the respective error. 
-Additionally, the error will be logged in the node of the TaskTree. First let's create a simple failing plan and execute it.
-
-```python
-@pycram.tasktree.with_tree
-def failing_plan():
-    raise pycram.failures.PlanFailure("Oopsie!")
-
-try:
-    failing_plan()
-except pycram.failures.PlanFailure as e:
-    print(e)
-```
-
-We can now investigate the nodes of the tree, and we will see that the tree indeed contains a failed task.
-
-```python
-print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
-print(pycram.tasktree.task_tree.children[0])
-```
-
-```python
+if viz_marker_publisher is not None:
+    viz_marker_publisher._stop_publishing()
 world.exit()
 ```

@@ -8,7 +8,7 @@ import time
 import numpy as np
 import pycram_bullet as p
 from geometry_msgs.msg import Point
-from typing_extensions import List, Optional, Dict, Any
+from typing_extensions import List, Optional, Dict, Any, Callable
 
 from pycrap.ontologies import Floor
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
@@ -18,7 +18,7 @@ from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription
-from ..ros.logging import loginfo
+from ..ros.logging import logwarn, loginfo
 from ..validation.goal_validator import (validate_multiple_joint_positions, validate_joint_position,
                                          validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
@@ -36,7 +36,8 @@ class BulletWorld(World):
     manipulate the Bullet World.
     """
 
-    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False):
+    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False,
+                 use_multiverse_for_real_world_simulation: bool = False):
         """
         Creates a new simulation, the type decides of the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
@@ -44,8 +45,12 @@ class BulletWorld(World):
 
         :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default is "GUI"
         :param is_prospection_world: For internal usage, decides if this BulletWorld should be used as a shadow world.
+        :param use_multiverse_for_real_world_simulation: Whether to use the Multiverse for real world simulation.
         """
         super().__init__(mode=mode, is_prospection_world=is_prospection_world)
+
+        if use_multiverse_for_real_world_simulation:
+            self.add_multiverse_resources()
 
         # This disables file caching from PyBullet, since this would also cache
         # files that can not be loaded
@@ -61,6 +66,17 @@ class BulletWorld(World):
         if not is_prospection_world:
             _ = Object("floor", Floor, "plane.urdf",
                        world=self)
+
+    def add_multiverse_resources(self):
+        """
+        Add the Multiverse resources to the start of the data directories of the BulletWorld such they are searched
+        first for the resources because the pycram objects need to have the same description as the Multiverse objects.
+        """
+        try:
+            from .multiverse import Multiverse
+            Multiverse.make_sure_multiverse_resources_are_added(self.conf.clear_cache_at_start)
+        except ImportError:
+            logwarn("Multiverse is not installed, please install it to use the Multiverse.")
 
     def _init_world(self, mode: WorldMode):
         self._gui_thread: Gui = Gui(self, mode)
@@ -136,7 +152,7 @@ class BulletWorld(World):
     def remove_constraint(self, constraint_id):
         p.removeConstraint(constraint_id, physicsClientId=self.id)
 
-    def get_joint_position(self, joint: ObjectDescription.Joint) -> float:
+    def _get_joint_position(self, joint: ObjectDescription.Joint) -> float:
         return p.getJointState(joint.object_id, joint.id, physicsClientId=self.id)[0]
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
@@ -217,17 +233,17 @@ class BulletWorld(World):
                 "lateral_friction_2": LateralFriction(point[12], point[13])}
 
     @validate_multiple_joint_positions
-    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
+    def _set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         for joint, joint_position in joint_positions.items():
             self.reset_joint_position(joint, joint_position)
         return True
 
     @validate_joint_position
-    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
+    def _reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
         return True
 
-    def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
+    def _get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
         return {joint.name: self.get_joint_position(joint) for joint in joints}
 
     @validate_multiple_object_poses
@@ -245,7 +261,11 @@ class BulletWorld(World):
                                           physicsClientId=self.id)
         return True
 
-    def step(self):
+    def step(self, func: Optional[Callable[[], None]] = None, step_seconds: Optional[float] = None) -> None:
+        if func is not None:
+            logwarn("The BulletWorld step function does not support a function argument.")
+        if step_seconds is not None:
+            logwarn("The BulletWorld step function does not support a step_seconds argument.")
         p.stepSimulation(physicsClientId=self.id)
 
     def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:
