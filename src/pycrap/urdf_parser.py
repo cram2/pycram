@@ -1,3 +1,4 @@
+import re
 import xml.etree.ElementTree as ET
 import os
 from typing import List, Any

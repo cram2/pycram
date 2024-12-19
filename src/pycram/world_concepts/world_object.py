@@ -10,7 +10,7 @@ from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
-from pycrap import is_part_of
+from pycrap.ontologies import is_part_of
 import pycrap
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
@@ -406,8 +406,9 @@ class Object(WorldEntity, HasConcept):
             self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
             individual = ontology_concept(joint_name, namespace=self.world.ontology.ontology)
             individual.is_a = [ontology_concept, has_child_link.some(
-                self.get_joint_child_link(joint_name).name), has_parent_link.some(
-                self.get_joint_parent_link(joint_name).name),
+                self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name))),
+                               has_parent_link.some(
+                self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_parent_link(joint_name).name))),
                                parse_joint_types(self.get_joint_type(joint_name).name)]
             link_individual = self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name))
             old_restrictions = link_individual.is_a
