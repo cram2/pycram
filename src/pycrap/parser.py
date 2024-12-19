@@ -658,7 +658,19 @@ class OntologiesParser(AbstractParser):
         self.destroy_all_ontologies()
 
         for onto in nx.topological_sort(self.dependency_graph):
-            loaded_onto: owlready2.Ontology = get_ontology(onto.base_iri).load()
+            loaded_onto: owlready2.Ontology = get_ontology(onto.base_iri)
+            print(loaded_onto.base_iri)
+            print(loaded_onto)
+            if loaded_onto.base_iri == "http://knowrob.org/kb/urdf.owl#":
+                loaded_onto: owlready2.Ontology = get_ontology("https://raw.githubusercontent.com/knowrob/knowrob/refs/heads/dev/owl/URDF.owl")
+
+            print(loaded_onto.base_iri)
+            print(loaded_onto)
+            if loaded_onto.base_iri == "http://www.ease-crc.org/ont/SUTURO.owl#":
+            #    loaded_onto: owlready2.Ontology = get_ontology("https://raw.githubusercontent.com/SUTURO/suturo_knowledge/refs/heads/fallschool/suturo_knowledge/owl/suturo.owl")
+                loaded_onto:  owlready2.Ontology = get_ontology("suturo.owl")
+
+            loaded_onto.load()
             update_class_names(loaded_onto)
             update_property_names(loaded_onto)
             # Create the directory for the ontology

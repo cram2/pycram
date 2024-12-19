@@ -3,21 +3,26 @@ import os
 from typing import List, Any
 
 import pycrap
-from pycrap import FixedJoint, PlanarJoint, RevoluteJoint, FloatingJoint, HingeJoint, ContinuousJoint
+from pycrap.ontologies import FixedJoint, PlanarJoint, RevoluteJoint, FloatingJoint, HingeJoint, ContinuousJoint, \
+    PrismaticJoint
 
+def remove_digits(string):
+    return re.sub(r'\d+', '', string)
 
 def parse_furniture(link):
     #furniture = ["Door", "Fridge", "Handle", "Sink", "Drawer", "Table", "Leg"]
     matched_furniture = []
     for c in pycrap.ontologies.base.ontology.classes():
         for l in link.split('_'):
-            if l.capitalize() in str(c):
+            clean_l = remove_digits(l).capitalize()  # Remove digits and capitalize
+            # print(f"clsname: {c[0]}, link: {clean_l}")
+            if clean_l == str(c).split(".")[1]:
                 matched_furniture.append(c)
     if matched_furniture:
         return matched_furniture[len(matched_furniture)-1]
 
 def parse_joint_types(joint):
-    joint_types = [FixedJoint, PlanarJoint, RevoluteJoint, FloatingJoint, HingeJoint, ContinuousJoint]
+    joint_types = [FixedJoint, PlanarJoint, RevoluteJoint, FloatingJoint, HingeJoint, ContinuousJoint, PrismaticJoint]
     for j in joint_types:
         if str(joint).lower() in str(j).lower():
             return j

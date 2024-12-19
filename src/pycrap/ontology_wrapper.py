@@ -55,6 +55,10 @@ class OntologyWrapper:
         """
         return default_pycrap_ontology.classes()
 
+    @staticmethod
+    def properties():
+        return default_pycrap_ontology.properties()
+
     def search(self, *args, **kwargs):
         """
         Check https://owlready2.readthedocs.io/en/latest/onto.html#simple-queries for details.
@@ -62,6 +66,10 @@ class OntologyWrapper:
         :return: The search results of the ontology.
         """
         return self.ontology.search(*args, **kwargs)
+
+    def search_one(self, *args, **kwargs):
+        return self.ontology.search(*args, **kwargs)
+
 
     def __enter__(self):
         return self.ontology.__enter__()
@@ -73,7 +81,9 @@ class OntologyWrapper:
         """
         Reason over the ontology. This may take a long time.
         """
-        owlready2.sync_reasoner([self.ontology, default_pycrap_ontology])
+        owlready2.sync_reasoner_pellet([self.ontology, default_pycrap_ontology],
+                                       infer_property_values=True, infer_data_property_values=True)
+
 
     def add_individual(self, individual :Base, python_object: Any):
         self.python_objects[individual] = python_object
