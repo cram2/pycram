@@ -2,19 +2,14 @@ from .dependencies import *
 from .classes import *
 
 
-class has_color_value(BaseProperty):
+class has_name_string(BaseProperty):
     """
-    Associates a ColorRegion to numerical data describing the color.
-    """
-    
-class has_region_data_value(BaseProperty):
-    """
-    A datatype property that encodes values for a Region, e.g. a float for the Region Height.
+    A relation recording some identifier associated to an Entity.
     """
     
-class has_data_format(BaseProperty):
+class has_position_data(BaseProperty):
     """
-    A property linking an InformationRealization to a string specifying a format name, e.g. URDF or STL.
+    Associates a spatial region to a position.
     """
     
 class has_data_value(BaseProperty):
@@ -34,6 +29,21 @@ class has_data_value(BaseProperty):
     Patterns (4) and (5) should be used instead when a constraint or a selection is modeled, independently from the actual observation of values in the real world.
     """
     
+class has_color_value(BaseProperty):
+    """
+    Associates a ColorRegion to numerical data describing the color.
+    """
+    
+class has_region_data_value(BaseProperty):
+    """
+    A datatype property that encodes values for a Region, e.g. a float for the Region Height.
+    """
+    
+class has_data_format(BaseProperty):
+    """
+    A property linking an InformationRealization to a string specifying a format name, e.g. URDF or STL.
+    """
+    
 class has_depth(BaseProperty):
     """
     The depth of a shape.
@@ -49,14 +59,14 @@ class has_event_begin(BaseProperty):
     A relation recording when an Event started. In this case, we think of the Event as something unfolding over some span of time.
     """
     
-class has_event_time(BaseProperty):
-    """
-    Superproperty of hasEventBegin and hasEventEnd, records that an Event happened, or was happening, at a particular time. Using the subproperties captures the richer semantics of that time relative to the event. Using only this superproperty may be appropriate when the Event is construed to take place at a single instant of time.
-    """
-    
 class has_event_end(BaseProperty):
     """
     A relation recording when an Event ended. In this case, we think of the Event as something unfolding over some span of time.
+    """
+    
+class has_event_time(BaseProperty):
+    """
+    Superproperty of hasEventBegin and hasEventEnd, records that an Event happened, or was happening, at a particular time. Using the subproperties captures the richer semantics of that time relative to the event. Using only this superproperty may be appropriate when the Event is construed to take place at a single instant of time.
     """
     
 class has_file_path(BaseProperty):
@@ -89,14 +99,14 @@ class has_interval_begin(BaseProperty):
     A relation recording when some TimeInterval started.
     """
     
-class has_interval_time(BaseProperty):
-    """
-    Superproperty of relations used to connect moments in time to a TimeInterval.
-    """
-    
 class has_interval_end(BaseProperty):
     """
     A relation recording when a TimeInterval ended.
+    """
+    
+class has_interval_time(BaseProperty):
+    """
+    Superproperty of relations used to connect moments in time to a TimeInterval.
     """
     
 class has_joint_effort(BaseProperty):
@@ -149,19 +159,9 @@ class has_mass_value(BaseProperty):
     The mass value of a physical object in kilogram.
     """
     
-class has_name_string(BaseProperty):
-    """
-    A relation recording some identifier associated to an Entity.
-    """
-    
 class has_persistent_identifier(BaseProperty):
     """
     A property linking an InformationRealization to a persistent identifier such as a DOI, which can then be used to obtain an address at which the realization (i.e. digital file) can be retrieved.
-    """
-    
-class has_position_data(BaseProperty):
-    """
-    Associates a spatial region to a position.
     """
     
 class has_space_parameter(BaseProperty):

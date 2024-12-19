@@ -1,4 +1,6 @@
-from owlready2 import Thing, ThingClass, ObjectProperty, get_ontology, And, Or, Not, OneOf, Inverse, normstr, DatatypeProperty, TransitiveProperty, SymmetricProperty, AsymmetricProperty, ReflexiveProperty, IrreflexiveProperty, datetime 
+from owlready2 import Thing, ThingClass, ObjectProperty, get_ontology, And, Or, Not, OneOf, Inverse, normstr, \
+    DatatypeProperty, TransitiveProperty, SymmetricProperty, AsymmetricProperty, ReflexiveProperty, IrreflexiveProperty, \
+    datetime, Imp
 import tempfile
 
 
@@ -11,6 +13,9 @@ class Base(Thing, metaclass=ThingClass):
 
 
 class BaseProperty(ObjectProperty):
+    namespace = ontology
+
+class BaseDatatype(DatatypeProperty):
     namespace = ontology
 
 

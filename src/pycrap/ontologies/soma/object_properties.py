@@ -1,6 +1,28 @@
 from .dependencies import *
 
 
+class has_disposition(BaseProperty):
+    """
+    Associates an object to one of its dispositions.
+    """
+    
+class has_physical_component(BaseProperty):
+    """
+    A relation used to describe the structure of a PhysicalObject in terms of physical components, i.e. what other PhysicalObjects are components of it.
+    """
+    
+class associated_with(BaseProperty):
+    """
+    A catch-all object property, useful for alignment and querying purposes.
+    It is declared as both transitive and symmetric, in order to reason an a maximal closure of associations between individuals.
+    """
+    
+class has_location(BaseProperty):
+    """
+    A generic, relative spatial location, holding between any entities. E.g. 'the cat is on the mat', 'Omar is in Samarcanda', 'the wound is close to the femural artery'.
+    For 'absolute' locations, see SpaceRegion
+    """
+    
 class affects(BaseProperty):
     """
     Simple relationship between two actions to express that a variation in the course or outcome of the subject (the affector) would have resulted in a variation in the object (the affectee), e.g., a planning task that sets parameters such as goal position affects the subsequently executed pick-and-place task that uses that parameter.
@@ -75,12 +97,6 @@ class defines_bearer(BaseProperty):
     Relates an affordance which is a relation between a bearer and a trigger, to the role of the bearer when the affordance is manifested.
     """
     
-class associated_with(BaseProperty):
-    """
-    A catch-all object property, useful for alignment and querying purposes.
-    It is declared as both transitive and symmetric, in order to reason an a maximal closure of associations between individuals.
-    """
-    
 class is_concept_afforded_by(BaseProperty):
     """
     A relation between a disposition and a concept defined in the affordance that describes the disposition.
@@ -144,18 +160,6 @@ class after(BaseProperty):
     A relation between entities, expressing a 'sequence' schema where one of the entities strictly ends before the other one.
     """
     
-class follows(BaseProperty):
-    """
-    A relation between entities, expressing a 'sequence' schema. 
-    E.g. 'year 2000 follows 1999', 'preparing coffee' follows 'deciding what coffee to use', 'II World War follows I World War', etc. 
-    It can be used between tasks, processes or time intervals, and subproperties would fit best in order to distinguish the different uses.
-    """
-    
-class before(BaseProperty):
-    """
-    A relation between entities, expressing a 'sequence' schema where one of the entities strictly ends before the other one.
-    """
-    
 class answers(BaseProperty):
     ...
     
@@ -167,6 +171,11 @@ class relates_to_another_role(BaseProperty):
 class has_answer(BaseProperty):
     """
     The relation between a message and its answer.
+    """
+    
+class before(BaseProperty):
+    """
+    A relation between entities, expressing a 'sequence' schema where one of the entities strictly ends before the other one.
     """
     
 class causes(BaseProperty):
@@ -186,14 +195,6 @@ class causes_transition(BaseProperty):
     A Transition between two Situations is always the result of some Event, and the causesTransition relation should be used to record the causal relation from the Event to the Transition.
     """
     
-class is_event_included_in(BaseProperty):
-    ...
-    
-class is_caused_by_event(BaseProperty):
-    """
-    A relation recording that a Transition is the result of some Event.
-    """
-    
 class co_occurs(BaseProperty):
     """
     A schematic relation between any events that also implies that one event is temporally contained in the other.
@@ -201,30 +202,14 @@ class co_occurs(BaseProperty):
     Sub-properties are used to distinct between different cases of event endpoint relations that hold for different types of co-occurance.
     """
     
-class overlaps(BaseProperty):
-    """
-    A schematic relation between any entities, e.g. 'the chest region overlaps with the abdomen region', 'my spoken words overlap with hers', 'the time of my leave overlaps with the time of your arrival', 'fibromyalgia overlaps with other conditions'.
-    Subproperties and restrictions can be used to specialize overlaps for objects, events, time intervals, etc.
-    """
-    
 class contains(BaseProperty):
     """
     A schematic relation asserting containment, understood in a very broad sense, by one Entity of another. The relation is defined with domain and range of maximum generality, as it is possible to construe containment to apply between Events, between Objects, between Qualities and so on. Care should be taken when using it that the construal of containment makes sense and is useful. If a clearer relation expresses the connection between two Entities, use that relation instead. For example, rather than saying an Event contains an Object, it is probably better to say the Event has that Object as a participant. More specific versions of this relation exist, e.g. containsEvent, so it is likely that there will be few situations where it should be used itself. However, by acting as a superproperty to several relations, it captures a core similarity between these and enables taxonomy-based similarity metrics.
     """
     
-class is_contained_in(BaseProperty):
-    """
-    The inverse of the contains relation. See the contains relation for details.
-    """
-    
 class contains_event(BaseProperty):
     """
     `A contains event B` means that A strictly starts before, and ends after B, i.e. B is wholly contained in A.
-    """
-    
-class during(BaseProperty):
-    """
-    `A during B` means that B strictly starts before, and ends after A, i.e. A is wholly contained in B.
     """
     
 class contains_object(BaseProperty):
@@ -341,11 +326,6 @@ class derived_from(BaseProperty):
     The (transitive) relation between an information object and another which it has been derived from.
     """
     
-class is_source_for(BaseProperty):
-    """
-    The (transitive) relation between an information object and another which was derived from the former.
-    """
-    
 class describes_quality(BaseProperty):
     """
     Relates a description to a quality that it describes.
@@ -387,9 +367,9 @@ class directly_derived_from(BaseProperty):
     The relation between an information object and another which it has been derived from.
     """
     
-class is_direct_source_for(BaseProperty):
+class during(BaseProperty):
     """
-    The (transitive) relation between an information object and another which was derived from the former.
+    `A during B` means that B strictly starts before, and ends after A, i.e. A is wholly contained in B.
     """
     
 class encapsulates(BaseProperty):
@@ -430,11 +410,6 @@ class finishes(BaseProperty):
 class first_member(BaseProperty):
     """
     A relation between a collection and a member of it that is least according to some ordering. This ordering can be arbitrary, i.e. the order in which Entities are recorded in the Collection.
-    """
-    
-class has_member(BaseProperty):
-    """
-    A relation between collections and entities, e.g. 'my collection of saxophones includes an old Adolphe Sax original alto' (i.e. my collection has member an Adolphe Sax alto).
     """
     
 class gives_meaning_to(BaseProperty):
@@ -533,11 +508,6 @@ class is_color_of(BaseProperty):
     Relates a color quality to the object the color belongs to.
     """
     
-class has_disposition(BaseProperty):
-    """
-    Associates an object to one of its dispositions.
-    """
-    
 class is_disposition_of(BaseProperty):
     """
     Associates a disposition quality to the object holding it.
@@ -603,19 +573,14 @@ class has_initial_scene(BaseProperty):
     A relation between StateTransitions and Scenes, which identifies the scene the transition starts from.
     """
     
-class has_initial_state(BaseProperty):
-    """
-    A relation which connects a Transition to the Situation it starts from.
-    """
-    
-class is_initial_scene_of(BaseProperty):
-    """
-    A relation between StateTransitions and Scenes, which identifies the scene the transition starts from.
-    """
-    
 class has_initial_situation(BaseProperty):
     """
     A relation between SituationTransitions and Situations, which identifies the Situation the transition starts from.
+    """
+    
+class has_initial_state(BaseProperty):
+    """
+    A relation which connects a Transition to the Situation it starts from.
     """
     
 class is_initial_situation_of(BaseProperty):
@@ -623,31 +588,10 @@ class is_initial_situation_of(BaseProperty):
     A relation between SituationTransitions and Situations, which identifies the Situation the transition starts from.
     """
     
-class includes_situation(BaseProperty):
-    """
-    A relation recording that a Situation has a (sub) Situation as participant in some role.
-    """
-    
-class is_initial_state_of(BaseProperty):
-    """
-    A relation recording that a Situation was where a Transition began.
-    """
-    
 class has_input_parameter(BaseProperty):
     """
     A relation between a Task and one of its input parameters.
     A relation from an EventType (typically, a Task) and a parameter describing some state of affairs before the event classified by the EventType takes place, and which contributes towards that event happening.
-    """
-    
-class has_parameter(BaseProperty):
-    """
-    A Concept can have a Parameter that constrains the attributes that a classified Entity can have in a certain Situation, e.g. a 4WheelDriver Role definedIn the ItalianTrafficLaw has a MinimumAge parameter on the Amount 16.
-    """
-    
-class is_input_parameter_for(BaseProperty):
-    """
-    A relation between a Task and one of its input parameters.
-    A relation from a Parameter to an EventType (typically, a Task). The parameter describes some state of affairs that precedes and will contribute to the event classified by the EventType.
     """
     
 class has_joint_limit(BaseProperty):
@@ -731,12 +675,6 @@ class has_output_parameter(BaseProperty):
     A relation from an EventType (typically a Task) to a Parameter describing an outcome of the event classified by the EventType.
     """
     
-class is_output_parameter_for(BaseProperty):
-    """
-    A relation between a Task and one of its output parameters.
-    A relation from a Parameter to an EventType (typically, a Task). The parameter describes an outcome of the event classified by the EventType.
-    """
-    
 class has_parent_link(BaseProperty):
     """
     Relates a joint to the link it connects which is closer to the root of the kinematic chain.
@@ -750,11 +688,6 @@ class is_parent_link_of(BaseProperty):
 class has_phase(BaseProperty):
     """
     A relation used to describe the structure of an Action or Process in terms of phases, i.e. subprocesses and states that occur during its unfolding.
-    """
-    
-class has_physical_component(BaseProperty):
-    """
-    A relation used to describe the structure of a PhysicalObject in terms of physical components, i.e. what other PhysicalObjects are components of it.
     """
     
 class has_predecessor(BaseProperty):
@@ -835,11 +768,6 @@ class has_software_agent(BaseProperty):
     A relation from an Event and the SoftwareAgent responsible for making that Event happen.
     """
     
-class involves_agent(BaseProperty):
-    """
-    Agent participation.
-    """
-    
 class has_space_region(BaseProperty):
     """
     Relates an entity to a space region.
@@ -885,19 +813,14 @@ class has_task(BaseProperty):
     A relation to indicate that a Task is part of a Workflow or ordering Relation: that is, the task may be executed during the execution of the Workflow, or there exists some Relation between the Tasks that informs how their executions are to be located in time.
     """
     
-class has_terminal_state(BaseProperty):
-    """
-    A relation from a Transition to the Situation it ends in.
-    """
-    
-class is_terminal_scene_of(BaseProperty):
-    """
-    A relation between StateTransitions and Scenes, which identifies the scene the transition is expected to end at.
-    """
-    
 class has_terminal_situation(BaseProperty):
     """
     A relation between SituationTransitions and Situations, which identifies the Situation the transition ends at.
+    """
+    
+class has_terminal_state(BaseProperty):
+    """
+    A relation from a Transition to the Situation it ends in.
     """
     
 class is_terminal_situation_of(BaseProperty):
@@ -905,24 +828,9 @@ class is_terminal_situation_of(BaseProperty):
     A relation between SituationTransitions and Situations, which identifies the Situation the transition ends at.
     """
     
-class is_terminal_state_of(BaseProperty):
-    """
-    A relation recording that a Situation was where a Transition ended.
-    """
-    
 class includes_concept(BaseProperty):
     """
     A relation recording that a Situation has a Concept as participant in some sort of role.
-    """
-    
-class includes_object(BaseProperty):
-    """
-    A relation between situations and objects, e.g. 'this morning I've prepared my coffee and had my fingers burnt' (i.e.: the preparation of my coffee this morning included me).
-    """
-    
-class is_concept_included_in(BaseProperty):
-    """
-    A relation recording that a Concept participates in a Situation in some way.
     """
     
 class includes_record(BaseProperty):
@@ -930,25 +838,9 @@ class includes_record(BaseProperty):
     A relationship indicating that an Event has been recorded by an InformationObject
     """
     
-class is_reference_of(BaseProperty):
+class includes_situation(BaseProperty):
     """
-    A relation between information objects and any Entity (including information objects). It can be used to talk about e.g. entities are references of proper nouns: the proper noun 'Leonardo da Vinci' isAbout the Person Leonardo da Vinci; as well as to talk about sets of entities that can be described by a common noun: the common noun 'person' isAbout the set of all persons in a domain of discourse, which can be represented in DOLCE-Ultralite as an individual of the class: Collection .
-    The isReferenceOf relation is irreflexive, differently from its inverse isAbout.
-    """
-    
-class is_record_included_by(BaseProperty):
-    """
-    A relationship indicating that an InformationObject is a recording of an Event.
-    """
-    
-class is_setting_for(BaseProperty):
-    """
-    A relation between situations and entities, e.g. 'this morning I've prepared my coffee with a new fantastic Arabica', i.e.: the preparation of my coffee this morning is the setting for (an amount of) a new fantastic Arabica.
-    """
-    
-class is_situation_included_in(BaseProperty):
-    """
-    A relation recording that a Situation participates in another in some role, or can be considered as a subsituation of the other.
+    A relation recording that a Situation has a (sub) Situation as participant in some role.
     """
     
 class involves_artifact(BaseProperty):
@@ -956,19 +848,14 @@ class involves_artifact(BaseProperty):
     Artifact participation.
     """
     
-class has_participant(BaseProperty):
-    """
-    A relation between an object and a process, e.g. 'John took part in the discussion', 'a large mass of snow fell during the avalanche', or 'a cook, some sugar, flour, etc. are all present in the cooking of a cake'.
-    """
-    
-class is_artifact_involved_in(BaseProperty):
-    """
-    Artifact participation.
-    """
-    
 class involves_effector(BaseProperty):
     """
     Effector participation.
+    """
+    
+class has_participant(BaseProperty):
+    """
+    A relation between an object and a process, e.g. 'John took part in the discussion', 'a large mass of snow fell during the avalanche', or 'a cook, some sugar, flour, etc. are all present in the cooking of a cake'.
     """
     
 class is_effector_involved_in(BaseProperty):
@@ -981,9 +868,11 @@ class involves_place(BaseProperty):
     A relation recording that an Event makes some use of a PhysicalPlace. Typically this place is where the Event is located.
     """
     
-class is_place_involved_in(BaseProperty):
+class follows(BaseProperty):
     """
-    A relation recording that a PhysicalPlace is involved in some Event; typically, this is where the Event is located.
+    A relation between entities, expressing a 'sequence' schema. 
+    E.g. 'year 2000 follows 1999', 'preparing coffee' follows 'deciding what coffee to use', 'II World War follows I World War', etc. 
+    It can be used between tasks, processes or time intervals, and subproperties would fit best in order to distinguish the different uses.
     """
     
 class is_region_for(BaseProperty):
@@ -996,9 +885,14 @@ class is_answered_by(BaseProperty):
     A relation from a Query to an Agent who answers it.
     """
     
-class is_participant_in(BaseProperty):
+class involves_agent(BaseProperty):
     """
-    A relation between an object and a process, e.g. 'John took part in the discussion', 'a large mass of snow fell during the avalanche', or 'a cook, some sugar, flour, etc. are all present in the cooking of a cake'.
+    Agent participation.
+    """
+    
+class is_artifact_involved_in(BaseProperty):
+    """
+    Artifact participation.
     """
     
 class is_asked_by(BaseProperty):
@@ -1009,6 +903,11 @@ class is_asked_by(BaseProperty):
 class is_role_defined_in(BaseProperty):
     """
     A relation between a description and a role, e.g. the role 'Ingredient' is defined in the recipe for a cake.
+    """
+    
+class is_caused_by_event(BaseProperty):
+    """
+    A relation recording that a Transition is the result of some Event.
     """
     
 class is_constituent_of(BaseProperty):
@@ -1025,8 +924,15 @@ class is_quality_of(BaseProperty):
     A relation between entities and qualities, e.g. 'Dmitri's skin is yellowish'.
     """
     
-class is_object_included_in(BaseProperty):
-    ...
+class is_concept_included_in(BaseProperty):
+    """
+    A relation recording that a Concept participates in a Situation in some way.
+    """
+    
+class is_contained_in(BaseProperty):
+    """
+    The inverse of the contains relation. See the contains relation for details.
+    """
     
 class is_created_output_of(BaseProperty):
     """
@@ -1068,6 +974,11 @@ class is_designed_by(BaseProperty):
     A special relation between a Design and an Object, to indicate that the Object is described by the Design.
     """
     
+class is_direct_source_for(BaseProperty):
+    """
+    The (transitive) relation between an information object and another which was derived from the former.
+    """
+    
 class is_realized_by(BaseProperty):
     """
     A relation between an information realization and an information object, e.g. the paper copy of the Italian Constitution realizes the text of the Constitution.
@@ -1093,6 +1004,11 @@ class realizes(BaseProperty):
     A relation between an information realization and an information object, e.g. the paper copy of the Italian Constitution realizes the text of the Constitution.
     """
     
+class is_participant_in(BaseProperty):
+    """
+    A relation between an object and a process, e.g. 'John took part in the discussion', 'a large mass of snow fell during the avalanche', or 'a cook, some sugar, flour, etc. are all present in the cooking of a cake'.
+    """
+    
 class is_occurring_in(BaseProperty):
     """
     A relation between an event and an event type, e.g. 'taking the cup from the table' is an occurence of the motion 'approaching'.
@@ -1101,25 +1017,20 @@ class is_occurring_in(BaseProperty):
 class is_executor_defined_in(BaseProperty):
     ...
     
-class is_parameter_for(BaseProperty):
+class is_initial_scene_of(BaseProperty):
     """
-    A Concept can have a Parameter that constrains the attributes that a classified Entity can have in a certain Situation, e.g. a 4WheelDriver Role definedIn the ItalianTrafficLaw has a MinimumAge parameter on the Amount 16.
-    """
-    
-class has_task(BaseProperty):
-    """
-    A relation between roles and tasks, e.g. 'students have the duty of giving exams' (i.e. the Role 'student' hasTask the Task 'giving exams').
+    A relation between StateTransitions and Scenes, which identifies the scene the transition starts from.
     """
     
-class is_task_of_input_role(BaseProperty):
+class is_initial_state_of(BaseProperty):
     """
-    A relation between a Task and one of its input roles.
+    A relation recording that a Situation was where a Transition began.
     """
     
-class has_location(BaseProperty):
+class is_input_parameter_for(BaseProperty):
     """
-    A generic, relative spatial location, holding between any entities. E.g. 'the cat is on the mat', 'Omar is in Samarcanda', 'the wound is close to the femural artery'.
-    For 'absolute' locations, see SpaceRegion
+    A relation between a Task and one of its input parameters.
+    A relation from a Parameter to an EventType (typically, a Task). The parameter describes some state of affairs that precedes and will contribute to the event classified by the EventType.
     """
     
 class is_component_of(BaseProperty):
@@ -1147,16 +1058,6 @@ class moves_object(BaseProperty):
     A relation from an agent to an object that the agent causes to move.
     """
     
-class is_classified_by(BaseProperty):
-    """
-    A relation between a Concept and an Entity, e.g. 'John is considered a typical rude man'; your last concert constitutes the achievement of a lifetime; '20-year-old means she's mature enough'.
-    """
-    
-class classifies(BaseProperty):
-    """
-    A relation between a Concept and an Entity, e.g. the Role 'student' classifies a Person 'John'.
-    """
-    
 class is_ordered_by(BaseProperty):
     """
     The relation between an 'Order item' and the 'Order' that sorts them (via the relations 'precedes' and 'follows')
@@ -1167,9 +1068,10 @@ class orders(BaseProperty):
     The relation between an 'Order' and the sorted 'Order item' (sorted via the relations 'precedes' and 'follows' between the 'Order item's)
     """
     
-class is_task_of_output_role(BaseProperty):
+class is_output_parameter_for(BaseProperty):
     """
-    A relation between a Task and one of its output roles.
+    A relation between a Task and one of its output parameters.
+    A relation from a Parameter to an EventType (typically, a Task). The parameter describes an outcome of the event classified by the EventType.
     """
     
 class is_performed_by(BaseProperty):
@@ -1182,18 +1084,19 @@ class is_physically_contained_in(BaseProperty):
     A spatial relation holding between an object (the container), and objects it contains.
     """
     
+class is_place_involved_in(BaseProperty):
+    """
+    A relation recording that a PhysicalPlace is involved in some Event; typically, this is where the Event is located.
+    """
+    
 class is_plan_for(BaseProperty):
     """
     A special relation between a Plan and a Task, to indicate that the Plan describes a way to achieve the Task.
     """
     
-class is_about(BaseProperty):
+class is_record_included_by(BaseProperty):
     """
-    A relation between an information object and an Entity (including information objects). It can be used to talk about entities that are references of proper nouns: the proper noun 'Leonardo da Vinci' isAbout the Person Leonardo da Vinci; as well as to talk about sets of entities that can be described by a common noun: the common noun 'person' isAbout the set of all persons in a domain of discourse, which can be represented in DOLCE-Ultralite as an individual of the class: dul:Collection.
-    A specific sentence may use common nouns with either a singular or plural reference, or it can even refer to all possible references (e.g. in a lexicographic definition): all those uses are kinds of aboutness.
-    
-    The isAbout relation is sometimes considered as reflexive, however this is semiotically inaccurate, because information can be about itself ('de dicto' usage, as in 'John is four character long'), but it is typically about something else ('de re' usage, as in 'John loves Mary').
-    If a reflexivity exists in general, it rather concerns its realisation, which is always associated with an event, e.g. an utterance, which makes the information denoting itself, besides its aboutness. This is implemented in DUL with the dul:realizesSelfInformation property, which is used with local reflexivity in the dul:InformationRealization class.
+    A relationship indicating that an InformationObject is a recording of an Event.
     """
     
 class is_replaced_by(BaseProperty):
@@ -1206,9 +1109,17 @@ class replaces(BaseProperty):
     The relation between a State that replaces another, e.g., the state of a bowl of fruits containing some objects is replaced by a new containment state when one object is taken away (in this example, we simplified the relation between the State and its type).
     """
     
-class has_setting(BaseProperty):
+class is_event_included_in(BaseProperty):
+    ...
+    
+class is_situation_included_in(BaseProperty):
     """
-    A relation between entities and situations, e.g. 'this morning I've prepared my coffee with a new fantastic Arabica', i.e.: (an amount of) a new fantastic Arabica hasSetting the preparation of my coffee this morning.
+    A relation recording that a Situation participates in another in some role, or can be considered as a subsituation of the other.
+    """
+    
+class is_source_for(BaseProperty):
+    """
+    The (transitive) relation between an information object and another which was derived from the former.
     """
     
 class is_task_defined_in(BaseProperty):
@@ -1233,9 +1144,24 @@ class supports(BaseProperty):
     Relates a supportee to one of its supporters.
     """
     
-class is_task_of(BaseProperty):
+class is_task_of_output_role(BaseProperty):
     """
-    A relation between roles and tasks, e.g. 'students have the duty of giving exams' (i.e. the Role 'student' hasTask the Task 'giving exams').
+    A relation between a Task and one of its output roles.
+    """
+    
+class is_task_of_input_role(BaseProperty):
+    """
+    A relation between a Task and one of its input roles.
+    """
+    
+class is_terminal_scene_of(BaseProperty):
+    """
+    A relation between StateTransitions and Scenes, which identifies the scene the transition is expected to end at.
+    """
+    
+class is_terminal_state_of(BaseProperty):
+    """
+    A relation recording that a Situation was where a Transition ended.
     """
     
 class is_terminated_by(BaseProperty):
@@ -1332,14 +1258,29 @@ class prevented_by(BaseProperty):
     A relationship indicating a Situation is prevented by another from manifesting.
     """
     
+class has_setting(BaseProperty):
+    """
+    A relation between entities and situations, e.g. 'this morning I've prepared my coffee with a new fantastic Arabica', i.e.: (an amount of) a new fantastic Arabica hasSetting the preparation of my coffee this morning.
+    """
+    
 class prevents(BaseProperty):
     """
     A relationship indicating that a situation does or would prevent another from manifesting. Useful for reasoning about planning (what to do to avoid some bad outcome) and failure recovery (what aspects of the world state prevent continuing the plan?).
     """
     
+class is_setting_for(BaseProperty):
+    """
+    A relation between situations and entities, e.g. 'this morning I've prepared my coffee with a new fantastic Arabica', i.e.: the preparation of my coffee this morning is the setting for (an amount of) a new fantastic Arabica.
+    """
+    
 class acts_for(BaseProperty):
     """
     The relation holding between any Agent, and a SocialAgent. In principle, a SocialAgent requires at least one PhysicalAgent in order to act, but this dependency can be 'delegated'; e.g. a university can be acted for by a department, which on its turm is acted for by physical agents.
+    """
+    
+class classifies(BaseProperty):
+    """
+    A relation between a Concept and an Entity, e.g. the Role 'student' classifies a Person 'John'.
     """
     
 class executes_task(BaseProperty):
@@ -1394,6 +1335,40 @@ class expresses(BaseProperty):
     This is only a first step to provide a framework, in which one can model different aspects of meaning. A more developed ontology should approach the problem of integrating the different uses of 'expresses', so that different theories, resources, methods can interoperate.
     """
     
+class is_about(BaseProperty):
+    """
+    A relation between an information object and an Entity (including information objects). It can be used to talk about entities that are references of proper nouns: the proper noun 'Leonardo da Vinci' isAbout the Person Leonardo da Vinci; as well as to talk about sets of entities that can be described by a common noun: the common noun 'person' isAbout the set of all persons in a domain of discourse, which can be represented in DOLCE-Ultralite as an individual of the class: dul:Collection.
+    A specific sentence may use common nouns with either a singular or plural reference, or it can even refer to all possible references (e.g. in a lexicographic definition): all those uses are kinds of aboutness.
+    
+    The isAbout relation is sometimes considered as reflexive, however this is semiotically inaccurate, because information can be about itself ('de dicto' usage, as in 'John is four character long'), but it is typically about something else ('de re' usage, as in 'John loves Mary').
+    If a reflexivity exists in general, it rather concerns its realisation, which is always associated with an event, e.g. an utterance, which makes the information denoting itself, besides its aboutness. This is implemented in DUL with the dul:realizesSelfInformation property, which is used with local reflexivity in the dul:InformationRealization class.
+    """
+    
+class has_member(BaseProperty):
+    """
+    A relation between collections and entities, e.g. 'my collection of saxophones includes an old Adolphe Sax original alto' (i.e. my collection has member an Adolphe Sax alto).
+    """
+    
+class has_parameter(BaseProperty):
+    """
+    A Concept can have a Parameter that constrains the attributes that a classified Entity can have in a certain Situation, e.g. a 4WheelDriver Role definedIn the ItalianTrafficLaw has a MinimumAge parameter on the Amount 16.
+    """
+    
+class has_task(BaseProperty):
+    """
+    A relation between roles and tasks, e.g. 'students have the duty of giving exams' (i.e. the Role 'student' hasTask the Task 'giving exams').
+    """
+    
+class includes_object(BaseProperty):
+    """
+    A relation between situations and objects, e.g. 'this morning I've prepared my coffee and had my fingers burnt' (i.e.: the preparation of my coffee this morning included me).
+    """
+    
+class is_classified_by(BaseProperty):
+    """
+    A relation between a Concept and an Entity, e.g. 'John is considered a typical rude man'; your last concert constitutes the achievement of a lifetime; '20-year-old means she's mature enough'.
+    """
+    
 class is_executed_in(BaseProperty):
     """
     A relation between an action and a task, e.g. 'putting some water in a pot and putting the pot on a fire until the water starts bubbling' executes the task 'boiling'.
@@ -1406,9 +1381,34 @@ class is_expressed_by(BaseProperty):
     The intuition for 'meaning' is intended to be very broad. A separate, large comment is included in the encoding of 'expresses', for those who want to investigate more on what kind of meaning can be represented in what form.
     """
     
+class is_reference_of(BaseProperty):
+    """
+    A relation between information objects and any Entity (including information objects). It can be used to talk about e.g. entities are references of proper nouns: the proper noun 'Leonardo da Vinci' isAbout the Person Leonardo da Vinci; as well as to talk about sets of entities that can be described by a common noun: the common noun 'person' isAbout the set of all persons in a domain of discourse, which can be represented in DOLCE-Ultralite as an individual of the class: Collection .
+    The isReferenceOf relation is irreflexive, differently from its inverse isAbout.
+    """
+    
+class is_object_included_in(BaseProperty):
+    ...
+    
+class is_parameter_for(BaseProperty):
+    """
+    A Concept can have a Parameter that constrains the attributes that a classified Entity can have in a certain Situation, e.g. a 4WheelDriver Role definedIn the ItalianTrafficLaw has a MinimumAge parameter on the Amount 16.
+    """
+    
 class is_part_of(BaseProperty):
     """
     A relation between any entities, e.g. 'brain is a part of the human body'. See dul:hasPart for additional documentation.
+    """
+    
+class is_task_of(BaseProperty):
+    """
+    A relation between roles and tasks, e.g. 'students have the duty of giving exams' (i.e. the Role 'student' hasTask the Task 'giving exams').
+    """
+    
+class overlaps(BaseProperty):
+    """
+    A schematic relation between any entities, e.g. 'the chest region overlaps with the abdomen region', 'my spoken words overlap with hers', 'the time of my leave overlaps with the time of your arrival', 'fibromyalgia overlaps with other conditions'.
+    Subproperties and restrictions can be used to specialize overlaps for objects, events, time intervals, etc.
     """
     
 class satisfies(BaseProperty):

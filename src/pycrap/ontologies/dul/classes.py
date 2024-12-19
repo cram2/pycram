@@ -5,6 +5,67 @@ class Thing(Base):
     ...
     
 
+class Entity(Base):
+    """
+    Anything: real, possible, or imaginary, which some modeller wants to talk about for some purpose.
+    """
+    
+
+class SocialObject(Base):
+    """
+    Any Object that exists only within some communication Event, in which at least one PhysicalObject participates in. 
+    In other words, all objects that have been or are created in the process of social communication: for the sake of communication (InformationObject), for incorporating new individuals (SocialAgent, Place), for contextualizing or intepreting existing entities (Description, Concept), or for collecting existing entities (Collection).
+    Being dependent on communication, all social objects need to be expressed by some information object (information objects are self-expressing).
+    """
+    
+
+class DesignedSubstance(Base):
+    ...
+    
+
+class Action(Base):
+    """
+    An Event with at least one Agent that isParticipantIn it, and that executes a Task that typically isDefinedIn a Plan, Workflow, Project, etc.
+    """
+    
+
+class NaturalPerson(Base):
+    """
+    A person in the physical commonsense intuition: 'have you seen that person walking down the street?'
+    """
+    
+
+class DesignedArtifact(Base):
+    """
+    A PhysicalArtifact that is also described by a Design. This excludes simple recycling or refunctionalization of natural objects. Most common sense 'artifacts' can be included in this class: cars, lamps, houses, chips, etc.
+    """
+    
+
+class BiologicalObject(Base):
+    ...
+    
+
+class Substance(Base):
+    """
+    Any PhysicalBody that has not necessarily specified (designed) boundaries, e.g. a pile of trash, some sand, etc. 
+    In this sense, an artistic object made of trash or a dose of medicine in the form of a pill would be a FunctionalSubstance, and a DesignedArtifact, since its boundaries are specified by a Design; aleatoric objects that are outcomes of an artistic process might be still considered DesignedArtifact(s), and Substance(s).
+    """
+    
+
+class Collection(Base):
+    """
+    Any container for entities that share one or more common properties. E.g. "stone objects", "the nurses", "the Louvre Aegyptian collection", all the elections for the Italian President of the Republic. 
+    A collection is not a logical class: a collection is a first-order entity, while a class is second-order.
+    A collection is neither an aggregate of its member entities (see e.g. ObjectAggregate class).
+    """
+    
+
+class Plan(Base):
+    """
+    A Description having an explicit Goal, to be achieved by executing the plan
+    """
+    
+
 class Concept(Base):
     """
     A Concept is a SocialObject, and isDefinedIn some Description; once defined, a Concept can be used in other Description(s). If a Concept isDefinedIn exactly one Description, see the LocalConcept class.
@@ -27,9 +88,39 @@ class Role(Base):
     """
     
 
-class Entity(Base):
+class PhysicalObject(Base):
     """
-    Anything: real, possible, or imaginary, which some modeller wants to talk about for some purpose.
+    Any Object that has a proper space region. The prototypical physical object has also an associated mass, but the nature of its mass can greatly vary based on the epistemological status of the object (scientifically measured, subjectively possible, imaginary).
+    """
+    
+
+class Description(Base):
+    """
+    A Description is a SocialObject that represents a conceptualization. 
+    It can be thought also as a 'descriptive context' that uses or defines concepts in order to create a view on a 'relational context' (cf. Situation) out of a set of data or observations. 
+    For example, a Plan is a Description of some actions to be executed by agents in a certain way, with certain parameters; a Diagnosis is a Description that provides an interpretation for a set of observed entities, etc.
+    Descriptions 'define' or 'use' concepts, and can be 'satisfied' by situations.
+    """
+    
+
+class EventType(Base):
+    """
+    A Concept that classifies an Event . An event type describes how an Event should be interpreted, executed, expected, seen, etc., according to the Description that the EventType isDefinedIn (or used in)
+    """
+    
+
+class Parameter(Base):
+    """
+    A Concept that classifies a Region; the difference between a Region and a Parameter is that regions represent sets of observable values, e.g. the height  of a given building, while parameters represent constraints or selections on observable values, e.g. 'VeryHigh'. Therefore, parameters can also be used to constrain regions, e.g. VeryHigh on a subset of values of the Region Height applied to buildings, or to add an external selection criterion , such as measurement units, to regions, e.g. Meter on a subset of values from the Region Length applied to the Region Length applied to roads.
+    """
+    
+
+class Quality(Base):
+    """
+    Any aspect of an Entity (but not a part of it), which cannot exist without that Entity. For example, the way the surface of a specific PhysicalObject looks like, or the specific light of a place at a certain time, are examples of Quality, while the encoding of a Quality into e.g. a PhysicalAttribute should be modeled as a Region. 
+    From the design viewpoint, the Quality-Region distinction is useful only when individual aspects of an Entity are considered in a domain of discourse. 
+    For example, in an automotive context, it would be irrelevant to consider the aspects of car windows for a specific car, unless the factory wants to check a specific window against design parameters (anomaly detection). 
+    On the other hand, in an antiques context, the individual aspects for a specific piece of furniture are a major focus of attention, and may constitute the actual added value, because the design parameters for old furniture are often not fixed, and may not be viewed as 'anomalies'.
     """
     
 
@@ -72,67 +163,9 @@ class Event(Base):
     """
     
 
-class Transition(Base):
-    """
-    A transition is a Situation that creates a context for three TimeInterval(s), two additional different Situation(s), one Event, one Process, and at least one Object: the Event is observed as the cause for the transition, one Situation is the state before the transition, the second Situation is the state after the transition, the Process is the invariance under some different transitions (including the one represented here), in which at least one Object is situated. Finally, the time intervals position the situations and the transitional event in time.
-    This class of situations partly encodes the ontology underlying typical engineering algebras for processes, e.g. Petri Nets. 
-    A full representation of the transition ontology is outside the expressivity of OWL, because we would need qualified cardinality restrictions,  coreference, property equivalence, and property composition.
-    """
-    
-
-class PhysicalObject(Base):
-    """
-    Any Object that has a proper space region. The prototypical physical object has also an associated mass, but the nature of its mass can greatly vary based on the epistemological status of the object (scientifically measured, subjectively possible, imaginary).
-    """
-    
-
-class Description(Base):
-    """
-    A Description is a SocialObject that represents a conceptualization. 
-    It can be thought also as a 'descriptive context' that uses or defines concepts in order to create a view on a 'relational context' (cf. Situation) out of a set of data or observations. 
-    For example, a Plan is a Description of some actions to be executed by agents in a certain way, with certain parameters; a Diagnosis is a Description that provides an interpretation for a set of observed entities, etc.
-    Descriptions 'define' or 'use' concepts, and can be 'satisfied' by situations.
-    """
-    
-
-class EventType(Base):
-    """
-    A Concept that classifies an Event . An event type describes how an Event should be interpreted, executed, expected, seen, etc., according to the Description that the EventType isDefinedIn (or used in)
-    """
-    
-
-class Parameter(Base):
-    """
-    A Concept that classifies a Region; the difference between a Region and a Parameter is that regions represent sets of observable values, e.g. the height  of a given building, while parameters represent constraints or selections on observable values, e.g. 'VeryHigh'. Therefore, parameters can also be used to constrain regions, e.g. VeryHigh on a subset of values of the Region Height applied to buildings, or to add an external selection criterion , such as measurement units, to regions, e.g. Meter on a subset of values from the Region Length applied to the Region Length applied to roads.
-    """
-    
-
 class InformationObject(Base):
     """
     A piece of information, such as a musical composition, a text, a word, a picture, independently from how it is concretely realized.
-    """
-    
-
-class Quality(Base):
-    """
-    Any aspect of an Entity (but not a part of it), which cannot exist without that Entity. For example, the way the surface of a specific PhysicalObject looks like, or the specific light of a place at a certain time, are examples of Quality, while the encoding of a Quality into e.g. a PhysicalAttribute should be modeled as a Region. 
-    From the design viewpoint, the Quality-Region distinction is useful only when individual aspects of an Entity are considered in a domain of discourse. 
-    For example, in an automotive context, it would be irrelevant to consider the aspects of car windows for a specific car, unless the factory wants to check a specific window against design parameters (anomaly detection). 
-    On the other hand, in an antiques context, the individual aspects for a specific piece of furniture are a major focus of attention, and may constitute the actual added value, because the design parameters for old furniture are often not fixed, and may not be viewed as 'anomalies'.
-    """
-    
-
-class Collection(Base):
-    """
-    Any container for entities that share one or more common properties. E.g. "stone objects", "the nurses", "the Louvre Aegyptian collection", all the elections for the Italian President of the Republic. 
-    A collection is not a logical class: a collection is a first-order entity, while a class is second-order.
-    A collection is neither an aggregate of its member entities (see e.g. ObjectAggregate class).
-    """
-    
-
-class Action(Base):
-    """
-    An Event with at least one Agent that isParticipantIn it, and that executes a Task that typically isDefinedIn a Plan, Workflow, Project, etc.
     """
     
 
@@ -155,12 +188,6 @@ class Workflow(Base):
     """
     
 
-class Goal(Base):
-    """
-    The Description of a Situation that is desired by an Agent, and usually associated to a Plan that describes how to actually achieve it
-    """
-    
-
 class Situation(Base):
     """
     A view, consistent with ('satisfying') a Description, on a set of entities. 
@@ -168,13 +195,6 @@ class Situation(Base):
     For example, a PlanExecution is a context including some actions executed by agents according to certain parameters and expected tasks to be achieved from a Plan; a DiagnosedSituation is a context of observed entities that is interpreted on the basis of a Diagnosis, etc.
     Situation is also able to represent reified n-ary relations, where isSettingFor is the top-level relation for all binary projections of the n-ary relation. 
     If used in a transformation pattern for n-ary relations, the designer should take care of adding (some or all) OWL2 keys, corresponding to binary projections of the n-ary, to a subclass of Situation. Otherwise the 'identification constraint' (Calvanese et al., IJCAI 2001) might be violated.
-    """
-    
-
-class Process(Base):
-    """
-    This is a placeholder for events that are considered in their evolution, or anyway not strictly dependent on agents, tasks, and plans. 
-    See Event class for some thoughts on classifying events. See also 'Transition'.
     """
     
 
@@ -199,21 +219,6 @@ class Relation(Base):
     """
     
 
-class PhysicalArtifact(Base):
-    """
-    Any PhysicalObject that isDescribedBy a Plan .
-    This axiomatization is weak, but allows to talk of artifacts in a very general sense, i.e. including recycled objects, objects with an intentional functional change, natural objects that are given a certain function, even though they are not modified or structurally designed, etc. PhysicalArtifact(s) are not considered disjoint from PhysicalBody(s), in order to allow a dual classification when needed. E.g.,
-    FunctionalSubstance(s) are included here as well.
-    Immaterial (non-physical) artifacts (e.g. texts, ideas, cultural movements, corporations, communities, etc. can be modelled as social objects (see SocialObject), which are all 'artifactual' in the weak sense assumed here.
-    """
-    
-
-class PhysicalPlace(Base):
-    """
-    A physical object that is inherently located; for example, a water area.
-    """
-    
-
 class Design(Base):
     """
     A Description of the Situation, in terms of structure and function, held by an Entity for some reason.
@@ -222,9 +227,23 @@ class Design(Base):
     """
     
 
-class Plan(Base):
+class PhysicalAttribute(Base):
     """
-    A Description having an explicit Goal, to be achieved by executing the plan
+    Physical value of a physical object, e.g. density, color, etc.
+    """
+    
+
+class PhysicalAgent(Base):
+    """
+    A PhysicalObject that is capable of self-representing (conceptualizing) a Description in order to plan an Action. 
+    A PhysicalAgent is a substrate for (actsFor) a Social Agent
+    """
+    
+
+class Process(Base):
+    """
+    This is a placeholder for events that are considered in their evolution, or anyway not strictly dependent on agents, tasks, and plans. 
+    See Event class for some thoughts on classifying events. See also 'Transition'.
     """
     
 
@@ -237,45 +256,6 @@ class InformationRealization(Base):
     """
     
 
-class TimeInterval(Base):
-    """
-    Any Region in a dimensional space that aims at representing time.
-    """
-    
-
-class PhysicalAttribute(Base):
-    """
-    Physical value of a physical object, e.g. density, color, etc.
-    """
-    
-
-class DesignedArtifact(Base):
-    """
-    A PhysicalArtifact that is also described by a Design. This excludes simple recycling or refunctionalization of natural objects. Most common sense 'artifacts' can be included in this class: cars, lamps, houses, chips, etc.
-    """
-    
-
-class PhysicalAgent(Base):
-    """
-    A PhysicalObject that is capable of self-representing (conceptualizing) a Description in order to plan an Action. 
-    A PhysicalAgent is a substrate for (actsFor) a Social Agent
-    """
-    
-
-class Diagnosis(Base):
-    """
-    A Description of the Situation of a system, usually applied in order to control a normal behaviour, or to explain a notable behavior (e.g. a functional breakdown).
-    """
-    
-
-class SocialObject(Base):
-    """
-    Any Object that exists only within some communication Event, in which at least one PhysicalObject participates in. 
-    In other words, all objects that have been or are created in the process of social communication: for the sake of communication (InformationObject), for incorporating new individuals (SocialAgent, Place), for contextualizing or intepreting existing entities (Description, Concept), or for collecting existing entities (Collection).
-    Being dependent on communication, all social objects need to be expressed by some information object (information objects are self-expressing).
-    """
-    
-
 class Configuration(Base):
     """
     A collection whose members are 'unified', i.e. organized according to a certain schema that can be represented by a Description.
@@ -284,22 +264,9 @@ class Configuration(Base):
     """
     
 
-class Substance(Base):
-    """
-    Any PhysicalBody that has not necessarily specified (designed) boundaries, e.g. a pile of trash, some sand, etc. 
-    In this sense, an artistic object made of trash or a dose of medicine in the form of a pill would be a FunctionalSubstance, and a DesignedArtifact, since its boundaries are specified by a Design; aleatoric objects that are outcomes of an artistic process might be still considered DesignedArtifact(s), and Substance(s).
-    """
-    
-
 class PhysicalBody(Base):
     """
     Physical bodies are PhysicalObject(s), for which we tend to neutralize any possible artifactual character. They can have several granularity levels: geological, chemical, physical, biological, etc.
-    """
-    
-
-class Organism(Base):
-    """
-    A physical objects with biological characteristics, typically that organisms can self-reproduce.
     """
     
 
@@ -326,6 +293,20 @@ class SocialRelation(Base):
 class SocialObjectAttribute(Base):
     """
     Any Region in a dimensional space that is used to represent some characteristic of a SocialObject, e.g. judgment values, social scalars, statistical attributes over a collection of entities, etc.
+    """
+    
+
+class Transition(Base):
+    """
+    A transition is a Situation that creates a context for three TimeInterval(s), two additional different Situation(s), one Event, one Process, and at least one Object: the Event is observed as the cause for the transition, one Situation is the state before the transition, the second Situation is the state after the transition, the Process is the invariance under some different transitions (including the one represented here), in which at least one Object is situated. Finally, the time intervals position the situations and the transitional event in time.
+    This class of situations partly encodes the ontology underlying typical engineering algebras for processes, e.g. Petri Nets. 
+    A full representation of the transition ontology is outside the expressivity of OWL, because we would need qualified cardinality restrictions,  coreference, property equivalence, and property composition.
+    """
+    
+
+class PhysicalPlace(Base):
+    """
+    A physical object that is inherently located; for example, a water area.
     """
     
 
@@ -358,10 +339,6 @@ class Amount(Base):
     """
     
 
-class BiologicalObject(Base):
-    ...
-    
-
 class ChemicalObject(Base):
     ...
     
@@ -370,12 +347,6 @@ class Classification(Base):
     """
     A special kind of Situation that allows to include time indexing for the classifies relation in situations. For example, if a Situation s 'my old cradle is used in these days as a flower pot' isSettingFor the entity 'my old cradle' and the TimeIntervals '8June2007' and '10June2007', and we know that s satisfies a functional Description for aesthetic objects, which defines the Concepts 'flower pot' and 'flower', then we also need to know what concept classifies 'my old cradle' at what time.
     In order to solve this issue, we need to create a sub-situation s' for the classification time: 'my old cradle is a flower pot in 8June2007'. Such sub-situation s' isPartOf s.
-    """
-    
-
-class TimeIndexedRelation(Base):
-    """
-    A Situation that includes a time indexing in its setting, so allowing to order any binary relation (property) with time.
     """
     
 
@@ -404,12 +375,20 @@ class Contract(Base):
     """
     
 
-class DesignedSubstance(Base):
-    ...
+class Diagnosis(Base):
+    """
+    A Description of the Situation of a system, usually applied in order to control a normal behaviour, or to explain a notable behavior (e.g. a functional breakdown).
+    """
     
 
 class FunctionalSubstance(Base):
     ...
+    
+
+class Goal(Base):
+    """
+    The Description of a Situation that is desired by an Agent, and usually associated to a Plan that describes how to actually achieve it
+    """
     
 
 class Group(Base):
@@ -442,18 +421,6 @@ class Narrative(Base):
     ...
     
 
-class NaturalPerson(Base):
-    """
-    A person in the physical commonsense intuition: 'have you seen that person walking down the street?'
-    """
-    
-
-class Person(Base):
-    """
-    Persons in commonsense intuition, which does not apparently distinguish between either natural or social persons.
-    """
-    
-
 class Norm(Base):
     """
     A social norm.
@@ -464,6 +431,12 @@ class ObjectAggregate(Base):
     """
     An aggregate of distributed objects, members of a same Collection, e.g. the stars in a constellation, the parts of a car, the employees of a company, the entries from an encyclopedia, the concepts expressed in a speech, etc.
     It cannot be defined by means of an equivalence axiom, because it'd require the same Collection for all members, an axiom that cannot be expressed in OWL.
+    """
+    
+
+class Organism(Base):
+    """
+    A physical objects with biological characteristics, typically that organisms can self-reproduce.
     """
     
 
@@ -491,9 +464,24 @@ class Pattern(Base):
     """
     
 
+class Person(Base):
+    """
+    Persons in commonsense intuition, which does not apparently distinguish between either natural or social persons.
+    """
+    
+
 class Personification(Base):
     """
     A social entity with agentive features, but whose status is the result of a cultural transformation from e.g. a PhysicalObject, an Event, an Abstract, another SocialObject, etc. For example: the holy grail, deus ex machina, gods, magic wands, etc.
+    """
+    
+
+class PhysicalArtifact(Base):
+    """
+    Any PhysicalObject that isDescribedBy a Plan .
+    This axiomatization is weak, but allows to talk of artifacts in a very general sense, i.e. including recycled objects, objects with an intentional functional change, natural objects that are given a certain function, even though they are not modified or structurally designed, etc. PhysicalArtifact(s) are not considered disjoint from PhysicalBody(s), in order to allow a dual classification when needed. E.g.,
+    FunctionalSubstance(s) are included here as well.
+    Immaterial (non-physical) artifacts (e.g. texts, ideas, cultural movements, corporations, communities, etc. can be modelled as social objects (see SocialObject), which are all 'artifactual' in the weak sense assumed here.
     """
     
 
@@ -530,6 +518,18 @@ class SocialPerson(Base):
 
 class SpatioTemporalRegion(Base):
     ...
+    
+
+class TimeIndexedRelation(Base):
+    """
+    A Situation that includes a time indexing in its setting, so allowing to order any binary relation (property) with time.
+    """
+    
+
+class TimeInterval(Base):
+    """
+    Any Region in a dimensional space that aims at representing time.
+    """
     
 
 class TypeCollection(Base):

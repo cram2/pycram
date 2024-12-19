@@ -2,11 +2,6 @@ from .dependencies import *
 from .classes import *
 
 
-class has_region_data_value(BaseProperty):
-    """
-    A datatype property that encodes values for a Region, e.g. a float for the Region Height.
-    """
-    
 class has_data_value(BaseProperty):
     """
     A datatype property that encodes values from a datatype for an Entity. 
@@ -22,6 +17,11 @@ class has_data_value(BaseProperty):
     For example, a simple value can be easily asserted by using pattern (1), but if one needs to assert an interval between two values, a Region should be introduced to materialize that interval, as pattern (2) suggests. 
     Furthermore, if one needs to distinguish the individual Quality of a value, e.g. the particular nature of the density of a substance, pattern (3) can be used. 
     Patterns (4) and (5) should be used instead when a constraint or a selection is modeled, independently from the actual observation of values in the real world.
+    """
+    
+class has_region_data_value(BaseProperty):
+    """
+    A datatype property that encodes values for a Region, e.g. a float for the Region Height.
     """
     
 class has_event_date(BaseProperty):

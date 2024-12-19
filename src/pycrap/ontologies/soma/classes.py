@@ -1,6 +1,161 @@
 from .dependencies import *
 
 
+class Location(Base):
+    """
+    A role classifying a location of interest, often specified as a spatial relation between several objects, themselves usually classified by spatial relation roles.
+    """
+    
+
+class Room(Base):
+    """
+    Space that can be occupied or where something can be done.
+    """
+    
+
+class Entity(Base):
+    """
+    Anything: real, possible, or imaginary, which some modeller wants to talk about for some purpose.
+    """
+    
+
+class Appliance(Base):
+    """
+    A device designed to perform a specific task, and that can be operated in some way.
+    """
+    
+
+class Deposition(Base):
+    """
+    The disposition to support objects.
+    """
+    
+
+class DesignedComponent(Base):
+    """
+    An object designed to be part or element of a larger whole.
+    """
+    
+
+class DesignedContainer(Base):
+    """
+    An item designed to be able to hold some other items, preventing their free movement and/or protecting them from outside influence. Containers may be used for storage, or to obtain control over items that are otherwise hard to manipulate directly (e.g. liquids).
+    """
+    
+
+class DesignedFurniture(Base):
+    """
+    An object used to make a room or building suitable for living or working.
+    """
+    
+
+class DesignedTool(Base):
+    """
+    An item designed to enable some action, in which it will play an instrumental role.
+    """
+    
+
+class Disposition(Base):
+    """
+    The tendency of an object (the bearer) to make certain events happen with others (the triggers).
+    extrinsic
+    """
+    
+
+class Fluid(Base):
+    """
+    A substance with a consistency such that it can flow or diffuse.
+    """
+    
+
+class Intrinsic(Base):
+    """
+    A physical quality that is independent of context.
+    intrinsic
+    """
+    
+
+class Preference(Base):
+    """
+    A 'Preference' is a 'Quality' of an 'Agent' that orders 'Situation's by some heuristic based on the happiness, satisfaction, gratification, morality, enjoyment, and utility (see alse https://en.wikipedia.org/wiki/Preference) they provide to their bearing Agent.
+    
+    The pattern is as follows: A 'Preference' 'is described by' a 'Predilection', which also 'describes' an 'Order' that 'orders' 'Order item's that contain only 'Situation's. The 'Situation's then are modeled according to what the preference entails.
+    
+    That a 'Preference' orders 'Situation's might be unintuitive, but makes the model very general. A few examples:
+    
+    Example 1
+    
+    "Peter likes coffee and dislikes tea".
+    Here, between different hypothetical situations where he plays the role of a performer in a drinking task, Peter prefers the situations in which role of the drunken object is played by some coffee (vs. some tea). Note that the coffe and tea are hypothetical objects as well and could, for example, be represented via reified Concepts.
+    
+    Example 2
+    
+    "Would you like this pot of coffee, or this pot of tea, Peter?"
+    Here, as opposed to Example 1, the pot of coffee and the pot of tea are not hypothetical, but concrete.
+    
+    Example 3
+    
+    "Would you like this pot of coffee, or should I brew you some tea?"
+    Here, the pot of coffee is concrete and the tea is not.
+    
+    Example 4
+    
+    Situations are not restricted to Tasks; other event types are possible as well.
+    For example, Peter might prefer the Containment State of a tiger being inside a cage vs. the Containment State of the tiger being outside of the cage.
+    """
+    
+
+class SocialObject(Base):
+    """
+    Any Object that exists only within some communication Event, in which at least one PhysicalObject participates in. 
+    In other words, all objects that have been or are created in the process of social communication: for the sake of communication (InformationObject), for incorporating new individuals (SocialAgent, Place), for contextualizing or intepreting existing entities (Description, Concept), or for collecting existing entities (Collection).
+    Being dependent on communication, all social objects need to be expressed by some information object (information objects are self-expressing).
+    """
+    
+
+class Action(Base):
+    """
+    An Event with at least one Agent that isParticipantIn it, and that executes a Task that typically isDefinedIn a Plan, Workflow, Project, etc.
+    """
+    
+
+class State(Base):
+    """
+    States are stative and homeomeric events.
+    
+    For stative events, the mereological sum of two instances has the same type as both instances. This is, for example, the state of sitting on a chair, or the process of a pendulum swinging around.
+    
+    The difference between states and processes is that states are, in addition, homeomeric, and processes are not.  This means that, when considering time slices  of an event, for states, these time slices always have the same type as the state, but for processes this is not the case.
+    """
+    
+
+class DesignedArtifact(Base):
+    """
+    A PhysicalArtifact that is also described by a Design. This excludes simple recycling or refunctionalization of natural objects. Most common sense 'artifacts' can be included in this class: cars, lamps, houses, chips, etc.
+    """
+    
+
+class Substance(Base):
+    """
+    Any PhysicalBody that has not necessarily specified (designed) boundaries, e.g. a pile of trash, some sand, etc. 
+    In this sense, an artistic object made of trash or a dose of medicine in the form of a pill would be a FunctionalSubstance, and a DesignedArtifact, since its boundaries are specified by a Design; aleatoric objects that are outcomes of an artistic process might be still considered DesignedArtifact(s), and Substance(s).
+    """
+    
+
+class Collection(Base):
+    """
+    Any container for entities that share one or more common properties. E.g. "stone objects", "the nurses", "the Louvre Aegyptian collection", all the elections for the Italian President of the Republic. 
+    A collection is not a logical class: a collection is a first-order entity, while a class is second-order.
+    A collection is neither an aggregate of its member entities (see e.g. ObjectAggregate class).
+    """
+    
+
+class Plan(Base):
+    """
+    A Description having an explicit Goal, to be achieved by executing the plan
+    """
+    
+
 class Affordance(Base):
     """
     A relation between an object (the bearer) and others (the triggers) that describes the disposition of the bearer to be involved in an action execution that also involves some trigger object.
@@ -23,13 +178,6 @@ class Task(Base):
     """
     
 
-class Disposition(Base):
-    """
-    The tendency of an object (the bearer) to make certain events happen with others (the triggers).
-    extrinsic
-    """
-    
-
 class Role(Base):
     """
     A Concept that classifies an Object
@@ -39,12 +187,6 @@ class Role(Base):
 class Setpoint(Base):
     """
     Classifies some dedicated goal region.
-    """
-    
-
-class Entity(Base):
-    """
-    Anything: real, possible, or imaginary, which some modeller wants to talk about for some purpose.
     """
     
 
@@ -59,6 +201,48 @@ class Message(Base):
     A message is a discrete unit of communication intended by the source for consumption by some recipient or group of recipients (Source: https://en.wikipedia.org/wiki/Message).
     
     Note that the Role Message classifies the Information Realization, not the content.
+    """
+    
+
+class PhysicalObject(Base):
+    """
+    Any Object that has a proper space region. The prototypical physical object has also an associated mass, but the nature of its mass can greatly vary based on the epistemological status of the object (scientifically measured, subjectively possible, imaginary).
+    """
+    
+
+class Description(Base):
+    """
+    A Description is a SocialObject that represents a conceptualization. 
+    It can be thought also as a 'descriptive context' that uses or defines concepts in order to create a view on a 'relational context' (cf. Situation) out of a set of data or observations. 
+    For example, a Plan is a Description of some actions to be executed by agents in a certain way, with certain parameters; a Diagnosis is a Description that provides an interpretation for a set of observed entities, etc.
+    Descriptions 'define' or 'use' concepts, and can be 'satisfied' by situations.
+    """
+    
+
+class EventType(Base):
+    """
+    A Concept that classifies an Event . An event type describes how an Event should be interpreted, executed, expected, seen, etc., according to the Description that the EventType isDefinedIn (or used in)
+    """
+    
+
+class Parameter(Base):
+    """
+    A Concept that classifies a Region; the difference between a Region and a Parameter is that regions represent sets of observable values, e.g. the height  of a given building, while parameters represent constraints or selections on observable values, e.g. 'VeryHigh'. Therefore, parameters can also be used to constrain regions, e.g. VeryHigh on a subset of values of the Region Height applied to buildings, or to add an external selection criterion , such as measurement units, to regions, e.g. Meter on a subset of values from the Region Length applied to the Region Length applied to roads.
+    """
+    
+
+class ProcessType(Base):
+    """
+    An EventType that classifies Processes.
+    """
+    
+
+class Quality(Base):
+    """
+    Any aspect of an Entity (but not a part of it), which cannot exist without that Entity. For example, the way the surface of a specific PhysicalObject looks like, or the specific light of a place at a certain time, are examples of Quality, while the encoding of a Quality into e.g. a PhysicalAttribute should be modeled as a Region. 
+    From the design viewpoint, the Quality-Region distinction is useful only when individual aspects of an Entity are considered in a domain of discourse. 
+    For example, in an automotive context, it would be irrelevant to consider the aspects of car windows for a specific car, unless the factory wants to check a specific window against design parameters (anomaly detection). 
+    On the other hand, in an antiques context, the individual aspects for a specific piece of furniture are a major focus of attention, and may constitute the actual added value, because the design parameters for old furniture are often not fixed, and may not be viewed as 'anomalies'.
     """
     
 
@@ -101,65 +285,15 @@ class Event(Base):
     """
     
 
-class Transition(Base):
+class OrderedElement(Base):
     """
-    A transition is a Situation that creates a context for three TimeInterval(s), two additional different Situation(s), one Event, one Process, and at least one Object: the Event is observed as the cause for the transition, one Situation is the state before the transition, the second Situation is the state after the transition, the Process is the invariance under some different transitions (including the one represented here), in which at least one Object is situated. Finally, the time intervals position the situations and the transitional event in time.
-    This class of situations partly encodes the ontology underlying typical engineering algebras for processes, e.g. Petri Nets. 
-    A full representation of the transition ontology is outside the expressivity of OWL, because we would need qualified cardinality restrictions,  coreference, property equivalence, and property composition.
-    """
-    
-
-class PhysicalObject(Base):
-    """
-    Any Object that has a proper space region. The prototypical physical object has also an associated mass, but the nature of its mass can greatly vary based on the epistemological status of the object (scientifically measured, subjectively possible, imaginary).
-    """
-    
-
-class Description(Base):
-    """
-    A Description is a SocialObject that represents a conceptualization. 
-    It can be thought also as a 'descriptive context' that uses or defines concepts in order to create a view on a 'relational context' (cf. Situation) out of a set of data or observations. 
-    For example, a Plan is a Description of some actions to be executed by agents in a certain way, with certain parameters; a Diagnosis is a Description that provides an interpretation for a set of observed entities, etc.
-    Descriptions 'define' or 'use' concepts, and can be 'satisfied' by situations.
-    """
-    
-
-class EventType(Base):
-    """
-    A Concept that classifies an Event . An event type describes how an Event should be interpreted, executed, expected, seen, etc., according to the Description that the EventType isDefinedIn (or used in)
-    """
-    
-
-class Parameter(Base):
-    """
-    A Concept that classifies a Region; the difference between a Region and a Parameter is that regions represent sets of observable values, e.g. the height  of a given building, while parameters represent constraints or selections on observable values, e.g. 'VeryHigh'. Therefore, parameters can also be used to constrain regions, e.g. VeryHigh on a subset of values of the Region Height applied to buildings, or to add an external selection criterion , such as measurement units, to regions, e.g. Meter on a subset of values from the Region Length applied to the Region Length applied to roads.
-    """
-    
-
-class ProcessType(Base):
-    """
-    An EventType that classifies Processes.
+    A 'Singleton' of an entity that 'is ordered by' some 'Order'. An 'Order item' can only 'precede' or 'follow' another 'Order item', encoding the sortation of the entities contained within the 'Order items'. Different 'Order's need to use different 'Order item's.
     """
     
 
 class InformationObject(Base):
     """
     A piece of information, such as a musical composition, a text, a word, a picture, independently from how it is concretely realized.
-    """
-    
-
-class Quality(Base):
-    """
-    Any aspect of an Entity (but not a part of it), which cannot exist without that Entity. For example, the way the surface of a specific PhysicalObject looks like, or the specific light of a place at a certain time, are examples of Quality, while the encoding of a Quality into e.g. a PhysicalAttribute should be modeled as a Region. 
-    From the design viewpoint, the Quality-Region distinction is useful only when individual aspects of an Entity are considered in a domain of discourse. 
-    For example, in an automotive context, it would be irrelevant to consider the aspects of car windows for a specific car, unless the factory wants to check a specific window against design parameters (anomaly detection). 
-    On the other hand, in an antiques context, the individual aspects for a specific piece of furniture are a major focus of attention, and may constitute the actual added value, because the design parameters for old furniture are often not fixed, and may not be viewed as 'anomalies'.
-    """
-    
-
-class OrderedElement(Base):
-    """
-    A 'Singleton' of an entity that 'is ordered by' some 'Order'. An 'Order item' can only 'precede' or 'follow' another 'Order item', encoding the sortation of the entities contained within the 'Order items'. Different 'Order's need to use different 'Order item's.
     """
     
 
@@ -176,25 +310,11 @@ class Motion(Base):
     """
     
 
-class Collection(Base):
-    """
-    Any container for entities that share one or more common properties. E.g. "stone objects", "the nurses", "the Louvre Aegyptian collection", all the elections for the Italian President of the Republic. 
-    A collection is not a logical class: a collection is a first-order entity, while a class is second-order.
-    A collection is neither an aggregate of its member entities (see e.g. ObjectAggregate class).
-    """
-    
-
 class System(Base):
     """
     A system is a group of interacting or interrelated elements that act according to a set of rules to form a unified whole.
     
     From Wikipedia: https://en.wikipedia.org/wiki/System
-    """
-    
-
-class Action(Base):
-    """
-    An Event with at least one Agent that isParticipantIn it, and that executes a Task that typically isDefinedIn a Plan, Workflow, Project, etc.
     """
     
 
@@ -268,24 +388,6 @@ class FrictionAttribute(Base):
     """
     
 
-class Goal(Base):
-    """
-    The Description of a Situation that is desired by an Agent, and usually associated to a Plan that describes how to actually achieve it
-    """
-    
-
-class StateTransition(Base):
-    """
-    A transition between two states brought about by the Action of some Agent.
-    """
-    
-
-class Scene(Base):
-    """
-    Scenes are Situations which interpret a State in terms of its conformance to some qualitative, image schematic description. I.e., the scene is described in terms of qualitative functional and spatial relations existing between participating objects.
-    """
-    
-
 class SituationTransition(Base):
     """
     A transition between two situations, usually brought about by the Action of some Agent.
@@ -344,23 +446,6 @@ class NetForce(Base):
     """
     
 
-class Process(Base):
-    """
-    This is a placeholder for events that are considered in their evolution, or anyway not strictly dependent on agents, tasks, and plans. 
-    See Event class for some thoughts on classifying events. See also 'Transition'.
-    """
-    
-
-class State(Base):
-    """
-    States are stative and homeomeric events.
-    
-    For stative events, the mereological sum of two instances has the same type as both instances. This is, for example, the state of sitting on a chair, or the process of a pendulum swinging around.
-    
-    The difference between states and processes is that states are, in addition, homeomeric, and processes are not.  This means that, when considering time slices  of an event, for states, these time slices always have the same type as the state, but for processes this is not the case.
-    """
-    
-
 class Succedence(Base):
     """
     A relation that holds in some descriptive context such as a Workflow, between two TaskInvocations belonging to that same Workflow. It means that one task invocation should follow the other.
@@ -378,36 +463,6 @@ class Agent(Base):
     """
     Additional comment: a computational agent can be considered as a PhysicalAgent that realizes a certain class of algorithms (that can be considered as instances of InformationObject) that allow to obtain some behaviors that are considered typical of agents in general. For an ontology of computational objects based on DOLCE see e.g. http://www.loa-cnr.it/COS/COS.owl, and http://www.loa-cnr.it/KCO/KCO.owl.
     Any agentive Object , either physical (e.g. a whale, a robot, an oak), or social (e.g. a corporation, an institution, a community).
-    """
-    
-
-class Preference(Base):
-    """
-    A 'Preference' is a 'Quality' of an 'Agent' that orders 'Situation's by some heuristic based on the happiness, satisfaction, gratification, morality, enjoyment, and utility (see alse https://en.wikipedia.org/wiki/Preference) they provide to their bearing Agent.
-    
-    The pattern is as follows: A 'Preference' 'is described by' a 'Predilection', which also 'describes' an 'Order' that 'orders' 'Order item's that contain only 'Situation's. The 'Situation's then are modeled according to what the preference entails.
-    
-    That a 'Preference' orders 'Situation's might be unintuitive, but makes the model very general. A few examples:
-    
-    Example 1
-    
-    "Peter likes coffee and dislikes tea".
-    Here, between different hypothetical situations where he plays the role of a performer in a drinking task, Peter prefers the situations in which role of the drunken object is played by some coffee (vs. some tea). Note that the coffe and tea are hypothetical objects as well and could, for example, be represented via reified Concepts.
-    
-    Example 2
-    
-    "Would you like this pot of coffee, or this pot of tea, Peter?"
-    Here, as opposed to Example 1, the pot of coffee and the pot of tea are not hypothetical, but concrete.
-    
-    Example 3
-    
-    "Would you like this pot of coffee, or should I brew you some tea?"
-    Here, the pot of coffee is concrete and the tea is not.
-    
-    Example 4
-    
-    Situations are not restricted to Tasks; other event types are possible as well.
-    For example, Peter might prefer the Containment State of a tiger being inside a cage vs. the Containment State of the tiger being outside of the cage.
     """
     
 
@@ -454,24 +509,9 @@ class Relation(Base):
     """
     
 
-class PhysicalArtifact(Base):
-    """
-    Any PhysicalObject that isDescribedBy a Plan .
-    This axiomatization is weak, but allows to talk of artifacts in a very general sense, i.e. including recycled objects, objects with an intentional functional change, natural objects that are given a certain function, even though they are not modified or structurally designed, etc. PhysicalArtifact(s) are not considered disjoint from PhysicalBody(s), in order to allow a dual classification when needed. E.g.,
-    FunctionalSubstance(s) are included here as well.
-    Immaterial (non-physical) artifacts (e.g. texts, ideas, cultural movements, corporations, communities, etc. can be modelled as social objects (see SocialObject), which are all 'artifactual' in the weak sense assumed here.
-    """
-    
-
 class PhysicalEffector(Base):
     """
     A functional part belonging to an Agent and which allows that Agent to act upon its surroundings.
-    """
-    
-
-class PhysicalPlace(Base):
-    """
-    A physical object that is inherently located; for example, a water area.
     """
     
 
@@ -501,12 +541,6 @@ class Order(Base):
     """
     
 
-class Plan(Base):
-    """
-    A Description having an explicit Goal, to be achieved by executing the plan
-    """
-    
-
 class Transient(Base):
     """
     Objects may undergo changes during Processes; however, while the change Process is in operation, one cannot strictly say either the input of the Process still exists, nor that the result exists yet.
@@ -527,24 +561,9 @@ class ColorRegion(Base):
     """
     
 
-class InformationRealization(Base):
-    """
-    A concrete realization of an InformationObject, e.g. the written document (object) containing the text of a law, a poetry reading (event), the dark timbre (quality) of a sound (event) in the execution (event) of a musical composition, realizing a 'misterioso' tempo indication.
-    
-    The realization of an information object also realizes information about itself. This is a special semiotic feature, which allows to avoid a traditonal paradox, by which an information is often supposed to be about itself besides other entities (e.g. the information object 'carpe diem' is about its meaning in Horace's Odes (let alone its fortune in Western culture and beyond), but also about its expression in context: 'dum loquimur, fugerit invida aetas: carpe diem, quam minimum credula postero', with the sound and emotional relations that it could activate.
-    This is expressed in OWL2 with a local reflexivity axiom of the dul:InformationRealization class.
-    """
-    
-
 class ForceAttribute(Base):
     """
     The value of a force dynamical characteristic. An example is the force exerted on another object when pushing it.
-    """
-    
-
-class TimeInterval(Base):
-    """
-    Any Region in a dimensional space that aims at representing time.
     """
     
 
@@ -616,12 +635,6 @@ class ActionExecutionPlan(Base):
     """
     idea: steps in workflows assert that they are defined by action execution plans.
     links role and parameter fillers to e.g. slots in a data structure
-    """
-    
-
-class Status(Base):
-    """
-    A role that can be played by some parameter which indicates the state of affairs of some entity, e.g. a flag describing the outcome of an action in terms of success or failure, or an indicator of whether a device is turned on or off.
     """
     
 
@@ -728,18 +741,6 @@ class Amateurish(Base):
     """
     
 
-class DexterityDiagnosis(Base):
-    """
-    A description of the dexterity of a system, possibly in comparison to another system.
-    """
-    
-
-class Masterful(Base):
-    """
-    A description of masterful behavior.
-    """
-    
-
 class AnsweringTask(Base):
     """
     An Illocutionary act where the Sender emits some Message to the Receiver as a reaction to some previous Communication task where the Roles where switched, i.e., the Sender (Receiver) of the Answering task has been the Sender (Sender) for the cause.
@@ -765,18 +766,6 @@ class IllocutionaryTask(Base):
 class Antagonist(Base):
     """
     A role that classifies entities that are opposed to the tendency of some agonist.
-    """
-    
-
-class Appliance(Base):
-    """
-    A device designed to perform a specific task, and that can be operated in some way.
-    """
-    
-
-class DesignedArtifact(Base):
-    """
-    A PhysicalArtifact that is also described by a Design. This excludes simple recycling or refunctionalization of natural objects. Most common sense 'artifacts' can be included in this class: cars, lamps, houses, chips, etc.
     """
     
 
@@ -976,12 +965,6 @@ class BehavioralDiagnosis(Base):
     """
     
 
-class Diagnosis(Base):
-    """
-    A Description of the Situation of a system, usually applied in order to control a normal behaviour, or to explain a notable behavior (e.g. a functional breakdown).
-    """
-    
-
 class BeneficiaryRole(Base):
     """
     A role classifying an agent for whose benefit an action is performed.
@@ -1102,13 +1085,6 @@ class Capacity(Base):
     """
     
 
-class Intrinsic(Base):
-    """
-    A physical quality that is independent of context.
-    intrinsic
-    """
-    
-
 class Catching(Base):
     """
     A task by which an Agent stops a moving object and gains kinematic control over it, usually by grasping.
@@ -1173,6 +1149,12 @@ class SourcePathGoalTheory(Base):
     """
     
 
+class RoomSurface(Base):
+    """
+    The surface of a room.
+    """
+    
+
 class Channel(Base):
     """
     A Channel in a Communication Task is the path of travel by a Message, e.g., via WLAN, air (in the case of a Message classifying soundwaves) or a telephone cable.
@@ -1204,6 +1186,13 @@ class ChemicalProcess(Base):
     A process by which the chemical constituency of an Entity or set of Entities changes.
     
     In some sense any process that results in entities being created or destroyed might trivially fit here, however this concept is intended specifically for Events where the occuring chemical reactions are of importance.
+    """
+    
+
+class Process(Base):
+    """
+    This is a placeholder for events that are considered in their evolution, or anyway not strictly dependent on agents, tasks, and plans. 
+    See Event class for some thoughts on classifying events. See also 'Transition'.
     """
     
 
@@ -1369,6 +1358,12 @@ class Squeezing(Base):
     """
     
 
+class Linkage(Base):
+    """
+    The disposition of an object (the linked object) to establish a connection with others by being linked together.
+    """
+    
+
 class Clumsiness(Base):
     """
     A description of clumsy behavior.
@@ -1442,14 +1437,6 @@ class Receiver(Base):
 class Sender(Base):
     """
     The Role played by an Agent in a Communication Task that emits some Information Realization with the purpose of percipience by some Receiver.
-    """
-    
-
-class SocialObject(Base):
-    """
-    Any Object that exists only within some communication Event, in which at least one PhysicalObject participates in. 
-    In other words, all objects that have been or are created in the process of social communication: for the sake of communication (InformationObject), for incorporating new individuals (SocialAgent, Place), for contextualizing or intepreting existing entities (Description, Concept), or for collecting existing entities (Collection).
-    Being dependent on communication, all social objects need to be expressed by some information object (information objects are self-expressing).
     """
     
 
@@ -1691,6 +1678,12 @@ class Creation(Base):
     """
     
 
+class Insertion(Base):
+    """
+    The disposition of an object (the container) to contain other objects that can be inserted into the container through a portal.
+    """
+    
+
 class Cuttability(Base):
     """
     The disposition of an object (the barrier) which makes it able to be cut down (into pieces) usually by some other object with role as a Cutter. Such as a cucumber has cuttability disposition which can be cut by a knife.
@@ -1706,6 +1699,12 @@ class Tool(Base):
 class Cutting(Base):
     """
     The goal of this task is to separate one or more pieces from some target object by means of cutting into its constituent material. Unlike a disassembly, a cut is usually not easily reversible.
+    """
+    
+
+class Shaping(Base):
+    """
+    The disposition of an object (the tool) to change the shape of others.
     """
     
 
@@ -1787,12 +1786,6 @@ class DepositedObject(Base):
     """
     
 
-class Deposition(Base):
-    """
-    The disposition to support objects.
-    """
-    
-
 class InformationAcquisition(Base):
     """
     A mental task in which the executing agent acquires some information that was not immediately available to it before.
@@ -1808,45 +1801,21 @@ class Premise(Base):
     """
     
 
-class DesignedComponent(Base):
-    """
-    An object designed to be part or element of a larger whole.
-    """
-    
-
 class FunctionalPart(Base):
     """
     Parts of an agent or an artifact are considered as functional parts.
     """
     
 
-class DesignedContainer(Base):
+class Graspability(Base):
     """
-    An item designed to be able to hold some other items, preventing their free movement and/or protecting them from outside influence. Containers may be used for storage, or to obtain control over items that are otherwise hard to manipulate directly (e.g. liquids).
-    """
-    
-
-class DesignedFurniture(Base):
-    """
-    An object used to make a room or building suitable for living or working.
-    """
-    
-
-class DesignedTool(Base):
-    """
-    An item designed to enable some action, in which it will play an instrumental role.
+    The disposition of an object (e.g. the handle) to afford grasping the object.
     """
     
 
 class Destination(Base):
     """
     A role classifying the location where an event or object is directed towards.
-    """
-    
-
-class Location(Base):
-    """
-    A role classifying a location of interest, often specified as a spatial relation between several objects, themselves usually classified by spatial relation roles.
     """
     
 
@@ -1894,9 +1863,24 @@ class DeviceTurnedOn(Base):
     """
     
 
+class DexterityDiagnosis(Base):
+    """
+    A description of the dexterity of a system, possibly in comparison to another system.
+    """
+    
+
 class Dicing(Base):
     """
     A particular kind of cutting where the goal is to produce small pieces out of some object or material. Unlike slices, the pieces to be obtained do not have one or two dimensions being more prominent than others. "Dice", the pieces dicing results in, are approximately cubic.
+    """
+    
+
+class InformationRealization(Base):
+    """
+    A concrete realization of an InformationObject, e.g. the written document (object) containing the text of a law, a poetry reading (event), the dark timbre (quality) of a sound (event) in the execution (event) of a musical composition, realizing a 'misterioso' tempo indication.
+    
+    The realization of an information object also realizes information about itself. This is a special semiotic feature, which allows to avoid a traditonal paradox, by which an information is often supposed to be about itself besides other entities (e.g. the information object 'carpe diem' is about its meaning in Horace's Odes (let alone its fortune in Western culture and beyond), but also about its expression in context: 'dum loquimur, fugerit invida aetas: carpe diem, quam minimum credula postero', with the sound and emotional relations that it could activate.
+    This is expressed in OWL2 with a local reflexivity axiom of the dul:InformationRealization class.
     """
     
 
@@ -2118,12 +2102,6 @@ class FailedAttempt(Base):
     """
     
 
-class Unsuccessfulness(Base):
-    """
-    A description of a situation with a goal that was not or not fully achieved by some system.
-    """
-    
-
 class FaultySoftware(Base):
     """
     A description of a situation where some software has a bug.
@@ -2187,19 +2165,6 @@ class Flipping(Base):
 class FloatingJoint(Base):
     """
     A joint that allows motion for all 6 degrees of freedom.
-    """
-    
-
-class Fluid(Base):
-    """
-    A substance with a consistency such that it can flow or diffuse.
-    """
-    
-
-class Substance(Base):
-    """
-    Any PhysicalBody that has not necessarily specified (designed) boundaries, e.g. a pile of trash, some sand, etc. 
-    In this sense, an artistic object made of trash or a dose of medicine in the form of a pill would be a FunctionalSubstance, and a DesignedArtifact, since its boundaries are specified by a Design; aleatoric objects that are outcomes of an artistic process might be still considered DesignedArtifact(s), and Substance(s).
     """
     
 
@@ -2329,12 +2294,6 @@ class Grasping(Base):
     """
     
 
-class Graspability(Base):
-    """
-    The disposition of an object (e.g. the handle) to afford grasping the object.
-    """
-    
-
 class Releasing(Base):
     """
     A task in which an agent relinquishes its kinematic control over an object, typically by releasing it from its grasp.
@@ -2398,12 +2357,6 @@ class PrehensileEffector(Base):
 class HardwareDiagnosis(Base):
     """
     A diagnosis of the hardware of a system.
-    """
-    
-
-class TechnicalDiagnosis(Base):
-    """
-    A functional diagnosis of a technical system.
     """
     
 
@@ -2471,12 +2424,6 @@ class HumanActivityRecording(Base):
     """
     
 
-class RecordedEpisode(Base):
-    """
-    An episode which has been recorded.
-    """
-    
-
 class Imagining(Base):
     """
     A Mental task in which the Agent constructs a mental representation of a possible world. An Agent performing an Imagining activity does not aim to construct a representation that aspires to be faithful to some past, present, or future state of affairs of the actual world it is embodied in.
@@ -2498,6 +2445,12 @@ class Obstacle(Base):
 class RestrictedObject(Base):
     """
     An object with restrictions to access something.
+    """
+    
+
+class StateTransition(Base):
+    """
+    A transition between two states brought about by the Action of some Agent.
     """
     
 
@@ -2560,12 +2513,6 @@ class StoredObject(Base):
 class InsertedObject(Base):
     """
     An object inserted into another object.
-    """
-    
-
-class Insertion(Base):
-    """
-    The disposition of an object (the container) to contain other objects that can be inserted into the container through a portal.
     """
     
 
@@ -2662,12 +2609,6 @@ class LimbMotion(Base):
     """
     
 
-class Linkage(Base):
-    """
-    The disposition of an object (the linked object) to establish a connection with others by being linked together.
-    """
-    
-
 class LinkedObject(Base):
     """
     An object that is linked to some other object.
@@ -2732,6 +2673,12 @@ class MarkupLanguage(Base):
     """
     
 
+class Masterful(Base):
+    """
+    A description of masterful behavior.
+    """
+    
+
 class Material(Base):
     """
     The matter from which a thing is made.
@@ -2741,12 +2688,6 @@ class Material(Base):
 class MedicalDiagnosis(Base):
     """
     A functional diagnosis of an organism.
-    """
-    
-
-class Organism(Base):
-    """
-    A physical objects with biological characteristics, typically that organisms can self-reproduce.
     """
     
 
@@ -3128,6 +3069,14 @@ class QualityTransition(Base):
     """
     
 
+class Transition(Base):
+    """
+    A transition is a Situation that creates a context for three TimeInterval(s), two additional different Situation(s), one Event, one Process, and at least one Object: the Event is observed as the cause for the transition, one Situation is the state before the transition, the second Situation is the state after the transition, the Process is the invariance under some different transitions (including the one represented here), in which at least one Object is situated. Finally, the time intervals position the situations and the transitional event in time.
+    This class of situations partly encodes the ontology underlying typical engineering algebras for processes, e.g. Petri Nets. 
+    A full representation of the transition ontology is outside the expressivity of OWL, because we would need qualified cardinality restrictions,  coreference, property equivalence, and property composition.
+    """
+    
+
 class Query(Base):
     """
     A role played by some Information Realization that carries meaning, where this meaning is a query of some sort.
@@ -3179,6 +3128,12 @@ class Reasoner(Base):
 class RecipientRole(Base):
     """
     A role which classifies an agent who receives an object modified or created by an action.
+    """
+    
+
+class RecordedEpisode(Base):
+    """
+    An episode which has been recorded.
     """
     
 
@@ -3251,15 +3206,9 @@ class RevoluteJoint(Base):
     """
     
 
-class Room(Base):
+class PhysicalPlace(Base):
     """
-    Space that can be occupied or where something can be done.
-    """
-    
-
-class RoomSurface(Base):
-    """
-    The surface of a room.
+    A physical object that is inherently located; for example, a water area.
     """
     
 
@@ -3272,6 +3221,12 @@ class Surface(Base):
 class Rubbing(Base):
     """
     The motion of an object sliding along the surface of another, for example, to clean the surface.
+    """
+    
+
+class Scene(Base):
+    """
+    Scenes are Situations which interpret a State in terms of its conformance to some qualitative, image schematic description. I.e., the scene is described in terms of qualitative functional and spatial relations existing between participating objects.
     """
     
 
@@ -3319,12 +3274,6 @@ class SettingGripper(Base):
 class SixDPose(Base):
     """
     A point in three dimensional space, given as translation in a reference coordinate system, and an orientation of a coordinate system centered at that point relative to the reference coordinate system.
-    """
-    
-
-class Shaping(Base):
-    """
-    The disposition of an object (the tool) to change the shape of others.
     """
     
 
@@ -3416,6 +3365,12 @@ class Standing(Base):
 class StaticFrictionAttribute(Base):
     """
     Friction between two touching objects that do not move relative to each other.
+    """
+    
+
+class Status(Base):
+    """
+    A role that can be played by some parameter which indicates the state of affairs of some entity, e.g. a flag describing the outcome of an action in terms of success or failure, or an indicator of whether a device is turned on or off.
     """
     
 
@@ -3513,6 +3468,12 @@ class Tapping(Base):
 class Taxis(Base):
     """
     An innate behavioural response such as the knee-jerk reflex or the sucking reflex of human infants.
+    """
+    
+
+class TechnicalDiagnosis(Base):
+    """
+    A functional diagnosis of a technical system.
     """
     
 
@@ -3630,6 +3591,12 @@ class UnavailableSoftware(Base):
     """
     
 
+class Unsuccessfulness(Base):
+    """
+    A description of a situation with a goal that was not or not fully achieved by some system.
+    """
+    
+
 class VideoData(Base):
     """
     An information object containing data for audio-visual modalities.
@@ -3639,6 +3606,39 @@ class VideoData(Base):
 class ThreeDPosition(Base):
     """
     A point in three dimensional space, given as translation.
+    """
+    
+
+class Diagnosis(Base):
+    """
+    A Description of the Situation of a system, usually applied in order to control a normal behaviour, or to explain a notable behavior (e.g. a functional breakdown).
+    """
+    
+
+class Goal(Base):
+    """
+    The Description of a Situation that is desired by an Agent, and usually associated to a Plan that describes how to actually achieve it
+    """
+    
+
+class Organism(Base):
+    """
+    A physical objects with biological characteristics, typically that organisms can self-reproduce.
+    """
+    
+
+class PhysicalArtifact(Base):
+    """
+    Any PhysicalObject that isDescribedBy a Plan .
+    This axiomatization is weak, but allows to talk of artifacts in a very general sense, i.e. including recycled objects, objects with an intentional functional change, natural objects that are given a certain function, even though they are not modified or structurally designed, etc. PhysicalArtifact(s) are not considered disjoint from PhysicalBody(s), in order to allow a dual classification when needed. E.g.,
+    FunctionalSubstance(s) are included here as well.
+    Immaterial (non-physical) artifacts (e.g. texts, ideas, cultural movements, corporations, communities, etc. can be modelled as social objects (see SocialObject), which are all 'artifactual' in the weak sense assumed here.
+    """
+    
+
+class TimeInterval(Base):
+    """
+    Any Region in a dimensional space that aims at representing time.
     """
     
 
