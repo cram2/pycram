@@ -398,6 +398,8 @@ class Object(WorldEntity, HasConcept):
                 self.links[link_name] = self.description.Link(link_id, link_description, self)
 
             individual = ontology_concept(name=link_name, namespace=self.world.ontology.ontology)
+            self.world.ontology.python_objects[individual] = self.links[link_name]
+
             if parse_furniture(link_name):
                 individual.is_a = [ontology_concept, parse_furniture(link_name)]
             else:
@@ -418,15 +420,20 @@ class Object(WorldEntity, HasConcept):
             is_virtual = self.is_joint_virtual(joint_name)
             self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
             individual = ontology_concept(joint_name, namespace=self.world.ontology.ontology)
+            self.world.ontology.python_objects[individual] = parsed_joint_description
             individual.is_a = [ontology_concept, has_child_link.some(
                 self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name))),
                                has_parent_link.some(
                 self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_parent_link(joint_name).name))),
                                parse_joint_types(self.get_joint_type(joint_name).name)]
-            link_individual = self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name))
-            old_restrictions = link_individual.is_a
-            link_individual.is_a = [*old_restrictions, is_part_of.some(self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_parent_link(joint_name).name)))]
-
+            link_individual = self.world.ontology.ontology.search_one(iri=
+                                                                      self.world.ontology.ontology.base_iri +
+                                                                           str(self.get_joint_child_link(joint_name).name))
+            if self.world.ontology.ontology.search_one(iri= self.world.ontology.ontology.base_iri +
+                                                            str(self.get_joint_parent_link(joint_name).name)):
+                 link_individual.is_part_of = [self.world.ontology.ontology.
+                                               search_one(iri=self.world.ontology.ontology.base_iri
+                                                          + str(self.get_joint_parent_link(joint_name).name))]
 
     def is_joint_virtual(self, name: str):
         """

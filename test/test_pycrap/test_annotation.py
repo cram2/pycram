@@ -4,7 +4,8 @@ from owlready2 import destroy_entity
 from pycram.testing import EmptyBulletWorldTestCase
 from pycram.world_concepts.world_object import Object
 from pycrap.ontologies import (DesignedFurniture, Surface, PhysicalObject, ontology, Bowl,
-                               Kitchen, PhysicalTask, Milk, Cereal, Refrigerator, Sink, Washer, Action)
+                               Kitchen, PhysicalTask, Milk, Cereal, Refrigerator, Sink, Washer, Action, is_part_of,
+                               Drawer, Door, Agent)
 from pycrap.ontology_wrapper import OntologyWrapper
 
 
@@ -34,8 +35,10 @@ class AnnotationTestCase(EmptyBulletWorldTestCase):
 
     def test_parse_urdf_description(self):
         table = Object("kitchen", PhysicalObject, "kitchen-small" + self.extension)
+        robot = Object("pr2", Agent, f"pr2{self.extension}")
         cereal = Object("cereal", Cereal, "breakfast_cereal.stl")
         milk = Object("milk", Milk, "milk.stl")
+        apt = Object("apartment", Milk, "apartment" + self.extension)
 
 
         used_classes = []
@@ -49,25 +52,14 @@ class AnnotationTestCase(EmptyBulletWorldTestCase):
             and c is not Sink and c is not Washer):
                 destroy_entity(c)
 
-        refrigeratorTEST = Refrigerator(name="refrigeratorTEST", namespace=self.world.ontology.ontology)
-        refrigeratorTEST1 = Refrigerator(name="refrigeratorTEST1", namespace=self.world.ontology.ontology)
-
-        milk1TEST = Milk(name="milk1Test", namespace=self.world.ontology.ontology)
-        kitchenTest = Kitchen(name="kitchenTest", namespace=self.world.ontology.ontology)
-        physicalobjectTest = PhysicalObject(name="physicalobjectTest", namespace=self.world.ontology.ontology)
-        physicalTask = PhysicalTask(name="physicalTaskTest", namespace=self.world.ontology.ontology)
+        #self.world.ontology.reason()
 
 
-        self.world.ontology.reason()
+        sink_area = self.world.ontology.search(iri="*sink_area")[0]
 
-        for i in self.world.ontology.individuals():
-            print(
-                f"Individual: {i} is a: {i.is_a}, has_part: {i.has_part}, has predefined name: {i.has_predefined_name}"
-                f" has predefined location: {i.has_predefined_location}, has origin location: {i.has_origin_location}",
-                f" has location: {i.has_location}")
-
-
-
+        for i in self.world.ontology.search(type=Drawer, is_part_of=(self.world.ontology.search(iri="*sink_area")[0])):
+            for d in self.world.ontology.search(type=Door, is_part_of=i):
+                print(d)
 
 
 
