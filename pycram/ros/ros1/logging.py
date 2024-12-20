@@ -58,6 +58,12 @@ def set_logger_level(level: LoggerLevel):
                                                            f"rosout.{PYCRAM_LOGGER_NAME}",
                                                            level.value)
 
+def set_logger_format(logger_format: str):
+    """
+    This method is for forward compatability with the ROS2 implementation
+    """
+    pass
+
 
 def logwarn(message: str):
     rospy.logwarn(f"[{_get_caller_file_name()}:{_get_caller_method_line()}:{_get_caller_method_name()}] {message}",
