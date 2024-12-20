@@ -636,7 +636,7 @@ class TextAnnotation:
     text: str
     position: List[float]
     id: int
-    color: Color = Color(0, 0, 0, 1)
+    color: Color = field(default_factory=lambda: Color(0, 0, 0, 1))
     size: float = 0.1
 
 

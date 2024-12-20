@@ -7,7 +7,7 @@ import os
 from typing_extensions import Dict, Optional
 import xml.etree.ElementTree as ET
 
-from pycram.ros.ros1.logging import logwarn
+from .ros import logwarn
 
 
 class Singleton(type):

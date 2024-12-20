@@ -4,10 +4,9 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 
-from pycram.ros.ros1.logging import logerr
-from pycram.ros.ros1.ros_tools import create_ros_pack, ResourceNotFound, get_parameter
+from ..ros import logerr, create_ros_pack, get_parameter, ResourceNotFound
 from geometry_msgs.msg import Point
-from tf.transformations import quaternion_from_euler, euler_from_quaternion
+from tf_transformations import quaternion_from_euler, euler_from_quaternion
 from typing_extensions import Union, List, Optional, Dict, Tuple
 from urdf_parser_py import urdf
 from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as URDF_Cylinder,

@@ -62,3 +62,13 @@ def sleep(duration):
 def create_timer(duration, callback, oneshot=False):
     timer = node.create_timer(duration, callback, autostart=True)
     return timer
+
+class ResourceNotFound(Exception):
+    def __init__(self, *args, **kwargs):
+        """Create a new plan failure."""
+        Exception.__init__(self, *args, **kwargs)
+
+class ServiceException(Exception):
+    def __init__(self, *args, **kwargs):
+        """Create a new plan failure."""
+        Exception.__init__(self, *args, **kwargs)

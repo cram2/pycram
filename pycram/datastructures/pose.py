@@ -13,10 +13,8 @@ from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 # from tf import transformations
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
-from ..ros import Time
+from ..ros import Time, logwarn, logerr
 from ..validation.error_checkers import calculate_pose_error
-from pycram.ros.ros1.logging import logwarn, logerr
-
 
 def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
     """

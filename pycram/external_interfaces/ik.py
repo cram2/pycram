@@ -1,10 +1,7 @@
-import rosnode
-import tf
 from typing_extensions import List, Union, Tuple, Dict
+from tf_transformations import quaternion_from_euler
 
-from pycram.ros.ros1.data_types import Duration, ServiceException
-from pycram.ros.ros1.logging import loginfo_once, logerr
-from pycram.ros.ros1.service import get_service_proxy, wait_for_service
+from ..ros import Duration, loginfo_once, logerr, get_service_proxy, wait_for_service, ServiceException, get_node_names
 from moveit_msgs.msg import PositionIKRequest
 from moveit_msgs.msg import RobotState
 from moveit_msgs.srv import GetPositionIK
@@ -171,7 +168,7 @@ def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str
     :param gripper: Name of the tool frame which should grasp, this should be at the end of the given joint chain
     :return: A Pose at which the robt should stand as well as a dictionary of joint values
     """
-    if "/giskard" not in rosnode.get_node_names():
+    if "/giskard" not in get_node_names():
         return robot.pose, request_kdl_ik(target_pose, robot, joints, gripper)
     return request_giskard_ik(target_pose, robot, gripper)
 
@@ -227,7 +224,7 @@ def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[
     joint_states = dict(zip(joint_names, last_point.positions))
     prospection_robot = World.current_world.get_prospection_object_for_object(robot)
 
-    orientation = list(tf.transformations.quaternion_from_euler(0, 0, joint_states["brumbrum_yaw"], axes="sxyz"))
+    orientation = list(quaternion_from_euler(0, 0, joint_states["brumbrum_yaw"], axes="sxyz"))
     pose = Pose([joint_states["brumbrum_x"], joint_states["brumbrum_y"], 0], orientation)
 
     robot_joint_states = {}

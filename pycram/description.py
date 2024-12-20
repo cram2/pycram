@@ -5,7 +5,7 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 
-from pycram.ros.ros1.data_types import Time
+from .ros import Time
 import trimesh
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, deprecated

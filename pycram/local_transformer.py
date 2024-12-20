@@ -2,13 +2,13 @@ from __future__ import annotations
 import sys
 import logging
 
-from pycram.ros.ros1.data_types import Time, Duration
-from pycram.ros.ros1.logging import logerr
+from .ros import Time, Duration, logerr
 
 if 'world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.world.")
 
-from tf import TransformerROS
+class TransformerROS:
+    pass
 
 from .datastructures.pose import Pose, Transform
 from typing_extensions import List, Optional, Union, Iterable, TYPE_CHECKING
