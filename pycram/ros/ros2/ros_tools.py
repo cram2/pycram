@@ -61,3 +61,4 @@ def sleep(duration):
 
 def create_timer(duration, callback, oneshot=False):
     timer = node.create_timer(duration, callback, autostart=True)
+    return timer

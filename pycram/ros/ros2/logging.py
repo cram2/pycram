@@ -4,15 +4,14 @@ from typing_extensions import TYPE_CHECKING
 from . import node
 import os
 
-if TYPE_CHECKING:
-    from ...datastructures.enums import LoggerLevel
+from ...datastructures.enums import LoggerLevel
 
 # Default logger format
 os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = "[{severity}] [{name}]: {message} ({function_name}() at {file_name}:{line_number})"
 # os.environ['RCUTILS_COLORIZED_OUTPUT'] = "[{file_name}:{line_number}:{function_name}] {message}"
 
 # Set the logger level to INFO
-node.get_name().set_level(rclpy.logging.LoggingSeverity.INFO)
+node.get_logger().set_level(rclpy.logging.LoggingSeverity.INFO)
 
 def set_logger_level(level: LoggerLevel):
     """
