@@ -387,6 +387,10 @@ class Object(WorldEntity, HasConcept):
         """
         Initialize the link objects from the URDF file and creates a dictionary which maps the link names to the
         corresponding link objects.
+        Also create Ontology individuals based on the parsed links from the URDF. Links are always of tpye "Physical
+        Object", but can also be of another type if matched.
+        Also mapping the python object to the  parsed link description, so it can be accessed with more ease.
+
         """
         self.links = {}
         ontology_concept = PhysicalObject
@@ -411,6 +415,13 @@ class Object(WorldEntity, HasConcept):
         """
         Initialize the joint objects from the URDF file and creates a dictionary which mas the joint names to the
         corresponding joint objects
+        Also creating individuals during runtime from parsed joints out of the URDF file. Every Joint will be of type
+        "Joint" and also of one of the joint types (fixed, prismatic, etc.).
+        Also mapping the python object to the  parsed joint description, so it can be accessed with more ease.
+        Additionally adding the relations "has_child_link", "has_parent_link" which refer to the parent and child link
+        of the corresponding joint. Those links are initialized in the @_init_links_and_update_transforms function.
+        Finally including the "is_part_of" relation which describes the relation between two links that are connected
+        by one joint => child_link is_part_of parent_link
         """
         self.joints = {}
 

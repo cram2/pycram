@@ -10,7 +10,13 @@ from pycrap.ontologies import FixedJoint, PlanarJoint, RevoluteJoint, FloatingJo
 def remove_digits(string):
     return re.sub(r'\d+', '', string)
 
+
+
 def parse_furniture(link):
+    """
+    Matching the link names from the parsed description with the given classes in the Ontology.
+    This procedure should be replaced with Ontology Tinder.
+    """
     #furniture = ["Door", "Fridge", "Handle", "Sink", "Drawer", "Table", "Leg"]
     matched_furniture = []
 
@@ -24,10 +30,17 @@ def parse_furniture(link):
         return matched_furniture[len(matched_furniture)-1]
 
 def parse_joint_types(joint):
+
+    """
+    Parsing the Joint types coming from the joint description, to be added as type of the corresponding classes
+    of PyCRAP.
+    """
     joint_types = [FixedJoint, PlanarJoint, RevoluteJoint, FloatingJoint, HingeJoint, ContinuousJoint, PrismaticJoint]
     for j in joint_types:
         if str(joint).lower() in str(j).lower():
             return j
+
+
 
 class URDFParser:
 
