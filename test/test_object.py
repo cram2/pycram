@@ -1,10 +1,12 @@
 import numpy as np
+import trimesh.parent
+from tf.transformations import quaternion_from_euler
 
 from pycram.testing import BulletWorldTestCase
 
 from pycram.datastructures.enums import JointType, ObjectType
 from pycram.datastructures.pose import Pose
-from pycram.datastructures.dataclasses import Color
+from pycram.datastructures.dataclasses import Color, BoundingBox as BB
 from pycram.failures import UnsupportedFileExtension
 from pycram.world_concepts.world_object import Object
 from pycram.object_descriptors.generic import ObjectDescription as GenericObjectDescription
@@ -173,6 +175,23 @@ class TestObject(BulletWorldTestCase):
         self.assertEqual(len(cereal_milk.links), len(cereal.links) + len(milk.links))
         self.assertEqual(len(cereal_milk.joints), len(cereal.joints) + len(milk.joints) + 1)
         cereal_milk.remove()
+
+    def test_merge_bounding_box(self):
+        cereal_2 = Object("cereal2", Food, "breakfast_cereal.stl",
+                          pose=self.cereal.pose)
+        cereal_2.set_orientation(quaternion_from_euler(0, 0, np.pi / 2).tolist())
+        cereal_bbox = self.cereal.get_axis_aligned_bounding_box(False)
+        cereal_2_bbox = cereal_2.get_axis_aligned_bounding_box(False)
+        plot = False
+        if plot:
+            BB.plot_3d_points([np.array(cereal_bbox.get_points_list()), np.array(cereal_2_bbox.get_points_list())])
+        for use_random_events in [True, False]:
+            merged_bbox_mesh = BB.merge_multiple_bounding_boxes_into_mesh([cereal_bbox, cereal_2_bbox],
+                                                                          use_random_events=use_random_events,
+                                                                          plot=plot)
+            self.assertTrue(isinstance(merged_bbox_mesh, trimesh.parent.Geometry3D))
+            self.assertEqual(merged_bbox_mesh.vertices.shape[0], 24 if use_random_events else 16)
+            self.assertEqual(merged_bbox_mesh.faces.shape[0], 48 if use_random_events else 24)
 
 
 class GenericObjectTestCase(BulletWorldTestCase):
