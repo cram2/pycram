@@ -1402,15 +1402,15 @@ class Object(PhysicalBody):
         """
         return self.world.get_colors_of_object_links(self)
 
-    def get_axis_aligned_bounding_box(self, transform_to_object_pose: bool = True) -> AxisAlignedBoundingBox:
+    def get_axis_aligned_bounding_box(self, shift_to_object_position: bool = True) -> AxisAlignedBoundingBox:
         """
         Return the axis aligned bounding box of this object.
 
-        :param transform_to_object_pose: If True, the bounding box will be transformed to fit object pose.
+        :param shift_to_object_position: If True, the bounding box will be shifted to the object position.
         :return: The axis aligned bounding box of this object.
         """
         if self.has_one_link:
-            return self.root_link.get_axis_aligned_bounding_box(transform_to_object_pose)
+            return self.root_link.get_axis_aligned_bounding_box(shift_to_object_position)
         else:
             return self.world.get_object_axis_aligned_bounding_box(self)
 

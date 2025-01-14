@@ -1,16 +1,16 @@
 from __future__ import annotations
 
+import itertools
 from abc import ABC, abstractmethod
 from copy import deepcopy, copy
 from dataclasses import dataclass, fields, field
 
 import numpy as np
 import trimesh
+from matplotlib import pyplot as plt
 from random_events.variable import Continuous
-from random_events.interval import closed, Interval
-from random_events.product_algebra import SimpleEvent
-from pyvista import PolyData
-import pyvista as pv
+from random_events.interval import closed
+from random_events.product_algebra import SimpleEvent, Event
 import plotly.graph_objects as go
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence
 
@@ -108,6 +108,109 @@ class BoundingBox:
     max_y: float
     max_z: float
 
+    @staticmethod
+    def merge_multiple_bounding_boxes_into_mesh(bounding_boxes: List[BoundingBox],
+                                                save_mesh_to: Optional[str] = None,
+                                                use_random_events: bool = True,
+                                                plot: bool = False) -> trimesh.parent.Geometry3D:
+        """
+        Merge multiple axis-aligned bounding boxes into a single mesh.
+
+        :param bounding_boxes: The list of axis-aligned bounding boxes.
+        :param save_mesh_to: The file path to save the mesh to.
+        :param use_random_events: If True, use random events to compute the new shape, otherwise use pyvista.
+        :param plot: If True, plot the mesh.
+        :return: The mesh of the merged bounding boxes.
+        """
+        if use_random_events:
+            x = Continuous("x")
+            y = Continuous("y")
+            z = Continuous("z")
+
+            all_intervals = [(box.get_min(), box.get_max()) for box in bounding_boxes]
+            event = Event()
+            for min_point, max_point in all_intervals:
+                new_event = SimpleEvent({x: closed(min_point[0], max_point[0]), y: closed(min_point[1], max_point[1]),
+                                         z: closed(min_point[2], max_point[2])}).as_composite_set()
+                event = event.union_with(new_event)
+            if plot:
+                fig = go.Figure(event.plot(), event.plotly_layout())
+                fig.update_layout(title="Merged Bounding Boxes")
+                fig.show()
+            mesh = BoundingBox.get_mesh_from_event(event)
+        else:
+            mesh = BoundingBox.get_mesh_from_boxes(bounding_boxes)
+        if plot:
+            mesh.show()
+            BoundingBox.plot_3d_points([mesh.vertices])
+        if save_mesh_to is not None:
+            mesh.export(save_mesh_to)
+        return mesh
+
+    @staticmethod
+    def get_mesh_from_boxes(boxes: List[BoundingBox]) -> trimesh.parent.Geometry3D:
+        """
+        Get the mesh from the boxes
+
+        :param boxes: The list of boxes
+        :return: The mesh.
+        """
+        # for every atomic interval
+        all_vertices = []
+        all_faces = []
+        for i, box in enumerate(boxes):
+            # Create a 3D mesh trace for the rectangle
+            all_vertices.extend(box.get_points_list())
+            all_faces.extend((np.array(BoundingBox.get_box_faces()) + i * 8).tolist())
+        return trimesh.Trimesh(np.array(all_vertices), np.array(all_faces))
+
+    @staticmethod
+    def get_mesh_from_event(event: Event) -> trimesh.parent.Geometry3D:
+        """
+        Get the mesh from the event.
+
+        :param event: The event.
+        :return: The mesh.
+        """
+        # form cartesian product of all intervals
+        intervals = [value.simple_sets for simple_event in event.simple_sets for _, value in simple_event.items()]
+        simple_events = list(itertools.product(*intervals))
+
+        # for every atomic interval
+        all_vertices = []
+        all_faces = []
+        for i, simple_event in enumerate(simple_events):
+            x, y, z = 0, 1, 2
+            for j in range(2):
+                x, y, z = x + j*3, y + j*3, z + j*3
+                # Create a 3D mesh trace for the rectangle
+                all_vertices.extend([[simple_event[x].lower, simple_event[y].lower, simple_event[z].lower],
+                                [simple_event[x].lower, simple_event[y].lower, simple_event[z].upper],
+                                [simple_event[x].lower, simple_event[y].upper, simple_event[z].lower],
+                                [simple_event[x].lower, simple_event[y].upper, simple_event[z].upper],
+                                [simple_event[x].upper, simple_event[y].lower, simple_event[z].lower],
+                                [simple_event[x].upper, simple_event[y].lower, simple_event[z].upper],
+                                [simple_event[x].upper, simple_event[y].upper, simple_event[z].lower],
+                                [simple_event[x].upper, simple_event[y].upper, simple_event[z].upper]])
+                all_faces.extend((np.array(BoundingBox.get_box_faces()) + i*16 + j*8).tolist())
+        return trimesh.Trimesh(np.array(all_vertices), np.array(all_faces))
+
+    @staticmethod
+    def get_box_faces() -> List[List[int]]:
+        return [[0, 1, 2], [2, 3, 1], [4, 5, 6], [6, 7, 5],
+                [0, 1, 4], [4, 5, 1], [2, 3, 6], [6, 7, 2],
+                [0, 2, 4], [4, 6, 2], [1, 3, 5], [5, 7, 3]]
+
+    @classmethod
+    def from_min_max(cls, min_point: Sequence[float], max_point: Sequence[float]):
+        """
+        Set the axis-aligned bounding box from a minimum and maximum point.
+
+        :param min_point: The minimum point
+        :param max_point: The maximum point
+        """
+        return cls(min_point[0], min_point[1], min_point[2], max_point[0], max_point[1], max_point[2])
+
     @property
     def origin(self) -> List[float]:
         return [(self.min_x + self.max_x) / 2, (self.min_y + self.max_y) / 2, (self.min_z + self.max_z) / 2]
@@ -188,9 +291,35 @@ class BoundingBox:
     def depth(self) -> float:
         return self.max_y - self.min_y
 
+    @staticmethod
+    def plot_3d_points(list_of_points: List[np.ndarray]):
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+
+        for points in list_of_points:
+            color = np.random.rand(3, )
+            ax.scatter(points[:, 0], points[:, 1], points[:, 2], c=color, marker='o')
+
+        ax.set_xlabel('X Label')
+        ax.set_ylabel('Y Label')
+        ax.set_zlabel('Z Label')
+        plt.xlim(0, 2)
+        plt.ylim(0, 2)
+        ax.set_zlim(0, 2)
+
+        plt.show()
+
 
 @dataclass
 class AxisAlignedBoundingBox(BoundingBox):
+
+    def get_rotated_box(self, transform: Transform) -> RotatedBoundingBox:
+        """
+        Apply a transformation to the axis-aligned bounding box and return the transformed axis-aligned bounding box.
+
+        :return: The transformed axis-aligned bounding box
+        """
+        return RotatedBoundingBox.from_min_max(self.get_min(), self.get_max(), transform)
 
     @classmethod
     def from_origin_and_half_extents(cls, origin: Point, half_extents: Point):
@@ -205,7 +334,7 @@ class AxisAlignedBoundingBox(BoundingBox):
         return cls.from_min_max(min_point, max_point)
 
     @classmethod
-    def from_multiple_bounding_boxes(cls, bounding_boxes: List[AxisAlignedBoundingBox]) -> 'AxisAlignedBoundingBox':
+    def from_multiple_bounding_boxes(cls, bounding_boxes: List[AxisAlignedBoundingBox]) -> AxisAlignedBoundingBox:
         """
         Set the axis-aligned bounding box from multiple axis-aligned bounding boxes.
 
@@ -219,71 +348,15 @@ class AxisAlignedBoundingBox(BoundingBox):
         max_z = max([box.max_z for box in bounding_boxes])
         return cls(min_x, min_y, min_z, max_x, max_y, max_z)
 
-    @staticmethod
-    def merge_multiple_bounding_boxes_into_mesh(bounding_boxes: List[AxisAlignedBoundingBox],
-                                                save_mesh_to: Optional[str] = None,
-                                                use_random_events: bool = True,
-                                                plot: bool = True) -> Union[PolyData, Interval]:
+    def shift_by(self, shift: Point) -> AxisAlignedBoundingBox:
         """
-        Merge multiple axis-aligned bounding boxes into a single mesh.
+        Shift the axis-aligned bounding box by a given shift.
 
-        :param bounding_boxes: The list of axis-aligned bounding boxes.
-        :param save_mesh_to: The file path to save the mesh to.
-        :param use_random_events: If True, use random events to compute the new shape, otherwise use pyvista.
-        :param plot: If True, plot the mesh.
-        :return: The mesh of the merged bounding boxes.
+        :param shift: The shift to apply
+        :return: The shifted axis-aligned bounding box
         """
-        if use_random_events:
-            x = Continuous("x")
-            y = Continuous("y")
-            z = Continuous("z")
-
-            all_intervals = [(box.get_min(), box.get_max()) for box in bounding_boxes]
-            interval = None
-            for min_point, max_point in all_intervals:
-                event = SimpleEvent({x: closed(min_point[0], max_point[0]), y: closed(min_point[1], max_point[1]),
-                                     z: closed(min_point[2], max_point[2])}).as_composite_set()
-                if interval is None:
-                    interval = event
-                else:
-                    interval = interval.union_with(event) - interval.intersection_with(event)
-            if plot:
-                fig = go.Figure(interval.plot(), interval.plotly_layout())
-                fig.update_layout(title="Merged Bounding Boxes")
-                fig.show()
-            return interval
-        else:
-            all_points = [point for box in bounding_boxes for point in box.get_points_list()]
-            cloud = pv.PolyData(all_points)
-            volume = cloud.delaunay_3d(alpha=2.)
-            shell = volume.extract_geometry()
-            if plot:
-                shell.plot()
-            if save_mesh_to is not None:
-                shell.save(save_mesh_to)
-            return shell
-
-    def get_transformed_box(self, transform: Transform) -> 'AxisAlignedBoundingBox':
-        """
-        Apply a transformation to the axis-aligned bounding box and return the transformed axis-aligned bounding box.
-
-        :param transform: The transformation to apply
-        :return: The transformed axis-aligned bounding box
-        """
-        transformed_points = transform.apply_transform_to_array_of_points(np.array(self.get_min_max()))
-        min_p = [min(transformed_points[:, i]) for i in range(3)]
-        max_p = [max(transformed_points[:, i]) for i in range(3)]
-        return AxisAlignedBoundingBox.from_min_max(min_p, max_p)
-
-    @classmethod
-    def from_min_max(cls, min_point: Sequence[float], max_point: Sequence[float]):
-        """
-        Set the axis-aligned bounding box from a minimum and maximum point.
-
-        :param min_point: The minimum point
-        :param max_point: The maximum point
-        """
-        return cls(min_point[0], min_point[1], min_point[2], max_point[0], max_point[1], max_point[2])
+        return AxisAlignedBoundingBox(self.min_x + shift.x, self.min_y + shift.y, self.min_z + shift.z,
+                                      self.max_x + shift.x, self.max_y + shift.y, self.max_z + shift.z)
 
 
 @dataclass
@@ -291,16 +364,20 @@ class RotatedBoundingBox(BoundingBox):
     """
     Dataclass for storing a rotated bounding box.
     """
-
     def __init__(self, min_x: float, min_y: float, min_z: float, max_x: float, max_y: float, max_z: float,
-                 transform: Transform, points: Optional[List[Point]] = None):
-        self.min_x, self.min_y, self.min_z = min_x, min_y, min_z
-        self.max_x, self.max_y, self.max_z = max_x, max_y, max_z
-        self.transform: Transform = transform
+                 transform: Optional[Transform] = None, points: Optional[List[Point]] = None):
+        """
+        Set the rotated bounding box from a minimum and maximum point.
+        :param transform: The transformation
+        :param points: The points of the rotated bounding box.
+        """
+        self.transform: Optional[Transform] = transform
+        super().__init__(min_x, min_y, min_z, max_x, max_y, max_z)
         self._points: Optional[List[Point]] = points
 
     @classmethod
-    def from_min_max(cls, min_point: Sequence[float], max_point: Sequence[float], transform: Transform):
+    def from_min_max(cls, min_point: Sequence[float], max_point: Sequence[float],
+                     transform: Optional[Transform] = None):
         """
         Set the rotated bounding box from a minimum, maximum point, and a transformation.
 
@@ -310,35 +387,12 @@ class RotatedBoundingBox(BoundingBox):
         """
         return cls(min_point[0], min_point[1], min_point[2], max_point[0], max_point[1], max_point[2], transform)
 
-    @classmethod
-    def from_axis_aligned_bounding_box(cls, axis_aligned_bounding_box: AxisAlignedBoundingBox,
-                                       transform: Transform) -> 'RotatedBoundingBox':
+    def get_points(self) -> List[Point]:
         """
-        Set the rotated bounding box from an axis-aligned bounding box and a transformation.
-
-        :param axis_aligned_bounding_box: The axis-aligned bounding box.
-        :param transform: The transformation.
-        """
-        return cls(axis_aligned_bounding_box.min_x, axis_aligned_bounding_box.min_y, axis_aligned_bounding_box.min_z,
-                   axis_aligned_bounding_box.max_x, axis_aligned_bounding_box.max_y, axis_aligned_bounding_box.max_z,
-                   transform)
-
-    def get_points(self, transform: Optional[Transform] = None) -> List[Point]:
-        """
-        :param transform: The transformation to apply to the points, if None the stored transformation is used.
         :return: The points of the rotated bounding box.
         """
-        if (self._points is None) or (transform is not None):
-            if transform is not None:
-                self.transform = transform
-            points_array = np.array([[self.min_x, self.min_y, self.min_z],
-                                     [self.min_x, self.min_y, self.max_z],
-                                     [self.min_x, self.max_y, self.min_z],
-                                     [self.min_x, self.max_y, self.max_z],
-                                     [self.max_x, self.min_y, self.min_z],
-                                     [self.max_x, self.min_y, self.max_z],
-                                     [self.max_x, self.max_y, self.min_z],
-                                     [self.max_x, self.max_y, self.max_z]])
+        points_array = np.array([[point.x, point.y, point.z] for point in super().get_points()])
+        if self._points is None:
             transformed_points = self.transform.apply_transform_to_array_of_points(points_array).tolist()
             self._points = [Point(*point) for point in transformed_points]
         return self._points
