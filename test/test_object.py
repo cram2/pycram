@@ -138,11 +138,10 @@ class TestObject(BulletWorldTestCase):
         self.assertEqual(self.robot.get_link_by_id(-1), self.robot.root_link)
 
     def test_find_joint_above_link(self):
-        self.assertEqual(self.robot.find_joint_above_link("head_pan_link", JointType.REVOLUTE), "head_pan_joint")
+        self.assertEqual(self.robot.find_joint_above_link("head_pan_link"), "head_pan_joint")
 
-    def test_wrong_joint_type_for_joint_above_link(self):
-        container_joint = self.robot.find_joint_above_link("head_pan_link", JointType.CONTINUOUS)
-        self.assertTrue(container_joint is None)
+    def test_find_joint_above_link_exhausted(self):
+        self.assertEqual(self.robot.find_joint_above_link("base_link"), None)
 
     def test_contact_points_simulated(self):
         self.milk.set_position([0, 0, 100])

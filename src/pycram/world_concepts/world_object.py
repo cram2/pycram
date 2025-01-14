@@ -1268,23 +1268,22 @@ class Object(WorldEntity, HasConcept):
         """
         return self.joints[joint_name].parent_link
 
-    def find_joint_above_link(self, link_name: str, joint_type: JointType) -> str:
+    def find_joint_above_link(self, link_name: str) -> str:
         """
-        Traverse the chain from 'link' to the URDF origin and return the first joint that is of type 'joint_type'.
+        Traverse the chain from 'link' to the URDF origin and return the first joint that is not FIXED.
 
         :param link_name: AbstractLink name above which the joint should be found
-        :param joint_type: Joint type that should be searched for
-        :return: Name of the first joint which has the given type
+        :return: Name of the first non-fixed joint, None if no joint is found
         """
         chain = self.description.get_chain(self.description.get_root(), link_name)
         reversed_chain = reversed(chain)
         container_joint = None
         for element in reversed_chain:
-            if element in self.joint_name_to_id and self.get_joint_type(element) == joint_type:
+            if element in self.joint_name_to_id and self.get_joint_type(element) != JointType.FIXED:
                 container_joint = element
                 break
         if not container_joint:
-            logwarn(f"No joint of type {joint_type} found above link {link_name}")
+            logwarn(f"No movable parent joint found above link {link_name}")
         return container_joint
 
     def get_multiple_joint_positions(self, joint_names: List[str]) -> Dict[str, float]:
