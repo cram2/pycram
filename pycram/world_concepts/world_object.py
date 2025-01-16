@@ -22,7 +22,7 @@ from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, Un
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
-from pycram.ros.ros1.logging import logwarn
+from ..ros import logwarn
 
 try:
     from ..object_descriptors.mjcf import ObjectDescription as MJCF

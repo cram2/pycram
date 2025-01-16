@@ -7,7 +7,7 @@ from dataclasses import dataclass, field, fields
 from typing_extensions import get_type_hints
 from pycrap import PhysicalObject, Agent
 from .datastructures.property import EmptyProperty
-from pycram.ros.ros1.logging import logwarn, loginfo
+from .ros import logwarn, loginfo
 
 import inspect
 

@@ -15,7 +15,7 @@ from .language import Language
 from .robot_description import RobotDescription
 from typing_extensions import TYPE_CHECKING
 from .datastructures.enums import ExecutionType
-from pycram.ros.ros1.logging import logerr, logwarn_once
+from .ros import logerr, logwarn_once
 
 if TYPE_CHECKING:
     from .designators.motion_designator import BaseMotion

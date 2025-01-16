@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import psutil
 import random_events
-import tf
 from matplotlib import colors
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event
@@ -15,7 +14,7 @@ from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import P
 from random_events.interval import reals, closed_open, closed
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
-from tf.transformations import quaternion_from_matrix
+from tf_transformations import quaternion_from_matrix, quaternion_from_euler
 from typing_extensions import Tuple, List, Optional, Iterator
 
 from .datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
@@ -24,7 +23,8 @@ from .datastructures.world import UseProspectionWorld
 from .datastructures.world import World
 from .description import Link
 from .local_transformer import LocalTransformer
-from pycram.ros.ros1.ros_tools import wait_for_message
+# from pycram.ros.ros1.ros_tools import wait_for_message
+from .ros import wait_for_message
 from .world_concepts.world_object import Object
 
 
@@ -924,7 +924,7 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
         y = sample[1]
         position = [x, y, self.origin.position.z]
         angle = np.arctan2(position[1] - self.origin.position.y, position[0] - self.origin.position.x) + np.pi
-        orientation = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
+        orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
         return Pose(position, orientation, self.origin.frame)
 
     def __iter__(self) -> Iterator[Pose]:

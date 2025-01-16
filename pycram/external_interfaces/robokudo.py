@@ -2,9 +2,7 @@ import sys
 from threading import Lock, RLock
 from typing import Any
 
-from pycram.ros.ros1.action_lib import create_action_client
-from pycram.ros.ros1.logging import logwarn, loginfo, loginfo_once
-from pycram.ros.ros1.ros_tools import get_node_names
+from ..ros import create_action_client, logwarn, loginfo, loginfo_once, get_node_names
 
 from geometry_msgs.msg import PointStamped
 from typing_extensions import List, Callable, Optional

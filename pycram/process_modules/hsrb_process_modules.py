@@ -12,8 +12,7 @@ from pydub.playback import play
 from gtts import gTTS
 
 import io
-
-from pycram.ros.ros1.logging import logdebug
+from ..ros import logdebug
 
 
 class HSRBNavigation(ProcessModule):

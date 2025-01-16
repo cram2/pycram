@@ -3,9 +3,7 @@ import threading
 
 import sys
 
-from pycram.ros.ros1.data_types import Time
-from pycram.ros.ros1.logging import logwarn, loginfo_once
-from pycram.ros.ros1.ros_tools import get_node_names
+from ..ros import Time, logwarn, loginfo_once, get_node_names
 
 from ..datastructures.enums import JointType, ObjectType
 from ..datastructures.pose import Pose

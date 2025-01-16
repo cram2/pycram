@@ -7,8 +7,7 @@ import numpy as np
 
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
-from ..ros.ros1.logging import logdebug
-from ..ros.ros1.action_lib import create_action_client
+from ..ros import create_action_client, logdebug
 from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
 

@@ -1,4 +1,4 @@
-from pycram.ros.ros1.ros_tools import get_ros_package_path
+from ..ros import get_ros_package_path
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
 from ..datastructures.enums import Arms, GripperState

@@ -12,7 +12,7 @@ from ..process_module import ProcessModuleManager, ProcessModule
 from .default_process_modules import DefaultOpen, DefaultClose, DefaultMoveGripper, DefaultMoveJoints, DefaultMoveTCP, \
     DefaultNavigation, DefaultMoveHead, DefaultDetecting, DefaultMoveArmJoints, DefaultWorldStateDetecting
 from ..robot_description import RobotDescription
-from pycram.ros.ros1.logging import logdebug
+from ..ros import logdebug
 from ..external_interfaces import giskard
 from ..world_concepts.world_object import Object
 from ..external_interfaces.robokudo import send_query

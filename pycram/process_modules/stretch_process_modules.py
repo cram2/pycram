@@ -1,4 +1,4 @@
-from pycram.ros.ros1.logging import logdebug
+from ..ros import logdebug
 from ..external_interfaces import giskard
 from .default_process_modules import *
 from ..datastructures.world import World
