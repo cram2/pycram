@@ -121,3 +121,22 @@ def find_multiverse_path() -> Optional[str]:
                 return multiverse_path + multiverse_relative_path
 
 
+def perform(action_instance):
+    """
+    Executes the perform logic for a given action instance.
+
+    :param action_instance: An instance of an action class.
+    """
+    if hasattr(action_instance, 'execute'):
+        return action_instance.execute()
+    raise AttributeError(f"{action_instance.__class__.__name__} has no 'plan' method.")
+
+
+def an(designator):
+    """
+    Resolve the first available action from the designator.
+
+    :param designator: The designator description instance.
+    :return: The first resolved action instance.
+    """
+    return designator.resolve()
