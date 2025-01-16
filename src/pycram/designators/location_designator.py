@@ -327,8 +327,8 @@ class AccessingLocation(LocationDesignatorDescription):
         :yield: A location designator containing the pose and the arms that can be used.
         """
 
-        # Find a Joint of type prismatic which is above the handle in the URDF tree
-        container_joint = self.handle.world_object.find_joint_above_link(self.handle.name, JointType.PRISMATIC)
+        # Find a Joint that moves with the handle in the URDF tree
+        container_joint = self.handle.world_object.find_joint_above_link(self.handle.name)
 
         init_pose = link_pose_for_joint_config(self.handle.world_object, {
             container_joint: self.handle.world_object.get_joint_limits(container_joint)[0]},
