@@ -113,7 +113,7 @@ class ObjectDescription(AbstractObjectDescription):
         ...
 
     @classmethod
-    def generate_from_mesh_file(cls, path: str, name: str, save_path: str, color: Color) -> str:
+    def generate_from_mesh_file(cls, path: str, name: str, save_path: str) -> str:
         raise NotImplementedError
 
     @classmethod

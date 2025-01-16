@@ -289,8 +289,7 @@ class World(WorldEntity, ABC):
     def preprocess_object_file_and_get_its_cache_path(self, path: str, ignore_cached_files: bool,
                                                       description: ObjectDescription, name: str,
                                                       scale_mesh: Optional[float] = None,
-                                                      mesh_transform: Optional[Transform] = None,
-                                                      color: Optional[Color] = None) -> str:
+                                                      mesh_transform: Optional[Transform] = None) -> str:
         """
         Update the cache directory with the given object.
 
@@ -300,11 +299,10 @@ class World(WorldEntity, ABC):
         :param name: The name of the object.
         :param scale_mesh: The scale of the mesh.
         :param mesh_transform: The mesh transform to apply to the mesh.
-        :param color: The color of the object.
         :return: The path of the cached object.
         """
         return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, description, name,
-                                                               scale_mesh, mesh_transform, color)
+                                                               scale_mesh, mesh_transform)
 
     @property
     def simulation_time_step(self):

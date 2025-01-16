@@ -101,14 +101,12 @@ class Object(PhysicalBody):
         self.local_transformer = LocalTransformer()
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
         self._current_pose = self.original_pose
-        self.scale_mesh = scale_mesh if scale_mesh is not None else 1.0
 
         if path is not None:
             self.path = self.world.preprocess_object_file_and_get_its_cache_path(path, ignore_cached_files,
                                                                                  self.description, self.name,
-                                                                                 scale_mesh=self.scale_mesh,
-                                                                                 mesh_transform=mesh_transform,
-                                                                                 color=self.color)
+                                                                                 scale_mesh=scale_mesh,
+                                                                                 mesh_transform=mesh_transform)
 
             self.description.update_description_from_file(self.path)
 
