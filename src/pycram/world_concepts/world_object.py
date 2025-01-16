@@ -587,6 +587,13 @@ class Object(WorldEntity, HasConcept):
         """
         return self.links[link_name].origin_transform
 
+    def get_object_dimensions(self, link_name: Optional[str] = None) -> Tuple[float, float, float]:
+        """
+        Return the dimensions of the object.
+        :param link_name: The Optional name of a link of this object.
+        :return: The dimensions of the object, as a Tuple with float values.
+        """
+        return self.world.get_object_dimensions(obj_id=self.id, link_name=link_name)
     @property
     def base_origin_shift(self) -> np.ndarray:
         """

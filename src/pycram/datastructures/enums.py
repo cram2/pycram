@@ -69,7 +69,10 @@ class ObjectType(int, Enum):
     ENVIRONMENT = auto()
     GENERIC_OBJECT = auto()
     HUMAN = auto()
-    IMAGINED_SURFACE = auto()
+    CUTTING_TOOL = auto()
+    BOARD = auto()
+    MIXING_TOOL = auto()
+    POURING_TOOL = auto()
 
 
 class State(int, Enum):

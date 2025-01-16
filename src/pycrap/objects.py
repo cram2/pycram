@@ -106,3 +106,22 @@ class Genobj(PhysicalObject):
     """
     A generic object if no description is provided.
     """
+
+class MixingTool(PhysicalObject):
+    """
+    A tool that is used for mixing, for example whisk.
+    """
+
+class CuttingTool(Cutlery):
+    """
+    A tool that is used for cutting, for example knife.
+    """
+
+class PouringTool(PhysicalObject):
+    """
+    A tool that is used for pouring, for example cup.
+    """
+class Board(PhysicalObject):
+    """
+    A board is a flat piece of wood or other hard material.
+    """
