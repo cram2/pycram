@@ -1,7 +1,6 @@
 import pycrap
-from pycram.datastructures.enums import GripperState, Arms
-from pycram.datastructures.world import UseProspectionWorld
-from pycram.process_module import simulated_robot, real_robot
+from pycram.datastructures.enums import GripperState
+from pycram.process_module import real_robot
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.pose import Pose
 from pycram.worlds.multiverse import Multiverse
@@ -29,6 +28,5 @@ if __name__ == '__main__':
     # Perform the plan
     with real_robot:
         SetGripperAction(robot_arms, [GripperState.CLOSE]).resolve().perform()
-
 
     world.exit()

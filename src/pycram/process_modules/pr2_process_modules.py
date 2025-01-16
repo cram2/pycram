@@ -23,6 +23,11 @@ except ImportError:
         logwarn("Import for control_msgs for gripper in Multiverse failed")
 
 try:
+    from ..worlds import Multiverse
+except ImportError:
+    Multiverse = type(None)
+
+try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
 except ImportError:
     logdebug("Pr2GripperCommandGoal not found")
@@ -58,7 +63,7 @@ class Pr2MoveGripperMultiverse(ProcessModule):
 
 class Pr2MoveGripperReal(ProcessModule):
     """
-    Opens or closes the gripper of the real robot, gripper uses an action server for this instead of giskard
+    Opens or closes the gripper of the real PR2, gripper uses an action server for this instead of giskard
     """
 
     def _execute(self, designator: MoveGripperMotion):

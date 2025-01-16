@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from ..description import Link
     from ..world_concepts.world_object import Object
     from ..world_concepts.constraints import Attachment
+    from .world_entity import PhysicalBody
 
 
 def get_point_as_list(point: Point) -> List[float]:
@@ -186,7 +187,7 @@ class AxisAlignedBoundingBox(BoundingBox):
         return cls.from_min_max(min_point, max_point)
 
     @classmethod
-    def from_multiple_bounding_boxes(cls, bounding_boxes: List[AxisAlignedBoundingBox]) -> 'AxisAlignedBoundingBox':
+    def from_multiple_bounding_boxes(cls, bounding_boxes: List[AxisAlignedBoundingBox]) -> AxisAlignedBoundingBox:
         """
         Set the axis-aligned bounding box from multiple axis-aligned bounding boxes.
 
@@ -200,7 +201,7 @@ class AxisAlignedBoundingBox(BoundingBox):
         max_z = max([box.max_z for box in bounding_boxes])
         return cls(min_x, min_y, min_z, max_x, max_y, max_z)
 
-    def get_transformed_box(self, transform: Transform) -> 'AxisAlignedBoundingBox':
+    def get_transformed_box(self, transform: Transform) -> AxisAlignedBoundingBox:
         """
         Apply a transformation to the axis-aligned bounding box and return the transformed axis-aligned bounding box.
 
@@ -249,7 +250,7 @@ class RotatedBoundingBox(BoundingBox):
 
     @classmethod
     def from_axis_aligned_bounding_box(cls, axis_aligned_bounding_box: AxisAlignedBoundingBox,
-                                       transform: Transform) -> 'RotatedBoundingBox':
+                                       transform: Transform) -> RotatedBoundingBox:
         """
         Set the rotated bounding box from an axis-aligned bounding box and a transformation.
 
@@ -479,16 +480,79 @@ class State(ABC):
 
 
 @dataclass
+class PhysicalBodyState(State):
+    """
+    Dataclass for storing the state of a physical body.
+    """
+    pose: Pose
+    is_translating: bool
+    is_rotating: bool
+    velocity: List[float]
+    acceptable_pose_error: Tuple[float, float] = (0.001, 0.001)
+    acceptable_velocity_error: Tuple[float, float] = (0.001, 0.001)
+
+    def __eq__(self, other: PhysicalBodyState):
+        return (self.pose_is_almost_equal(other)
+                and self.is_translating == other.is_translating
+                and self.is_rotating == other.is_rotating
+                and self.velocity_is_almost_equal(other)
+                )
+
+    def pose_is_almost_equal(self, other: PhysicalBodyState) -> bool:
+        """
+        Check if the pose of the object is almost equal to the pose of another object.
+
+        :param other: The state of the other object.
+        :return: True if the poses are almost equal, False otherwise.
+        """
+        return self.pose.almost_equal(other.pose, other.acceptable_pose_error[0], other.acceptable_pose_error[1])
+
+    def velocity_is_almost_equal(self, other: PhysicalBodyState) -> bool:
+        """
+        Check if the velocity of the object is almost equal to the velocity of another object.
+
+        :param other: The state of the other object.
+        :return: True if the velocities are almost equal, False otherwise.
+        """
+        if self.velocity is None or other.velocity is None:
+            return self.velocity == other.velocity
+        return (self.vector_is_almost_equal(self.velocity[:3], other.velocity[:3], self.acceptable_velocity_error[0])
+                and self.vector_is_almost_equal(self.velocity[3:], other.velocity[3:], self.acceptable_velocity_error[1]))
+
+    @staticmethod
+    def vector_is_almost_equal(vector1: List[float], vector2: List[float], acceptable_error: float) -> bool:
+        """
+        Check if the vector is almost equal to another vector.
+
+        :param vector1: The first vector.
+        :param vector2: The second vector.
+        :param acceptable_error: The acceptable error.
+        :return: True if the vectors are almost equal, False otherwise.
+        """
+        return np.all(np.array(vector1) - np.array(vector2) <= acceptable_error)
+
+    def __copy__(self):
+        return PhysicalBodyState(pose=self.pose.copy(),
+                                 is_translating=self.is_translating, is_rotating=self.is_rotating,
+                                 velocity=self.velocity.copy(),
+                                 acceptable_pose_error=deepcopy(self.acceptable_pose_error),
+                                 acceptable_velocity_error=deepcopy(self.acceptable_velocity_error))
+
+
+@dataclass
 class LinkState(State):
     """
     Dataclass for storing the state of a link.
     """
+    body_state: PhysicalBodyState
     constraint_ids: Dict[Link, int]
 
-    def __eq__(self, other: 'LinkState'):
-        return self.all_constraints_exist(other) and self.all_constraints_are_equal(other)
+    def __eq__(self, other: LinkState):
+        return (self.body_state == other.body_state
+                and self.all_constraints_exist(other)
+                and self.all_constraints_are_equal(other))
 
-    def all_constraints_exist(self, other: 'LinkState') -> bool:
+    def all_constraints_exist(self, other: LinkState) -> bool:
         """
         Check if all constraints exist in the other link state.
 
@@ -498,7 +562,7 @@ class LinkState(State):
         return (all([cid_k in other.constraint_ids.keys() for cid_k in self.constraint_ids.keys()])
                 and len(self.constraint_ids.keys()) == len(other.constraint_ids.keys()))
 
-    def all_constraints_are_equal(self, other: 'LinkState') -> bool:
+    def all_constraints_are_equal(self, other: LinkState) -> bool:
         """
         Check if all constraints are equal to the ones in the other link state.
 
@@ -509,7 +573,7 @@ class LinkState(State):
                                                                other.constraint_ids.values())])
 
     def __copy__(self):
-        return LinkState(constraint_ids=copy(self.constraint_ids))
+        return LinkState(copy(self.body_state), constraint_ids=copy(self.constraint_ids))
 
 
 @dataclass
@@ -520,7 +584,7 @@ class JointState(State):
     position: float
     acceptable_error: float
 
-    def __eq__(self, other: 'JointState'):
+    def __eq__(self, other: JointState):
         error = calculate_joint_position_error(self.position, other.position)
         return is_error_acceptable(error, other.acceptable_error)
 
@@ -533,28 +597,22 @@ class ObjectState(State):
     """
     Dataclass for storing the state of an object.
     """
-    pose: Pose
+    body_state: PhysicalBodyState
     attachments: Dict[Object, Attachment]
     link_states: Dict[int, LinkState]
     joint_states: Dict[int, JointState]
-    acceptable_pose_error: Tuple[float, float]
 
-    def __eq__(self, other: 'ObjectState'):
-        return (self.pose_is_almost_equal(other)
+    def __eq__(self, other: ObjectState):
+        return (self.body_state == other.body_state
                 and self.all_attachments_exist(other) and self.all_attachments_are_equal(other)
                 and self.link_states == other.link_states
                 and self.joint_states == other.joint_states)
 
-    def pose_is_almost_equal(self, other: 'ObjectState') -> bool:
-        """
-        Check if the pose of the object is almost equal to the pose of another object.
+    @property
+    def pose(self) -> Pose:
+        return self.body_state.pose
 
-        :param other: The state of the other object.
-        :return: True if the poses are almost equal, False otherwise.
-        """
-        return self.pose.almost_equal(other.pose, other.acceptable_pose_error[0], other.acceptable_pose_error[1])
-
-    def all_attachments_exist(self, other: 'ObjectState') -> bool:
+    def all_attachments_exist(self, other: ObjectState) -> bool:
         """
         Check if all attachments exist in the other object state.
 
@@ -564,7 +622,7 @@ class ObjectState(State):
         return (all([att_k in other.attachments.keys() for att_k in self.attachments.keys()])
                 and len(self.attachments.keys()) == len(other.attachments.keys()))
 
-    def all_attachments_are_equal(self, other: 'ObjectState') -> bool:
+    def all_attachments_are_equal(self, other: ObjectState) -> bool:
         """
         Check if all attachments are equal to the ones in the other object state.
 
@@ -574,10 +632,9 @@ class ObjectState(State):
         return all([att == other_att for att, other_att in zip(self.attachments.values(), other.attachments.values())])
 
     def __copy__(self):
-        return ObjectState(pose=self.pose.copy(), attachments=copy(self.attachments),
+        return ObjectState(body_state=self.body_state.copy(), attachments=copy(self.attachments),
                            link_states=copy(self.link_states),
-                           joint_states=copy(self.joint_states),
-                           acceptable_pose_error=deepcopy(self.acceptable_pose_error))
+                           joint_states=copy(self.joint_states))
 
 
 @dataclass
@@ -588,11 +645,11 @@ class WorldState(State):
     object_states: Dict[str, ObjectState]
     simulator_state_id: Optional[int] = None
 
-    def __eq__(self, other: 'WorldState'):
+    def __eq__(self, other: WorldState):
         return (self.simulator_state_is_equal(other) and self.all_objects_exist(other)
                 and self.all_objects_states_are_equal(other))
 
-    def simulator_state_is_equal(self, other: 'WorldState') -> bool:
+    def simulator_state_is_equal(self, other: WorldState) -> bool:
         """
         Check if the simulator state is equal to the simulator state of another world state.
 
@@ -601,7 +658,7 @@ class WorldState(State):
         """
         return self.simulator_state_id == other.simulator_state_id
 
-    def all_objects_exist(self, other: 'WorldState') -> bool:
+    def all_objects_exist(self, other: WorldState) -> bool:
         """
         Check if all objects exist in the other world state.
 
@@ -611,7 +668,7 @@ class WorldState(State):
         return (all([obj_name in other.object_states.keys() for obj_name in self.object_states.keys()])
                 and len(self.object_states.keys()) == len(other.object_states.keys()))
 
-    def all_objects_states_are_equal(self, other: 'WorldState') -> bool:
+    def all_objects_states_are_equal(self, other: WorldState) -> bool:
         """
         Check if all object states are equal to the ones in the other world state.
 
@@ -640,20 +697,24 @@ class LateralFriction:
 @dataclass
 class ContactPoint:
     """
-    Dataclass for storing the information of a contact point between two objects.
+    Dataclass for storing the information of a contact point between two bodies.
     """
-    link_a: Link
-    link_b: Link
-    position_on_object_a: Optional[List[float]] = None
-    position_on_object_b: Optional[List[float]] = None
-    normal_on_b: Optional[List[float]] = None  # the contact normal vector on object b pointing towards object a
+    body_a: PhysicalBody
+    body_b: PhysicalBody
+    position_on_body_a: Optional[List[float]] = None
+    position_on_body_b: Optional[List[float]] = None
+    normal_on_body_b: Optional[List[float]] = None  # the contact normal vector on object b pointing towards object a
     distance: Optional[float] = None  # distance between the two objects (+ve for separation, -ve for penetration)
     normal_force: Optional[List[float]] = None  # normal force applied during last step simulation
     lateral_friction_1: Optional[LateralFriction] = None
     lateral_friction_2: Optional[LateralFriction] = None
 
+    @property
+    def normal(self) -> List[float]:
+        return self.normal_on_body_b
+
     def __str__(self):
-        return f"ContactPoint: {self.link_a.object.name} - {self.link_b.object.name}"
+        return f"ContactPoint: {self.body_a.name} - {self.body_b.name}"
 
     def __repr__(self):
         return self.__str__()
@@ -670,24 +731,24 @@ class ContactPointsList(list):
     A list of contact points.
     """
 
-    def get_links_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Link]:
+    def get_bodies_that_got_removed(self, previous_points: ContactPointsList) -> List[PhysicalBody]:
         """
-        Return the links that are not in the current points list but were in the initial points list.
+        Return the bodies that are not in the current points list but were in the initial points list.
 
         :param previous_points: The initial points list.
-        :return: A list of Link instances that represent the links that got removed.
+        :return: A list of bodies that got removed.
         """
-        initial_links_in_contact = previous_points.get_links_in_contact()
-        current_links_in_contact = self.get_links_in_contact()
-        return [link for link in initial_links_in_contact if link not in current_links_in_contact]
+        initial_bodies_in_contact = previous_points.get_bodies_in_contact()
+        current_bodies_in_contact = self.get_bodies_in_contact()
+        return [body for body in initial_bodies_in_contact if body not in current_bodies_in_contact]
 
-    def get_links_in_contact(self) -> List[Link]:
+    def get_bodies_in_contact(self) -> List[PhysicalBody]:
         """
-        Get the links in contact.
+        Get the bodies in contact.
 
-        :return: A list of Link instances that represent the links in contact.
+        :return: A list of bodies that are in contact.
         """
-        return [point.link_b for point in self]
+        return [point.body_b for point in self]
 
     def check_if_two_objects_are_in_contact(self, obj_a: Object, obj_b: Object) -> bool:
         """
@@ -697,8 +758,21 @@ class ContactPointsList(list):
         :param obj_b: An instance of the Object class that represents the second object.
         :return: True if the objects are in contact, False otherwise.
         """
-        return (any([point.link_b.object == obj_b and point.link_a.object == obj_a for point in self]) or
-                any([point.link_a.object == obj_b and point.link_b.object == obj_a for point in self]))
+        return (any([self.is_body_in_object(point.body_b, obj_b)
+                     and self.is_body_in_object(point.body_a, obj_a) for point in self]) or
+                any([self.is_body_in_object(point.body_a, obj_b)
+                     and self.is_body_in_object(point.body_b, obj_a) for point in self]))
+
+    @staticmethod
+    def is_body_in_object(body: PhysicalBody, obj: Object) -> bool:
+        """
+        Check if the body belongs to the object.
+
+        :param body: The body.
+        :param obj: The object.
+        :return: True if the body belongs to the object, False otherwise.
+        """
+        return body in list(obj.links.values()) or body == obj
 
     def get_normals_of_object(self, obj: Object) -> List[List[float]]:
         """
@@ -715,27 +789,45 @@ class ContactPointsList(list):
 
         :return: A list of float vectors that represent the normals of the contact points.
         """
-        return [point.normal_on_b for point in self]
+        return [point.normal_on_body_b for point in self]
 
-    def get_links_in_contact_of_object(self, obj: Object) -> List[Link]:
+    def get_links_in_contact_of_object(self, obj: Object) -> List[PhysicalBody]:
         """
         Get the links in contact of the object.
 
         :param obj: An instance of the Object class that represents the object.
         :return: A list of Link instances that represent the links in contact of the object.
         """
-        return [point.link_b for point in self if point.link_b.object == obj]
+        return [point.body_b for point in self if point.body_b.parent_entity == obj]
 
-    def get_points_of_object(self, obj: Object) -> 'ContactPointsList':
+    def get_points_of_object(self, obj: Object) -> ContactPointsList:
         """
         Get the points of the object.
 
         :param obj: An instance of the Object class that represents the object that the points are related to.
         :return: A ContactPointsList instance that represents the contact points of the object.
         """
-        return ContactPointsList([point for point in self if point.link_b.object == obj])
+        return ContactPointsList([point for point in self if self.is_body_in_object(point.body_b, obj)])
 
-    def get_objects_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Object]:
+    def get_points_of_link(self, link: Link) -> ContactPointsList:
+        """
+        Get the points of the link.
+
+        :param link: An instance of the Link class that represents the link that the points are related to.
+        :return: A ContactPointsList instance that represents the contact points of the link.
+        """
+        return self.get_points_of_body(link)
+
+    def get_points_of_body(self, body: PhysicalBody) -> ContactPointsList:
+        """
+        Get the points of the body.
+
+        :param body: An instance of the PhysicalBody class that represents the body that the points are related to.
+        :return: A ContactPointsList instance that represents the contact points of the body.
+        """
+        return ContactPointsList([point for point in self if body == point.body_b])
+
+    def get_objects_that_got_removed(self, previous_points: ContactPointsList) -> List[Object]:
         """
         Return the object that is not in the current points list but was in the initial points list.
 
@@ -746,7 +838,7 @@ class ContactPointsList(list):
         current_objects_in_contact = self.get_objects_that_have_points()
         return [obj for obj in initial_objects_in_contact if obj not in current_objects_in_contact]
 
-    def get_new_objects(self, previous_points: 'ContactPointsList') -> List[Object]:
+    def get_new_objects(self, previous_points: ContactPointsList) -> List[Object]:
         """
         Return the object that is not in the initial points list but is in the current points list.
 
@@ -780,7 +872,7 @@ class ContactPointsList(list):
 
         :return: A list of Object instances that represent the objects that have points in the list.
         """
-        return list({point.link_b.object for point in self})
+        return list({point.body_b.parent_entity for point in self})
 
     def __str__(self):
         return f"ContactPointsList: {', '.join([point.__str__() for point in self])}"
@@ -833,6 +925,7 @@ class VirtualMobileBaseJoints:
     """
     Dataclass for storing the names, types and axes of the virtual mobile base joints of a mobile robot.
     """
+
     translation_x: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_X.value,
                                                          JointType.PRISMATIC,
                                                          Point(1, 0, 0))
