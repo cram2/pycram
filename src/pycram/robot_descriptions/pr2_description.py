@@ -86,10 +86,12 @@ pr2_description.add_kinematic_chain_description(torso)
 pr2_description.add_kinematic_chain("neck", "head_pan_link", "head_tilt_link")
 
 ################################# Grasps ##################################
-pr2_description.add_grasp_orientations({Grasp.FRONT: [0, 0, 0, 1],
-                                        Grasp.LEFT: [0, 0, -1, 1],
-                                        Grasp.RIGHT: [0, 0, 1, 1],
-                                        Grasp.TOP: [0, 1, 0, 1]})
+pr2_description.add_grasp_orientations({Grasp.FRONT:    [0.0, 0.0, 0.0, 1.0],
+                                        Grasp.BACK:     [0.0, 0.0, 1.0, 0.0],
+                                        Grasp.LEFT:     [0.0, 0.0, -0.7071067811865475, 0.7071067811865476],
+                                        Grasp.RIGHT:    [0.0, 0.0, 0.7071067811865475, 0.7071067811865476],
+                                        Grasp.TOP:      [0.0, 0.7071067811865475, 0.0, 0.7071067811865476],
+                                        Grasp.BOTTOM:   [0.0, -0.7071067811865475, 0.0, 0.7071067811865476]})
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()
