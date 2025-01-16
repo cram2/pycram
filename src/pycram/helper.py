@@ -127,9 +127,7 @@ def perform(action_instance):
 
     :param action_instance: An instance of an action class.
     """
-    if hasattr(action_instance, 'execute'):
-        return action_instance.execute()
-    raise AttributeError(f"{action_instance.__class__.__name__} has no 'plan' method.")
+    return action_instance.perform()
 
 
 def an(designator):
