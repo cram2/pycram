@@ -36,7 +36,7 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
-from pycrap import PhysicalObject, ontology, Base, Agent
+from pycrap import PhysicalObject, ontology, Base, Agent, Robot
 
 Link = ObjectDescription.Link
 
@@ -83,14 +83,9 @@ class Object(PhysicalBody):
         :param scale_mesh: The scale of the mesh.
         """
 
-        super().__init__(-1, world if world is not None else World.current_world)
+        super().__init__(-1, world if world is not None else World.current_world, concept)
 
         pose = Pose() if pose is None else pose
-
-        # set ontology related information
-        self.ontology_concept = concept
-        if not self.world.is_prospection_world:
-            self.ontology_individual = self.ontology_concept(namespace=self.world.ontology.ontology)
 
         self.name: str = name
         self.path: Optional[str] = path
@@ -111,7 +106,7 @@ class Object(PhysicalBody):
             self.description.update_description_from_file(self.path)
 
         # if the object is an agent in the belief state
-        if Agent in self.ontology_concept.is_a and not self.world.is_prospection_world:
+        if Robot in self.ontology_concept.is_a and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
 
         self.id = self._spawn_object_and_get_id()
