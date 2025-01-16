@@ -601,14 +601,14 @@ class PhysicalBodyState(State):
     acceptable_pose_error: Tuple[float, float] = (0.001, 0.001)
     acceptable_velocity_error: Tuple[float, float] = (0.001, 0.001)
 
-    def __eq__(self, other: 'PhysicalBodyState'):
+    def __eq__(self, other: PhysicalBodyState):
         return (self.pose_is_almost_equal(other)
                 and self.is_translating == other.is_translating
                 and self.is_rotating == other.is_rotating
                 and self.velocity_is_almost_equal(other)
                 )
 
-    def pose_is_almost_equal(self, other: 'PhysicalBodyState') -> bool:
+    def pose_is_almost_equal(self, other: PhysicalBodyState) -> bool:
         """
         Check if the pose of the object is almost equal to the pose of another object.
 
@@ -617,7 +617,7 @@ class PhysicalBodyState(State):
         """
         return self.pose.almost_equal(other.pose, other.acceptable_pose_error[0], other.acceptable_pose_error[1])
 
-    def velocity_is_almost_equal(self, other: 'PhysicalBodyState') -> bool:
+    def velocity_is_almost_equal(self, other: PhysicalBodyState) -> bool:
         """
         Check if the velocity of the object is almost equal to the velocity of another object.
 
@@ -657,12 +657,12 @@ class LinkState(State):
     body_state: PhysicalBodyState
     constraint_ids: Dict[Link, int]
 
-    def __eq__(self, other: 'LinkState'):
+    def __eq__(self, other: LinkState):
         return (self.body_state == other.body_state
                 and self.all_constraints_exist(other)
                 and self.all_constraints_are_equal(other))
 
-    def all_constraints_exist(self, other: 'LinkState') -> bool:
+    def all_constraints_exist(self, other: LinkState) -> bool:
         """
         Check if all constraints exist in the other link state.
 
@@ -672,7 +672,7 @@ class LinkState(State):
         return (all([cid_k in other.constraint_ids.keys() for cid_k in self.constraint_ids.keys()])
                 and len(self.constraint_ids.keys()) == len(other.constraint_ids.keys()))
 
-    def all_constraints_are_equal(self, other: 'LinkState') -> bool:
+    def all_constraints_are_equal(self, other: LinkState) -> bool:
         """
         Check if all constraints are equal to the ones in the other link state.
 
@@ -694,7 +694,7 @@ class JointState(State):
     position: float
     acceptable_error: float
 
-    def __eq__(self, other: 'JointState'):
+    def __eq__(self, other: JointState):
         error = calculate_joint_position_error(self.position, other.position)
         return is_error_acceptable(error, other.acceptable_error)
 
@@ -712,7 +712,7 @@ class ObjectState(State):
     link_states: Dict[int, LinkState]
     joint_states: Dict[int, JointState]
 
-    def __eq__(self, other: 'ObjectState'):
+    def __eq__(self, other: ObjectState):
         return (self.body_state == other.body_state
                 and self.all_attachments_exist(other) and self.all_attachments_are_equal(other)
                 and self.link_states == other.link_states
@@ -722,7 +722,7 @@ class ObjectState(State):
     def pose(self) -> Pose:
         return self.body_state.pose
 
-    def all_attachments_exist(self, other: 'ObjectState') -> bool:
+    def all_attachments_exist(self, other: ObjectState) -> bool:
         """
         Check if all attachments exist in the other object state.
 
@@ -732,7 +732,7 @@ class ObjectState(State):
         return (all([att_k in other.attachments.keys() for att_k in self.attachments.keys()])
                 and len(self.attachments.keys()) == len(other.attachments.keys()))
 
-    def all_attachments_are_equal(self, other: 'ObjectState') -> bool:
+    def all_attachments_are_equal(self, other: ObjectState) -> bool:
         """
         Check if all attachments are equal to the ones in the other object state.
 
@@ -742,10 +742,9 @@ class ObjectState(State):
         return all([att == other_att for att, other_att in zip(self.attachments.values(), other.attachments.values())])
 
     def __copy__(self):
-        return ObjectState(pose=self.pose.copy(), attachments=copy(self.attachments),
+        return ObjectState(body_state=self.body_state.copy(), attachments=copy(self.attachments),
                            link_states=copy(self.link_states),
-                           joint_states=copy(self.joint_states),
-                           acceptable_pose_error=deepcopy(self.acceptable_pose_error))
+                           joint_states=copy(self.joint_states))
 
 
 @dataclass
@@ -756,11 +755,11 @@ class WorldState(State):
     object_states: Dict[str, ObjectState]
     simulator_state_id: Optional[int] = None
 
-    def __eq__(self, other: 'WorldState'):
+    def __eq__(self, other: WorldState):
         return (self.simulator_state_is_equal(other) and self.all_objects_exist(other)
                 and self.all_objects_states_are_equal(other))
 
-    def simulator_state_is_equal(self, other: 'WorldState') -> bool:
+    def simulator_state_is_equal(self, other: WorldState) -> bool:
         """
         Check if the simulator state is equal to the simulator state of another world state.
 
@@ -769,7 +768,7 @@ class WorldState(State):
         """
         return self.simulator_state_id == other.simulator_state_id
 
-    def all_objects_exist(self, other: 'WorldState') -> bool:
+    def all_objects_exist(self, other: WorldState) -> bool:
         """
         Check if all objects exist in the other world state.
 
@@ -779,7 +778,7 @@ class WorldState(State):
         return (all([obj_name in other.object_states.keys() for obj_name in self.object_states.keys()])
                 and len(self.object_states.keys()) == len(other.object_states.keys()))
 
-    def all_objects_states_are_equal(self, other: 'WorldState') -> bool:
+    def all_objects_states_are_equal(self, other: WorldState) -> bool:
         """
         Check if all object states are equal to the ones in the other world state.
 
@@ -842,7 +841,7 @@ class ContactPointsList(list):
     A list of contact points.
     """
 
-    def get_bodies_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Link]:
+    def get_bodies_that_got_removed(self, previous_points: ContactPointsList) -> List[PhysicalBody]:
         """
         Return the bodies that are not in the current points list but were in the initial points list.
 
@@ -911,7 +910,7 @@ class ContactPointsList(list):
         """
         return [point.body_b for point in self if point.body_b.parent_entity == obj]
 
-    def get_points_of_object(self, obj: Object) -> 'ContactPointsList':
+    def get_points_of_object(self, obj: Object) -> ContactPointsList:
         """
         Get the points of the object.
 
@@ -920,7 +919,7 @@ class ContactPointsList(list):
         """
         return ContactPointsList([point for point in self if self.is_body_in_object(point.body_b, obj)])
 
-    def get_points_of_link(self, link: Link) -> 'ContactPointsList':
+    def get_points_of_link(self, link: Link) -> ContactPointsList:
         """
         Get the points of the link.
 
@@ -929,7 +928,7 @@ class ContactPointsList(list):
         """
         return self.get_points_of_body(link)
 
-    def get_points_of_body(self, body: PhysicalBody) -> 'ContactPointsList':
+    def get_points_of_body(self, body: PhysicalBody) -> ContactPointsList:
         """
         Get the points of the body.
 
@@ -938,7 +937,7 @@ class ContactPointsList(list):
         """
         return ContactPointsList([point for point in self if body == point.body_b])
 
-    def get_objects_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Object]:
+    def get_objects_that_got_removed(self, previous_points: ContactPointsList) -> List[Object]:
         """
         Return the object that is not in the current points list but was in the initial points list.
 
@@ -949,7 +948,7 @@ class ContactPointsList(list):
         current_objects_in_contact = self.get_objects_that_have_points()
         return [obj for obj in initial_objects_in_contact if obj not in current_objects_in_contact]
 
-    def get_new_objects(self, previous_points: 'ContactPointsList') -> List[Object]:
+    def get_new_objects(self, previous_points: ContactPointsList) -> List[Object]:
         """
         Return the object that is not in the initial points list but is in the current points list.
 
