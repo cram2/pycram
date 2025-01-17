@@ -792,7 +792,6 @@ class Object(PhysicalBody):
         """
         return self.get_pose().orientation_as_list()
 
-    @deprecated("Use property 'pose' instead.")
     def get_pose(self) -> Pose:
         """
         Return the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
@@ -1386,11 +1385,9 @@ class Object(PhysicalBody):
         """
         return self.world.get_closest_points_between_two_bodies(self, other_object, max_distance)
 
-    @deprecated("Use property setter 'color' instead.")
     def set_color(self, rgba_color: Color) -> None:
         self.color = rgba_color
 
-    @deprecated("Use property 'color' instead.")
     def get_color(self) -> Union[Color, Dict[str, Color]]:
         return self.color
 
