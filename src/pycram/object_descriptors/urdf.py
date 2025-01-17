@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 
-from ..ros.logging import logerr
+from ..ros.logging import logerr, logwarn
 from ..ros.ros_tools import create_ros_pack, ResourceNotFound, get_parameter
 from geometry_msgs.msg import Point
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
@@ -84,6 +84,10 @@ class LinkDescription(AbstractLinkDescription, HasConcept):
                 return self.parsed_description.collisions[0]
             else:
                 return self.parsed_description.collisions
+
+    @property
+    def all_collisions(self) -> List[Collision]:
+        return self.parsed_description.collisions
 
 
 class JointDescription(AbstractJointDescription):

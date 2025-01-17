@@ -6,9 +6,9 @@ from random_events.variable import Continuous, Symbolic
 from sortedcontainers import SortedSet
 
 from pycram.testing import BulletWorldTestCase
-from pycram.datastructures.enums import ObjectType, Arms, Grasp
+from pycram.datastructures.enums import ObjectType, Arms, Grasp, TorsoState
 from pycram.designator import ObjectDesignatorDescription
-from pycram.designators.action_designator import MoveTorsoActionPerformable
+from pycram.designators.action_designator import MoveTorsoActionPerformable, MoveTorsoAction
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import (MoveAndPickUp,
                                                                                            Arms as PMArms,
                                                                                            Grasp as PMGrasp)
@@ -28,7 +28,7 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
     def test_variables(self):
         object_designator = ObjectDesignatorDescription(types=[Milk]).resolve()
         move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
-                                      grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP])
+                                      grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP, Grasp.BOTTOM, Grasp.BACK])
         result = SortedSet([Symbolic("arm", PMArms), Symbolic("grasp", PMGrasp),
                             Continuous("relative_x"), Continuous("relative_y")])
         all_variables = move_and_pick.all_variables()
@@ -37,7 +37,7 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
     def test_grounding(self):
         object_designator = ObjectDesignatorDescription(types=[Milk]).resolve()
         move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
-                                      grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP])
+                                      grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP, Grasp.BOTTOM, Grasp.BACK])
 
         model = move_and_pick.ground_model()
         event = move_and_pick.events_from_occupancy_and_visibility_costmap()
@@ -47,11 +47,11 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
     def test_move_and_pick_up_with_mode(self):
         object_designator = ObjectDesignatorDescription(types=[Milk]).resolve()
         move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
-                                      grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP])
+                                      grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP, Grasp.BOTTOM, Grasp.BACK])
         with simulated_robot:
             for action in move_and_pick.iter_with_mode():
                 try:
-                    MoveTorsoActionPerformable(0.3).perform()
+                    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
                     action.perform()
                     return  # Success
                 except PlanFailure as e:

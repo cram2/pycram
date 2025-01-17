@@ -51,6 +51,8 @@ class Grasp(int, Enum):
     LEFT = 1
     RIGHT = 2
     TOP = 3
+    BACK = 4
+    BOTTOM = 5
 
 
 class ObjectType(int, Enum):
@@ -92,6 +94,15 @@ class Shape(Enum):
     MESH = 5
     PLANE = 6
     CAPSULE = 7
+
+
+class TorsoState(Enum):
+    """
+    Enum for the different states of the torso.
+    """
+    HIGH = auto()
+    MID = auto()
+    LOW = auto()
 
 
 class WorldMode(Enum):

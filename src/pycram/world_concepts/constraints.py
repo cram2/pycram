@@ -51,7 +51,7 @@ class AbstractConstraint:
         """
         Set the target pose of the child object to the current pose of the child object in the parent object frame.
         """
-        self.child_link.set_pose(self.get_child_link_target_pose())
+        self.child_link.set_object_pose_given_link_pose(self.get_child_link_target_pose())
 
     def get_child_link_target_pose(self) -> Pose:
         """

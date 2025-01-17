@@ -1,7 +1,7 @@
 from ..ros.ros_tools import  get_ros_package_path
 from ..robot_description import RobotDescription, CameraDescription, KinematicChainDescription, \
     EndEffectorDescription, RobotDescriptionManager
-from ..datastructures.enums import Arms, Grasp, GripperState
+from ..datastructures.enums import Arms, Grasp, GripperState, TorsoState
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "boxy" + '.urdf'
 
@@ -55,6 +55,18 @@ left_gripper.add_static_joint_states(GripperState.OPEN, {"left_gripper_joint": 0
 left_gripper.add_static_joint_states(GripperState.CLOSE, {"left_gripper_joint": 0.0})
 
 left_arm.end_effector = left_gripper
+
+################################## Torso ##################################
+torso = KinematicChainDescription("torso", "base_link", "triangle_base_link",
+                                  boxy_description.urdf_object)
+
+torso.add_static_joint_states(TorsoState.HIGH, {"triangle_base_joint": 0})
+
+torso.add_static_joint_states(TorsoState.MID, {"triangle_base_joint": 0.29})
+
+torso.add_static_joint_states(TorsoState.LOW, {"triangle_base_joint": -0.58})
+
+boxy_description.add_kinematic_chain_description(torso)
 
 ################################## Camera ##################################
 camera = CameraDescription("head_mount_kinect2_rgb_optical_frame", "head_mount_kinect2_rgb_optical_frame",

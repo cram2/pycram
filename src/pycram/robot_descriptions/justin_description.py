@@ -1,6 +1,6 @@
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import Arms, Grasp, GripperState, GripperType
+from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState
 import rospkg
 
 rospack = rospkg.RosPack()
@@ -169,6 +169,24 @@ justin_description.add_camera_description(camera)
 ################################## Neck ##################################
 justin_description.add_kinematic_chain("neck", "torso4", "head2")
 # justin_description.set_neck("head1_joint", "head2_joint")
+
+################################## Torso ##################################
+torso = KinematicChainDescription("torso", "torso1", "torso4",
+                                  justin_description.urdf_object)
+
+torso.add_static_joint_states(TorsoState.HIGH, {"torso2_joint": 0,
+                                                "torso3_joint": 0.174533,
+                                                "torso4_joint": 0})
+
+torso.add_static_joint_states(TorsoState.MID, {"torso2_joint": -0.8,
+                                               "torso3_joint": 1.57,
+                                               "torso4_joint": -0.77})
+
+torso.add_static_joint_states(TorsoState.LOW, {"torso2_joint": -0.9,
+                                               "torso3_joint": 2.33874,
+                                               "torso4_joint": -1.57})
+
+justin_description.add_kinematic_chain_description(torso)
 
 
 ################################# Grasps ##################################

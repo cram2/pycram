@@ -20,7 +20,7 @@ else:
     filename = get_robot_urdf_path_from_multiverse(robot_relative_dir, ROBOT_NAME, resources_dir=multiverse_resources)
     mjcf_filename = get_robot_mjcf_path(robot_relative_dir, ROBOT_NAME, multiverse_resources=multiverse_resources)
     ur5_description = RobotDescription(ROBOT_NAME, "base_link", "", "",
-                                       filename, mjcf_path=mjcf_filename)
+                                       filename, mjcf_path=mjcf_filename, gripper_name=GRIPPER_NAME)
 
     ################################## Arm ##################################
     arm = KinematicChainDescription("manipulator", "base_link", "wrist_3_link",

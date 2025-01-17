@@ -1,10 +1,10 @@
-from typing_extensions import Optional
+from typing_extensions import Optional, Dict
 
 from .base import RobotState, Designator, MapperArgsMixin, PoseMixin
 from .object_designator import ObjectMixin
 from ..datastructures.enums import Arms, GripperState, Grasp, DetectionTechnique, DetectionState
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, JSON
 
 
 class Action(MapperArgsMixin, Designator):
@@ -37,7 +37,7 @@ class MoveTorsoAction(Action):
     """ORM Class of pycram.designators.action_designator.MoveTorsoAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
-    position: Mapped[Optional[float]] = mapped_column(default=None)
+    joint_positions: Mapped[Optional[Dict[str, float]]] = mapped_column(JSON)
 
 
 class SetGripperAction(Action):

@@ -10,7 +10,7 @@ from copy import copy
 import numpy as np
 from geometry_msgs.msg import Point
 from trimesh.parent import Geometry3D
-from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
+from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
 
 from pycrap.ontologies import PhysicalObject
@@ -26,15 +26,13 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox)
 from ..datastructures.enums import JointType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
-from ..datastructures.world_entity import StateEntity
+from ..datastructures.world_entity import StateEntity, PhysicalBody, WorldEntity
 from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
 from ..ros.data_types import Time
 from ..ros.logging import logwarn
-from ..validation.goal_validator import (MultiPoseGoalValidator,
-                                         PoseGoalValidator, JointPositionGoalValidator,
-                                         MultiJointPositionGoalValidator, GoalValidator,
+from ..validation.goal_validator import (GoalValidator,
                                          validate_joint_position, validate_multiple_joint_positions,
                                          validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
@@ -46,7 +44,7 @@ if TYPE_CHECKING:
     from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 
 
-class World(StateEntity, ABC):
+class World(WorldEntity, ABC):
     """
     The World Class represents the physics Simulation and belief state, it is the main interface for reasoning about
     the World. This is implemented as a singleton, the current World can be accessed via the static variable
@@ -82,8 +80,8 @@ class World(StateEntity, ABC):
     The ontology of this world.
     """
 
-    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False,
-                 clear_cache: bool = False):
+    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection: bool = False, clear_cache: bool = False,
+                 id_: int = -1):
         """
         Create a new simulation, the mode decides if the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
@@ -91,14 +89,13 @@ class World(StateEntity, ABC):
 
         :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is
          "GUI"
-        :param is_prospection_world: For internal usage, decides if this World should be used as a prospection world.
+        :param is_prospection: For internal usage, decides if this World should be used as a prospection world.
         :param clear_cache: Whether to clear the cache directory.
+        :param id_: The unique id of the world.
         """
 
-        StateEntity.__init__(self)
-
+        WorldEntity.__init__(self, id_, self)
         self.ontology = OntologyWrapper()
-
         self.latest_state_id: Optional[int] = None
 
         if clear_cache or (self.conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
@@ -111,15 +108,12 @@ class World(StateEntity, ABC):
 
         self.object_lock: threading.Lock = threading.Lock()
 
-        self.id: Optional[int] = -1
-        # This is used to connect to the physics server (allows multiple clients)
-
         self._init_world(mode)
 
         self.objects: List[Object] = []
         # List of all Objects in the World
 
-        self.is_prospection_world: bool = is_prospection_world
+        self.is_prospection_world: bool = is_prospection
         self._init_and_sync_prospection_world()
 
         self.local_transformer = LocalTransformer()
@@ -133,27 +127,28 @@ class World(StateEntity, ABC):
 
         self._current_state: Optional[WorldState] = None
 
-        self._init_goal_validators()
-
         self.original_state_id = self.save_state()
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
 
-    def get_object_convex_hull(self, obj: Object) -> Geometry3D:
+    @property
+    def parent_entity(self) -> Optional[WorldEntity]:
         """
-        Get the convex hull of an object.
-
-        :param obj: The pycram object.
-        :return: The convex hull of the object as a list of Points.
+        Return the parent entity of this entity, in this case it is None as the World is the top level entity.
         """
-        raise NotImplementedError
+        return None
 
-    def get_link_convex_hull(self, link: Link) -> Geometry3D:
+    @property
+    def name(self) -> str:
         """
-        Get the convex hull of a link of an articulated object.
+        Return the name of the world, which is the name of the implementation class (e.g. BulletWorld).
+        """
+        return self.__class__.__name__
 
-        :param link: The link as a AbstractLink object.
-        :return: The convex hull of the link as a list of Points.
+    def get_body_convex_hull(self, body: PhysicalBody) -> Geometry3D:
+        """
+        :param body: The body object.
+        :return: The convex hull of the body as a Geometry3D object.
         """
         raise NotImplementedError
 
@@ -234,30 +229,6 @@ class World(StateEntity, ABC):
         """
         return self.robot_description.joint_actuators
 
-    def _init_goal_validators(self):
-        """
-        Initialize the goal validators for the World objects' poses, positions, and orientations.
-        """
-
-        # Objects Pose goal validators
-        self.pose_goal_validator = PoseGoalValidator(self.get_object_pose, self.conf.get_pose_tolerance(),
-                                                     self.conf.acceptable_percentage_of_goal)
-        self.multi_pose_goal_validator = MultiPoseGoalValidator(
-            lambda x: list(self.get_multiple_object_poses(x).values()),
-            self.conf.get_pose_tolerance(), self.conf.acceptable_percentage_of_goal)
-
-        # Joint Goal validators
-        self.joint_position_goal_validator = JointPositionGoalValidator(
-            self.get_joint_position,
-            acceptable_revolute_joint_position_error=self.conf.revolute_joint_position_tolerance,
-            acceptable_prismatic_joint_position_error=self.conf.prismatic_joint_position_tolerance,
-            acceptable_percentage_of_goal_achieved=self.conf.acceptable_percentage_of_goal)
-        self.multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
-            lambda x: list(self.get_multiple_joint_positions(x).values()),
-            acceptable_revolute_joint_position_error=self.conf.revolute_joint_position_tolerance,
-            acceptable_prismatic_joint_position_error=self.conf.prismatic_joint_position_tolerance,
-            acceptable_percentage_of_goal_achieved=self.conf.acceptable_percentage_of_goal)
-
     def check_object_exists(self, obj: Object) -> bool:
         """
         Check if the object exists in the simulator.
@@ -304,7 +275,7 @@ class World(StateEntity, ABC):
         if self.is_prospection_world:  # then no need to add another prospection world
             self.prospection_world = None
         else:
-            self.prospection_world: World = self.__class__(is_prospection_world=True)
+            self.prospection_world: World = self.__class__(is_prospection=True)
 
     def _sync_prospection_world(self):
         """
@@ -472,7 +443,7 @@ class World(StateEntity, ABC):
         :param obj: The object to be removed.
         """
         self.original_state.object_states.pop(obj.name)
-        self.original_state.simulator_state_id = self.save_physics_simulator_state(use_same_id=True)
+        self.update_simulator_state_id_in_original_state(use_same_id=True)
 
     def add_object_to_original_state(self, obj: Object) -> None:
         """
@@ -638,7 +609,7 @@ class World(StateEntity, ABC):
             curr_time = Time().now()
             self.step(func)
             for objects, callbacks in self.coll_callbacks.items():
-                contact_points = self.get_contact_points_between_two_objects(objects[0], objects[1])
+                contact_points = self.get_contact_points_between_two_bodies(objects[0], objects[1])
                 if len(contact_points) > 0:
                     callbacks.on_collision_cb()
                 elif callbacks.no_collision_cb is not None:
@@ -647,14 +618,6 @@ class World(StateEntity, ABC):
                 loop_time = Time().now() - curr_time
                 time_diff = self.simulation_time_step - loop_time.to_sec()
                 time.sleep(max(0, time_diff))
-        self.update_all_objects_poses()
-
-    def update_all_objects_poses(self) -> None:
-        """
-        Update the positions of all objects in the world.
-        """
-        for obj in self.objects:
-            obj.update_pose()
 
     @abstractmethod
     def get_object_pose(self, obj: Object) -> Pose:
@@ -739,47 +702,66 @@ class World(StateEntity, ABC):
         """
         pass
 
-    @abstractmethod
+    @deprecated("Use get_body_contact_points instead")
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
-        Return a list of contact points of this Object with all other Objects.
-
-        :param obj: The object.
-        :return: A list of all contact points with other objects
+        Same as :meth:`get_body_contact_points` but with objects instead of any type of bodies.
         """
-        pass
+        return self.get_body_contact_points(obj)
 
     @abstractmethod
-    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
+    def get_body_contact_points(self, body: PhysicalBody) -> ContactPointsList:
         """
-        Return a list of contact points between obj_a and obj_b.
+        Return the contact points of a body with all other bodies in the world.
 
-        :param obj1: The first object.
-        :param obj2: The second object.
-        :return: A list of all contact points between the two objects.
+        :param body: The body.
         """
         pass
 
-    def get_object_closest_points(self, obj: Object, max_distance: float) -> ClosestPointsList:
+    @deprecated("Use get_contact_points_between_two_bodies instead")
+    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
         """
-        Return the closest points of this object with all other objects in the world.
+        Same as :meth:`get_contact_points_between_two_bodies` but with objects instead of any type of bodies.
+        """
+        return self.get_contact_points_between_two_bodies(obj1, obj2)
 
-        :param obj: The object.
-        :param max_distance: The maximum distance between the points.
+    @abstractmethod
+    def get_contact_points_between_two_bodies(self, body_1: PhysicalBody, body_2: PhysicalBody) -> ContactPointsList:
+        """
+        Return a list of contact points between two bodies.
+
+        :param body_1: The first body.
+        :param body_2: The second body.
+        :return: A list of all contact points between the two bodies.
+        """
+        pass
+
+    @deprecated("Use get_contact_points_between_two_bodies instead")
+    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
+        """
+        Same as :meth:`get_contact_points_between_two_bodies` but with objects instead of any type of bodies.
+        """
+        return self.get_contact_points_between_two_bodies(obj1, obj2)
+
+    def get_body_closest_points(self, body: PhysicalBody, max_distance: float) -> ClosestPointsList:
+        """
+        Return the closest points of this body with all other bodies in the world.
+
+        :param body: The body.
+        :param max_distance: The maximum allowed distance between the points.
         :return: A list of the closest points.
         """
-        all_obj_closest_points = [self.get_closest_points_between_objects(obj, other_obj, max_distance) for other_obj in
-                                  self.objects
-                                  if other_obj != obj]
+        all_obj_closest_points = [self.get_closest_points_between_two_bodies(body, other_body, max_distance)
+                                  for other_body in self.objects if other_body != body]
         return ClosestPointsList([point for closest_points in all_obj_closest_points for point in closest_points])
 
-    def get_closest_points_between_objects(self, object_a: Object, object_b: Object, max_distance: float) \
+    def get_closest_points_between_two_bodies(self, body_a: PhysicalBody, body_b: PhysicalBody, max_distance: float) \
             -> ClosestPointsList:
         """
         Return the closest points between two objects.
 
-        :param object_a: The first object.
-        :param object_b: The second object.
+        :param body_a: The first body.
+        :param body_b: The second body.
         :param max_distance: The maximum distance between the points.
         :return: A list of the closest points.
         """
@@ -1301,7 +1283,7 @@ class World(StateEntity, ABC):
         self.restore_state(self.original_state_id)
         if remove_saved_states:
             self.remove_saved_states()
-        self.original_state_id = self.save_state(use_same_id=True)
+            self.original_state_id = self.save_state(use_same_id=True)
 
     def remove_saved_states(self) -> None:
         """
@@ -1685,6 +1667,15 @@ class World(StateEntity, ABC):
 
     def __del__(self):
         self.exit()
+
+    def __eq__(self, other: World):
+        if not isinstance(other, self.__class__):
+            return False
+        return (self.is_prospection_world == other.is_prospection_world
+                and self.id == other.id)
+
+    def __hash__(self):
+        return hash((self.__class__.__name__, self.is_prospection_world, self.id))
 
 
 class UseProspectionWorld:

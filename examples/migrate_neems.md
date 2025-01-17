@@ -57,6 +57,8 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.designators.object_designator import *
 from pycrap.ontologies import Robot, Kitchen, Milk, Cereal
+from pycram.datastructures.enums import TorsoState
+import pycrap
 
 
 class ExamplePlans:
@@ -75,7 +77,7 @@ class ExamplePlans:
     def pick_and_place_plan(self):
         with simulated_robot:
             ParkArmsAction([Arms.BOTH]).resolve().perform()
-            MoveTorsoAction([0.3]).resolve().perform()
+            MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
             pickup_pose = CostmapLocation(target=self.cereal_desig.resolve(), reachable_for=self.robot_desig).resolve()
             pickup_arm = pickup_pose.reachable_arms[0]
             NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()

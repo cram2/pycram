@@ -39,7 +39,7 @@ Next we will write a simple plan where the robot parks his arms and then moves s
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
-from pycram.datastructures.enums import Arms, ObjectType, Grasp, WorldMode
+from pycram.datastructures.enums import Arms, ObjectType, Grasp, WorldMode, TorsoState
 from pycram.tasktree import with_tree
 import pycram.tasktree
 from pycram.worlds.bullet_world import BulletWorld
@@ -64,7 +64,7 @@ kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
 def plan():
     with simulated_robot:
         ParkArmsActionPerformable(Arms.BOTH).perform()
-        MoveTorsoAction([0.2]).resolve().perform()
+        MoveTorsoAction([TorsoState.MID]).resolve().perform()
         pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
         pickup_arm = pickup_pose.reachable_arms[0]
         NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
