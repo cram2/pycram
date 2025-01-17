@@ -30,7 +30,7 @@ left_gripper.add_static_joint_states(GripperState.CLOSE, {'hand_l_proximal_joint
                                                           'hand_r_proximal_joint': 0.0,
                                                           'hand_motor_joint': 0.0})
 left_gripper.end_effector_type = GripperType.PARALLEL
-left_gripper.opening_distance = 13  # cm
+left_gripper.opening_distance = 0.13  # m
 left_arm.end_effector = left_gripper
 
 ################################## Torso ##################################

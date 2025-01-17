@@ -39,7 +39,7 @@ left_gripper.add_static_joint_states(GripperState.OPEN, {'gripper_left_left_fing
 left_gripper.add_static_joint_states(GripperState.CLOSE, {'gripper_left_left_finger_joint': 0.0,
                                                           'gripper_left_right_finger_joint': 0.0})
 left_gripper.end_effector_type = GripperType.PARALLEL
-left_gripper.opening_distance = 9  # cm, measured
+left_gripper.opening_distance = 0.09  # m, measured
 left_arm.end_effector = left_gripper
 
 ################################## Right Arm ##################################
@@ -66,7 +66,7 @@ right_gripper.add_static_joint_states(GripperState.OPEN, {'gripper_right_left_fi
 right_gripper.add_static_joint_states(GripperState.CLOSE, {'gripper_right_left_finger_joint': 0.0,
                                                            'gripper_right_right_finger_joint': 0.0})
 right_gripper.end_effector_type = GripperType.PARALLEL
-right_gripper.opening_distance = 9  # cm, measured
+right_gripper.opening_distance = 0.09  # m, measured
 right_arm.end_effector = right_gripper
 
 ################################## Torso ##################################

@@ -30,7 +30,7 @@ right_gripper = EndEffectorDescription("right_gripper", "right_gripper_base_link
 right_gripper.add_static_joint_states(GripperState.OPEN, {"right_gripper_joint": 0.548})
 right_gripper.add_static_joint_states(GripperState.CLOSE, {"right_gripper_joint": 0.0})
 right_gripper.end_effector_type = GripperType.PARALLEL  # current gripper in sim, change later
-right_gripper.opening_distance = 11  # cm, 2x 5.5cm for WSG050
+right_gripper.opening_distance = 0.11  # m, 2x 55mm for WSG050
 right_arm.end_effector = right_gripper
 
 ################################## Left Arm ##################################
@@ -55,7 +55,7 @@ left_gripper = EndEffectorDescription("left_gripper", "left_gripper_base_link", 
 left_gripper.add_static_joint_states(GripperState.OPEN, {"left_gripper_joint": 0.548})
 left_gripper.add_static_joint_states(GripperState.CLOSE, {"left_gripper_joint": 0.0})
 left_gripper.end_effector_type = GripperType.PARALLEL  # current gripper in sim, change later
-left_gripper.opening_distance = 11  # cm, 2x 5.5cm for WSG050
+left_gripper.opening_distance = 0.11  # m, 2x 55mm for WSG050
 left_arm.end_effector = left_gripper
 
 ################################## Torso ##################################
