@@ -106,7 +106,7 @@ class Object(PhysicalBody):
             self.description.update_description_from_file(self.path)
 
         # if the object is an agent in the belief state
-        if Robot in self.ontology_concept.is_a and not self.world.is_prospection_world:
+        if self.is_a_robot and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
 
         self.id = self._spawn_object_and_get_id()
