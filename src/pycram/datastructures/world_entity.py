@@ -166,9 +166,15 @@ class PhysicalBody(WorldEntity, HasConcept, ABC):
     The ontology concept of this entity.
     """
 
-    def __init__(self, body_id: int, world: World):
+    def __init__(self, body_id: int, world: World, concept: Type[PhysicalObject] = PhysicalObject):
         WorldEntity.__init__(self, body_id, world)
         HasConcept.__init__(self)
+
+        # set ontology related information
+        self.ontology_concept = concept
+        if not self.world.is_prospection_world:
+            self.ontology_individual = self.ontology_concept(namespace=self.world.ontology.ontology)
+
         self.local_transformer = LocalTransformer()
         self._is_translating: Optional[bool] = None
         self._is_rotating: Optional[bool] = None
@@ -325,7 +331,7 @@ class PhysicalBody(WorldEntity, HasConcept, ABC):
         """
         return self.world.get_body_contact_points(self)
 
-    def get_contact_points_with_body(self, body: 'PhysicalBody') -> ContactPointsList:
+    def get_contact_points_with_body(self, body: PhysicalBody) -> ContactPointsList:
         """
         :param body: The body to get the contact points with.
         :return: The contact points of this body with the given body.
@@ -340,7 +346,7 @@ class PhysicalBody(WorldEntity, HasConcept, ABC):
         """
         return self.world.get_body_closest_points(self, max_distance)
 
-    def get_closest_points_with_body(self, body: 'PhysicalBody', max_distance: float) -> ClosestPointsList:
+    def get_closest_points_with_body(self, body: PhysicalBody, max_distance: float) -> ClosestPointsList:
         """
         :param body: The body to get the points with.
         :param max_distance: The maximum distance to consider a body as close, only points closer than or equal to this
