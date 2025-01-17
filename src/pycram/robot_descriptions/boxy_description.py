@@ -1,7 +1,7 @@
 from ..ros.ros_tools import  get_ros_package_path
 from ..robot_description import RobotDescription, CameraDescription, KinematicChainDescription, \
     EndEffectorDescription, RobotDescriptionManager
-from ..datastructures.enums import Arms, Grasp, GripperState, TorsoState
+from ..datastructures.enums import Arms, Grasp, GripperState, TorsoState, GripperType
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "boxy" + '.urdf'
 
@@ -29,7 +29,8 @@ right_gripper = EndEffectorDescription("right_gripper", "right_gripper_base_link
 
 right_gripper.add_static_joint_states(GripperState.OPEN, {"right_gripper_joint": 0.548})
 right_gripper.add_static_joint_states(GripperState.CLOSE, {"right_gripper_joint": 0.0})
-
+right_gripper.end_effector_type = GripperType.PARALLEL  # current gripper in sim, change later
+right_gripper.opening_distance = 0.548
 right_arm.end_effector = right_gripper
 
 ################################## Left Arm ##################################
@@ -53,7 +54,8 @@ left_gripper = EndEffectorDescription("left_gripper", "left_gripper_base_link", 
 
 left_gripper.add_static_joint_states(GripperState.OPEN, {"left_gripper_joint": 0.548})
 left_gripper.add_static_joint_states(GripperState.CLOSE, {"left_gripper_joint": 0.0})
-
+left_gripper.end_effector_type = GripperType.PARALLEL  # current gripper in sim, change later
+left_gripper.opening_distance = 0.548
 left_arm.end_effector = left_gripper
 
 ################################## Torso ##################################

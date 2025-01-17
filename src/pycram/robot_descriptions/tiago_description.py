@@ -1,7 +1,7 @@
 from ..ros.ros_tools import get_ros_package_path
 
 from ..datastructures.dataclasses import VirtualMobileBaseJoints
-from ..datastructures.enums import GripperState, Arms, Grasp, TorsoState
+from ..datastructures.enums import GripperState, Arms, Grasp, TorsoState, GripperType
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
 from ..helper import get_robot_mjcf_path
@@ -38,7 +38,8 @@ left_gripper.add_static_joint_states(GripperState.OPEN, {'gripper_left_left_fing
 
 left_gripper.add_static_joint_states(GripperState.CLOSE, {'gripper_left_left_finger_joint': 0.0,
                                                           'gripper_left_right_finger_joint': 0.0})
-
+left_gripper.end_effector_type = GripperType.PARALLEL
+left_gripper.opening_distance = 0.048
 left_arm.end_effector = left_gripper
 
 ################################## Right Arm ##################################
@@ -64,7 +65,8 @@ right_gripper.add_static_joint_states(GripperState.OPEN, {'gripper_right_left_fi
 
 right_gripper.add_static_joint_states(GripperState.CLOSE, {'gripper_right_left_finger_joint': 0.0,
                                                            'gripper_right_right_finger_joint': 0.0})
-
+right_gripper.end_effector_type = GripperType.PARALLEL
+right_gripper.opening_distance = 0.048
 right_arm.end_effector = right_gripper
 
 ################################## Torso ##################################

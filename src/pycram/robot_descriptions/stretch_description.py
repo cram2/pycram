@@ -31,7 +31,8 @@ gripper_description.add_static_joint_states(GripperState.OPEN, {'joint_gripper_f
                                                                 'joint_gripper_finger_right': 0.59})
 gripper_description.add_static_joint_states(GripperState.CLOSE, {'joint_gripper_finger_left': 0.0,
                                                                  'joint_gripper_finger_right': 0.0})
-
+gripper_description.end_effector_type = GripperType.PARALLEL
+gripper_description.opening_distance = 0.59
 arm_description.end_effector = gripper_description
 
 ################################## Neck ##################################
