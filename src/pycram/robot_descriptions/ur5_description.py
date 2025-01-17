@@ -37,6 +37,7 @@ gripper.add_static_joint_states(GripperState.CLOSE, {'robotiq_85_left_finger_joi
                                           'robotiq_85_left_finger_tip_joint': 1.0,
                                           'robotiq_85_right_finger_tip_joint': 1.0})
 gripper.end_effector_type = GripperType.PARALLEL
+gripper.opening_distance = 8.5  # cm
 arm.end_effector = gripper
 
 # Add to RobotDescriptionManager

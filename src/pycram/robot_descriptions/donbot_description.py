@@ -1,7 +1,7 @@
 from ..ros.ros_tools import get_ros_package_path
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import Arms, Grasp, GripperState, TorsoState
+from ..datastructures.enums import Arms, Grasp, GripperState, TorsoState, GripperType
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "iai_donbot" + '.urdf'
 
@@ -28,7 +28,7 @@ right_gripper = EndEffectorDescription("right_gripper", "gripper_base_link", "gr
 right_gripper.add_static_joint_states(GripperState.OPEN, {'gripper_joint': 0.0})
 right_gripper.add_static_joint_states(GripperState.CLOSE, {'gripper_joint': 0.2})
 right_gripper.end_effector_type = GripperType.PARALLEL
-right_gripper.opening_distance = 0.2
+right_gripper.opening_distance = 11  # cm, 2x 5.5cm for WSG050
 right_arm.end_effector = right_gripper
 
 ################################## Torso ##################################
