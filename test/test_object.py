@@ -191,6 +191,7 @@ class TestObject(BulletWorldTestCase):
             self.assertTrue(isinstance(merged_bbox_mesh, trimesh.parent.Geometry3D))
             self.assertEqual(merged_bbox_mesh.vertices.shape[0], 24 if use_random_events else 16)
             self.assertEqual(merged_bbox_mesh.faces.shape[0], 48 if use_random_events else 24)
+        cereal_2.remove()
 
 
 class GenericObjectTestCase(BulletWorldTestCase):

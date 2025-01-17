@@ -688,7 +688,7 @@ class Object(PhysicalBody):
     def merge(self, other: Object, name: Optional[str] = None, pose: Optional[Pose] = None) -> Object:
         """
         Merge the object with another object. This is done by merging the descriptions of the objects,
-        removing the other object and updating the links and joints of this object.
+        removing the original objects creating a new merged object.
 
         :param other: The object to merge with.
         :param name: The name of the merged object.
