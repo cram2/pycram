@@ -12,8 +12,7 @@ class WorldConfig:
     A class to store the configuration of the world, this can be inherited to create a new configuration class for a
     specific world (e.g. multiverse has MultiverseConfig which inherits from this class).
     """
-
-    resources_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'resources')
+    resources_path = os.path.join(os.path.realpath(__file__), '..', '..', 'resources')
     resources_path = os.path.abspath(resources_path)
     """
     Global reference for the resources path, this is used to search for the description files of the robot and
