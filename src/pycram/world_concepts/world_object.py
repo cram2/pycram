@@ -685,7 +685,8 @@ class Object(PhysicalBody):
         """
         return issubclass(self.obj_type, pycrap.Robot)
 
-    def merge(self, other: Object, name: Optional[str] = None, pose: Optional[Pose] = None) -> Object:
+    def merge(self, other: Object, name: Optional[str] = None, pose: Optional[Pose] = None,
+              new_description_file: Optional[str] = None) -> Object:
         """
         Merge the object with another object. This is done by merging the descriptions of the objects,
         removing the original objects creating a new merged object.
@@ -693,15 +694,18 @@ class Object(PhysicalBody):
         :param other: The object to merge with.
         :param name: The name of the merged object.
         :param pose: The pose of the merged object.
+        :param new_description_file: The new description file of the merged object.
         :return: The merged object.
         """
         pose = self.pose if pose is None else pose
         child_pose = self.local_transformer.transform_pose(other.pose, self.tf_frame)
-        description = self.description.merge_description(other.description, child_pose_wrt_parent=child_pose)
+        description = self.description.merge_description(other.description, child_pose_wrt_parent=child_pose,
+                                                         new_description_file=new_description_file)
         name = self.name if name is None else name
+        path = self.path if new_description_file is None else description.xml_path
         other.remove()
         self.remove()
-        return Object(name, self.obj_type, self.path, description=description, pose=pose, world=self.world)
+        return Object(name, self.obj_type, path, description=description, pose=pose, world=self.world)
 
     def attach(self,
                child_object: Object,

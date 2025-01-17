@@ -170,10 +170,11 @@ class TestObject(BulletWorldTestCase):
     def test_merge(self):
         cereal = Object("cereal2", Food, "breakfast_cereal.stl")
         milk = Object("milk2", Milk, "milk.stl")
-        cereal_milk = cereal.merge(milk)
+        cereal_milk = cereal.merge(milk, new_description_file="cereal_milk")
         self.assertEqual(len(cereal_milk.links), len(cereal.links) + len(milk.links))
         self.assertEqual(len(cereal_milk.joints), len(cereal.joints) + len(milk.joints) + 1)
         cereal_milk.remove()
+        # self.world.cache_manager.clear_cache()
 
     def test_merge_bounding_box(self):
         cereal_2 = Object("cereal2", Food, "breakfast_cereal.stl",

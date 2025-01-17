@@ -288,7 +288,8 @@ class ObjectDescription(AbstractObjectDescription):
                           axis: Optional[Point] = None,
                           lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
                           child_pose_wrt_parent: Optional[Pose] = None,
-                          in_place: bool = False) -> Union[ObjectDescription, Self]:
+                          in_place: bool = False,
+                          new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
         other_description = other.parsed_description
         if child_pose_wrt_parent is None:
             child_pose_wrt_parent = Pose()
@@ -318,6 +319,9 @@ class ObjectDescription(AbstractObjectDescription):
                               axis=axis, origin=child_pose_wrt_parent, parent=parent_link,
                               lower_limit=lower_limit, upper_limit=upper_limit)
 
+        if new_description_file is not None:
+            description.xml_path = os.path.join(pathlib.Path(description.xml_path).parent,
+                                                (new_description_file + description.get_file_extension()))
         description.write_description_to_file(description.parsed_description.to_xml_string(), description.xml_path)
         return description
 

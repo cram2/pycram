@@ -731,7 +731,8 @@ class ObjectDescription(EntityDescription):
                           axis: Optional[Point] = None,
                           lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
                           child_pose_wrt_parent: Optional[Pose] = None,
-                          in_place: bool = False) -> Union[ObjectDescription, Self]:
+                          in_place: bool = False,
+                          new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
         """
         Merge the description of this object with the description of the other object.
 
@@ -744,6 +745,8 @@ class ObjectDescription(EntityDescription):
         :param upper_limit: The upper limit of the joint connecting the two objects.
         :param child_pose_wrt_parent: The pose of the child link with respect to the parent link.
         :param in_place: True if the merge should be done in place, False otherwise.
+        :param new_description_file: If given, the new description will be saved to this file, otherwise the new
+            description will be saved in place of the original file.
         :return: The merged object description, could be a new object description if in_place is False else self.
         """
         pass
