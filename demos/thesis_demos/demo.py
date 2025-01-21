@@ -69,8 +69,6 @@ def start_generalized_demo(type, obj_tool, obj_target, technique):
         obj_tool_ = create_object(obj_tool, ObjectType.CUTTING_TOOL, objects_tool, pose=pose)
         obj_target_ = create_object(obj_target, ObjectType.GENERIC_OBJECT, objects_target, pose=drawer_island_surface)
 
-    action_map = {"cutting": CuttingAction, "mixing": MixingAction, "pouring": PouringAction}
-
     # this is just bc we dont want to pick up for the demonstration of cutting and mixing
     if RobotDescription.current_robot_description.name == "Armar6":
         tool_pose = Pose([2.2049586673391935, 1.40084467778416917, 1.0229705326966067],
@@ -103,10 +101,7 @@ def start_generalized_demo(type, obj_tool, obj_target, technique):
 
         generic_obj_BO = BelieveObject(names=[obj_target_.name]).resolve()
         tool_BO = BelieveObject(names=[obj_tool_.name]).resolve()
-        print(generic_obj_BO.__class__)
-        action = action_map[type]
-        # action(generic_obj_BO, tool_BO, [Arms.RIGHT], _technique).resolve().perform()
-        print(generic_obj_BO)
+
         perform(an(ActionCore(action_type="mixing", arms=[Arms.RIGHT], source_object=generic_obj_BO,
                                            technique=_technique, tool_object=tool_BO)))
 
