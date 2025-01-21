@@ -363,7 +363,8 @@ class ObjectDescription(AbstractObjectDescription):
                           axis: Optional[Point] = None,
                           lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
                           child_pose_wrt_parent: Optional[Pose] = None,
-                          in_place: bool = False) -> Union[ObjectDescription, Self]:
+                          in_place: bool = False,
+                          new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
         raise NotImplementedError
 
     @property
