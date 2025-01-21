@@ -45,16 +45,12 @@ class RobotDescriptionManager:
         if RobotDescription.current_robot_description:
             RobotDescription.current_robot_description.unload()
 
-        if name in self.descriptions.keys():
-            self.descriptions[name].load()
-            return self.descriptions[name]
-        else:
-            for key in self.descriptions.keys():
-                if key in name.lower():
-                    self.descriptions[key].load()
-                    return self.descriptions[key]
-            else:
-                logerr(f"Robot description {name} not found")
+        for key in self.descriptions.keys():
+            if name in self.descriptions[key].urdf_object.name or key in name.lower():
+                self.descriptions[key].load()
+                return self.descriptions[key]
+        logerr(f"Robot description {name} not found")
+
 
     def register_description(self, description: RobotDescription):
         """
