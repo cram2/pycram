@@ -2,6 +2,7 @@ from ..ros.ros_tools import get_ros_package_path
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager
 from ..datastructures.enums import Arms, Grasp, GripperState, GripperType
+from ..units import meter
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "ur5_robotiq" + '.urdf'
 
@@ -37,7 +38,7 @@ gripper.add_static_joint_states(GripperState.CLOSE, {'robotiq_85_left_finger_joi
                                           'robotiq_85_left_finger_tip_joint': 1.0,
                                           'robotiq_85_right_finger_tip_joint': 1.0})
 gripper.end_effector_type = GripperType.PARALLEL
-gripper.opening_distance = 0.085  # m
+gripper.opening_distance = 0.085 * meter
 arm.end_effector = gripper
 
 # Add to RobotDescriptionManager
