@@ -29,3 +29,5 @@ python:
 
 sphinx:
   builder: html
+  # Path to your Sphinx configuration file.
+  configuration: doc/source/conf.py
