@@ -157,6 +157,8 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
     Reference to the performable class that is used to execute the action.
     """
 
+
+
     @dataclass
     class Action:
         """
@@ -175,6 +177,9 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         """
         The type of the robot at the start of the action.
         """
+        _pre_perform_callbacks = []
+
+        _post_perform_callbacks = []
 
         def __post_init__(self):
             self.robot_position = World.robot.get_pose()
@@ -190,9 +195,11 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
 
             :return: The result of the action in the plan
             """
-            self.pre_perform()
+            for pre_perform in ActionDesignatorDescription.Action._pre_perform_callbacks:
+                pre_perform(self)
             result = self.plan()
-            self.post_perform()
+            for post_perform in ActionDesignatorDescription.Action._post_perform_callbacks:
+                post_perform(self)
             return result
 
         @with_tree
@@ -203,18 +210,6 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
             :return: The result of the action, if there is any
             """
             raise NotImplementedError()
-
-        def pre_perform(self):
-            """
-            This method is called before the perform method is executed. To be overridden by subclasses.
-            """
-            pass
-
-        def post_perform(self):
-            """
-            This method is called after the perform method is executed. To be overridden by subclasses.
-            """
-            pass
 
         def to_sql(self) -> ORMAction:
             """
@@ -261,6 +256,24 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
             :return:
             """
             return get_type_hints(cls)
+
+        @classmethod
+        def pre_perform(cls, func):
+            cls._pre_perform_callbacks.append(func)
+
+            def wrapper(*args, **kwargs):
+                func(*args, **kwargs)
+
+            return wrapper
+
+        @classmethod
+        def post_perform(cls, func):
+            cls._post_perform_callbacks.append(func)
+
+            def wrapper(*args, **kwargs):
+                func(*args, **kwargs)
+
+            return wrapper
 
     def __init__(self):
         """
@@ -566,3 +579,5 @@ class BaseMotion(ABC):
         # if missing != [] or wrong_type != {}:
         #     raise ResolutionError(missing, wrong_type, current_type, self.__class__)
         #
+
+
