@@ -178,8 +178,14 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         The type of the robot at the start of the action.
         """
         _pre_perform_callbacks = []
+        """
+        List of callback functions that will be called before the action is performed.
+        """
 
         _post_perform_callbacks = []
+        """
+        List of callback functions that will be called after the action is performed.
+        """
 
         def __post_init__(self):
             self.robot_position = World.robot.get_pose()
@@ -258,20 +264,32 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
             return get_type_hints(cls)
 
         @classmethod
-        def pre_perform(cls, func):
+        def pre_perform(cls, func) -> Callable:
+            """
+            Decorator to execute the decorated function before performing the action.
+
+            :param func: The function to be decorated.
+            :return: The decorated function.
+            """
             cls._pre_perform_callbacks.append(func)
 
             def wrapper(*args, **kwargs):
-                func(*args, **kwargs)
+                return func(*args, **kwargs)
 
             return wrapper
 
         @classmethod
-        def post_perform(cls, func):
+        def post_perform(cls, func) -> Callable:
+            """
+            Decorator to execute the decorated function after performing the action.
+
+            :param func: The function to be decorated.
+            :return: The decorated function.
+            """
             cls._post_perform_callbacks.append(func)
 
             def wrapper(*args, **kwargs):
-                func(*args, **kwargs)
+                return func(*args, **kwargs)
 
             return wrapper
 
