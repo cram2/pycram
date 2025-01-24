@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 
-from ..ros import logerr, create_ros_pack, get_parameter, ResourceNotFound
+from ..ros import logerr, create_ros_pack, get_parameter, ResourceNotFound, get_ros_package_path
 from geometry_msgs.msg import Point
 from tf_transformations import quaternion_from_euler, euler_from_quaternion
 from typing_extensions import Union, List, Optional, Dict, Tuple
@@ -363,13 +363,14 @@ class ObjectDescription(AbstractObjectDescription):
         :param urdf_string: The name of the URDf on the parameter server
         :return: The URDF string with paths in the filesystem instead of ROS packages
         """
-        r = create_ros_pack()
+        # r = create_ros_pack()
         new_urdf_string = ""
         for line in urdf_string.split('\n'):
             if "package://" in line:
                 s = line.split('//')
                 s1 = s[1].split('/')
-                path = r.get_path(s1[0])
+                # path = r.get_path(s1[0])
+                path = get_ros_package_path(s1[0])
                 line = line.replace("package://" + s1[0], path)
             if 'file://' in line:
                 line = line.replace("file://", './')

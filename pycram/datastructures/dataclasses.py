@@ -668,9 +668,9 @@ class VirtualMobileBaseJoints:
         """
         Return the axes (i.e. The axis on which the joint moves) of the virtual mobile base joints.
         """
-        return {self.translation_x: Point(1, 0, 0),
-                self.translation_y: Point(0, 1, 0),
-                self.angular_z: Point(0, 0, 1)}
+        return {self.translation_x: Point(x=1, y=0, z=0),
+                self.translation_y: Point(x=0, y=1, z=0),
+                self.angular_z: Point(x=0, y=0, z=1)}
 
 
 @dataclass
