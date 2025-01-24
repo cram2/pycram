@@ -1,10 +1,6 @@
-import logging
-from gymnasium_interface.pycram_gym_env import PyCRAMGymEnv
+from Pycram_gym_env import PyCRAMGymEnv
 from pycram.datastructures.enums import Arms, Grasp
 from pycram.datastructures.pose import Pose
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def custom_reward(state):
     """
@@ -15,40 +11,56 @@ def custom_reward(state):
     :return: Reward value based on the state.
     :rtype: float
     """
-    return 10.0 if state else -1.0
+    return 10 if state else -1
 
-# Define actions as a list of strings
+def get_navigate_params(target_pose):
+    """
+    Generate parameters for the 'navigate' action.
+
+    :param target_pose: The target pose to navigate to.
+    :type target_pose: Pose
+    :return: Parameters for navigation.
+    :rtype: dict
+    """
+    return {"target_pose": target_pose}
+
+def get_pick_up_params(object_desig, arm, grasps):
+    """
+    Generate parameters for the 'pick_up' action.
+
+    :param object_desig: Designation of the object to pick up.
+    :type object_desig: str
+    :param arm: The arm to use for the action.
+    :type arm: Arms
+    :param grasps: The list of grasps to use.
+    :type grasps: list[Grasp]
+    :return: Parameters for picking up an object.
+    :rtype: dict
+    """
+    return {"object_desig": object_desig, "arm": arm, "grasps": grasps}
+
+# Define actions and their parameter generators
 actions = ["navigate", "pick_up"]
-
-# Define default parameters for each action
-default_params = {
-    "navigate": {"target_pose": Pose(position=[1.0, 2.0, 0.0], orientation=[0.0, 0.0, 0.0, 1.0])},
-    "pick_up": {"object_desig": "milk", "arm": Arms.RIGHT, "grasps": [Grasp.FRONT]},
+action_param_generators = {
+    "navigate": lambda: get_navigate_params(Pose([1.0, 2.0, 0.0], [0.0, 0.0, 0.0, 1.0])),
+    "pick_up": lambda: get_pick_up_params("milk", Arms.RIGHT, [Grasp.FRONT]),
 }
 
 # Define objects to initialize in the environment
 objects = [
-    {
-        "name": "milk",
-        "type": "object",
-        "urdf": "milk.stl",
-        "pose": Pose(position=[2.5, 2.10, 1.02]),
-    }
+    {"name": "milk", "type": "object", "urdf": "milk.stl", "pose": Pose([2.5, 2.10, 1.02])},
 ]
 
-# Initialize the Gymnasium environment
-env = PyCRAMGymEnv(actions=actions, default_params=default_params, objects=objects, reward_function=custom_reward)
+# Initialize the environment
+env = PyCRAMGymEnv(
+    actions,
+    {action: generator() for action, generator in action_param_generators.items()},
+    objects=objects,
+    reward_function=custom_reward
+)
 
-# Reset the environment and retrieve the initial state
-state, info = env.reset()
-logging.info(f"State after reset: {state}")
-
-# Perform a step in the environment
-try:
-    state, reward, done, truncated, info = env.step(
-        action=1,  # Index of the action to execute
-        params={"object_desig": "milk", "arm": Arms.RIGHT, "grasps": [Grasp.FRONT]},
-    )
-    logging.info(f"State after step: {state}, Reward: {reward}, Done: {done}, Truncated: {truncated}")
-except ValueError as e:
-    logging.error(f"Action failed: {e}")
+# Example usage
+state = env.reset()
+print("State after reset:", state)
+state, reward, done, truncated, info = env.step(1, action_param_generators["pick_up"]())
+print("State after step:", state, "Reward:", reward)
