@@ -2,6 +2,7 @@ from __future__ import annotations
 import sys
 import logging
 
+from tf2_geometry_msgs import do_transform_pose_stamped
 from .ros import Time, Duration, logerr
 
 if 'world' in sys.modules:
@@ -18,7 +19,10 @@ if TYPE_CHECKING:
     from .datastructures.world import World
 
 
-class LocalTransformer(TransformerROS):
+from tf2_ros import Buffer
+
+
+class LocalTransformer(Buffer):
     """
     This class allows to use the TF class TransformerROS without using the ROS
     network system or the topic /tf, where transforms are usually published to.
@@ -44,7 +48,8 @@ class LocalTransformer(TransformerROS):
 
     def __init__(self):
         if self._initialized: return
-        super().__init__(interpolate=True, cache_time=Duration(10))
+        # super().__init__(interpolate=True, cache_time=Duration(10))
+        super().__init__(cache_time=Duration(10))
         # Since this file can't import world.py this holds the reference to the current_world
         self.world = None
         # TODO: Ask Jonas if this is still needed
@@ -52,6 +57,7 @@ class LocalTransformer(TransformerROS):
 
         # If the singelton was already initialized
         self._initialized = True
+        self.registration.add(Pose, do_transform_pose_stamped)
 
     def transform_to_object_frame(self, pose: Pose,
                                   world_object: Object, link_name: str = None) -> Union[
@@ -92,12 +98,13 @@ class LocalTransformer(TransformerROS):
 
         copy_pose = pose.copy()
         copy_pose.header.stamp = Time(0)
-        if not self.canTransform(target_frame, pose.frame, Time(0)):
+        if not self.can_transform(target_frame, pose.frame, Time(0)):
             logerr(
                 f"Can not transform pose: \n {pose}\n to frame: {target_frame}."
                 f"\n Maybe try calling 'update_transforms_for_object'")
             return
-        new_pose = super().transformPose(target_frame, copy_pose)
+        # new_pose = super().transformPose(target_frame, copy_pose)
+        new_pose = self.transform(copy_pose.to_pose_stamped(), target_frame)
 
         copy_pose.pose = new_pose.pose
         copy_pose.header.frame_id = new_pose.header.frame_id
@@ -152,8 +159,8 @@ class LocalTransformer(TransformerROS):
         objects = list(map(self.get_object_from_frame, [source_frame, target_frame]))
         self.update_transforms_for_objects([obj for obj in objects if obj is not None])
 
-        tf_time = time if time else self.getLatestCommonTime(source_frame, target_frame)
-        translation, rotation = self.lookupTransform(source_frame, target_frame, tf_time)
+        tf_time = time if time else self.get_latest_common_time(source_frame, target_frame)
+        translation, rotation = self.lookup_transform(source_frame, target_frame, tf_time)
         return Transform(translation, rotation, source_frame, target_frame)
 
     def update_transforms(self, transforms: Iterable[Transform], time: Time = None) -> None:
@@ -164,19 +171,13 @@ class LocalTransformer(TransformerROS):
         time = time if time else Time().now()
         for transform in transforms:
             transform.header.stamp = time
-            self.setTransform(transform)
+            self.set_transform(transform, "pycram/local_transformer")
 
     def get_all_frames(self) -> List[str]:
         """
         :return: A list of all known coordinate frames as a list with human-readable entries.
         """
-        frames = self.allFramesAsString().split("\n")
+        frames = self.all_frames_as_string().split("\n")
         frames.remove("")
         return frames
 
-    def transformPose(self, target_frame, ps) -> Pose:
-        """
-        Alias for :func:`~LocalTransformer.transform_pose_to_target_frame` to avoid confusion since a similar method
-         exists in the super class.
-        """
-        return self.transform_pose(ps, target_frame)

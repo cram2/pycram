@@ -4,7 +4,9 @@ from __future__ import annotations
 import math
 import datetime
 
-from tf_transformations import euler_from_quaternion, translation_matrix, quaternion_matrix
+from std_msgs.msg import Header
+from tf_transformations import euler_from_quaternion, translation_matrix, quaternion_matrix, concatenate_matrices, \
+    inverse_matrix, translation_from_matrix, quaternion_from_matrix
 from typing_extensions import List, Union, Optional, Sized, Self
 
 import numpy as np
@@ -87,6 +89,12 @@ class Pose(PoseStamped):
         p.pose = pose_stamped.pose
         return p
 
+    def to_pose_stamped(self) -> PoseStamped:
+        return  PoseStamped(
+            header=self.header,
+            pose=self.pose
+        )
+
     def get_position_diff(self, target_pose: Self) -> Point:
         """
         Get the difference between the target and the current positions.
@@ -94,8 +102,8 @@ class Pose(PoseStamped):
         :param target_pose: The target pose.
         :return: The difference between the two positions.
         """
-        return Point(target_pose.position.x - self.position.x, target_pose.position.y - self.position.y,
-                     target_pose.position.z - self.position.z)
+        return Point(x=target_pose.position.x - self.position.x, y=target_pose.position.y - self.position.y,
+                     z=target_pose.position.z - self.position.z)
 
     def get_z_angle_difference(self, target_pose: Self) -> float:
         """
@@ -517,11 +525,11 @@ class Transform(TransformStamped):
 
         :return: A new inverted Transform
         """
-        transform = transformations.concatenate_matrices(transformations.translation_matrix(self.translation_as_list()),
-                                                         transformations.quaternion_matrix(self.rotation_as_list()))
-        inverse_transform = transformations.inverse_matrix(transform)
-        translation = transformations.translation_from_matrix(inverse_transform)
-        quaternion = transformations.quaternion_from_matrix(inverse_transform)
+        transform = concatenate_matrices(translation_matrix(self.translation_as_list()),
+                                                         quaternion_matrix(self.rotation_as_list()))
+        inverse_transform = inverse_matrix(transform)
+        translation = translation_from_matrix(inverse_transform)
+        quaternion = quaternion_from_matrix(inverse_transform)
         return Transform(list(translation), list(quaternion), self.child_frame_id, self.header.frame_id, self.header.stamp)
 
     def __mul__(self, other: Transform) -> Union[Transform, None]:

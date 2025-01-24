@@ -12,10 +12,7 @@ from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, Me
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
 from ..designator import ObjectDesignatorDescription
-from pycram.ros.ros1.data_types import Duration, Time
-from pycram.ros.ros1.logging import loginfo, logwarn, logerr
-from pycram.ros.ros1.publisher import create_publisher
-from pycram.ros.ros1.ros_tools import sleep
+from ..ros import loginfo, logwarn, logerr, Duration, Time, create_publisher, sleep
 
 
 class VizMarkerPublisher:
@@ -227,7 +224,7 @@ class ManualMarkerPublisher:
         self.log_message = f"Object '{name}' published"
 
     def _make_marker_array(self, name, marker_type: int, marker_pose: Pose, marker_scales: Tuple = (1.0, 1.0, 1.0),
-                           color_rgba: ColorRGBA = ColorRGBA(*[1.0, 1.0, 1.0, 1.0]),
+                           color_rgba: ColorRGBA = ColorRGBA(**{"r":1.0, "g":1.0, "b":1.0, "a":1.0}),
                            path_to_resource: Optional[str] = None):
         """
         Create a Marker and add it to the MarkerArray
