@@ -100,12 +100,15 @@ class Object(PhysicalBody):
         self.local_transformer = LocalTransformer()
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
         self._current_pose = self.original_pose
+        self.scale_mesh = scale_mesh if scale_mesh is not None else 1.0
+        color = Color() if color is None else color
 
         if path is not None:
             self.path = self.world.preprocess_object_file_and_get_its_cache_path(path, ignore_cached_files,
                                                                                  self.description, self.name,
-                                                                                 scale_mesh=scale_mesh,
-                                                                                 mesh_transform=mesh_transform)
+                                                                                 scale_mesh=self.scale_mesh,
+                                                                                 mesh_transform=mesh_transform,
+                                                                                 color=color)
 
             self.description.update_description_from_file(self.path)
 
@@ -791,7 +794,6 @@ class Object(PhysicalBody):
         """
         return self.get_pose().orientation_as_list()
 
-    @deprecated("Use property 'pose' instead.")
     def get_pose(self) -> Pose:
         """
         Return the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
@@ -1385,11 +1387,9 @@ class Object(PhysicalBody):
         """
         return self.world.get_closest_points_between_two_bodies(self, other_object, max_distance)
 
-    @deprecated("Use property setter 'color' instead.")
     def set_color(self, rgba_color: Color) -> None:
         self.color = rgba_color
 
-    @deprecated("Use property 'color' instead.")
     def get_color(self) -> Union[Color, Dict[str, Color]]:
         return self.color
 
