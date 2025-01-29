@@ -551,6 +551,8 @@ class DetectActionPerformable(ActionAbstract):
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMDetectAction)
 
+    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False)
+
     @with_tree
     def plan(self) -> None:
         return try_action(DetectingMotion(technique=self.technique, state=self.state,
