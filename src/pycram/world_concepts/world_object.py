@@ -35,7 +35,10 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
-from pycrap.ontologies import PhysicalObject, Agent, Floor, Location, Robot
+from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, \
+    has_child_link, has_parent_link, is_part_of, Robot
+
+from pycrap.urdf_parser import parse_furniture, parse_joint_types
 
 Link = ObjectDescription.Link
 
@@ -435,8 +438,13 @@ class Object(PhysicalBody):
         """
         Initialize the link objects from the URDF file and creates a dictionary which maps the link names to the
         corresponding link objects.
+        Also create Ontology individuals based on the parsed links from the URDF. Links are always of tpye "Physical
+        Object", but can also be of another type if matched.
+        Also mapping the python object to the  parsed link description, so it can be accessed with more ease.
+
         """
         self.links = {}
+        ontology_concept = PhysicalObject
         for link_name, link_id in self.link_name_to_id.items():
             link_description = self.description.get_link_by_name(link_name)
             if link_name == self.description.get_root():
@@ -444,18 +452,50 @@ class Object(PhysicalBody):
             else:
                 self.links[link_name] = self.description.Link(link_id, link_description, self)
 
+            individual = ontology_concept(name=link_name, namespace=self.world.ontology.ontology)
+            self.world.ontology.python_objects[individual] = self.links[link_name]
+
+            if parse_furniture(link_name):
+                individual.is_a = [ontology_concept, parse_furniture(link_name)]
+            else:
+                individual.is_a = [ontology_concept]
+
         self.update_link_transforms()
 
     def _init_joints(self):
         """
         Initialize the joint objects from the URDF file and creates a dictionary which mas the joint names to the
         corresponding joint objects
+        Also creating individuals during runtime from parsed joints out of the URDF file. Every Joint will be of type
+        "Joint" and also of one of the joint types (fixed, prismatic, etc.).
+        Also mapping the python object to the  parsed joint description, so it can be accessed with more ease.
+        Additionally adding the relations "has_child_link", "has_parent_link" which refer to the parent and child link
+        of the corresponding joint. Those links are initialized in the @_init_links_and_update_transforms function.
+        Finally including the "is_part_of" relation which describes the relation between two links that are connected
+        by one joint => child_link is_part_of parent_link
         """
         self.joints = {}
+
+        ontology_concept = Joint
         for joint_name, joint_id in self.joint_name_to_id.items():
             parsed_joint_description = self.description.get_joint_by_name(joint_name)
             is_virtual = self.is_joint_virtual(joint_name)
             self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
+            individual = ontology_concept(joint_name, namespace=self.world.ontology.ontology)
+            self.world.ontology.python_objects[individual] = parsed_joint_description
+            individual.is_a = [ontology_concept, has_child_link.some(
+                self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name))),
+                               has_parent_link.some(
+                self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_parent_link(joint_name).name))),
+                               parse_joint_types(self.get_joint_type(joint_name).name)]
+            link_individual = self.world.ontology.ontology.search_one(iri=
+                                                                      self.world.ontology.ontology.base_iri +
+                                                                           str(self.get_joint_child_link(joint_name).name))
+            if self.world.ontology.ontology.search_one(iri= self.world.ontology.ontology.base_iri +
+                                                            str(self.get_joint_parent_link(joint_name).name)):
+                 link_individual.is_part_of = [self.world.ontology.ontology.
+                                               search_one(iri=self.world.ontology.ontology.base_iri
+                                                          + str(self.get_joint_parent_link(joint_name).name))]
 
     def is_joint_virtual(self, name: str):
         """

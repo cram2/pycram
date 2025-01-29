@@ -356,7 +356,18 @@ class OntologyParser(AbstractParser):
         :param prop: The property
         """
         # write is_a restrictions
-        is_a = self.parse_elements(prop.is_a)
+        #Some Properties restrictions may not be converted to snake case yet, this function ensures that restrictions of
+        #the properties matches the defined properties.
+        updated_is_a = []
+        for i in prop.is_a:
+            if i not in self.ontology.properties():
+                for l in self.ontology.properties():
+                    if l.name == to_snake_case(i.name):
+                        i = l
+            updated_is_a.append(i)
+
+        is_a = self.parse_elements(updated_is_a)
+        #print(*self.ontology.properties())
         # Skip AnnotationProperties for now
         if not "AnnotationProperty" in is_a:
             if is_a:
@@ -414,7 +425,8 @@ class OntologyParser(AbstractParser):
         for prop in individual.get_properties():
             if "original_name" not in dir(prop):
                 continue
-            self.current_file.write(f"{individual.name}.{prop.name} = {individual.__getattr__(prop.original_name)}")
+           #Some properties from individuals may be buggy, so only use it on demand.
+#           self.current_file.write(f"{individual.name}.{prop.name} = {individual.__getattr__(prop.original_name)}")
             self.current_file.write("\n")
 
     def import_classes(self):
@@ -447,6 +459,14 @@ class OntologyParser(AbstractParser):
         :return: The docstring for the class or "..." if no docstring is found.
         """
         docstring = cls.comment
+        label = cls.label
+        if docstring and label:
+            docstring = f"\n".join(docstring)
+            label = f"\n".join(label)
+            return (f'"""\n'
+                    f'label: {label}\n'
+                    f'{docstring}\n'
+                    f'"""\n')
         if docstring:
             docstring = f"\n".join(docstring)
             return (f'"""\n'
@@ -512,9 +532,15 @@ class OntologyParser(AbstractParser):
         Parse a class without restrictions.
         :param cls: The class.
         """
+        # Adding the full iri and base iri as class attributes.
         inherited_classes_sting = "Base"
+        fulliri = "full_iri = " + "'" + cls.iri + "'"
+        baseiri = "base_iri = " + "'" + cls.iri.split("#")[0] + "'"
         self.current_file.write(f"class {repr(cls)}({inherited_classes_sting}):\n")
         self.write_docstring(cls)
+        self.current_file.write(f"\n{self.apply_indent_to(fulliri)}\n")
+        #self.current_file.write("\n\n")
+        self.current_file.write(f"\n{self.apply_indent_to(baseiri)}\n")
         self.current_file.write("\n\n")
 
     def parse_property(self, prop):
@@ -522,9 +548,14 @@ class OntologyParser(AbstractParser):
         Parse a property without restrictions.
         :param prop: The property.
         """
+        # Adding the full iri and base iri as property attributes.
+        fulliri = "full_iri = " + "'" + prop.iri + "'"
+        baseiri = "base_iri = " + "'" + prop.iri.split("#")[0] + "'"
         self.current_file.write(f"class {prop.name}(BaseProperty):\n")
         self.write_docstring(prop)
-        self.current_file.write("\n")
+        self.current_file.write(f"\n{self.apply_indent_to(fulliri)}\n")
+        self.current_file.write(f"\n{self.apply_indent_to(baseiri)}\n")
+        self.current_file.write("\n\n")
 
 
 class OntologiesParser(AbstractParser):
@@ -658,7 +689,19 @@ class OntologiesParser(AbstractParser):
         self.destroy_all_ontologies()
 
         for onto in nx.topological_sort(self.dependency_graph):
-            loaded_onto: owlready2.Ontology = get_ontology(onto.base_iri).load()
+            loaded_onto: owlready2.Ontology = get_ontology(onto.base_iri)
+            # Some Ontologies require a local path to be parsed.
+            if loaded_onto.base_iri == "http://knowrob.org/kb/urdf.owl#":
+                loaded_onto: owlready2.Ontology = get_ontology("https://raw.githubusercontent.com/knowrob/knowrob/refs/heads/dev/owl/URDF.owl")
+
+            if loaded_onto.base_iri == "http://www.ease-crc.org/ont/SUTURO.owl#":
+            #    loaded_onto: owlready2.Ontology = get_ontology("https://raw.githubusercontent.com/SUTURO/suturo_knowledge/refs/heads/fallschool/suturo_knowledge/owl/suturo.owl")
+                loaded_onto:  owlready2.Ontology = get_ontology("suturo.owl")
+
+            if loaded_onto.base_iri == "http://www.ease-crc.org/ont/meals#":
+                loaded_onto: owlready2.Ontology = get_ontology("meals.owl")
+
+            loaded_onto.load()
             update_class_names(loaded_onto)
             update_property_names(loaded_onto)
             # Create the directory for the ontology
