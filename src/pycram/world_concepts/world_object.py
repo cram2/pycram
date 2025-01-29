@@ -27,7 +27,7 @@ from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
 from ..ros.data_types import Time
-from ..ros.logging import logwarn
+from ..ros.logging import logwarn, logerr
 
 try:
     from ..object_descriptors.mjcf import ObjectDescription as MJCF
@@ -379,10 +379,9 @@ class Object(PhysicalBody):
             return obj_id
 
         except Exception as e:
-            logging.error(
-                "The File could not be loaded. Please note that the path has to be either a URDF, stl or obj file or"
-                " the name of an URDF string on the parameter server.")
-            logging.error(e)
+            logerr(
+                f"The caught error: {e}, The File could not be loaded. Please note that the path has to be either"
+                f" a URDF, stl or obj file or the name of an URDF string on the parameter server.")
             os.remove(path)
             raise e
 

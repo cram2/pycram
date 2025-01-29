@@ -412,7 +412,7 @@ class World(WorldEntity, ABC):
         """
         pass
 
-    def remove_object(self, obj: Object, remove_from_simulator: bool = True) -> None:
+    def remove_object(self, obj: Object) -> None:
         """
         Remove this object from the current world.
         For the object to be removed it has to be detached from all objects it
@@ -425,7 +425,7 @@ class World(WorldEntity, ABC):
 
         obj.detach_all()
 
-        if remove_from_simulator and self.remove_object_from_simulator(obj):
+        if self.remove_object_from_simulator(obj):
             self.objects.remove(obj)
             self.remove_object_from_original_state(obj)
 
