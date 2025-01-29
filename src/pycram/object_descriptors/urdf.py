@@ -24,7 +24,7 @@ from ..utils import suppress_stdout_stderr
 from ..datastructures.mixins import HasConcept
 
 
-class LinkDescription(AbstractLinkDescription, HasConcept):
+class LinkDescription(AbstractLinkDescription):
     """
     A class that represents a link description of an object.
     """

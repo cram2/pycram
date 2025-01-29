@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import Field, dataclass
 
+from random_events.set import SetElement
+from random_events.variable import Integer, Continuous, Symbolic
 from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING
 from itertools import product
 from inspect import signature
@@ -44,7 +47,7 @@ class PartialDesignator:
 
     def __init__(self, performable: Type[ActionDesignatorDescription.Action], *args, **kwargs):
         self.performable = performable
-        # Remove None values fom the given arguments and keyword arguments
+        # Remove None values from the given arguments and keyword arguments
         self.kwargs = dict(signature(self.performable).bind_partial(*args, **kwargs).arguments)
         for key in dict(signature(self.performable).parameters).keys():
             if key not in self.kwargs.keys():

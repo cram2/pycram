@@ -4,17 +4,22 @@ from __future__ import annotations
 import abc
 import inspect
 import itertools
+from dataclasses import dataclass
+from typing import Dict
+
+from ..datastructures.dataclass_utils import metadata_of_field, field, PycramMetaData, variable_of_field
 
 import numpy as np
 from sqlalchemy.orm import Session
 from tf import transformations
-from typing_extensions import List, Union, Optional, Type
+from typing_extensions import List, Union, Optional, Type, Self, Any
 
 from pycrap.ontologies import PhysicalObject, Location
 from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveArmJointsMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
+from ..datastructures.mixins import HasParametrization, ParameterInfo
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty, \
     VisibleProperty
@@ -47,7 +52,7 @@ from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Naviga
 from ..orm.base import Pose as ORMPose
 from ..orm.object_designator import Object as ORMObject
 from ..orm.action_designator import Action as ORMAction
-from dataclasses import dataclass, field
+
 
 
 # ----------------------------------------------------------------------------
@@ -56,9 +61,11 @@ from dataclasses import dataclass, field
 
 
 @dataclass
-class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
+class ActionAbstract(ActionDesignatorDe+scription.Action, abc.ABC, HasParametrization):
     """Base class for performable performables."""
-    orm_class: Type[ORMAction] = field(init=False, default=None, repr=False)
+
+    orm_class: Type[ORMAction] = field(init=False, default=None, repr=False,
+                                       metadata=dict(pycram=PycramMetaData(is_parameter=False)))
     """
     The ORM class that is used to insert this action into the database. Must be overwritten by every action in order to
     be able to insert the action into the database.
@@ -128,6 +135,41 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
 
         return action
 
+    @classmethod
+    def parameters(cls) -> Dict[str, ParameterInfo]:
+        """
+        Get the parameters of the action.
+
+        :return: A dictionary with the parameters of the action
+        """
+        type_hints = cls.get_type_hints()
+        params = {}
+        for name, type_hint in  dict(inspect.signature(cls).parameters).items():
+            dtype = type_hints[name]
+            if issubclass(dtype, HasParametrization):
+                params[name] = dtype.parameters()
+            else:
+                params[name] = ParameterInfo(name, dtype)
+        return params
+
+    @classmethod
+    def from_parameters(cls, parameters: Dict[str, Any]) -> Self:
+        """
+        Create an instance of the action from the given parameters.
+
+        :param parameters: A dictionary with the parameters of the action
+        :return: An instance of the action with the given parameters
+        """
+        type_hints = cls.get_type_hints()
+        kwargs = {}
+        for name, type_hint in  dict(inspect.signature(cls).parameters).items():
+            dtype = type_hints[name]
+            if issubclass(dtype, HasParametrization):
+                kwargs[name] = dtype.from_parameters(parameters[name])
+            else:
+                kwargs[name] = parameters[name].value
+        return cls(**kwargs)
+
 
 @dataclass
 class MoveTorsoActionPerformable(ActionAbstract):
@@ -139,7 +181,8 @@ class MoveTorsoActionPerformable(ActionAbstract):
     """
     The joint positions that should be set. The keys are the joint names and the values are the joint positions.
     """
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMMoveTorsoAction)
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMMoveTorsoAction,
+                                            metadata=dict(pycram=PycramMetaData(is_parameter=False)))
 
     @with_tree
     def plan(self) -> None:
@@ -405,7 +448,8 @@ class NavigateActionPerformable(ActionAbstract):
     Keep the joint states of the robot the same during the navigation.
     """
 
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMNavigateAction)
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMNavigateAction,
+                                            metadata=dict(pycram=PycramMetaData(is_parameter=False)))
 
     @with_tree
     def plan(self) -> None:

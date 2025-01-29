@@ -8,6 +8,7 @@ from inspect import isgenerator, isgeneratorfunction
 
 from typing_extensions import get_type_hints
 from pycrap.ontologies import PhysicalObject, Agent
+from .datastructures.dataclass_utils import metadata_of_field, variable_of_field, PycramMetaData
 from .datastructures.property import Property, EmptyProperty
 from .ros.logging import logwarn, loginfo
 from sqlalchemy.orm.session import Session
@@ -152,16 +153,16 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         """
         The performable designator_description with a single element for each list of possible parameter.
         """
-        robot_position: Pose = field(init=False)
+        robot_position: Pose = field(init=False, metadata=dict(pycram=PycramMetaData(is_parameter=False)))
         """
         The position of the robot at the start of the action.
         """
-        robot_torso_height: float = field(init=False)
+        robot_torso_height: float = field(init=False, metadata=dict(pycram=PycramMetaData(is_parameter=False)))
         """
         The torso height of the robot at the start of the action.
         """
 
-        robot_type: Type[Agent] = field(init=False)
+        robot_type: Type[Agent] = field(init=False, metadata=dict(pycram=PycramMetaData(is_parameter=False)))
         """
         The type of the robot at the start of the action.
         """
@@ -173,6 +174,18 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
             else:
                 self.robot_torso_height = 0.0
             self.robot_type = World.robot.obj_type
+
+        @classmethod
+        def variables(cls):
+            variables = []
+            dtypes = get_type_hints(cls)
+
+            for f in fields(cls):
+                metadata = metadata_of_field(f)
+                dtype = dtypes[f.name]
+                if metadata_of_field(f).is_parameter:
+                    variables.append(variable_of_field(f, dtype))
+            return variables
 
         def perform(self) -> Any:
             """
@@ -246,9 +259,9 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         @classmethod
         def get_type_hints(cls) -> Dict[str, Any]:
             """
-            Returns the type hints of the __init__ method of this designator_description description.
+            Returns the type hints of the __init__ method of this Action designator performable
 
-            :return:
+            :return: A dictionary of the type hints
             """
             return get_type_hints(cls)
 
@@ -283,6 +296,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         :yield: A resolved action designator
         """
         yield self.ground()
+
 
 
 class LocationDesignatorDescription(DesignatorDescription):

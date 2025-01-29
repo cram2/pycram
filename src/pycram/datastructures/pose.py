@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import math
 import datetime
+from typing import Dict
 
 from tf.transformations import euler_from_quaternion
 from typing_extensions import List, Union, Optional, Sized, Self
@@ -12,6 +13,8 @@ import sqlalchemy.orm
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from tf import transformations
+
+from .mixins import HasParametrization, ParameterInfo
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
 from ..ros.data_types import Time
 from ..validation.error_checkers import calculate_pose_error
@@ -37,7 +40,7 @@ def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
     return geo_quaternion
 
 
-class Pose(PoseStamped):
+class Pose(PoseStamped, HasParametrization):
     """
     Pose representation for PyCRAM, this class extends the PoseStamped ROS message from geometry_msgs. Thus making it
     compatible with every ROS service and message expecting a PoseStamped message.
@@ -88,6 +91,26 @@ class Pose(PoseStamped):
         p.header = pose_stamped.header
         p.pose = pose_stamped.pose
         return p
+
+    @classmethod
+    def parameters(cls) -> Dict[str, ParameterInfo]:
+        """
+        TODO This assumes that all other parameters of poses are also in map frame.
+        :return:
+        """
+        return {"px": ParameterInfo("position.x", float),
+                "py": ParameterInfo("position.y", float),
+                "pz": ParameterInfo("position.z", float),
+                "rx":ParameterInfo("orientation.x", float),
+                "ry": ParameterInfo("orientation.y", float),
+                "rz": ParameterInfo("orientation.z", float),
+                "rw": ParameterInfo("orientation.w", float)}
+
+    @classmethod
+    def from_parameters(cls, parameters: Dict[str, ParameterInfo]) -> Self:
+        return cls([parameters["px"].value, parameters["py"].value, parameters["pz"].value],
+                   [parameters["rx"].value, parameters["ry"].value, parameters["rz"].value, parameters["rw"].value])
+
 
     def get_position_diff(self, target_pose: Self) -> Point:
         """
