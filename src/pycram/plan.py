@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import time
 from functools import reduce
 from typing import List
 
 import networkx as nx
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import *
-from typing_extensions import Iterable, Tuple
+from typing_extensions import Iterable, Tuple, Hashable
 
 from .datastructures.mixins import ParameterInfo
 from .designators.action_designator import NavigateActionPerformable, ActionAbstract
@@ -34,6 +35,25 @@ def path_and_value_of_nested_dict(nested_dict) -> Iterable[Tuple[List[str], Any]
         else:
             yield [key], value
 
+def parameters_from_path_dict(path_dict: Dict[Tuple[Hashable, ...], Any]) -> Dict:
+    """
+    Create a dictionary from a path dictionary.
+    The keys in the path dictionary are lists of strings that represent the
+    path to the value in the dictionary.
+
+    Example:
+    >>> a = {("a", "b"): 1, ("a", "c"): 2, ("a", "d", "e"): 3}
+    >>> parameters_from_path_dict(a)
+    {"a": {"b": 1, "c": 2}, "d": {"e": 3}}
+
+    :param path_dict: The path dictionary.
+    :return: The dictionary.
+    """
+    result = {}
+    for path, value in path_dict.items():
+        reduce(lambda d, k: d.setdefault(k, {}), path[:-1], result)[path[-1]] = value
+    return result
+
 class ActionCore:
     """
     A Node in a plan.
@@ -50,10 +70,10 @@ class ActionCore:
         plan.add_node(self)
 
     def __hash__(self):
-        return id(self.action_class)
+        return id(self)
 
     def __repr__(self):
-        return repr(self.action_class)
+        return repr(self.action_class.__name__)
 
     @property
     def variables(self) -> List[Variable]:
@@ -82,6 +102,12 @@ class ActionCore:
     def parameters(self):
         return self.action_class.parameters()
 
+    def next_action(self, action: ActionCore):
+        self.plan.add_edge(self, action)
+
+    def ground(self, parameters: Dict[str, Union[ParameterInfo, Dict]]):
+        return self.action_class.from_parameters(parameters)
+
 
 class Plan(nx.DiGraph):
 
@@ -104,3 +130,12 @@ class Plan(nx.DiGraph):
 
     def parameters(self):
         return {node: node.parameters() for node in self.nodes}
+
+    @property
+    def root(self):
+        return next(nx.topological_sort(self))
+
+    def perform(self, parameters: Dict):
+        for node in nx.topological_sort(self):
+            node.ground(parameters[node]).perform()
+            time.sleep(5)

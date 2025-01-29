@@ -61,7 +61,7 @@ from ..orm.action_designator import Action as ORMAction
 
 
 @dataclass
-class ActionAbstract(ActionDesignatorDe+scription.Action, abc.ABC, HasParametrization):
+class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC, HasParametrization):
     """Base class for performable performables."""
 
     orm_class: Type[ORMAction] = field(init=False, default=None, repr=False,
@@ -136,7 +136,7 @@ class ActionAbstract(ActionDesignatorDe+scription.Action, abc.ABC, HasParametriz
         return action
 
     @classmethod
-    def parameters(cls) -> Dict[str, ParameterInfo]:
+    def parameters(cls) -> Dict[str, Union[ParameterInfo, Dict]]:
         """
         Get the parameters of the action.
 
