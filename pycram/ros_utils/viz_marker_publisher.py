@@ -225,7 +225,7 @@ class ManualMarkerPublisher:
         self.log_message = f"Object '{name}' published"
 
     def _make_marker_array(self, name, marker_type: int, marker_pose: Pose, marker_scales: Tuple = (1.0, 1.0, 1.0),
-                           color_rgba: ColorRGBA = ColorRGBA(**{"r":1.0, "g":1.0, "b":1.0, "a":1.0}),
+                           color_rgba: ColorRGBA = ColorRGBA(r=1, g=1, b=1, a=1),
                            path_to_resource: Optional[str] = None):
         """
         Create a Marker and add it to the MarkerArray

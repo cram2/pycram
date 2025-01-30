@@ -114,7 +114,7 @@ class JointDescription(AbstractJointDescription):
         """
         :return: The axis of this joint, for example the rotation axis for a revolute joint.
         """
-        return Point(*self.parsed_description.axis)
+        return Point(**dict(zip(["x", "y", "z"],self.parsed_description.axis)))
 
     @property
     def lower_limit(self) -> Union[float, None]:

@@ -119,13 +119,13 @@ class AxisAlignedBoundingBox:
         """
         :return: The axis-aligned bounding box as a minimum point
         """
-        return Point(self.min_x, self.min_y, self.min_z)
+        return Point(x=self.min_x, y=self.min_y, z=self.min_z)
 
     def get_max_point(self) -> Point:
         """
         :return: The axis-aligned bounding box as a maximum point
         """
-        return Point(self.max_x, self.max_y, self.max_z)
+        return Point(x=self.max_x, y=self.max_y, z=self.max_z)
 
     def get_min_max(self) -> Tuple[List[float], List[float]]:
         """

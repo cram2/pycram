@@ -1,17 +1,15 @@
-import unittest
-
 import numpy as np
-from random_events.variable import Continuous
+import plotly.graph_objects as go
+from random_events.interval import *
 #  import plotly.graph_objects as go
 from random_events.product_algebra import Event, SimpleEvent
-from random_events.interval import *
+from random_events.variable import Continuous
 
-from pycram.testing import BulletWorldTestCase
 from pycram.costmaps import OccupancyCostmap, AlgebraicSemanticCostmap, VisibilityCostmap
-from pycram.probabilistic_costmap import ProbabilisticCostmap
-from pycram.units import meter, centimeter
 from pycram.datastructures.pose import Pose
-import plotly.graph_objects as go
+from pycram.probabilistic_costmap import ProbabilisticCostmap
+from pycram.testing import BulletWorldTestCase
+from pycram.units import centimeter
 
 
 class CostmapTestCase(BulletWorldTestCase):

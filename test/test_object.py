@@ -30,12 +30,12 @@ class TestObject(BulletWorldTestCase):
             Object("milk2", Milk, malformed_file)
 
     def test_move_base_to_origin_pose(self):
-        self.milk.set_position(Point(1, 2, 3), base=False)
+        self.milk.set_position(Point(x=1, y=2, z=3), base=False)
         self.milk.move_base_to_origin_pose()
         self.assertEqual(self.milk.get_base_position_as_list(), [1, 2, 3])
 
     def test_set_position_as_point(self):
-        self.milk.set_position(Point(1, 2, 3))
+        self.milk.set_position(Point(x=1, y=2, z=3))
         self.assertEqual(self.milk.get_position_as_list(), [1, 2, 3])
 
     def test_uni_direction_attachment(self):
@@ -96,7 +96,7 @@ class TestObject(BulletWorldTestCase):
         self.assertEqual(self.milk.get_position_as_list(), [1, 2, 3])
 
     def test_get_joint_axis(self):
-        self.assertEqual(self.robot.get_joint_axis("head_pan_joint"), Point(0.0, 0.0, 1.0))
+        self.assertEqual(self.robot.get_joint_axis("head_pan_joint"), Point(x=0.0, y=0.0, z=1.0))
 
     def test_get_joint_type(self):
         self.assertEqual(self.robot.get_joint_type("head_pan_joint"), JointType.REVOLUTE)

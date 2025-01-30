@@ -341,7 +341,7 @@ class BulletWorld(World):
                               link_poses=[Pose(), Pose(), Pose()], link_masses=[1.0, 1.0, 1.0],
                               link_inertial_frame_poses=[Pose(), Pose(), Pose()], link_parent_indices=[0, 0, 0],
                               link_joint_types=[JointType.FIXED.value, JointType.FIXED.value, JointType.FIXED.value],
-                              link_joint_axis=[Point(1, 0, 0), Point(0, 1, 0), Point(0, 0, 1)],
+                              link_joint_axis=[Point(x=1, y=0, z=0), Point(x=0, y=1, z=0), Point(x=0, y=0, z=1)],
                               link_collision_shape_indices=[-1, -1, -1])
 
         body_id = self._create_multi_body(multibody)
