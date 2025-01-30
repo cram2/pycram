@@ -516,6 +516,30 @@ def xyzw_to_wxyz(xyzw: List[float]) -> List[float]:
     return [xyzw[3], *xyzw[:3]]
 
 
+def wxyz_to_xyzw_arr(wxyz: np.ndarray) -> np.ndarray:
+    """
+    Convert a quaternion from WXYZ to XYZW format.
+
+    :param wxyz: The quaternion in WXYZ format.
+    """
+    xyzw = np.zeros(4)
+    xyzw[:3] = wxyz[1:]
+    xyzw[3] = wxyz[0]
+    return xyzw
+
+
+def xyzw_to_wxyz_arr(xyzw: np.ndarray) -> np.ndarray:
+    """
+    Convert a quaternion from XYZW to WXYZ format.
+
+    :param xyzw: The quaternion in XYZW format.
+    """
+    wxyz = np.zeros(4)
+    wxyz[0] = xyzw[3]
+    wxyz[1:] = xyzw[:3]
+    return wxyz
+
+
 def map_color_names_to_rgba(name: str) -> Color:
     """
     Maps a color name to its corresponding RGBA value.

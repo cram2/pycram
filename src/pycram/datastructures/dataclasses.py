@@ -25,6 +25,31 @@ if TYPE_CHECKING:
     from .world_entity import PhysicalBody
 
 
+@dataclass
+class ManipulatorData:
+    name: str
+    base_link: str
+
+    arm_end_link: str
+    joint_names: List[str]
+    home_joint_values: List[float]
+
+    gripper_name: str
+    gripper_tool_frame: str
+
+    gripper_joint_names: List[str]
+    closed_joint_values: List[float]
+    open_joint_values: List[float]
+
+    relative_dir: str = ''
+
+    gripper_cmd_topic: str = "/gripper_command"
+    gripper_open_cmd_value: float = 0.0
+    gripper_close_cmd_value: float = 255.0
+
+    gripper_relative_dir: Optional[str] = None
+
+
 def get_point_as_list(point: Point) -> List[float]:
     """
     Return the point as a list.

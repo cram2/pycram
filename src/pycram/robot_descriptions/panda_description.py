@@ -1,36 +1,24 @@
 from ..datastructures.dataclasses import ManipulatorData
 from ..helper import get_robot_urdf_and_mjcf_file_paths, find_multiverse_resources_path
 from ..robot_description import RobotDescriptionManager, create_manipulator_description
-from ..ros.logging import logwarn
+from ..ros.logging import logwarn, loginfo
 
 data = ManipulatorData(
-    name="ur5e",
-    relative_dir="universal_robot",
-    base_link="base_link",
+    name="panda",
+    relative_dir="franka_emika_panda",
+    base_link="panda",
 
-    arm_end_link="wrist_3_link",
-    joint_names=['shoulder_pan_joint',
-                 'shoulder_lift_joint',
-                 'elbow_joint',
-                 'wrist_1_joint',
-                 'wrist_2_joint',
-                 'wrist_3_joint'],
-    home_joint_values=[3.14, -1.56, 1.58, -1.57, -1.57, 0.0],
+    arm_end_link="link7",
+    joint_names=[f'joint{i}' for i in range(1, 8)],
+    home_joint_values=[0, 0, 0, -1.57079, 0, 1.57079, -0.7853],
 
-    gripper_name="gripper-2F-85",
-    gripper_relative_dir="robotiq",
+    gripper_name="hand",
+    gripper_relative_dir=None,
     gripper_tool_frame="right_pad",
 
-    gripper_joint_names=['right_driver_joint',
-                         'right_coupler_joint',
-                         'right_spring_link_joint',
-                         'right_follower_joint',
-                         'left_driver_joint',
-                         'left_coupler_joint',
-                         'left_spring_link_joint',
-                         'left_follower_joint'],
-    closed_joint_values=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-    open_joint_values=[0.798, 0.00366, 0.796, -0.793, 0.798, 0.00366, 0.796, -0.793],
+    gripper_joint_names=[f'finger_joint{i}' for i in [1, 2]],
+    closed_joint_values=[0.0, 0.0],
+    open_joint_values=[0.04, 0.04],
 
     gripper_cmd_topic="/gripper_command",
     gripper_open_cmd_value=0.0,
