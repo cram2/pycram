@@ -641,15 +641,13 @@ class Object(PhysicalBody):
         return self.__class__.__qualname__ + (f"(name={self.name}, object_type={self.obj_type.name},"
                                               f" file_path={self.path}, pose={self.pose}, world={self.world})")
 
-    def remove(self, remove_from_simulator: bool = True) -> None:
+    def remove(self) -> None:
         """
         Remove this object from the World it currently resides in.
         For the object to be removed it has to be detached from all objects it
-        is currently attached to. Then remove this Object from the simulation/world if remove_from_simulator is True.
-
-        :param remove_from_simulator: If True the object will be removed from the simulator.
+        is currently attached to. Then remove this Object from the simulation/world.
         """
-        self.world.remove_object(self, remove_from_simulator=remove_from_simulator)
+        self.world.remove_object(self)
 
     def reset(self, remove_saved_states=False) -> None:
         """

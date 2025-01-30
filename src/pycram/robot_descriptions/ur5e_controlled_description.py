@@ -1,5 +1,7 @@
 import os
 
+from typing_extensions import Optional
+
 from ..datastructures.enums import Arms, GripperState
 from ..helper import get_robot_mjcf_path, find_multiverse_resources_path, get_robot_urdf_path_from_multiverse
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
@@ -8,17 +10,28 @@ from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..ros.logging import logwarn
 
 multiverse_resources = find_multiverse_resources_path()
+
 ROBOT_NAME = "ur5e"
 GRIPPER_NAME = "gripper-2F-85"
 GRIPPER_CMD_TOPIC = "/gripper_command"
 OPEN_VALUE = 0.0
 CLOSE_VALUE = 255.0
-if multiverse_resources is None:
+
+mjcf_filename: Optional[str] = None
+if multiverse_resources is not None:
+    robot_relative_dir = "universal_robot"
+    filename = get_robot_urdf_path_from_multiverse(robot_relative_dir, ROBOT_NAME, resources_dir=multiverse_resources)
+    mjcf_filename = get_robot_mjcf_path(robot_relative_dir, ROBOT_NAME, multiverse_resources=multiverse_resources)
+
+if mjcf_filename is None:
     logwarn("Could not initialize ur5e description as Multiverse resources path not found.")
 else:
     robot_relative_dir = "universal_robot"
     filename = get_robot_urdf_path_from_multiverse(robot_relative_dir, ROBOT_NAME, resources_dir=multiverse_resources)
-    mjcf_filename = get_robot_mjcf_path(robot_relative_dir, ROBOT_NAME, multiverse_resources=multiverse_resources)
+    try:
+        mjcf_filename = get_robot_mjcf_path(robot_relative_dir, ROBOT_NAME, multiverse_resources=multiverse_resources)
+    except FileNotFoundError:
+        logwarn(f"Could not find MJCF file for {ROBOT_NAME}.")
     ur5_description = RobotDescription(ROBOT_NAME, "base_link", "", "",
                                        filename, mjcf_path=mjcf_filename, gripper_name=GRIPPER_NAME)
 
