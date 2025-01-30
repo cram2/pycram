@@ -2,12 +2,13 @@ import os
 
 from typing_extensions import Optional
 
-from ..datastructures.enums import Arms, GripperState
+from ..datastructures.enums import Arms, GripperState, GripperType
 from ..helper import get_robot_mjcf_path, find_multiverse_resources_path, get_robot_urdf_path_from_multiverse
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..ros.logging import logwarn
+from ..units import meter
 
 multiverse_resources = find_multiverse_resources_path()
 
@@ -72,7 +73,8 @@ else:
                                                          'left_coupler_joint': 0.00366,
                                                          'left_spring_link_joint': 0.796,
                                                          'left_follower_joint': -0.793})
-
+    gripper.end_effector_type = GripperType.PARALLEL
+    gripper.opening_distance = 0.085 * meter
     arm.end_effector = gripper
 
     # Add to RobotDescriptionManager

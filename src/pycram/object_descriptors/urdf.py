@@ -335,7 +335,7 @@ class ObjectDescription(AbstractObjectDescription):
             with suppress_stdout_stderr():
                 return URDF.from_xml_string(file.read())
 
-    def generate_from_mesh_file(self, path: str, name: str, save_path: str, color: Optional[Color] = Color()) -> None:
+    def generate_from_mesh_file(self, path: str, name: str, save_path: str, color: Optional[Color] = Color(), scale = Optional[float]) -> None:
         """
         Generate a URDf file with the given .obj or .stl file as mesh. In addition, use the given rgba_color to create a
          material tag in the URDF. The URDF file will be saved to the given save_path.
@@ -344,30 +344,34 @@ class ObjectDescription(AbstractObjectDescription):
         :param name: The name of the object.
         :param save_path: The path to save the URDF file to.
         :param color: The color of the object.
+        :param scale: The scale of the mesh.
         """
         urdf_template = '<?xml version="0.0" ?> \n \
                         <robot name="~a_object"> \n \
+                        <material name="color">\n \
+                                <color rgba="~c"/>\n \
+                        </material>\n \
                          <link name="~a_main"> \n \
                             <visual> \n \
                                 <geometry>\n \
-                                    <mesh filename="~b" scale="1 1 1"/> \n \
+                                    <mesh filename="~b" scale="~d"/> \n \
                                 </geometry>\n \
-                                <material name="white">\n \
-                                    <rgba_color rgba="~c"/>\n \
-                                </material>\n \
+                                <material name="color"/>\n \
                           </visual> \n \
                         <collision> \n \
-                        <geometry>\n \
-                            <mesh filename="~b" scale="1 1 1"/>\n \
-                        </geometry>\n \
+                            <geometry>\n \
+                                <mesh filename="~b" scale="~d"/>\n \
+                            </geometry>\n \
+                            <material name="color"/>\n \
                         </collision>\n \
                         </link> \n \
                         </robot>'
         urdf_template = self.fix_missing_inertial(urdf_template)
         rgb = " ".join(list(map(str, color.get_rgba())))
+        s = " ".join([str(scale)] * 3)
         pathlib_obj = pathlib.Path(path)
         path = str(pathlib_obj.resolve())
-        content = urdf_template.replace("~a", name).replace("~b", path).replace("~c", rgb)
+        content = urdf_template.replace("~a", name).replace("~b", path).replace("~c", rgb).replace("~d", s)
         self.write_description_to_file(content, save_path)
 
     def generate_from_description_file(self, path: str, save_path: str, make_mesh_paths_absolute: bool = True) -> None:

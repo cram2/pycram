@@ -802,7 +802,8 @@ class ObjectDescription(EntityDescription):
 
     def generate_description_from_file(self, path: str, name: str, extension: str, save_path: str,
                                        scale_mesh: Optional[float] = None,
-                                       mesh_transform: Optional[Transform] = None) -> None:
+                                       mesh_transform: Optional[Transform] = None,
+                                       color: Optional[Color] = None) -> None:
         """
         Generate and preprocess the description from the file at the given path and save the preprocessed
         description. The generated description will be saved at the given save path.
@@ -813,6 +814,7 @@ class ObjectDescription(EntityDescription):
         :param save_path: The path to save the generated description file.
         :param scale_mesh: The scale of the mesh.
         :param mesh_transform: The transformation matrix to apply to the mesh.
+        :param color: The color of the object.
         :raises ObjectDescriptionNotFound: If the description file could not be found/read.
         """
 
@@ -826,7 +828,7 @@ class ObjectDescription(EntityDescription):
                     mesh.apply_transform(transform)
                 path = path.replace(extension, ".obj")
                 mesh.export(path)
-            self.generate_from_mesh_file(path, name, save_path=save_path)
+            self.generate_from_mesh_file(path, name, save_path=save_path, color=color, scale=scale_mesh)
         elif extension == self.get_file_extension():
             self.generate_from_description_file(path, save_path=save_path)
         else:
@@ -882,7 +884,7 @@ class ObjectDescription(EntityDescription):
 
     @classmethod
     @abstractmethod
-    def generate_from_mesh_file(cls, path: str, name: str, save_path: str) -> None:
+    def generate_from_mesh_file(cls, path: str, name: str, save_path: str, color: Color) -> None:
         """
         Generate a description file from one of the mesh types defined in the mesh_extensions and
         return the path of the generated file. The generated file will be saved at the given save_path.
@@ -890,6 +892,7 @@ class ObjectDescription(EntityDescription):
         :param path: The path to the .obj file.
         :param name: The name of the object.
         :param save_path: The path to save the generated description file.
+        :param color: The color of the object.
         """
         pass
 

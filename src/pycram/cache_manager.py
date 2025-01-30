@@ -7,6 +7,7 @@ import shutil
 
 from typing_extensions import List, TYPE_CHECKING, Optional
 
+from .datastructures.dataclasses import Color
 from .ros.logging import loginfo
 
 if TYPE_CHECKING:
@@ -56,7 +57,8 @@ class CacheManager:
     def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
                                      object_description: ObjectDescription, object_name: str,
                                      scale_mesh: Optional[float] = None,
-                                     mesh_transform: Optional[Transform] = None) -> str:
+                                     mesh_transform: Optional[Transform] = None,
+                                     color: Optional[Color] = None) -> str:
         """
         Check if the file is already in the cache directory, if not preprocess and save in the cache.
 
@@ -67,6 +69,7 @@ class CacheManager:
         :param object_name: The name of the object.
         :param scale_mesh: The scale of the mesh.
         :param mesh_transform: The transformation matrix to apply to the mesh.
+        :param color: The color of the object.
         :return: The path of the cached file.
         """
         path_object = pathlib.Path(path)
@@ -82,7 +85,7 @@ class CacheManager:
             path = self.look_for_file_in_data_dir(path_object)
             object_description.original_path = path
             object_description.generate_description_from_file(path, object_name, extension, cache_path,
-                                                              scale_mesh, mesh_transform)
+                                                              scale_mesh, mesh_transform, color)
 
         return cache_path
 
