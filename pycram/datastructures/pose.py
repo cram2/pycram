@@ -543,17 +543,17 @@ class Transform(TransformStamped):
         if not isinstance(other, Transform):
             logerr(f"Can only multiply two Transforms")
             return
-        self_trans = transformations.translation_matrix(self.translation_as_list())
-        self_rot = transformations.quaternion_matrix(self.rotation_as_list())
+        self_trans = translation_matrix(self.translation_as_list())
+        self_rot = quaternion_matrix(self.rotation_as_list())
         self_mat = np.dot(self_trans, self_rot)
 
-        other_trans = transformations.translation_matrix(other.translation_as_list())
-        other_rot = transformations.quaternion_matrix(other.rotation_as_list())
+        other_trans = translation_matrix(other.translation_as_list())
+        other_rot = quaternion_matrix(other.rotation_as_list())
         other_mat = np.dot(other_trans, other_rot)
 
         new_mat = np.dot(self_mat, other_mat)
-        new_trans = transformations.translation_from_matrix(new_mat)
-        new_rot = transformations.quaternion_from_matrix(new_mat)
+        new_trans = translation_from_matrix(new_mat)
+        new_rot = quaternion_from_matrix(new_mat)
         return Transform(list(new_trans), list(new_rot), self.frame, other.child_frame_id)
 
     def inverse_times(self, other_transform: Transform) -> Transform:

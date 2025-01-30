@@ -64,7 +64,7 @@ class LinkDescription(AbstractLinkDescription):
         if self.collision.origin is None:
             return None
         return Pose(self.collision.origin.xyz,
-                    quaternion_from_euler(*self.collision.origin.rpy).tolist())
+                    quaternion_from_euler(*self.collision.origin.rpy))
 
     @property
     def name(self) -> str:

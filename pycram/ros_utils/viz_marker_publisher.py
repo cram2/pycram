@@ -83,24 +83,25 @@ class VizMarkerPublisher:
 
                 color = obj.get_link_color(link).get_rgba()
 
-                msg.color = ColorRGBA(*color)
-                msg.lifetime = Duration(1)
+                msg.color = ColorRGBA(**dict(zip(["r", "g", "b", "a"], color)))
+                # msg.lifetime = Duration(1) # There is some confusion in ROS2 because there are two different Duration classes
+                                             # so for compatibility reasons we will not set the lifetime
 
                 if isinstance(geom, MeshVisualShape):
                     msg.type = Marker.MESH_RESOURCE
                     msg.mesh_resource = "file://" + geom.file_name
-                    msg.scale = Vector3(1, 1, 1)
+                    msg.scale = Vector3(x=1.0, y=1.0, z=1.0)
                     msg.mesh_use_embedded_materials = True
                 elif isinstance(geom, CylinderVisualShape):
                     msg.type = Marker.CYLINDER
-                    msg.scale = Vector3(geom.radius * 2, geom.radius * 2, geom.length)
+                    msg.scale = Vector3(x=geom.radius * 2, y=geom.radius * 2, z=geom.length)
                 elif isinstance(geom, BoxVisualShape):
                     msg.type = Marker.CUBE
                     size = np.array(geom.size) * 2
-                    msg.scale = Vector3(size[0], size[1], size[2])
+                    msg.scale = Vector3(x=size[0], y=size[1], z=size[2])
                 elif isinstance(geom, SphereVisualShape):
                     msg.type = Marker.SPHERE
-                    msg.scale = Vector3(geom.radius * 2, geom.radius * 2, geom.radius * 2)
+                    msg.scale = Vector3(x=geom.radius * 2, y=geom.radius * 2, z=geom.radius * 2)
 
                 marker_array.markers.append(msg)
         return marker_array
@@ -191,7 +192,7 @@ class ManualMarkerPublisher:
             self._update_marker(self.marker_overview[name], new_pose=pose)
             return
 
-        color_rgba = ColorRGBA(*color)
+        color_rgba = ColorRGBA(**dict(zip(["r", "g", "b", "a"], color)))
         self._make_marker_array(name=name, marker_type=Marker.ARROW, marker_pose=pose,
                                 marker_scales=(0.05, 0.05, 0.05), color_rgba=color_rgba)
         self.marker_array_pub.publish(self.marker_array)
