@@ -1,6 +1,6 @@
 import unittest
 
-import roslaunch
+# import roslaunch
 
 from pycram.worlds.bullet_world import BulletWorld, Object
 from pycram.designator import ActionDesignatorDescription
@@ -29,7 +29,7 @@ class DummyActionDesignator(ActionDesignatorDescription):
 
 class FailureHandlingTest(unittest.TestCase):
     world: BulletWorld
-    process: roslaunch.scriptapi.ROSLaunch
+    # process: roslaunch.scriptapi.ROSLaunch
 
     @classmethod
     def setUpClass(cls):

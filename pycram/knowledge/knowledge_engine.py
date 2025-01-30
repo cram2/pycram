@@ -4,7 +4,7 @@ import inspect
 from enum import Enum
 from typing import _GenericAlias
 
-import rospy
+# import rospy
 from anytree import PreOrderIter
 from typeguard import check_type, TypeCheckError
 
@@ -14,6 +14,7 @@ from .knowledge_source import KnowledgeSource
 from typing_extensions import Type, Callable, List, TYPE_CHECKING, Dict, Any
 
 from ..failures import KnowledgeNotAvailable, ReasoningError
+from ..ros import logwarn
 
 if TYPE_CHECKING:
     from ..designator import ActionDesignatorDescription
@@ -48,7 +49,7 @@ class KnowledgeEngine:
         """
         if self._initialized: return
         if not self.enabled:
-            rospy.logwarn("Knowledge engine is disabled")
+            logwarn("Knowledge engine is disabled")
             return
         self.knowledge_sources = []
         # Initialize all knowledge sources
@@ -75,7 +76,7 @@ class KnowledgeEngine:
         self.init_sources()
         for source in self.knowledge_sources:
             if source.is_connected and not source.is_available:
-                rospy.logwarn(f"Knowledge source {source.name} is not available anymore")
+                logwarn(f"Knowledge source {source.name} is not available anymore")
             elif not source.is_connected and source.is_available:
                 source.connect()
 
@@ -86,7 +87,7 @@ class KnowledgeEngine:
         :return:
         """
         if not self.enabled:
-            rospy.logwarn("Knowledge engine is disabled")
+            logwarn("Knowledge engine is disabled")
             return True
         self.update_sources()
 
@@ -127,7 +128,7 @@ class KnowledgeEngine:
         :return:
         """
         if not self.enabled:
-            rospy.logwarn("Knowledge engine is disabled")
+            logwarn("Knowledge engine is disabled")
             return True
 
     def ground_solution(self, designator: Type['DesignatorDescription']) -> bool:
@@ -137,7 +138,7 @@ class KnowledgeEngine:
         :return: True if the solution achieves the desired goal, False otherwise
         """
         if not self.enabled:
-            rospy.logwarn("Knowledge engine is disabled")
+            logwarn("Knowledge engine is disabled")
             return True
 
     def find_source_for_property(self, property: Type[Property]) -> KnowledgeSource:

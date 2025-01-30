@@ -2,7 +2,7 @@ from enum import Enum, auto
 from functools import cached_property
 
 import numpy as np
-import tf
+from tf_transformations import quaternion_from_euler
 from std_msgs.msg import ColorRGBA
 from random_events.interval import closed_open
 from typing_extensions import Optional, Type
@@ -12,8 +12,7 @@ from .datastructures.world import World
 from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
 import matplotlib.colorbar
 from .datastructures.pose import Pose
-from pycram.ros.ros1.data_types import Duration
-from pycram.ros.ros1.publisher import create_publisher
+from .ros import Duration, create_publisher
 from .units import meter
 
 from pint import Quantity
@@ -132,7 +131,7 @@ class ProbabilisticCostmap:
         y = sample[1]
         position = [x, y, self.origin.position.z]
         angle = np.arctan2(position[1] - self.origin.position.y, position[0] - self.origin.position.x) + np.pi
-        orientation = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
+        orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
         return Pose(position, orientation, self.origin.frame)
 
     def visualize(self):

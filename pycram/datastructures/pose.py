@@ -4,7 +4,6 @@ from __future__ import annotations
 import math
 import datetime
 
-from std_msgs.msg import Header
 from tf_transformations import euler_from_quaternion, translation_matrix, quaternion_matrix, concatenate_matrices, \
     inverse_matrix, translation_from_matrix, quaternion_from_matrix
 from typing_extensions import List, Union, Optional, Sized, Self
@@ -13,7 +12,6 @@ import numpy as np
 import sqlalchemy.orm
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
-# from tf import transformations
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
 from ..ros import Time, logwarn, logerr
 from ..validation.error_checkers import calculate_pose_error

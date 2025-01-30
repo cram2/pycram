@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 import psutil
-from tf.transformations import quaternion_from_euler, quaternion_multiply
+from tf_transformations import quaternion_from_euler, quaternion_multiply
 from typing_extensions import Optional, List
 
 from pycram.datastructures.dataclasses import ContactPointsList, ContactPoint

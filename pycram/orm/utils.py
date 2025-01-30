@@ -3,7 +3,7 @@ from .base import Base
 from ..designators.object_designator import *
 import json
 
-from pycram.ros.ros1.logging import loginfo, logwarn
+from ..ros import loginfo, logwarn
 
 
 
