@@ -4,12 +4,10 @@ Classes:
 Singleton -- implementation of singleton metaclass
 """
 import os
-from typing_extensions import Dict, Optional, List, Tuple, Type
+from typing_extensions import Dict, Optional, Tuple
 import xml.etree.ElementTree as ET
 
-from .datastructures.dataclasses import ManipulatorData
-from .description import ObjectDescription
-from .object_descriptors.mjcf import ObjectDescription as MJCF
+from .datastructures.enums import DescriptionType
 from .object_descriptors.urdf import ObjectDescription as URDFObject
 from .ros.logging import logwarn
 
@@ -75,7 +73,7 @@ def parse_mjcf_actuators(file_path: str) -> Dict[str, str]:
 
 
 def get_robot_description_path(robot_relative_dir: str, robot_name: str,
-                               description_type: Type[ObjectDescription] = MJCF,
+                               description_type: DescriptionType = DescriptionType.MJCF,
                                file_name: Optional[str] = None,
                                resources_dir: Optional[str] = None) -> Optional[str]:
     """

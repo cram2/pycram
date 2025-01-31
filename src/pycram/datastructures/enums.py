@@ -5,6 +5,19 @@ from enum import Enum, auto
 from ..failures import UnsupportedJointType
 
 
+class DescriptionType(Enum):
+    URDF = "urdf"
+    MJCF = "mjcf"
+
+    def get_file_extension(self):
+        if self == DescriptionType.URDF:
+            return ".urdf"
+        elif self == DescriptionType.MJCF:
+            return ".xml"
+        else:
+            raise ValueError("Unknown description type")
+
+
 class ExecutionType(Enum):
     """Enum for Execution Process Module types."""
     REAL = auto()
