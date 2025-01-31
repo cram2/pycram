@@ -166,9 +166,15 @@ class PhysicalBody(WorldEntity, HasConcept, ABC):
     The ontology concept of this entity.
     """
 
-    def __init__(self, body_id: int, world: World):
+    def __init__(self, body_id: int, world: World, concept: Type[PhysicalObject] = PhysicalObject):
         WorldEntity.__init__(self, body_id, world)
         HasConcept.__init__(self)
+
+        # set ontology related information
+        self.ontology_concept = concept
+        if not self.world.is_prospection_world:
+            self.ontology_individual = self.ontology_concept(namespace=self.world.ontology.ontology)
+
         self.local_transformer = LocalTransformer()
         self._is_translating: Optional[bool] = None
         self._is_rotating: Optional[bool] = None

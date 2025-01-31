@@ -1,25 +1,27 @@
+from __future__ import annotations
+
+import copy
 import os
 import pathlib
 import xml.etree.ElementTree as ET
 
 import numpy as np
-
-from ..ros.logging import logerr, logwarn
-from ..ros.ros_tools import create_ros_pack, ResourceNotFound, get_parameter
 from geometry_msgs.msg import Point
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
-from typing_extensions import Union, List, Optional, Dict, Tuple
+from typing_extensions import Union, List, Optional, Dict, Tuple, Type, Self
 from urdf_parser_py import urdf
 from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as URDF_Cylinder,
                                  Sphere as URDF_Sphere, Mesh as URDF_Mesh)
 
+from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
+    SphereVisualShape, MeshVisualShape
 from ..datastructures.enums import JointType
 from ..datastructures.pose import Pose
 from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
-from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
-    SphereVisualShape, MeshVisualShape
 from ..failures import MultiplePossibleTipLinks
+from ..ros.logging import logerr
+from ..ros.ros_tools import create_ros_pack, ResourceNotFound, get_parameter
 from ..utils import suppress_stdout_stderr
 
 
@@ -212,7 +214,7 @@ class ObjectDescription(AbstractObjectDescription):
         :return: A dictionary mapping the name of a link to its description.
         """
         if self._link_map is None:
-            self._link_map = {link.name: link for link in self.links}
+            self._init_links_map()
         return self._link_map
 
     @property
@@ -221,11 +223,17 @@ class ObjectDescription(AbstractObjectDescription):
         :return: A dictionary mapping the name of a joint to its description.
         """
         if self._joint_map is None:
-            self._joint_map = {joint.name: joint for joint in self.joints}
+            self._init_joints_map()
         return self._joint_map
 
+    def _init_joints_map(self) -> None:
+        self._joint_map = {joint.name: joint for joint in self.joints}
+
+    def _init_links_map(self) -> None:
+        self._link_map = {link.name: link for link in self.links}
+
     def add_joint(self, name: str, child: str, joint_type: JointType,
-                  axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
+                  axis: Optional[Point] = None, parent: Optional[str] = None, origin: Optional[Pose] = None,
                   lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
                   is_virtual: Optional[bool] = False) -> None:
         """
@@ -242,16 +250,84 @@ class ObjectDescription(AbstractObjectDescription):
             axis = [axis.x, axis.y, axis.z]
         if parent is None:
             parent = self.get_root()
-        else:
-            parent = self.get_link_by_name(parent).parsed_description
-        joint = urdf.Joint(name,
-                           parent,
-                           self.get_link_by_name(child).parsed_description,
-                           JointDescription.pycram_type_map[joint_type],
-                           axis, origin, limit)
-        self.parsed_description.add_joint(joint)
         if is_virtual:
             self.virtual_joint_names.append(name)
+        else:
+            joint = urdf.Joint(name,
+                               parent,
+                               child,
+                               JointDescription.pycram_type_map[joint_type],
+                               axis, origin, limit)
+            self.add_joint_from_parsed_description(joint)
+
+    def add_joint_from_parsed_description(self, description: urdf.Joint) -> None:
+        """
+        Add a joint to the object description from a parsed URDF joint description.
+
+        :param description: The parsed URDF joint description.
+        """
+        self.parsed_description.add_joint(description)
+        if self._joints is not None:
+            self._joints.append(JointDescription(description))
+            self._joint_map[description.name] = self._joints[-1]
+
+    def add_link_from_parsed_description(self, description: urdf.Link) -> None:
+        """
+        Add a link to the object description from a parsed URDF link description.
+
+        :param description: The parsed URDF link description.
+        """
+        self.parsed_description.add_link(description)
+        if self._links is not None and len(self._links) > 0:
+            self._links.append(LinkDescription(description))
+            self._link_map[description.name] = self._links[-1]
+
+    def merge_description(self, other: ObjectDescription, parent_link: Optional[str] = None,
+                          child_link: Optional[str] = None,
+                          joint_type: JointType = JointType.FIXED,
+                          axis: Optional[Point] = None,
+                          lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
+                          child_pose_wrt_parent: Optional[Pose] = None,
+                          in_place: bool = False,
+                          new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
+        other_description = other.parsed_description
+        if child_pose_wrt_parent is None:
+            child_pose_wrt_parent = Pose()
+
+        original_child_link = child_link if child_link is not None else other.get_root()
+        child_link = f"{other_description.name}_" + original_child_link
+        parent_link = parent_link if parent_link is not None else self.get_root()
+
+        description = self if in_place else copy.deepcopy(self)
+
+        # Add the links of the other description to this description
+        for link in other_description.links:
+            # Change the name of the link to avoid name conflicts
+            link = copy.deepcopy(link)
+            link.name = f'{other_description.name}_{link.name}'
+            description.add_link_from_parsed_description(link)
+
+        # Add the joints of the other description to this description
+        for joint in other_description.joints:
+            # Change the name of the joint to avoid name conflicts
+            joint = copy.deepcopy(joint)
+            joint.name = f'{other_description.name}_{joint.name}'
+            description.add_joint_from_parsed_description(joint)
+
+        # Add the joint between the parent and child link
+        description.add_joint(f'{parent_link}_{original_child_link}_joint', child_link, joint_type,
+                              axis=axis, origin=child_pose_wrt_parent, parent=parent_link,
+                              lower_limit=lower_limit, upper_limit=upper_limit)
+
+        if new_description_file is not None:
+            description.xml_path = os.path.join(pathlib.Path(description.xml_path).parent,
+                                                (new_description_file + description.get_file_extension()))
+        description.write_description_to_file(description.parsed_description.to_xml_string(), description.xml_path)
+        return description
+
+    def _init_description(self) -> None:
+        self._init_links()
+        self._init_joints()
 
     def load_description(self, path) -> URDF:
         with open(path, 'r') as file:
@@ -324,8 +400,12 @@ class ObjectDescription(AbstractObjectDescription):
         :return: A list of joints descriptions of this object.
         """
         if self._joints is None:
-            self._joints = [JointDescription(joint) for joint in self.parsed_description.joints]
+            self._init_joints()
         return self._joints
+
+    def _init_joints(self) -> None:
+        self._joints = [JointDescription(joint) for joint in self.parsed_description.joints]
+        self._init_joints_map()
 
     @property
     def links(self) -> List[LinkDescription]:
@@ -333,8 +413,12 @@ class ObjectDescription(AbstractObjectDescription):
         :return: A list of link descriptions of this object.
         """
         if self._links is None:
-            self._links = [LinkDescription(link) for link in self.parsed_description.links]
+            self._init_links()
         return self._links
+
+    def _init_links(self) -> None:
+        self._links = [LinkDescription(link) for link in self.parsed_description.links]
+        self._init_links_map()
 
     def get_root(self) -> str:
         """
@@ -433,11 +517,11 @@ class ObjectDescription(AbstractObjectDescription):
         inertia_tree.getroot().append(ET.Element("mass", {"value": "0.1"}))
         inertia_tree.getroot().append(ET.Element("origin", {"rpy": "0 0 0", "xyz": "0 0 0"}))
         inertia_tree.getroot().append(ET.Element("inertia", {"ixx": "0.01",
-                                                                      "ixy": "0",
-                                                                      "ixz": "0",
-                                                                      "iyy": "0.01",
-                                                                      "iyz": "0",
-                                                                      "izz": "0.01"}))
+                                                             "ixy": "0",
+                                                             "ixz": "0",
+                                                             "iyy": "0.01",
+                                                             "iyz": "0",
+                                                             "izz": "0.01"}))
 
         # create tree from string
         tree = ET.ElementTree(ET.fromstring(urdf_string))
