@@ -393,7 +393,6 @@ class Object(WorldEntity, HasConcept):
 
         """
         self.links = {}
-        ontology_concept = PhysicalObject
         for link_name, link_id in self.link_name_to_id.items():
             link_description = self.description.get_link_by_name(link_name)
             if link_name == self.description.get_root():
@@ -401,13 +400,15 @@ class Object(WorldEntity, HasConcept):
             else:
                 self.links[link_name] = self.description.Link(link_id, link_description, self)
 
+            # If the link can be matched to a concept, assign it, else assign PhysicalObject as class.
+            if parse_furniture(link_name):
+                ontology_concept = parse_furniture(link_name)
+            else:
+                ontology_concept = PhysicalObject
+
             individual = ontology_concept(name=link_name, namespace=self.world.ontology.ontology)
             self.world.ontology.python_objects[individual] = self.links[link_name]
-
-            if parse_furniture(link_name):
-                individual.is_a = [ontology_concept, parse_furniture(link_name)]
-            else:
-                individual.is_a = [ontology_concept]
+            individual.is_a = [ontology_concept]
 
         self.update_link_transforms()
 
