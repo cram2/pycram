@@ -433,6 +433,8 @@ class Object(WorldEntity, HasConcept):
             self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
             individual = ontology_concept(joint_name, namespace=self.world.ontology.ontology)
             self.world.ontology.python_objects[individual] = parsed_joint_description
+            # The assignment of parent/child links has to be done with onto.search because an individual is required,
+            # not a string.
             individual.is_a = [ontology_concept, has_child_link.some(
                 self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name))),
                                has_parent_link.some(
