@@ -55,9 +55,6 @@ class OntologyWrapper:
         """
         return default_pycrap_ontology.classes()
 
-    @staticmethod
-    def properties():
-        return default_pycrap_ontology.properties()
 
     def search(self, *args, **kwargs):
         """
