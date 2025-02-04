@@ -431,8 +431,10 @@ class World(WorldEntity, ABC):
             self.objects.remove(obj)
             self.remove_object_from_original_state(obj)
 
-        if World.robot == obj and not self.is_prospection_world:
-            World.robot = None
+            if World.robot == obj and not self.is_prospection_world:
+                World.robot = None
+        else:
+            logwarn(f"Object {obj.name} could not be removed from the simulator, but all attachments were removed")
 
         self.object_lock.release()
 
