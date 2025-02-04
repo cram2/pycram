@@ -76,7 +76,7 @@ class TestObject(BulletWorldTestCase):
         self.assertEqual(self.milk.get_orientation_as_list(), [1, 0, 0, 0])
 
     def test_set_orientation_as_quaternion(self):
-        self.milk.set_orientation(Quaternion(*[1, 0, 0, 0]))
+        self.milk.set_orientation(Quaternion(x=1, y=0, z=0, w=0))
         self.assertEqual(self.milk.get_orientation_as_list(), [1, 0, 0, 0])
 
     def test_set_orientation_as_ndarray(self):

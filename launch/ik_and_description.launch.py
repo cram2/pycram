@@ -2,9 +2,11 @@ import os
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+import pathlib
 
-pkg_share = FindPackageShare('trac_ik_examples').find('trac_ik_examples')
-urdf_file = os.path.join(pkg_share, 'launch', 'pr2.urdf')
+#pkg_share = FindPackageShare('pycram').find('resources')
+#urdf_file = os.path.join(pkg_share, 'robots', 'pr2.urdf')
+urdf_file = os.path.join(pathlib.Path(__file__).parent.resolve(), '..', 'resources', 'robots', 'pr2.urdf')
 with open(urdf_file, 'r') as infp:
     robot_desc = infp.read()
 
@@ -12,15 +14,28 @@ with open(urdf_file, 'r') as infp:
 def generate_launch_description():
     return LaunchDescription([
         Node(
-            package='trac_ik_service',
-            executable='start_ik_service',
+            package='kdl_ik_service',
+            executable='start_ros_server',
             name='ik_node',
             output='screen',
             parameters=[{
-                'robot_description': robot_desc
+                'robot_description': robot_desc,
+                'ik_debug': False
             }]
         ),
     ])
+
+#    return LaunchDescription([
+#        Node(
+#            package='trac_ik_service',
+#            executable='start_ik_service',
+#            name='ik_node',
+#            output='screen',
+#            parameters=[{
+#                'robot_description': robot_desc
+#            }]
+#        ),
+#   ])
 
 
 # def generate_launch_description():

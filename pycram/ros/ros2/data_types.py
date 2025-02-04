@@ -3,13 +3,17 @@ import rclpy
 from . import node
 import builtin_interfaces
 
-class Time(rclpy.time.Time):
+class Time(builtin_interfaces.msg.Time):
     def __init__(self, time=0.0):
-        super().__init__(nanoseconds=time)
+        super().__init__(sec=time)
 
-    @staticmethod
-    def now():
-        return node.get_clock().now()
+    @classmethod
+    def now(cls):
+        return cls(node.get_clock().now().seconds_nanoseconds()[0])
+        #return node.get_clock().now()
+
+    def to_sec(self):
+        return self.sec()[0]
 
 # def Time(time=0.0):
 #

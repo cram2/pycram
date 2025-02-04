@@ -27,3 +27,5 @@ pint>=0.21.1
 
 Pygments~=2.14.0
 typeguard~=4.3.0
+tf_transformations==1.1.0
+transforms3d==0.4.2

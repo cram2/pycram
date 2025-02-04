@@ -16,6 +16,8 @@ from ..robot_description import RobotDescription
 from ..failures import IKError
 from ..external_interfaces.giskard import projection_cartesian_goal, allow_gripper_collision
 
+import os
+
 
 def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_object: Object,
                       joints: List[str]) -> PositionIKRequest:
@@ -42,14 +44,29 @@ def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_ob
     # joint_state.effort = [0.0 for x in range(len(joints))]
     robot_state.joint_state = joint_state
 
-    msg_request = PositionIKRequest()
-    # msg_request.group_name = "arm"
-    msg_request.ik_link_name = tip_link
-    msg_request.pose_stamped = target_pose
-    msg_request.avoid_collisions = False
-    msg_request.robot_state = robot_state
-    msg_request.timeout = Duration(1000)
-    # msg_request.attempts = 1000
+    if "ROS_VERISON" in os.environ and os.environ["ROS_VERISON"] == "1":
+        msg_request = PositionIKRequest()
+        # msg_request.group_name = "arm"
+        msg_request.ik_link_name = tip_link
+        msg_request.pose_stamped = target_pose
+        msg_request.avoid_collisions = False
+        msg_request.robot_state = robot_state
+        msg_request.timeout = Duration(1000)
+        msg_request.pose_stamped.header.frame_id = root_link
+        # msg_request.attempts = 1000
+    else:
+        msg_request = GetPositionIK.Request()
+
+        msg_request.ik_request.ik_link_name = tip_link
+        print(target_pose.to_pose_stamped())
+        msg_request.ik_request.pose_stamped = target_pose.to_pose_stamped()
+        msg_request.ik_request.avoid_collisions = False
+        msg_request.ik_request.robot_state = robot_state
+
+        msg_request.ik_request.pose_stamped.header.frame_id = root_link
+        #msg_request.ik_request.timeout = Duration(1000)
+        # msg_request.attempts = 1000
+
 
     return msg_request
 
@@ -68,16 +85,17 @@ def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Obje
    :param joints: A list of joint name that should be altered
    :return: The solution that was generated as a list of joint values corresponding to the order of joints given
    """
-    if RobotDescription.current_robot_description.name == "pr2":
-        ik_service = "/pr2_right_arm_kinematics/get_ik" if "r_wrist" in tip_link else "/pr2_left_arm_kinematics/get_ik"
-    else:
-        ik_service = "/kdl_ik_service/get_ik"
+    #if RobotDescription.current_robot_description.name == "pr2":
+    #    ik_service = "/pr2_right_arm_kinematics/get_ik" if "r_wrist" in tip_link else "/pr2_left_arm_kinematics/get_ik"
+    #else:
+    #    ik_service = "/kdl_ik_service/get_ik"
+    ik_service = "/get_ik"
 
     loginfo_once(f"Waiting for IK service: {ik_service}")
-    wait_for_service(ik_service)
+    wait_for_service(ik_service, GetPositionIK)
 
     req = _make_request_msg(root_link, tip_link, target_pose, robot_object, joints)
-    req.pose_stamped.header.frame_id = root_link
+    #req.pose_stamped.header.frame_id = root_link
     ik = get_service_proxy(ik_service, GetPositionIK)
     try:
         resp = ik(req)
