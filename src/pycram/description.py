@@ -493,6 +493,13 @@ class RootLink(Link, ABC):
         """
         return self.object.pose
 
+    @pose.setter
+    def pose(self, pose: Pose) -> None:
+        """
+        Set the pose of the root link to the given pose by setting the pose of the object.
+        """
+        self.object.pose = pose
+
     def __copy__(self):
         return RootLink(self.object)
 
