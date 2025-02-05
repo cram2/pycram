@@ -27,7 +27,7 @@ class OntologyObjectDesignatorDescriptionTestCase(BulletWorldTestCase):
     def test_type_query_for_food(self):
         self.world.ontology.reason()
         odd = OntologyObjectDesignatorDescription(self.world.ontology.search(type=Food))
-        self.assertEqual(len(odd.search_result), 2)
+        self.assertEqual(len(odd.search_result), 4)
         result_in_world = list(odd.__iter__())
         self.assertEqual(len(result_in_world), 2)
 
