@@ -15,6 +15,7 @@ PYCRAM_LOGGER_NAME = "pycram"
 logger_level_service_caller = LoggerLevelServiceCaller()
 
 
+
 def _get_caller_method_name():
     """
     Get the name of the method that called the function from which this function is called. It is intended as a helper

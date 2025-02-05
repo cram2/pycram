@@ -1,5 +1,8 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
+
+from enum import Enum
+
 from typing_extensions import List, Dict, Union, Optional
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints
@@ -116,10 +119,16 @@ class RobotDescription:
     Virtual mobile base joint names for mobile robots, these joints are not part of the URDF, however they are used to
     move the robot in the simulation (e.g. set_pose for the robot would actually move these joints)
     """
+    gripper_name: Optional[str] = None
+    """
+    Name of the gripper of the robot if it has one, this is used when the gripper is a different Object with its own
+    description file outside the robot description file.
+    """
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
                  virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None,
-                 ignore_joints: Optional[List[str]] = None):
+                 ignore_joints: Optional[List[str]] = None,
+                 gripper_name: Optional[str] = None):
         """
         Initialize the RobotDescription. The URDF is loaded from the given path and used as basis for the kinematic
         chains.
@@ -132,6 +141,7 @@ class RobotDescription:
         :param virtual_mobile_base_joints: Virtual mobile base joint names for mobile robots
         :param mjcf_path: Path to the MJCF file of the robot
         :param ignore_joints: List of joint names that are not used.
+        :param gripper_name: Name of the gripper of the robot if it has one and is a separate Object.
         """
         self.name = name
         self.base_link = base_link
@@ -149,6 +159,7 @@ class RobotDescription:
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
         self.virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = virtual_mobile_base_joints
+        self.gripper_name = gripper_name
 
     @property
     def has_actuators(self):
@@ -274,7 +285,7 @@ class RobotDescription:
         """
         return self.cameras[list(self.cameras.keys())[0]]
 
-    def get_static_joint_chain(self, kinematic_chain_name: str, configuration_name: str):
+    def get_static_joint_chain(self, kinematic_chain_name: str, configuration_name: Union[str, Enum]):
         """
         Get the static joint states of a kinematic chain for a specific configuration. When trying to access one of
         the robot arms the function `:func: get_arm_chain` should be used.
@@ -288,9 +299,11 @@ class RobotDescription:
                 return self.kinematic_chains[kinematic_chain_name].static_joint_states[configuration_name]
             else:
                 raise ValueError(
-                    f"There is no static joint state with the name {configuration_name} for Kinematic chain {kinematic_chain_name} of robot {self.name}")
+                    f"There is no static joint state with the name {configuration_name} for Kinematic chain {kinematic_chain_name} of robot {self.name}. "
+                    f"The following keys are available: {list(self.kinematic_chains[kinematic_chain_name].static_joint_states.keys())}")
         else:
-            raise ValueError(f"There is no KinematicChain with name {kinematic_chain_name} for robot {self.name}")
+            raise ValueError(f"There is no KinematicChain with name {kinematic_chain_name} for robot {self.name}. "
+                             f"The following chains are available: {list(self.kinematic_chains.keys())}")
 
     def get_parent(self, name: str) -> str:
         """
@@ -411,7 +424,7 @@ class KinematicChainDescription:
     """
     Type of the arm, if the chain is an arm
     """
-    static_joint_states: Dict[str, Dict[str, float]]
+    static_joint_states: Dict[Union[str, Enum], Dict[str, float]]
     """
     Dictionary of static joint states for the chain
     """
@@ -436,7 +449,7 @@ class KinematicChainDescription:
         self.link_names: List[str] = []
         self.joint_names: List[str] = []
         self.arm_type: Arms = arm_type
-        self.static_joint_states: Dict[str, Dict[str, float]] = {}
+        self.static_joint_states: Dict[Union[str, Enum], Dict[str, float]] = {}
         self.end_effector = None
 
         self._init_links()
@@ -488,7 +501,7 @@ class KinematicChainDescription:
         """
         return self.get_joints()
 
-    def add_static_joint_states(self, name: str, states: dict):
+    def add_static_joint_states(self, name: Union[str, Enum], states: dict):
         """
         Adds static joint states to the chain. These define a specific configuration of the chain.
 
@@ -500,7 +513,7 @@ class KinematicChainDescription:
                 raise ValueError(f"Joint {joint_name} is not part of the chain")
         self.static_joint_states[name] = states
 
-    def get_static_joint_states(self, name: str) -> Dict[str, float]:
+    def get_static_joint_states(self, name: Union[str, Enum]) -> Dict[str, float]:
         """
         Get the dictionary of static joint states for a given name of the static joint states.
 

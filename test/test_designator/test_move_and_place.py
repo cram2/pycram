@@ -4,11 +4,11 @@ import unittest
 import numpy as np
 
 from pycram.testing import BulletWorldTestCase
-from pycram.datastructures.enums import ObjectType, Arms, Grasp
+from pycram.datastructures.enums import ObjectType, Arms, Grasp, TorsoState
 from pycram.datastructures.pose import Pose
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators.action_designator import MoveTorsoActionPerformable, NavigateActionPerformable, \
-    PickUpActionPerformable
+    PickUpActionPerformable, MoveTorsoAction
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import (MoveAndPlace)
 from pycram.failures import PlanFailure
 from pycram.process_module import simulated_robot
@@ -30,7 +30,7 @@ class MoveAndPlaceTestCase(BulletWorldTestCase):
 
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoActionPerformable(0.3).perform()
+            MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
             PickUpActionPerformable(object_designator, Arms.LEFT, Grasp.FRONT, 0.03).perform()
             with simulated_robot:
                 for action in designator:

@@ -59,7 +59,7 @@ The code for this plan can be seen below.
     from pycram.designators.location_designator import *
     from pycram.designators.action_designator import *
     from pycram.designators.object_designator import *
-    from pycram.datastructures.enums import ObjectType, Arms, Grasp, WorldMode
+    from pycram.datastructures.enums import ObjectType, Arms, Grasp, WorldMode, TorsoState
 
     world = BulletWorld(WorldMode.GUI)
     kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
@@ -73,7 +73,7 @@ The code for this plan can be seen below.
     with simulated_robot:
         ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-        MoveTorsoAction([0.3]).resolve().perform()
+        MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
 
         pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
         pickup_arm = pickup_pose.reachable_arms[0]

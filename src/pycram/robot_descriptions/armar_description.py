@@ -1,6 +1,6 @@
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import Arms, Grasp, GripperState, GripperType
+from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState
 import rospkg
 
 rospack = rospkg.RosPack()
@@ -117,11 +117,11 @@ right_arm.end_effector = right_gripper
 torso = KinematicChainDescription("torso", "world", "torso",
                                   armar_description.urdf_object)
 
-# torso.add_static_joint_states(TorsoState.HIGH, {"torso_joint": 0.0})
-#
-# torso.add_static_joint_states(TorsoState.MID, {"torso_joint": -0.15})
-#
-# torso.add_static_joint_states(TorsoState.LOW, {"torso_joint": -0.365})
+torso.add_static_joint_states(TorsoState.HIGH, {"torso_joint": 0.0})
+
+torso.add_static_joint_states(TorsoState.MID, {"torso_joint": -0.15})
+
+torso.add_static_joint_states(TorsoState.LOW, {"torso_joint": -0.365})
 
 armar_description.add_kinematic_chain_description(torso)
 

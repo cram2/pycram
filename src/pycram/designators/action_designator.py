@@ -24,12 +24,14 @@ from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
     ObjectNotGraspedError
 from ..robot_description import RobotDescription
+from ..ros.ros_tools import sleep
 from ..tasktree import with_tree
 from ..world_reasoning import contact
 
 from owlready2 import Thing
 
-from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType
+from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
+    TorsoState
 
 from ..designator import ActionDesignatorDescription
 from ..datastructures.pose import Pose
@@ -46,6 +48,7 @@ from ..orm.base import Pose as ORMPose
 from ..orm.object_designator import Object as ORMObject
 from ..orm.action_designator import Action as ORMAction
 from dataclasses import dataclass, field
+
 
 # ----------------------------------------------------------------------------
 # ---------------- Performables ----------------------------------------------
@@ -132,15 +135,17 @@ class MoveTorsoActionPerformable(ActionAbstract):
     Move the torso of the robot up and down.
     """
 
-    position: float
+    joint_positions: dict
     """
-    Target position of the torso joint
+    The joint positions that should be set. The keys are the joint names and the values are the joint positions.
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMMoveTorsoAction)
 
     @with_tree
     def plan(self) -> None:
-        MoveJointsMotion([RobotDescription.current_robot_description.torso_joint], [self.position]).perform()
+        joints_positions = list(self.joint_positions.items())
+        joints, positions = zip(*joints_positions)
+        MoveJointsMotion(list(joints), list(positions)).perform()
 
 
 @dataclass
@@ -161,7 +166,12 @@ class SetGripperActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        MoveGripperMotion(gripper=self.gripper, motion=self.motion).perform()
+        arm_chains = RobotDescription.current_robot_description.get_arm_chain(self.gripper)
+        if type(arm_chains) is not list:
+            MoveGripperMotion(gripper=arm_chains.arm_type, motion=self.motion).perform()
+        else:
+            for chain in arm_chains:
+                MoveGripperMotion(gripper=chain.arm_type, motion=self.motion).perform()
 
 
 @dataclass
@@ -211,24 +221,15 @@ class ParkArmsActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        # create the keyword arguments
-        kwargs = dict()
-        left_poses = None
-        right_poses = None
+        joint_poses = {}
+        arm_chains = RobotDescription.current_robot_description.get_arm_chain(self.arm)
+        if type(arm_chains) is not list:
+            joint_poses = arm_chains.get_static_joint_states("park")
+        else:
+            for arm_chain in RobotDescription.current_robot_description.get_arm_chain(self.arm):
+                joint_poses.update(arm_chain.get_static_joint_states("park"))
 
-        # add park left arm if wanted
-        if self.arm in [Arms.LEFT, Arms.BOTH]:
-            kwargs["left_arm_config"] = "park"
-            left_poses = RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT).get_static_joint_states(
-                kwargs["left_arm_config"])
-
-        # add park right arm if wanted
-        if self.arm in [Arms.RIGHT, Arms.BOTH]:
-            kwargs["right_arm_config"] = "park"
-            right_poses = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_static_joint_states(
-                kwargs["right_arm_config"])
-
-        MoveArmJointsMotion(left_poses, right_poses).perform()
+        MoveJointsMotion(names=list(joint_poses.keys()), positions=list(joint_poses.values())).perform()
 
 
 @dataclass
@@ -275,6 +276,7 @@ class PickUpActionPerformable(ActionAbstract):
         robot = World.robot
         # Retrieve object and robot from designators
         object = self.object_designator.world_object
+
         # Get grasp orientation and target pose
         grasp = RobotDescription.current_robot_description.grasps[self.grasp]
         # oTm = Object Pose in Frame map
@@ -301,7 +303,6 @@ class PickUpActionPerformable(ActionAbstract):
         World.current_world.add_vis_axis(prepose)
         MoveGripperMotion(motion=GripperState.OPEN, gripper=self.arm).perform()
         MoveTCPMotion(prepose, self.arm, allow_gripper_collision=True).perform()
-
 
         # Perform the motion with the adjusted pose -> actual grasp and close gripper
         oTg = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
@@ -408,7 +409,6 @@ class NavigateActionPerformable(ActionAbstract):
         return try_action(motion_action, failure_type=NavigationGoalNotReachedError)
 
 
-
 @dataclass
 class TransportActionPerformable(ActionAbstract):
     """
@@ -507,10 +507,13 @@ class DetectActionPerformable(ActionAbstract):
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMDetectAction)
 
+    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False)
+
     @with_tree
     def plan(self) -> None:
-        return try_action(DetectingMotion(technique=self.technique,state=self.state, object_designator_description=self.object_designator_description,
-                          region=self.region), PerceptionObjectNotFound)
+        return try_action(DetectingMotion(technique=self.technique, state=self.state,
+                                          object_designator_description=self.object_designator_description,
+                                          region=self.region), PerceptionObjectNotFound)
 
 
 @dataclass
@@ -740,14 +743,14 @@ class MoveTorsoAction(ActionDesignatorDescription):
     """
     performable_class = MoveTorsoActionPerformable
 
-    def __init__(self, positions: List[float]):
+    def __init__(self, torso_states: List[TorsoState]):
         """
         Create a designator_description description to move the torso of the robot up and down.
 
-        :param positions: List of possible positions of the robots torso, possible position is a float of height in metres
+        :param torso_states: A list of possible states for the torso. The states are defined in the robot description.
         """
         super().__init__()
-        self.positions: List[float] = positions
+        self.torso_states: List[TorsoState] = torso_states
 
     def ground(self) -> MoveTorsoActionPerformable:
         """
@@ -755,7 +758,9 @@ class MoveTorsoAction(ActionDesignatorDescription):
 
         :return: A performable action designator_description
         """
-        return MoveTorsoActionPerformable(self.positions[0])
+        joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
+                                                                                                  self.torso_states[0])
+        return MoveTorsoActionPerformable(joint_positions)
 
     def __iter__(self):
         """
@@ -763,8 +768,10 @@ class MoveTorsoAction(ActionDesignatorDescription):
 
         :return: A performable action designator_description
         """
-        for position in self.positions:
-            yield MoveTorsoActionPerformable(position)
+        for torso_state in self.torso_states:
+            joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
+                                                                                                      torso_state)
+            yield MoveTorsoActionPerformable(joint_positions)
 
 
 class SetGripperAction(ActionDesignatorDescription):
@@ -956,7 +963,7 @@ class PlaceAction(ActionDesignatorDescription):
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         object_desig = self.object_designator_description if isinstance(self.object_designator_description,
-                                                                       ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
+                                                                        ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
         self.target_locations: List[Pose] = target_locations
         self.arms: List[Arms] = arms
         self.knowledge_condition = ReachableProperty(object_desig.pose)
@@ -1051,7 +1058,6 @@ class TransportAction(ActionDesignatorDescription):
         self.target_locations: List[Pose] = target_locations
         self.pickup_prepose_distance: float = pickup_prepose_distance
 
-
     def ground(self) -> TransportActionPerformable:
         """
         Default specialized_designators that returns a performable designator_description with the first entries from the lists of possible parameter.
@@ -1062,9 +1068,8 @@ class TransportAction(ActionDesignatorDescription):
             if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object) \
             else self.object_designator_description.resolve()
 
-        return TransportActionPerformable(obj_desig, self.target_locations[0],  self.arms[0],
+        return TransportActionPerformable(obj_desig, self.target_locations[0], self.arms[0],
                                           self.pickup_prepose_distance)
-
 
     def __iter__(self) -> TransportActionPerformable:
         obj_desig = self.object_designator_description \
@@ -1119,7 +1124,8 @@ class DetectAction(ActionDesignatorDescription):
     performable_class = DetectActionPerformable
 
     def __init__(self, technique: DetectionTechnique, state: Optional[DetectionState] = None,
-                 object_designator_description: Optional[ObjectDesignatorDescription] = None, region: Optional[Location] = None):
+                 object_designator_description: Optional[ObjectDesignatorDescription] = None,
+                 region: Optional[Location] = None):
         """
         Tries to detect an object in the field of view (FOV) of the robot.
 
@@ -1129,7 +1135,7 @@ class DetectAction(ActionDesignatorDescription):
         self.state: DetectionState = DetectionState.START if state is None else state
         self.object_designator_description: Optional[ObjectDesignatorDescription] = object_designator_description
         self.region: Optional[Location] = region
-        #TODO: Implement knowledge condition
+        # TODO: Implement knowledge condition
         # self.knowledge_condition = VisibleProperty(self.object_designator_description)
 
     def ground(self) -> DetectActionPerformable:

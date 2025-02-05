@@ -736,12 +736,12 @@
       </geometry>
     </collision>
   </link>
-  <joint name="cabinet3_door_top_out_joint" type="prismatic">
+  <joint name="cabinet3_door_top_out_joint" type="revolute">
     <origin rpy="0 0 3.14" xyz="0.39 -0.3 0.5"/>
     <parent link="cabinet3"/>
     <child link="cabinet3_door_top_out_fancy"/>
     <axis xyz="-1 0 0"/>
-    <limit effort="1.0" lower="0.0" upper="0.02" velocity="1.5708"/>
+    <limit effort="1.0" lower="0.0" upper="1.5708" velocity="1.5708"/>
     <mimic joint="cabinet3_door_top_left_joint" multiplier="0.01"/>
   </joint>
   <link name="cabinet3_door_top_out_fancy"/>

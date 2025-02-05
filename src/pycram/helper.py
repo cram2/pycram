@@ -72,14 +72,16 @@ def get_robot_mjcf_path(robot_relative_dir: str, robot_name: str, xml_name: Opti
     except TypeError:
         logwarn("Multiverse resources path not found.")
         return None
-    if multiverse_resources is not None:
+    if multiverse_resources is not None and os.path.exists(robot_folder):
         list_dir = os.listdir(robot_folder)
         if 'mjcf' in list_dir:
             if xml_name in os.listdir(robot_folder + '/mjcf'):
                 return os.path.join(robot_folder, 'mjcf', xml_name)
         elif xml_name in os.listdir(robot_folder):
             return os.path.join(robot_folder, xml_name)
-    return None
+    else:
+        logwarn(f"Robot {robot_name} not found in Multiverse resources.")
+        return None
 
 
 def find_multiverse_resources_path() -> Optional[str]:
@@ -121,3 +123,20 @@ def find_multiverse_path() -> Optional[str]:
                 return multiverse_path + multiverse_relative_path
 
 
+def perform(action_instance):
+    """
+    Executes the perform logic for a given action instance.
+
+    :param action_instance: An instance of an action class.
+    """
+    return action_instance.perform()
+
+
+def an(designator):
+    """
+    Resolve the first available action from the designator.
+
+    :param designator: The designator description instance.
+    :return: The first resolved action instance.
+    """
+    return designator.resolve()

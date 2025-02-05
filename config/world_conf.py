@@ -2,8 +2,8 @@ import math
 import os
 
 from typing_extensions import Tuple, Type
-from pycram.description import ObjectDescription
-from pycram.object_descriptors.urdf import ObjectDescription as URDF
+from ..description import ObjectDescription
+from ..object_descriptors.urdf import ObjectDescription as URDF
 
 
 class WorldConfig:
@@ -70,7 +70,7 @@ class WorldConfig:
      and the world synchronization.
     """
 
-    position_tolerance: float = 1e-2
+    position_tolerance: float = 1e-3
     orientation_tolerance: float = 10 * math.pi / 180
     prismatic_joint_position_tolerance: float = 1e-2
     revolute_joint_position_tolerance: float = 5 * math.pi / 180

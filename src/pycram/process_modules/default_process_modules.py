@@ -184,16 +184,15 @@ class DefaultOpen(ProcessModule):
     def _execute(self, desig: OpeningMotion):
         part_of_object = desig.object_part.world_object
 
-        container_joint = part_of_object.find_joint_above_link(desig.object_part.name, JointType.PRISMATIC)
+        container_joint_name = part_of_object.find_joint_above_link(desig.object_part.name)
+        lower_limit, upper_limit = part_of_object.get_joint_limits(container_joint_name)
 
-        goal_pose = link_pose_for_joint_config(part_of_object, {
-            container_joint: part_of_object.get_joint_limits(container_joint)[1] - 0.05}, desig.object_part.name)
+        goal_pose = link_pose_for_joint_config(part_of_object,{
+            container_joint_name: max(lower_limit, upper_limit - 0.05)}, desig.object_part.name)
 
         _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.world_object.set_joint_position(container_joint,
-                                                          part_of_object.get_joint_limits(
-                                                              container_joint)[1])
+        desig.object_part.world_object.set_joint_position(container_joint_name, upper_limit)
 
 
 class DefaultClose(ProcessModule):
@@ -204,16 +203,15 @@ class DefaultClose(ProcessModule):
     def _execute(self, desig: ClosingMotion):
         part_of_object = desig.object_part.world_object
 
-        container_joint = part_of_object.find_joint_above_link(desig.object_part.name, JointType.PRISMATIC)
+        container_joint_name = part_of_object.find_joint_above_link(desig.object_part.name)
+        lower_joint_limit = part_of_object.get_joint_limits(container_joint_name)[0]
 
         goal_pose = link_pose_for_joint_config(part_of_object, {
-            container_joint: part_of_object.get_joint_limits(container_joint)[0]}, desig.object_part.name)
+            container_joint_name: lower_joint_limit}, desig.object_part.name)
 
         _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.world_object.set_joint_position(container_joint,
-                                                          part_of_object.get_joint_limits(
-                                                              container_joint)[0])
+        desig.object_part.world_object.set_joint_position(container_joint_name, lower_joint_limit)
 
 
 def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:

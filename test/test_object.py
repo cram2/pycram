@@ -1,10 +1,12 @@
 import numpy as np
+import trimesh.parent
+from tf.transformations import quaternion_from_euler
 
 from pycram.testing import BulletWorldTestCase
 
 from pycram.datastructures.enums import JointType, ObjectType
 from pycram.datastructures.pose import Pose
-from pycram.datastructures.dataclasses import Color
+from pycram.datastructures.dataclasses import Color, BoundingBox as BB
 from pycram.failures import UnsupportedFileExtension
 from pycram.world_concepts.world_object import Object
 from pycram.object_descriptors.generic import ObjectDescription as GenericObjectDescription
@@ -138,11 +140,10 @@ class TestObject(BulletWorldTestCase):
         self.assertEqual(self.robot.get_link_by_id(-1), self.robot.root_link)
 
     def test_find_joint_above_link(self):
-        self.assertEqual(self.robot.find_joint_above_link("head_pan_link", JointType.REVOLUTE), "head_pan_joint")
+        self.assertEqual(self.robot.find_joint_above_link("head_pan_link"), "head_pan_joint")
 
-    def test_wrong_joint_type_for_joint_above_link(self):
-        container_joint = self.robot.find_joint_above_link("head_pan_link", JointType.CONTINUOUS)
-        self.assertTrue(container_joint is None)
+    def test_find_joint_above_link_exhausted(self):
+        self.assertEqual(self.robot.find_joint_above_link("base_link"), None)
 
     def test_contact_points_simulated(self):
         self.milk.set_position([0, 0, 100])
@@ -166,6 +167,33 @@ class TestObject(BulletWorldTestCase):
         self.assertNotEqual(self.milk, self.cereal)
         self.assertNotEqual(self.milk, self.world)
 
+    def test_merge(self):
+        cereal = Object("cereal2", Food, "breakfast_cereal.stl")
+        milk = Object("milk2", Milk, "milk.stl")
+        cereal_milk = cereal.merge(milk, new_description_file="cereal_milk")
+        self.assertEqual(len(cereal_milk.links), len(cereal.links) + len(milk.links))
+        self.assertEqual(len(cereal_milk.joints), len(cereal.joints) + len(milk.joints) + 1)
+        cereal_milk.remove()
+        # self.world.cache_manager.clear_cache()
+
+    def test_merge_bounding_box(self):
+        cereal_2 = Object("cereal2", Food, "breakfast_cereal.stl",
+                          pose=self.cereal.pose)
+        cereal_2.set_orientation(quaternion_from_euler(0, 0, np.pi / 2).tolist())
+        cereal_bbox = self.cereal.get_axis_aligned_bounding_box(False)
+        cereal_2_bbox = cereal_2.get_axis_aligned_bounding_box(False)
+        plot = False
+        if plot:
+            BB.plot_3d_points([np.array(cereal_bbox.get_points_list()), np.array(cereal_2_bbox.get_points_list())])
+        for use_random_events in [True, False]:
+            merged_bbox_mesh = BB.merge_multiple_bounding_boxes_into_mesh([cereal_bbox, cereal_2_bbox],
+                                                                          use_random_events=use_random_events,
+                                                                          plot=plot)
+            self.assertTrue(isinstance(merged_bbox_mesh, trimesh.parent.Geometry3D))
+            self.assertEqual(merged_bbox_mesh.vertices.shape[0], 24 if use_random_events else 16)
+            self.assertEqual(merged_bbox_mesh.faces.shape[0], 48 if use_random_events else 24)
+        cereal_2.remove()
+
 
 class GenericObjectTestCase(BulletWorldTestCase):
 
@@ -183,7 +211,7 @@ class OntologyIntegrationTestCase(BulletWorldTestCase):
         r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.individuals()))
         self.assertEqual(len(r), 2)
 
-        milk2  = Object("milk2", Milk, "milk.stl")
+        milk2 = Object("milk2", Milk, "milk.stl")
 
         r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.individuals()))
 

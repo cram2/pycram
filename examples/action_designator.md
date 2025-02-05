@@ -93,8 +93,9 @@ a {meth}`~pycram.process_module.simulated_robot` environment.
 ```python
 from pycram.designators.action_designator import MoveTorsoAction
 from pycram.process_module import simulated_robot
+from pycram.datastructures.enums import TorsoState
 
-torso_pose = 0.2
+torso_pose = TorsoState.HIGH
 
 torso_desig = MoveTorsoAction([torso_pose]).resolve()
 
@@ -151,7 +152,7 @@ world.reset_world()
 from pycram.designators.action_designator import PickUpAction, PlaceAction, ParkArmsAction, MoveTorsoAction,NavigateAction
 from pycram.designators.object_designator import BelieveObject
 from pycram.process_module import simulated_robot
-from pycram.datastructures.enums import Arms, Grasp
+from pycram.datastructures.enums import Arms, Grasp, TorsoState
 from pycram.datastructures.pose import Pose
 
 milk_desig = BelieveObject(names=["milk"])
@@ -160,7 +161,7 @@ arm = Arms.RIGHT
 with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    MoveTorsoAction([0.3]).resolve().perform()
+    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
 
     NavigateAction([Pose([1.8, 2, 0.0],
                          [0.0, 0.0, 0., 1])]).resolve().perform()
@@ -239,7 +240,7 @@ from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
-from pycram.datastructures.enums import Arms
+from pycram.datastructures.enums import Arms, TorsoState
 
 milk_desig = BelieveObject(names=["milk"])
 
@@ -248,7 +249,7 @@ description = TransportAction(milk_desig,
                                        [0, 0, 0, 1])],
                               [Arms.LEFT])
 with simulated_robot:
-    MoveTorsoAction([0.2]).resolve().perform()
+    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
     description.resolve().perform()
 ```
 
@@ -267,7 +268,7 @@ world.reset_world()
 ```python
 from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
-from pycram.datastructures.enums import Arms
+from pycram.datastructures.enums import Arms, TorsoState
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
 
@@ -275,7 +276,7 @@ apartment_desig = BelieveObject(names=["apartment"]).resolve()
 handle_deisg = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig)
 
 with simulated_robot:
-    MoveTorsoAction([0.25]).resolve().perform()
+    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
     ParkArmsAction([Arms.BOTH]).resolve().perform()
     NavigateAction([Pose([1.7474915981292725, 2.6873629093170166, 0.0],
                          [-0.0, 0.0, 0.5253598267689507, -0.850880163370435])]).resolve().perform()
@@ -301,7 +302,7 @@ apartment_desig = BelieveObject(names=["apartment"]).resolve()
 handle_deisg = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig)
 
 with simulated_robot:
-    MoveTorsoAction([0.25]).resolve().perform()
+    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
     ParkArmsAction([Arms.BOTH]).resolve().perform()
     NavigateAction([Pose([1.7474915981292725, 2.8073629093170166, 0.0],
                          [-0.0, 0.0, 0.5253598267689507, -0.850880163370435])]).resolve().perform()

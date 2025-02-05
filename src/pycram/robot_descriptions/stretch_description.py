@@ -2,7 +2,8 @@ from ..ros.ros_tools import get_ros_package_path
 
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     CameraDescription, RobotDescriptionManager
-from ..datastructures.enums import GripperState, Arms, Grasp
+from ..datastructures.enums import GripperState, Arms, Grasp, TorsoState, GripperType
+from ..units import meter
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "stretch_description" + '.urdf'
 
@@ -31,13 +32,26 @@ gripper_description.add_static_joint_states(GripperState.OPEN, {'joint_gripper_f
                                                                 'joint_gripper_finger_right': 0.59})
 gripper_description.add_static_joint_states(GripperState.CLOSE, {'joint_gripper_finger_left': 0.0,
                                                                  'joint_gripper_finger_right': 0.0})
-
+gripper_description.end_effector_type = GripperType.PARALLEL
+gripper_description.opening_distance = 0.14 * meter  # assumption
 arm_description.end_effector = gripper_description
 
 ################################## Neck ##################################
 neck = KinematicChainDescription("neck", "link_head", "link_head_tilt", stretch_description.urdf_object)
 
 stretch_description.add_kinematic_chain_description(neck)
+
+################################## Torso ##################################
+torso = KinematicChainDescription("torso", "link_mast", "link_lift",
+                                  stretch_description.urdf_object)
+
+torso.add_static_joint_states(TorsoState.HIGH, {"joint_lift": 1})
+
+torso.add_static_joint_states(TorsoState.MID, {"joint_lift": 0.5})
+
+torso.add_static_joint_states(TorsoState.LOW, {"joint_lift": 0})
+
+stretch_description.add_kinematic_chain_description(torso)
 
 ################################## Camera ##################################
 realsense_color = CameraDescription("camera_color_optical_frame", "camera_color_optical_frame", 1.322, 1.322)
