@@ -34,7 +34,7 @@ from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
 from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, \
-    has_child_link, has_parent_link, is_part_of, Robot
+    has_child_link, has_parent_link, is_part_of, Robot, Link as CraxLink
 
 from pycrap.urdf_parser import parse_furniture, parse_joint_types
 
@@ -62,6 +62,7 @@ class Object(WorldEntity, HasConcept):
                  description: Optional[ObjectDescription] = None,
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
+                 real_image = None,
                  color: Color = Color(),
                  ignore_cached_files: bool = False,
                  scale_mesh: Optional[float] = None,
@@ -100,6 +101,7 @@ class Object(WorldEntity, HasConcept):
         self.color: Color = color
         self._resolve_description(path, description)
         self.cache_manager = self.world.cache_manager
+        self.real_image = real_image
 
         self.local_transformer = LocalTransformer()
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
@@ -405,10 +407,10 @@ class Object(WorldEntity, HasConcept):
                 ontology_concept = parse_furniture(link_name)
             else:
                 ontology_concept = PhysicalObject
-
-            individual = ontology_concept(name=link_name, namespace=self.world.ontology.ontology)
-            self.world.ontology.python_objects[individual] = self.links[link_name]
-            individual.is_a = [ontology_concept]
+            if not self.world.is_prospection_world:
+                individual = ontology_concept(name=link_name, namespace=self.world.ontology.ontology)
+                self.world.ontology.python_objects[individual] = self.links[link_name]
+                individual.is_a = [ontology_concept, CraxLink]
 
         self.update_link_transforms()
 
@@ -431,23 +433,24 @@ class Object(WorldEntity, HasConcept):
             parsed_joint_description = self.description.get_joint_by_name(joint_name)
             is_virtual = self.is_joint_virtual(joint_name)
             self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
-            individual = ontology_concept(joint_name, namespace=self.world.ontology.ontology)
-            self.world.ontology.python_objects[individual] = parsed_joint_description
-            # The assignment of parent/child links has to be done with onto.search because an individual is required,
-            # not a string.
-            individual.is_a = [ontology_concept, has_child_link.some(
-                self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name))),
-                               has_parent_link.some(
-                self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_parent_link(joint_name).name))),
-                               parse_joint_types(self.get_joint_type(joint_name).name)]
-            link_individual = self.world.ontology.ontology.search_one(iri=
-                                                                      self.world.ontology.ontology.base_iri +
-                                                                           str(self.get_joint_child_link(joint_name).name))
-            if self.world.ontology.ontology.search_one(iri= self.world.ontology.ontology.base_iri +
-                                                            str(self.get_joint_parent_link(joint_name).name)):
-                 link_individual.is_part_of = [self.world.ontology.ontology.
-                                               search_one(iri=self.world.ontology.ontology.base_iri
-                                                          + str(self.get_joint_parent_link(joint_name).name))]
+            if not self.world.is_prospection_world:
+                individual = ontology_concept(joint_name, namespace=self.world.ontology.ontology)
+                self.world.ontology.python_objects[individual] = parsed_joint_description
+                # The assignment of parent/child links has to be done with onto.search because an individual is required,
+                # not a string.
+                individual.is_a = [ontology_concept, has_child_link.some(
+                    self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name))),
+                                   has_parent_link.some(
+                    self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_parent_link(joint_name).name))),
+                                   parse_joint_types(self.get_joint_type(joint_name).name)]
+                link_individual = self.world.ontology.ontology.search_one(iri=
+                                                                          self.world.ontology.ontology.base_iri +
+                                                                               str(self.get_joint_child_link(joint_name).name))
+                if self.world.ontology.ontology.search_one(iri= self.world.ontology.ontology.base_iri +
+                                                                str(self.get_joint_parent_link(joint_name).name)):
+                     link_individual.is_part_of = [self.world.ontology.ontology.
+                                                   search_one(iri=self.world.ontology.ontology.base_iri
+                                                              + str(self.get_joint_parent_link(joint_name).name))]
 
     def is_joint_virtual(self, name: str):
         """
