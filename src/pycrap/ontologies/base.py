@@ -1,6 +1,4 @@
-from owlready2 import Thing, ThingClass, ObjectProperty, get_ontology, And, Or, Not, OneOf, Inverse, normstr, \
-    DatatypeProperty, TransitiveProperty, SymmetricProperty, AsymmetricProperty, ReflexiveProperty, IrreflexiveProperty, \
-    datetime, Imp
+from owlready2 import Thing, ThingClass, ObjectProperty, FunctionalProperty, get_ontology, And, Or, Not, OneOf, Inverse, normstr, DatatypeProperty, TransitiveProperty, SymmetricProperty, AsymmetricProperty, ReflexiveProperty, IrreflexiveProperty, datetime
 import tempfile
 
 
