@@ -128,11 +128,15 @@ class BoundingBox:
             z = Continuous("z")
 
             all_intervals = [(box.get_min(), box.get_max()) for box in bounding_boxes]
-            event = Event()
+            event = None
             for min_point, max_point in all_intervals:
                 new_event = SimpleEvent({x: closed(min_point[0], max_point[0]), y: closed(min_point[1], max_point[1]),
                                          z: closed(min_point[2], max_point[2])}).as_composite_set()
-                event = event.union_with(new_event)
+                # TODO fix this when random events is fixed.
+                if event:
+                    event = event.__deepcopy__().union_with(new_event)
+                else:
+                    event = new_event
             if plot:
                 fig = go.Figure(event.plot(), event.plotly_layout())
                 fig.update_layout(title="Merged Bounding Boxes")

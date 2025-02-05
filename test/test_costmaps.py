@@ -105,7 +105,7 @@ class SemanticCostmapTestCase(BulletWorldTestCase):
             self.assertTrue(costmap.valid_area.contains([sample.position.x, sample.position.y]))
 
 
-
+@unittest.skip("Wait for PM Upgrade to go live")
 class ProbabilisticCostmapTestCase(BulletWorldTestCase):
 
     origin = Pose([1.5, 1, 0], [0, 0, 0, 1])
