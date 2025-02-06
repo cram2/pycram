@@ -1,11 +1,17 @@
+import time
 import unittest
 
 import networkx as nx
+from matplotlib import pyplot as plt
 from random_events.interval import SimpleInterval
 from random_events.product_algebra import SimpleEvent
 
-from pycram.non_convex_planner import ConnectivityGraph, Box
+from pycram.datastructures.pose import Pose
+from pycram.failures import PlanFailure
+from pycram.non_convex_planner import ConnectivityGraph, Box, PoseOccupiedError
+from pycram.ros_utils.viz_marker_publisher import TrajectoryPublisher
 from pycram.testing import BulletWorldTestCase
+import plotly.graph_objects as go
 
 
 class ConnectivityGraphTestCase(unittest.TestCase):
@@ -43,13 +49,12 @@ class ConnectivityGraphTestCase(unittest.TestCase):
 
         path = nx.shortest_path(self.cg, start_node, target_node)
         self.assertEqual(len(path), 3)
-        #
-        # for source, target in zip(path, path[1:]):
-        #     intersection: Box = cg[source][target]["intersection"]
-        #     x_target = intersection.x_interval.center()
-        #     y_target = intersection.y_interval.center()
-        #     z_target = intersection.z_interval.center()
-        #     print(f"Moving to {x_target}, {y_target}, {z_target}")
+
+    def test_plot(self):
+        free_space_plot = go.Figure(self.cg.plot_free_space())
+        self.assertIsNotNone(free_space_plot)
+        occupied_space_plot = go.Figure(self.cg.plot_occupied_space())
+        self.assertIsNotNone(occupied_space_plot)
 
 
 class ConnectivityGraphFromWorldTestCase(BulletWorldTestCase):
@@ -58,12 +63,27 @@ class ConnectivityGraphFromWorldTestCase(BulletWorldTestCase):
     """
 
     def test_from_world(self):
-        search_space = Box(x=SimpleInterval(-2, 3),
-                           y=SimpleInterval(-2, 3),
-                           z=SimpleInterval(.45, .55))
-        cg = ConnectivityGraph.free_space_from_world(self.world, search_space=search_space)
+        search_space = Box(x=SimpleInterval(-1, 1),
+                           y=SimpleInterval(-1, 1),
+                           z=SimpleInterval(0.1, 1.))
+        cg = ConnectivityGraph.free_space_from_world(self.world, bounding_box=search_space)
         self.assertIsNotNone(cg)
-        print(cg)
+        self.assertGreater(len(cg.nodes), 0)
+        self.assertGreater(len(cg.edges), 0)
+
+        start = Pose([-0.9, -0.9, 0.4])
+        target = Pose([-0.9, 0.9, 0.9])
+
+        path = cg.path_from_to(start, target)
+        TrajectoryPublisher().visualize_trajectory(path)
+        self.assertIsNotNone(path)
+        self.assertGreater(len(path), 1)
+
+        with self.assertRaises(PoseOccupiedError):
+            start = Pose([-10, -10, -10])
+            target = Pose([10, 10, 10])
+            cg.path_from_to(start, target)
+
 
 
 if __name__ == '__main__':

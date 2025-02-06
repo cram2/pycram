@@ -1,10 +1,11 @@
 import atexit
 import threading
 import time
+from functools import cached_property
 from typing import List, Optional, Tuple
 
 import numpy as np
-from geometry_msgs.msg import Vector3
+from geometry_msgs.msg import Vector3, Point
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -328,3 +329,41 @@ class ManualMarkerPublisher:
         self.marker_array_pub.publish(self.marker_array)
 
         loginfo('Removed all markers')
+
+
+
+class TrajectoryPublisher:
+
+    @cached_property
+    def publisher(self):
+        return create_publisher("/pycram/trajectory", MarkerArray)
+
+    def visualize_trajectory(self, trajectory: List[Pose]):
+        marker_array = MarkerArray()
+        for p1, p2 in zip(trajectory, trajectory[1:]):
+
+            marker = Marker()
+            marker.type = Marker.ARROW
+            marker.id = id(trajectory)
+            marker.action = Marker.ADD
+            marker.header.frame_id = p1.frame
+
+            marker_p1 = Point()
+            marker_p1.x = p1.position.x
+            marker_p1.y = p1.position.y
+            marker_p1.z = p1.position.z
+
+            marker_p2 = Point()
+            marker_p2.x = p1.position.x
+            marker_p2.y = p1.position.y
+            marker_p2.z = p1.position.z
+
+            marker.points = [marker_p1, marker_p2]
+            marker.lifetime = Duration(60)
+            marker.scale.x = 0.1
+            marker.scale.y = 0.1
+            marker.scale.z = 0.1
+
+            marker_array.markers.append(marker)
+        self.publisher.publish(marker_array)
+
