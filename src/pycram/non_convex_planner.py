@@ -67,9 +67,9 @@ class Box:
         self.simple_event = SimpleEvent({self.x: x, self.y: y, self.z: z})
 
     def __repr__(self):
-        return f"Box(x={self.simple_event[self.x].simple_sets[0]}, " \
-               f"y={self.simple_event[self.y].simple_sets[0]}, " \
-               f"z={self.simple_event[self.z].simple_sets[0]})"
+        return f"Box(x={round(self.x_interval.lower, 3), round(self.x_interval.upper, 3)}, \n" \
+               f"y={round(self.y_interval.lower, 3), round(self.y_interval.upper, 3)}, \n" \
+               f"z={round(self.z_interval.lower, 3), round(self.z_interval.upper, 3)})"
 
     def scale(self, x: float = 1., y: float = 1., z: float = 1.):
         """
