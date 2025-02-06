@@ -56,6 +56,7 @@ parts:
         sections:
         - file: notebooks/knowledge_source.md
         - file: notebooks/properties.md
+      - file: notebooks/connectivity_graph.md
 
   - caption: API
     chapters:
