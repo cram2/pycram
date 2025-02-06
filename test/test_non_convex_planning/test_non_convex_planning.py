@@ -66,7 +66,7 @@ class ConnectivityGraphFromWorldTestCase(BulletWorldTestCase):
         search_space = Box(x=SimpleInterval(-1, 1),
                            y=SimpleInterval(-1, 1),
                            z=SimpleInterval(0.1, 1.))
-        cg = ConnectivityGraph.free_space_from_world(self.world, bounding_box=search_space)
+        cg = ConnectivityGraph.free_space_from_world(self.world, search_space=search_space)
         self.assertIsNotNone(cg)
         self.assertGreater(len(cg.nodes), 0)
         self.assertGreater(len(cg.edges), 0)

@@ -188,19 +188,19 @@ class ConnectivityGraph(nx.Graph):
     Every edge represents an adjacency between two convex sets.
     """
 
-    bounding_box: Box
+    search_space: Box
     """
     The bounding box of the search space. Defaults to the entire three dimensional space.
     """
 
-    def __init__(self, bounding_box: Optional[Box] = None):
+    def __init__(self, search_space: Optional[Box] = None):
         super().__init__()
-        if bounding_box is None:
-            bounding_box = Box(x=SimpleInterval(-np.inf, np.inf),
+        if search_space is None:
+            search_space = Box(x=SimpleInterval(-np.inf, np.inf),
                                y=SimpleInterval(-np.inf, np.inf),
                                z= SimpleInterval(-np.inf, np.inf))
 
-        self.bounding_box = bounding_box
+        self.search_space = search_space
 
     def calculate_connectivity(self, tolerance=.001):
         """
@@ -245,7 +245,7 @@ class ConnectivityGraph(nx.Graph):
         :return: A list of traces that can be put into a plotly figure.
         """
         free_space = Event(*[node.simple_event for node in self.nodes])
-        occupied_space = ~free_space & self.bounding_box.simple_event.as_composite_set()
+        occupied_space = ~free_space & self.search_space.simple_event.as_composite_set()
         return occupied_space.plot(color="red")
 
     def node_of_pose(self, x, y, z) -> Optional[Box]:
@@ -275,10 +275,10 @@ class ConnectivityGraph(nx.Graph):
         start_node = self.node_of_pose(*start.position_as_list())
         goal_node = self.node_of_pose(*goal.position_as_list())
 
-        if self.bounding_box is not None:
-            if not self.bounding_box.contains(*start.position_as_list()):
+        if self.search_space is not None:
+            if not self.search_space.contains(*start.position_as_list()):
                 raise PoseOccupiedError(start)
-            if not self.bounding_box.contains(*goal.position_as_list()):
+            if not self.search_space.contains(*goal.position_as_list()):
                 raise PoseOccupiedError(goal)
 
         # validate if the poses are part of the graph
@@ -311,13 +311,13 @@ class ConnectivityGraph(nx.Graph):
         return result
 
     @classmethod
-    def free_space_from_world(cls, world: World, tolerance=.001, bounding_box: Optional[Box] = None) -> Self:
+    def free_space_from_world(cls, world: World, tolerance=.001, search_space: Optional[Box] = None) -> Self:
         """
         Create a connectivity graph from the free space in the belief state of the robot.
 
         :param world: The belief state.
         :param tolerance: The tolerance for the intersection when calculating the connectivity.
-        :param bounding_box: The search space for the connectivity graph.
+        :param search_space: The search space for the connectivity graph.
         :return: The connectivity graph.
         """
 
@@ -340,15 +340,20 @@ class ConnectivityGraph(nx.Graph):
                 else:
                     obstacles |= bb_as_simple_event.as_composite_set()
 
+        if search_space is None:
+            search_space = Box(x=SimpleInterval(-np.inf, np.inf),
+                               y=SimpleInterval(-np.inf, np.inf),
+                               z= SimpleInterval(-np.inf, np.inf))
+
         # limit the search space
-        bounding_box_of_world = bounding_box.simple_event.__deepcopy__().as_composite_set()
+        bounding_box_of_world = search_space.simple_event.__deepcopy__().as_composite_set()
         obstacles &= bounding_box_of_world
 
         # calculate the free space
         free_space = ~obstacles & bounding_box_of_world
 
         # create a connectivity graph from the free space and calculate the edges
-        result = cls(bounding_box=bounding_box)
+        result = cls(search_space=search_space)
         result.add_nodes_from(Box.from_event(free_space))
         result.calculate_connectivity(tolerance)
 
