@@ -25,7 +25,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
 from ..datastructures.enums import JointType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity, PhysicalBody, WorldEntity
-from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
+from ..failures import ProspectionObjectNotFound, ObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
 from ..ros.data_types import Time
@@ -1766,7 +1766,7 @@ class WorldSync(threading.Thread):
         except KeyError:
             if prospection_object in self.world.objects:
                 return prospection_object
-            raise WorldObjectNotFound(prospection_object)
+            raise ObjectNotFound(prospection_object)
 
     def get_prospection_object(self, obj: Object) -> Object:
         """
