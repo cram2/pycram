@@ -1,7 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
 
-from typing_extensions import TYPE_CHECKING, List
+from typing_extensions import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
@@ -214,11 +214,19 @@ class ObjectNotVisible(HighLevelFailure):
         super().__init__(*args, **kwargs)
 
 
-class ObjectNowhereToBeFound(HighLevelFailure):
+class ObjectNotFound(HighLevelFailure):
     """Thrown when the robot cannot find an object of a given description in its surroundings."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, object_name: str):
+        super().__init__(f"Object {object_name} not found")
+
+
+class LinkNotFound(HighLevelFailure):
+    """Thrown when the robot cannot find a link of a given description"""
+
+    def __init__(self, link_name: str, of_object: Optional[str] = None):
+        of_object = of_object if of_object else "Unknown"
+        super().__init__(f"Link {link_name} not found in object {of_object}")
 
 
 class ObjectUndeliverable(HighLevelFailure):
@@ -327,13 +335,6 @@ class ObjectPoseMisestimation(PlanFailure):
 
 
 class SuccessfulCompletion(PlanFailure):
-    """"""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-
-class ObjectNotFound(PlanFailure):
     """"""
 
     def __init__(self, *args, **kwargs):
@@ -466,11 +467,6 @@ They are usually related to a bug in the code or a misuse of the framework (e.g.
 class ProspectionObjectNotFound(KeyError):
     def __init__(self, obj: 'Object'):
         super().__init__(f"The given object {obj.name} is not in the prospection world.")
-
-
-class WorldObjectNotFound(KeyError):
-    def __init__(self, obj: 'Object'):
-        super().__init__(f"The given object {obj.name} is not in the main world.")
 
 
 class ObjectAlreadyExists(Exception):

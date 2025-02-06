@@ -1,7 +1,7 @@
 from ..ros.ros_tools import get_ros_package_path
 
 from ..datastructures.dataclasses import VirtualMobileBaseJoints
-from ..datastructures.enums import GripperState, Arms, Grasp, TorsoState
+from ..datastructures.enums import GripperState, Arms, Grasp, TorsoState, StaticJointState
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
 from ..helper import get_robot_description_path
@@ -19,7 +19,7 @@ tiago_description = RobotDescription("tiago_dual", "base_link", "torso_lift_link
 left_arm = KinematicChainDescription("left_arm", "torso_lift_link", "arm_left_7_link",
                                      tiago_description.urdf_object, arm_type=Arms.LEFT)
 
-left_arm.add_static_joint_states("park", {'arm_left_1_joint': 0.27,
+left_arm.add_static_joint_states(StaticJointState.Park, {'arm_left_1_joint': 0.27,
                                           'arm_left_2_joint': -1.07,
                                           'arm_left_3_joint': 1.5,
                                           'arm_left_4_joint': 1.96,
@@ -45,7 +45,7 @@ left_arm.end_effector = left_gripper
 right_arm = KinematicChainDescription("right_arm", "torso_lift_link", "arm_right_7_link",
                                       tiago_description.urdf_object, arm_type=Arms.RIGHT)
 
-right_arm.add_static_joint_states("park", {'arm_right_1_joint': 0.27,
+right_arm.add_static_joint_states(StaticJointState.Park, {'arm_right_1_joint': 0.27,
                                            'arm_right_2_joint': -1.07,
                                            'arm_right_3_joint': 1.5,
                                            'arm_right_4_joint': 2.0,

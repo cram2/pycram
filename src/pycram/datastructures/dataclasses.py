@@ -884,7 +884,7 @@ class ContactPoint:
     position_on_body_b: Optional[List[float]] = None
     normal_on_body_b: Optional[List[float]] = None  # the contact normal vector on object b pointing towards object a
     distance: Optional[float] = None  # distance between the two objects (+ve for separation, -ve for penetration)
-    normal_force: Optional[List[float]] = None  # normal force applied during last step simulation
+    normal_force: Optional[float] = None  # normal force applied during last step simulation
     lateral_friction_1: Optional[LateralFriction] = None
     lateral_friction_2: Optional[LateralFriction] = None
 

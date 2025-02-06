@@ -1,5 +1,6 @@
 import tf
 
+from ....datastructures.enums import StaticJointState
 from ....datastructures.pose import Pose
 from ....designators.location_designator import CostmapLocation
 from ....external_interfaces.giskard import projection_cartesian_goal_with_approach, projection_joint_goal
@@ -34,7 +35,7 @@ class GiskardLocation(CostmapLocation):
                         + GaussianCostmap(200, 15, 0.02, target_map))
         for maybe_pose in PoseGenerator(near_costmap, 200):
             for chain in manipulator_descs:
-                projection_joint_goal(chain.get_static_joint_states("park"), allow_collisions=True)
+                projection_joint_goal(chain.get_static_joint_states(StaticJointState.Park), allow_collisions=True)
 
                 trajectory = projection_cartesian_goal_with_approach(maybe_pose, target_map, chain.tool_frame,
                                                                      "map", RobotDescription.current_robot_description.base_link)
