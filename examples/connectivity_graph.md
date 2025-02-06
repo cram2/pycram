@@ -32,9 +32,10 @@ Navigating the free space is then possible using path finding algorithms on the 
 Let's get hands on! First, we need to create an object that makes navigation non-trivial.
 
 ```{code-cell} ipython2
-from ontologies import PhysicalObject
+
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import WorldMode
+from pycrap import PhysicalObject
 
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.object_descriptors.generic import ObjectDescription as GenericObjectDescription
@@ -95,7 +96,7 @@ This minimal example demonstrates a concept that can be applied to the entire be
 ```{code-cell} ipython2
 from pycrap import Kitchen
 
-# kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
+kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
 
 search_space = Box(x=SimpleInterval(-2, 2),
                    y=SimpleInterval(-2, 2),
