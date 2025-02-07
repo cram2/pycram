@@ -323,6 +323,13 @@ class ConnectivityGraph(nx.Graph):
 
         obstacles = None
 
+        # create the search space if not given
+        if search_space is None:
+            search_space = Box(x=SimpleInterval(-np.inf, np.inf),
+                               y=SimpleInterval(-np.inf, np.inf),
+                               z= SimpleInterval(-np.inf, np.inf))
+        search_event = search_space.simple_event.as_composite_set()
+
         # create an event that describes the obstacles in the belief state of the robot
         for obj in world.objects:
 
@@ -333,24 +340,20 @@ class ConnectivityGraph(nx.Graph):
             # get the bounding box of every link in the object description
             for link in obj.link_name_to_id.keys():
                 bb = obj.get_link_axis_aligned_bounding_box(link)
-                bb_as_simple_event = bounding_box_as_random_event(bb)
+
+                # limit bounding box to search space
+                bb_event = bounding_box_as_random_event(bb).as_composite_set() & search_event
+
+                if bb_event.is_empty():
+                    continue
 
                 if obstacles is None:
-                    obstacles = bb_as_simple_event.as_composite_set()
+                    obstacles = bb_event
                 else:
-                    obstacles |= bb_as_simple_event.as_composite_set()
+                    obstacles |= bb_event
 
-        if search_space is None:
-            search_space = Box(x=SimpleInterval(-np.inf, np.inf),
-                               y=SimpleInterval(-np.inf, np.inf),
-                               z= SimpleInterval(-np.inf, np.inf))
-
-        # limit the search space
-        bounding_box_of_world = search_space.simple_event.__deepcopy__().as_composite_set()
-        obstacles &= bounding_box_of_world
-
-        # calculate the free space
-        free_space = ~obstacles & bounding_box_of_world
+        # calculate the free space and limit it to the searching space
+        free_space = ~obstacles & search_event
 
         # create a connectivity graph from the free space and calculate the edges
         result = cls(search_space=search_space)
