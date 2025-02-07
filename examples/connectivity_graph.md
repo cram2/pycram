@@ -137,3 +137,8 @@ goal = Pose([0.75, 0, 0.15])
 path = cg.path_from_to(start, goal)
 print("A potential path is", [(point.position.x, point.position.y, point.position.z) for point in path])
 ```
+
+Known limitations and potential improvements are:
+- The connectivity graph currently calculates its edges by using an approximation to adjacent surfaces. This can be improved by an exact calculation. 
+- The path is generated through the center points of the connection boxes. This is perhaps not optimal
+- The path is chosen by taking the shortest (meaning the least amount of edges) path. This is not necessarily the best path

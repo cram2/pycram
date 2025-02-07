@@ -9,10 +9,11 @@ from random_events.product_algebra import SimpleEvent, Event
 from random_events.variable import Continuous
 from typing_extensions import Self, Optional, List
 
-from pycram import World
-from pycram.datastructures.dataclasses import BoundingBox
-from pycram.datastructures.pose import Pose
-from pycram.failures import PlanFailure
+from . import World
+from .datastructures.dataclasses import BoundingBox
+from .datastructures.pose import Pose
+from .failures import PlanFailure
+from .ros_utils.viz_marker_publisher import TrajectoryPublisher
 
 
 class PoseOccupiedError(PlanFailure):
@@ -367,4 +368,10 @@ def plot_path_in_rviz(path: List[Pose]):
     Plot a path in rviz.
     :param path: The path to plot.
     """
-    ...
+
+    def make_publisher():
+        return TrajectoryPublisher()
+
+    publisher = make_publisher()
+    publisher.visualize_trajectory(path)
+

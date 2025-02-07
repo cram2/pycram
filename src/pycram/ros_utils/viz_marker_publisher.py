@@ -340,6 +340,7 @@ class TrajectoryPublisher:
     @cached_property
     def publisher(self):
         pub = create_publisher("/pycram/trajectory", MarkerArray)
+
         time.sleep(0.5)
         return pub
 
