@@ -75,7 +75,11 @@ class ConnectivityGraphFromWorldTestCase(BulletWorldTestCase):
         target = Pose([-0.9, 0.9, 0.9])
 
         path = cg.path_from_to(start, target)
-        TrajectoryPublisher().visualize_trajectory(path)
+
+
+        pub = TrajectoryPublisher()
+        pub.visualize_trajectory(path)
+
         self.assertIsNotNone(path)
         self.assertGreater(len(path), 1)
 

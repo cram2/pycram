@@ -3,7 +3,7 @@ import itertools
 import networkx as nx
 import numpy as np
 import plotly.graph_objects as go
-import tqdm
+from tqdm import tqdm
 from random_events.interval import SimpleInterval, Bound
 from random_events.product_algebra import SimpleEvent, Event
 from random_events.variable import Continuous
@@ -217,8 +217,8 @@ class ConnectivityGraph(nx.Graph):
             node.enlarge(tolerance, tolerance, tolerance, tolerance, tolerance, tolerance)
 
         # calculate the connectivity for each edge pair
-        for n1, n2 in tqdm.tqdm(itertools.combinations(self.nodes, 2), desc="Calculating connectivity",
-                                total=number_of_nodes * (number_of_nodes - 1) // 2):
+        for n1, n2 in tqdm(itertools.combinations(self.nodes, 2), desc="Calculating connectivity",
+                           total=number_of_nodes * (number_of_nodes - 1) // 2):
 
             intersection = n1.intersection_with(n2)
 
