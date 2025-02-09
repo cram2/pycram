@@ -8,22 +8,22 @@ from random_events.product_algebra import SimpleEvent
 
 from pycram.datastructures.pose import Pose
 from pycram.failures import PlanFailure
-from pycram.non_convex_planner import ConnectivityGraph, Box, PoseOccupiedError
+from pycram.graph_of_convex_sets import GraphOfConvexSets, Box, PoseOccupiedError
 from pycram.ros_utils.viz_marker_publisher import TrajectoryPublisher
 from pycram.testing import BulletWorldTestCase
 import plotly.graph_objects as go
 
 
-class ConnectivityGraphTestCase(unittest.TestCase):
+class GCSTestCase(unittest.TestCase):
     """
     Testcase to test the navigation around a unit box.
     """
 
-    cg: ConnectivityGraph
+    cg: GraphOfConvexSets
 
     @classmethod
     def setUpClass(cls):
-        cg = ConnectivityGraph()
+        cg = GraphOfConvexSets()
 
         obstacle = Box()
 
@@ -57,7 +57,7 @@ class ConnectivityGraphTestCase(unittest.TestCase):
         self.assertIsNotNone(occupied_space_plot)
 
 
-class ConnectivityGraphFromWorldTestCase(BulletWorldTestCase):
+class GCSFromWorldTestCase(BulletWorldTestCase):
     """
     Test the application of a connectivity graph to the belief state.
     """
@@ -66,7 +66,7 @@ class ConnectivityGraphFromWorldTestCase(BulletWorldTestCase):
         search_space = Box(x=SimpleInterval(-1, 1),
                            y=SimpleInterval(-1, 1),
                            z=SimpleInterval(0.1, 1.))
-        cg = ConnectivityGraph.free_space_from_world(self.world, search_space=search_space)
+        cg = GraphOfConvexSets.free_space_from_world(self.world, search_space=search_space)
         self.assertIsNotNone(cg)
         self.assertGreater(len(cg.nodes), 0)
         self.assertGreater(len(cg.edges), 0)
@@ -87,6 +87,9 @@ class ConnectivityGraphFromWorldTestCase(BulletWorldTestCase):
             start = Pose([-10, -10, -10])
             target = Pose([10, 10, 10])
             cg.path_from_to(start, target)
+
+    def test_navigation_map_from_world(self):
+        ...
 
 
 

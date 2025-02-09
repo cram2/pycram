@@ -3,6 +3,7 @@ import itertools
 import networkx as nx
 import numpy as np
 import plotly.graph_objects as go
+from sortedcontainers import SortedSet
 from tqdm import tqdm
 from random_events.interval import SimpleInterval, Bound
 from random_events.product_algebra import SimpleEvent, Event
@@ -180,13 +181,13 @@ def bounding_box_as_random_event(bb: BoundingBox) -> SimpleEvent:
     return SimpleEvent({Box.x: x, Box.y: y, Box.z: z})
 
 
-class ConnectivityGraph(nx.Graph):
+class GraphOfConvexSets(nx.Graph):
     """
-    A graph that represents the connectivity of convex sets.
+    A graph that represents the connectivity between convex sets.
 
     Every node in this graph represents a convex set.
-    The nodes must not intersect.
     Every edge represents an adjacency between two convex sets.
+    Furthermore, the adjacency is saved in and edge attribute called "intersection".
     """
 
     search_space: Box
@@ -196,12 +197,7 @@ class ConnectivityGraph(nx.Graph):
 
     def __init__(self, search_space: Optional[Box] = None):
         super().__init__()
-        if search_space is None:
-            search_space = Box(x=SimpleInterval(-np.inf, np.inf),
-                               y=SimpleInterval(-np.inf, np.inf),
-                               z= SimpleInterval(-np.inf, np.inf))
-
-        self.search_space = search_space
+        self.search_space = self._make_search_space(search_space)
 
     def calculate_connectivity(self, tolerance=.001):
         """
@@ -312,23 +308,25 @@ class ConnectivityGraph(nx.Graph):
         return result
 
     @classmethod
-    def free_space_from_world(cls, world: World, tolerance=.001, search_space: Optional[Box] = None) -> Self:
+    def _make_search_space(cls, search_space: Optional[Box] = None):
         """
-        Create a connectivity graph from the free space in the belief state of the robot.
-
-        :param world: The belief state.
-        :param tolerance: The tolerance for the intersection when calculating the connectivity.
-        :param search_space: The search space for the connectivity graph.
-        :return: The connectivity graph.
+        Create the default search space if it is not given.
         """
-
-        obstacles = None
-
-        # create the search space if not given
         if search_space is None:
             search_space = Box(x=SimpleInterval(-np.inf, np.inf),
                                y=SimpleInterval(-np.inf, np.inf),
                                z= SimpleInterval(-np.inf, np.inf))
+        return search_space
+
+
+    @classmethod
+    def obstacles_of_world(cls,  world: World, search_space: Optional[Box] = None) -> Event:
+        """
+        Get all obstacles of the world besides the robot as a random event.
+        """
+
+        obstacles = None
+        search_space = cls._make_search_space(search_space)
         search_event = search_space.simple_event.as_composite_set()
 
         # create an event that describes the obstacles in the belief state of the robot
@@ -345,6 +343,7 @@ class ConnectivityGraph(nx.Graph):
                 # limit bounding box to search space
                 bb_event = bounding_box_as_random_event(bb).as_composite_set() & search_event
 
+                # TODO: fix this to be less clunky when random events is fixed
                 if bb_event.is_empty():
                     continue
 
@@ -352,6 +351,27 @@ class ConnectivityGraph(nx.Graph):
                     obstacles = bb_event
                 else:
                     obstacles |= bb_event
+
+        return obstacles
+
+
+    @classmethod
+    def free_space_from_world(cls, world: World, tolerance=.001, search_space: Optional[Box] = None) -> Self:
+        """
+        Create a connectivity graph from the free space in the belief state of the robot.
+
+        :param world: The belief state.
+        :param tolerance: The tolerance for the intersection when calculating the connectivity.
+        :param search_space: The search space for the connectivity graph.
+        :return: The connectivity graph.
+        """
+
+        # create search space for calculations
+        search_space = cls._make_search_space(search_space)
+        search_event = search_space.simple_event.as_composite_set()
+
+        # get obstacles
+        obstacles = cls.obstacles_of_world(world, search_space)
 
         # calculate the free space and limit it to the searching space
         free_space = ~obstacles & search_event
@@ -363,9 +383,43 @@ class ConnectivityGraph(nx.Graph):
 
         return result
 
+    @classmethod
+    def navigation_map_from_world(cls, world: World, tolerance=.001, search_space: Optional[Box] = None) -> Self:
+        """
+        Create a GCS from the free space in the belief state of the robot for navigation.
+        The resulting GCS describes the paths for navigation, meaning that changing the z-axis position is not
+        possible.
+        Furthermore, it is taken into account that the robot has to fit through the entire space and not just
+        through the floor level obstacles.
+
+        :param world: The belief state.
+        :param tolerance: The tolerance for the intersection when calculating the connectivity.
+        :param search_space: The search space for the connectivity graph.
+        :return: The connectivity graph.
+        """
+
+        # create search space for calculations
+        search_space = cls._make_search_space(search_space)
+        search_event = search_space.simple_event.as_composite_set()
+        search_event = search_event.marginal(SortedSet([Box.x, Box.y]))
+
+        # get obstacles
+        obstacles = cls.obstacles_of_world(world, search_space)
+        obstacles = obstacles.marginal(SortedSet([Box.x, Box.y]))
+        free_space = ~obstacles & search_event
+
+
+        # create a connectivity graph from the free space and calculate the edges
+        result = cls(search_space=search_space)
+        result.add_nodes_from(Box.from_event(free_space))
+        result.calculate_connectivity(tolerance)
+
+        return result
+
 def plot_path_in_rviz(path: List[Pose]):
     """
     Plot a path in rviz.
+
     :param path: The path to plot.
     """
 

@@ -24,8 +24,11 @@ These collision boxes are converted to their algebraic representation using the 
 This allows the free space to be formulated as the complement of the belief state collision boxes.
 The complement itself is a finite collection of (possible infinitely big) boxes that do not intersect.
 These boxes, however, have surfaces that are adjacent.
-Representing this adjacency is done using a Connectivity-Graph where every node is a box, and every edge means that these boxes are adjacent.
+Representing this adjacency is done using a Graph of Convex Sets (GCS) where every node is a box, 
+and every edge means that these boxes are adjacent.
 Navigating the free space is then possible using path finding algorithms on the graph.
+
+You can read more about GCS [here](https://arxiv.org/abs/2101.11565).
 
 +++
 
@@ -52,13 +55,13 @@ to go over the box, which is not a good idea.
 
 ```{code-cell} ipython2
 from random_events.interval import SimpleInterval
-from pycram.non_convex_planner import Box, ConnectivityGraph
+from pycram.graph_of_convex_sets import Box, GraphOfConvexSets
 
 search_space = Box(x=SimpleInterval(-1, 1),
                    y=SimpleInterval(-1, 1),
                    z=SimpleInterval(0.1, 0.2))
 
-cg = ConnectivityGraph.free_space_from_world(world, search_space=search_space)
+gcs = GraphOfConvexSets.free_space_from_world(world, search_space=search_space)
 ```
 
 Let's have a look at the free space constructed. We can see that it is a rectangular catwalk around the obstacle.
@@ -68,7 +71,7 @@ import plotly
 plotly.offline.init_notebook_mode()
 import plotly.graph_objects as go
 
-fig = go.Figure(cg.plot_free_space())
+fig = go.Figure(gcs.plot_free_space())
 fig.show()
 ```
 
@@ -77,7 +80,7 @@ Looking at the connectivity graph, we can see that it is still possible to go fr
 ```{code-cell} ipython2
 import matplotlib.pyplot as plt
 import networkx as nx
-nx.draw(cg, with_labels=True, font_size=8)
+nx.draw(gcs, with_labels=True, font_size=8)
 ```
 
 Let's use graph theory to find a path!
@@ -87,7 +90,7 @@ from pycram.datastructures.pose import Pose
 
 start = Pose([-0.75, 0, 0.15])
 goal = Pose([0.75, 0, 0.15])
-path = cg.path_from_to(start, goal)
+path = gcs.path_from_to(start, goal)
 print("A potential path is", [(point.position.x, point.position.y) for point in path])
 ```
 
@@ -102,7 +105,7 @@ search_space = Box(x=SimpleInterval(-2, 2),
                    y=SimpleInterval(-2, 2),
                    z=SimpleInterval(0.0, 2))
 
-cg = ConnectivityGraph.free_space_from_world(world, search_space=search_space)
+gcs = GraphOfConvexSets.free_space_from_world(world, search_space=search_space)
 ```
 
 We can now see the algebraic representation of the occupied and free space. The free space is the complement of the occupied space.
@@ -113,9 +116,9 @@ from plotly.subplots import make_subplots
 
 fig = make_subplots(rows=1, cols=2,  specs=[[{'type': 'surface'}, {'type': 'surface'}]], subplot_titles=["Occupied Space", "Free Space"])
 
-occupied_traces = cg.plot_occupied_space()
+occupied_traces = gcs.plot_occupied_space()
 fig.add_traces(occupied_traces, rows=[1 for _ in occupied_traces], cols=[1 for _ in occupied_traces])
-free_traces = cg.plot_free_space()
+free_traces = gcs.plot_free_space()
 fig.add_traces(free_traces, rows=[1 for _ in free_traces], cols=[2 for _ in free_traces])
 fig.show()
 ```
@@ -124,7 +127,7 @@ Now let's look at the connectivity of the entire world!
 
 ```{code-cell} ipython2
 import networkx as nx
-nx.draw(cg, node_size=10)
+nx.draw(gcs, node_size=10)
 ```
 
 We can see that all spaces are somehow reachable from everywhere besides one isolated region! Amazing!
@@ -134,7 +137,7 @@ Finally, let's find a way from here to there:
 ```{code-cell} ipython2
 start = Pose([-0.75, 0, 0.15])
 goal = Pose([0.75, 0, 0.15])
-path = cg.path_from_to(start, goal)
+path = gcs.path_from_to(start, goal)
 print("A potential path is", [(point.position.x, point.position.y, point.position.z) for point in path])
 ```
 
