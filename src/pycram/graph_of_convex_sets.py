@@ -3,9 +3,10 @@ import itertools
 import networkx as nx
 import numpy as np
 import plotly.graph_objects as go
+from portion import openclosed
 from sortedcontainers import SortedSet
 from tqdm import tqdm
-from random_events.interval import SimpleInterval, Bound
+from random_events.interval import SimpleInterval, Bound, singleton
 from random_events.product_algebra import SimpleEvent, Event
 from random_events.variable import Continuous
 from typing_extensions import Self, Optional, List
@@ -392,22 +393,38 @@ class GraphOfConvexSets(nx.Graph):
         Furthermore, it is taken into account that the robot has to fit through the entire space and not just
         through the floor level obstacles.
 
+        TODO: i think explicitly 2d boxes would help here.
+
         :param world: The belief state.
         :param tolerance: The tolerance for the intersection when calculating the connectivity.
         :param search_space: The search space for the connectivity graph.
         :return: The connectivity graph.
         """
 
+        xy = SortedSet([Box.x, Box.y])
+
         # create search space for calculations
         search_space = cls._make_search_space(search_space)
+
+        # remove the z axis
         search_event = search_space.simple_event.as_composite_set()
-        search_event = search_event.marginal(SortedSet([Box.x, Box.y]))
+        search_event = search_event.marginal(xy)
 
         # get obstacles
         obstacles = cls.obstacles_of_world(world, search_space)
-        obstacles = obstacles.marginal(SortedSet([Box.x, Box.y]))
+
+        # get the 2d map from the obstacles
+        obstacles = obstacles.marginal(xy)
         free_space = ~obstacles & search_event
 
+        # create floor level
+        z_event = SimpleEvent({Box.z: singleton(0.)}).as_composite_set()
+        z_event.fill_missing_variables(xy)
+        free_space.fill_missing_variables(SortedSet([Box.z]))
+        free_space &= z_event
+
+        # update z for search space
+        search_space.z = SimpleInterval(0., 0., Bound.CLOSED, Bound.CLOSED)
 
         # create a connectivity graph from the free space and calculate the edges
         result = cls(search_space=search_space)
