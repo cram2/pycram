@@ -1,6 +1,6 @@
 from typing import Optional, Tuple
 
-from typing_extensions import List, Any, Union, Dict
+from typing_extensions import List, Any, Union, Dict, Self
 
 from geometry_msgs.msg import Point
 
@@ -8,7 +8,7 @@ from ..datastructures.dataclasses import VisualShape, BoxVisualShape, Color
 from ..datastructures.enums import JointType
 from ..datastructures.pose import Pose
 from ..description import JointDescription as AbstractJointDescription, LinkDescription as AbstractLinkDescription, \
-    ObjectDescription as AbstractObjectDescription
+    ObjectDescription as AbstractObjectDescription, ObjectDescription
 
 
 class NamedBoxVisualShape(BoxVisualShape):
@@ -107,7 +107,18 @@ class ObjectDescription(AbstractObjectDescription):
         ...
 
     def __init__(self, *args, **kwargs):
+        super().__init__()
         self._links = [LinkDescription(*args, **kwargs)]
+
+    def merge_description(self, other: ObjectDescription, parent_link: Optional[str] = None,
+                          child_link: Optional[str] = None,
+                          joint_type: JointType = JointType.FIXED,
+                          axis: Optional[Point] = None,
+                          lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
+                          child_pose_wrt_parent: Optional[Pose] = None,
+                          in_place: bool = False,
+                          new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
+        raise NotImplementedError
 
     def load_description(self, path: str) -> Any:
         ...

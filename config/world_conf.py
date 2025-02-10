@@ -3,9 +3,9 @@ import os
 
 import yaml
 from typing_extensions import Tuple, Type, Dict
-from pycram.description import ObjectDescription
-from pycram.object_descriptors.urdf import ObjectDescription as URDF
-from pycram.utils import classproperty
+from ..description import ObjectDescription
+from ..object_descriptors.urdf import ObjectDescription as URDF
+from ..utils import classproperty
 
 
 class WorldConfig:
