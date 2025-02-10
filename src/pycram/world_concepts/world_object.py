@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
+from trimesh.parent import Geometry3D
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
@@ -22,6 +23,7 @@ from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, Un
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
+from ..ros.data_types import Time
 from ..ros.logging import logwarn
 
 try:
@@ -640,6 +642,7 @@ class Object(WorldEntity):
 
         if coincide_the_objects and parent_to_child_transform is None:
             parent_to_child_transform = Transform()
+            child_link.set_pose(parent_link.pose)
         attachment = Attachment(parent_link, child_link, bidirectional, parent_to_child_transform)
 
         self.attachments[child_object] = attachment
@@ -1117,6 +1120,11 @@ class Object(WorldEntity):
         :param joint_name: The name of the joint
         :param joint_position: The target pose for this joint
         """
+        if (self.joints[joint_name].has_limits and
+                (not self.joints[joint_name].lower_limit <= joint_position <= self.joints[joint_name].upper_limit)):
+            joint_position = np.clip(joint_position, self.joints[joint_name].lower_limit,
+                                     self.joints[joint_name].upper_limit)
+            logwarn(f"Joint position for joint {joint_name} was clipped to the joint limits.")
         if self.world.reset_joint_position(self.joints[joint_name], joint_position):
             self._update_on_joint_position_change()
 
@@ -1135,6 +1143,18 @@ class Object(WorldEntity):
                            for joint_name, joint_position in joint_positions.items()}
         if self.world.set_multiple_joint_positions(joint_positions):
             self._update_on_joint_position_change()
+
+    def clip_joint_positions_to_limits(self, joint_positions: Dict[str, float]) -> Dict[str, float]:
+        """
+        Clip the given joint positions to the joint limits.
+
+        :param joint_positions: A dictionary with the joint names as keys and the target positions as values.
+        :return: A dictionary with the joint names as keys and the clipped positions as values.
+        """
+        return {joint_name: np.clip(joint_position, self.joints[joint_name].lower_limit,
+                                    self.joints[joint_name].upper_limit)
+                if self.joints[joint_name].has_limits else joint_position
+                for joint_name, joint_position in joint_positions.items()}
 
     def _update_on_joint_position_change(self):
         self.update_pose()
@@ -1356,7 +1376,7 @@ class Object(WorldEntity):
         :return: The axis aligned bounding box of this object.
         """
         if self.has_one_link:
-            return self.links[self.description.get_root()].get_bounding_box()
+            return self.root_link.get_bounding_box()
         else:
             return self.world.get_object_axis_aligned_bounding_box(self)
 
@@ -1367,9 +1387,20 @@ class Object(WorldEntity):
         :return: The rotated bounding box of this object.
         """
         if self.has_one_link:
-            return self.links[self.description.get_root()].get_bounding_box(rotated=True)
+            return self.root_link.get_bounding_box(rotated=True)
         else:
             return self.world.get_object_rotated_bounding_box(self)
+
+    def get_convex_hull(self) -> Geometry3D:
+        """
+        Return the convex hull of this object.
+
+        :return: The convex hull of this object.
+        """
+        if self.has_one_link:
+            return self.root_link.get_convex_hull()
+        else:
+            return self.world.get_object_convex_hull(self)
 
     def get_base_origin(self) -> Pose:
         """
@@ -1415,7 +1446,7 @@ class Object(WorldEntity):
         :param world: The world to which the object should be copied.
         :return: The copied object in the given world.
         """
-        obj = Object(self.name, self.obj_type, self.path, self.description, self.get_pose(),
+        obj = Object(self.name, self.obj_type, self.path, self.description, self.original_pose,
                      world, self.color)
         return obj
 

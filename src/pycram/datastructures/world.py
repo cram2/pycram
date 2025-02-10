@@ -9,6 +9,7 @@ from copy import copy
 
 import numpy as np
 from geometry_msgs.msg import Point
+from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
 from ..cache_manager import CacheManager
@@ -125,6 +126,24 @@ class World(StateEntity, ABC):
         self.original_state_id = self.save_state()
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
+
+    def get_object_convex_hull(self, obj: Object) -> Geometry3D:
+        """
+        Get the convex hull of an object.
+
+        :param obj: The pycram object.
+        :return: The convex hull of the object as a list of Points.
+        """
+        raise NotImplementedError
+
+    def get_link_convex_hull(self, link: Link) -> Geometry3D:
+        """
+        Get the convex hull of a link of an articulated object.
+
+        :param link: The link as a AbstractLink object.
+        :return: The convex hull of the link as a list of Points.
+        """
+        raise NotImplementedError
 
     def add_callback_on_add_object(self, callback: Callable[[Object], None]) -> None:
         """
@@ -578,7 +597,8 @@ class World(StateEntity, ABC):
         """
         pass
 
-    def simulate(self, seconds: float, real_time: Optional[bool] = False) -> None:
+    def simulate(self, seconds: float, real_time: Optional[bool] = False,
+                 func: Optional[Callable[[], None]] = None) -> None:
         """
         Simulate Physics in the World for a given amount of seconds. Usually this simulation is faster than real
         time. By setting the 'real_time' parameter this simulation is slowed down such that the simulated time is equal
@@ -586,11 +606,12 @@ class World(StateEntity, ABC):
 
         :param seconds: The amount of seconds that should be simulated.
         :param real_time: If the simulation should happen in real time or faster.
+        :param func: A function that should be called during the simulation
         """
         self.set_realtime(real_time)
         for i in range(0, int(seconds * self.conf.simulation_frequency)):
             curr_time = Time().now()
-            self.step()
+            self.step(func)
             for objects, callbacks in self.coll_callbacks.items():
                 contact_points = self.get_contact_points_between_two_objects(objects[0], objects[1])
                 if len(contact_points) > 0:
@@ -809,9 +830,13 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def step(self):
+    def step(self, func: Optional[Callable[[], None]] = None, step_seconds: Optional[float] = None) -> None:
         """
-        Step the world simulation using forward dynamics
+        Step the world simulation using forward dynamics.
+
+        :param func: An optional function to be called during the step.
+        :param step_seconds: The amount of seconds to step the simulation if None the simulation is stepped by the
+        simulation time step.
         """
         pass
 

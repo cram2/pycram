@@ -35,7 +35,7 @@ class WorldConfig:
     Whether to clear the cache directory at the start.
     """
 
-    prospection_world_prefix: str = "prospection_"
+    prospection_world_prefix: str = "prospection"
     """
     The prefix for the prospection world name.
     """

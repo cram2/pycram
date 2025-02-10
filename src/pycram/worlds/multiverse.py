@@ -1,23 +1,24 @@
 import logging
 import os
+import shutil
+from pathlib import Path
 from time import sleep
 
 import numpy as np
 from tf.transformations import quaternion_matrix
-from typing_extensions import List, Dict, Optional, Union, Tuple
+from typing_extensions import List, Dict, Optional, Union, Tuple, Callable
 
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
 from ..config.multiverse_conf import MultiverseConfig
-from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint, \
-    MultiverseContactPoint, MeshVisualShape
+from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType, MultiverseBodyProperty, MultiverseJointPosition, \
     MultiverseJointCMD
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..description import Link, Joint
-from ..object_descriptors.mjcf import ObjectDescription as MJCF, ObjectFactory, PrimitiveObjectFactory
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
+from ..object_descriptors.mjcf import ObjectDescription as MJCF, PrimitiveObjectFactory
 from ..robot_description import RobotDescription
 from ..ros.logging import logwarn, logerr
 from ..utils import RayTestUtils, wxyz_to_xyzw, xyzw_to_wxyz
@@ -47,12 +48,6 @@ class Multiverse(World):
     A flag to check if the multiverse resources have been added.
     """
 
-    simulation: Optional[str] = None
-    """
-    The simulation name to be used in the Multiverse world (this is the name defined in
-     the multiverse configuration file).
-    """
-
     Object.extension_to_description_type[MJCF.get_file_extension()] = MJCF
     """
     Add the MJCF description extension to the extension to description type mapping for the objects.
@@ -60,14 +55,12 @@ class Multiverse(World):
 
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
-                 simulation_name: str = "pycram_test",
                  clear_cache: bool = False):
         """
         Initialize the Multiverse Socket and the PyCram World.
 
         :param mode: The mode of the world (DIRECT or GUI).
         :param is_prospection: Whether the world is prospection or not.
-        :param simulation_name: The name of the simulation.
         :param clear_cache: Whether to clear the cache or not.
         """
 
@@ -75,13 +68,7 @@ class Multiverse(World):
         self.saved_simulator_states: Dict = {}
         self._make_sure_multiverse_resources_are_added(clear_cache=clear_cache)
 
-        if Multiverse.simulation is None:
-            if simulation_name is None:
-                logging.error("Simulation name not provided")
-                raise ValueError("Simulation name not provided")
-            Multiverse.simulation = simulation_name
-
-        self.simulation = (self.conf.prospection_world_prefix if is_prospection else "") + Multiverse.simulation
+        self.simulation = self.conf.prospection_world_prefix if is_prospection else "belief_state"
         self.client_manager = MultiverseClientManager(self.conf.simulation_wait_time_factor)
         self._init_clients(is_prospection=is_prospection)
 
@@ -91,11 +78,13 @@ class Multiverse(World):
 
         self.ray_test_utils = RayTestUtils(self.ray_test_batch, self.object_id_to_name)
 
+        self.is_paused: bool = False
+
         if not self.is_prospection_world:
             self._spawn_floor()
 
         if self.conf.use_static_mode:
-            self.api_requester.pause_simulation()
+            self.pause_simulation()
 
     def _init_clients(self, is_prospection: bool = False):
         """
@@ -155,6 +144,20 @@ class Multiverse(World):
         """
         self.floor = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
                             world=self)
+
+    def pause_simulation(self) -> None:
+        """
+        Pause the simulation.
+        """
+        self.api_requester.pause_simulation()
+        self.is_paused = True
+
+    def unpause_simulation(self) -> None:
+        """
+        Unpause the simulation.
+        """
+        self.api_requester.unpause_simulation()
+        self.is_paused = False
 
     def load_generic_object_and_get_id(self, description: GenericObjectDescription,
                                        pose: Optional[Pose] = None) -> int:
@@ -269,7 +272,7 @@ class Multiverse(World):
 
     @validate_joint_position
     def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
-        if self.conf.use_controller and self.joint_has_actuator(joint):
+        if not self.is_paused and self.conf.use_controller and self.joint_has_actuator(joint):
             self._reset_joint_position_using_controller(joint, joint_position)
         else:
             self._set_multiple_joint_positions_without_controller({joint: joint_position})
@@ -299,7 +302,7 @@ class Multiverse(World):
          errors, but not necessarily that the joint positions are set to the specified values).
         """
 
-        if self.conf.use_controller:
+        if not self.is_paused and self.conf.use_controller:
             controlled_joints = self.get_controlled_joints(list(joint_positions.keys()))
             if len(controlled_joints) > 0:
                 controlled_joint_positions = {joint: joint_positions[joint] for joint in controlled_joints}
@@ -541,7 +544,7 @@ class Multiverse(World):
                 contact_points[-1].position_on_b = point.position
         return contact_points
 
-    def get_object_with_body_name(self, body_name: str) -> Tuple[Optional[Object],Optional[Link]]:
+    def get_object_with_body_name(self, body_name: str) -> Tuple[Optional[Object], Optional[Link]]:
         """
         Get the object with the body name in the simulator, the body name can be the name of the object or the link.
 
@@ -620,14 +623,19 @@ class Multiverse(World):
         else:
             return results
 
-    def step(self):
+    def step(self, func: Optional[Callable[[], None]] = None, step_seconds: Optional[float] = None) -> None:
         """
         Perform a simulation step in the simulator, this is useful when use_static_mode is True.
+
+        :param func: A function to be called after the simulation step.
+        :param step_seconds: The number of seconds to step the simulation.
         """
         if self.conf.use_static_mode:
-            self.api_requester.unpause_simulation()
-            sleep(self.simulation_time_step)
-            self.api_requester.pause_simulation()
+            self.unpause_simulation()
+            if func is not None:
+                func()
+            sleep(self.simulation_time_step if step_seconds is None else step_seconds)
+            self.pause_simulation()
 
     def save_physics_simulator_state(self, state_id: Optional[int] = None, use_same_id: bool = False) -> int:
         if state_id is None:
@@ -638,7 +646,8 @@ class Multiverse(World):
         return state_id
 
     def remove_physics_simulator_state(self, state_id: int) -> None:
-        self.saved_simulator_states.pop(state_id)
+        save_path = self.saved_simulator_states.pop(state_id)
+        shutil.rmtree(Path(save_path).parent)
 
     def restore_physics_simulator_state(self, state_id: int) -> None:
         self.api_requester.load(self.saved_simulator_states[state_id])
@@ -664,7 +673,7 @@ class Multiverse(World):
 
     def set_realtime(self, real_time: bool) -> None:
         logwarn("set_realtime is not implemented as an API in Multiverse, it is configured in the"
-                      "multiverse configuration file (.muv file) as rtf_required where a value of 1 means real-time")
+                "multiverse configuration file (.muv file) as rtf_required where a value of 1 means real-time")
 
     def set_gravity(self, gravity_vector: List[float]) -> None:
         logwarn("set_gravity is not implemented in Multiverse")

@@ -32,9 +32,8 @@ class MultiverseClient(MultiverseSocket):
             increase or decrease the wait time for the simulation.
         """
         meta_data = MultiverseMetaData()
-        meta_data.simulation_name = (Conf.prospection_world_prefix if is_prospection_world else "") + name
-        meta_data.world_name = ((Conf.prospection_world_prefix if is_prospection_world else "")
-                                + meta_data.world_name)
+        meta_data.simulation_name = (Conf.prospection_world_prefix if is_prospection_world else "belief_state") + name
+        meta_data.world_name = Conf.prospection_world_prefix if is_prospection_world else "belief_state"
         self.is_prospection_world = is_prospection_world
         super().__init__(port=str(port), meta_data=meta_data)
         self.simulation_wait_time_factor = simulation_wait_time_factor
@@ -557,7 +556,7 @@ class MultiverseAPI(MultiverseClient):
         :param save_directory: The save directory.
         :return: The save path.
         """
-        return save_name if save_directory is None else os.path.join(save_directory, save_name)
+        return save_name if not save_directory else os.path.join(save_directory, save_name)
 
     def attach(self, constraint: Constraint) -> None:
         """
@@ -763,7 +762,7 @@ class MultiverseAPI(MultiverseClient):
         contact_effort = contact_effort[0].split()
         if 'failed' in contact_effort:
             logwarn("Failed to get contact effort")
-            return [0.0] * 6
+            return [0.0] * 3, [0.0]*3
         contact_effort = list(map(float, contact_effort))
         forces, torques = contact_effort[:3], contact_effort[3:]
         return forces, torques

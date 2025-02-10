@@ -17,6 +17,7 @@ from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
 from typing_extensions import Tuple, List, Optional, Iterator
 
+from .ros.logging import logwarn
 from .ros.ros_tools import wait_for_message
 from .datastructures.dataclasses import AxisAlignedBoundingBox
 from .datastructures.pose import Pose
@@ -218,10 +219,15 @@ class Costmap:
         elif self.resolution != other_cm.resolution:
             raise ValueError("To merge two costmaps their resolution must be equal.")
         new_map = np.zeros((self.height, self.width))
-        # A nunpy array of the positions where both costmaps are greater than 0
+        # A numpy array of the positions where both costmaps are greater than 0
         merge = np.logical_and(self.map > 0, other_cm.map > 0)
         new_map[merge] = self.map[merge] * other_cm.map[merge]
-        new_map = (new_map / np.max(new_map)).reshape((self.height, self.width))
+        max_val = np.max(new_map)
+        if max_val > 0:
+            new_map = (new_map / np.max(new_map)).reshape((self.height, self.width))
+        else:
+            new_map = new_map.reshape((self.height, self.width))
+            logwarn("Merged costmap is empty.")
         return Costmap(self.resolution, self.height, self.width, self.origin, new_map)
 
     def __add__(self, other: Costmap) -> Costmap:
@@ -448,6 +454,7 @@ class OccupancyCostmap(Costmap):
         # 16383 is the maximal number of rays that can be processed in a batch
         i = 0
         j = 0
+        floor_id = self.world.get_object_by_name("floor").id
         for n in self._chunks(np.array(rays), 16380):
             r_t = World.current_world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
             while r_t is None:
@@ -456,10 +463,10 @@ class OccupancyCostmap(Costmap):
             if World.robot:
                 attached_objs_id = [o.id for o in self.world.robot.attachments.keys()]
                 res[i:j] = [
-                    1 if ray[0] == -1 or ray[0] == self.world.robot.id or ray[0] in attached_objs_id else 0 for
+                    1 if ray[0] in [-1, self.world.robot.id, floor_id] + attached_objs_id else 0 for
                     ray in r_t]
             else:
-                res[i:j] = [1 if ray[0] == -1 else 0 for ray in r_t]
+                res[i:j] = [1 if ray[0] in [-1, floor_id] else 0 for ray in r_t]
             i += len(n)
 
         res = np.flip(np.reshape(np.array(res), (size, size)))
