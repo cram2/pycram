@@ -112,7 +112,7 @@ class WorldConfig:
     """
 
     @classproperty
-    def default_camera_config(self) -> Dict:
+    def default_camera_config(cls) -> Dict:
         """
         The default camera configuration for the world.
 

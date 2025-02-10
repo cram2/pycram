@@ -540,7 +540,11 @@ def map_color_names_to_rgba(name: str) -> Color:
 
 
 
-class ClassPropertyDescriptor(object):
+class ClassPropertyDescriptor:
+    """
+    A helper that can be used to define properties of a class like the built-in ones but does not require the class
+    to be instantiated.
+    """
 
     def __init__(self, fget, fset=None):
         self.fget = fget

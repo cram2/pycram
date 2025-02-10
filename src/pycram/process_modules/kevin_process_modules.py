@@ -18,7 +18,7 @@ class KevinNavigate(DefaultNavigation):
     pass
 
 
-class KevinMoveHead(ProcessModule):
+class KevinMoveHead(DefaultMoveHead):
     """
     Process module for the simulated Kevin that moves the head such that it looks at the given position
     """
@@ -71,12 +71,12 @@ class KevinWorldStateDetecting(DefaultWorldStateDetecting):
     pass
 
 
-class KevinOpen(ProcessModule):
+class KevinOpen(DefaultOpen):
     """
     Process module for the simulated Kevin that opens an already grasped container
     """
     pass
-class KevinClose(ProcessModule):
+class KevinClose(DefaultClose):
     """
     Process module for the simulated Kevin that closes an already grasped container
     """

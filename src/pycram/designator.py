@@ -8,6 +8,7 @@ from inspect import isgenerator, isgeneratorfunction
 from typing_extensions import get_type_hints
 from pycrap import PhysicalObject, Agent
 from .datastructures.property import Property, EmptyProperty
+from .failures import PlanFailure
 from .ros.logging import logwarn, loginfo
 
 import inspect
@@ -203,9 +204,13 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
             """
             for pre_perform in ActionDesignatorDescription.Action._pre_perform_callbacks:
                 pre_perform(self)
-            result = self.plan()
-            for post_perform in ActionDesignatorDescription.Action._post_perform_callbacks:
-                post_perform(self)
+            try:
+                result = self.plan()
+            except PlanFailure as e:
+                raise e
+            finally:
+                for post_perform in ActionDesignatorDescription.Action._post_perform_callbacks:
+                    post_perform(self)
             return result
 
         @with_tree
