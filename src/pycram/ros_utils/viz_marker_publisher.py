@@ -10,8 +10,8 @@ from visualization_msgs.msg import Marker, MarkerArray
 
 from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape
 from ..datastructures.pose import Pose, Transform
-from ..designator import ObjectDesignatorDescription
 from ..datastructures.world import World
+from ..designator import ObjectDesignatorDescription
 from ..ros.data_types import Duration, Time
 from ..ros.logging import loginfo, logwarn, logerr
 from ..ros.publisher import create_publisher
@@ -92,7 +92,10 @@ class VizMarkerPublisher:
                 if isinstance(geom, MeshVisualShape):
                     msg.type = Marker.MESH_RESOURCE
                     msg.mesh_resource = "file://" + geom.file_name
-                    msg.scale = Vector3(1, 1, 1)
+                    if hasattr(geom, "scale") and geom.scale is not None:
+                        msg.scale = Vector3(*geom.scale)
+                    else:
+                        msg.scale = Vector3(1, 1, 1)
                     msg.mesh_use_embedded_materials = True
                 elif isinstance(geom, CylinderVisualShape):
                     msg.type = Marker.CYLINDER
@@ -245,7 +248,7 @@ class ManualMarkerPublisher:
         new_marker.id = self.current_id
         new_marker.header.frame_id = frame_id
         new_marker.ns = name
-        new_marker.header.stamp = Time.now()
+        # new_marker.header.stamp = Time.now()
         new_marker.type = marker_type
         new_marker.action = Marker.ADD
         new_marker.pose = marker_pose.pose

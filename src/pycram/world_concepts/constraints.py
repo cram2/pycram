@@ -51,7 +51,7 @@ class AbstractConstraint:
         """
         Set the target pose of the child object to the current pose of the child object in the parent object frame.
         """
-        self.child_link.set_pose(self.get_child_link_target_pose())
+        self.child_link.set_object_pose_given_link_pose(self.get_child_link_target_pose())
 
     def get_child_link_target_pose(self) -> Pose:
         """
@@ -253,7 +253,7 @@ class Attachment(AbstractConstraint):
         """
         Remove the constraint between the parent and the child links if one exists.
         """
-        if self.child_link in self.parent_link.constraint_ids:
+        if self.child_link in self.parent_link.constraint_ids.keys():
             self.parent_link.remove_constraint_with_link(self.child_link)
 
     def get_inverse(self) -> 'Attachment':

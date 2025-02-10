@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import glob
 import os
 import pathlib
 import shutil
 
-import numpy as np
 from typing_extensions import List, TYPE_CHECKING, Optional
+
+from .ros.logging import loginfo
 
 if TYPE_CHECKING:
     from .description import ObjectDescription
@@ -51,9 +54,9 @@ class CacheManager:
             shutil.rmtree(self.cache_dir)
 
     def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
-                                     object_description: 'ObjectDescription', object_name: str,
+                                     object_description: ObjectDescription, object_name: str,
                                      scale_mesh: Optional[float] = None,
-                                     mesh_transform: Optional['Transform'] = None) -> str:
+                                     mesh_transform: Optional[Transform] = None) -> str:
         """
         Check if the file is already in the cache directory, if not preprocess and save in the cache.
 
@@ -96,7 +99,7 @@ class CacheManager:
             for file in glob.glob(str(data_path), recursive=True):
                 file_path = pathlib.Path(file)
                 if file_path.name == name:
-                    print(f"Found file {name} in {file_path}")
+                    loginfo(f"Found file {name} in {file_path}")
                     return str(file_path)
 
         raise FileNotFoundError(
@@ -109,7 +112,7 @@ class CacheManager:
         if not pathlib.Path(self.cache_dir).exists():
             os.mkdir(self.cache_dir)
 
-    def is_cached(self, path: str, object_description: 'ObjectDescription') -> bool:
+    def is_cached(self, path: str, object_description: ObjectDescription) -> bool:
         """
         Check if the file in the given path is already cached or if
         there is already a cached file with the given name, this is the case if a .stl, .obj file or a description from
@@ -131,7 +134,7 @@ class CacheManager:
         full_path = pathlib.Path(os.path.join(self.cache_dir, file_name))
         return full_path.exists()
 
-    def check_without_extension(self, path: str, object_description: 'ObjectDescription') -> bool:
+    def check_without_extension(self, path: str, object_description: ObjectDescription) -> bool:
         """
         Check if the file in the given path exists in the cache directory the given file extension.
         Instead, replace the given extension with the extension of the used ObjectDescription and check for that one.

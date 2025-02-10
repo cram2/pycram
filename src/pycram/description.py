@@ -5,20 +5,19 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 
-from trimesh.parent import Geometry3D
-
-from .ros.data_types import Time
 import trimesh
-from geometry_msgs.msg import Point, Quaternion
-from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, deprecated
+from geometry_msgs.msg import Point
+from trimesh.parent import Geometry3D
+from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, Sequence
 
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
     MeshVisualShape, RotatedBoundingBox
 from .datastructures.enums import JointType
 from .datastructures.pose import Pose, Transform
-from .datastructures.world_entity import WorldEntity
+from .datastructures.world_entity import WorldEntity, PhysicalBody
 from .failures import ObjectDescriptionNotFound, LinkHasNoGeometry, LinkGeometryHasNoMesh
 from .local_transformer import LocalTransformer
+from .ros.logging import logwarn_once
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
@@ -28,6 +27,12 @@ class EntityDescription(ABC):
     """
     A description of an entity. This can be a link, joint or object description.
     """
+
+    def __init__(self, parsed_description: Optional[Any] = None):
+        """
+        :param parsed_description: The parsed description (most likely from a description file) of the entity.
+        """
+        self.parsed_description = parsed_description
 
     @property
     @abstractmethod
@@ -51,12 +56,13 @@ class LinkDescription(EntityDescription):
     A link description of an object.
     """
 
-    def __init__(self, parsed_link_description: Any):
+    def __init__(self, parsed_link_description: Any, mesh_dir: Optional[str] = None):
         self.parsed_description = parsed_link_description
+        self.mesh_dir = mesh_dir
 
     @property
     @abstractmethod
-    def geometry(self) -> Union[VisualShape, None]:
+    def geometry(self) -> Union[List[VisualShape], VisualShape, None]:
         """
         The geometry type of the collision element of this link.
         """
@@ -73,7 +79,7 @@ class JointDescription(EntityDescription):
         :param parsed_joint_description: The parsed description of the joint (e.g. from urdf or mjcf file).
         :param is_virtual: True if the joint is virtual (i.e. not a physically existing joint), False otherwise.
         """
-        self.parsed_description = parsed_joint_description
+        super().__init__(parsed_joint_description)
         self.is_virtual: Optional[bool] = is_virtual
 
     @property
@@ -157,14 +163,13 @@ class JointDescription(EntityDescription):
         raise NotImplementedError
 
 
-class ObjectEntity(WorldEntity):
+class ObjectEntity:
     """
-    An abstract base class that represents a physical part/entity of an Object.
+    An abstract base class that represents a part of an Object.
     This can be a link or a joint of an Object.
     """
 
-    def __init__(self, _id: int, obj: Object):
-        WorldEntity.__init__(self, _id, obj.world)
+    def __init__(self, obj: Object):
         self.object: Object = obj
 
     @property
@@ -175,33 +180,6 @@ class ObjectEntity(WorldEntity):
         return self.object.name
 
     @property
-    @abstractmethod
-    def pose(self) -> Pose:
-        """
-        :return: The pose of this entity relative to the world frame.
-        """
-        pass
-
-    @property
-    def transform(self) -> Transform:
-        """
-        The transform of this entity.
-
-        :return: The transform of this entity.
-        """
-        return self.pose.to_transform(self.tf_frame)
-
-    @property
-    @abstractmethod
-    def tf_frame(self) -> str:
-        """
-        The tf frame of this entity.
-
-        :return: The tf frame of this entity.
-        """
-        pass
-
-    @property
     def object_id(self) -> int:
         """
         :return: the id of the object to which this entity belongs.
@@ -209,55 +187,81 @@ class ObjectEntity(WorldEntity):
         return self.object.id
 
 
-class Link(ObjectEntity, LinkDescription, ABC):
+class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
     """
     A link of an Object in the World.
     """
 
     def __init__(self, _id: int, link_description: LinkDescription, obj: Object):
-        ObjectEntity.__init__(self, _id, obj)
-        LinkDescription.__init__(self, link_description.parsed_description)
+        PhysicalBody.__init__(self, _id, obj.world)
+        ObjectEntity.__init__(self, obj)
+        LinkDescription.__init__(self, link_description.parsed_description, link_description.mesh_dir)
+        self.description = link_description
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
-        self._current_pose: Optional[Pose] = None
-        self.update_pose()
 
-    def get_bounding_box(self, rotated: bool = False) -> Union[AxisAlignedBoundingBox, RotatedBoundingBox]:
+    @property
+    def parent_entity(self) -> Object:
         """
-        :param rotated: If True, return the rotated bounding box, otherwise the axis-aligned bounding box.
-        :return: The axis-aligned or rotated bounding box of a link. First try to get it from the simulator, if not,
+        :return: The parent of this link, which is the object.
+        """
+        return self.object
+
+    @property
+    def name(self) -> str:
+        """
+        :return: The name of this link.
+        """
+        return self.description.name
+
+    def get_axis_aligned_bounding_box(self, transform_to_link_pose: bool = True) -> AxisAlignedBoundingBox:
+        """
+        :param transform_to_link_pose: If True, return the bounding box transformed to the link pose.
+        :return: The axis-aligned bounding box of a link. First try to get it from the simulator, if not,
          then calculate it depending on the type of the link geometry.
         """
         try:
-            if rotated:
-                return self.world.get_link_rotated_bounding_box(self)
-            else:
-                return self.world.get_link_axis_aligned_bounding_box(self)
+            return self.world.get_link_axis_aligned_bounding_box(self)
         except NotImplementedError:
-            if isinstance(self.geometry, MeshVisualShape):
-                mesh_path = self.get_mesh_path()
-                mesh = trimesh.load(mesh_path)
-                min_bound, max_bound = mesh.bounds
-                if rotated:
-                    return RotatedBoundingBox.from_min_max(min_bound, max_bound, self.transform)
-                else:
-                    return AxisAlignedBoundingBox.from_min_max(min_bound, max_bound).get_transformed_box(self.transform)
+            bounding_box = self.get_axis_aligned_bounding_box_from_geometry()
+            if transform_to_link_pose:
+                return bounding_box.get_transformed_box(self.transform)
             else:
-                bounding_box = self.geometry.axis_aligned_bounding_box
-                if rotated:
-                    return RotatedBoundingBox.from_axis_aligned_bounding_box(bounding_box, self.transform)
-                else:
-                    return bounding_box.get_transformed_box(self.transform)
+                return bounding_box
+
+    def get_rotated_bounding_box(self) -> RotatedBoundingBox:
+        """
+        :return: The rotated bounding box of a link. First try to get it from the simulator, if not,
+         then calculate it depending on the type of the link geometry.
+        """
+        try:
+            return self.world.get_link_rotated_bounding_box(self)
+        except NotImplementedError:
+            return RotatedBoundingBox.from_axis_aligned_bounding_box(self.get_axis_aligned_bounding_box(),
+                                                                     self.transform)
+
+    def get_axis_aligned_bounding_box_from_geometry(self) -> AxisAlignedBoundingBox:
+        if isinstance(self.geometry, List):
+            all_boxes = [geom.get_axis_aligned_bounding_box(self.get_mesh_path(geom))
+                         if isinstance(geom, MeshVisualShape) else geom.get_axis_aligned_bounding_box()
+                         for geom in self.geometry
+                         ]
+            bounding_box = AxisAlignedBoundingBox.from_multiple_bounding_boxes(all_boxes)
+        else:
+            geom = self.geometry
+            bounding_box = geom.get_axis_aligned_bounding_box(self.get_mesh_path(geom)) \
+                if isinstance(geom, MeshVisualShape) else geom.get_axis_aligned_bounding_box()
+        return bounding_box
 
     def get_convex_hull(self) -> Geometry3D:
         """
         :return: The convex hull of the link geometry.
         """
         try:
-            return self.world.get_link_convex_hull(self)
+            return self.world.get_body_convex_hull(self)
         except NotImplementedError:
             if isinstance(self.geometry, MeshVisualShape):
-                mesh_path = self.get_mesh_path()
+                mesh_path = self.get_mesh_path(self.geometry)
                 mesh = trimesh.load(mesh_path)
                 return trimesh.convex.convex_hull(mesh).apply_transform(self.transform.get_homogeneous_matrix())
             else:
@@ -270,27 +274,27 @@ class Link(ObjectEntity, LinkDescription, ABC):
         hull = self.get_convex_hull()
         hull.show()
 
-    def get_mesh_path(self) -> str:
+    def get_mesh_path(self, geometry: MeshVisualShape) -> str:
         """
+        :param geometry: The geometry for which the mesh path should be returned.
         :return: The path of the mesh file of this link if the geometry is a mesh.
         """
-        mesh_filename = self.get_mesh_filename()
-        return self.world.cache_manager.look_for_file_in_data_dir(pathlib.Path(mesh_filename))
+        return self.get_mesh_filename(geometry)
 
-    def get_mesh_filename(self) -> str:
+    def get_mesh_filename(self, geometry: MeshVisualShape) -> str:
         """
         :return: The mesh file name of this link if the geometry is a mesh, otherwise raise a LinkGeometryHasNoMesh.
         :raises LinkHasNoGeometry: If the link has no geometry.
         :raises LinkGeometryHasNoMesh: If the geometry is not a mesh.
         """
-        if self.geometry is None:
+        if geometry is None:
             raise LinkHasNoGeometry(self.name)
-        if isinstance(self.geometry, MeshVisualShape):
-            return self.geometry.file_name
+        if isinstance(geometry, MeshVisualShape):
+            return geometry.file_name
         else:
-            raise LinkGeometryHasNoMesh(self.name, type(self.geometry).__name__)
+            raise LinkGeometryHasNoMesh(self.name, type(geometry).__name__)
 
-    def set_pose(self, pose: Pose) -> None:
+    def set_object_pose_given_link_pose(self, pose: Pose) -> None:
         """
         Set the pose of this link to the given pose.
         NOTE: This will move the entire object such that the link is at the given pose, it will not consider any joints
@@ -332,12 +336,26 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
     @property
     def current_state(self) -> LinkState:
-        return LinkState(self.constraint_ids.copy())
+        return LinkState(self.body_state, self.constraint_ids.copy())
 
     @current_state.setter
     def current_state(self, link_state: LinkState) -> None:
         if self.current_state != link_state:
+            if not self.all_constraint_links_belong_to_same_world(link_state):
+                raise ValueError("All constraint links must belong to the same world, since the constraint ids"
+                                 "are unique to the world and cannot be transferred between worlds.")
+            self.body_state = link_state.body_state
             self.constraint_ids = link_state.constraint_ids
+
+    def all_constraint_links_belong_to_same_world(self, other: LinkState) -> bool:
+        """
+        Check if all links belong to the same world as the links in the other link state.
+
+        :param other: The state of the other link.
+        :return: True if all links belong to the same world, False otherwise.
+        """
+        return all([link.world == other_link.world for link, other_link in zip(self.constraint_ids.keys(),
+                                                                               other.constraint_ids.keys())])
 
     def add_fixed_constraint_with_link(self, child_link: Self,
                                        child_to_parent_transform: Optional[Transform] = None) -> int:
@@ -380,14 +398,6 @@ class Link(ObjectEntity, LinkDescription, ABC):
         """
         return self.object.get_root_link_id() == self.id
 
-    def update_transform(self, transform_time: Optional[Time] = None) -> None:
-        """
-        Update the transformation of this link at the given time.
-
-        :param transform_time: The time at which the transformation should be updated.
-        """
-        self.local_transformer.update_transforms([self.transform], transform_time)
-
     def get_transform_to_link(self, link: 'Link') -> Transform:
         """
         :param link: The link to which the transformation should be returned.
@@ -409,56 +419,6 @@ class Link(ObjectEntity, LinkDescription, ABC):
         """
         return self.local_transformer.transform_pose(self.pose, link.tf_frame)
 
-    @property
-    def position(self) -> Point:
-        """
-        :return: A Point object containing the position of the link relative to the world frame.
-        """
-        return self.pose.position
-
-    @property
-    def position_as_list(self) -> List[float]:
-        """
-        :return: A list containing the position of the link relative to the world frame.
-        """
-        return self.pose.position_as_list()
-
-    @property
-    def orientation(self) -> Quaternion:
-        """
-        :return: A Quaternion object containing the orientation of the link relative to the world frame.
-        """
-        return self.pose.orientation
-
-    @property
-    def orientation_as_list(self) -> List[float]:
-        """
-        :return: A list containing the orientation of the link relative to the world frame.
-        """
-        return self.pose.orientation_as_list()
-
-    def update_pose(self) -> None:
-        """
-        Update the current pose of this link from the world.
-        """
-        self._current_pose = self.world.get_link_pose(self)
-
-    @property
-    def pose(self) -> Pose:
-        """
-        :return: A Pose object containing the pose of the link relative to the world frame.
-        """
-        if self.world.conf.update_poses_from_sim_on_get:
-            self.update_pose()
-        return self._current_pose
-
-    @property
-    def pose_as_list(self) -> List[List[float]]:
-        """
-        :return: A list containing the position and orientation of the link relative to the world frame.
-        """
-        return self.pose.to_list()
-
     def get_origin_transform(self) -> Transform:
         """
         :return: the transformation between the link frame and the origin frame of this link.
@@ -466,20 +426,23 @@ class Link(ObjectEntity, LinkDescription, ABC):
         return self.origin.to_transform(self.tf_frame)
 
     @property
+    def pose(self) -> Pose:
+        """
+        :return: The pose of this link.
+        """
+        return self.world.get_link_pose(self)
+
+    @pose.setter
+    def pose(self, pose: Pose) -> None:
+        logwarn_once("Setting the pose of a link is not allowed,"
+                     " change object pose and/or joint position to affect the link pose.")
+
+    @property
     def color(self) -> Color:
         """
         :return: A Color object containing the rgba_color of this link.
         """
         return self.world.get_link_color(self)
-
-    @deprecated("Use color property setter instead")
-    def set_color(self, color: Color) -> None:
-        """
-        Set the color of this link, could be rgb or rgba.
-
-        :param color: The color as a list of floats, either rgb or rgba.
-        """
-        self.color = color
 
     @color.setter
     def color(self, color: Color) -> None:
@@ -491,27 +454,21 @@ class Link(ObjectEntity, LinkDescription, ABC):
         self.world.set_link_color(self, color)
 
     @property
-    def origin_transform(self) -> Transform:
-        """
-        :return: The transform from world to origin of entity.
-        """
-        return self.origin.to_transform(self.tf_frame)
-
-    @property
     def tf_frame(self) -> str:
         """
         The name of the tf frame of this link.
         """
         return f"{self.object.tf_frame}/{self.name}"
 
-    def __eq__(self, other):
-        return self.id == other.id and self.object == other.object and self.name == other.name
+    @property
+    def origin_transform(self) -> Transform:
+        """
+        The transformation between the link frame and the origin frame of this link.
+        """
+        return self.origin.to_transform(self.tf_frame)
 
     def __copy__(self):
-        return Link(self.id, self, self.object)
-
-    def __hash__(self):
-        return hash((self.id, self.object, self.name))
+        return Link(self.id, self.description, self.object)
 
 
 class RootLink(Link, ABC):
@@ -521,7 +478,7 @@ class RootLink(Link, ABC):
     """
 
     def __init__(self, obj: Object):
-        super().__init__(obj.get_root_link_id(), obj.get_root_link_description(), obj)
+        Link.__init__(self, obj.get_root_link_id(), obj.get_root_link_description(), obj)
 
     @property
     def tf_frame(self) -> str:
@@ -530,14 +487,18 @@ class RootLink(Link, ABC):
         """
         return self.object.tf_frame
 
-    def update_pose(self) -> None:
-        self._current_pose = self.world.get_object_pose(self.object)
+    @property
+    def pose(self) -> Pose:
+        """
+        :return: The pose of the root link, which is the same as the pose of the object.
+        """
+        return self.object.pose
 
     def __copy__(self):
         return RootLink(self.object)
 
 
-class Joint(ObjectEntity, JointDescription, ABC):
+class Joint(WorldEntity, ObjectEntity, JointDescription, ABC):
     """
     Represent a joint of an Object in the World.
     """
@@ -545,11 +506,27 @@ class Joint(ObjectEntity, JointDescription, ABC):
     def __init__(self, _id: int,
                  joint_description: JointDescription,
                  obj: Object, is_virtual: Optional[bool] = False):
-        ObjectEntity.__init__(self, _id, obj)
+        WorldEntity.__init__(self, _id, obj.world)
+        ObjectEntity.__init__(self, obj)
         JointDescription.__init__(self, joint_description.parsed_description, is_virtual)
+        self.description = joint_description
         self.acceptable_error = (self.world.conf.revolute_joint_position_tolerance if self.type == JointType.REVOLUTE
                                  else self.world.conf.prismatic_joint_position_tolerance)
         self._update_position()
+
+    @property
+    def name(self) -> str:
+        """
+        :return: The name of this joint.
+        """
+        return self.description.name
+
+    @property
+    def parent_entity(self) -> Link:
+        """
+        :return: The parent of this joint, which is the object.
+        """
+        return self.parent_link
 
     @property
     def tf_frame(self) -> str:
@@ -648,13 +625,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
             self.position = joint_state.position
 
     def __copy__(self):
-        return Joint(self.id, self, self.object)
-
-    def __eq__(self, other):
-        return self.id == other.id and self.object == other.object and self.name == other.name
-
-    def __hash__(self):
-        return hash((self.id, self.object, self.name))
+        return Joint(self.id, self.description, self.object, self.is_virtual)
 
 
 class ObjectDescription(EntityDescription):
@@ -680,7 +651,7 @@ class ObjectDescription(EntityDescription):
         """
         :param path: The path of the file to update the description data from.
         """
-
+        super().__init__(None)
         self._links: Optional[List[LinkDescription]] = None
         self._joints: Optional[List[JointDescription]] = None
         self._link_map: Optional[Dict[str, Any]] = None

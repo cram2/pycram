@@ -50,7 +50,7 @@ robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
 with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    MoveTorsoAction([0.3]).resolve().perform()
+    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
 
     pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
     pickup_arm = pickup_pose.reachable_arms[0]
@@ -95,3 +95,10 @@ how to do that take a look at the respective `README` file.
 If you encounter some error please first take a look at the 
 [troubleshooting](https://pycram.readthedocs.io/en/latest/troubleshooting.html) section and see if the error is mentioned 
 there. 
+
+# Virtual Building
+Within our virtual building, you can find a variety of labs and examples that showcase the use of PyCRAM. These resources are available at our [Labs page](https://vib.ai.uni-bremen.de/page/labs/). They are designed to help you understand and experiment with PyCRAM's capabilities.
+
+## Setting Up Your Own Lab
+
+If you're looking to set up your own lab within the virtual building, please refer to the `vrb` branch of this repository. It includes detailed instructions and templates to guide you through the process.

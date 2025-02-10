@@ -55,11 +55,11 @@ class TFBroadcaster:
         """
         for obj in self.world.objects:
             pose = obj.get_pose()
-            pose.header.stamp = Time.now()
+            pose.header.stamp = Time().now()
             self._publish_pose(obj.tf_frame, pose)
             for link in obj.link_name_to_id.keys():
                 link_pose = obj.get_link_pose(link)
-                link_pose.header.stamp = Time.now()
+                link_pose.header.stamp = Time().now()
                 self._publish_pose(obj.get_link_tf_frame(link), link_pose)
 
     def _update_static_odom(self) -> None:

@@ -1,22 +1,25 @@
 import numpy as np
 import tf
+from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional
 
-from .datastructures.world import World
-from .world_concepts.world_object import Object
-from .world_reasoning import contact
+from .datastructures.enums import Arms, Grasp
 from .costmaps import Costmap
-from .local_transformer import LocalTransformer
 from .datastructures.pose import Pose, Transform
-from .robot_description import RobotDescription
+from .datastructures.world import World
 from .external_interfaces.ik import request_ik
 from .failures import IKError
-from typing_extensions import Tuple, List, Union, Dict, Iterable
+from .local_transformer import LocalTransformer
+from .robot_description import RobotDescription
+from .ros.logging import logdebug
+from .world_concepts.world_object import Object
+from .world_reasoning import contact
 
 
 class PoseGenerator:
     """
-    Crates pose candidates from a given costmap. The generator
-    selects the highest values, amount is given by number_of_sample, and returns the corresponding positions.
+    Creates pose candidates from a given costmap.
+    The generator selects the highest values, amount is given by number_of_sample, and returns the corresponding
+    positions.
     Orientations are calculated such that the Robot faces the center of the costmap.
     """
 
@@ -55,7 +58,7 @@ class PoseGenerator:
         """
 
         # Determines how many positions should be sampled from the costmap
-        if self.number_of_samples == -1:
+        if self.number_of_samples == -1 or self.number_of_samples > self.costmap.map.flatten().shape[0]:
             self.number_of_samples = self.costmap.map.flatten().shape[0]
         indices = np.argpartition(self.costmap.map.flatten(), -self.number_of_samples)[-self.number_of_samples:]
         indices = np.dstack(np.unravel_index(indices, self.costmap.map.shape)).reshape(self.number_of_samples, 2)
@@ -149,18 +152,17 @@ def _in_contact(robot: Object, obj: Object, allowed_collision: Dict[Object, List
     allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
 
     if in_contact:
-        for link in contact_links:
-            if link[0].name in allowed_robot_links or link[1].name in allowed_links:
-                in_contact = False
-                # TODO: in_contact is never set to True after it was set to False is that correct?
-                # TODO: If it is correct, then this loop should break after the first contact is found
+        if all(link[0].name in allowed_robot_links or link[1].name in allowed_links for link in contact_links):
+            in_contact = False
     return in_contact
 
 
 def reachability_validator(pose: Pose,
                            robot: Object,
                            target: Union[Object, Pose],
-                           allowed_collision: Dict[Object, List] = None) -> Tuple[bool, List]:
+                           prepose_distance: float = 0.03,
+                           allowed_collision: Dict[Object, List] = None,
+                           arm: Optional[Arms] = None) -> Tuple[bool, List[Arms]]:
     """
     This method validates if a target position is reachable for a pose candidate.
     This is done by asking the ik solver if there is a valid solution if the
@@ -170,24 +172,31 @@ def reachability_validator(pose: Pose,
     :param pose: The pose candidate for which the reachability should be validated
     :param robot: The robot object in the World for which the reachability should be validated.
     :param target: The target position or object instance which should be the target for reachability.
-    :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates to a list of links of which this object consists
+    :param prepose_distance: The distance the robot should retract from the target position after/before reaching it.
+    :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates
+     to a list of links of which this object consists
+    :param arm: The arm that should be used for the reachability check. If None all arms are checked.
     :return: True if the target is reachable for the robot and False in any other case.
     """
     if type(target) == Object:
         target = target.get_pose()
 
     robot.set_pose(pose)
-    # manipulator_descs = list(
-    #    filter(lambda chain: isinstance(chain[1], ManipulatorDescription), robot_description.chains.items()))
-    manipulator_descs = RobotDescription.current_robot_description.get_manipulator_chains()
+
+    if arm is not None:
+        manipulator_descs = [RobotDescription.current_robot_description.get_arm_chain(arm)]
+    else:
+        manipulator_descs = RobotDescription.current_robot_description.get_manipulator_chains()
 
     # TODO Make orientation adhere to grasping orientation
     res = False
     arms = []
+    found_grasps = []
+    original_target = target
     for description in manipulator_descs:
         retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(
             description.end_effector.tool_frame))
-        retract_target_pose.position.x -= 0.07  # Care hard coded value copied from PlaceAction class
+        retract_target_pose.position.x -= prepose_distance  # Care hard coded value copied from PlaceAction class
 
         # retract_pose needs to be in world frame?
         retract_target_pose = LocalTransformer().transform_pose(retract_target_pose, "map")
@@ -196,26 +205,28 @@ def reachability_validator(pose: Pose,
         tool_frame = description.end_effector.tool_frame
 
         # TODO Make orientation adhere to grasping orientation
-        in_contact = False
 
         joint_state_before_ik = robot.get_positions_of_all_joints()
         try:
             # test the possible solution and apply it to the robot
             pose, joint_states = request_ik(target, robot, joints, tool_frame)
+            logdebug(f"Robot {description.name} can reach the the target pose")
             robot.set_pose(pose)
             robot.set_multiple_joint_positions(joint_states)
-            # _apply_ik(robot, resp, joints)
 
             in_contact = collision_check(robot, allowed_collision)
             if not in_contact:  # only check for retract pose if pose worked
+                logdebug("Robot is not in contact at target pose")
                 pose, joint_states = request_ik(retract_target_pose, robot, joints, tool_frame)
+                logdebug(f"Robot {description.name} can reach retract pose")
                 robot.set_pose(pose)
                 robot.set_multiple_joint_positions(joint_states)
-                # _apply_ik(robot, resp, joints)
                 in_contact = collision_check(robot, allowed_collision)
             if not in_contact:
+                logdebug("Robot is not in contact at retract pose")
                 arms.append(description.arm_type)
         except IKError:
+            logdebug(f"Robot {description.name} cannot reach pose")
             pass
         finally:
             robot.set_multiple_joint_positions(joint_state_before_ik)

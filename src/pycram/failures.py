@@ -1,10 +1,11 @@
+from __future__ import annotations
 from pathlib import Path
 
 from typing_extensions import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
-    from .datastructures.enums import JointType
+    from .datastructures.enums import JointType, MultiverseAPIName, Arms
 
 
 class PlanFailure(Exception):
@@ -13,6 +14,13 @@ class PlanFailure(Exception):
     def __init__(self, *args, **kwargs):
         """Create a new plan failure."""
         Exception.__init__(self, *args, **kwargs)
+
+
+class KnowledgeNotAvailable(PlanFailure):
+    """Thrown when a knowledge source can not provide the information for a query."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class NotALanguageExpression(PlanFailure):
@@ -44,6 +52,12 @@ class ActionlibActionTimeout(LowLevelFailure):
 class HighLevelFailure(FailureDiagnosis):
     """Failure thrown by high-level modules, i.e. plans."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class SensorMonitoringCondition(PlanFailure):
+    """Thrown when a sensor monitoring condition is met."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -107,6 +121,13 @@ class GripperClosedCompletely(GripperLowLevelFailure):
 
 class GripperGoalNotReached(GripperLowLevelFailure):
     """Thrown when the gripper does not reach its goal."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class GripperOccupied(GripperLowLevelFailure):
+    """Thrown when the gripper is occupied by some object."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -181,6 +202,13 @@ class NavigationGoalNotReached(NavigationLowLevelFailure):
 
 class NavigationPoseUnreachable(NavigationLowLevelFailure):
     """Thrown when the goal pose for navigation is computed to be unreachable."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class ObjectNotVisible(HighLevelFailure):
+    """Thrown when the robot cannot see an object of a given description in its surroundings."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -277,6 +305,11 @@ class Grasping(Task):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class ObjectNotGraspedError(Grasping):
+    def __init__(self, obj: Object, arm: Arms, *args, **kwargs):
+        super().__init__(f"object {obj.name} was not grasped by arm {arm}", *args, **kwargs)
 
 
 class Looking(Task):
@@ -399,13 +432,29 @@ class SustainedFailure(PlanFailure):
 
 
 class ReasoningError(PlanFailure):
-    def __init__(*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
 
 class CollisionError(PlanFailure):
-    def __init__(*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class NavigationGoalNotReachedError(PlanFailure):
+    def __init__(self, current_pose, goal_pose):
+        super().__init__(f"Navigation goal not reached. Current pose: {current_pose}, goal pose: {goal_pose}")
+
+
+class ToolPoseNotReachedError(PlanFailure):
+    def __init__(self, current_pose, goal_pose):
+        super().__init__(f"Tool pose not reached. Current pose: {current_pose}, goal pose: {goal_pose}")
+
+
+class FailedAPIResponse(Exception):
+    def __init__(self, api_response: List[str], api_name: MultiverseAPIName, *args, **kwargs):
+        super().__init__(f"{api_name} api request with arguments {args} and keyword arguments {kwargs}"
+                         f" failed with response {api_response}")
 
 
 """
@@ -478,4 +527,3 @@ class LinkHasNoGeometry(Exception):
 class LinkGeometryHasNoMesh(Exception):
     def __init__(self, link_name: str, geometry_type: str):
         super().__init__(f"Link {link_name} geometry with type {geometry_type} has no mesh.")
-

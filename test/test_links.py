@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 from tf.transformations import quaternion_from_euler
 from typing_extensions import List
 
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.dataclasses import Color
 from pycram.datastructures.pose import Pose
 

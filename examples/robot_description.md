@@ -7,7 +7,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.16.3
   kernelspec:
-    display_name: Python 3
+    display_name: Python 3 (ipykernel)
     language: python
     name: python3
 ---
@@ -16,9 +16,9 @@ jupyter:
 
 (robot_description_header)=
 The robot description contains semantic information about the robot which can not be extracted from the URDF in a
-general way. This inludes kinematic chains, end-effectors, cameras and their parameter, etc.
+general way. This includes kinematic chains, end-effectors, cameras and their parameter, etc.
 
-In genral a Robot Description consists a number of different descriptions, these are:
+In general a Robot Description consists a number of different descriptions, these are:
 
 * RobotDescription
 * KinematicChainDescription
@@ -49,7 +49,7 @@ import rospkg
 rospack = rospkg.RosPack()
 filename = rospack.get_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
 
-pr2_description = RobotDescription("pr2", "base_link", "torso_lift_link", "torso_lift_joint", filename)
+pr2_description = RobotDescription("pr2_example", "base_link", "torso_lift_link", "torso_lift_joint", filename)
 ```
 
 ## Kinematic Chain Description

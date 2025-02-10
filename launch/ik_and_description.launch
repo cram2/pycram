@@ -26,6 +26,11 @@
     <param name="robot_description"
               textfile="$(find pycram)/resources/robots/ur5_robotiq.urdf"/>
   </group>
+  <!-- UR5e -->
+  <group if="$(eval robot == 'ur5e')">
+    <param name="robot_description"
+              textfile="$(find multiverse_control)../../../../multiverse/resources/robots/universal_robot/ur5e/urdf/ur5e.urdf"/>
+  </group>
   <!-- Donbot -->
   <group if="$(eval robot == 'donbot')">
     <param name="robot_description"

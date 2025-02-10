@@ -1,0 +1,84 @@
+name: Test Jupyter Notebook Examples
+
+on:
+  push:
+    branches:
+      - dev
+      - master
+  pull_request:
+    branches:
+      - master
+      - dev
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+defaults:
+  run:
+    shell: bash
+    working-directory: .
+
+jobs:
+  test-and-build:
+    name: Test Jupyter Notebooks
+    runs-on: ubuntu-20.04
+    container:
+      image: "pycram/pycram:dev"
+
+    steps:
+
+      - name: Checkout PyCRAM
+        uses: actions/checkout@v3
+        with:
+          path: "ros/src/pycram"
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          submodules: "recursive"
+
+      # For debugging
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+
+      - name: Update PyCRAM source files
+        run: |
+          rm -rf /opt/ros/overlay_ws/src/pycram/* 
+          cd /opt/ros/overlay_ws/src/pycram
+          rm -rf .git .github .gitignore .gitmodules .readthedocs.yaml
+          cp -r /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros/src/pycram /opt/ros/overlay_ws/src
+
+      # ----------------------------------------------------------------------------------------------------------------
+
+      - name: Install python dependencies
+        run: |
+          pip3 install --upgrade pip --root-user-action=ignore
+          cd /opt/ros/overlay_ws/src/pycram
+          pip3 install -r requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev
+          pip3 install -r requirements-resolver.txt
+
+      # ----------------------------------------------------------------------------------------------------------------
+
+      - name: Install Jupytext & Jupyter notebook
+        run: |
+          pip3 install jupytext treon
+
+      # ----------------------------------------------------------------------------------------------------------------
+      - name: Convert Notebooks
+        run: |
+          cd /opt/ros/overlay_ws/src/pycram/examples
+          rm -rf tmp
+          mkdir tmp
+          jupytext --to notebook *.md
+          mv *.ipynb tmp && cd tmp
+
+      - name: Source and start ROS
+        run: |
+          source /opt/ros/overlay_ws/devel/setup.bash 
+          roslaunch pycram ik_and_description.launch &
+
+      - name: Run tests
+        run: |
+          source /opt/ros/overlay_ws/devel/setup.bash 
+          roscd pycram/examples/tmp
+          treon --thread 1 -v --exclude=migrate_neems.ipynb --exclude=improving_actions.ipynb

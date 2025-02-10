@@ -1,6 +1,6 @@
 import numpy as np
 
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 
 from pycram.datastructures.enums import JointType, ObjectType
 from pycram.datastructures.pose import Pose
@@ -12,12 +12,14 @@ from pycram.object_descriptors.generic import ObjectDescription as GenericObject
 from geometry_msgs.msg import Point, Quaternion
 import pathlib
 
+from pycrap import ontology, Milk, Food
+
 
 class TestObject(BulletWorldTestCase):
 
     def test_wrong_object_description_path(self):
         with self.assertRaises(UnsupportedFileExtension):
-            milk = Object("milk_not_found", ObjectType.MILK, "wrong_path.sk")
+            milk = Object("milk_not_found", Milk, "wrong_path.sk")
 
     def test_malformed_object_description(self):
         file_path = pathlib.Path(__file__).parent.resolve()
@@ -25,7 +27,7 @@ class TestObject(BulletWorldTestCase):
         with open(malformed_file, "w") as file:
             file.write("malformed")
         with self.assertRaises(Exception):
-            Object("milk2", ObjectType.MILK, malformed_file)
+            Object("milk2", Milk, malformed_file)
 
     def test_move_base_to_origin_pose(self):
         self.milk.set_position(Point(1, 2, 3), base=False)
@@ -136,11 +138,10 @@ class TestObject(BulletWorldTestCase):
         self.assertEqual(self.robot.get_link_by_id(-1), self.robot.root_link)
 
     def test_find_joint_above_link(self):
-        self.assertEqual(self.robot.find_joint_above_link("head_pan_link", JointType.REVOLUTE), "head_pan_joint")
+        self.assertEqual(self.robot.find_joint_above_link("head_pan_link"), "head_pan_joint")
 
-    def test_wrong_joint_type_for_joint_above_link(self):
-        container_joint = self.robot.find_joint_above_link("head_pan_link", JointType.CONTINUOUS)
-        self.assertTrue(container_joint is None)
+    def test_find_joint_above_link_exhausted(self):
+        self.assertEqual(self.robot.find_joint_above_link("base_link"), None)
 
     def test_contact_points_simulated(self):
         self.milk.set_position([0, 0, 100])
@@ -158,7 +159,7 @@ class TestObject(BulletWorldTestCase):
             self.assertEqual(color, Color(0, 1, 0, 1))
 
     def test_object_equal(self):
-        milk2 = Object("milk2", ObjectType.MILK, "milk.stl")
+        milk2 = Object("milk2", Milk, "milk.stl")
         self.assertNotEqual(self.milk, milk2)
         self.assertEqual(self.milk, self.milk)
         self.assertNotEqual(self.milk, self.cereal)
@@ -169,6 +170,20 @@ class GenericObjectTestCase(BulletWorldTestCase):
 
     def test_init_generic_object(self):
         gen_obj_desc = GenericObjectDescription("robokudo_object", [0,0,0], [0.1, 0.1, 0.1])
-        obj = Object("robokudo_object", ObjectType.MILK, None, gen_obj_desc)
+        obj = Object("robokudo_object", Milk, None, gen_obj_desc)
         pose = obj.get_pose()
         self.assertTrue(isinstance(pose, Pose))
+
+
+class OntologyIntegrationTestCase(BulletWorldTestCase):
+
+    def test_querying(self):
+        # get all milks from the ontology
+        r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.individuals()))
+        self.assertEqual(len(r), 1)
+
+        milk2  = Object("milk2", Milk, "milk.stl")
+
+        r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.individuals()))
+
+        self.assertEqual(len(r), 2)

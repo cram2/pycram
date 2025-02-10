@@ -2,7 +2,7 @@ from ..ros.ros_tools import get_ros_package_path
 
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import GripperState, Grasp, Arms
+from ..datastructures.enums import GripperState, Grasp, Arms, TorsoState
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "hsrb" + '.urdf'
 
@@ -31,6 +31,18 @@ left_gripper.add_static_joint_states(GripperState.CLOSE, {'hand_l_proximal_joint
                                                           'hand_motor_joint': 0.0})
 
 left_arm.end_effector = left_gripper
+
+################################## Torso ##################################
+torso = KinematicChainDescription("torso", "base_link", "torso_lift_link",
+                                  hsrb_description.urdf_object)
+
+torso.add_static_joint_states(TorsoState.HIGH, {"torso_lift_joint": 0.34})
+
+torso.add_static_joint_states(TorsoState.MID, {"torso_lift_joint": 0.17})
+
+torso.add_static_joint_states(TorsoState.LOW, {"torso_lift_joint": 0})
+
+hsrb_description.add_kinematic_chain_description(torso)
 
 ################################## Camera ##################################
 
