@@ -202,14 +202,14 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
 
             :return: The result of the action in the plan
             """
-            for pre_perform in ActionDesignatorDescription.Action._pre_perform_callbacks:
+            for pre_perform in self._pre_perform_callbacks:
                 pre_perform(self)
             try:
                 result = self.plan()
             except PlanFailure as e:
                 raise e
             finally:
-                for post_perform in ActionDesignatorDescription.Action._post_perform_callbacks:
+                for post_perform in self._post_perform_callbacks:
                     post_perform(self)
             return result
 
