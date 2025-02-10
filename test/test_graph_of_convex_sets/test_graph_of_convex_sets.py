@@ -93,7 +93,9 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
                            y=SimpleInterval(-1, 1),
                            z=SimpleInterval(0.1, 1.))
         gcs = GraphOfConvexSets.navigation_map_from_world(self.world, search_space=search_space)
-        self.assertIsNotNone(gcs)
+        self.assertGreater(len(gcs.nodes), 0)
+        self.assertGreater(len(gcs.edges), 0)
+
 
 
 
