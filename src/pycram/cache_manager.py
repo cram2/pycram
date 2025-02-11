@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import glob
 import os
 import pathlib
 import shutil
 
-import numpy as np
 from typing_extensions import List, TYPE_CHECKING, Optional
+
+from .datastructures.dataclasses import Color
+from .ros.logging import loginfo
 
 if TYPE_CHECKING:
     from .description import ObjectDescription
@@ -51,9 +55,10 @@ class CacheManager:
             shutil.rmtree(self.cache_dir)
 
     def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
-                                     object_description: 'ObjectDescription', object_name: str,
+                                     object_description: ObjectDescription, object_name: str,
                                      scale_mesh: Optional[float] = None,
-                                     mesh_transform: Optional['Transform'] = None) -> str:
+                                     mesh_transform: Optional[Transform] = None,
+                                     color: Optional[Color] = None) -> str:
         """
         Check if the file is already in the cache directory, if not preprocess and save in the cache.
 
@@ -64,6 +69,7 @@ class CacheManager:
         :param object_name: The name of the object.
         :param scale_mesh: The scale of the mesh.
         :param mesh_transform: The transformation matrix to apply to the mesh.
+        :param color: The color of the object.
         :return: The path of the cached file.
         """
         path_object = pathlib.Path(path)
@@ -79,7 +85,7 @@ class CacheManager:
             path = self.look_for_file_in_data_dir(path_object)
             object_description.original_path = path
             object_description.generate_description_from_file(path, object_name, extension, cache_path,
-                                                              scale_mesh, mesh_transform)
+                                                              scale_mesh, mesh_transform, color)
 
         return cache_path
 
@@ -96,7 +102,7 @@ class CacheManager:
             for file in glob.glob(str(data_path), recursive=True):
                 file_path = pathlib.Path(file)
                 if file_path.name == name:
-                    print(f"Found file {name} in {file_path}")
+                    loginfo(f"Found file {name} in {file_path}")
                     return str(file_path)
 
         raise FileNotFoundError(
@@ -109,7 +115,7 @@ class CacheManager:
         if not pathlib.Path(self.cache_dir).exists():
             os.mkdir(self.cache_dir)
 
-    def is_cached(self, path: str, object_description: 'ObjectDescription') -> bool:
+    def is_cached(self, path: str, object_description: ObjectDescription) -> bool:
         """
         Check if the file in the given path is already cached or if
         there is already a cached file with the given name, this is the case if a .stl, .obj file or a description from
@@ -131,7 +137,7 @@ class CacheManager:
         full_path = pathlib.Path(os.path.join(self.cache_dir, file_name))
         return full_path.exists()
 
-    def check_without_extension(self, path: str, object_description: 'ObjectDescription') -> bool:
+    def check_without_extension(self, path: str, object_description: ObjectDescription) -> bool:
         """
         Check if the file in the given path exists in the cache directory the given file extension.
         Instead, replace the given extension with the extension of the used ObjectDescription and check for that one.

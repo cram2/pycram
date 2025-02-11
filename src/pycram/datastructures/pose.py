@@ -311,7 +311,7 @@ class Pose(PoseStamped):
 
         return pose
 
-    def multiply_quaternions(self, quaternion: List) -> None:
+    def multiply_quaternion(self, quaternion: List) -> None:
         """
         Multiply the quaternion of this Pose with the given quaternion, the result will be the new orientation of this
         Pose.

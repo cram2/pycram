@@ -9,6 +9,9 @@ PyCRAM is developed in Python with support for the ROS middleware which is used 
 
 This framework is tested with Ubuntu 20.04, ROS Noetic and Python 3.8
 
+## Live Demo
+**If you want to test out PyCRAM right away you can do that in the browser in our virtual research building [here](https://vib.ai.uni-bremen.de/page/fallschool/)**
+
 
 ## Simple Demonstartion
 PyCRAM allows the execution of the same high-level plan on different robot platforms. Below you can see an example of this where the plan is executed on the PR2 and the IAIs Boxy.
@@ -50,7 +53,7 @@ robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
 with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    MoveTorsoAction([0.3]).resolve().perform()
+    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
 
     pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
     pickup_arm = pickup_pose.reachable_arms[0]
@@ -75,7 +78,6 @@ world.exit()
 ```
 
 
-
 ## Installation
 For information on installing PyCRAM please check the guid [here](https://pycram.readthedocs.io/en/latest/installation.html).
 
@@ -95,3 +97,10 @@ how to do that take a look at the respective `README` file.
 If you encounter some error please first take a look at the 
 [troubleshooting](https://pycram.readthedocs.io/en/latest/troubleshooting.html) section and see if the error is mentioned 
 there. 
+
+# Virtual Building
+Within our virtual building, you can find a variety of labs and examples that showcase the use of PyCRAM. These resources are available at our [Labs page](https://vib.ai.uni-bremen.de/page/labs/). They are designed to help you understand and experiment with PyCRAM's capabilities.
+
+## Setting Up Your Own Lab
+
+If you're looking to set up your own lab within the virtual building, please refer to the `vrb` branch of this repository. It includes detailed instructions and templates to guide you through the process.

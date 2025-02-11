@@ -1,23 +1,25 @@
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
+
+from pycrap import PhysicalObject, Location
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
-from ..designator import ResolutionError
-from ..orm.base import ProcessMetaData
-from ..failures import PerceptionObjectNotFound
+from ..datastructures.enums import MovementType
+from ..failure_handling import try_motion
+from ..failures import PerceptionObjectNotFound, ToolPoseNotReachedError
 from ..process_module import ProcessModuleManager
 from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      MoveTCPMotion as ORMMoveTCPMotion, LookingMotion as ORMLookingMotion,
                                      MoveGripperMotion as ORMMoveGripperMotion, DetectingMotion as ORMDetectingMotion,
                                      OpeningMotion as ORMOpeningMotion, ClosingMotion as ORMClosingMotion,
                                      Motion as ORMMotionDesignator)
-from ..datastructures.enums import ObjectType, Arms, GripperState, ExecutionType
+from ..datastructures.enums import ObjectType, Arms, GripperState, ExecutionType, DetectionTechnique, DetectionState
 
-from typing_extensions import Dict, Optional, get_type_hints
+from typing_extensions import Dict, Optional, Type
 from ..datastructures.pose import Pose
 from ..tasktree import with_tree
 from ..designator import BaseMotion
+from ..external_interfaces.robokudo import robokudo_found
 
 
 @dataclass
@@ -31,11 +33,15 @@ class MoveMotion(BaseMotion):
     Location to which the robot should be moved
     """
 
+    keep_joint_states: bool = False
+    """
+    Keep the joint states of the robot during/at the end of the motion
+    """
+
     @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
         return pm_manager.navigate().execute(self)
-        # return ProcessModule.perform(self)
 
     def to_sql(self) -> ORMMoveMotion:
         return ORMMoveMotion()
@@ -44,6 +50,7 @@ class MoveMotion(BaseMotion):
         motion = super().insert(session)
         pose = self.target.insert(session)
         motion.pose = pose
+        motion.keep_joint_states = self.keep_joint_states
         session.add(motion)
 
         return motion
@@ -67,11 +74,15 @@ class MoveTCPMotion(BaseMotion):
     """
     If the gripper can collide with something
     """
+    movement_type: Optional[MovementType] = MovementType.CARTESIAN
+    """
+    The type of movement that should be performed.
+    """
 
     @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
-        return pm_manager.move_tcp().execute(self)
+        try_motion(pm_manager.move_tcp(), self, ToolPoseNotReachedError)
 
     def to_sql(self) -> ORMMoveTCPMotion:
         return ORMMoveTCPMotion(self.arm, self.allow_gripper_collision)
@@ -147,35 +158,42 @@ class MoveGripperMotion(BaseMotion):
 class DetectingMotion(BaseMotion):
     """
     Tries to detect an object in the FOV of the robot
+
+    returns: ObjectDesignatorDescription.Object or Error: PerceptionObjectNotFound
     """
 
-    object_type: ObjectType
+    technique: DetectionTechnique
     """
-    Type of the object that should be detected
+    Detection technique that should be used
+    """
+    state: DetectionState
+    """
+    State of the detection
+    """
+    object_designator_description: Optional[ObjectDesignatorDescription] = None
+    """
+    Description of the object that should be detected
+    """
+    region: Optional[Location] = None
+    """
+    Region in which the object should be detected
     """
 
     @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
-        world_object = pm_manager.detecting().execute(self)
-        if not world_object:
-            raise PerceptionObjectNotFound(
-                f"Could not find an object with the type {self.object_type} in the FOV of the robot")
-        if ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return RealObject.Object(world_object.name, world_object.obj_type,
-                                     world_object, world_object.get_pose())
-
-        return ObjectDesignatorDescription.Object(world_object.name, world_object.obj_type,
-                                                  world_object)
+        obj_dict = pm_manager.detecting().execute(self)
+        return obj_dict
 
     def to_sql(self) -> ORMDetectingMotion:
-        return ORMDetectingMotion(self.object_type)
+        return ORMDetectingMotion(self.technique, self.state, str(self.object_designator_description),str(self.region))
 
     def insert(self, session: Session, *args, **kwargs) -> ORMDetectingMotion:
-        motion = super().insert(session)
-        session.add(motion)
-
-        return motion
+        pass
+        # motion = super().insert(session)
+        # session.add(motion)
+        #
+        # return motion
 
 
 @dataclass

@@ -2,7 +2,7 @@ import numpy as np
 from tf.transformations import quaternion_from_euler
 from typing_extensions import Optional, List
 
-from bullet_world_testcase import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.enums import JointType
 from pycram.datastructures.pose import Pose
 from pycram.robot_description import RobotDescription

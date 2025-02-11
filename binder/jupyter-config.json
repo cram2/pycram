@@ -1,6 +1,0 @@
-{
-  "@jupyterlab/apputils-extension:themes": {
-    "theme": "JupyterLab Light",
-    "theme-scrollbars": true
-  }
-}

@@ -1,35 +1,31 @@
+from typing_extensions import Type
+
+import pycrap
 from pycram.datastructures.dataclasses import Color
-from pycram.datastructures.enums import ObjectType, Arms, Grasp
+from pycram.datastructures.enums import ObjectType, Arms, Grasp, DetectionTechnique
 from pycram.datastructures.pose import Pose
 from pycram.designators.action_designator import ParkArmsAction, MoveTorsoAction, TransportAction, NavigateAction, \
     LookAtAction, DetectAction, OpenAction, PickUpAction, CloseAction, PlaceAction
 from pycram.designators.location_designator import CostmapLocation, AccessingLocation
+from pycram.designators.motion_designator import MoveArmJointsMotion, MoveTCPMotion
 from pycram.designators.object_designator import BelieveObject, ObjectPart
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.process_module import simulated_robot, with_simulated_robot
+from pycram.robot_description import RobotDescription
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.multiverse import Multiverse
+from pycrap import PhysicalObject
 
-
-@with_simulated_robot
-def move_and_detect(obj_type: ObjectType, pick_pose: Pose):
-    NavigateAction(target_locations=[Pose([1.7, 2, 0])]).resolve().perform()
-
-    LookAtAction(targets=[pick_pose]).resolve().perform()
-
-    object_desig = DetectAction(BelieveObject(types=[obj_type])).resolve().perform()
-
-    return object_desig
 
 world = Multiverse()
 extension = ObjectDescription.get_file_extension()
-robot = Object('pr2', ObjectType.ROBOT, f'pr2{extension}', pose=Pose([1.3, 2, 0.01]))
-apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
+robot = Object('pr2', pycrap.Robot, f'pr2{extension}', pose=Pose([1.3, 2, 0.01]))
+apartment = Object("apartment", pycrap.Apartment, f"apartment{extension}")
 
-milk = Object("milk", ObjectType.MILK, f"milk.stl", pose=Pose([2.4, 2, 1.02]),
+milk = Object("milk", pycrap.Milk, f"milk.xml", pose=Pose([2.4, 2, 1.02]),
               color=Color(1, 0, 0, 1))
 
-spoon = Object("spoon", ObjectType.SPOON, "spoon.stl", pose=Pose([2.5, 2.2, 0.85]),
+spoon = Object("spoon", pycrap.Spoon, "spoon.xml", pose=Pose([2.5, 2.2, 0.85]),
                color=Color(0, 0, 1, 1))
 apartment.attach(spoon, 'cabinet10_drawer1')
 
@@ -47,9 +43,10 @@ with simulated_robot:
 
     LookAtAction(targets=[Pose([2.6, 2.15, 1])]).resolve().perform()
 
-    milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
+    milk_desig = DetectAction(DetectionTechnique.TYPES,
+                              object_designator_description=BelieveObject(types=[pycrap.Milk])).resolve().perform()[0]
 
-    TransportAction(milk_desig, [Arms.LEFT], [Pose([2.4, 3, 1.02])]).resolve().perform()
+    TransportAction(milk_desig, [Pose([2.4, 3, 1.02])], [Arms.LEFT]).resolve().perform()
 
     # Find and navigate to the drawer containing the spoon
     handle_desig = ObjectPart(names=["cabinet10_drawer1_handle"], part_of=apartment_desig.resolve())
@@ -58,18 +55,33 @@ with simulated_robot:
 
     NavigateAction([drawer_open_loc.pose]).resolve().perform()
 
-    OpenAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
-    spoon.detach(apartment)
+    OpenAction(object_designator_description=handle_desig,
+               arms=[drawer_open_loc.arms[0]]).resolve().perform()
+
+    arm_ee = RobotDescription.current_robot_description.get_arm_chain(drawer_open_loc.arms[0]).get_tool_frame()
+    closing_arm_pose = robot.get_link_pose(arm_ee)
 
     # Detect and pickup the spoon
+    spoon.detach(apartment)
     LookAtAction([apartment.get_link_pose("cabinet10_drawer1_handle")]).resolve().perform()
 
-    spoon_desig = DetectAction(BelieveObject(types=[ObjectType.SPOON])).resolve().perform()
+    spoon_desig = DetectAction(DetectionTechnique.TYPES,
+                               object_designator_description=BelieveObject(types=[pycrap.Spoon])).resolve().perform()[0]
+
+    ParkArmsAction([Arms.BOTH]).resolve().perform()
 
     pickup_arm = Arms.LEFT if drawer_open_loc.arms[0] == Arms.RIGHT else Arms.RIGHT
+    pick_up_loc = CostmapLocation(target=spoon_desig.pose, reachable_for=robot_desig.resolve(),
+                                  reachable_arm=pickup_arm, grasps=[Grasp.TOP]).resolve()
+
+    NavigateAction([pick_up_loc.pose]).resolve().perform()
+    MoveTCPMotion(closing_arm_pose, drawer_open_loc.arms[0]).perform()
+
     PickUpAction(spoon_desig, [pickup_arm], [Grasp.TOP]).resolve().perform()
 
     ParkArmsAction([Arms.LEFT if pickup_arm == Arms.LEFT else Arms.RIGHT]).resolve().perform()
+
+    NavigateAction([drawer_open_loc.pose]).resolve().perform()
 
     CloseAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
 
@@ -79,7 +91,8 @@ with simulated_robot:
 
     # Find a pose to place the spoon, move and then place it
     spoon_target_pose = Pose([2.35, 2.6, 0.95], [0, 0, 0, 1])
-    placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve()).resolve()
+    placing_loc = CostmapLocation(target=spoon_target_pose,
+                                  reachable_for=robot_desig.resolve()).resolve()
 
     NavigateAction([placing_loc.pose]).resolve().perform()
 

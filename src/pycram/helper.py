@@ -4,10 +4,10 @@ Classes:
 Singleton -- implementation of singleton metaclass
 """
 import os
-from typing_extensions import Dict, Optional
+from typing_extensions import Dict, Optional, List
 import xml.etree.ElementTree as ET
 
-from pycram.ros.logging import logwarn
+from .ros.logging import logwarn
 
 
 class Singleton(type):
@@ -47,7 +47,14 @@ def parse_mjcf_actuators(file_path: str) -> Dict[str, str]:
     return joint_actuators
 
 
-def get_robot_mjcf_path(robot_relative_dir: str, robot_name: str, xml_name: Optional[str] = None) -> Optional[str]:
+def get_robot_urdf_path_from_multiverse(relative_dir: str, robot_name: str, resources_dir: Optional[str] = None) -> str:
+    if resources_dir is None:
+        resources_dir = find_multiverse_resources_path()
+    return os.path.join(resources_dir, 'robots', relative_dir, robot_name, f'urdf/{robot_name}.urdf')
+
+
+def get_robot_mjcf_path(robot_relative_dir: str, robot_name: str, xml_name: Optional[str] = None,
+                        multiverse_resources: Optional[str] = None) -> Optional[str]:
     """
     Get the path to the MJCF file of a robot.
 
@@ -56,23 +63,25 @@ def get_robot_mjcf_path(robot_relative_dir: str, robot_name: str, xml_name: Opti
     :param xml_name: The name of the XML file of the robot.
     :return: The path to the MJCF file of the robot if it exists, otherwise None.
     """
+    multiverse_resources = find_multiverse_resources_path() if multiverse_resources is None else multiverse_resources
     xml_name = xml_name if xml_name is not None else robot_name
     if '.xml' not in xml_name:
         xml_name = xml_name + '.xml'
-    multiverse_resources = find_multiverse_resources_path()
     try:
         robot_folder = os.path.join(multiverse_resources, 'robots', robot_relative_dir, robot_name)
     except TypeError:
         logwarn("Multiverse resources path not found.")
         return None
-    if multiverse_resources is not None:
+    if multiverse_resources is not None and os.path.exists(robot_folder):
         list_dir = os.listdir(robot_folder)
         if 'mjcf' in list_dir:
             if xml_name in os.listdir(robot_folder + '/mjcf'):
                 return os.path.join(robot_folder, 'mjcf', xml_name)
         elif xml_name in os.listdir(robot_folder):
             return os.path.join(robot_folder, xml_name)
-    return None
+    else:
+        logwarn(f"Robot {robot_name} not found in Multiverse resources.")
+        return None
 
 
 def find_multiverse_resources_path() -> Optional[str]:
@@ -114,3 +123,20 @@ def find_multiverse_path() -> Optional[str]:
                 return multiverse_path + multiverse_relative_path
 
 
+def perform(action_instance):
+    """
+    Executes the perform logic for a given action instance.
+
+    :param action_instance: An instance of an action class.
+    """
+    return action_instance.perform()
+
+
+def an(designator):
+    """
+    Resolve the first available action from the designator.
+
+    :param designator: The designator description instance.
+    :return: The first resolved action instance.
+    """
+    return designator.resolve()

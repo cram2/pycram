@@ -1,6 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import os
 import threading
 import time
 
@@ -9,14 +10,16 @@ import pycram_bullet as p
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Any, Callable
 
+from pycrap import Floor
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
     ClosestPoint, LateralFriction, ContactPoint, ContactPointsList, ClosestPointsList
 from ..datastructures.enums import ObjectType, WorldMode, JointType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
+from ..datastructures.world_entity import PhysicalBody
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription
-from ..ros.logging import logwarn
+from ..ros.logging import logwarn, loginfo
 from ..validation.goal_validator import (validate_multiple_joint_positions, validate_joint_position,
                                          validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
@@ -34,16 +37,21 @@ class BulletWorld(World):
     manipulate the Bullet World.
     """
 
-    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False):
+    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection: bool = False,
+                 use_multiverse_for_real_world_simulation: bool = False):
         """
         Creates a new simulation, the type decides of the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
         The BulletWorld object also initializes the Events for attachment, detachment and for manipulating the world.
 
         :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default is "GUI"
-        :param is_prospection_world: For internal usage, decides if this BulletWorld should be used as a shadow world.
+        :param is_prospection: For internal usage, decides if this BulletWorld should be used as a shadow world.
+        :param use_multiverse_for_real_world_simulation: Whether to use the Multiverse for real world simulation.
         """
-        super().__init__(mode=mode, is_prospection_world=is_prospection_world)
+        super().__init__(mode=mode, is_prospection=is_prospection)
+
+        if use_multiverse_for_real_world_simulation:
+            self.add_multiverse_resources()
 
         # This disables file caching from PyBullet, since this would also cache
         # files that can not be loaded
@@ -56,9 +64,20 @@ class BulletWorld(World):
         # Some default settings
         self.set_gravity([0, 0, -9.8])
 
-        if not is_prospection_world:
-            _ = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
+        if not is_prospection:
+            _ = Object("floor", Floor, "plane.urdf",
                        world=self)
+
+    def add_multiverse_resources(self):
+        """
+        Add the Multiverse resources to the start of the data directories of the BulletWorld such they are searched
+        first for the resources because the pycram objects need to have the same description as the Multiverse objects.
+        """
+        try:
+            from .multiverse import Multiverse
+            Multiverse.make_sure_multiverse_resources_are_added(self.conf.clear_cache_at_start)
+        except ImportError:
+            logwarn("Multiverse is not installed, please install it to use the Multiverse.")
 
     def _init_world(self, mode: WorldMode):
         self._gui_thread: Gui = Gui(self, mode)
@@ -134,7 +153,7 @@ class BulletWorld(World):
     def remove_constraint(self, constraint_id):
         p.removeConstraint(constraint_id, physicsClientId=self.id)
 
-    def get_joint_position(self, joint: ObjectDescription.Joint) -> float:
+    def _get_joint_position(self, joint: ObjectDescription.Joint) -> float:
         return p.getJointState(joint.object_id, joint.id, physicsClientId=self.id)[0]
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
@@ -173,29 +192,41 @@ class BulletWorld(World):
     def perform_collision_detection(self) -> None:
         p.performCollisionDetection(physicsClientId=self.id)
 
-    def get_object_contact_points(self, obj: Object) -> ContactPointsList:
-        """
-        Get the contact points of the object with akk other objects in the world. The contact points are returned as a
-        ContactPointsList object.
-
-        :param obj: The object for which the contact points should be returned.
-        :return: The contact points of the object with all other objects in the world.
-        """
+    def get_body_contact_points(self, body: PhysicalBody) -> ContactPointsList:
         self.perform_collision_detection()
-        points_list = p.getContactPoints(obj.id, physicsClientId=self.id)
+        body_data = self.get_body_and_link_id(body, index='A')
+        points_list = p.getContactPoints(**body_data, physicsClientId=self.id)
         return ContactPointsList([ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list
                                   if len(point) > 0])
 
-    def get_contact_points_between_two_objects(self, obj_a: Object, obj_b: Object) -> ContactPointsList:
+    def get_contact_points_between_two_bodies(self, obj_a: PhysicalBody, obj_b: PhysicalBody) -> ContactPointsList:
         self.perform_collision_detection()
-        points_list = p.getContactPoints(obj_a.id, obj_b.id, physicsClientId=self.id)
+        body_a_data = self.get_body_and_link_id(obj_a, index='A')
+        body_b_data = self.get_body_and_link_id(obj_b, index='B')
+        points_list = p.getContactPoints(**body_a_data, **body_b_data, physicsClientId=self.id)
         return ContactPointsList([ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list
                                   if len(point) > 0])
 
-    def get_closest_points_between_objects(self, obj_a: Object, obj_b: Object, distance: float) -> ClosestPointsList:
-        points_list = p.getClosestPoints(obj_a.id, obj_b.id, distance, physicsClientId=self.id)
+    def get_body_closest_points(self, body: PhysicalBody, max_distance: float) -> ClosestPointsList:
+        all_obj_closest_points = [self.get_closest_points_between_two_bodies(body, other_body, max_distance)
+                                  for other_body in self.objects if other_body != body]
+        return ClosestPointsList([point for closest_points in all_obj_closest_points for point in closest_points])
+
+    def get_closest_points_between_two_bodies(self, obj_a: PhysicalBody, obj_b: PhysicalBody,
+                                              max_distance: float) -> ClosestPointsList:
+        body_a_data = self.get_body_and_link_id(obj_a, index='A')
+        body_b_data = self.get_body_and_link_id(obj_b, index='B')
+        points_list = p.getClosestPoints(**body_a_data, **body_b_data, distance=max_distance, physicsClientId=self.id)
         return ClosestPointsList([ClosestPoint(**self.parse_points_list_to_args(point)) for point in points_list
                                   if len(point) > 0])
+
+    @staticmethod
+    def get_body_and_link_id(body: PhysicalBody, index='') -> Dict[str, int]:
+        body_id, link_id = (body.object_id, body.id) if isinstance(body, Link) else (body.id, None)
+        values_dict = {f"body{index}": body_id}
+        if link_id is not None:
+            values_dict.update({f"linkIndex{index}": link_id})
+        return values_dict
 
     def parse_points_list_to_args(self, point: List) -> Dict:
         """
@@ -204,28 +235,28 @@ class BulletWorld(World):
 
         :param point: The list of points.
         """
-        return {"link_a": self.get_object_by_id(point[1]).get_link_by_id(point[3]),
-                "link_b": self.get_object_by_id(point[2]).get_link_by_id(point[4]),
-                "position_on_object_a": point[5],
-                "position_on_object_b": point[6],
-                "normal_on_b": point[7],
+        return {"body_a": self.get_object_by_id(point[1]).get_link_by_id(point[3]),
+                "body_b": self.get_object_by_id(point[2]).get_link_by_id(point[4]),
+                "position_on_body_a": point[5],
+                "position_on_body_b": point[6],
+                "normal_on_body_b": point[7],
                 "distance": point[8],
                 "normal_force": point[9],
                 "lateral_friction_1": LateralFriction(point[10], point[11]),
                 "lateral_friction_2": LateralFriction(point[12], point[13])}
 
     @validate_multiple_joint_positions
-    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
+    def _set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         for joint, joint_position in joint_positions.items():
             self.reset_joint_position(joint, joint_position)
         return True
 
     @validate_joint_position
-    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
+    def _reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
         return True
 
-    def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
+    def _get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
         return {joint.name: self.get_joint_position(joint) for joint in joints}
 
     @validate_multiple_object_poses
@@ -452,6 +483,11 @@ class Gui(threading.Thread):
         threading.Thread.__init__(self)
         self.world = world
         self.mode: WorldMode = mode
+
+        # Checks if there is a display connected to the system. If not, the simulation will be run in direct mode.
+        if "DISPLAY" not in os.environ:
+            loginfo("No display detected. Running the simulation in direct mode.")
+            self.mode = WorldMode.DIRECT
 
     def run(self):
         """

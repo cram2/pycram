@@ -1,4 +1,4 @@
-from pycram.designators.action_designator import ActionAbstract---
+---
 jupyter:
   jupytext:
     text_representation:
@@ -39,7 +39,7 @@ Next we will write a simple plan where the robot parks his arms and then moves s
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
-from pycram.datastructures.enums import Arms, ObjectType, Grasp, WorldMode
+from pycram.datastructures.enums import Arms, ObjectType, Grasp, WorldMode, TorsoState
 from pycram.tasktree import with_tree
 import pycram.tasktree
 from pycram.worlds.bullet_world import BulletWorld
@@ -48,12 +48,13 @@ from pycram.designators.object_designator import *
 from pycram.datastructures.pose import Pose
 from pycram.orm.base import ProcessMetaData
 import anytree
+import pycrap
 
 world = BulletWorld(WorldMode.DIRECT)
-pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
-kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.3, 0.7, 0.95]))
+pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
+kitchen = Object("kitchen", pycrap.Kitchen, "kitchen.urdf")
+milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+cereal = Object("cereal", pycrap.Cereal, "breakfast_cereal.stl", pose=Pose([1.3, 0.7, 0.95]))
 milk_desig = ObjectDesignatorDescription(names=["milk"])
 cereal_desig = ObjectDesignatorDescription(names=["cereal"])
 robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
@@ -63,7 +64,7 @@ kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
 def plan():
     with simulated_robot:
         ParkArmsActionPerformable(Arms.BOTH).perform()
-        MoveTorsoAction([0.2]).resolve().perform()
+        MoveTorsoAction([TorsoState.MID]).resolve().perform()
         pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
         pickup_arm = pickup_pose.reachable_arms[0]
         NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
@@ -170,7 +171,7 @@ class SayingActionPerformable(ActionAbstract):
     orm_class = ORMSaying
         
     @with_tree
-    def perform(self) -> None:
+    def plan(self) -> None:
         print(self.text)
 ```
 

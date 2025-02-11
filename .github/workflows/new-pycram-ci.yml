@@ -60,6 +60,8 @@ jobs:
           pip3 install --upgrade pip --root-user-action=ignore
           cd /opt/ros/overlay_ws/src/pycram
           pip3 install -r requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev
           pip3 install -r requirements-resolver.txt
 
       - name: Install pytest & pyjpt
@@ -71,3 +73,9 @@ jobs:
           source /opt/ros/overlay_ws/devel/setup.bash 
           roscd pycram
           pytest -v test
+
+      - name: Run Demos
+        run: | 
+          source /opt/ros/overlay_ws/devel/setup.bash 
+          roscd pycram
+          python3 demos/pycram_bullet_world_demo/test_demo.py

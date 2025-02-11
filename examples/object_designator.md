@@ -36,8 +36,8 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
-
-world = BulletWorld(WorldMode.GUI)
+import pycrap
+world = BulletWorld(WorldMode.DIRECT)
 ```
 
 ## Believe Object
@@ -49,10 +49,12 @@ description which will be used to describe objects in the real world.
 Since {meth}`~pycram.designators.object_designator.BelieveObject` describes Objects in the BulletWorld we create a few.
 
 ```python
-kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-cereal = Object("froot_loops", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.3, 0.9, 0.95]))
-spoon = Object("spoon", ObjectType.SPOON, "spoon.stl", pose=Pose([1.3, 1.1, 0.87]))
+import pycrap
+
+kitchen = Object("kitchen", pycrap.Kitchen, "kitchen.urdf")
+milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+cereal = Object("froot_loops", pycrap.Cereal, "breakfast_cereal.stl", pose=Pose([1.3, 0.9, 0.95]))
+spoon = Object("spoon", pycrap.Spoon, "spoon.stl", pose=Pose([1.3, 1.1, 0.87]))
 ```
 
 Now that we have objects we can create an object designator to describe them. For the start we want an object designator
@@ -73,7 +75,7 @@ the world.
 ```python
 from pycram.designators.object_designator import BelieveObject
 
-object_description = BelieveObject(types=[ObjectType.MILK, ObjectType.BREAKFAST_CEREAL])
+object_description = BelieveObject(types=[pycrap.Milk, pycrap.Cereal])
 
 print(object_description.resolve())
 ```
@@ -86,10 +88,6 @@ a link of the kitchen which is a BulletWorld Object.
 
 For this example we need just need the kitchen, if you didn't spawn it in the previous example you can spawn it with the
 following cell.
-
-```python
-kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
-```
 
 ```python
 from pycram.designators.object_designator import ObjectPart, BelieveObject
@@ -109,16 +107,9 @@ are describing. We will see this at the example of an object designator describi
 For this we need some objects, so if you didn't already spawn them you can use the next cell for this.
 
 ```python
-kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-cereal = Object("froot_loops", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.3, 0.9, 0.95]))
-spoon = Object("spoon", ObjectType.SPOON, "spoon.stl", pose=Pose([1.3, 1.1, 0.87]))
-```
-
-```python
 from pycram.designators.object_designator import BelieveObject
 
-object_description = BelieveObject(types=[ObjectType.MILK, ObjectType.BREAKFAST_CEREAL])
+object_description = BelieveObject(types=[pycrap.Milk, pycrap.Cereal])
 
 for obj in object_description:
     print(obj, "\n")

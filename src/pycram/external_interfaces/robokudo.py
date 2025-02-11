@@ -12,13 +12,16 @@ from typing_extensions import List, Callable, Optional
 from ..datastructures.pose import Pose
 from ..designator import ObjectDesignatorDescription
 
+robokudo_found = False
 try:
     from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjectDesignator
     from robokudo_msgs.msg import QueryAction, QueryGoal, QueryResult
+    robokudo_found = True
 except ModuleNotFoundError as e:
     logwarn("Failed to import Robokudo messages, the real robot will not be available")
 
 is_init = False
+client = None
 
 number_of_par_goals = 0
 robokudo_lock = Lock()
@@ -54,6 +57,7 @@ def init_robokudo_interface(func: Callable) -> Callable:
 
     def wrapper(*args, **kwargs):
         global is_init
+        global client
         if is_init and "/robokudo" in get_node_names():
             return func(*args, **kwargs)
         elif is_init and "/robokudo" not in get_node_names():
@@ -68,6 +72,14 @@ def init_robokudo_interface(func: Callable) -> Callable:
         if "/robokudo" in get_node_names():
             loginfo_once("Successfully initialized Robokudo interface")
             is_init = True
+            client = create_action_client("robokudo/query", QueryAction)
+            loginfo("Waiting for action server")
+            if client.wait_for_server():
+                loginfo("Action server is available")
+            else:
+                logwarn("Action server is not available")
+                is_init = False
+                return
         else:
             logwarn("Robokudo is not running, could not initialize Robokudo interface")
             return
@@ -80,6 +92,8 @@ def init_robokudo_interface(func: Callable) -> Callable:
 def send_query(obj_type: Optional[str] = None, region: Optional[str] = None,
                attributes: Optional[List[str]] = None) -> Any:
     """Generic function to send a query to RoboKudo."""
+
+    global client
     goal = QueryGoal()
 
     if obj_type:
@@ -89,39 +103,44 @@ def send_query(obj_type: Optional[str] = None, region: Optional[str] = None,
     if attributes:
         goal.obj.attribute = attributes
 
-    # client = actionlib.SimpleActionClient('robokudo/query', QueryAction)
-    client = create_action_client("robokudo/query", QueryAction)
-    loginfo("Waiting for action server")
-    client.wait_for_server()
-
     query_result = None
 
     def done_callback(state, result):
         nonlocal query_result
         query_result = result
-        loginfo("Query completed")
+        loginfo("Query completed with state: %s" % state)
 
-    client.send_goal(goal, done_cb=done_callback)
+    def active_callback():
+        loginfo("Goal is now being processed by the action server")
+
+    def feedback_callback(feedback):
+        loginfo("Received feedback: %s" % feedback)
+
+    client.send_goal(goal, done_cb=done_callback, active_cb=active_callback, feedback_cb=feedback_callback)
+    loginfo("Goal has been sent to the action server")
+
     client.wait_for_result()
+    loginfo("Waiting for result from the action server")
     return query_result
+
+
+@init_robokudo_interface
+def query_all_objects() -> dict:
+    """Query RoboKudo for all objects."""
+    result = send_query()
+
+    return result
 
 
 @init_robokudo_interface
 def query_object(obj_desc: ObjectDesignatorDescription) -> dict:
     """Query RoboKudo for an object that fits the description."""
     goal = QueryGoal()
-    goal.obj.uid = str(id(obj_desc))
-    goal.obj.type = str(obj_desc.types[0].name)
+    goal.obj.type = str(obj_desc.types[0])
 
     result = send_query(obj_type=goal.obj.type)
 
-    pose_candidates = {}
-    if result and result.res:
-        for i in range(len(result.res[0].pose)):
-            pose = Pose.from_pose_stamped(result.res[0].pose[i])
-            source = result.res[0].pose_source[0]
-            pose_candidates[source] = pose
-    return pose_candidates
+    return result
 
 
 @init_robokudo_interface
@@ -136,9 +155,7 @@ def query_human() -> PointStamped:
 @init_robokudo_interface
 def stop_query():
     """Stop any ongoing query to RoboKudo."""
-    #client = actionlib.SimpleActionClient('robokudo/query', QueryAction)
-    client = create_action_client('robokudo/query', QueryAction)
-    client.wait_for_server()
+    global client
     client.cancel_all_goals()
     loginfo("Cancelled current RoboKudo query goal")
 

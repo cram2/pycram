@@ -1,0 +1,5 @@
+repositories:
+  robots:
+    type: git
+    url: https://github.com/code-iai/external-robots.git
+    version: master

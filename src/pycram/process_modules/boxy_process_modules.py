@@ -1,5 +1,8 @@
 from threading import Lock
 import numpy as np
+
+from .default_process_modules import DefaultManager
+from .donbot_process_modules import _park_arms
 from .. import world_reasoning as btr
 from ..utils import _apply_ik
 from ..designators.motion_designator import *
@@ -128,13 +131,13 @@ class BoxyDetecting(ProcessModule):
         robot = World.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
-        cam_frame_name = RobotDescription.current_robot_description.get_camera_frame()
+        cam_link_name = RobotDescription.current_robot_description.get_camera_link()
         # should be [0, 0, 1]
         front_facing_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
 
         objects = World.current_world.get_object_by_type(object_type)
         for obj in objects:
-            if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
+            if btr.visible(obj, robot.get_link_pose(cam_link_name), front_facing_axis):
                 return obj
 
 
@@ -184,20 +187,12 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
     _apply_ik(robot, inv)
 
 
-class BoxyManager(ProcessModuleManager):
+class BoxyManager(DefaultManager):
 
     def __init__(self):
-        super().__init__("boxy")
-        self._navigate_lock = Lock()
-        self._looking_lock = Lock()
-        self._detecting_lock = Lock()
-        self._move_tcp_lock = Lock()
-        self._move_arm_joints_lock = Lock()
-        self._world_state_detecting_lock = Lock()
-        self._move_joints_lock = Lock()
-        self._move_gripper_lock = Lock()
-        self._open_lock = Lock()
-        self._close_lock = Lock()
+        super().__init__()
+        self.robot_name = "boxy"
+
 
     def navigate(self):
         if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:

@@ -1,5 +1,8 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
+
+from enum import Enum
+
 from typing_extensions import List, Dict, Union, Optional
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints
@@ -114,11 +117,18 @@ class RobotDescription:
     virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None
     """
     Virtual mobile base joint names for mobile robots, these joints are not part of the URDF, however they are used to
-     move the robot in the simulation (e.g. set_pose for the robot would actually move these joints)
+    move the robot in the simulation (e.g. set_pose for the robot would actually move these joints)
+    """
+    gripper_name: Optional[str] = None
+    """
+    Name of the gripper of the robot if it has one, this is used when the gripper is a different Object with its own
+    description file outside the robot description file.
     """
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
-                 virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None):
+                 virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None,
+                 ignore_joints: Optional[List[str]] = None,
+                 gripper_name: Optional[str] = None):
         """
         Initialize the RobotDescription. The URDF is loaded from the given path and used as basis for the kinematic
         chains.
@@ -130,11 +140,14 @@ class RobotDescription:
         :param urdf_path: Path to the URDF file of the robot
         :param virtual_mobile_base_joints: Virtual mobile base joint names for mobile robots
         :param mjcf_path: Path to the MJCF file of the robot
+        :param ignore_joints: List of joint names that are not used.
+        :param gripper_name: Name of the gripper of the robot if it has one and is a separate Object.
         """
         self.name = name
         self.base_link = base_link
         self.torso_link = torso_link
         self.torso_joint = torso_joint
+        self.ignore_joints = ignore_joints if ignore_joints else []
         with suppress_stdout_stderr():
             # Since parsing URDF causes a lot of warning messages which can't be deactivated, we suppress them
             self.urdf_object = URDFObject(urdf_path)
@@ -146,6 +159,7 @@ class RobotDescription:
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
         self.virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = virtual_mobile_base_joints
+        self.gripper_name = gripper_name
 
     @property
     def has_actuators(self):
@@ -247,13 +261,13 @@ class RobotDescription:
                 result.append(chain)
         return result
 
-    def get_camera_frame(self) -> str:
+    def get_camera_frame(self, robot_object_name: str) -> str:
         """
         Quick method to get the name of a link of a camera. Uses the first camera in the list of cameras.
 
         :return: A name of the link of a camera
         """
-        return f"{self.name}/{self.get_camera_link()}"
+        return f"{robot_object_name}/{self.get_camera_link()}"
 
     def get_camera_link(self) -> str:
         """
@@ -271,7 +285,7 @@ class RobotDescription:
         """
         return self.cameras[list(self.cameras.keys())[0]]
 
-    def get_static_joint_chain(self, kinematic_chain_name: str, configuration_name: str):
+    def get_static_joint_chain(self, kinematic_chain_name: str, configuration_name: Union[str, Enum]):
         """
         Get the static joint states of a kinematic chain for a specific configuration. When trying to access one of
         the robot arms the function `:func: get_arm_chain` should be used.
@@ -285,9 +299,11 @@ class RobotDescription:
                 return self.kinematic_chains[kinematic_chain_name].static_joint_states[configuration_name]
             else:
                 raise ValueError(
-                    f"There is no static joint state with the name {configuration_name} for Kinematic chain {kinematic_chain_name} of robot {self.name}")
+                    f"There is no static joint state with the name {configuration_name} for Kinematic chain {kinematic_chain_name} of robot {self.name}. "
+                    f"The following keys are available: {list(self.kinematic_chains[kinematic_chain_name].static_joint_states.keys())}")
         else:
-            raise ValueError(f"There is no KinematicChain with name {kinematic_chain_name} for robot {self.name}")
+            raise ValueError(f"There is no KinematicChain with name {kinematic_chain_name} for robot {self.name}. "
+                             f"The following chains are available: {list(self.kinematic_chains.keys())}")
 
     def get_parent(self, name: str) -> str:
         """
@@ -408,7 +424,7 @@ class KinematicChainDescription:
     """
     Type of the arm, if the chain is an arm
     """
-    static_joint_states: Dict[str, Dict[str, float]]
+    static_joint_states: Dict[Union[str, Enum], Dict[str, float]]
     """
     Dictionary of static joint states for the chain
     """
@@ -433,7 +449,7 @@ class KinematicChainDescription:
         self.link_names: List[str] = []
         self.joint_names: List[str] = []
         self.arm_type: Arms = arm_type
-        self.static_joint_states: Dict[str, Dict[str, float]] = {}
+        self.static_joint_states: Dict[Union[str, Enum], Dict[str, float]] = {}
         self.end_effector = None
 
         self._init_links()
@@ -485,7 +501,7 @@ class KinematicChainDescription:
         """
         return self.get_joints()
 
-    def add_static_joint_states(self, name: str, states: dict):
+    def add_static_joint_states(self, name: Union[str, Enum], states: dict):
         """
         Adds static joint states to the chain. These define a specific configuration of the chain.
 
@@ -497,7 +513,7 @@ class KinematicChainDescription:
                 raise ValueError(f"Joint {joint_name} is not part of the chain")
         self.static_joint_states[name] = states
 
-    def get_static_joint_states(self, name: str) -> Dict[str, float]:
+    def get_static_joint_states(self, name: Union[str, Enum]) -> Dict[str, float]:
         """
         Get the dictionary of static joint states for a given name of the static joint states.
 
@@ -630,8 +646,14 @@ class EndEffectorDescription:
     """
     Distance the gripper can open, in cm
     """
+    gripper_object_name: Optional[str] = None
+    """
+    Name of the gripper of the robot if it has one, this is used when the gripper is a different Object with its own
+    description file outside the robot description file.
+    """
 
-    def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject):
+    def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject,
+                 gripper_object_name: Optional[str] = None):
         """
         Initialize the EndEffectorDescription object.
 
@@ -639,6 +661,7 @@ class EndEffectorDescription:
         :param start_link: Root link of the end effector, every link below this link in the URDF is part of the end effector
         :param tool_frame: Name of the tool frame link in the URDf
         :param urdf_object: URDF object of the robot
+        :param gripper_object_name: Name of the gripper if it is a separate Object outside the robot description.
         """
         self.name: str = name
         self.start_link: str = start_link
@@ -648,6 +671,8 @@ class EndEffectorDescription:
         self.joint_names: List[str] = []
         self.static_joint_states: Dict[GripperState, Dict[str, float]] = {}
         self._init_links_joints()
+        self.gripper_object_name = gripper_object_name
+
 
     def _init_links_joints(self):
         """
