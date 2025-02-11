@@ -289,8 +289,10 @@ class RayTestUtils:
                                                                 camera_max_distance).tolist()
 
         # apply the ray test
-        object_ids, distances = self.ray_test_batch(rays_start_positions, rays_end_positions, return_distance=True)
+        ray_test_results = self.ray_test_batch(rays_start_positions, rays_end_positions, return_distance=True)
 
+        object_ids = [result.obj_id for result in ray_test_results]
+        distances = [result.distance for result in ray_test_results]
         # construct the images/masks
         segmentation_mask = self.construct_segmentation_mask_from_ray_test_object_ids(object_ids, size)
         depth_image = self.construct_depth_image_from_ray_test_distances(distances, size) + camera_min_distance

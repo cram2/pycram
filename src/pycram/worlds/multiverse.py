@@ -13,7 +13,7 @@ from pycrap import PhysicalObject
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
 from ..config.multiverse_conf import MultiverseConfig
-from ..datastructures.dataclasses import Color, ContactPointsList, ContactPoint
+from ..datastructures.dataclasses import Color, ContactPointsList, ContactPoint, RayResult
 from ..datastructures.enums import WorldMode, JointType, MultiverseBodyProperty, MultiverseJointPosition, \
     MultiverseJointCMD
 from ..datastructures.pose import Pose
@@ -626,41 +626,34 @@ class Multiverse(World):
         obj1_contact_points = self.get_object_contact_points(obj1)
         return obj1_contact_points.get_points_of_object(obj2)
 
-    def ray_test(self, from_position: List[float], to_position: List[float]) -> Optional[int]:
-        ray_test_result = self.ray_test_batch([from_position], [to_position])[0]
-        return ray_test_result[0] if ray_test_result[0] != -1 else None
+    def _ray_test(self, from_position: List[float], to_position: List[float]) -> RayResult:
+        return self.ray_test_batch([from_position], [to_position])[0]
 
-    def ray_test_batch(self, from_positions: List[List[float]],
-                       to_positions: List[List[float]],
-                       num_threads: int = 1,
-                       return_distance: bool = False) -> Union[List, Tuple[List, List[float]]]:
+    def _ray_test_batch(self, from_positions: List[List[float]],
+                        to_positions: List[List[float]],
+                        num_threads: int = 1,
+                        return_distance: bool = False) -> List[RayResult]:
         """
         Note: Currently, num_threads is not used in Multiverse.
         """
         ray_results = self.api_requester.get_objects_intersected_with_rays(from_positions, to_positions)
-        results = []
-        distances = []
+        results: List[RayResult] = []
         for ray_result in ray_results:
-            results.append([])
-            if ray_result.intersected():
+            results.append(RayResult(-1))
+            if ray_result.intersected:
                 body_name = ray_result.body_name
                 if body_name == "world":
-                    results[-1].append(0)  # The floor id, which is always 0 since the floor is spawned first.
+                    results[-1].obj_id = 0  # The floor id, which is always 0 since the floor is spawned first.
                 elif body_name in self.object_name_to_id.keys():
-                    results[-1].append(self.object_name_to_id[body_name])
+                    results[-1].obj_id = self.object_name_to_id[body_name]
                 else:
                     for obj in self.objects:
                         if body_name in obj.links.keys():
-                            results[-1].append(obj.id)
+                            results[-1].obj_id = obj.id
                             break
-            else:
-                results[-1].append(-1)
             if return_distance:
-                distances.append(ray_result.distance)
-        if return_distance:
-            return results, distances
-        else:
-            return results
+                results[-1].distance = ray_result.distance
+        return results
 
     def step(self, func: Optional[Callable[[], None]] = None, step_seconds: Optional[float] = None) -> None:
         """

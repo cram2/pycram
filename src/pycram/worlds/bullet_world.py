@@ -12,7 +12,7 @@ from typing_extensions import List, Optional, Dict, Any, Callable
 
 from pycrap import Floor
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
-    ClosestPoint, LateralFriction, ContactPoint, ContactPointsList, ClosestPointsList
+    ClosestPoint, LateralFriction, ContactPoint, ContactPointsList, ClosestPointsList, RayResult
 from ..datastructures.enums import ObjectType, WorldMode, JointType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
@@ -389,14 +389,15 @@ class BulletWorld(World):
             p.removeBody(vis_id, physicsClientId=self.id)
         self.vis_axis = []
 
-    def ray_test(self, from_position: List[float], to_position: List[float]) -> int:
+    def _ray_test(self, from_position: List[float], to_position: List[float]) -> RayResult:
         res = p.rayTest(from_position, to_position, physicsClientId=self.id)
-        return res[0][0]
+        return RayResult(*res[0])
 
-    def ray_test_batch(self, from_positions: List[List[float]], to_positions: List[List[float]],
-                       num_threads: int = 1) -> List[int]:
-        return p.rayTestBatch(from_positions, to_positions, numThreads=num_threads,
-                              physicsClientId=self.id)
+    def _ray_test_batch(self, from_positions: List[List[float]], to_positions: List[List[float]],
+                        num_threads: int = 1) -> List[RayResult]:
+        result = p.rayTestBatch(from_positions, to_positions, numThreads=num_threads,
+                                physicsClientId=self.id)
+        return [RayResult(*r) for r in result] if result else None
 
     def _create_visual_shape(self, visual_shape: VisualShape) -> int:
         return p.createVisualShape(visual_shape.visual_geometry_type.value,

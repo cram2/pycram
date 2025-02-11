@@ -223,9 +223,11 @@ class LanguageTestCase(BulletWorldTestCase):
             plan.perform()
         self.assertEqual(self.robot.get_pose(), Pose([0.3, 0.3, 0]))
         self.assertEqual(self.robot.get_joint_position("torso_lift_joint"), 0.3)
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right", "park").items():
+        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right",
+                                                                                             StaticJointState.Park).items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left", "park").items():
+        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left",
+                                                                                             StaticJointState.Park).items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
 
     def test_perform_code(self):

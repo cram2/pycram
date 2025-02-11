@@ -12,7 +12,7 @@ from random_events.variable import Continuous
 from random_events.interval import closed
 from random_events.product_algebra import SimpleEvent, Event
 import plotly.graph_objects as go
-from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence
+from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, deprecated
 
 from .enums import JointType, Shape, VirtualMobileBaseJointName
 from .pose import Pose, Point, Transform
@@ -1080,6 +1080,71 @@ class MultiverseMetaData:
 
 @dataclass
 class RayResult:
+    """
+    A dataclass to store the ray result. The ray result contains the body name that the ray intersects with and the
+    distance from the ray origin to the intersection point.
+    """
+    obj_id: int
+    """
+    The object id of the body that the ray intersects with.
+    """
+    link_id: int = -1
+    """
+    The link id of the body that the ray intersects with, -1 if root link or None.
+    """
+    _hit_fraction: Optional[float] = None  # TODO: Not sure of definition
+    """
+    The fraction of the ray length at which the intersection point is located a range in [0, 1].
+    """
+    hit_position: Optional[List[float]] = None
+    """
+    The intersection point in cartesian world coordinates.
+    """
+    hit_normal: Optional[List[float]] = None
+    """
+    The normal at the intersection point in cartesian world coordinates.
+    """
+    distance: Optional[float] = None
+    """
+    The distance from the ray origin to the intersection point.
+    """
+
+    @property
+    def intersected(self) -> bool:
+        """
+        Check if the ray intersects with a body.
+        return: Whether the ray intersects with a body.
+        """
+        if not self.obj_id:
+            raise ValueError("obj_id should be available to check if the ray intersects with a body,"
+                             "It appears that the ray result is not valid.")
+        return self.obj_id != -1
+
+    @property
+    def hit_fraction(self) -> Optional[float]:
+        if not self._hit_fraction and self.obj_id == -1:
+            return 1.0
+        return self._hit_fraction
+
+    def update_distance(self, from_position: List[float], to_position: Optional[List[float]] = None) -> float:
+        """
+        The distance from the ray origin to the intersection point.
+        """
+        if self.hit_position:
+            self.distance = np.linalg.norm(np.array(self.hit_position) - np.array(from_position))
+            if not self.hit_fraction:
+                self.hit_fraction = self.distance / np.linalg.norm(np.array(to_position) - np.array(from_position))
+            return self.distance
+        elif not self.hit_fraction or not to_position:
+            raise ValueError(f"Either hit_position or (to_position and hit_fraction)"
+                             f" should be available to calculate distance,"
+                             f" given hit_fraction: {self.hit_fraction}, to_position: {to_position}")
+        return np.linalg.norm(np.array(to_position) - np.array(from_position)) * self.hit_fraction
+
+
+@deprecated("Use RayResult instead")
+@dataclass
+class MultiverseRayResult:
     """
     A dataclass to store the ray result. The ray result contains the body name that the ray intersects with and the
     distance from the ray origin to the intersection point.
