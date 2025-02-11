@@ -24,8 +24,11 @@ def parse_furniture(link):
         for c in pycrap.ontologies.base.ontology.classes():
             clean_l = remove_digits(l).capitalize()  # Remove digits and capitalize
             # print(f"clsname: {c[0]}, link: {clean_l}")
-            if clean_l == str(c).split(".")[1]:
-                matched_furniture.append(c)
+            try:
+                if clean_l == str(c).split(".")[1]:
+                    matched_furniture.append(c)
+            except IndexError:
+                pass
     if matched_furniture:
         return matched_furniture[len(matched_furniture)-1]
 

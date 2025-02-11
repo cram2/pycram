@@ -11,17 +11,23 @@ Robot.is_a = [Agent]
 
 Cereal.is_a = [Food]
 
-Kitchen.is_a = [Room, Location]
+Kitchen.is_a = [Room]
 
 Food.is_a = [PhysicalObject]
 
-Apartment.is_a = [Room, Location]
+Apartment.is_a = [Room]
+
+Room.is_a = [Location, Container]
 
 Cup.is_a = [Container]
 
 Spoon.is_a = [PhysicalObject]
 
 Bowl.is_a = [Container]
+
+Cabinet.is_a = [Container]
+
+Drawer.is_a = [Container]
 
 Container.is_a = [PhysicalObject]
 
@@ -65,4 +71,24 @@ has_parent_link.range = [PhysicalObject]
 has_child_link.is_a = [ObjectProperty]
 has_child_link.domain = [Joint]
 has_child_link.range = [PhysicalObject]
+
+contains.is_a = [ObjectProperty, TransitiveProperty]
+contains.domain = [Base]
+contains.range = [Base]
+
+contains_object.is_a = [ObjectProperty, TransitiveProperty]
+contains_object.domain = [Container]
+contains_object.range = [PhysicalObject]
+
+is_contained_in.is_a = [ObjectProperty, TransitiveProperty]
+is_contained_in.domain = [Base]
+is_contained_in.range = [Base]
+is_contained_in.inverse_property = contains
+
+is_physically_contained_in.is_a = [ObjectProperty, TransitiveProperty]
+is_physically_contained_in.domain = [PhysicalObject]
+is_physically_contained_in.range = [Container]
+is_physically_contained_in.inverse_property = contains_object
+
+
 

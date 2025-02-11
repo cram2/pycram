@@ -36,7 +36,7 @@ from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
 from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, \
-    has_child_link, has_parent_link, is_part_of, Robot, Link as CraxLink
+    has_child_link, has_parent_link, is_part_of, Robot, Link as CraxLink, Location, Floor
 
 from pycrap.urdf_parser import parse_furniture, parse_joint_types
 
@@ -94,7 +94,6 @@ class Object(PhysicalBody):
 
         self._resolve_description(path, description)
         self.cache_manager = self.world.cache_manager
-        self.real_image = real_image
 
         self.local_transformer = LocalTransformer()
         self.original_pose = self.local_transformer.transform_pose(pose, "map")

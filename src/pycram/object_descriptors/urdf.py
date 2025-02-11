@@ -23,10 +23,9 @@ from ..failures import MultiplePossibleTipLinks
 from ..ros.logging import logerr
 from ..ros.ros_tools import create_ros_pack, ResourceNotFound, get_parameter
 from ..utils import suppress_stdout_stderr
-from ..datastructures.mixins import HasConcept
 
 
-class LinkDescription(AbstractLinkDescription, HasConcept):
+class LinkDescription(AbstractLinkDescription):
     """
     A class that represents a link description of an object.
     """

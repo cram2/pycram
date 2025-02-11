@@ -13,6 +13,7 @@ from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHEC
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
     MeshVisualShape, RotatedBoundingBox
 from .datastructures.enums import JointType
+from .datastructures.mixins import HasConcept
 from .datastructures.pose import Pose, Transform
 from .datastructures.world_entity import WorldEntity, PhysicalBody
 from .failures import ObjectDescriptionNotFound, LinkHasNoGeometry, LinkGeometryHasNoMesh

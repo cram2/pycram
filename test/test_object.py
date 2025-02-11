@@ -14,7 +14,7 @@ from pycram.object_descriptors.generic import ObjectDescription as GenericObject
 from geometry_msgs.msg import Point, Quaternion
 import pathlib
 
-from pycrap.ontologies import Milk
+from pycrap.ontologies import Milk, Food
 
 
 class TestObject(BulletWorldTestCase):
