@@ -67,6 +67,10 @@ class ManipulatorData:
     """
     List of joint values for the gripper in the open position.
     """
+    opening_distance: float
+    """
+    The opening distance of the gripper.
+    """
     relative_dir: str = ''
     """
     Relative directory of the manipulator description file in the resources directory.

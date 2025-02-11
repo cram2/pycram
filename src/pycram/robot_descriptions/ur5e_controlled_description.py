@@ -31,6 +31,7 @@ data = ManipulatorData(
                          'left_follower_joint'],
     closed_joint_values=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     open_joint_values=[0.798, 0.00366, 0.796, -0.793, 0.798, 0.00366, 0.796, -0.793],
+    opening_distance=None,  # TODO: Check this value
 
     gripper_cmd_topic="/gripper_command",
     gripper_open_cmd_value=0.0,

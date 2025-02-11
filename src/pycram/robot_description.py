@@ -502,7 +502,8 @@ class KinematicChainDescription:
                             closed_joint_values: Dict[str, float],
                             relative_dir: Optional[str] = None,
                             resources_dir: Optional[str] = None,
-                            description_name: str = "gripper") -> EndEffectorDescription:
+                            description_name: str = "gripper",
+                            opening_distance: Optional[float] = None) -> EndEffectorDescription:
         """
         Create a gripper end effector description.
 
@@ -513,6 +514,7 @@ class KinematicChainDescription:
         :param relative_dir: The relative directory of the gripper in the Multiverse resources/robots directory.
         :param resources_dir: The path to the resources directory.
         :param description_name: The name of the gripper description.
+        :param opening_distance: The openning distance of the gripper.
         :return: The gripper end effector description.
         """
         if resources_dir is None:
@@ -527,7 +529,8 @@ class KinematicChainDescription:
             gripper_urdf_obj = self.urdf_object
             gripper_object_name = None
         gripper = EndEffectorDescription(description_name, name, tool_frame,
-                                         gripper_urdf_obj, gripper_object_name=gripper_object_name)
+                                         gripper_urdf_obj, gripper_object_name=gripper_object_name,
+                                         opening_distance=opening_distance)
 
         gripper.add_static_joint_states(GripperState.OPEN, opened_joint_values)
         gripper.add_static_joint_states(GripperState.CLOSE, closed_joint_values)
@@ -718,7 +721,7 @@ class EndEffectorDescription:
     """
 
     def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject,
-                 gripper_object_name: Optional[str] = None):
+                 gripper_object_name: Optional[str] = None, opening_distance: Optional[float] = None):
         """
         Initialize the EndEffectorDescription object.
 
@@ -737,6 +740,7 @@ class EndEffectorDescription:
         self.static_joint_states: Dict[GripperState, Dict[str, float]] = {}
         self._init_links_joints()
         self.gripper_object_name = gripper_object_name
+        self.opening_distance: Optional[float] = opening_distance
 
     def _init_links_joints(self):
         """
@@ -808,6 +812,6 @@ def create_manipulator_description(data: ManipulatorData,
     arm.create_end_effector(data.gripper_name, data.gripper_tool_frame,
                             dict(zip(data.gripper_joint_names, data.open_joint_values)),
                             dict(zip(data.gripper_joint_names, data.closed_joint_values)),
-                            relative_dir=data.gripper_relative_dir)
+                            relative_dir=data.gripper_relative_dir, opening_distance=data.opening_distance)
 
     return robot_description

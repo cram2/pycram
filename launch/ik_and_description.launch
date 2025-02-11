@@ -31,6 +31,11 @@
     <param name="robot_description"
               textfile="$(find multiverse_control)../../../../multiverse/resources/robots/universal_robot/ur5e/urdf/ur5e.urdf"/>
   </group>
+  <!-- Panda -->
+  <group if="$(eval robot == 'panda')">
+    <param name="robot_description"
+              textfile="$(find multiverse_control)../../../../multiverse/resources/robots/franka_emika_panda/urdf/panda.urdf"/>
+  </group>
   <!-- Donbot -->
   <group if="$(eval robot == 'donbot')">
     <param name="robot_description"
