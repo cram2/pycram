@@ -165,16 +165,19 @@ class RobotDescription:
     def add_arm(self, end_link: str,
                 arm_type: Arms = Arms.RIGHT,
                 arm_name: str = "manipulator",
-                arm_home_values: Optional[Dict[str, float]] = None) -> KinematicChainDescription:
+                arm_home_values: Optional[Dict[str, float]] = None,
+                arm_start: Optional[str] = None) -> KinematicChainDescription:
         """
         Creates and adds an arm to the RobotDescription.
 
         :param end_link: Last link of the arm
         :param arm_type: Type of the arm
         :param arm_name: Name of the arm
-        :param arm_home_values: Dictionary of joint names and their home values
+        :param arm_home_values: Dictionary of joint names and their home values (default configuration) (e.g. park arms)
+        :param arm_start: Start link of the arm
         """
-        arm_start = self.base_link if self.torso_link == '' else self.torso_link
+        if arm_start is None:
+            arm_start = self.base_link if self.torso_link == '' else self.torso_link
         arm = KinematicChainDescription(arm_name, arm_start, end_link,
                                         self.urdf_object, arm_type=arm_type)
 

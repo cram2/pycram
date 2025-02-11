@@ -28,26 +28,66 @@ if TYPE_CHECKING:
 @dataclass
 class ManipulatorData:
     name: str
+    """
+    Name of the Manipulator.
+    """
     base_link: str
-
+    """
+    Manipulator's base link.
+    """
     arm_end_link: str
+    """
+    Manipulator's arm end link.
+    """
     joint_names: List[str]
+    """
+    List of joint names.
+    """
     home_joint_values: List[float]
-
+    """
+    List of joint values for the home position. (default position)
+    """
     gripper_name: str
+    """
+    Name of the gripper at the end of the arm.
+    """
     gripper_tool_frame: str
-
+    """
+    Name of the frame of the gripper tool.
+    """
     gripper_joint_names: List[str]
+    """
+    List of gripper joint names.
+    """
     closed_joint_values: List[float]
+    """
+    List of joint values for the gripper in the closed position.
+    """
     open_joint_values: List[float]
-
+    """
+    List of joint values for the gripper in the open position.
+    """
     relative_dir: str = ''
-
+    """
+    Relative directory of the manipulator description file in the resources directory.
+    """
     gripper_cmd_topic: str = "/gripper_command"
+    """
+    Gripper command topic in ROS if it has one.
+    """
     gripper_open_cmd_value: float = 0.0
+    """
+    Grip open command value.
+    """
     gripper_close_cmd_value: float = 255.0
-
+    """
+    Grip close command value.
+    """
     gripper_relative_dir: Optional[str] = None
+    """
+    Relative directory of the gripper description file in the resources directory if it has one and is not part of the
+     manipulator description file.
+    """
 
 
 def get_point_as_list(point: Point) -> List[float]:
