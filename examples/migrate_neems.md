@@ -57,16 +57,16 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.designators.object_designator import *
 from pycram.datastructures.enums import TorsoState
-import pycrap
+from pycrap.ontologies import Robot, Kitchen, Milk, Cereal
 
 
 class ExamplePlans:
     def __init__(self):
         self.world = BulletWorld("DIRECT")
-        self.pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
-        self.kitchen = Object("kitchen", pycrap.Kitchen, "kitchen.urdf")
-        self.milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-        self.cereal = Object("cereal", pycrap.Cereal, "breakfast_cereal.stl", pose=Pose([1.3, 0.7, 0.95]))
+        self.pr2 = Object("pr2", Robot, "pr2.urdf")
+        self.kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
+        self.milk = Object("milk", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        self.cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=Pose([1.3, 0.7, 0.95]))
         self.milk_desig = ObjectDesignatorDescription(names=["milk"])
         self.cereal_desig = ObjectDesignatorDescription(names=["cereal"])
         self.robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()

@@ -14,7 +14,7 @@ from pycram.object_descriptors.generic import ObjectDescription as GenericObject
 from geometry_msgs.msg import Point, Quaternion
 import pathlib
 
-from pycrap import ontology, Milk, Food
+from pycrap.ontologies import Milk
 
 
 class TestObject(BulletWorldTestCase):
@@ -209,10 +209,10 @@ class OntologyIntegrationTestCase(BulletWorldTestCase):
     def test_querying(self):
         # get all milks from the ontology
         r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.individuals()))
-        self.assertEqual(len(r), 1)
+        self.assertEqual(len(r), 2)
 
         milk2 = Object("milk2", Milk, "milk.stl")
 
         r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.individuals()))
 
-        self.assertEqual(len(r), 2)
+        self.assertEqual(len(r), 3)

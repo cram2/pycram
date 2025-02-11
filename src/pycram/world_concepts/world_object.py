@@ -12,7 +12,6 @@ from geometry_msgs.msg import Point, Quaternion
 from trimesh.parent import Geometry3D
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union, Self
 
-import pycrap
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList, RotatedBoundingBox, VirtualJoint)
@@ -36,7 +35,10 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
-from pycrap import PhysicalObject, ontology, Base, Agent, Robot
+from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, \
+    has_child_link, has_parent_link, is_part_of, Robot, Link as CraxLink
+
+from pycrap.urdf_parser import parse_furniture, parse_joint_types
 
 Link = ObjectDescription.Link
 
@@ -92,6 +94,7 @@ class Object(PhysicalBody):
 
         self._resolve_description(path, description)
         self.cache_manager = self.world.cache_manager
+        self.real_image = real_image
 
         self.local_transformer = LocalTransformer()
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
@@ -431,6 +434,10 @@ class Object(PhysicalBody):
         """
         Initialize the link objects from the URDF file and creates a dictionary which maps the link names to the
         corresponding link objects.
+        Also create Ontology individuals based on the parsed links from the URDF. Links are always of tpye "Physical
+        Object", but can also be of another type if matched.
+        Also mapping the python object to the  parsed link description, so it can be accessed with more ease.
+
         """
         self.links = {}
         for link_name, link_id in self.link_name_to_id.items():
@@ -440,18 +447,55 @@ class Object(PhysicalBody):
             else:
                 self.links[link_name] = self.description.Link(link_id, link_description, self)
 
+            # If the link can be matched to a concept, assign it, else assign PhysicalObject as class.
+            if parse_furniture(link_name):
+                ontology_concept = parse_furniture(link_name)
+            else:
+                ontology_concept = PhysicalObject
+            if not self.world.is_prospection_world:
+                individual = ontology_concept(name=link_name, namespace=self.world.ontology.ontology)
+                self.world.ontology.python_objects[individual] = self.links[link_name]
+                individual.is_a = [ontology_concept, CraxLink]
+
         self.update_link_transforms()
 
     def _init_joints(self):
         """
         Initialize the joint objects from the URDF file and creates a dictionary which mas the joint names to the
         corresponding joint objects
+        Also creating individuals during runtime from parsed joints out of the URDF file. Every Joint will be of type
+        "Joint" and also of one of the joint types (fixed, prismatic, etc.).
+        Also mapping the python object to the  parsed joint description, so it can be accessed with more ease.
+        Additionally adding the relations "has_child_link", "has_parent_link" which refer to the parent and child link
+        of the corresponding joint. Those links are initialized in the @_init_links_and_update_transforms function.
+        Finally including the "is_part_of" relation which describes the relation between two links that are connected
+        by one joint => child_link is_part_of parent_link
         """
         self.joints = {}
+
+        ontology_concept = Joint
         for joint_name, joint_id in self.joint_name_to_id.items():
             parsed_joint_description = self.description.get_joint_by_name(joint_name)
             is_virtual = self.is_joint_virtual(joint_name)
             self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
+            if not self.world.is_prospection_world:
+                individual = ontology_concept(joint_name, namespace=self.world.ontology.ontology)
+                self.world.ontology.python_objects[individual] = parsed_joint_description
+                # The assignment of parent/child links has to be done with onto.search because an individual is required,
+                # not a string.
+                individual.is_a = [ontology_concept, has_child_link.some(
+                    self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name))),
+                                   has_parent_link.some(
+                    self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_parent_link(joint_name).name))),
+                                   parse_joint_types(self.get_joint_type(joint_name).name)]
+                link_individual = self.world.ontology.ontology.search_one(iri=
+                                                                          self.world.ontology.ontology.base_iri +
+                                                                               str(self.get_joint_child_link(joint_name).name))
+                if self.world.ontology.ontology.search_one(iri= self.world.ontology.ontology.base_iri +
+                                                                str(self.get_joint_parent_link(joint_name).name)):
+                     link_individual.is_part_of = [self.world.ontology.ontology.
+                                                   search_one(iri=self.world.ontology.ontology.base_iri
+                                                              + str(self.get_joint_parent_link(joint_name).name))]
 
     def is_joint_virtual(self, name: str):
         """
@@ -674,7 +718,7 @@ class Object(PhysicalBody):
 
         :return: True if the object is of type environment, False otherwise.
         """
-        return issubclass(self.obj_type, pycrap.Location) or issubclass(self.obj_type, pycrap.Floor)
+        return issubclass(self.obj_type, Location) or issubclass(self.obj_type, Floor)
 
     @property
     def is_a_robot(self) -> bool:
@@ -683,7 +727,7 @@ class Object(PhysicalBody):
 
         :return: True if the object is a robot, False otherwise.
         """
-        return issubclass(self.obj_type, pycrap.Robot)
+        return issubclass(self.obj_type, Robot)
 
     def merge(self, other: Object, name: Optional[str] = None, pose: Optional[Pose] = None,
               new_description_file: Optional[str] = None) -> Object:

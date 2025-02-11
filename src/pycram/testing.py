@@ -8,11 +8,11 @@ from .world_concepts.world_object import Object
 from .datastructures.pose import Pose
 from .robot_description import RobotDescription, RobotDescriptionManager
 from .process_module import ProcessModule
-from .datastructures.enums import ObjectType, WorldMode
+from .datastructures.enums import WorldMode
 from .object_descriptors.urdf import ObjectDescription
 from .ros_utils.viz_marker_publisher import VizMarkerPublisher
-from pycrap import ontology, Milk, Robot, Kitchen, Cereal
-import owlready2
+from pycrap.ontologies import Milk, Robot, Kitchen, Cereal
+
 
 class EmptyBulletWorldTestCase(unittest.TestCase):
     """

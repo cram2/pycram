@@ -27,11 +27,11 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
-import pycrap
+from pycrap.ontologies import Robot, Milk
 
 world = BulletWorld(WorldMode.DIRECT)
-pr2 = Object("pr2", pycrap.Robot, "pr2.urdf")
-milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([1.5, 0, 1]))
+pr2 = Object("pr2", Robot, "pr2.urdf")
+milk = Object("milk", Milk, "milk.stl", pose=Pose([1.5, 0, 1]))
 ```
 
 ## Move
@@ -116,14 +116,13 @@ from pycram.designators.motion_designator import DetectingMotion, LookingMotion
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import DetectionTechnique, DetectionState
-from pycrap import  Milk
 from pycram.designators.object_designator import BelieveObject
 
 
 with simulated_robot:
     LookingMotion(target=Pose([1.5, 0, 1], [0, 0, 0, 1])).perform()
 
-    motion_description = DetectingMotion(technique=DetectionTechnique.TYPES,state=DetectionState.START, object_designator_description=BelieveObject(types=[Milk]),
+    motion_description = DetectingMotion(technique=DetectionTechnique.TYPES,state=DetectionState.START, object_designator_description=BelieveObject(types=[pycrap.Milk]),
                                region=None)
 
     obj = motion_description.perform()

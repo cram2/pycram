@@ -1,6 +1,6 @@
 from typing_extensions import Type, Optional
 
-from pycrap import Base
+from pycrap.ontologies import Base
 
 
 class HasConcept:

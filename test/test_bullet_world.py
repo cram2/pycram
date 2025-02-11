@@ -12,7 +12,7 @@ from pycram.datastructures.world import UseProspectionWorld
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.robot_description import RobotDescription
 from pycram.world_concepts.world_object import Object
-from pycrap import Milk, Robot
+from pycrap.ontologies import Milk, Robot
 
 fix_missing_inertial = ObjectDescription.fix_missing_inertial
 
