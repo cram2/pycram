@@ -10,7 +10,7 @@ import owlready2
 from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
 from trimesh.parent import Geometry3D
-from typing_extensions import Type, Optional, Dict, Tuple, List, Union
+from typing_extensions import Type, Optional, Dict, Tuple, List, Union, Self
 
 import pycrap
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
@@ -27,7 +27,7 @@ from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
 from ..ros.data_types import Time
-from ..ros.logging import logwarn
+from ..ros.logging import logwarn, logerr
 
 try:
     from ..object_descriptors.mjcf import ObjectDescription as MJCF
@@ -36,7 +36,7 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
-from pycrap import PhysicalObject, ontology, Base, Agent
+from pycrap import PhysicalObject, ontology, Base, Agent, Robot
 
 Link = ObjectDescription.Link
 
@@ -83,14 +83,9 @@ class Object(PhysicalBody):
         :param scale_mesh: The scale of the mesh.
         """
 
-        super().__init__(-1, world if world is not None else World.current_world)
+        super().__init__(-1, world if world is not None else World.current_world, concept)
 
         pose = Pose() if pose is None else pose
-
-        # set ontology related information
-        self.ontology_concept = concept
-        if not self.world.is_prospection_world:
-            self.ontology_individual = self.ontology_concept(namespace=self.world.ontology.ontology)
 
         self.name: str = name
         self.path: Optional[str] = path
@@ -101,17 +96,20 @@ class Object(PhysicalBody):
         self.local_transformer = LocalTransformer()
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
         self._current_pose = self.original_pose
+        self.scale_mesh = scale_mesh if scale_mesh is not None else 1.0
+        color = Color() if color is None else color
 
         if path is not None:
             self.path = self.world.preprocess_object_file_and_get_its_cache_path(path, ignore_cached_files,
                                                                                  self.description, self.name,
-                                                                                 scale_mesh=scale_mesh,
-                                                                                 mesh_transform=mesh_transform)
+                                                                                 scale_mesh=self.scale_mesh,
+                                                                                 mesh_transform=mesh_transform,
+                                                                                 color=color)
 
             self.description.update_description_from_file(self.path)
 
         # if the object is an agent in the belief state
-        if Agent in self.ontology_concept.is_a and not self.world.is_prospection_world:
+        if self.is_a_robot and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
 
         self.id = self._spawn_object_and_get_id()
@@ -384,9 +382,9 @@ class Object(PhysicalBody):
             return obj_id
 
         except Exception as e:
-            logging.error(
-                "The File could not be loaded. Please note that the path has to be either a URDF, stl or obj file or"
-                " the name of an URDF string on the parameter server.")
+            logerr(
+                f"The caught error: {e}, The File could not be loaded. Please note that the path has to be either"
+                f" a URDF, stl or obj file or the name of an URDF string on the parameter server.")
             os.remove(path)
             raise e
 
@@ -643,20 +641,16 @@ class Object(PhysicalBody):
         return np.array(self.get_position_as_list()) - np.array(self.get_base_position_as_list())
 
     def __repr__(self):
-        skip_attr = ["links", "joints", "description", "attachments"]
-        return self.__class__.__qualname__ + f"(name={self.name}, object_type={self.obj_type.name}, file_path={self.path}, pose={self.pose}, world={self.world})"
-
+        return self.__class__.__qualname__ + (f"(name={self.name}, object_type={self.obj_type.name},"
+                                              f" file_path={self.path}, pose={self.pose}, world={self.world})")
 
     def remove(self) -> None:
         """
         Remove this object from the World it currently resides in.
         For the object to be removed it has to be detached from all objects it
-        is currently attached to. After this call world remove object
-        to remove this Object from the simulation/world.
+        is currently attached to. Then remove this Object from the simulation/world.
         """
-        # owlready2.destroy_entity(self.ontology_individual)
         self.world.remove_object(self)
-
 
     def reset(self, remove_saved_states=False) -> None:
         """
@@ -690,6 +684,28 @@ class Object(PhysicalBody):
         :return: True if the object is a robot, False otherwise.
         """
         return issubclass(self.obj_type, pycrap.Robot)
+
+    def merge(self, other: Object, name: Optional[str] = None, pose: Optional[Pose] = None,
+              new_description_file: Optional[str] = None) -> Object:
+        """
+        Merge the object with another object. This is done by merging the descriptions of the objects,
+        removing the original objects creating a new merged object.
+
+        :param other: The object to merge with.
+        :param name: The name of the merged object.
+        :param pose: The pose of the merged object.
+        :param new_description_file: The new description file of the merged object.
+        :return: The merged object.
+        """
+        pose = self.pose if pose is None else pose
+        child_pose = self.local_transformer.transform_pose(other.pose, self.tf_frame)
+        description = self.description.merge_description(other.description, child_pose_wrt_parent=child_pose,
+                                                         new_description_file=new_description_file)
+        name = self.name if name is None else name
+        path = self.path if new_description_file is None else description.xml_path
+        other.remove()
+        self.remove()
+        return Object(name, self.obj_type, path, description=description, pose=pose, world=self.world)
 
     def attach(self,
                child_object: Object,
@@ -792,7 +808,6 @@ class Object(PhysicalBody):
         """
         return self.get_pose().orientation_as_list()
 
-    @deprecated("Use property 'pose' instead.")
     def get_pose(self) -> Pose:
         """
         Return the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
@@ -1386,11 +1401,9 @@ class Object(PhysicalBody):
         """
         return self.world.get_closest_points_between_two_bodies(self, other_object, max_distance)
 
-    @deprecated("Use property setter 'color' instead.")
     def set_color(self, rgba_color: Color) -> None:
         self.color = rgba_color
 
-    @deprecated("Use property 'color' instead.")
     def get_color(self) -> Union[Color, Dict[str, Color]]:
         return self.color
 
@@ -1401,15 +1414,15 @@ class Object(PhysicalBody):
         """
         return self.world.get_colors_of_object_links(self)
 
-    def get_axis_aligned_bounding_box(self, transform_to_object_pose: bool = True) -> AxisAlignedBoundingBox:
+    def get_axis_aligned_bounding_box(self, shift_to_object_position: bool = True) -> AxisAlignedBoundingBox:
         """
         Return the axis aligned bounding box of this object.
 
-        :param transform_to_object_pose: If True, the bounding box will be transformed to fit object pose.
+        :param shift_to_object_position: If True, the bounding box will be shifted to the object position.
         :return: The axis aligned bounding box of this object.
         """
         if self.has_one_link:
-            return self.root_link.get_axis_aligned_bounding_box(transform_to_object_pose)
+            return self.root_link.get_axis_aligned_bounding_box(shift_to_object_position)
         else:
             return self.world.get_object_axis_aligned_bounding_box(self)
 

@@ -2,7 +2,8 @@ from ..ros.ros_tools import get_ros_package_path
 
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import GripperState, Grasp, Arms, TorsoState
+from ..datastructures.enums import GripperState, Grasp, Arms, TorsoState, GripperType
+from ..units import meter
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "hsrb" + '.urdf'
 
@@ -29,7 +30,8 @@ left_gripper.add_static_joint_states(GripperState.OPEN, {'hand_l_proximal_joint'
 left_gripper.add_static_joint_states(GripperState.CLOSE, {'hand_l_proximal_joint': 0.0,
                                                           'hand_r_proximal_joint': 0.0,
                                                           'hand_motor_joint': 0.0})
-
+left_gripper.end_effector_type = GripperType.PARALLEL
+left_gripper.opening_distance = 0.13 * meter
 left_arm.end_effector = left_gripper
 
 ################################## Torso ##################################
