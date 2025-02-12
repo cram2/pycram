@@ -75,15 +75,15 @@ class ManipulatorData:
     """
     Relative directory of the manipulator description file in the resources directory.
     """
-    gripper_cmd_topic: str = "/gripper_command"
+    gripper_cmd_topic: Optional[str] = None
     """
     Gripper command topic in ROS if it has one.
     """
-    gripper_open_cmd_value: float = 0.0
+    gripper_open_cmd_value: Optional[float] = None
     """
     Grip open command value.
     """
-    gripper_close_cmd_value: float = 255.0
+    gripper_close_cmd_value: Optional[float] = None
     """
     Grip close command value.
     """

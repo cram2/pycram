@@ -5,11 +5,11 @@ from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, Torso
 from ..ros.ros_tools import get_ros_package_path
 from ..units import meter
 
-# from ..helper import get_robot_description_path
+from ..helper import get_robot_description_path
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
 
-# mjcf_filename = get_robot_description_path("", "pr2")
+mjcf_filename = get_robot_description_path("", "pr2")
 
 pr2_description = RobotDescription("pr2", "base_link", "torso_lift_link",
                                    "torso_lift_joint", filename,
