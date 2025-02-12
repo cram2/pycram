@@ -161,24 +161,48 @@ class PhysicalBody(WorldEntity, HasConcept, ABC):
     A class that represents a physical body in the world that has some related physical properties.
     """
 
-    ontology_concept: Type[PhysicalObject] = PhysicalObject
-    """
-    The ontology concept of this entity.
-    """
-
-    def __init__(self, body_id: int, world: World, concept: Type[PhysicalObject] = PhysicalObject):
+    def __init__(self, body_id: int, world: World, concept: Optional[Type[PhysicalObject]] = PhysicalObject):
         WorldEntity.__init__(self, body_id, world)
-        HasConcept.__init__(self)
 
         # set ontology related information
         self.ontology_concept = concept
-        if not self.world.is_prospection_world:
-            self.ontology_individual = self.ontology_concept(namespace=self.world.ontology.ontology)
+        HasConcept.__init__(self)
+        if not self.world.is_prospection_world and concept:
+            self.ontology_individual = self.ontology_concept(self.name, namespace=self.world.ontology.ontology)
+            self.world.ontology.python_objects[self.ontology_individual] = self
+            self.ontology_individual.is_a = [self.ontology_concept]
 
         self.local_transformer = LocalTransformer()
         self._is_translating: Optional[bool] = None
         self._is_rotating: Optional[bool] = None
         self._velocity: Optional[List[float]] = None
+
+    def contains_body(self, body: PhysicalBody) -> bool:
+        """
+        Check if this body contains another body.
+
+        :param body: The physical body to check if it is contained by this body.
+        :return: True if the body contains the other body, otherwise False.
+        """
+        contained_bodies = self.contained_bodies
+        return body in contained_bodies or (body.parent_entity and body.parent_entity in contained_bodies)
+
+    @property
+    def contained_bodies(self) -> List[PhysicalBody]:
+        """
+        :return: True if the object contains the other object, otherwise False.
+        """
+        self.world.ontology.reason()
+        return [self.world.ontology.python_objects[phys_obj] for phys_obj in self.ontology_individual.contains_object]
+
+    @contained_bodies.setter
+    def contained_bodies(self, bodies: List[PhysicalBody]) -> None:
+        """
+        Set the bodies that are contained by this body.
+
+        :param bodies: The bodies that are contained in this body.
+        """
+        self.ontology_individual.contains_object = [body.ontology_individual for body in bodies]
 
     @abstractmethod
     def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:

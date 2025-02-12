@@ -19,4 +19,4 @@ class HasConcept:
     """
 
     def __init__(self):
-        self.ontology_individual = self.ontology_concept()
+        self.ontology_individual = self.ontology_concept() if self.ontology_concept else None

@@ -2,6 +2,7 @@ import tempfile
 
 import owlready2
 from typing_extensions import Dict, Any
+
 from .ontologies.base import Base, ontology as default_pycrap_ontology
 
 
@@ -55,7 +56,6 @@ class OntologyWrapper:
         """
         return default_pycrap_ontology.classes()
 
-
     def search(self, *args, **kwargs):
         """
         Check https://owlready2.readthedocs.io/en/latest/onto.html#simple-queries for details.
@@ -66,7 +66,6 @@ class OntologyWrapper:
 
     def search_one(self, *args, **kwargs):
         return self.ontology.search(*args, **kwargs)
-
 
     def __enter__(self):
         return self.ontology.__enter__()
@@ -81,6 +80,5 @@ class OntologyWrapper:
         owlready2.sync_reasoner_pellet([self.ontology, default_pycrap_ontology],
                                        infer_property_values=True, infer_data_property_values=True, debug=False)
 
-
-    def add_individual(self, individual :Base, python_object: Any):
+    def add_individual(self, individual: Base, python_object: Any):
         self.python_objects[individual] = python_object

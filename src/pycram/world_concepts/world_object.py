@@ -1,24 +1,22 @@
 from __future__ import annotations
 
-import logging
 import os
-from functools import cached_property
 from pathlib import Path
 
 import numpy as np
-import owlready2
 from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
 from trimesh.parent import Geometry3D
-from typing_extensions import Type, Optional, Dict, Tuple, List, Union, Self
+from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
+import pycrap.ontologies
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList, RotatedBoundingBox, VirtualJoint)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
-from ..datastructures.world_entity import PhysicalBody, WorldEntity
+from ..datastructures.world_entity import PhysicalBody
 from ..description import ObjectDescription, LinkDescription, Joint
 from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, UnsupportedFileExtension, \
     ObjectDescriptionUndefined
@@ -34,9 +32,8 @@ except ImportError:
     MJCF = None
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
-from ..datastructures.mixins import HasConcept
-from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, \
-    has_child_link, has_parent_link, is_part_of, Robot, Link as CraxLink, Location, Floor
+from pycrap.ontologies import PhysicalObject, Joint, \
+    has_child_link, has_parent_link, Robot, Link as CraxLink, Location, Floor
 
 from pycrap.urdf_parser import parse_furniture, parse_joint_types
 
@@ -85,11 +82,13 @@ class Object(PhysicalBody):
         :param scale_mesh: The scale of the mesh.
         """
 
-        super().__init__(-1, world if world is not None else World.current_world, concept)
+        self.world = world if world is not None else World.current_world
+        self.name: str = name
+
+        super().__init__(-1, self.world, concept=concept)
 
         pose = Pose() if pose is None else pose
 
-        self.name: str = name
         self.path: Optional[str] = path
 
         self._resolve_description(path, description)
@@ -129,32 +128,6 @@ class Object(PhysicalBody):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.add_object(self)
-
-    def contains_object(self, obj: Object) -> bool:
-        """
-        Check if the object contains another object.
-
-        :param obj: The object.
-        :return: True if the object contains the other object, otherwise False.
-        """
-        return obj in self.contained_objects
-
-    @property
-    def contained_objects(self) -> List[Object]:
-        """
-        Get the objects that are contained in this object.
-        :return: True if the object contains the other object, otherwise False.
-        """
-        self.world.ontology.reason()
-        return [self.world.ontology.python_objects[phys_obj] for phys_obj in self.ontology_concept.contains_object]
-
-    @contained_objects.setter
-    def contained_objects(self, objects: List[Object]) -> None:
-        """
-        Set the objects that are contained in this object.
-        :param objects: The objects that are contained in this object.
-        """
-        self.ontology_concept.contains_object = [obj.ontology_individual for obj in objects]
 
     @property
     def tf_frame(self) -> str:
@@ -470,17 +443,13 @@ class Object(PhysicalBody):
             if link_name == self.description.get_root():
                 self.links[link_name] = self.description.RootLink(self)
             else:
-                self.links[link_name] = self.description.Link(link_id, link_description, self)
-
-            # If the link can be matched to a concept, assign it, else assign PhysicalObject as class.
-            if parse_furniture(link_name):
-                ontology_concept = parse_furniture(link_name)
-            else:
-                ontology_concept = PhysicalObject
-            if not self.world.is_prospection_world:
-                individual = ontology_concept(name=link_name, namespace=self.world.ontology.ontology)
-                self.world.ontology.python_objects[individual] = self.links[link_name]
-                individual.is_a = [ontology_concept, CraxLink]
+                # If the link can be matched to a concept, assign it, else assign PhysicalObject as class.
+                if parse_furniture(link_name):
+                    ontology_concept = parse_furniture(link_name)
+                else:
+                    ontology_concept = CraxLink
+                self.links[link_name] = self.description.Link(link_id, link_description, self,
+                                                              concept=ontology_concept)
 
         self.update_link_transforms()
 
@@ -498,7 +467,7 @@ class Object(PhysicalBody):
         """
         self.joints = {}
 
-        ontology_concept = Joint
+        ontology_concept = pycrap.ontologies.Joint
         for joint_name, joint_id in self.joint_name_to_id.items():
             parsed_joint_description = self.description.get_joint_by_name(joint_name)
             is_virtual = self.is_joint_virtual(joint_name)
@@ -509,18 +478,20 @@ class Object(PhysicalBody):
                 # The assignment of parent/child links has to be done with onto.search because an individual is required,
                 # not a string.
                 individual.is_a = [ontology_concept, has_child_link.some(
-                    self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_child_link(joint_name).name))),
+                    self.world.ontology.ontology.search_one(iri="*" + str(self.get_joint_child_link(joint_name).name))),
                                    has_parent_link.some(
-                    self.world.ontology.ontology.search_one(iri= "*" + str(self.get_joint_parent_link(joint_name).name))),
+                                       self.world.ontology.ontology.search_one(
+                                           iri="*" + str(self.get_joint_parent_link(joint_name).name))),
                                    parse_joint_types(self.get_joint_type(joint_name).name)]
                 link_individual = self.world.ontology.ontology.search_one(iri=
                                                                           self.world.ontology.ontology.base_iri +
-                                                                               str(self.get_joint_child_link(joint_name).name))
-                if self.world.ontology.ontology.search_one(iri= self.world.ontology.ontology.base_iri +
-                                                                str(self.get_joint_parent_link(joint_name).name)):
-                     link_individual.is_part_of = [self.world.ontology.ontology.
-                                                   search_one(iri=self.world.ontology.ontology.base_iri
-                                                              + str(self.get_joint_parent_link(joint_name).name))]
+                                                                          str(self.get_joint_child_link(
+                                                                              joint_name).name))
+                if self.world.ontology.ontology.search_one(iri=self.world.ontology.ontology.base_iri +
+                                                               str(self.get_joint_parent_link(joint_name).name)):
+                    link_individual.is_part_of = [self.world.ontology.ontology.
+                                                  search_one(iri=self.world.ontology.ontology.base_iri
+                                                                 + str(self.get_joint_parent_link(joint_name).name))]
 
     def is_joint_virtual(self, name: str):
         """
@@ -627,7 +598,8 @@ class Object(PhysicalBody):
         """
         return self.links[link_name].tf_frame
 
-    def get_link_axis_aligned_bounding_box(self, link_name: str, transform_to_link_pose: bool = True) -> AxisAlignedBoundingBox:
+    def get_link_axis_aligned_bounding_box(self, link_name: str,
+                                           transform_to_link_pose: bool = True) -> AxisAlignedBoundingBox:
         """
         Return the axis aligned bounding box of the link with the given name.
 
@@ -1293,7 +1265,7 @@ class Object(PhysicalBody):
         """
         return {joint_name: np.clip(joint_position, self.joints[joint_name].lower_limit,
                                     self.joints[joint_name].upper_limit)
-                if self.joints[joint_name].has_limits else joint_position
+        if self.joints[joint_name].has_limits else joint_position
                 for joint_name, joint_position in joint_positions.items()}
 
     def get_joint_position(self, joint_name: str) -> float:
@@ -1570,4 +1542,3 @@ class Object(PhysicalBody):
         :return: The parent of this object which is the world.
         """
         return self.world
-

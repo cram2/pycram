@@ -9,6 +9,23 @@ from pycram.datastructures.pose import Pose
 
 class TestLinks(BulletWorldTestCase):
 
+    def test_contains_body(self):
+
+        self.assertFalse(self.kitchen.contains_body(self.kitchen.links["iai_fridge_main"]))
+        self.assertFalse(self.kitchen.contains_body(self.milk))
+
+        self.kitchen.contained_bodies = [self.kitchen.links["iai_fridge_main"]]
+        self.assertTrue(self.kitchen.contains_body(self.kitchen.links["iai_fridge_main"]))
+        self.assertFalse(self.kitchen.contains_body(self.milk))
+
+        self.kitchen.links["iai_fridge_main"].contained_bodies = [self.milk]
+
+        # Kitchen should contain cabinet and drawer (reasoned)
+        self.assertTrue(self.kitchen.contains_body(self.kitchen.links["iai_fridge_main"]))
+        self.assertTrue(self.kitchen.links["iai_fridge_main"].contains_body(self.milk))
+        self.assertTrue(self.kitchen.contains_body(self.milk))
+        self.assertEqual(len(self.kitchen.contained_bodies), 2)
+
     def test_get_convex_hull(self):
         self.milk.set_orientation(quaternion_from_euler(0, np.pi/4, 0))
         hull = self.milk.root_link.get_convex_hull()

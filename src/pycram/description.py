@@ -8,8 +8,10 @@ from abc import ABC, abstractmethod
 import trimesh
 from geometry_msgs.msg import Point
 from trimesh.parent import Geometry3D
-from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Sequence, Self
+from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Sequence, Self, Type
 
+import pycrap.ontologies
+from pycrap.ontologies import PhysicalObject
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
     MeshVisualShape, RotatedBoundingBox
 from .datastructures.enums import JointType
@@ -193,11 +195,13 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
     A link of an Object in the World.
     """
 
-    def __init__(self, _id: int, link_description: LinkDescription, obj: Object):
-        PhysicalBody.__init__(self, _id, obj.world)
+    def __init__(self, _id: int, link_description: LinkDescription, obj: Object,
+                 concept: Optional[Type[PhysicalObject]] = pycrap.ontologies.Link):
+        self.description = link_description
+        PhysicalBody.__init__(self, _id, obj.world, concept)
         ObjectEntity.__init__(self, obj)
         LinkDescription.__init__(self, link_description.parsed_description, link_description.mesh_dir)
-        self.description = link_description
+
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
 
@@ -478,7 +482,9 @@ class RootLink(Link, ABC):
     """
 
     def __init__(self, obj: Object):
-        Link.__init__(self, obj.get_root_link_id(), obj.get_root_link_description(), obj)
+        Link.__init__(self, obj.get_root_link_id(), obj.get_root_link_description(), obj, concept=None)
+        self.ontology_concept = obj.ontology_concept
+        self.ontology_individual = obj.ontology_individual
 
     @property
     def tf_frame(self) -> str:

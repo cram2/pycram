@@ -19,21 +19,6 @@ from pycrap.ontologies import Milk, Food
 
 class TestObject(BulletWorldTestCase):
 
-    def test_contains_object(self):
-
-        self.assertFalse(self.kitchen.contains_object(self.kitchen.links["cabinet"]))
-        self.assertFalse(self.kitchen.contains_object(self.kitchen.links["drawer"]))
-
-        self.kitchen.contains_objects = [self.kitchen.links["cabinet"]]
-        self.assertTrue(self.kitchen.contains_object(self.kitchen.links["cabinet"]))
-
-        self.kitchen.links["cabinet"].contains_objects = [self.kitchen.links["drawer"]]
-
-        # Kitchen should contain cabinet and drawer (reasoned)
-        self.assertTrue(self.kitchen.contains_object(self.kitchen.links["cabinet"]))
-        self.assertTrue(self.kitchen.contains_object(self.kitchen.links["drawer"]))
-        self.assertEqual(len(self.kitchen.contained_objects), 2)
-
     def test_wrong_object_description_path(self):
         with self.assertRaises(UnsupportedFileExtension):
             milk = Object("milk_not_found", Milk, "wrong_path.sk")
