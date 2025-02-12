@@ -130,6 +130,32 @@ class Object(PhysicalBody):
 
         self.world.add_object(self)
 
+    def contains_object(self, obj: Object) -> bool:
+        """
+        Check if the object contains another object.
+
+        :param obj: The object.
+        :return: True if the object contains the other object, otherwise False.
+        """
+        return obj in self.contained_objects
+
+    @property
+    def contained_objects(self) -> List[Object]:
+        """
+        Get the objects that are contained in this object.
+        :return: True if the object contains the other object, otherwise False.
+        """
+        self.world.ontology.reason()
+        return [self.world.ontology.python_objects[phys_obj] for phys_obj in self.ontology_concept.contains_object]
+
+    @contained_objects.setter
+    def contained_objects(self, objects: List[Object]) -> None:
+        """
+        Set the objects that are contained in this object.
+        :param objects: The objects that are contained in this object.
+        """
+        self.ontology_concept.contains_object = [obj.ontology_individual for obj in objects]
+
     @property
     def tf_frame(self) -> str:
         """
