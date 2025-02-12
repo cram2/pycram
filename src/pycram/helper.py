@@ -87,6 +87,9 @@ def get_robot_description_path(robot_relative_dir: str, robot_name: str,
     :return: The path to the description file of the robot if it exists, otherwise None.
     """
     resources_dir = find_multiverse_resources_path() if resources_dir is None else resources_dir
+    if resources_dir is None:
+        logwarn("Could not find Multiverse resources path and no other resources were given.")
+        return None
     file_name = file_name if file_name is not None else robot_name
     extension = description_type.get_file_extension()
     extension_folders = []
