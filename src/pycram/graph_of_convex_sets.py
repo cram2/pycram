@@ -3,12 +3,11 @@ import itertools
 import networkx as nx
 import numpy as np
 import plotly.graph_objects as go
-from portion import openclosed
-from sortedcontainers import SortedSet
-from tqdm import tqdm
 from random_events.interval import SimpleInterval, Bound, singleton
 from random_events.product_algebra import SimpleEvent, Event
 from random_events.variable import Continuous
+from sortedcontainers import SortedSet
+from tqdm import tqdm
 from typing_extensions import Self, Optional, List
 
 from . import World
@@ -211,23 +210,27 @@ class GraphOfConvexSets(nx.Graph):
         number_of_nodes = len(self.nodes)
 
         # make the bounding boxes a bit larger
-        for node in self.nodes:
-            node.enlarge(tolerance, tolerance, tolerance, tolerance, tolerance, tolerance)
+        [node.enlarge(tolerance, tolerance, tolerance, tolerance, tolerance, tolerance) for node in self.nodes]
 
-        # calculate the connectivity for each edge pair
-        for n1, n2 in tqdm(itertools.combinations(self.nodes, 2), desc="Calculating connectivity",
-                           total=number_of_nodes * (number_of_nodes - 1) // 2):
-
-            intersection = n1.intersection_with(n2)
-
-            # if they are connected, save the intersection
+        def check_connectivity(node1, node2):
+            """
+            Check the connectivity between two nodes.
+            Add an edge if they are connected.
+            :param node1: The first node.
+            :param node2: The second node.
+            """
+            intersection = node1.intersection_with(node2)
             if intersection:
                 intersection.enlarge(-tolerance, -tolerance, -tolerance, -tolerance, -tolerance, -tolerance)
-                self.add_edge(n1, n2, intersection=intersection)
+                self.add_edge(node1, node2, intersection=intersection)
+
+        # calculate the connectivity for each edge pair
+        [check_connectivity(n1, n2) for n1, n2 in tqdm(itertools.combinations(self.nodes, 2),
+                                                       desc="Calculating connectivity",
+                                                       total=number_of_nodes * (number_of_nodes - 1) // 2)]
 
         # recreate the original bounding boxes
-        for node in self.nodes:
-            node.enlarge(-tolerance, -tolerance, -tolerance, -tolerance, -tolerance, -tolerance)
+        [node.enlarge(-tolerance, -tolerance, -tolerance, -tolerance, -tolerance, -tolerance) for node in self.nodes]
 
     def plot_free_space(self) -> List[go.Mesh3d]:
         """
@@ -316,12 +319,11 @@ class GraphOfConvexSets(nx.Graph):
         if search_space is None:
             search_space = Box(x=SimpleInterval(-np.inf, np.inf),
                                y=SimpleInterval(-np.inf, np.inf),
-                               z= SimpleInterval(-np.inf, np.inf))
+                               z=SimpleInterval(-np.inf, np.inf))
         return search_space
 
-
     @classmethod
-    def obstacles_of_world(cls,  world: World, search_space: Optional[Box] = None) -> Event:
+    def obstacles_of_world(cls, world: World, search_space: Optional[Box] = None) -> Event:
         """
         Get all obstacles of the world besides the robot as a random event.
         """
@@ -354,7 +356,6 @@ class GraphOfConvexSets(nx.Graph):
                     obstacles |= bb_event
 
         return obstacles
-
 
     @classmethod
     def free_space_from_world(cls, world: World, tolerance=.001, search_space: Optional[Box] = None) -> Self:
@@ -433,6 +434,7 @@ class GraphOfConvexSets(nx.Graph):
 
         return result
 
+
 def plot_path_in_rviz(path: List[Pose]):
     """
     Plot a path in rviz.
@@ -445,4 +447,3 @@ def plot_path_in_rviz(path: List[Pose]):
 
     publisher = make_publisher()
     publisher.visualize_trajectory(path)
-
