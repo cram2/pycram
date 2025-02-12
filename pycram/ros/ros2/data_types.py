@@ -9,7 +9,8 @@ class Time(builtin_interfaces.msg.Time):
 
     @classmethod
     def now(cls):
-        return cls(node.get_clock().now().seconds_nanoseconds()[0])
+        return builtin_interfaces.msg.Time(**dict(zip(["sec", "nanosec"], node.get_clock().now().seconds_nanoseconds())))
+        # return cls(*node.get_clock().now().seconds_nanoseconds())
         #return node.get_clock().now()
 
     def to_sec(self):

@@ -1,3 +1,10 @@
+# Funky MonkeyPatching for ROS2 compatability
+import builtin_interfaces.msg
+def to_sec(self):
+    return self.sec
+
+builtin_interfaces.msg.Time.to_sec = to_sec
+
 import rclpy
 import threading
 from rclpy.node import Node
