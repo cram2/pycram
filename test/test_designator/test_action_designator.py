@@ -1,8 +1,9 @@
 import time
 import unittest
+
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
-    NavigateActionPerformable, FaceAtPerformable
+    NavigateActionPerformable, FaceAtPerformable, ParkArmsActionPerformable
 from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
@@ -70,17 +71,18 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         description = action_designator.PickUpAction(object_description, [Arms.LEFT], [Grasp.FRONT])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([0.5, 0.6, 0], [0, 0, 0, 1])).perform()
             MoveTorsoActionPerformable(0.3).perform()
+            ParkArmsActionPerformable(Arms.BOTH).perform()
             description.resolve().perform()
         self.assertTrue(object_description.resolve().world_object in self.robot.attachments.keys())
 
     def test_place(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
+        description = action_designator.PlaceAction(object_description, [Pose([1.2, 0.7, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([0.6, 0.6, 0], [0, 0, 0, 1])).perform()
             MoveTorsoActionPerformable(0.3).perform()
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
             description.resolve().perform()
@@ -138,6 +140,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         milk_desig = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.GraspingAction([Arms.RIGHT], milk_desig)
         with simulated_robot:
+            ParkArmsActionPerformable(Arms.BOTH).perform()
             description.resolve().perform()
         dist = np.linalg.norm(
             np.array(self.robot.get_link_position_as_list(RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_tool_frame())) -

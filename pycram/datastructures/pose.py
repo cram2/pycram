@@ -70,7 +70,7 @@ class Pose(PoseStamped):
 
         self.header.frame_id = frame
 
-        #self.header.stamp = time if time else Time().now()
+        self.header.stamp = time if time else Time().now()
 
         self.frame = frame
 

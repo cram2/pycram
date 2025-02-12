@@ -2,8 +2,6 @@ import time
 import unittest
 import xml.etree.ElementTree as ET
 
-import rospkg
-
 from pycram.testing import BulletWorldTestCase, BulletWorldGUITestCase
 from pycram.datastructures.dataclasses import Color
 from pycram.datastructures.enums import WorldMode
@@ -13,6 +11,7 @@ from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.robot_description import RobotDescription
 from pycram.world_concepts.world_object import Object
 from pycrap import Milk, Robot
+from pycram.ros import get_ros_package_path
 
 fix_missing_inertial = ObjectDescription.fix_missing_inertial
 
@@ -237,8 +236,8 @@ class BulletWorldTestGUI(BulletWorldGUITestCase):
 class XMLTester(unittest.TestCase):
 
     def setUp(self) -> None:
-        rospack = rospkg.RosPack()
-        filename = rospack.get_path('pycram') + '/resources/robots/' + 'pr2.urdf'
+        filename = get_ros_package_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
+
         with open(filename, "r") as f:
             self.urdf_string = f.read()
 

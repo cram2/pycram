@@ -35,7 +35,7 @@ class TestCaseBulletWorldReasoning(BulletWorldTestCase):
     def test_reachable(self):
         self.robot.set_pose(Pose())
         time.sleep(1)
-        self.assertTrue(btr.reachable(Pose([0.5, -0.7, 1]), self.robot,
+        self.assertTrue(btr.reachable(Pose([0.5, -0.5, 0.5]), self.robot,
                                       RobotDescription.current_robot_description.kinematic_chains[
                                           "right"].get_tool_frame()))
         self.assertFalse(btr.reachable(Pose([2, 2, 1]), self.robot,
@@ -43,10 +43,10 @@ class TestCaseBulletWorldReasoning(BulletWorldTestCase):
                                            "right"].get_tool_frame()))
 
     def test_blocking(self):
-        self.milk.set_pose(Pose([0.5, -0.7, 1]))
+        self.milk.set_pose(Pose([0.5, -0.5, 0.7]))
         self.robot.set_pose(Pose())
         time.sleep(2)
-        blocking = btr.blocking(Pose([0.5, -0.7, 1]), self.robot,
+        blocking = btr.blocking(Pose([0.5, -0.5, 0.7]), self.robot,
                                 RobotDescription.current_robot_description.kinematic_chains["right"].get_tool_frame())
         self.assertTrue(blocking != [])
 
