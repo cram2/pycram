@@ -6,12 +6,12 @@ from copy import deepcopy, copy
 from dataclasses import dataclass, fields, field
 
 import numpy as np
+import plotly.graph_objects as go
 import trimesh
 from matplotlib import pyplot as plt
-from random_events.variable import Continuous
 from random_events.interval import closed
 from random_events.product_algebra import SimpleEvent, Event
-import plotly.graph_objects as go
+from random_events.variable import Continuous
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, deprecated
 
 from .enums import JointType, Shape, VirtualMobileBaseJointName
@@ -182,17 +182,17 @@ class BoundingBox:
         for i, simple_event in enumerate(simple_events):
             x, y, z = 0, 1, 2
             for j in range(2):
-                x, y, z = x + j*3, y + j*3, z + j*3
+                x, y, z = x + j * 3, y + j * 3, z + j * 3
                 # Create a 3D mesh trace for the rectangle
                 all_vertices.extend([[simple_event[x].lower, simple_event[y].lower, simple_event[z].lower],
-                                [simple_event[x].lower, simple_event[y].lower, simple_event[z].upper],
-                                [simple_event[x].lower, simple_event[y].upper, simple_event[z].lower],
-                                [simple_event[x].lower, simple_event[y].upper, simple_event[z].upper],
-                                [simple_event[x].upper, simple_event[y].lower, simple_event[z].lower],
-                                [simple_event[x].upper, simple_event[y].lower, simple_event[z].upper],
-                                [simple_event[x].upper, simple_event[y].upper, simple_event[z].lower],
-                                [simple_event[x].upper, simple_event[y].upper, simple_event[z].upper]])
-                all_faces.extend((np.array(BoundingBox.get_box_faces()) + i*16 + j*8).tolist())
+                                     [simple_event[x].lower, simple_event[y].lower, simple_event[z].upper],
+                                     [simple_event[x].lower, simple_event[y].upper, simple_event[z].lower],
+                                     [simple_event[x].lower, simple_event[y].upper, simple_event[z].upper],
+                                     [simple_event[x].upper, simple_event[y].lower, simple_event[z].lower],
+                                     [simple_event[x].upper, simple_event[y].lower, simple_event[z].upper],
+                                     [simple_event[x].upper, simple_event[y].upper, simple_event[z].lower],
+                                     [simple_event[x].upper, simple_event[y].upper, simple_event[z].upper]])
+                all_faces.extend((np.array(BoundingBox.get_box_faces()) + i * 16 + j * 8).tolist())
         return trimesh.Trimesh(np.array(all_vertices), np.array(all_faces))
 
     @staticmethod
@@ -364,6 +364,7 @@ class RotatedBoundingBox(BoundingBox):
     """
     Dataclass for storing a rotated bounding box.
     """
+
     def __init__(self, min_x: float, min_y: float, min_z: float, max_x: float, max_y: float, max_z: float,
                  transform: Optional[Transform] = None, points: Optional[List[Point]] = None):
         """
@@ -578,7 +579,7 @@ class PlaneVisualShape(VisualShape):
 
 
 VisualShapeUnion = Union[BoxVisualShape, SphereVisualShape, CapsuleVisualShape,
-                         CylinderVisualShape, MeshVisualShape, PlaneVisualShape]
+CylinderVisualShape, MeshVisualShape, PlaneVisualShape]
 
 
 @dataclass
@@ -627,7 +628,8 @@ class PhysicalBodyState(State):
         if self.velocity is None or other.velocity is None:
             return self.velocity == other.velocity
         return (self.vector_is_almost_equal(self.velocity[:3], other.velocity[:3], self.acceptable_velocity_error[0])
-                and self.vector_is_almost_equal(self.velocity[3:], other.velocity[3:], self.acceptable_velocity_error[1]))
+                and self.vector_is_almost_equal(self.velocity[3:], other.velocity[3:],
+                                                self.acceptable_velocity_error[1]))
 
     @staticmethod
     def vector_is_almost_equal(vector1: List[float], vector2: List[float], acceptable_error: float) -> bool:
@@ -1126,12 +1128,16 @@ class RayResult:
             return 1.0
         return self._hit_fraction
 
+    @hit_fraction.setter
+    def hit_fraction(self, value: float):
+        self._hit_fraction = value
+
     def update_distance(self, from_position: List[float], to_position: Optional[List[float]] = None) -> float:
         """
         The distance from the ray origin to the intersection point.
         """
         if self.hit_position:
-            self.distance = np.linalg.norm(np.array(self.hit_position) - np.array(from_position))
+            self.distance = float(np.linalg.norm(np.array(self.hit_position) - np.array(from_position)))
             if not self.hit_fraction:
                 self.hit_fraction = self.distance / np.linalg.norm(np.array(to_position) - np.array(from_position))
             return self.distance
