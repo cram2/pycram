@@ -1,3 +1,4 @@
+from .kevin_process_modules import KevinManager
 from .pr2_process_modules import Pr2Manager
 from .boxy_process_modules import BoxyManager
 from .donbot_process_modules import DonbotManager
@@ -11,7 +12,9 @@ Pr2Manager()
 BoxyManager()
 DonbotManager()
 HSRBManager()
-DefaultManager()
 StretchManager()
 TiagoManager()
 RobotiqManager()
+KevinManager()
+
+DefaultManager() # Has to be the last one initialized because of some weired singleton behavior

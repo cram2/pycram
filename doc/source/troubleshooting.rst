@@ -108,3 +108,19 @@ real_robot environments. This is also explained in the `Action Designator Exampl
 
    with simulated_robot:
       NavigateAction([Pose()]).resolve().perform()
+
+
+---------------------------
+JntArray index out of Range
+---------------------------
+This error originates in the kdl_ik_service which is responsible for calculating ik solutions and usually looks like
+this:
+.. code-block:: pyhton
+
+   ServiceException: service [/kdl_ik_service/get_ik] responded with an error: b'error processing request: JntArray index out of range'
+
+This error can have two origins.
+
+   * The URDF on the parameter server and the URDF of the robot for which an ik solution should be found are not identical
+      * For example: The URDF on the parameter server is from the PR2 and a solution for the HSR should be found
+   * The amount of names of joints and the amount of joint positions in the robot_state part of the request are not equal.
