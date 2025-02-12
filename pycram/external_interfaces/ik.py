@@ -15,6 +15,7 @@ from ..datastructures.pose import Pose
 from ..robot_description import RobotDescription
 from ..failures import IKError
 from ..external_interfaces.giskard import projection_cartesian_goal, allow_gripper_collision
+from .pinocchio_ik import compute_ik
 
 import os
 
@@ -58,7 +59,6 @@ def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_ob
         msg_request = GetPositionIK.Request()
 
         msg_request.ik_request.ik_link_name = tip_link
-        print(target_pose.to_pose_stamped())
         msg_request.ik_request.pose_stamped = target_pose.to_pose_stamped()
         msg_request.ik_request.avoid_collisions = False
         msg_request.ik_request.robot_state = robot_state
@@ -187,7 +187,8 @@ def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str
     :return: A Pose at which the robt should stand as well as a dictionary of joint values
     """
     if "/giskard" not in get_node_names():
-        return robot.pose, request_kdl_ik(target_pose, robot, joints, gripper)
+        return robot.pose, request_pinocchio_ik(target_pose, robot, gripper, joints)
+        # return robot.pose, request_kdl_ik(target_pose, robot, joints, gripper)
     return request_giskard_ik(target_pose, robot, gripper)
 
 
@@ -261,3 +262,28 @@ def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[
             raise IKError(target_pose, "map", gripper)
         return pose, robot_joint_states
 
+
+def request_pinocchio_ik(target_pose: Pose, robot: Object, target_link: str, joints: List[str]) -> Dict[str, float]:
+    """
+    Calls the pinocchio ik solver to calculate the ik solution for a given target link and pose.
+
+    :param target_link: The target link for which the ik solution should be calculated
+    :param target_pose: The target pose for which the ik solution should be calculated
+    :param robot: The robot object for which the ik solution should be calculated
+    :param joints: The joints that should be used in the calculation
+    :return: A dictionary containing the joint names and joint values
+    """
+    lt = LocalTransformer()
+    target_pose = lt.transform_pose(target_pose, robot.tf_frame)
+
+    # Get link after last joint in chain
+    wrist_link = RobotDescription.current_robot_description.get_child(joints[-1])
+
+    # target_torso = lt.transform_pose(target_pose, robot.get_link_tf_frame(base_link))
+
+    wrist_tool_frame_offset = robot.get_transform_between_links(wrist_link, target_link)
+    target_diff = target_pose.to_transform("target").inverse_times(wrist_tool_frame_offset).to_pose()
+
+    res = compute_ik(target_link, target_diff, robot)
+
+    return res

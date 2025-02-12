@@ -6,18 +6,24 @@ from typing_extensions import List, Tuple, Dict
 from ..failures import IKError
 from ..world_concepts.world_object import Object
 from ..datastructures.pose import Pose
-from ..ros import logdebug, loginfo
 
-def create_joint_configuration(robot: Object, model: pinocchio.pinocchio_pywrap.Model) -> List[float]:
-    joint_to_qindex = dict(zip(model.names, map(lambda joint: joint.idx_q, model.joints)))
-
-    configuration = pinocchio.neutral(model)
-    for name, q_idx in joint_to_qindex.items():
+def create_joint_configuration(robot: Object, model) -> np.ndarray[float]:
+    """
+    Create a joint configuration vector (q) from the current joint positions of the robot.
+    :param robot: The robot object.
+    :param model: The Pinocchio model.
+    :return: The joint configuration vector.
+    """
+    configuration = []
+    for name, joint in zip(model.names, model.joints):
         if name == "universe":
             continue
-        joint = robot.joints[name]
-        configuration[q_idx] = joint.position
-    return configuration
+        if joint.shortname() in ["JointModelRUBX", "JointModelRUBY", "JointModelRUBZ"]:
+            configuration.append(np.cos(robot.joints[name].position))
+            configuration.append(np.sin(robot.joints[name].position))
+        else:
+            configuration.append(robot.joints[name].position)
+    return np.array(configuration)
 
 
 
@@ -32,37 +38,31 @@ def compute_ik(target_link: str, target_pose: Pose, robot: Object) -> Dict[str, 
     """
     model = pinocchio.buildModelFromUrdf(robot.path)
     data = model.createData()
-    joint_to_ids = dict(zip(model.names, map(lambda joint: joint.id, model.joints)))
-    joint_to_qindex = dict(zip(model.names, map(lambda joint: joint.idx_q, model.joints)))
 
-    JOINT_ID = model.joints[model.frames[model.getFrameId(target_link)].parent].id
+    JOINT_ID = model.frames[model.getFrameId(target_link)].parent
     # Object to destination transformation
-    oMdes = pinocchio.SE3(quaternion_rotation_matrix(target_pose.orientation_as_list()), np.array(target_pose.position_as_list()))
+    oMdes = pinocchio.XYZQUATToSE3(np.array(target_pose.position_as_list() + target_pose.orientation_as_list()))
 
     # Initial joint configuration
-    q = pinocchio.neutral(model)
+    # q = pinocchio.neutral(model)
+    q = create_joint_configuration(robot, model)
     eps = 1e-4
-    IT_MAX = 1000
+    IT_MAX = 10000
     DT = 1e-1
     damp = 1e-12
 
-    q, success = inverse_kinematics_translation(model, q, data, JOINT_ID, oMdes, eps, IT_MAX, DT, damp)
+    # q, success = inverse_kinematics_translation(model, q, data, JOINT_ID, oMdes, eps, IT_MAX, DT, damp)
+    q, success = inverse_kinematics_logarithmic(model, q, data, JOINT_ID, oMdes, eps, IT_MAX, DT, damp)
 
     if success:
-        result = {}
-        for name, q_idx in joint_to_qindex.items():
-            if name == "universe":
-                continue
-            result[name] = q[q_idx]
-
-        return result
+        return parse_configuration_vector_to_joint_positions(q, model)
     else:
-        raise IKError("IK failed", target_link, target_link)
+        raise IKError(pinocchio.SE3ToXYZQUAT(oMdes), robot.tf_frame, target_link)
 
 def inverse_kinematics_logarithmic(model, configuration, data, target_joint_id, target_transformation, eps=1e-4,
                                    max_iter=1000, dt=1e-1, damp=1e-12) -> Tuple[np.ndarray[float], bool]:
     """
-    Compute the inverse kinematics for a given target transformation.
+    Compute the inverse kinematics for a given target transformation. Using a logarithmic error metric.
 
     :param model: The Pinocchio model.
     :param configuration: The initial joint configuration.
@@ -101,7 +101,7 @@ def inverse_kinematics_logarithmic(model, configuration, data, target_joint_id, 
 def inverse_kinematics_translation(model, configuration, data, target_joint_id, target_transformation, eps=1e-4,
                                    max_iter=1000, dt=1e-1, damp=1e-12) -> Tuple[np.ndarray[float], bool]:
     """
-    Compute the inverse kinematics for a given target transformation.
+    Compute the inverse kinematics for a given target transformation. Using the distance of the translation as error metric.
 
     :param model: The Pinocchio model.
     :param configuration: The initial joint configuration.
@@ -137,6 +137,29 @@ def inverse_kinematics_translation(model, configuration, data, target_joint_id, 
         it += 1
     return q, success
 
+def parse_configuration_vector_to_joint_positions(configuration: np.ndarray[float], model) -> Dict[str, float]:
+    """
+    Takes the configuration vector from pinocchio and the robot model and returns a dictionary with joint names and
+    joint values.
+
+    :param configuration: The configuration vector.
+    :param model: The robot model.
+    :return: The joint configuration as a dictionary with joint names and joint values.
+    """
+    result = {}
+    for joint in model.joints:
+        if joint.idx_q == -1:
+            continue
+        if joint.shortname() in ["JointModelRUBX","JointModelRUBY", "JointModelRUBZ"]:
+            # Continuous Joints are represented as sin(theta) and cos(theta) of the joint value, so we use arctan2 to
+            # get the joint value
+            joint_value = np.arctan2(configuration[joint.idx_q + 1], configuration[joint.idx_q])
+        else:
+            joint_value = configuration[joint.idx_q]
+
+        result[model.names[joint.id]] = joint_value
+    return result
+
 
 def clip_joints_to_limits(joint_positions: List[float], joint_limits: List[Tuple[float, float]]) -> np.ndarray[float]:
     """
@@ -147,43 +170,3 @@ def clip_joints_to_limits(joint_positions: List[float], joint_limits: List[Tuple
     :return: The clipped joint positions.
     """
     return np.array([min(max(joint_position, joint_limit[0]), joint_limit[1]) for joint_position, joint_limit in zip(joint_positions, joint_limits)])
-
-
-
-def quaternion_rotation_matrix(quaternion: List[float]) -> np.ndarray:
-    """
-    Covert a quaternion into a full three-dimensional rotation matrix.
-
-    :param quaternion: A 4 element array representing the quaternion (q0,q1,q2,q3)
-
-    :return: A 3x3 element matrix representing the full 3D rotation matrix.
-             This rotation matrix converts a point in the local reference
-             frame to a point in the global reference frame.
-    """
-    # Extract the values from Q, convert from xyzw to wxyz
-    q0 = quaternion[3]
-    q1 = quaternion[1]
-    q2 = quaternion[2]
-    q3 = quaternion[0]
-
-    # First row of the rotation matrix
-    r00 = 2 * (q0 * q0 + q1 * q1) - 1
-    r01 = 2 * (q1 * q2 - q0 * q3)
-    r02 = 2 * (q1 * q3 + q0 * q2)
-
-    # Second row of the rotation matrix
-    r10 = 2 * (q1 * q2 + q0 * q3)
-    r11 = 2 * (q0 * q0 + q2 * q2) - 1
-    r12 = 2 * (q2 * q3 - q0 * q1)
-
-    # Third row of the rotation matrix
-    r20 = 2 * (q1 * q3 - q0 * q2)
-    r21 = 2 * (q2 * q3 + q0 * q1)
-    r22 = 2 * (q0 * q0 + q3 * q3) - 1
-
-    # 3x3 rotation matrix
-    rot_matrix = np.array([[r00, r01, r02],
-                           [r10, r11, r12],
-                           [r20, r21, r22]])
-
-    return rot_matrix
