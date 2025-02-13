@@ -6,7 +6,7 @@ from pycram.designator import ObjectDesignatorDescription
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, FaceAtPerformable, MoveTorsoAction
-from pycram.failures import TorsoGoalNotReached
+from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached
 from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
@@ -30,13 +30,6 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             description.resolve().perform()
         self.assertEqual(self.world.robot.get_joint_position(torso_joint),
                          0.3)
-
-    def _test_validate_action_pre_perform(self, action_description, failure):
-        try:
-            action_description.ground().validate(max_wait_time=timedelta(milliseconds=30))
-            self.fail(f"{failure.__name__} should have been raised.")
-        except failure:
-            pass
 
     def test_set_gripper(self):
         description = action_designator.SetGripperAction([Arms.LEFT], [GripperState.OPEN, GripperState.CLOSE])
@@ -63,6 +56,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_park_arms(self):
         description = action_designator.ParkArmsAction([Arms.BOTH])
         self.assertEqual(description.ground().arm, Arms.BOTH)
+        self._test_validate_action_pre_perform(description, ConfigurationNotReached)
         with simulated_robot:
             description.resolve().perform()
         for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right",
@@ -72,6 +66,13 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left",
                                                                                              StaticJointState.Park).items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
+
+    def _test_validate_action_pre_perform(self, action_description, failure):
+        try:
+            action_description.ground().validate(max_wait_time=timedelta(milliseconds=30))
+            self.fail(f"{failure.__name__} should have been raised.")
+        except failure:
+            pass
 
     def test_navigate(self):
         description = action_designator.NavigateAction([Pose([0.3, 0, 0], [0, 0, 0, 1])])

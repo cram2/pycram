@@ -254,17 +254,18 @@ class ParkArmsActionPerformable(ActionAbstract):
         else:
             for arm_chain in RobotDescription.current_robot_description.get_arm_chain(self.arm):
                 joint_poses.update(arm_chain.get_static_joint_states(StaticJointState.Park))
+        return joint_poses
 
     def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
         """
         Create a goal validator for the joint positions and wait until the goal is achieved or the timeout is reached.
         """
         joint_poses = self.get_joint_poses()
-        validator = MultiJointPositionGoalValidator(World.current_world.robot, joint_poses)
+        validator = create_multiple_joint_goal_validator(World.current_world.robot, joint_poses)
         validator.wait_until_goal_is_achieved(max_wait_time=max_wait_time,
                                               time_per_read=timedelta(milliseconds=20))
         if not validator.goal_achieved:
-            raise ConfigurationNotReached(validator, configuration_type="park")
+            raise ConfigurationNotReached(validator, configuration_type=StaticJointState.Park)
 
 
 @dataclass

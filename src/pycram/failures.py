@@ -8,7 +8,7 @@ from typing_extensions import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
-    from .datastructures.enums import JointType, MultiverseAPIName, Arms
+    from .datastructures.enums import JointType, MultiverseAPIName, Arms, StaticJointState
     from .validation.goal_validator import MultiJointPositionGoalValidator
 
 
@@ -404,8 +404,11 @@ class TorsoFailure(PlanFailure):
 class ConfigurationNotReached(PlanFailure):
     """"""
 
-    def __init__(self, goal_validator: MultiJointPositionGoalValidator, *args, **kwargs):
-        super().__init__(goal_validator.goal_not_achieved_message, *args, **kwargs)
+    def __init__(self, goal_validator: MultiJointPositionGoalValidator, configuration_type: StaticJointState,
+                 *args, **kwargs):
+        super().__init__(f"configuration_type: {configuration_type.name},"
+                         f" {goal_validator.goal_not_achieved_message}",
+                         *args, **kwargs)
 
 
 class Timeout(PlanFailure):
