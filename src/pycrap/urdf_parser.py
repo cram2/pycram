@@ -12,7 +12,7 @@ def remove_digits(string):
 
 
 
-def parse_furniture(link):
+def parse_furniture(link: str):
     """
     Matching the link names from the parsed description with the given classes in the Ontology.
     This procedure should be replaced with Ontology Tinder.
@@ -22,13 +22,17 @@ def parse_furniture(link):
 
     for l in link.split('_'):
         for c in pycrap.ontologies.base.ontology.classes():
+            if c == pycrap.ontologies.Base:
+                continue
             clean_l = remove_digits(l).capitalize()  # Remove digits and capitalize
             # print(f"clsname: {c[0]}, link: {clean_l}")
-            try:
-                if clean_l == str(c).split(".")[1]:
-                    matched_furniture.append(c)
-            except IndexError:
-                pass
+            splitted = str(c).split(".")
+
+            # TODO: I dont get why this can happen. All ontology classes should be prefixed with some module name.
+            if len(splitted) == 1:
+                return None
+            if clean_l == splitted[1]:
+                matched_furniture.append(c)
     if matched_furniture:
         return matched_furniture[len(matched_furniture)-1]
 

@@ -48,7 +48,6 @@ If you already have some data in your local database you can skip the next block
 some example data
 
 ```python
-from pycram.datastructures.enums import Arms, ObjectType
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
@@ -56,7 +55,6 @@ from pycram.tasktree import with_tree
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.designators.object_designator import *
-from pycram.datastructures.enums import TorsoState
 from pycrap.ontologies import Robot, Kitchen, Milk, Cereal
 
 
@@ -76,7 +74,7 @@ class ExamplePlans:
     def pick_and_place_plan(self):
         with simulated_robot:
             ParkArmsAction([Arms.BOTH]).resolve().perform()
-            MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
+            MoveTorsoAction([0.3]).resolve().perform()
             pickup_pose = CostmapLocation(target=self.cereal_desig.resolve(), reachable_for=self.robot_desig).resolve()
             pickup_arm = pickup_pose.reachable_arms[0]
             NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()

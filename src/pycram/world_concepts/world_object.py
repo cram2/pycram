@@ -32,8 +32,9 @@ except ImportError:
     MJCF = None
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
-from pycrap.ontologies import PhysicalObject, Joint, \
-    has_child_link, has_parent_link, Robot, Link as CraxLink, Location, Floor
+from ..datastructures.mixins import HasConcept
+from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, \
+    has_child_link, has_parent_link, is_part_of, Robot, Link as CraxLink, Floor, Location, RootLink
 
 from pycrap.urdf_parser import parse_furniture, parse_joint_types
 
@@ -54,6 +55,8 @@ class Object(PhysicalBody):
     """
     A dictionary that maps the file extension to the corresponding ObjectDescription type.
     """
+
+    ontology_concept: Type[PhysicalObject] = PhysicalObject
 
     def __init__(self, name: str, concept: Type[PhysicalObject], path: Optional[str] = None,
                  description: Optional[ObjectDescription] = None,
@@ -84,7 +87,6 @@ class Object(PhysicalBody):
 
         self.world = world if world is not None else World.current_world
         self.name: str = name
-
         super().__init__(-1, self.world, concept=concept)
 
         pose = Pose() if pose is None else pose
@@ -108,7 +110,6 @@ class Object(PhysicalBody):
                                                                                  color=color)
 
             self.description.update_description_from_file(self.path)
-
         # if the object is an agent in the belief state
         if self.is_a_robot and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
@@ -432,10 +433,6 @@ class Object(PhysicalBody):
         """
         Initialize the link objects from the URDF file and creates a dictionary which maps the link names to the
         corresponding link objects.
-        Also create Ontology individuals based on the parsed links from the URDF. Links are always of tpye "Physical
-        Object", but can also be of another type if matched.
-        Also mapping the python object to the  parsed link description, so it can be accessed with more ease.
-
         """
         self.links = {}
         for link_name, link_id in self.link_name_to_id.items():
@@ -443,13 +440,7 @@ class Object(PhysicalBody):
             if link_name == self.description.get_root():
                 self.links[link_name] = self.description.RootLink(self)
             else:
-                # If the link can be matched to a concept, assign it, else assign PhysicalObject as class.
-                if parse_furniture(link_name):
-                    ontology_concept = parse_furniture(link_name)
-                else:
-                    ontology_concept = CraxLink
-                self.links[link_name] = self.description.Link(link_id, link_description, self,
-                                                              concept=ontology_concept)
+                self.links[link_name] = self.description.Link(link_id, link_description, self)
 
         self.update_link_transforms()
 
@@ -457,41 +448,12 @@ class Object(PhysicalBody):
         """
         Initialize the joint objects from the URDF file and creates a dictionary which mas the joint names to the
         corresponding joint objects
-        Also creating individuals during runtime from parsed joints out of the URDF file. Every Joint will be of type
-        "Joint" and also of one of the joint types (fixed, prismatic, etc.).
-        Also mapping the python object to the  parsed joint description, so it can be accessed with more ease.
-        Additionally adding the relations "has_child_link", "has_parent_link" which refer to the parent and child link
-        of the corresponding joint. Those links are initialized in the @_init_links_and_update_transforms function.
-        Finally including the "is_part_of" relation which describes the relation between two links that are connected
-        by one joint => child_link is_part_of parent_link
         """
         self.joints = {}
-
-        ontology_concept = pycrap.ontologies.Joint
         for joint_name, joint_id in self.joint_name_to_id.items():
             parsed_joint_description = self.description.get_joint_by_name(joint_name)
             is_virtual = self.is_joint_virtual(joint_name)
             self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
-            if not self.world.is_prospection_world:
-                individual = ontology_concept(joint_name, namespace=self.world.ontology.ontology)
-                self.world.ontology.python_objects[individual] = parsed_joint_description
-                # The assignment of parent/child links has to be done with onto.search because an individual is required,
-                # not a string.
-                individual.is_a = [ontology_concept, has_child_link.some(
-                    self.world.ontology.ontology.search_one(iri="*" + str(self.get_joint_child_link(joint_name).name))),
-                                   has_parent_link.some(
-                                       self.world.ontology.ontology.search_one(
-                                           iri="*" + str(self.get_joint_parent_link(joint_name).name))),
-                                   parse_joint_types(self.get_joint_type(joint_name).name)]
-                link_individual = self.world.ontology.ontology.search_one(iri=
-                                                                          self.world.ontology.ontology.base_iri +
-                                                                          str(self.get_joint_child_link(
-                                                                              joint_name).name))
-                if self.world.ontology.ontology.search_one(iri=self.world.ontology.ontology.base_iri +
-                                                               str(self.get_joint_parent_link(joint_name).name)):
-                    link_individual.is_part_of = [self.world.ontology.ontology.
-                                                  search_one(iri=self.world.ontology.ontology.base_iri
-                                                                 + str(self.get_joint_parent_link(joint_name).name))]
 
     def is_joint_virtual(self, name: str):
         """
@@ -721,7 +683,7 @@ class Object(PhysicalBody):
     def is_a_robot(self) -> bool:
         """
         Check if the object is a robot.
-
+        TODO: Check if this is a the correct filter
         :return: True if the object is a robot, False otherwise.
         """
         return issubclass(self.obj_type, Robot)

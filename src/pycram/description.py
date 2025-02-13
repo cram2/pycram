@@ -10,8 +10,9 @@ from geometry_msgs.msg import Point
 from trimesh.parent import Geometry3D
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Sequence, Self, Type
 
+import pycrap
 import pycrap.ontologies
-from pycrap.ontologies import PhysicalObject
+from pycrap.ontologies import Base
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
     MeshVisualShape, RotatedBoundingBox
 from .datastructures.enums import JointType
@@ -196,12 +197,11 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
     """
 
     def __init__(self, _id: int, link_description: LinkDescription, obj: Object,
-                 concept: Optional[Type[PhysicalObject]] = pycrap.ontologies.Link):
+                 concept: Type[Base] = pycrap.ontologies.Link, parse_name: bool = True):
         self.description = link_description
-        PhysicalBody.__init__(self, _id, obj.world, concept)
+        PhysicalBody.__init__(self, _id, obj.world, concept=concept, parse_name=parse_name)
         ObjectEntity.__init__(self, obj)
         LinkDescription.__init__(self, link_description.parsed_description, link_description.mesh_dir)
-
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
 
@@ -482,9 +482,11 @@ class RootLink(Link, ABC):
     """
 
     def __init__(self, obj: Object):
-        Link.__init__(self, obj.get_root_link_id(), obj.get_root_link_description(), obj, concept=None)
-        self.ontology_concept = obj.ontology_concept
-        self.ontology_individual = obj.ontology_individual
+        Link.__init__(self, obj.get_root_link_id(), obj.get_root_link_description(), obj,
+                      concept=pycrap.ontologies.RootLink, parse_name=False)
+
+        if not self.world.is_prospection_world:
+            self.ontology_individual.is_part_of = [obj.ontology_individual]
 
     @property
     def tf_frame(self) -> str:

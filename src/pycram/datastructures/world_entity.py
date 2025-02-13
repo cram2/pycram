@@ -161,16 +161,10 @@ class PhysicalBody(WorldEntity, HasConcept, ABC):
     A class that represents a physical body in the world that has some related physical properties.
     """
 
-    def __init__(self, body_id: int, world: World, concept: Optional[Type[PhysicalObject]] = PhysicalObject):
+    def __init__(self, body_id: int, world: World, concept: Type[PhysicalObject] = PhysicalObject,
+                 parse_name: bool = True):
         WorldEntity.__init__(self, body_id, world)
-
-        # set ontology related information
-        self.ontology_concept = concept
-        HasConcept.__init__(self)
-        if not self.world.is_prospection_world and concept:
-            self.ontology_individual = self.ontology_concept(self.name, namespace=self.world.ontology.ontology)
-            self.world.ontology.python_objects[self.ontology_individual] = self
-            self.ontology_individual.is_a = [self.ontology_concept]
+        HasConcept.__init__(self, name=self.name, world=self.world, concept=concept, parse_name=parse_name)
 
         self.local_transformer = LocalTransformer()
         self._is_translating: Optional[bool] = None
