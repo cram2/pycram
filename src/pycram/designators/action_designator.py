@@ -4,11 +4,12 @@ from __future__ import annotations
 import abc
 import inspect
 import itertools
+from datetime import timedelta
 
 import numpy as np
 from sqlalchemy.orm import Session
 from tf import transformations
-from typing_extensions import List, Union, Optional, Type
+from typing_extensions import List, Union, Optional, Type, Dict, Any
 
 from pycrap.ontologies import PhysicalObject, Location
 from .location_designator import CostmapLocation
@@ -18,14 +19,16 @@ from .object_designator import ObjectDesignatorDescription, BelieveObject, Objec
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty, \
     VisibleProperty
+from ..description import Joint
 from ..failure_handling import try_action
 from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
-    ObjectNotGraspedError
+    ObjectNotGraspedError, TorsoGoalNotReached
 from ..robot_description import RobotDescription
 from ..ros.ros_tools import sleep
 from ..tasktree import with_tree
+from ..validation.goal_validator import MultiJointPositionGoalValidator, create_multiple_joint_goal_validator
 from ..world_reasoning import contact
 
 from owlready2 import Thing
@@ -135,7 +138,7 @@ class MoveTorsoActionPerformable(ActionAbstract):
     Move the torso of the robot up and down.
     """
 
-    joint_positions: dict
+    joint_positions: Dict[str, float]
     """
     The joint positions that should be set. The keys are the joint names and the values are the joint positions.
     """
@@ -146,6 +149,16 @@ class MoveTorsoActionPerformable(ActionAbstract):
         joints_positions = list(self.joint_positions.items())
         joints, positions = zip(*joints_positions)
         MoveJointsMotion(list(joints), list(positions)).perform()
+
+    def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
+        """
+        Create a goal validator for the joint positions and wait until the goal is achieved or the timeout is reached.
+        """
+        validator = create_multiple_joint_goal_validator(World.current_world.robot, self.joint_positions)
+        validator.wait_until_goal_is_achieved(max_wait_time=max_wait_time,
+                                              time_per_read=timedelta(milliseconds=20))
+        if not validator.goal_achieved:
+            raise TorsoGoalNotReached(validator)
 
 
 @dataclass

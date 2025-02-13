@@ -1,11 +1,15 @@
 from __future__ import annotations
+
+from datetime import timedelta
 from pathlib import Path
 
 from typing_extensions import TYPE_CHECKING, List
 
+
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
     from .datastructures.enums import JointType, MultiverseAPIName, Arms
+    from .validation.goal_validator import MultiJointPositionGoalValidator
 
 
 class PlanFailure(Exception):
@@ -282,8 +286,11 @@ class TorsoLowLevelFailure(LowLevelFailure):
 class TorsoGoalNotReached(TorsoLowLevelFailure):
     """Thrown when the torso moved as a result of a torso action but the goal was not reached."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, goal_validator: MultiJointPositionGoalValidator,  *args, **kwargs):
+        super().__init__(f"Torso goal {goal_validator.goal_value} not reached after "
+                         f"{goal_validator.total_wait_time.total_seconds()} seconds from an initial error of "
+                         f"{goal_validator.initial_error} to current error of {goal_validator.current_error}",
+                         *args, **kwargs)
 
 
 class TorsoGoalUnreachable(TorsoLowLevelFailure):

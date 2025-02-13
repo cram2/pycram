@@ -4,6 +4,7 @@ from __future__ import annotations
 import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
+from datetime import timedelta
 
 from sqlalchemy.orm.session import Session
 from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable
@@ -178,14 +179,6 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
                 self.robot_torso_height = 0.0
             self.robot_type = World.robot.obj_type
 
-        def validate(self, result: Optional[Any] = None):
-            """
-            Validate the action after performing it, by checking if the action effects are as expected.
-
-            :param result: The result of the action if there is any
-            """
-            pass
-
         def perform(self) -> Any:
             """
             Executes the action with the single parameters from the description.
@@ -211,6 +204,15 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
             Plan of the action. To be overridden by subclasses.
 
             :return: The result of the action, if there is any
+            """
+            raise NotImplementedError()
+
+        def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
+            """
+            Validate the action after performing it, by checking if the action effects are as expected.
+
+            :param result: The result of the action if there is any
+            :param max_wait_time: The maximum time to wait for the action to be validated, before raising an error.
             """
             raise NotImplementedError()
 

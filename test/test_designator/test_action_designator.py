@@ -1,10 +1,12 @@
 import time
 import unittest
+from datetime import timedelta
 
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, FaceAtPerformable, MoveTorsoAction
+from pycram.failures import TorsoGoalNotReached
 from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
@@ -22,10 +24,18 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         description = action_designator.MoveTorsoAction([TorsoState.HIGH])
         torso_joint = RobotDescription.current_robot_description.torso_joint
         self.assertEqual(description.ground().joint_positions[torso_joint], 0.3)
+        self._test_validate_action_pre_perform(description, TorsoGoalNotReached)
         with simulated_robot:
             description.resolve().perform()
         self.assertEqual(self.world.robot.get_joint_position(torso_joint),
                          0.3)
+
+    def _test_validate_action_pre_perform(self, action_description, failure):
+        try:
+            action_description.ground().validate(max_wait_time=timedelta(milliseconds=30))
+            self.fail(f"{failure.__name__} should have been raised.")
+        except failure:
+            pass
 
     def test_set_gripper(self):
         description = action_designator.SetGripperAction([Arms.LEFT], [GripperState.OPEN, GripperState.CLOSE])
