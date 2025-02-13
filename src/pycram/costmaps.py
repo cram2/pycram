@@ -463,10 +463,10 @@ class OccupancyCostmap(Costmap):
             if World.robot:
                 attached_objs_id = [o.id for o in self.world.robot.attachments.keys()]
                 res[i:j] = [
-                    1 if ray[0] in [-1, self.world.robot.id, floor_id] + attached_objs_id else 0 for
+                    1 if ray.obj_id in [-1, self.world.robot.id, floor_id] + attached_objs_id else 0 for
                     ray in r_t]
             else:
-                res[i:j] = [1 if ray[0] in [-1, floor_id] else 0 for ray in r_t]
+                res[i:j] = [1 if ray.obj_id in [-1, floor_id] else 0 for ray in r_t]
             i += len(n)
 
         res = np.flip(np.reshape(np.array(res), (size, size)))

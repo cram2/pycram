@@ -1,9 +1,11 @@
 import math
 import os
 
-from typing_extensions import Tuple, Type
+import yaml
+from typing_extensions import Tuple, Type, Dict
 from ..description import ObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
+from ..utils import classproperty
 
 
 class WorldConfig:
@@ -108,6 +110,18 @@ class WorldConfig:
     """
     Whether the depth images produced by :meth:`datastructures.world.World.get_images_for_target` are in meters.
     """
+
+    @classproperty
+    def default_camera_config(cls) -> Dict:
+        """
+        The default camera configuration for the world.
+
+        :return: The configuration for the camera as pose, yaw, tilt
+        """
+        if os.path.exists(os.path.join(os.path.dirname(__file__), 'camera.yaml')):
+            with open(os.path.join(os.path.dirname(__file__), 'camera.yaml'), 'r') as f:
+                return yaml.load(f, Loader=yaml.SafeLoader)
+        return {'target_position': [1, 2, 3], 'yaw': 50, 'pitch': -35, "dist": 1.5}
 
     @classmethod
     def get_pose_tolerance(cls) -> Tuple[float, float]:
