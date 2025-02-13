@@ -96,8 +96,8 @@ class Pose(PoseStamped):
         :param target_pose: The target pose.
         :return: The difference between the two positions.
         """
-        return Point(target_pose.position.x - self.position.x, target_pose.position.y - self.position.y,
-                     target_pose.position.z - self.position.z)
+        return Point(x=target_pose.position.x - self.position.x, y=target_pose.position.y - self.position.y,
+                     z=target_pose.position.z - self.position.z)
 
     def get_z_angle_difference(self, target_pose: Self) -> float:
         """
@@ -298,7 +298,7 @@ class Pose(PoseStamped):
 
         position = Position(*self.position_as_list())
         position.process_metadata = metadata
-        orientation = Quaternion(*self.orientation_as_list())
+        orientation = Quaternion(**dict(zip(["x", "y", "z", "w"],self.orientation_as_list())))
         orientation.process_metadata = metadata
         session.add(position)
         session.add(orientation)

@@ -1082,7 +1082,7 @@ class Object(PhysicalBody):
             target_position = position
         elif isinstance(position, List):
             if len(position) == 3:
-                target_position = Point(*position)
+                target_position = Point(**dict(zip(["x", "y", "z"], position)))
             else:
                 raise ValueError("The given position has to be a list of 3 values.")
         else:
@@ -1107,7 +1107,7 @@ class Object(PhysicalBody):
             target_orientation = orientation
         elif (isinstance(orientation, list) or isinstance(orientation, np.ndarray) or isinstance(orientation, tuple)) \
                 and len(orientation) == 4:
-            target_orientation = Quaternion(*orientation)
+            target_orientation = Quaternion(**dict(zip(["x", "y", "z", "w"], orientation)))
         else:
             raise TypeError("The given orientation has to be a Pose, Quaternion or one of list/tuple/ndarray of xyzw.")
 

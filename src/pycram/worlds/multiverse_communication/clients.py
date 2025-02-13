@@ -546,8 +546,8 @@ class MultiverseAPI(MultiverseClient):
         bounding_boxes_data = self._get_bounding_box(body_name, with_children)
         bounding_boxes = []
         for bounding_box in bounding_boxes_data:
-            origin = Point(bounding_box[0], bounding_box[1], bounding_box[2])
-            size = Point(bounding_box[3], bounding_box[4], bounding_box[5])
+            origin = Point(x=bounding_box[0], y=bounding_box[1], z=bounding_box[2])
+            size = Point(x=bounding_box[3], y=bounding_box[4], z=bounding_box[5])
             bounding_boxes.append(AxisAlignedBoundingBox.from_origin_and_half_extents(origin, size))
         if with_children:
             return bounding_boxes
