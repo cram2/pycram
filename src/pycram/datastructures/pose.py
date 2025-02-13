@@ -89,6 +89,18 @@ class Pose(PoseStamped):
         p.pose = pose_stamped.pose
         return p
 
+    def to_pose_stamped(self) -> PoseStamped:
+        """
+        Converts this Pose to a PoseStamped message. This is useful for compatibility with ROS.
+
+        :return: A PoseStamped message with the same information as this Pose
+        """
+        return  PoseStamped(
+            header=self.header,
+            pose=self.pose
+        )
+
+
     def get_position_diff(self, target_pose: Self) -> Point:
         """
         Get the difference between the target and the current positions.
