@@ -24,7 +24,7 @@ from ..failure_handling import try_action
 from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
-    ObjectNotGraspedError, TorsoGoalNotReached
+    ObjectNotGraspedError, TorsoGoalNotReached, ConfigurationNotReached
 from ..robot_description import RobotDescription
 from ..ros.ros_tools import sleep
 from ..tasktree import with_tree
@@ -186,6 +186,12 @@ class SetGripperActionPerformable(ActionAbstract):
             for chain in arm_chains:
                 MoveGripperMotion(gripper=chain.arm_type, motion=self.motion).perform()
 
+    def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
+        """
+        Needs gripper state to be read or perceived.
+        """
+        pass
+
 
 @dataclass
 class ReleaseActionPerformable(ActionAbstract):
@@ -234,6 +240,13 @@ class ParkArmsActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
+        joint_poses = self.get_joint_poses()
+        MoveJointsMotion(names=list(joint_poses.keys()), positions=list(joint_poses.values())).perform()
+
+    def get_joint_poses(self) -> Dict[str, float]:
+        """
+        :return: The joint positions that should be set for the arm to be in the park position.
+        """
         joint_poses = {}
         arm_chains = RobotDescription.current_robot_description.get_arm_chain(self.arm)
         if type(arm_chains) is not list:
@@ -241,8 +254,18 @@ class ParkArmsActionPerformable(ActionAbstract):
         else:
             for arm_chain in RobotDescription.current_robot_description.get_arm_chain(self.arm):
                 joint_poses.update(arm_chain.get_static_joint_states("park"))
+        return joint_poses
 
-        MoveJointsMotion(names=list(joint_poses.keys()), positions=list(joint_poses.values())).perform()
+    def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
+        """
+        Create a goal validator for the joint positions and wait until the goal is achieved or the timeout is reached.
+        """
+        joint_poses = self.get_joint_poses()
+        validator = MultiJointPositionGoalValidator(World.current_world.robot, joint_poses)
+        validator.wait_until_goal_is_achieved(max_wait_time=max_wait_time,
+                                              time_per_read=timedelta(milliseconds=20))
+        if not validator.goal_achieved:
+            raise ConfigurationNotReached(validator, configuration_type="park")
 
 
 @dataclass

@@ -265,6 +265,15 @@ class GoalValidator:
         """
         return self.error_checker.is_error_acceptable(self.current_value, self.goal_value)
 
+    @property
+    def goal_not_achieved_message(self):
+        """
+        Message to be displayed when the goal is not achieved.
+        """
+        return f"Goal not achieved, current value: {self.current_value}, error: {self.current_error}, " \
+               f"percentage of goal achieved: {self.percentage_of_goal_achieved}, " \
+               f"with initial error: {self.initial_error}, goal: {self.goal_value}"
+
 
 class PoseGoalValidator(GoalValidator):
     """
@@ -588,7 +597,7 @@ def validate_multiple_joint_positions(position_setter_func):
 
 
 def create_multiple_joint_goal_validator(robot: Object,
-                                         joint_positions: Union[Dict[Joint, float], Dict[str, float]])\
+                                         joint_positions: Union[Dict[Joint, float], Dict[str, float]]) \
         -> MultiJointPositionGoalValidator:
     """
     Validate the multiple joint goals, and wait until the goal is achieved.
