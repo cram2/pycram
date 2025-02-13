@@ -5,7 +5,6 @@ import pickle
 from abc import ABC, abstractmethod
 from copy import copy
 
-from torch.fx.experimental.unification.dispatch import namespace
 from trimesh.parent import Geometry3D
 from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union, Type
 
