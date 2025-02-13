@@ -13,6 +13,7 @@ from urdf_parser_py import urdf
 from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as URDF_Cylinder,
                                  Sphere as URDF_Sphere, Mesh as URDF_Mesh)
 
+from ..ros import get_ros_package_path
 from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
     SphereVisualShape, MeshVisualShape
 from ..datastructures.enums import JointType
@@ -463,13 +464,12 @@ class ObjectDescription(AbstractObjectDescription):
         :param urdf_string: The name of the URDf on the parameter server
         :return: The URDF string with paths in the filesystem instead of ROS packages
         """
-        r = create_ros_pack()
         new_urdf_string = ""
         for line in urdf_string.split('\n'):
             if "package://" in line:
                 s = line.split('//')
                 s1 = s[1].split('/')
-                path = r.get_path(s1[0])
+                path = get_ros_package_path(s1[0])
                 line = line.replace("package://" + s1[0], path)
             if 'file://' in line:
                 line = line.replace("file://", './')
