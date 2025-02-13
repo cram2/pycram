@@ -1,7 +1,7 @@
-import rosnode
-import tf
+import tf_transformations
 from typing_extensions import List, Union, Tuple, Dict
 
+from ..ros import get_node_names
 from ..ros import  Duration, ServiceException
 from ..ros import  loginfo_once, logerr
 from ..ros import  get_service_proxy, wait_for_service
@@ -18,6 +18,7 @@ from ..datastructures.pose import Pose
 from ..robot_description import RobotDescription
 from ..failures import IKError
 from ..external_interfaces.giskard import projection_cartesian_goal, allow_gripper_collision
+from .pinocchio_ik import compute_ik
 
 
 def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_object: Object,
@@ -171,8 +172,9 @@ def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str
     :param gripper: Name of the tool frame which should grasp, this should be at the end of the given joint chain
     :return: A Pose at which the robt should stand as well as a dictionary of joint values
     """
-    if "/giskard" not in rosnode.get_node_names():
-        return robot.pose, request_kdl_ik(target_pose, robot, joints, gripper)
+    if "/giskard" not in get_node_names():
+        return request_pinocchio_ik(target_pose, robot, gripper, joints)
+        # return robot.pose, request_kdl_ik(target_pose, robot, joints, gripper)
     return request_giskard_ik(target_pose, robot, gripper)
 
 
@@ -227,7 +229,7 @@ def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[
     joint_states = dict(zip(joint_names, last_point.positions))
     prospection_robot = World.current_world.get_prospection_object_for_object(robot)
 
-    orientation = list(tf.transformations.quaternion_from_euler(0, 0, joint_states["brumbrum_yaw"], axes="sxyz"))
+    orientation = list(tf_transformations.quaternion_from_euler(0, 0, joint_states["brumbrum_yaw"], axes="sxyz"))
     pose = Pose([joint_states["brumbrum_x"], joint_states["brumbrum_y"], 0], orientation)
 
     robot_joint_states = {}
@@ -246,3 +248,27 @@ def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[
             raise IKError(target_pose, "map", gripper)
         return pose, robot_joint_states
 
+def request_pinocchio_ik(target_pose: Pose, robot: Object, target_link: str, joints: List[str]) -> Dict[str, float]:
+    """
+    Calls the pinocchio ik solver to calculate the ik solution for a given target link and pose.
+
+    :param target_link: The target link for which the ik solution should be calculated
+    :param target_pose: The target pose for which the ik solution should be calculated
+    :param robot: The robot object for which the ik solution should be calculated
+    :param joints: The joints that should be used in the calculation
+    :return: A dictionary containing the joint names and joint values
+    """
+    lt = LocalTransformer()
+    target_pose = lt.transform_pose(target_pose, robot.tf_frame)
+
+    # Get link after last joint in chain
+    wrist_link = RobotDescription.current_robot_description.get_child(joints[-1])
+
+    # target_torso = lt.transform_pose(target_pose, robot.get_link_tf_frame(base_link))
+
+    wrist_tool_frame_offset = robot.get_transform_between_links(wrist_link, target_link)
+    target_diff = target_pose.to_transform("target").inverse_times(wrist_tool_frame_offset).to_pose()
+
+    res = compute_ik(target_link, target_diff, robot)
+
+    return res
