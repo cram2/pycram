@@ -1028,6 +1028,8 @@ class Object(PhysicalBody):
                 joint.current_state = joint_states[joint.id]
 
     def robot_virtual_move_base_joints_names(self):
+        if self.robot_description.virtual_mobile_base_joints is None:
+            return []
         return self.robot_description.virtual_mobile_base_joints.names
 
     def remove_saved_states(self) -> None:
@@ -1097,13 +1099,13 @@ class Object(PhysicalBody):
             pose.frame = position.frame
         elif isinstance(position, Point):
             target_position = position
-        elif isinstance(position, List):
+        elif isinstance(position, (List, np.ndarray, tuple)):
             if len(position) == 3:
                 target_position = Point(*position)
             else:
-                raise ValueError("The given position has to be a list of 3 values.")
+                raise ValueError("The given position has to be a sequence of 3 values.")
         else:
-            raise TypeError("The given position has to be a Pose, Point or an iterable of xyz values.")
+            raise TypeError("The given position has to be a Pose, Point or a sequence of xyz values.")
 
         pose.position = target_position
         pose.orientation = self.get_orientation()

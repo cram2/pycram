@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import math
 import datetime
+from collections.abc import Sequence
 
 from tf.transformations import euler_from_quaternion
-from typing_extensions import List, Union, Optional, Sized, Self
+from typing_extensions import List, Union, Optional, Sized, Self, Tuple
 
 import numpy as np
 import sqlalchemy.orm
@@ -50,7 +51,7 @@ class Pose(PoseStamped):
         Orientation: Only the quaternion as xyzw
     """
 
-    def __init__(self, position: Optional[List[float]] = None, orientation: Optional[List[float]] = None,
+    def __init__(self, position: Optional[Sequence[float]] = None, orientation: Optional[Sequence[float]] = None,
                  frame: str = "map", time: Time = None):
         """
         Poses can be initialized by a position and orientation given as lists, this is optional. By default, Poses are
@@ -141,17 +142,19 @@ class Pose(PoseStamped):
         return self.pose.position
 
     @position.setter
-    def position(self, value) -> None:
+    def position(self, value: Union[Sequence[float], GeoPose, Point]) -> None:
         """
-        Sets the position for this Pose, the position can either be a list of xyz or a geometry_msgs/Pose message.
+        Sets the position for this Pose, the position can either be a sequence of xyz, a Point
+        or a geometry_msgs/Pose message.
 
-        :param value: List or geometry_msgs/Pose message for the position
+        :param value: Sequence or geometry_msgs/Pose message for the position
         """
-        if (not isinstance(value, list) and not isinstance(value, tuple) and not isinstance(value, GeoPose)
-                and not isinstance(value, Point)):
-            logerr("Position can only be a list or geometry_msgs/Pose")
-            raise TypeError("Position can only be a list/tuple or geometry_msgs/Pose")
-        if isinstance(value, list) or isinstance(value, tuple) and len(value) == 3:
+        if not isinstance(value, (list, tuple, np.ndarray, GeoPose, Point)):
+            err_msg = "Position can only be one of (list, tuple, np.ndarray, geometry_msgs/Pose, Point) not " + \
+                        str(type(value))
+            logerr(err_msg)
+            raise TypeError(err_msg)
+        if isinstance(value, (list, tuple, np.ndarray)) and len(value) == 3:
             self.pose.position.x = value[0]
             self.pose.position.y = value[1]
             self.pose.position.z = value[2]
@@ -167,24 +170,23 @@ class Pose(PoseStamped):
         return self.pose.orientation
 
     @orientation.setter
-    def orientation(self, value) -> None:
+    def orientation(self, value: Union[Sequence[float], GeoQuaternion]) -> None:
         """
-        Sets the orientation of this Pose, the orientation can either be a list of xyzw or a geometry_msgs/Quaternion
-        message
+        Sets the orientation of this Pose, the orientation can either be a sequence of xyzw
+        or a geometry_msgs/Quaternion message
 
         :param value: New orientation, either a list or geometry_msgs/Quaternion
         """
-        if not isinstance(value, Sized) and not isinstance(value, GeoQuaternion):
-            logwarn("Orientation can only be an iterable (list, tuple, ...etc.) or a geometry_msgs/Quaternion")
-            return
+        if not isinstance(value, (list, tuple, np.ndarray, GeoQuaternion)):
+            err_msg = (f"Orientation can only be a Sequence (list, tuple, ...etc.) or a geometry_msgs/Quaternion "
+                       f"not {type(value)}")
+            logerr(err_msg)
+            raise TypeError(err_msg)
 
-        if isinstance(value, Sized) and len(value) == 4:
+        if isinstance(value, (list, tuple, np.ndarray)) and len(value) == 4:
             orientation = np.array(value)
-        elif isinstance(value, GeoQuaternion):
-            orientation = np.array([value.x, value.y, value.z, value.w])
         else:
-            logerr("Orientation has to be a list or geometry_msgs/Quaternion")
-            raise TypeError("Orientation has to be a list or geometry_msgs/Quaternion")
+            orientation = np.array([value.x, value.y, value.z, value.w])
         # This is used instead of np.linalg.norm since numpy is too slow on small arrays
         self.pose.orientation = get_normalized_quaternion(orientation)
 
@@ -446,7 +448,7 @@ class Transform(TransformStamped):
         :param value: The new value for the translation, either a list or geometry_msgs/Vector3
         """
         if not isinstance(value, list) and not isinstance(value, Vector3):
-            logwarn("Value of a translation can only be a list of a geometry_msgs/Vector3")
+            logwarn("Value of a translation can only be a list or a geometry_msgs/Vector3")
             return
         if isinstance(value, list) and len(value) == 3:
             self.transform.translation.x = value[0]

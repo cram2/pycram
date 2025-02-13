@@ -68,10 +68,10 @@ class TestObject(BulletWorldTestCase):
 
     def test_setting_wrong_position_type(self):
         with self.assertRaises(TypeError):
-            self.milk.set_position(np.array([1, 2, 3]))
+            self.milk.set_position(1)
 
         with self.assertRaises(TypeError):
-            self.milk.get_pose().position = np.array([1, 2, 3])
+            self.milk.get_pose().position = 1
 
     def test_set_orientation_as_list(self):
         self.milk.set_orientation([1, 0, 0, 0])

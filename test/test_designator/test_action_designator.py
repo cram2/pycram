@@ -11,7 +11,8 @@ from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
-from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp, DetectionTechnique, TorsoState
+from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp, DetectionTechnique, TorsoState, \
+    StaticJointState
 from pycram.testing import  BulletWorldTestCase
 import numpy as np
 from pycrap.ontologies import Milk
@@ -65,10 +66,11 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             description.resolve().perform()
         for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right",
-                                                                                             "park").items():
+                                                                                             StaticJointState.Park).items():
             joint_position = self.world.robot.get_joint_position(joint)
             self.assertEqual(joint_position, pose)
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left", "park").items():
+        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left",
+                                                                                             StaticJointState.Park).items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
 
     def test_navigate(self):

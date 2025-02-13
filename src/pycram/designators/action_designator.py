@@ -34,7 +34,7 @@ from ..world_reasoning import contact
 from owlready2 import Thing
 
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
-    TorsoState
+    TorsoState, StaticJointState
 
 from ..designator import ActionDesignatorDescription
 from ..datastructures.pose import Pose
@@ -250,11 +250,10 @@ class ParkArmsActionPerformable(ActionAbstract):
         joint_poses = {}
         arm_chains = RobotDescription.current_robot_description.get_arm_chain(self.arm)
         if type(arm_chains) is not list:
-            joint_poses = arm_chains.get_static_joint_states("park")
+            joint_poses = arm_chains.get_static_joint_states(StaticJointState.Park)
         else:
             for arm_chain in RobotDescription.current_robot_description.get_arm_chain(self.arm):
-                joint_poses.update(arm_chain.get_static_joint_states("park"))
-        return joint_poses
+                joint_poses.update(arm_chain.get_static_joint_states(StaticJointState.Park))
 
     def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
         """
