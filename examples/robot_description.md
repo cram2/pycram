@@ -44,11 +44,9 @@ To initialize a {class}`~pycram.robot_description.RobotDescription` we need a fe
 
 ```python
 from pycram.robot_description import RobotDescription
-import rospkg
+from pycram.ros import get_ros_package_path
 
-rospack = rospkg.RosPack()
-filename = rospack.get_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
-
+filename = get_ros_package_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
 pr2_description = RobotDescription("pr2_example", "base_link", "torso_lift_link", "torso_lift_joint", filename)
 ```
 
