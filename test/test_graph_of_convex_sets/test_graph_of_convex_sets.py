@@ -34,13 +34,13 @@ class GCSTestCase(unittest.TestCase):
         limiting_event = SimpleEvent({BoundingBox.z_variable: z_lim,
                                       BoundingBox.x_variable: x_lim,
                                       BoundingBox.y_variable: y_lim})
-        obstacles = BoundingBox.from_event(~obstacle.simple_event.as_composite_set() & limiting_event.as_composite_set())
+        obstacles = BoundingBox.from_event(
+            ~obstacle.simple_event.as_composite_set() & limiting_event.as_composite_set())
         gcs.add_nodes_from(obstacles)
         gcs.calculate_connectivity()
         cls.gcs = gcs
 
     def test_reachability(self):
-
         start_pose = [-1, -1, 0.5]
         target_pose = [2, 2, 0.5]
 
@@ -67,8 +67,8 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
 
     def test_from_world(self):
         search_space = BoundingBox(min_x=-1, max_x=1,
-                                      min_y=-1, max_y=1,
-                                      min_z=0.1, max_z=1)
+                                   min_y=-1, max_y=1,
+                                   min_z=0.1, max_z=1)
         gcs = GraphOfConvexSets.free_space_from_world(self.world, search_space=search_space)
         self.assertIsNotNone(gcs)
         self.assertGreater(len(gcs.nodes), 0)
@@ -90,16 +90,13 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
             target = Pose([10, 10, 10])
             gcs.path_from_to(start, target)
 
-
     def test_navigation_map_from_world(self):
         search_space = BoundingBox(min_x=-1, max_x=1,
-                                      min_y=-1, max_y=1,
-                                      min_z=0.1, max_z=1)
+                                   min_y=-1, max_y=1,
+                                   min_z=0.1, max_z=1)
         gcs = GraphOfConvexSets.navigation_map_from_world(self.world, search_space=search_space)
         self.assertGreater(len(gcs.nodes), 0)
         self.assertGreater(len(gcs.edges), 0)
-
-
 
 
 if __name__ == '__main__':

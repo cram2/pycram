@@ -11,7 +11,7 @@ kernelspec:
   name: python3
 ---
 
-# Connectivity Graph
+# Graph of Convex Sets
 
 This notebook walks through the way PyCRAM navigates spaces that are challenging to navigate.
 Usually, navigation is done in spaces that are convex, meaning that every point is reachable via a straight line without collision.
@@ -55,12 +55,12 @@ to go over the box, which is not a good idea.
 
 ```{code-cell} ipython2
 from random_events.interval import SimpleInterval
-from pycram.graph_of_convex_sets import Box, GraphOfConvexSets
+from pycram.graph_of_convex_sets import GraphOfConvexSets
+from pycram.datastructures.dataclasses import BoundingBox
 
-search_space = Box(x=SimpleInterval(-1, 1),
-                   y=SimpleInterval(-1, 1),
-                   z=SimpleInterval(0.1, 0.2))
-
+search_space = BoundingBox(min_x=-1, max_x=1,
+                           min_y=-1, max_y=1,
+                           min_z=0.1, max_z=0.2)
 gcs = GraphOfConvexSets.free_space_from_world(world, search_space=search_space)
 ```
 
@@ -101,10 +101,9 @@ from pycrap import Kitchen
 
 kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
 
-search_space = Box(x=SimpleInterval(-2, 2),
-                   y=SimpleInterval(-2, 2),
-                   z=SimpleInterval(0.0, 2))
-
+search_space = BoundingBox(min_x=-2, max_x=2,
+                           min_y=-2, max_y=2,
+                           min_z=0., max_z=2)
 gcs = GraphOfConvexSets.free_space_from_world(world, search_space=search_space)
 ```
 
