@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<robot name="table">
+    <material name="grey">
+        <color rgba="0.8 0.8 0.8 1"/>
+    </material>
+
+    <link name="table_origin"/>
+
+    <link name="left_front_leg">
+        <collision>
+            <origin xyz="0 0 0.3"/>
+            <geometry>
+                <box size="0.1 0.1 0.6"/>
+            </geometry>
+        </collision>
+        <visual>
+            <origin xyz="0 0 0.3"/>
+            <geometry>
+                <box size="0.1 0.1 0.6"/>
+            </geometry>
+        </visual>
+    </link>
+    
+
+    <link name="right_front_leg">
+        <collision>
+            <origin xyz="0 0 0.3"/>
+            <geometry>
+                <box size="0.1 0.1 0.6"/>
+            </geometry>
+        </collision>
+        <visual>
+            <origin xyz="0 0 0.3"/>
+            <geometry>
+                <box size="0.1 0.1 0.6"/>
+            </geometry>
+        </visual>
+    </link>
+
+
+    <link name="left_back_leg">
+        <collision>
+            <origin xyz="0 0 0.3"/>
+            <geometry>
+                <box size="0.1 0.1 0.6"/>
+            </geometry>
+        </collision>
+        <visual>
+            <origin xyz="0 0 0.3"/>
+            <geometry>
+                <box size="0.1 0.1 0.6"/>
+            </geometry>
+        </visual>
+    </link>
+
+
+    <link name="right_back_leg">
+        <collision>
+            <origin xyz="0 0 0.3"/>
+            <geometry>
+                <box size="0.1 0.1 0.6"/>
+            </geometry>
+        </collision>
+        <visual>
+            <origin xyz="0 0 0.3"/>
+            <geometry>
+                <box size="0.1 0.1 0.6"/>
+            </geometry>
+        </visual>
+    </link>
+
+
+    <link name="top">
+        <collision>
+            <geometry>
+                <box size="1 1 0.05"/>
+            </geometry>
+        </collision>
+        <visual>
+            <geometry>
+                <box size="1 1 0.05"/>
+            </geometry>
+        </visual>
+    </link>
+    
+
+    <joint name="origin_to_left_front_leg" type="fixed">
+        <parent link="table_origin"/>
+        <child link="left_front_leg"/>
+        <origin xyz="-4 0 0"/>
+    </joint>
+
+    <joint name="left_front_to_back" type="fixed">
+        <parent link="left_front_leg"/>
+        <child link="left_back_leg"/>
+        <origin xyz="1 0 0"/>
+    </joint>
+
+    <joint name="left_front_to_right_front" type="fixed">
+        <parent link="left_front_leg"/>
+        <child link="right_front_leg"/>
+        <origin xyz="0 1 0"/>
+    </joint>
+
+    <joint name="left_front_to_right_back" type="fixed">
+        <parent link="left_front_leg"/>
+        <child link="right_back_leg"/>
+        <origin xyz="1 1 0"/>
+    </joint>
+
+    <joint name="left_front_leg_to_top" type="fixed">
+        <parent link="left_front_leg"/>
+        <child link="top"/>
+        <origin xyz="0.5 0.5 0.6"/>
+    </joint>
+
+
+</robot>

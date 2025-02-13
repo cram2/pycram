@@ -32,7 +32,7 @@ from pycram.world_concepts.world_object import Object
 import anytree
 import pycram.failures
 import numpy as np
-import pycrap
+from pycrap.ontologies import Milk, Cereal, Robot, Kitchen, Spoon, Apartment, Bowl
 
 np.random.seed(4)
 
@@ -49,9 +49,9 @@ else:
     world = BulletWorld()
     viz_marker_publisher = VizMarkerPublisher()
     
-robot = Object("pr2", pycrap.Robot, "pr2.urdf")
+robot = Object("pr2", Robot, "pr2.urdf")
 robot_desig = ObjectDesignatorDescription(names=['pr2']).resolve()
-apartment = Object("apartment", pycrap.Apartment, "apartment.urdf")
+apartment = Object("apartment", Apartment, "apartment.urdf")
 apartment_desig = ObjectDesignatorDescription(names=['apartment']).resolve()
 table_top_name = "stove" if use_multiverse else "cooktop"
 table_top = apartment.get_link_position(table_top_name)
@@ -90,7 +90,7 @@ def get_n_random_positions(pose_list, n=4, dist=0.5, random=True):
 ```python
 import pycrap
 from tf.transformations import quaternion_from_euler
-import pycrap
+
 from pycram.costmaps import SemanticCostmap
 from pycram.pose_generator_and_validator import PoseGenerator
 
@@ -104,7 +104,7 @@ poses_list = list(PoseGenerator(edges_cm, number_of_samples=-1))
 poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x.position_as_list()))
 object_poses = get_n_random_positions(poses_list)
 object_names = ["bowl", "breakfast_cereal", "spoon"]
-object_types = [pycrap.Bowl, pycrap.Cereal, pycrap.Spoon]
+object_types = [Bowl, Cereal, Spoon]
 objects = {}
 object_desig = {}
 for obj_name, obj_type, obj_pose in zip(object_names, object_types, object_poses):
@@ -141,7 +141,6 @@ Finally, we create a plan where the robot parks his arms, walks to the kitchen c
 execute the plan.
 
 ```python
-import pycrap
 from pycram.external_interfaces.ik import IKError
 from pycram.datastructures.enums import Grasp
 
@@ -161,7 +160,7 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
         ParkArmsActionPerformable(Arms.BOTH).perform()
         good_torsos.append(torso)
         picked_up_arm = pose.reachable_arms[0]
-        grasp = Grasp.TOP if issubclass(obj_desig.world_object.obj_type, pycrap.Spoon) else Grasp.FRONT
+        grasp = Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else Grasp.FRONT
         PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp=grasp,
                                 prepose_distance=0.03).perform()
 

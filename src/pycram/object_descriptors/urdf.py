@@ -23,6 +23,7 @@ from ..failures import MultiplePossibleTipLinks
 from ..ros.logging import logerr
 from ..ros.ros_tools import create_ros_pack, ResourceNotFound, get_parameter
 from ..utils import suppress_stdout_stderr
+from ..datastructures.mixins import HasConcept
 
 
 class LinkDescription(AbstractLinkDescription):
@@ -32,6 +33,8 @@ class LinkDescription(AbstractLinkDescription):
 
     def __init__(self, urdf_description: urdf.Link):
         super().__init__(urdf_description)
+        # match the name of the link to the class in the ontology that this may be
+
 
     @property
     def geometry(self) -> Union[List[VisualShape], VisualShape, None]:

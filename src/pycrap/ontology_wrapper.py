@@ -1,10 +1,11 @@
 import tempfile
 
 import owlready2
-from .base import default_pycrap_ontology
+from typing_extensions import Dict, Any
+from .ontologies.base import Base, ontology as default_pycrap_ontology
 
 
-class Ontology:
+class OntologyWrapper:
     """
     Wrapper class for user-friendly access of the owlready2 ontology class.
 
@@ -22,11 +23,16 @@ class Ontology:
     The file that the ontology is stored in.
     """
 
+    python_objects: Dict[Base, Any]
+    """
+    A dictionary that maps ontology individuals to python objects.
+    """
 
     def __init__(self):
         self.file = tempfile.NamedTemporaryFile(delete=True)
         self.ontology = owlready2.get_ontology("file://" + self.path).load()
         self.ontology.name = "PyCRAP"
+        self.python_objects = {}
 
     @property
     def path(self) -> str:
@@ -49,11 +55,18 @@ class Ontology:
         """
         return default_pycrap_ontology.classes()
 
+
     def search(self, *args, **kwargs):
         """
+        Check https://owlready2.readthedocs.io/en/latest/onto.html#simple-queries for details.
+
         :return: The search results of the ontology.
         """
         return self.ontology.search(*args, **kwargs)
+
+    def search_one(self, *args, **kwargs):
+        return self.ontology.search(*args, **kwargs)
+
 
     def __enter__(self):
         return self.ontology.__enter__()
@@ -65,4 +78,9 @@ class Ontology:
         """
         Reason over the ontology. This may take a long time.
         """
-        owlready2.sync_reasoner([self.ontology, default_pycrap_ontology])
+        owlready2.sync_reasoner_pellet([self.ontology, default_pycrap_ontology],
+                                       infer_property_values=True, infer_data_property_values=True, debug=False)
+
+
+    def add_individual(self, individual :Base, python_object: Any):
+        self.python_objects[individual] = python_object

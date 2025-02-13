@@ -14,7 +14,7 @@ from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.robot_description import RobotDescription
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.multiverse import Multiverse
-from pycrap import PhysicalObject
+from pycrap.ontologies import PhysicalObject
 
 
 world = Multiverse()

@@ -1,26 +1,16 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
 from inspect import isgenerator, isgeneratorfunction
 
 from typing_extensions import get_type_hints
-from pycrap import PhysicalObject, Agent
+from pycrap.ontologies import PhysicalObject, Agent
 from .datastructures.property import Property, EmptyProperty
 from .failures import PlanFailure
 from .ros.logging import logwarn, loginfo
-
-import inspect
-
-from .knowledge.knowledge_engine import KnowledgeEngine
-
-try:
-    import owlready2
-except ImportError:
-    owlready2 = None
-    logwarn("owlready2 is not installed!")
-
 from sqlalchemy.orm.session import Session
 
 from .datastructures.world import World

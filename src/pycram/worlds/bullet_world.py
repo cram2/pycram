@@ -11,7 +11,7 @@ import yaml
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Any, Callable
 
-from pycrap import Floor
+from pycrap.ontologies import Floor
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
     ClosestPoint, LateralFriction, ContactPoint, ContactPointsList, ClosestPointsList, RayResult
 from ..datastructures.enums import ObjectType, WorldMode, JointType
