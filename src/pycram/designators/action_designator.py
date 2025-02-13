@@ -7,7 +7,7 @@ import itertools
 
 import numpy as np
 from sqlalchemy.orm import Session
-from tf import transformations
+from tf_transformations import quaternion_from_euler
 from typing_extensions import List, Union, Optional, Type
 
 from pycrap import PhysicalObject, Location
@@ -638,7 +638,7 @@ class FaceAtPerformable(ActionAbstract):
         # calculate orientation for robot to face the object
         angle = np.arctan2(robot_position.position.y - self.pose.position.y,
                            robot_position.position.x - self.pose.position.x) + np.pi
-        orientation = list(transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
+        orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
 
         # create new robot pose
         new_robot_pose = Pose(robot_position.position_as_list(), orientation)

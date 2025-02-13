@@ -59,6 +59,9 @@ def sleep(duration):
     rate = node.create_rate(1 / duration)
     rate.sleep()
 
+def get_time():
+    return node.get_time()
+
 def create_timer(duration, callback, oneshot=False):
     timer = node.create_timer(duration, callback, autostart=True)
     return timer
@@ -72,3 +75,4 @@ class ServiceException(Exception):
     def __init__(self, *args, **kwargs):
         """Create a new plan failure."""
         Exception.__init__(self, *args, **kwargs)
+

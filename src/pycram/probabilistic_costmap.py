@@ -2,10 +2,9 @@ from enum import Enum, auto
 from functools import cached_property
 
 import numpy as np
-import tf
 from geometry_msgs.msg import Point
 from std_msgs.msg import ColorRGBA
-from tf_transformations import quaternion_from_matrix
+from tf_transformations import quaternion_from_matrix, quaternion_from_euler
 from random_events.interval import closed, closed_open
 from typing_extensions import Optional, Type
 from visualization_msgs.msg import Marker, MarkerArray
@@ -135,7 +134,7 @@ class ProbabilisticCostmap:
         y = sample[1]
         position = [x, y, self.origin.position.z]
         angle = np.arctan2(position[1] - self.origin.position.y, position[0] - self.origin.position.x) + np.pi
-        orientation = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
+        orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
         return Pose(position, orientation, self.origin.frame)
 
     def visualize(self):

@@ -1,5 +1,5 @@
 import numpy as np
-import tf
+from tf_transformations import quaternion_from_euler
 from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional
 
 from .datastructures.enums import Arms, Grasp
@@ -98,7 +98,7 @@ class PoseGenerator:
         :return: A quaternion of the calculated orientation
         """
         angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi
-        quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
+        quaternion = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
         return quaternion
 
 

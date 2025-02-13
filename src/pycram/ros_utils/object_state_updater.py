@@ -1,7 +1,5 @@
 import atexit
 
-import rospy
-import tf
 import time
 
 from geometry_msgs.msg import TransformStamped
@@ -94,11 +92,11 @@ class EnvironmentStateUpdater:
         :param joint_state_topic: Name of the joint state topic, needs to publish sensor_msgs/JointState
         """
         self.tf_listener = tf.TransformListener()
-        rospy.sleep(1)
+        time.sleep(1)
         self.tf_topic = tf_topic
         self.joint_state_topic = joint_state_topic
 
-        self.joint_state_timer = rospy.Timer(rospy.Duration(0.1), self._subscribe_joint_state)
+        self.joint_state_timer = create_timer(Duration(0.1), self._subscribe_joint_state)
 
         atexit.register(self._stop_subscription)
 
@@ -111,7 +109,7 @@ class EnvironmentStateUpdater:
         :param msg: JointState message published to the topic.
         """
         try:
-            msg = rospy.wait_for_message(self.joint_state_topic, JointState)
+            msg = wait_for_message(self.joint_state_topic, JointState)
             for name, position in zip(msg.name, msg.position):
                 try:
                     # Attempt to get the joint state. This might throw a KeyError if the joint name doesn't exist

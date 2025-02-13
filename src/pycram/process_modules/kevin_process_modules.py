@@ -1,6 +1,5 @@
 from typing import Any
 
-import rospy
 from threading import Lock
 # from ..external_interfaces.robokudo import query
 from ..utils import _apply_ik

@@ -1,7 +1,6 @@
 import inspect
 
 import numpy as np
-import rospy
 from typing_extensions import List, TYPE_CHECKING
 
 from pycrap import *
@@ -278,10 +277,10 @@ class DefaultDetectingReal(ProcessModule):
                 obj_name = obj_type + "" + str(get_time())
                 # Check if there are any matches
                 if matching_classes:
-                    rospy.loginfo(f"Matching class names: {matching_classes}")
+                    loginfo(f"Matching class names: {matching_classes}")
                     obj_type = matching_classes[0]
                 else:
-                    rospy.loginfo(f"No class name contains the string '{obj_type}'")
+                    loginfo(f"No class name contains the string '{obj_type}'")
                     obj_type = Genobj
                 gen_obj_desc = GenericObjectDescription(obj_name, [0, 0, 0], hsize)
                 color = map_color_names_to_rgba(obj_color)
