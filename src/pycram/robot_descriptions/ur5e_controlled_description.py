@@ -7,7 +7,7 @@ from ..helper import get_robot_mjcf_path, find_multiverse_resources_path, get_ro
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
-from ..ros.logging import logwarn
+from ..ros import  logwarn
 from ..units import meter
 
 multiverse_resources = find_multiverse_resources_path()

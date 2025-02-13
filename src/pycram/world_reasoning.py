@@ -6,7 +6,7 @@ from .datastructures.pose import Pose, Transform
 from .datastructures.world import World, UseProspectionWorld
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .robot_description import RobotDescription
-from .ros.logging import logdebug
+from .ros import  logdebug
 from .utils import RayTestUtils
 from .world_concepts.world_object import Object, Link
 from .config import world_conf as conf

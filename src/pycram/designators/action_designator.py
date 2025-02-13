@@ -24,7 +24,7 @@ from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
     ObjectNotGraspedError
 from ..robot_description import RobotDescription
-from ..ros.ros_tools import sleep
+from ..ros import  sleep
 from ..tasktree import with_tree
 from ..world_reasoning import contact
 

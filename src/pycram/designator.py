@@ -9,7 +9,7 @@ from typing_extensions import get_type_hints
 from pycrap import PhysicalObject, Agent
 from .datastructures.property import Property, EmptyProperty
 from .failures import PlanFailure
-from .ros.logging import logwarn, loginfo
+from .ros import  logwarn, loginfo
 
 import inspect
 

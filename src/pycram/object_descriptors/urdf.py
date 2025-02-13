@@ -20,8 +20,8 @@ from ..datastructures.pose import Pose
 from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
 from ..failures import MultiplePossibleTipLinks
-from ..ros.logging import logerr
-from ..ros.ros_tools import create_ros_pack, ResourceNotFound, get_parameter
+from ..ros import  logerr
+from ..ros import  create_ros_pack, ResourceNotFound, get_parameter
 from ..utils import suppress_stdout_stderr
 
 

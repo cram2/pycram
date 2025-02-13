@@ -10,7 +10,7 @@ from .external_interfaces.ik import request_ik
 from .failures import IKError
 from .local_transformer import LocalTransformer
 from .robot_description import RobotDescription
-from .ros.logging import logdebug
+from .ros import  logdebug
 from .world_concepts.world_object import Object
 from .world_reasoning import contact
 

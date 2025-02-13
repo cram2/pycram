@@ -18,9 +18,9 @@ from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..process_module import ProcessModule
 from ..robot_description import RobotDescription
-from ..ros.data_types import Duration
-from ..ros.logging import logdebug, loginfo, logwarn
-from ..ros.ros_tools import get_time
+from ..ros import  Duration
+from ..ros import  logdebug, loginfo, logwarn
+from ..ros import  get_time
 from ..utils import _apply_ik, map_color_names_to_rgba
 from ..world_concepts.world_object import Object
 from ..world_reasoning import visible, link_pose_for_joint_config

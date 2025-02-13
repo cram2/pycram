@@ -28,8 +28,8 @@ from ..datastructures.world_entity import StateEntity, PhysicalBody, WorldEntity
 from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
-from ..ros.data_types import Time
-from ..ros.logging import logwarn
+from ..ros import  Time
+from ..ros import  logwarn
 from ..validation.goal_validator import (GoalValidator,
                                          validate_joint_position, validate_multiple_joint_positions,
                                          validate_object_pose, validate_multiple_object_poses)

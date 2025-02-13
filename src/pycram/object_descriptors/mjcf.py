@@ -15,7 +15,7 @@ from ..datastructures.pose import Pose
 from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription, ObjectDescription
 from ..failures import MultiplePossibleTipLinks
-from ..ros.ros_tools import get_parameter
+from ..ros import  get_parameter
 
 try:
     from multiverse_parser import Configuration, Factory, InertiaSource, GeomBuilder

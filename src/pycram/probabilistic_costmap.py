@@ -14,8 +14,8 @@ from .datastructures.world import World
 from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
 import matplotlib.colorbar
 from .datastructures.pose import Pose
-from .ros.data_types import Duration
-from .ros.publisher import create_publisher
+from .ros import  Duration
+from .ros import  create_publisher
 from .units import meter, centimeter
 from .robot_description import RobotDescription
 

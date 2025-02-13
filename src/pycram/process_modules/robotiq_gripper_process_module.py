@@ -8,7 +8,7 @@ from ..datastructures.world import World
 from ..datastructures.enums import GripperState, ExecutionType
 from ..designators.motion_designator import MoveGripperMotion
 from ..process_module import ProcessModule, ProcessModuleManager
-from ..ros.publisher import create_publisher
+from ..ros import  create_publisher
 from ..robot_descriptions.ur5e_controlled_description import GRIPPER_NAME, GRIPPER_CMD_TOPIC, OPEN_VALUE, CLOSE_VALUE
 
 
