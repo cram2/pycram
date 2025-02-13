@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 import datetime
 
-from tf.transformations import euler_from_quaternion
+from tf_transformations import euler_from_quaternion
 from typing_extensions import List, Union, Optional, Sized, Self
 
 import numpy as np

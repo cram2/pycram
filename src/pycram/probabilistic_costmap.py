@@ -5,7 +5,7 @@ import numpy as np
 import tf
 from geometry_msgs.msg import Point
 from std_msgs.msg import ColorRGBA
-from tf.transformations import quaternion_from_matrix
+from tf_transformations import quaternion_from_matrix
 from random_events.interval import closed, closed_open
 from typing_extensions import Optional, Type
 from visualization_msgs.msg import Marker, MarkerArray

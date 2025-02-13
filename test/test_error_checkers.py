@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 import numpy as np
-from tf.transformations import quaternion_from_euler
+from tf_transformations import quaternion_from_euler
 
 from pycram.datastructures.enums import JointType
 from pycram.validation.error_checkers import calculate_angle_between_quaternions, \

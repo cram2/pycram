@@ -15,7 +15,7 @@ from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import P
 from random_events.interval import Interval, reals, closed_open, closed
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
-from tf.transformations import quaternion_from_matrix
+from tf_transformations import quaternion_from_matrix
 from typing_extensions import Tuple, List, Optional, Iterator
 
 from .datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
