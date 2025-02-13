@@ -12,7 +12,7 @@ from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHEC
 
 import pycrap
 import pycrap.ontologies
-from pycrap.ontologies import Base
+from pycrap.ontologies import Base, has_child_link, has_parent_link
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
     MeshVisualShape, RotatedBoundingBox
 from .datastructures.enums import JointType
@@ -513,14 +513,28 @@ class Joint(WorldEntity, ObjectEntity, JointDescription, ABC):
 
     def __init__(self, _id: int,
                  joint_description: JointDescription,
-                 obj: Object, is_virtual: Optional[bool] = False):
-        WorldEntity.__init__(self, _id, obj.world)
+                 obj: Object, is_virtual: Optional[bool] = False,
+                 concept: Type[Base] = pycrap.ontologies.Joint):
+        self.description = joint_description
+        WorldEntity.__init__(self, _id, obj.world, concept=concept, parse_name=False)
         ObjectEntity.__init__(self, obj)
         JointDescription.__init__(self, joint_description.parsed_description, is_virtual)
-        self.description = joint_description
+
         self.acceptable_error = (self.world.conf.revolute_joint_position_tolerance if self.type == JointType.REVOLUTE
                                  else self.world.conf.prismatic_joint_position_tolerance)
         self._update_position()
+        self._update_ontology_data()
+
+    def _update_ontology_data(self):
+        """
+        Update the ontology data of this joint and its parent and child links.
+        """
+        if self.world.is_prospection_world:
+            return
+        self.ontology_individual.is_a = [has_child_link.some(self.child_link.ontology_individual)]
+        if self.parent_link.ontology_individual:
+            self.ontology_individual.is_a = [has_parent_link.some(self.parent_link.ontology_individual)]
+            self.child_link.ontology_individual.is_part_of = [self.parent_link.ontology_individual]
 
     @property
     def name(self) -> str:
