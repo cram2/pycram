@@ -1,17 +1,15 @@
 import atexit
 import time
 import threading
-
-import rospy
 from geometry_msgs.msg import WrenchStamped
 from std_msgs.msg import Header
 
 from ..datastructures.enums import FilterConfig
 from ..datastructures.world import World
 from ..failures import SensorMonitoringCondition
-from ..ros import  Butterworth
+from ..filter import Butterworth
 from ..ros import  Time
-from ..ros import  create_publisher
+from ..ros import  create_publisher, logdebug, loginfo_once, logerr, create_subscriber
 
 
 class ForceTorqueSensorSimulated:
@@ -143,7 +141,7 @@ class ForceTorqueSensor:
 
             self.wrench_topic_name = raw_data
         else:
-            rospy.logerr(f'{self.robot_name} is not supported')
+            logerr(f'{self.robot_name} is not supported')
 
     def _get_rospy_data(self, data_compensated: WrenchStamped):
         if self.init_data:
@@ -161,7 +159,7 @@ class ForceTorqueSensor:
         self.prev_values.pop(0)
 
         if self.debug:
-            rospy.logdebug(
+            logdebug(
                 f'x: {data_compensated.wrench.force.x}, '
                 f'y: {data_compensated.wrench.force.y}, '
                 f'z: {data_compensated.wrench.force.z}')
@@ -194,10 +192,9 @@ class ForceTorqueSensor:
         This will automatically be called on setup.
         Only use this if you already unsubscribed before.
         """
-
-        self.force_torque_subscriber = rospy.Subscriber(name=self.wrench_topic_name,
-                                                        data_class=WrenchStamped,
-                                                        callback=self._get_rospy_data)
+        self.force_torque_subscriber = create_subscriber(self.wrench_topic_name,
+                                                            WrenchStamped,
+                                                            self._get_rospy_data)
 
     def unsubscribe(self):
         """
@@ -246,7 +243,7 @@ class ForceTorqueSensor:
         return derivative
 
     def human_touch_monitoring(self):
-        rospy.loginfo_once("Now monitoring for human touch")
+        loginfo_once("Now monitoring for human touch")
         if self.robot_name == 'pr2':
             der = self.get_derivative()
             if abs(der.wrench.torque.x) > 3:

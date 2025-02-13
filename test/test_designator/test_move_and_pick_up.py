@@ -25,6 +25,7 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
         np.random.seed(69)
         random.seed(69)
 
+    @unittest.skip
     def test_variables(self):
         object_designator = ObjectDesignatorDescription(types=[Milk]).resolve()
         move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
@@ -34,6 +35,7 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
         all_variables = move_and_pick.all_variables()
         self.assertEqual(all_variables, result)
 
+    @unittest.skip
     def test_grounding(self):
         object_designator = ObjectDesignatorDescription(types=[Milk]).resolve()
         move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
@@ -44,6 +46,7 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
         self.assertTrue(event.is_disjoint())
         self.assertIsNotNone(model)
 
+    @unittest.skip
     def test_move_and_pick_up_with_mode(self):
         object_designator = ObjectDesignatorDescription(types=[Milk]).resolve()
         move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],

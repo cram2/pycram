@@ -71,7 +71,7 @@ class LinkDescription(AbstractLinkDescription):
         if coll.origin is None:
             return None
         return Pose(coll.origin.xyz,
-                    quaternion_from_euler(*coll.origin.rpy).tolist())
+                    quaternion_from_euler(*coll.origin.rpy))
 
     @property
     def name(self) -> str:
@@ -129,7 +129,7 @@ class JointDescription(AbstractJointDescription):
         """
         :return: The axis of this joint, for example the rotation axis for a revolute joint.
         """
-        return Point(**dict(zip(["x", "y", "z"],self.parsed_description)))
+        return Point(**dict(zip(["x", "y", "z"],self.parsed_description.axis)))
 
     @property
     def lower_limit(self) -> Union[float, None]:

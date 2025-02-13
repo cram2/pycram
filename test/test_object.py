@@ -179,7 +179,7 @@ class TestObject(BulletWorldTestCase):
     def test_merge_bounding_box(self):
         cereal_2 = Object("cereal2", Food, "breakfast_cereal.stl",
                           pose=self.cereal.pose)
-        cereal_2.set_orientation(quaternion_from_euler(0, 0, np.pi / 2).tolist())
+        cereal_2.set_orientation(quaternion_from_euler(0, 0, np.pi / 2))
         cereal_bbox = self.cereal.get_axis_aligned_bounding_box(False)
         cereal_2_bbox = cereal_2.get_axis_aligned_bounding_box(False)
         plot = False

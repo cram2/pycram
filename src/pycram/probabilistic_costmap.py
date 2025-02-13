@@ -151,8 +151,8 @@ class ProbabilisticCostmap:
         marker.id = 0
         marker.action = Marker.ADD
         marker.header.frame_id = self.origin.frame
-        marker.pose = Pose()
-        marker.lifetime = Duration(60)
+        marker.pose = Pose().pose
+        # marker.lifetime = Duration(60)
         marker.scale.x = 0.05
         marker.scale.y = 0.05
 
@@ -161,7 +161,7 @@ class ProbabilisticCostmap:
             position = self.sample_to_pose(sample).pose.position
             position.z = 0.1
             marker.points.append(position)
-            marker.colors.append(ColorRGBA(**dict(zip(["r", "g", "b","a"], [colorscale(likelihood)[:3], 1]))))
+            # marker.colors.append(ColorRGBA(**dict(zip(["r", "g", "b","a"], [colorscale(likelihood)[:3], 1]))))
 
         marker_array = MarkerArray()
         marker_array.markers.append(marker)

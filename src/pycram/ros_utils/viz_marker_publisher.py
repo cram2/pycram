@@ -52,7 +52,7 @@ class VizMarkerPublisher:
             self.lock.acquire()
             marker_array = self._make_marker_array()
             self.lock.release()
-            self.pub.publish(marker_array)
+            # self.pub.publish(marker_array)
             time.sleep(self.interval)
 
     def _make_marker_array(self) -> MarkerArray:
