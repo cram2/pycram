@@ -349,13 +349,8 @@ class PickUpActionPerformable(ActionAbstract):
 
         MoveGripperMotion(motion=GripperState.CLOSE, gripper=self.arm).perform()
 
-        # Make sure the object is in contact with the gripper
-        in_contact, contact_links = contact(object, robot, return_links=True)
-        if not in_contact or not any([link.name in arm_chain.end_effector.links
-                                      for _, link in contact_links]):
-            # TODO: Would be better to check for contact with both fingers
-            #  (maybe introduce left and right finger links in the end effector description)
-            raise ObjectNotGraspedError(object, self.arm)
+        # Validate the pick-up before attaching the object
+        self.validate()
 
         tool_frame = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
         robot.attach(object, tool_frame)
@@ -377,6 +372,20 @@ class PickUpActionPerformable(ActionAbstract):
 
         session.add(action)
         return action
+
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        """
+        Check if picked up object is in contact with the gripper.
+        """
+        world = World.current_world
+        robot = world.robot
+        obj = self.object_designator.world_object
+        gripper_links = world.robot_description.get_arm_chain(self.arm).end_effector.links
+        in_contact, contact_links = contact(obj, robot, return_links=True)
+        if not in_contact or not any([link.name in gripper_links for _, link in contact_links]):
+            # TODO: Would be better to check for contact with both fingers
+            #  (maybe introduce left and right finger links in the end effector description)
+            raise ObjectNotGraspedError(obj, self.arm)
 
 
 @dataclass
@@ -443,6 +452,9 @@ class NavigateActionPerformable(ActionAbstract):
     def plan(self) -> None:
         motion_action = MoveMotion(self.target_location, self.keep_joint_states)
         return try_action(motion_action, failure_type=NavigationGoalNotReachedError)
+
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        pass
 
 
 @dataclass

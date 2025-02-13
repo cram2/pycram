@@ -207,7 +207,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
             """
             raise NotImplementedError()
 
-        def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
+        def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
             """
             Validate the action after performing it, by checking if the action effects are as expected.
 

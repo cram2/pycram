@@ -6,7 +6,7 @@ from pycram.designator import ObjectDesignatorDescription
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, FaceAtPerformable, MoveTorsoAction
-from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached
+from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError
 from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
@@ -67,13 +67,6 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                                                                                              StaticJointState.Park).items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
 
-    def _test_validate_action_pre_perform(self, action_description, failure):
-        try:
-            action_description.ground().validate(max_wait_time=timedelta(milliseconds=30))
-            self.fail(f"{failure.__name__} should have been raised.")
-        except failure:
-            pass
-
     def test_navigate(self):
         description = action_designator.NavigateAction([Pose([0.3, 0, 0], [0, 0, 0, 1])])
         with simulated_robot:
@@ -85,6 +78,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.PickUpAction(object_description, [Arms.LEFT], [Grasp.FRONT])
         self.assertEqual(description.ground().object_designator.name, "milk")
+        self._test_validate_action_pre_perform(description, ObjectNotGraspedError)
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
@@ -165,3 +159,10 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             FaceAtPerformable(self.milk.pose, True).perform()
             milk_in_robot_frame = LocalTransformer().transform_to_object_frame(self.milk.pose, self.robot)
             self.assertAlmostEqual(milk_in_robot_frame.position.y, 0.)
+
+    def _test_validate_action_pre_perform(self, action_description, failure):
+        try:
+            action_description.ground().validate(max_wait_time=timedelta(milliseconds=30))
+            self.fail(f"{failure.__name__} should have been raised.")
+        except failure:
+            pass
