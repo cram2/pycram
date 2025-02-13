@@ -19,7 +19,7 @@ from pycram.world_concepts.world_object import Object
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.worlds.multiverse import Multiverse
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
-from pycrap import PhysicalObject
+from pycrap.ontologies import PhysicalObject
 
 
 @with_simulated_robot

@@ -12,7 +12,6 @@ from geometry_msgs.msg import Point, Quaternion
 from trimesh.parent import Geometry3D
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union, Self
 
-import pycrap
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList, RotatedBoundingBox, VirtualJoint)
@@ -36,7 +35,10 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
-from pycrap import PhysicalObject, ontology, Base, Agent, Robot
+from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, \
+    has_child_link, has_parent_link, is_part_of, Robot, Link as CraxLink, Floor, Location, RootLink
+
+from pycrap.urdf_parser import parse_furniture, parse_joint_types
 
 Link = ObjectDescription.Link
 
@@ -55,6 +57,8 @@ class Object(PhysicalBody):
     """
     A dictionary that maps the file extension to the corresponding ObjectDescription type.
     """
+
+    ontology_concept: Type[PhysicalObject] = PhysicalObject
 
     def __init__(self, name: str, concept: Type[PhysicalObject], path: Optional[str] = None,
                  description: Optional[ObjectDescription] = None,
@@ -83,11 +87,14 @@ class Object(PhysicalBody):
         :param scale_mesh: The scale of the mesh.
         """
 
-        super().__init__(-1, world if world is not None else World.current_world, concept)
+        self.world = world if world is not None else World.current_world
+        self.name: str = name
+        super().__init__(-1, self.world, concept)
 
         pose = Pose() if pose is None else pose
 
-        self.name: str = name
+        # set ontology related information
+        self.ontology_concept = concept
         self.path: Optional[str] = path
 
         self._resolve_description(path, description)
@@ -107,7 +114,6 @@ class Object(PhysicalBody):
                                                                                  color=color)
 
             self.description.update_description_from_file(self.path)
-
         # if the object is an agent in the belief state
         if self.is_a_robot and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
@@ -436,9 +442,19 @@ class Object(PhysicalBody):
         for link_name, link_id in self.link_name_to_id.items():
             link_description = self.description.get_link_by_name(link_name)
             if link_name == self.description.get_root():
+                ontology_concept = RootLink
                 self.links[link_name] = self.description.RootLink(self)
+
             else:
                 self.links[link_name] = self.description.Link(link_id, link_description, self)
+                # If the link can be matched to a concept, assign it, else assign PhysicalObject as class.
+                if parse_furniture(link_name):
+                    ontology_concept = parse_furniture(link_name)
+                else:
+                    ontology_concept = PhysicalObject
+                if not self.world.is_prospection_world:
+                    # n_same_link = len(self.world.ontology.search(iri = f"{self.world.ontology.ontology.base_iri}{link_name}$*"))
+                    self.ontology_individual.is_a = [CraxLink]
 
         self.update_link_transforms()
 
@@ -452,6 +468,18 @@ class Object(PhysicalBody):
             parsed_joint_description = self.description.get_joint_by_name(joint_name)
             is_virtual = self.is_joint_virtual(joint_name)
             self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
+            if not self.world.is_prospection_world:
+                individual = self.ontology_concept(joint_name, namespace=self.world.ontology.ontology)
+                self.world.ontology.python_objects[individual] = parsed_joint_description
+                individual.is_a = [self.ontology_concept, has_child_link.some(
+                    self.get_joint_child_link(joint_name).ontology_individual),
+                                   has_parent_link.some(
+                                       self.get_joint_child_link(joint_name).ontology_individual)]
+                link_individual = self.get_joint_child_link(joint_name).ontology_individual
+
+                if self.get_joint_parent_link(joint_name).ontology_individual:
+                    link_individual.is_part_of = [
+                        self.get_joint_parent_link(joint_name).ontology_individual]
 
     def is_joint_virtual(self, name: str):
         """
@@ -674,16 +702,16 @@ class Object(PhysicalBody):
 
         :return: True if the object is of type environment, False otherwise.
         """
-        return issubclass(self.obj_type, pycrap.Location) or issubclass(self.obj_type, pycrap.Floor)
+        return issubclass(self.obj_type, Location) or issubclass(self.obj_type, Floor)
 
     @property
     def is_a_robot(self) -> bool:
         """
         Check if the object is a robot.
-
+        TODO: Check if this is a the correct filter
         :return: True if the object is a robot, False otherwise.
         """
-        return issubclass(self.obj_type, pycrap.Robot)
+        return issubclass(self.obj_type, Robot)
 
     def merge(self, other: Object, name: Optional[str] = None, pose: Optional[Pose] = None,
               new_description_file: Optional[str] = None) -> Object:

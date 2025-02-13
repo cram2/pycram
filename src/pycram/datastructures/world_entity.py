@@ -8,7 +8,7 @@ from copy import copy
 from trimesh.parent import Geometry3D
 from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union, Type
 
-from pycrap import PhysicalObject
+from pycrap.ontologies import PhysicalObject
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
     AxisAlignedBoundingBox, RotatedBoundingBox
 from .mixins import HasConcept
@@ -166,14 +166,10 @@ class PhysicalBody(WorldEntity, HasConcept, ABC):
     The ontology concept of this entity.
     """
 
-    def __init__(self, body_id: int, world: World, concept: Type[PhysicalObject] = PhysicalObject):
+    def __init__(self, body_id: int, world: World, concept: Type[PhysicalObject] = PhysicalObject,
+                 parse_name: bool = True):
         WorldEntity.__init__(self, body_id, world)
-        HasConcept.__init__(self)
-
-        # set ontology related information
-        self.ontology_concept = concept
-        if not self.world.is_prospection_world:
-            self.ontology_individual = self.ontology_concept(namespace=self.world.ontology.ontology)
+        HasConcept.__init__(self, name=self.name, world=self.world, concept=concept, parse_name=parse_name)
 
         self.local_transformer = LocalTransformer()
         self._is_translating: Optional[bool] = None

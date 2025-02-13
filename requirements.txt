@@ -28,3 +28,4 @@ Pygments~=2.14.0
 typeguard~=4.3.0
 gymnasium
 pin==2.7.0
+inflection>=0.5.1

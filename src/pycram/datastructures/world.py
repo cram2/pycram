@@ -12,8 +12,10 @@ from geometry_msgs.msg import Point
 from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
-import pycrap
-from pycrap import PhysicalObject, Floor, Apartment, Robot
+
+from pycrap.ontologies import PhysicalObject
+from pycrap.ontology_wrapper import OntologyWrapper
+
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
@@ -73,7 +75,7 @@ class World(WorldEntity, ABC):
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
 
-    ontology: Optional[pycrap.Ontology] = None
+    ontology: Optional[OntologyWrapper] = None
     """
     The ontology of this world.
     """
@@ -93,7 +95,7 @@ class World(WorldEntity, ABC):
         """
 
         WorldEntity.__init__(self, id_, self)
-        self.ontology = pycrap.Ontology()
+        self.ontology = OntologyWrapper()
         self.latest_state_id: Optional[int] = None
 
         if clear_cache or (self.conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
