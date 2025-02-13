@@ -161,7 +161,7 @@ class ProbabilisticCostmap:
             position = self.sample_to_pose(sample).pose.position
             position.z = 0.1
             marker.points.append(position)
-            # marker.colors.append(ColorRGBA(**dict(zip(["r", "g", "b","a"], [colorscale(likelihood)[:3], 1]))))
+            marker.colors.append(ColorRGBA(**dict(zip(["r", "g", "b","a"], [*colorscale(likelihood)[:3], 1.0]))))
 
         marker_array = MarkerArray()
         marker_array.markers.append(marker)

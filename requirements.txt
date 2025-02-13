@@ -2,7 +2,7 @@
 gitpython>=3.1.37
 pycram_bullet==3.2.8
 pathlib~=1.0.1
-numpy==1.24.3
+numpy==1.26.4
 pytransform3d~=1.9.1
 graphviz
 anytree>=2.8.0
@@ -21,7 +21,7 @@ dm_control
 trimesh
 deprecated
 probabilistic_model>=6.0.2
-random_events>=3.1.2
+random_events>=3.1.2, <4.0.0
 sympy
 pint>=0.21.1
 Pygments~=2.14.0
