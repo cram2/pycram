@@ -122,7 +122,7 @@ from pycram.designators.object_designator import BelieveObject
 with simulated_robot:
     LookingMotion(target=Pose([1.5, 0, 1], [0, 0, 0, 1])).perform()
 
-    motion_description = DetectingMotion(technique=DetectionTechnique.TYPES,state=DetectionState.START, object_designator_description=BelieveObject(types=[pycrap.Milk]),
+    motion_description = DetectingMotion(technique=DetectionTechnique.TYPES,state=DetectionState.START, object_designator_description=BelieveObject(types=[Milk]),
                                region=None)
 
     obj = motion_description.perform()
@@ -158,7 +158,7 @@ from pycram.designators.motion_designator import WorldStateDetectingMotion
 from pycram.process_module import simulated_robot
 
 with simulated_robot:
-    motion_description = WorldStateDetectingMotion(object_type=pycrap.Milk)
+    motion_description = WorldStateDetectingMotion(object_type=Milk)
 
     obj = motion_description.perform()
 
