@@ -5,8 +5,6 @@ from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.pose import Pose
 from pycram.robot_description import RobotDescription
 
-use_new = True
-
 
 class TestCaseBulletWorldReasoning(BulletWorldTestCase):
 

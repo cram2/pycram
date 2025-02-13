@@ -13,8 +13,7 @@ from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp, D
     StaticJointState
 from pycram.testing import  BulletWorldTestCase
 import numpy as np
-
-from pycrap import Milk
+from pycrap.ontologies import Milk
 
 
 class TestActionDesignatorGrounding(BulletWorldTestCase):

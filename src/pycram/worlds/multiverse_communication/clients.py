@@ -11,7 +11,7 @@ from typing_extensions import List, Dict, Tuple, Optional, Callable, Union
 
 from .socket import MultiverseSocket, MultiverseMetaData
 from ...config.multiverse_conf import MultiverseConfig as Conf
-from ...datastructures.dataclasses import RayResult, MultiverseContactPoint, \
+from ...datastructures.dataclasses import MultiverseRayResult, MultiverseContactPoint, \
     AxisAlignedBoundingBox
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
@@ -725,13 +725,13 @@ class MultiverseAPI(MultiverseClient):
         return self._parse_contact_points(body_1_name, body_2_name, points)
 
     def get_objects_intersected_with_rays(self, from_positions: List[List[float]],
-                                          to_positions: List[List[float]]) -> List[RayResult]:
+                                          to_positions: List[List[float]]) -> List[MultiverseRayResult]:
         """
         Get the rays intersections with the objects from the from_positions to the to_positions.
 
         :param from_positions: The starting positions of the rays.
         :param to_positions: The ending positions of the rays.
-        :return: The rays intersections with the objects as a list of RayResult.
+        :return: The rays intersections with the objects as a list of MultiverseRayResult.
         """
         get_rays_response = self._get_rays(from_positions, to_positions)
         return self._parse_get_rays_response(get_rays_response)
@@ -750,7 +750,7 @@ class MultiverseAPI(MultiverseClient):
         return self._request_single_api_callback(API.GET_RAYS, from_positions, to_positions)
 
     @staticmethod
-    def _parse_get_rays_response(response: List[str]) -> List[RayResult]:
+    def _parse_get_rays_response(response: List[str]) -> List[MultiverseRayResult]:
         """
         Parse the response of the get rays API.
 
@@ -760,11 +760,11 @@ class MultiverseAPI(MultiverseClient):
         get_rays_results = []
         for ray_response in response:
             if ray_response == "None":
-                get_rays_results.append(RayResult("", -1))
+                get_rays_results.append(MultiverseRayResult("", -1))
             else:
                 result = ray_response.split()
                 result[1] = float(result[1])
-                get_rays_results.append(RayResult(*result))
+                get_rays_results.append(MultiverseRayResult(*result))
         return get_rays_results
 
     @staticmethod
