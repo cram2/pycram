@@ -15,7 +15,7 @@ class WorldConfig:
     specific world (e.g. multiverse has MultiverseConfig which inherits from this class).
     """
 
-    resources_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'resources')
+    resources_path = os.path.join(os.path.dirname(__file__), '..', '..', 'resources')
     resources_path = os.path.abspath(resources_path)
     """
     Global reference for the resources path, this is used to search for the description files of the robot and
