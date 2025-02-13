@@ -25,10 +25,6 @@ class TaskTreeTestCase(BulletWorldTestCase):
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             description.resolve().perform()
 
-    def setUp(self):
-        super().setUp()
-        pycram.tasktree.task_tree.reset_tree()
-
     def test_tree_creation(self):
         """Test the creation and content of a task tree."""
         self.plan()

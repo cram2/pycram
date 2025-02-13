@@ -36,14 +36,14 @@ from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
 from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, \
-    has_child_link, has_parent_link, is_part_of, Robot, Link as CraxLink, Floor, Location
+    has_child_link, has_parent_link, is_part_of, Robot, Link as CraxLink, Floor, Location, RootLink
 
 from pycrap.urdf_parser import parse_furniture, parse_joint_types
 
 Link = ObjectDescription.Link
 
 
-class Object(PhysicalBody, HasConcept):
+class Object(PhysicalBody):
     """
     Represents a spawned Object in the World.
     """
@@ -87,13 +87,14 @@ class Object(PhysicalBody, HasConcept):
         :param scale_mesh: The scale of the mesh.
         """
 
-        super().__init__(-1, world if world is not None else World.current_world, concept)
+        self.world = world if world is not None else World.current_world
+        self.name: str = name
+        super().__init__(-1, self.world, concept)
 
         pose = Pose() if pose is None else pose
 
         # set ontology related information
         self.ontology_concept = concept
-        self.name: str = name
         self.path: Optional[str] = path
 
         self._resolve_description(path, description)
@@ -441,20 +442,19 @@ class Object(PhysicalBody, HasConcept):
         for link_name, link_id in self.link_name_to_id.items():
             link_description = self.description.get_link_by_name(link_name)
             if link_name == self.description.get_root():
+                ontology_concept = RootLink
                 self.links[link_name] = self.description.RootLink(self)
+
             else:
                 self.links[link_name] = self.description.Link(link_id, link_description, self)
-            # If the link can be matched to a concept, assign it, else assign PhysicalObject as class.
-            if parse_furniture(link_name):
-                ontology_concept = parse_furniture(link_name)
-            else:
-                ontology_concept = PhysicalObject
-            if not self.world.is_prospection_world:
-                # n_same_link = len(self.world.ontology.search(iri = f"{self.world.ontology.ontology.base_iri}{link_name}$*"))
-                new_link_name = f"{self.name}_{link_name}"
-                individual = ontology_concept(name=new_link_name, namespace=self.world.ontology.ontology)
-                self.world.ontology.python_objects[individual] = self.links[link_name]
-                individual.is_a = [ontology_concept, CraxLink]
+                # If the link can be matched to a concept, assign it, else assign PhysicalObject as class.
+                if parse_furniture(link_name):
+                    ontology_concept = parse_furniture(link_name)
+                else:
+                    ontology_concept = PhysicalObject
+                if not self.world.is_prospection_world:
+                    # n_same_link = len(self.world.ontology.search(iri = f"{self.world.ontology.ontology.base_iri}{link_name}$*"))
+                    self.ontology_individual.is_a = [CraxLink]
 
         self.update_link_transforms()
 

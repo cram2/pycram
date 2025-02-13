@@ -1,6 +1,17 @@
+from __future__ import annotations
+
+import typing_extensions
+
 from typing_extensions import Type, Optional
 
-from pycrap.ontologies import Base
+from pycrap.ontologies import Base, PhysicalObject
+from owlready2 import Ontology
+
+from pycrap.ontology_wrapper import OntologyWrapper
+from pycrap.urdf_parser import parse_furniture
+
+if typing_extensions.TYPE_CHECKING:
+    from .world import World
 
 
 class HasConcept:
@@ -18,5 +29,18 @@ class HasConcept:
     The individual in the ontology that is connected with this class.
     """
 
-    def __init__(self):
-        self.ontology_individual = self.ontology_concept()
+    def __init__(self, world: World, name: Optional[str] = None, concept: Type[Base] = PhysicalObject,
+                 parse_name: bool = True):
+
+        if world.is_prospection_world:
+            return
+
+        self.ontology_concept = concept
+        self.ontology_individual = self.ontology_concept(name = name, namespace=world.ontology.ontology)
+
+        if parse_name:
+            inferred_concept = parse_furniture(name)
+            if inferred_concept is not None:
+                self.ontology_individual.is_a = [inferred_concept]
+
+        world.ontology.python_objects[self.ontology_individual] = self

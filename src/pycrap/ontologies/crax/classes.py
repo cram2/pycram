@@ -203,3 +203,6 @@ class Task(Base):
     The actions to execute a task can also be organized according to a Plan that is not the same as the one that defines the task (if any).
     For example, reaching a destination could be defined by a plan to get on holidays, while the plan to execute the task can consist of putting some travels into a sequence.
     """
+
+class RootLink(Base):
+    ...

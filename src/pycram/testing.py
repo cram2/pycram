@@ -31,6 +31,7 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
         cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):
+        task_tree.reset_tree()
         self.world.reset_world(remove_saved_states=True)
         with UseProspectionWorld():
             pass
