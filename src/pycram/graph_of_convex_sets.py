@@ -5,7 +5,6 @@ import numpy as np
 import plotly.graph_objects as go
 from random_events.interval import SimpleInterval, Bound, singleton
 from random_events.product_algebra import SimpleEvent, Event
-from random_events.variable import Continuous
 from sortedcontainers import SortedSet
 from tqdm import tqdm
 from typing_extensions import Self, Optional, List
@@ -31,156 +30,6 @@ class PoseOccupiedError(PlanFailure):
         self.pose = pose
 
 
-class Box:
-    """
-    A box in 3D space.
-    A box is constructed by the cartesian product of three simple intervals.
-
-    """
-    simple_event: SimpleEvent
-    """
-    The algebraic simple event associated with this box.
-    """
-
-    x = Continuous("x")
-    """
-    The x-axis variable.
-    """
-
-    y = Continuous("y")
-    """
-    The y-axis variable.
-    """
-
-    z = Continuous("z")
-    """
-    The z-axis variable.
-    """
-
-    def __init__(self, x: SimpleInterval = SimpleInterval(0, 1),
-                 y: SimpleInterval = SimpleInterval(0, 1),
-                 z: SimpleInterval = SimpleInterval(0, 1)):
-        """
-        Construct a new box.
-        :param x: The interval for the x-axis.
-        :param y: The interval for the y-axis.
-        :param z: The interval for the z-axis.
-        """
-        self.simple_event = SimpleEvent({self.x: x, self.y: y, self.z: z})
-
-    def __repr__(self):
-        return f"Box(x={round(self.x_interval.lower, 3), round(self.x_interval.upper, 3)}, \n" \
-               f"y={round(self.y_interval.lower, 3), round(self.y_interval.upper, 3)}, \n" \
-               f"z={round(self.z_interval.lower, 3), round(self.z_interval.upper, 3)})"
-
-    def scale(self, x: float = 1., y: float = 1., z: float = 1.):
-        """
-        Scale the box in-place.
-
-        :param x: The x-axis scaling factor.
-        :param y: The y-axis scaling factor.
-        :param z: The z-axis scaling factor.
-        """
-        for variable, scale in zip([self.x, self.y, self.z], [x, y, z]):
-            self.simple_event[variable].simple_sets[0].lower *= scale
-            self.simple_event[variable].simple_sets[0].upper *= scale
-
-    def enlarge(self, x_upper: float = 0., x_lower: float = 0.,
-                y_upper: float = 0., y_lower: float = 0.,
-                z_upper: float = 0., z_lower: float = 0.):
-        """
-        Enlarge the box in-place.
-
-        :param x_upper: The enlargement of the x-axis upper bound.
-        :param x_lower: The enlargement of the x-axis lower bound.
-        :param y_upper: The enlargement of the y-axis upper bound.
-        :param y_lower: The enlargement of the y-axis lower bound.
-        :param z_upper: The enlargement of the z-axis upper bound.
-        :param z_lower: The enlargement of the z-axis lower bound.
-        """
-        self.simple_event[self.x].simple_sets[0].upper += x_upper
-        self.simple_event[self.x].simple_sets[0].lower -= x_lower
-        self.simple_event[self.y].simple_sets[0].upper += y_upper
-        self.simple_event[self.y].simple_sets[0].lower -= y_lower
-        self.simple_event[self.z].simple_sets[0].upper += z_upper
-        self.simple_event[self.z].simple_sets[0].lower -= z_lower
-
-    @property
-    def x_interval(self):
-        """
-        :return: The interval for the x-axis.
-        """
-        return self.simple_event[self.x].simple_sets[0]
-
-    @property
-    def y_interval(self):
-        """
-        :return: The interval for the y-axis.
-        """
-        return self.simple_event[self.y].simple_sets[0]
-
-    @property
-    def z_interval(self):
-        """
-        :return: The interval for the z-axis.
-        """
-        return self.simple_event[self.z].simple_sets[0]
-
-    def intersection_with(self, other: Self) -> Optional[Self]:
-        """
-        Compute the intersection of this box with another box.
-
-        :param other: The other box.
-        :return: The intersection or None if the intersection is empty.
-        """
-        intersection = self.simple_event.__deepcopy__().intersection_with(other.simple_event.__deepcopy__())
-        if intersection.is_empty():
-            return None
-
-        return Box(x=intersection[self.x].simple_sets[0], y=intersection[self.y].simple_sets[0],
-                   z=intersection[self.z].simple_sets[0])
-
-    def __hash__(self):
-        return hash(id(self.simple_event))
-
-    @classmethod
-    def from_event(cls, event: Event) -> List[Self]:
-        result = []
-        for simple_event in event.simple_sets:
-            simple_event: SimpleEvent
-
-            for x, y, z in itertools.product(simple_event[cls.x].simple_sets,
-                                             simple_event[cls.y].simple_sets,
-                                             simple_event[cls.z].simple_sets):
-                result.append(cls(x, y, z))
-        return result
-
-    def contains(self, x: float, y: float, z: float):
-        """
-        Check if a point is contained in the box.
-
-        :param x: The x-coordinate.
-        :param y: The y-coordinate.
-        :param z: The z-coordinate.
-        :return: True if the point is contained in the box.
-        """
-        return (self.simple_event[self.x].contains(x) and self.simple_event[self.y].contains(y)
-                and self.simple_event[self.z].contains(z))
-
-
-def bounding_box_as_random_event(bb: BoundingBox) -> SimpleEvent:
-    """
-    Convert a bounding box from the pycram world datastructures to a random event.
-
-    :param bb: The bounding box.
-    :return: The random event.
-    """
-    x = SimpleInterval(bb.min_x, bb.max_x, Bound.CLOSED, Bound.CLOSED)
-    y = SimpleInterval(bb.min_y, bb.max_y, Bound.CLOSED, Bound.CLOSED)
-    z = SimpleInterval(bb.min_z, bb.max_z, Bound.CLOSED, Bound.CLOSED)
-    return SimpleEvent({Box.x: x, Box.y: y, Box.z: z})
-
-
 class GraphOfConvexSets(nx.Graph):
     """
     A graph that represents the connectivity between convex sets.
@@ -190,12 +39,12 @@ class GraphOfConvexSets(nx.Graph):
     Furthermore, the adjacency is saved in and edge attribute called "intersection".
     """
 
-    search_space: Box
+    search_space: BoundingBox
     """
     The bounding box of the search space. Defaults to the entire three dimensional space.
     """
 
-    def __init__(self, search_space: Optional[Box] = None):
+    def __init__(self, search_space: Optional[BoundingBox] = None):
         super().__init__()
         self.search_space = self._make_search_space(search_space)
 
@@ -210,9 +59,9 @@ class GraphOfConvexSets(nx.Graph):
         number_of_nodes = len(self.nodes)
 
         # make the bounding boxes a bit larger
-        [node.enlarge(tolerance, tolerance, tolerance, tolerance, tolerance, tolerance) for node in self.nodes]
+        [node.enlarge_all(tolerance) for node in self.nodes]
 
-        def check_connectivity(node1, node2):
+        def check_connectivity(node1: BoundingBox, node2: BoundingBox):
             """
             Check the connectivity between two nodes.
             Add an edge if they are connected.
@@ -221,7 +70,7 @@ class GraphOfConvexSets(nx.Graph):
             """
             intersection = node1.intersection_with(node2)
             if intersection:
-                intersection.enlarge(-tolerance, -tolerance, -tolerance, -tolerance, -tolerance, -tolerance)
+                intersection.enlarge_all(-tolerance)
                 self.add_edge(node1, node2, intersection=intersection)
 
         # calculate the connectivity for each edge pair
@@ -230,7 +79,7 @@ class GraphOfConvexSets(nx.Graph):
                                                        total=number_of_nodes * (number_of_nodes - 1) // 2)]
 
         # recreate the original bounding boxes
-        [node.enlarge(-tolerance, -tolerance, -tolerance, -tolerance, -tolerance, -tolerance) for node in self.nodes]
+        [node.enlarge_all(-tolerance) for node in self.nodes]
 
     def plot_free_space(self) -> List[go.Mesh3d]:
         """
@@ -249,7 +98,7 @@ class GraphOfConvexSets(nx.Graph):
         occupied_space = ~free_space & self.search_space.simple_event.as_composite_set()
         return occupied_space.plot(color="red")
 
-    def node_of_pose(self, x, y, z) -> Optional[Box]:
+    def node_of_pose(self, x, y, z) -> Optional[BoundingBox]:
         """
         Find the node that contains a point.
 
@@ -276,12 +125,6 @@ class GraphOfConvexSets(nx.Graph):
         start_node = self.node_of_pose(*start.position_as_list())
         goal_node = self.node_of_pose(*goal.position_as_list())
 
-        if self.search_space is not None:
-            if not self.search_space.contains(*start.position_as_list()):
-                raise PoseOccupiedError(start)
-            if not self.search_space.contains(*goal.position_as_list()):
-                raise PoseOccupiedError(goal)
-
         # validate if the poses are part of the graph
         if start_node is None:
             raise PoseOccupiedError(start)
@@ -302,7 +145,7 @@ class GraphOfConvexSets(nx.Graph):
         result = [start]
 
         for source, target in zip(path, path[1:]):
-            intersection: Box = self[source][target]["intersection"]
+            intersection: BoundingBox = self[source][target]["intersection"]
             x_target = intersection.x_interval.center()
             y_target = intersection.y_interval.center()
             z_target = intersection.z_interval.center()
@@ -312,25 +155,27 @@ class GraphOfConvexSets(nx.Graph):
         return result
 
     @classmethod
-    def _make_search_space(cls, search_space: Optional[Box] = None):
+    def _make_search_space(cls, search_space: Optional[BoundingBox] = None):
         """
         Create the default search space if it is not given.
         """
         if search_space is None:
-            search_space = Box(x=SimpleInterval(-np.inf, np.inf),
-                               y=SimpleInterval(-np.inf, np.inf),
-                               z=SimpleInterval(-np.inf, np.inf))
+            search_space = BoundingBox(-np.inf, -np.inf, -np.inf,
+                                       np.inf, np.inf, np.inf)
         return search_space
 
     @classmethod
-    def obstacles_of_world(cls, world: World, search_space: Optional[Box] = None) -> Event:
+    def obstacles_of_world(cls, world: World, search_space: Optional[BoundingBox] = None) -> Event:
         """
         Get all obstacles of the world besides the robot as a random event.
         """
 
-        obstacles = None
+        # create search space for calculations
         search_space = cls._make_search_space(search_space)
         search_event = search_space.simple_event.as_composite_set()
+
+        # initialize obstacles
+        obstacles = None
 
         # create an event that describes the obstacles in the belief state of the robot
         for obj in world.objects:
@@ -344,12 +189,13 @@ class GraphOfConvexSets(nx.Graph):
                 bb = obj.get_link_axis_aligned_bounding_box(link)
 
                 # limit bounding box to search space
-                bb_event = bounding_box_as_random_event(bb).as_composite_set() & search_event
+                bb_event = bb.simple_event.as_composite_set() & search_event
 
-                # TODO: fix this to be less clunky when random events is fixed
+                # skip bounding boxes that are outside the search space
                 if bb_event.is_empty():
                     continue
 
+                # update obstacles
                 if obstacles is None:
                     obstacles = bb_event
                 else:
@@ -358,7 +204,7 @@ class GraphOfConvexSets(nx.Graph):
         return obstacles
 
     @classmethod
-    def free_space_from_world(cls, world: World, tolerance=.001, search_space: Optional[Box] = None) -> Self:
+    def free_space_from_world(cls, world: World, tolerance=.001, search_space: Optional[BoundingBox] = None) -> Self:
         """
         Create a connectivity graph from the free space in the belief state of the robot.
 
@@ -380,13 +226,14 @@ class GraphOfConvexSets(nx.Graph):
 
         # create a connectivity graph from the free space and calculate the edges
         result = cls(search_space=search_space)
-        result.add_nodes_from(Box.from_event(free_space))
+        result.add_nodes_from(BoundingBox.from_event(free_space))
         result.calculate_connectivity(tolerance)
 
         return result
 
     @classmethod
-    def navigation_map_from_world(cls, world: World, tolerance=.001, search_space: Optional[Box] = None) -> Self:
+    def navigation_map_from_world(cls, world: World, tolerance=.001,
+                                  search_space: Optional[BoundingBox] = None) -> Self:
         """
         Create a GCS from the free space in the belief state of the robot for navigation.
         The resulting GCS describes the paths for navigation, meaning that changing the z-axis position is not
@@ -402,7 +249,7 @@ class GraphOfConvexSets(nx.Graph):
         :return: The connectivity graph.
         """
 
-        xy = SortedSet([Box.x, Box.y])
+        xy = SortedSet([BoundingBox.x_variable, BoundingBox.y_variable])
 
         # create search space for calculations
         search_space = cls._make_search_space(search_space)
@@ -419,9 +266,9 @@ class GraphOfConvexSets(nx.Graph):
         free_space = ~obstacles & search_event
 
         # create floor level
-        z_event = SimpleEvent({Box.z: singleton(0.)}).as_composite_set()
+        z_event = SimpleEvent({BoundingBox.z_variable: singleton(0.)}).as_composite_set()
         z_event.fill_missing_variables(xy)
-        free_space.fill_missing_variables(SortedSet([Box.z]))
+        free_space.fill_missing_variables(SortedSet([BoundingBox.z_variable]))
         free_space &= z_event
 
         # update z for search space
@@ -429,7 +276,7 @@ class GraphOfConvexSets(nx.Graph):
 
         # create a connectivity graph from the free space and calculate the edges
         result = cls(search_space=search_space)
-        result.add_nodes_from(Box.from_event(free_space))
+        result.add_nodes_from(BoundingBox.from_event(free_space))
         result.calculate_connectivity(tolerance)
 
         return result

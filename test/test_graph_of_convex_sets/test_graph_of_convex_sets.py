@@ -7,8 +7,9 @@ from random_events.interval import SimpleInterval
 from random_events.product_algebra import SimpleEvent
 
 from pycram.datastructures.pose import Pose
+from pycram.datastructures.dataclasses import BoundingBox
 from pycram.failures import PlanFailure
-from pycram.graph_of_convex_sets import GraphOfConvexSets, Box, PoseOccupiedError
+from pycram.graph_of_convex_sets import GraphOfConvexSets, PoseOccupiedError
 from pycram.ros_utils.viz_marker_publisher import TrajectoryPublisher
 from pycram.testing import BulletWorldTestCase
 import plotly.graph_objects as go
@@ -25,13 +26,15 @@ class GCSTestCase(unittest.TestCase):
     def setUpClass(cls):
         gcs = GraphOfConvexSets()
 
-        obstacle = Box()
+        obstacle = BoundingBox(0, 0, 0, 1, 1, 1)
 
         z_lim = SimpleInterval(.45, .55)
         x_lim = SimpleInterval(-2, 3)
         y_lim = SimpleInterval(-2, 3)
-        limiting_event = SimpleEvent({Box.z: z_lim, Box.x: x_lim, Box.y: y_lim})
-        obstacles = Box.from_event(~obstacle.simple_event.as_composite_set() & limiting_event.as_composite_set())
+        limiting_event = SimpleEvent({BoundingBox.z_variable: z_lim,
+                                      BoundingBox.x_variable: x_lim,
+                                      BoundingBox.y_variable: y_lim})
+        obstacles = BoundingBox.from_event(~obstacle.simple_event.as_composite_set() & limiting_event.as_composite_set())
         gcs.add_nodes_from(obstacles)
         gcs.calculate_connectivity()
         cls.gcs = gcs
@@ -63,9 +66,9 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
     """
 
     def test_from_world(self):
-        search_space = Box(x=SimpleInterval(-1, 1),
-                           y=SimpleInterval(-1, 1),
-                           z=SimpleInterval(0.1, 1.))
+        search_space = BoundingBox(min_x=-1, max_x=1,
+                                      min_y=-1, max_y=1,
+                                      min_z=0.1, max_z=1)
         gcs = GraphOfConvexSets.free_space_from_world(self.world, search_space=search_space)
         self.assertIsNotNone(gcs)
         self.assertGreater(len(gcs.nodes), 0)
@@ -75,7 +78,6 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
         target = Pose([-0.9, 0.9, 0.9])
 
         path = gcs.path_from_to(start, target)
-
 
         pub = TrajectoryPublisher()
         pub.visualize_trajectory(path)
@@ -88,10 +90,11 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
             target = Pose([10, 10, 10])
             gcs.path_from_to(start, target)
 
+
     def test_navigation_map_from_world(self):
-        search_space = Box(x=SimpleInterval(-1, 1),
-                           y=SimpleInterval(-1, 1),
-                           z=SimpleInterval(0.1, 1.))
+        search_space = BoundingBox(min_x=-1, max_x=1,
+                                      min_y=-1, max_y=1,
+                                      min_z=0.1, max_z=1)
         gcs = GraphOfConvexSets.navigation_map_from_world(self.world, search_space=search_space)
         self.assertGreater(len(gcs.nodes), 0)
         self.assertGreater(len(gcs.edges), 0)
