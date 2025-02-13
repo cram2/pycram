@@ -36,7 +36,7 @@ from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from ..datastructures.mixins import HasConcept
 from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, \
-    has_child_link, has_parent_link, is_part_of, Robot, Link as CraxLink
+    has_child_link, has_parent_link, is_part_of, Robot, Link as CraxLink, Floor, Location
 
 from pycrap.urdf_parser import parse_furniture, parse_joint_types
 
@@ -93,9 +93,6 @@ class Object(PhysicalBody, HasConcept):
 
         # set ontology related information
         self.ontology_concept = concept
-        if not self.world.is_prospection_world:
-            self.ontology_individual = self.ontology_concept(namespace=self.world.ontology.ontology)
-
         self.name: str = name
         self.path: Optional[str] = path
 
@@ -116,7 +113,6 @@ class Object(PhysicalBody, HasConcept):
                                                                                  color=color)
 
             self.description.update_description_from_file(self.path)
-
         # if the object is an agent in the belief state
         if self.is_a_robot and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
@@ -448,6 +444,17 @@ class Object(PhysicalBody, HasConcept):
                 self.links[link_name] = self.description.RootLink(self)
             else:
                 self.links[link_name] = self.description.Link(link_id, link_description, self)
+            # If the link can be matched to a concept, assign it, else assign PhysicalObject as class.
+            if parse_furniture(link_name):
+                ontology_concept = parse_furniture(link_name)
+            else:
+                ontology_concept = PhysicalObject
+            if not self.world.is_prospection_world:
+                # n_same_link = len(self.world.ontology.search(iri = f"{self.world.ontology.ontology.base_iri}{link_name}$*"))
+                new_link_name = f"{self.name}_{link_name}"
+                individual = ontology_concept(name=new_link_name, namespace=self.world.ontology.ontology)
+                self.world.ontology.python_objects[individual] = self.links[link_name]
+                individual.is_a = [ontology_concept, CraxLink]
 
         self.update_link_transforms()
 
@@ -461,6 +468,18 @@ class Object(PhysicalBody, HasConcept):
             parsed_joint_description = self.description.get_joint_by_name(joint_name)
             is_virtual = self.is_joint_virtual(joint_name)
             self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
+            if not self.world.is_prospection_world:
+                individual = self.ontology_concept(joint_name, namespace=self.world.ontology.ontology)
+                self.world.ontology.python_objects[individual] = parsed_joint_description
+                individual.is_a = [self.ontology_concept, has_child_link.some(
+                    self.get_joint_child_link(joint_name).ontology_individual),
+                                   has_parent_link.some(
+                                       self.get_joint_child_link(joint_name).ontology_individual)]
+                link_individual = self.get_joint_child_link(joint_name).ontology_individual
+
+                if self.get_joint_parent_link(joint_name).ontology_individual:
+                    link_individual.is_part_of = [
+                        self.get_joint_parent_link(joint_name).ontology_individual]
 
     def is_joint_virtual(self, name: str):
         """

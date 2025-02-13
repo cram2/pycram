@@ -8,7 +8,7 @@ from copy import copy
 from trimesh.parent import Geometry3D
 from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union, Type
 
-from pycrap import PhysicalObject
+from pycrap.ontologies import PhysicalObject
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
     AxisAlignedBoundingBox, RotatedBoundingBox
 from .mixins import HasConcept

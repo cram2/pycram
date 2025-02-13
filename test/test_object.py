@@ -14,7 +14,7 @@ from pycram.object_descriptors.generic import ObjectDescription as GenericObject
 from geometry_msgs.msg import Point, Quaternion
 import pathlib
 
-from pycrap.ontologies import Milk
+from pycrap.ontologies import Milk, Food
 
 
 class TestObject(BulletWorldTestCase):
@@ -207,12 +207,12 @@ class GenericObjectTestCase(BulletWorldTestCase):
 class OntologyIntegrationTestCase(BulletWorldTestCase):
 
     def test_querying(self):
-        # get all milks from the ontology
+        """
+         Test case if spawning a second object of the same Concept in this case milk,
+         Since the Object Link Description contains the same name for every object coming from the same STL-File,
+         it is required to add a unique id for every new parsed link description.
+         We spawn a second milk object, so there should be two instances of type milk. """
+        milk2 = Object("milk2", Milk, "milk.stl")
+        self.world.ontology.reason()
         r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.individuals()))
         self.assertEqual(len(r), 2)
-
-        milk2 = Object("milk2", Milk, "milk.stl")
-
-        r = list(filter(lambda x:  x in Milk.instances(), self.world.ontology.individuals()))
-
-        self.assertEqual(len(r), 3)
