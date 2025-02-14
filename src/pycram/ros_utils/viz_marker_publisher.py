@@ -1,10 +1,11 @@
 import atexit
 import threading
 import time
+from functools import cached_property
 from typing import List, Optional, Tuple
 
 import numpy as np
-from geometry_msgs.msg import Vector3
+from geometry_msgs.msg import Vector3, Point
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -329,3 +330,60 @@ class ManualMarkerPublisher:
         self.marker_array_pub.publish(self.marker_array)
 
         loginfo('Removed all markers')
+
+
+
+class TrajectoryPublisher:
+    """
+    Publishes a trajectory as a MarkerArray to visualize it in rviz.
+    """
+
+    @cached_property
+    def publisher(self):
+        pub = create_publisher("/pycram/trajectory", MarkerArray)
+        time.sleep(0.5) # this is needed to synchronize the publisher creation thread
+        return pub
+
+    def visualize_trajectory(self, trajectory: List[Pose]):
+        """
+        Visualize a trajectory in rviz as a series of arrows.
+
+        :param trajectory: The trajectory to visualize as a list of points where an arrow should be drawn
+        from point to point.
+        """
+        marker_array = MarkerArray()
+        for index, (p1, p2) in enumerate(zip(trajectory, trajectory[1:])):
+
+            marker = Marker()
+            marker.header.frame_id = p1.frame
+            marker.id = index
+            marker.ns = "trajectory_arrows"
+            marker.action = Marker.ADD
+            marker.type = Marker.ARROW
+            marker.lifetime = Duration(60)
+
+            marker_p1 = Point()
+            marker_p1.x = p1.position.x
+            marker_p1.y = p1.position.y
+            marker_p1.z = p1.position.z
+
+            marker_p2 = Point()
+            marker_p2.x = p2.position.x
+            marker_p2.y = p2.position.y
+            marker_p2.z = p2.position.z
+
+            marker.points.append(marker_p1)
+            marker.points.append(marker_p2)
+
+            marker.scale.x = 0.01
+            marker.scale.y = 0.02
+            marker.scale.z = 0.02
+
+            marker.color.r = 1.0
+            marker.color.g = 0.0
+            marker.color.b = 1.0
+            marker.color.a = 1.0
+
+            marker_array.markers.append(marker)
+        self.publisher.publish(marker_array)
+

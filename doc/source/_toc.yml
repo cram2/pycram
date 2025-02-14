@@ -56,6 +56,7 @@ parts:
         sections:
         - file: notebooks/knowledge_source.md
         - file: notebooks/properties.md
+      - file: notebooks/graph_of_convex_sets.md
 
   - caption: API
     chapters:
