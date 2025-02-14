@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from tf import transformations
 from typing_extensions import List, Union, Optional, Type
 
-from pycrap import PhysicalObject, Location
+from pycrap.ontologies import PhysicalObject, Location
 from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveArmJointsMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion

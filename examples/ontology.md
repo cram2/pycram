@@ -25,6 +25,13 @@ Furthermore, this architecture allows the users to directly see what's in the on
 switching to tools like [Protégé](https://protege.stanford.edu/).
 The linter and AI assistants like Copilot can also deal with this notation and guide the users without annoyances.
 
+PyCRAP contains a subpackage with ontologies. 
+Every package in the ontologies subpackage is a separate ontology.
+The classes, properties, and so on can just be included via the import statement.
+
+PyCRAP also comes with a parser to reflect any ontology that can be loaded with owlready2 in python files.
+This is very similar to the [code generation tool of sqlalchemy](https://github.com/agronholm/sqlacodegen).
+
 Note that this area is under construction and may frequently change.
 
 ## Usage
@@ -33,7 +40,6 @@ You can access the ontology by importing the PyCRAP package:
 
 ```python
 import pycram
-import pycrap
 ```
 
 The ontology is structured in classes and instances. The classes are the concepts that are used to describe the world.
@@ -45,25 +51,26 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.datastructures.enums import WorldMode
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.pose import Pose
+from pycrap.ontologies import Milk, Cereal, Food
 
 world = BulletWorld(mode=WorldMode.DIRECT)
 
-milk = Object("milk", pycrap.Milk, "milk.stl")
-cereal = Object("cereal", pycrap.Cereal, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
+milk = Object("milk", Milk, "milk.stl")
+cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
 ```
 
 You can query the ontology using [owlready2](https://owlready2.readthedocs.io/en/v0.41/index.html). 
 For example, we can see all food objects like this:
 
 ```python
-print("All food instances", list(world.ontology.search(type=pycrap.Food)))
+print("All food instances", list(world.ontology.search(type=Food)))
 ```
 
 You can also search for objects in the world using the ontology:
 
 ```python
 from pycram.designators.object_designator import OntologyObjectDesignatorDescription
-object_designator = OntologyObjectDesignatorDescription(world.ontology.search(type=pycrap.Food))
+object_designator = OntologyObjectDesignatorDescription(world.ontology.search(type=Food))
 result_in_world = list(object_designator.__iter__())
 print(result_in_world)
 ```

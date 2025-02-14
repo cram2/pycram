@@ -1,5 +1,6 @@
 import json
 from dataclasses import fields, dataclass
+from enum import IntEnum
 
 import random_events
 import tqdm
@@ -8,7 +9,7 @@ from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import P
 from probabilistic_model.probabilistic_model import ProbabilisticModel
 from random_events.interval import SimpleInterval
 from random_events.product_algebra import Event, SimpleEvent
-from random_events.set import SetElement
+from random_events.set import SetElement, Set
 from random_events.variable import Symbolic, Continuous, Variable
 from sortedcontainers import SortedSet
 from sqlalchemy import select
@@ -25,16 +26,14 @@ from ....local_transformer import LocalTransformer
 from ....orm.views import PickUpWithContextView, PlaceWithContextView
 
 
-class Grasp(SetElement):
-    EMPTY_SET = -1
+class Grasp(IntEnum):
     FRONT = 0
     LEFT = 1
     RIGHT = 2
     TOP = 3
 
 
-class Arms(SetElement):
-    EMPTY_SET = -1
+class Arms(IntEnum):
     LEFT = 0
     RIGHT = 1
 
@@ -109,8 +108,8 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
 
     @dataclass
     class Variables:
-        arm: Symbolic = Symbolic("arm", Arms)
-        grasp: Symbolic = Symbolic("grasp", Grasp)
+        arm: Symbolic = Symbolic("arm", Set.from_iterable(Arms))
+        grasp: Symbolic = Symbolic("grasp", Set.from_iterable(Grasp))
         relative_x: Continuous = Continuous("relative_x")
         relative_y: Continuous = Continuous("relative_y")
 

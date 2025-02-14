@@ -13,7 +13,9 @@ from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
 import pycrap
-from pycrap import PhysicalObject, Floor, Apartment, Robot
+from pycrap.ontologies import PhysicalObject
+from pycrap.ontology_wrapper import OntologyWrapper
+
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
@@ -21,7 +23,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           SphereVisualShape,
                                           CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                           ObjectState, WorldState, ClosestPointsList,
-                                          ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox)
+                                          ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox, RayResult)
 from ..datastructures.enums import JointType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity, PhysicalBody, WorldEntity
@@ -73,7 +75,7 @@ class World(WorldEntity, ABC):
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
 
-    ontology: Optional[pycrap.Ontology] = None
+    ontology: Optional[OntologyWrapper] = None
     """
     The ontology of this world.
     """
@@ -91,9 +93,10 @@ class World(WorldEntity, ABC):
         :param clear_cache: Whether to clear the cache directory.
         :param id_: The unique id of the world.
         """
+        self.ontology = OntologyWrapper()
+        self.is_prospection_world: bool = is_prospection
+        WorldEntity.__init__(self, id_, self, concept=pycrap.ontologies.World)
 
-        WorldEntity.__init__(self, id_, self)
-        self.ontology = pycrap.Ontology()
         self.latest_state_id: Optional[int] = None
 
         if clear_cache or (self.conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
@@ -111,7 +114,6 @@ class World(WorldEntity, ABC):
         self.objects: List[Object] = []
         # List of all Objects in the World
 
-        self.is_prospection_world: bool = is_prospection
         self._init_and_sync_prospection_world()
 
         self.local_transformer = LocalTransformer()
@@ -1316,19 +1318,53 @@ class World(WorldEntity, ABC):
         for obj in list(self.current_world.objects):
             obj.update_link_transforms(curr_time)
 
+    def ray_test(self, from_position: List[float], to_position: List[float], calculate_distance: bool = False)\
+            -> RayResult:
+        """
+        A wrapper around the :py:meth:`~pycram.world.World._ray_test` method that also calculates the distance
+         of the ray if the calculate_distance parameter is set to True.
+
+        :param from_position: The starting position of the ray in Cartesian world coordinates.
+        :param to_position: The ending position of the ray in Cartesian world coordinates.
+        :param calculate_distance: Whether to calculate the distance of the ray.
+        :return: A RayResult object.
+        """
+        result = self._ray_test(from_position, to_position)
+        if calculate_distance and not result.distance:
+            result.update_distance(from_position, to_position)
+        return result
+
     @abstractmethod
-    def ray_test(self, from_position: List[float], to_position: List[float]) -> int:
+    def _ray_test(self, from_position: List[float], to_position: List[float]) -> RayResult:
         """ Cast a ray and return the first object hit, if any.
 
         :param from_position: The starting position of the ray in Cartesian world coordinates.
         :param to_position: The ending position of the ray in Cartesian world coordinates.
-        :return: The object id of the first object hit, or -1 if no object was hit.
+        :return: A RayResult object.
         """
         pass
 
-    @abstractmethod
     def ray_test_batch(self, from_positions: List[List[float]], to_positions: List[List[float]],
-                       num_threads: int = 1) -> List[int]:
+                       num_threads: int = 1, calculate_distances: bool = False) -> List[RayResult]:
+        """
+        A wrapper around the :py:meth:`~pycram.world.World._ray_test_batch` method that also calculates the distances
+        of the rays if the calculate_distances parameter is set to True.
+
+        :param from_positions: The starting positions of the rays in Cartesian world coordinates.
+        :param to_positions: The ending positions of the rays in Cartesian world coordinates.
+        :param num_threads: The number of threads to use to compute the ray intersections for the batch.
+        :param calculate_distances: Whether to calculate the distances of the rays.
+        :return: A list of RayResult objects.
+        """
+        results = self._ray_test_batch(from_positions, to_positions, num_threads)
+        if calculate_distances:
+            _ = [result.update_distance(from_positions[i], to_positions[i]) for i, result in enumerate(results)
+                 if not result.distance]
+        return results
+
+    @abstractmethod
+    def _ray_test_batch(self, from_positions: List[List[float]], to_positions: List[List[float]],
+                        num_threads: int = 1) -> List[RayResult]:
         """ Cast a batch of rays and return the result for each of the rays (first object hit, if any. or -1)
          Takes optional argument num_threads to specify the number of threads to use
            to compute the ray intersections for the batch. Specify 0 to let simulator decide, 1 (default) for single

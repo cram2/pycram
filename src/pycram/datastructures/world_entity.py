@@ -8,7 +8,7 @@ from copy import copy
 from trimesh.parent import Geometry3D
 from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union, Type
 
-from pycrap import PhysicalObject
+from pycrap.ontologies import PhysicalObject
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
     AxisAlignedBoundingBox, RotatedBoundingBox
 from .mixins import HasConcept
@@ -118,15 +118,16 @@ class StateEntity:
         self._saved_states = {}
 
 
-class WorldEntity(StateEntity, ABC):
+class WorldEntity(StateEntity, HasConcept, ABC):
     """
     A class that represents an entity of the world, such as an object or a link.
     """
 
-    def __init__(self, _id: int, world: World):
+    def __init__(self, _id: int, world: World, concept: Type[PhysicalObject] = PhysicalObject, parse_name: bool = True):
         StateEntity.__init__(self)
         self.id = _id
         self.world: World = world
+        HasConcept.__init__(self, name=self.name, world=self.world, concept=concept, parse_name=parse_name)
 
     @property
     @abstractmethod
@@ -156,7 +157,7 @@ class WorldEntity(StateEntity, ABC):
         return hash((self.id, self.name, self.parent_entity))
 
 
-class PhysicalBody(WorldEntity, HasConcept, ABC):
+class PhysicalBody(WorldEntity, ABC):
     """
     A class that represents a physical body in the world that has some related physical properties.
     """
@@ -166,14 +167,9 @@ class PhysicalBody(WorldEntity, HasConcept, ABC):
     The ontology concept of this entity.
     """
 
-    def __init__(self, body_id: int, world: World, concept: Type[PhysicalObject] = PhysicalObject):
-        WorldEntity.__init__(self, body_id, world)
-        HasConcept.__init__(self)
-
-        # set ontology related information
-        self.ontology_concept = concept
-        if not self.world.is_prospection_world:
-            self.ontology_individual = self.ontology_concept(namespace=self.world.ontology.ontology)
+    def __init__(self, body_id: int, world: World, concept: Type[PhysicalObject] = PhysicalObject,
+                 parse_name: bool = True):
+        WorldEntity.__init__(self, body_id, world, concept, parse_name)
 
         self.local_transformer = LocalTransformer()
         self._is_translating: Optional[bool] = None
