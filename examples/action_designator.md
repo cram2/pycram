@@ -41,12 +41,12 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
-import pycrap
+from pycrap.ontologies import Robot, Milk, Apartment
 
 world = BulletWorld(WorldMode.DIRECT)
-pr2 = Object("pr2", pycrap.Robot, "pr2.urdf", pose=Pose([1, 2, 0]))
-apartmet = Object("apartment", pycrap.Apartment, "apartment.urdf")
-milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([2.3, 2, 1.1]))
+pr2 = Object("pr2", Robot, "pr2.urdf", pose=Pose([1, 2, 0]))
+apartmet = Object("apartment", Apartment, "apartment.urdf")
+milk = Object("milk", Milk, "milk.stl", pose=Pose([2.3, 2, 1.1]))
 ```
 
 To move the robot we need to create a description and resolve it to an actual Designator. The description of navigation

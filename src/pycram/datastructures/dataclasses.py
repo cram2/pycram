@@ -310,17 +310,17 @@ class BoundingBox:
         for i, simple_event in enumerate(simple_events):
             x, y, z = 0, 1, 2
             for j in range(2):
-                x, y, z = x + j*3, y + j*3, z + j*3
+                x, y, z = x + j * 3, y + j * 3, z + j * 3
                 # Create a 3D mesh trace for the rectangle
                 all_vertices.extend([[simple_event[x].lower, simple_event[y].lower, simple_event[z].lower],
-                                [simple_event[x].lower, simple_event[y].lower, simple_event[z].upper],
-                                [simple_event[x].lower, simple_event[y].upper, simple_event[z].lower],
-                                [simple_event[x].lower, simple_event[y].upper, simple_event[z].upper],
-                                [simple_event[x].upper, simple_event[y].lower, simple_event[z].lower],
-                                [simple_event[x].upper, simple_event[y].lower, simple_event[z].upper],
-                                [simple_event[x].upper, simple_event[y].upper, simple_event[z].lower],
-                                [simple_event[x].upper, simple_event[y].upper, simple_event[z].upper]])
-                all_faces.extend((np.array(BoundingBox.get_box_faces()) + i*16 + j*8).tolist())
+                                     [simple_event[x].lower, simple_event[y].lower, simple_event[z].upper],
+                                     [simple_event[x].lower, simple_event[y].upper, simple_event[z].lower],
+                                     [simple_event[x].lower, simple_event[y].upper, simple_event[z].upper],
+                                     [simple_event[x].upper, simple_event[y].lower, simple_event[z].lower],
+                                     [simple_event[x].upper, simple_event[y].lower, simple_event[z].upper],
+                                     [simple_event[x].upper, simple_event[y].upper, simple_event[z].lower],
+                                     [simple_event[x].upper, simple_event[y].upper, simple_event[z].upper]])
+                all_faces.extend((np.array(BoundingBox.get_box_faces()) + i * 16 + j * 8).tolist())
         return trimesh.Trimesh(np.array(all_vertices), np.array(all_faces))
 
     @staticmethod
@@ -518,6 +518,7 @@ class RotatedBoundingBox(BoundingBox):
     """
     Dataclass for storing a rotated bounding box.
     """
+
     def __init__(self, min_x: float, min_y: float, min_z: float, max_x: float, max_y: float, max_z: float,
                  transform: Optional[Transform] = None, points: Optional[List[Point]] = None):
         """
@@ -732,7 +733,7 @@ class PlaneVisualShape(VisualShape):
 
 
 VisualShapeUnion = Union[BoxVisualShape, SphereVisualShape, CapsuleVisualShape,
-                         CylinderVisualShape, MeshVisualShape, PlaneVisualShape]
+CylinderVisualShape, MeshVisualShape, PlaneVisualShape]
 
 
 @dataclass
@@ -781,7 +782,8 @@ class PhysicalBodyState(State):
         if self.velocity is None or other.velocity is None:
             return self.velocity == other.velocity
         return (self.vector_is_almost_equal(self.velocity[:3], other.velocity[:3], self.acceptable_velocity_error[0])
-                and self.vector_is_almost_equal(self.velocity[3:], other.velocity[3:], self.acceptable_velocity_error[1]))
+                and self.vector_is_almost_equal(self.velocity[3:], other.velocity[3:],
+                                                self.acceptable_velocity_error[1]))
 
     @staticmethod
     def vector_is_almost_equal(vector1: List[float], vector2: List[float], acceptable_error: float) -> bool:
@@ -1234,6 +1236,75 @@ class MultiverseMetaData:
 
 @dataclass
 class RayResult:
+    """
+    A dataclass to store the ray result. The ray result contains the body name that the ray intersects with and the
+    distance from the ray origin to the intersection point.
+    """
+    obj_id: int
+    """
+    The object id of the body that the ray intersects with.
+    """
+    link_id: int = -1
+    """
+    The link id of the body that the ray intersects with, -1 if root link or None.
+    """
+    _hit_fraction: Optional[float] = None  # TODO: Not sure of definition
+    """
+    The fraction of the ray length at which the intersection point is located a range in [0, 1].
+    """
+    hit_position: Optional[List[float]] = None
+    """
+    The intersection point in cartesian world coordinates.
+    """
+    hit_normal: Optional[List[float]] = None
+    """
+    The normal at the intersection point in cartesian world coordinates.
+    """
+    distance: Optional[float] = None
+    """
+    The distance from the ray origin to the intersection point.
+    """
+
+    @property
+    def intersected(self) -> bool:
+        """
+        Check if the ray intersects with a body.
+        return: Whether the ray intersects with a body.
+        """
+        if not self.obj_id:
+            raise ValueError("obj_id should be available to check if the ray intersects with a body,"
+                             "It appears that the ray result is not valid.")
+        return self.obj_id != -1
+
+    @property
+    def hit_fraction(self) -> Optional[float]:
+        if not self._hit_fraction and self.obj_id == -1:
+            return 1.0
+        return self._hit_fraction
+
+    @hit_fraction.setter
+    def hit_fraction(self, value: float):
+        self._hit_fraction = value
+
+    def update_distance(self, from_position: List[float], to_position: Optional[List[float]] = None) -> float:
+        """
+        The distance from the ray origin to the intersection point.
+        """
+        if self.hit_position:
+            self.distance = float(np.linalg.norm(np.array(self.hit_position) - np.array(from_position)))
+            if not self.hit_fraction:
+                self.hit_fraction = self.distance / np.linalg.norm(np.array(to_position) - np.array(from_position))
+            return self.distance
+        elif not self.hit_fraction or not to_position:
+            raise ValueError(f"Either hit_position or (to_position and hit_fraction)"
+                             f" should be available to calculate distance,"
+                             f" given hit_fraction: {self.hit_fraction}, to_position: {to_position}")
+        return np.linalg.norm(np.array(to_position) - np.array(from_position)) * self.hit_fraction
+
+
+@deprecated("Use RayResult instead")
+@dataclass
+class MultiverseRayResult:
     """
     A dataclass to store the ray result. The ray result contains the body name that the ray intersects with and the
     distance from the ray origin to the intersection point.

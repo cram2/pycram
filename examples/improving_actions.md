@@ -75,7 +75,7 @@ session = sqlalchemy.orm.sessionmaker(bind=engine)()
 Now we construct an empty world with just a floating milk, where we can learn about PickUp actions.
 
 ```python
-from pycrap import Robot, Milk
+from pycrap.ontologies import Robot, Milk
 
 world = BulletWorld(WorldMode.DIRECT)
 print(world.prospection_world)
@@ -167,7 +167,7 @@ Next, we put the learned model to the test in a complex environment, where the m
 area.
 
 ```python
-from pycrap import Apartment
+from pycrap.ontologies import Apartment
 kitchen = Object("apartment", Apartment, "apartment.urdf")
 
 milk.set_pose(Pose([0.5, 3.15, 1.04]))

@@ -14,7 +14,7 @@ from pycram.designators.specialized_designators.probabilistic.probabilistic_acti
                                                                                            Grasp as PMGrasp)
 from pycram.failures import PlanFailure
 from pycram.process_module import simulated_robot
-from pycrap import Milk
+from pycrap.ontologies import Milk
 
 
 @unittest.skip("Skip this test until PM is upgraded")

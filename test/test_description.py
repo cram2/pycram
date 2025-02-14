@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from pycram.testing import BulletWorldTestCase
 from pycram.world_concepts.world_object import Object
-from pycrap import Food
+from pycrap.ontologies import Food
 
 
 class DescriptionTest(BulletWorldTestCase):

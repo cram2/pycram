@@ -12,8 +12,7 @@ from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp, DetectionTechnique, TorsoState
 from pycram.testing import  BulletWorldTestCase
 import numpy as np
-
-from pycrap import Milk
+from pycrap.ontologies import Milk
 
 
 class TestActionDesignatorGrounding(BulletWorldTestCase):
@@ -55,7 +54,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(description.ground().arm, Arms.BOTH)
         with simulated_robot:
             description.resolve().perform()
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right", "park").items():
+        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right",
+                                                                                             "park").items():
             joint_position = self.world.robot.get_joint_position(joint)
             self.assertEqual(joint_position, pose)
         for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left", "park").items():

@@ -24,7 +24,7 @@ class VizMarkerPublisher:
     Publishes an Array of visualization marker which represent the situation in the World
     """
 
-    def __init__(self, topic_name="/pycram/viz_marker", interval=0.1):
+    def __init__(self, topic_name="/pycram/viz_marker", interval=0.1, reference_frame="map"):
         """
         The Publisher creates an Array of Visualization marker with a Marker for each link of each Object in the
         World. This Array is published with a rate of interval.
@@ -34,6 +34,7 @@ class VizMarkerPublisher:
         """
         self.topic_name = topic_name
         self.interval = interval
+        self.reference_frame = reference_frame
 
         self.pub = create_publisher(self.topic_name, MarkerArray, queue_size=10)
 
@@ -72,7 +73,7 @@ class VizMarkerPublisher:
                 if not geom:
                     continue
                 msg = Marker()
-                msg.header.frame_id = "map"
+                msg.header.frame_id = self.reference_frame
                 msg.ns = obj.name
                 msg.id = obj.link_name_to_id[link]
                 msg.type = Marker.MESH_RESOURCE
