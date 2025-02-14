@@ -12,7 +12,8 @@ from random_events.variable import Continuous
 from random_events.interval import closed, SimpleInterval, Bound
 from random_events.product_algebra import SimpleEvent, Event
 import plotly.graph_objects as go
-from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, Self
+from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, Self, \
+    deprecated
 
 from .enums import JointType, Shape, VirtualMobileBaseJointName
 from .pose import Pose, Point, Transform

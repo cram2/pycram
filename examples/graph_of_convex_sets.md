@@ -38,7 +38,7 @@ Let's get hands on! First, we need to create an object that makes navigation non
 
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import WorldMode
-from pycrap import PhysicalObject
+from pycrap.ontologies import PhysicalObject
 
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.object_descriptors.generic import ObjectDescription as GenericObjectDescription
@@ -97,7 +97,7 @@ print("A potential path is", [(point.position.x, point.position.y) for point in 
 This minimal example demonstrates a concept that can be applied to the entire belief state of the robot. Let's load a more complex environment and look at the connectivity of it.
 
 ```{code-cell} ipython2
-from pycrap import Kitchen
+from pycrap.ontologies import Kitchen
 
 kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
 
