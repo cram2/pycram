@@ -15,7 +15,7 @@ RUN pip3 install rosdep && rosdep init
 RUN rosdep update && rosdep install --from-paths $OVERLAY_WS/src --ignore-src -r -y
 RUN sudo apt-get install jupyter -y
 
-RUN . /opt/ros/noetic/setup.sh && cd $OVERLAY_WS && catkin_make
+RUN . /opt/ros/noetic/setup.sh && cd $OVERLAY_WS && catkin build
 RUN echo "source $OVERLAY_WS/devel/setup.bash" >> ~/.bashrc
 RUN rm -rf $OVERLAY_WS/src/pycram
 

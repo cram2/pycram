@@ -51,7 +51,7 @@ jobs:
           sudo -s
           source /opt/ros/noetic/setup.bash
           cd /opt/ros/overlay_ws
-          catkin_make    
+          catkin build
           source /opt/ros/overlay_ws/devel/setup.bash 
           roslaunch pycram ik_and_description.launch &
 

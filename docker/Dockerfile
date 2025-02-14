@@ -11,7 +11,7 @@ RUN pip3 install rosdep && rosdep init
 RUN vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram-https.rosinstall --recursive --skip-existing $OVERLAY_WS/src
 RUN rosdep update && rosdep install --from-paths $OVERLAY_WS/src --ignore-src -r -y
 
-RUN . /opt/ros/noetic/setup.sh && cd $OVERLAY_WS && catkin_make
+RUN . /opt/ros/noetic/setup.sh && cd $OVERLAY_WS && catkin build
 RUN echo "source $OVERLAY_WS/devel/setup.bash" >> ~/.bashrc
 
 RUN pip3 install --upgrade pip 
