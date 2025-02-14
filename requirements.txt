@@ -2,7 +2,7 @@
 gitpython>=3.1.37
 pycram_bullet==3.2.8
 pathlib~=1.0.1
-numpy==1.26.4
+numpy==1.24.4
 pytransform3d~=1.9.1
 graphviz
 anytree>=2.8.0
