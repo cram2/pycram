@@ -467,19 +467,8 @@ class Object(PhysicalBody):
         for joint_name, joint_id in self.joint_name_to_id.items():
             parsed_joint_description = self.description.get_joint_by_name(joint_name)
             is_virtual = self.is_joint_virtual(joint_name)
-            self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
-            if not self.world.is_prospection_world:
-                individual = self.ontology_concept(joint_name, namespace=self.world.ontology.ontology)
-                self.world.ontology.python_objects[individual] = parsed_joint_description
-                individual.is_a = [self.ontology_concept, has_child_link.some(
-                    self.get_joint_child_link(joint_name).ontology_individual),
-                                   has_parent_link.some(
-                                       self.get_joint_child_link(joint_name).ontology_individual)]
-                link_individual = self.get_joint_child_link(joint_name).ontology_individual
-
-                if self.get_joint_parent_link(joint_name).ontology_individual:
-                    link_individual.is_part_of = [
-                        self.get_joint_parent_link(joint_name).ontology_individual]
+            self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self,
+                                                             is_virtual=is_virtual)
 
     def is_joint_virtual(self, name: str):
         """

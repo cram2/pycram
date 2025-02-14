@@ -12,7 +12,7 @@ from geometry_msgs.msg import Point
 from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
-
+import pycrap
 from pycrap.ontologies import PhysicalObject
 from pycrap.ontology_wrapper import OntologyWrapper
 
@@ -93,9 +93,10 @@ class World(WorldEntity, ABC):
         :param clear_cache: Whether to clear the cache directory.
         :param id_: The unique id of the world.
         """
-
-        WorldEntity.__init__(self, id_, self)
         self.ontology = OntologyWrapper()
+        self.is_prospection_world: bool = is_prospection
+        WorldEntity.__init__(self, id_, self, concept=pycrap.ontologies.World)
+
         self.latest_state_id: Optional[int] = None
 
         if clear_cache or (self.conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
@@ -113,7 +114,6 @@ class World(WorldEntity, ABC):
         self.objects: List[Object] = []
         # List of all Objects in the World
 
-        self.is_prospection_world: bool = is_prospection
         self._init_and_sync_prospection_world()
 
         self.local_transformer = LocalTransformer()
