@@ -1,4 +1,4 @@
-from tf_transformations import quaternion_from_euler
+from ..tf_transformations import quaternion_from_euler
 
 from ....datastructures.pose import Pose
 from ....designators.location_designator import CostmapLocation

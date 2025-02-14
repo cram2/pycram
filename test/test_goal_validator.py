@@ -1,5 +1,5 @@
 import numpy as np
-from tf_transformations import quaternion_from_euler
+from pycram.tf_transformations import quaternion_from_euler
 from typing_extensions import Optional, List
 
 from pycram.testing import BulletWorldTestCase

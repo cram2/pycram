@@ -14,7 +14,7 @@ import math
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
-from tf_transformations import quaternion_about_axis, quaternion_multiply
+from .tf_transformations import quaternion_about_axis, quaternion_multiply
 from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence
 
 from .datastructures.dataclasses import Color

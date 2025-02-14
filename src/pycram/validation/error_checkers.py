@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
 import numpy as np
-from tf_transformations import quaternion_multiply, quaternion_inverse
+from ..tf_transformations import quaternion_multiply, quaternion_inverse
 from typing_extensions import List, Union, Optional, Any, Sized, Iterable as T_Iterable, TYPE_CHECKING, Tuple
 
 from ..datastructures.enums import JointType

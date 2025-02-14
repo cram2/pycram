@@ -7,7 +7,7 @@ import itertools
 
 import numpy as np
 from sqlalchemy.orm import Session
-from tf_transformations import quaternion_from_euler
+from ..tf_transformations import quaternion_from_euler
 from typing_extensions import List, Union, Optional, Type
 
 from pycrap.ontologies import PhysicalObject, Location

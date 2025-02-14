@@ -2,10 +2,9 @@ from enum import Enum, auto
 from functools import cached_property
 
 import numpy as np
-from geometry_msgs.msg import Point
 from std_msgs.msg import ColorRGBA
-from tf_transformations import quaternion_from_matrix, quaternion_from_euler
-from random_events.interval import closed, closed_open
+from .tf_transformations import quaternion_from_euler
+from random_events.interval import closed_open
 from typing_extensions import Optional, Type
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -13,13 +12,11 @@ from .datastructures.world import World
 from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
 import matplotlib.colorbar
 from .datastructures.pose import Pose
-from .ros import  Duration
 from .ros import  create_publisher
-from .units import meter, centimeter
-from .robot_description import RobotDescription
+from .units import meter
 
-from pint import Unit, Quantity
-from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event, fully_factorized
+from pint import Quantity
+from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event
 from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous

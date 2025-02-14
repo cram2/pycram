@@ -5,7 +5,7 @@ from pathlib import Path
 from time import sleep
 
 import numpy as np
-from tf_transformations import quaternion_matrix
+from ..tf_transformations import quaternion_matrix
 from typing_extensions import List, Dict, Optional, Union, Tuple, Callable, Type
 
 import pycrap

@@ -2,7 +2,7 @@ from __future__ import annotations
 import sys
 import logging
 
-from tf2_geometry_msgs import do_transform_pose_stamped
+from tf2_geometry_msgs import do_transform_pose
 from .ros import Time, Duration, logerr
 
 if 'world' in sys.modules:
@@ -57,7 +57,7 @@ class LocalTransformer(Buffer):
 
         # If the singelton was already initialized
         self._initialized = True
-        self.registration.add(Pose, do_transform_pose_stamped)
+        self.registration.add(Pose, do_transform_pose)
 
     def transform_to_object_frame(self, pose: Pose,
                                   world_object: Object, link_name: str = None) -> Union[

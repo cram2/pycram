@@ -1,6 +1,6 @@
 import numpy as np
 import trimesh.parent
-from tf_transformations import quaternion_from_euler
+from pycram.tf_transformations import quaternion_from_euler
 
 from pycram.testing import BulletWorldTestCase
 
