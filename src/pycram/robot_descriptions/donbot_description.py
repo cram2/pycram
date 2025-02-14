@@ -1,7 +1,7 @@
 from ..ros.ros_tools import get_ros_package_path
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import Arms, Grasp, GripperState, TorsoState, GripperType
+from ..datastructures.enums import Arms, Grasp, GripperState, TorsoState, GripperType, StaticJointState
 from ..units import meter
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "iai_donbot" + '.urdf'
@@ -12,7 +12,7 @@ donbot_description = RobotDescription("iai_donbot", "base_link", "ur5_base_link"
 ################################## Right Arm ##################################
 right_arm = KinematicChainDescription("right_arm", "ur5_base_link", "ur5_wrist_3_link", donbot_description.urdf_object, arm_type=Arms.RIGHT)
 
-right_arm.add_static_joint_states("park", {'ur5_shoulder_pan_joint': 3.23,
+right_arm.add_static_joint_states(StaticJointState.Park, {'ur5_shoulder_pan_joint': 3.23,
                                            'ur5_shoulder_lift_joint': -1.51,
                                            'ur5_elbow_joint': -0.79,
                                            'ur5_wrist_1_joint': -2.33,

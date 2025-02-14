@@ -5,6 +5,10 @@ from enum import Enum, auto
 from ..failures import UnsupportedJointType
 
 
+class StaticJointState(Enum):
+    Park = "park"
+
+
 class DescriptionType(Enum):
     URDF = "urdf"
     MJCF = "mjcf"

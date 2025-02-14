@@ -6,7 +6,7 @@ from enum import Enum
 from typing_extensions import List, Dict, Union, Optional
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData
-from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType
+from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState
 from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
     get_robot_description_path
 from .object_descriptors.urdf import ObjectDescription as URDFObject
@@ -181,7 +181,7 @@ class RobotDescription:
                                         self.urdf_object, arm_type=arm_type)
 
         if arm_home_values is not None:
-            arm.add_static_joint_states("home", arm_home_values)
+            arm.add_static_joint_states(StaticJointState.Park, arm_home_values)
 
         self.add_kinematic_chain_description(arm)
         return arm
@@ -534,7 +534,7 @@ class KinematicChainDescription:
             resources_dir = find_multiverse_resources_path()
         if relative_dir is not None:
             gripper_filename = get_robot_description_path(relative_dir, name,
-                                                          description_type=URDFObject,
+                                                          description_type=DescriptionType.URDF,
                                                           resources_dir=resources_dir)
             gripper_urdf_obj = URDFObject(gripper_filename)
             gripper_object_name = name
