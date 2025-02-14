@@ -341,8 +341,7 @@ class TrajectoryPublisher:
     @cached_property
     def publisher(self):
         pub = create_publisher("/pycram/trajectory", MarkerArray)
-
-        time.sleep(0.5)
+        time.sleep(0.5) # this is needed to synchronize the publisher creation thread
         return pub
 
     def visualize_trajectory(self, trajectory: List[Pose]):

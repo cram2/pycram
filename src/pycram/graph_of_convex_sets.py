@@ -9,7 +9,7 @@ from sortedcontainers import SortedSet
 from tqdm import tqdm
 from typing_extensions import Self, Optional, List
 
-from . import World
+from .datastructures.world import World
 from .datastructures.dataclasses import BoundingBox
 from .datastructures.pose import Pose
 from .failures import PlanFailure
