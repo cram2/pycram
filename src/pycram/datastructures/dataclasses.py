@@ -6,13 +6,14 @@ from copy import deepcopy, copy
 from dataclasses import dataclass, fields, field
 
 import numpy as np
-import plotly.graph_objects as go
 import trimesh
 from matplotlib import pyplot as plt
-from random_events.interval import closed
-from random_events.product_algebra import SimpleEvent, Event
 from random_events.variable import Continuous
-from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, deprecated
+from random_events.interval import closed, SimpleInterval, Bound
+from random_events.product_algebra import SimpleEvent, Event
+import plotly.graph_objects as go
+from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, Self, \
+    deprecated
 
 from .enums import JointType, Shape, VirtualMobileBaseJointName
 from .pose import Pose, Point, Transform
@@ -173,16 +174,142 @@ class Color:
 class BoundingBox:
     """
     Dataclass for storing an axis-aligned bounding box.
-    """
-    min_x: float
-    min_y: float
-    min_z: float
-    max_x: float
-    max_y: float
-    max_z: float
 
-    @staticmethod
-    def merge_multiple_bounding_boxes_into_mesh(bounding_boxes: List[BoundingBox],
+    An axis aligned bounding box is the cartesian product of the three closed intervals
+    [min_x, max_x] x [min_y, max_y] x [min_z, max_z].
+
+    Set-Algebraic operations are possible by converting the bounding box to a random event.
+    """
+
+    min_x: float
+    """
+    The minimum x-coordinate of the bounding box.
+    """
+
+    min_y: float
+    """
+    The minimum y-coordinate of the bounding box.
+    """
+
+    min_z: float
+    """
+    The minimum z-coordinate of the bounding box.
+    """
+
+    max_x: float
+    """
+    The maximum x-coordinate of the bounding box.
+    """
+
+    max_y: float
+    """
+    The maximum y-coordinate of the bounding box.
+    """
+
+    max_z: float
+    """
+    The maximum z-coordinate of the bounding box.
+    """
+
+    x_variable = Continuous("x")
+    """
+    The x variable for the random-events interface.
+    """
+
+    y_variable = Continuous("y")
+    """
+    The y variable for the random-events interface.
+    """
+
+    z_variable = Continuous("z")
+    """
+    The z variable for the random-events interface.
+    """
+
+    def __hash__(self):
+        # The hash should be this since comparing those via hash is checking if those are the same and not just equal
+        return id(self)
+
+    @property
+    def x_interval(self) -> SimpleInterval:
+        """
+        :return: The x interval of the bounding box.
+        """
+        return SimpleInterval(self.min_x, self.max_x, Bound.CLOSED, Bound.CLOSED)
+
+    @property
+    def y_interval(self) -> SimpleInterval:
+        """
+        :return: The y interval of the bounding box.
+        """
+        return SimpleInterval(self.min_y, self.max_y, Bound.CLOSED, Bound.CLOSED)
+
+    @property
+    def z_interval(self) -> SimpleInterval:
+        """
+        :return: The z interval of the bounding box.
+        """
+        return SimpleInterval(self.min_z, self.max_z, Bound.CLOSED, Bound.CLOSED)
+
+    @property
+    def simple_event(self) -> SimpleEvent:
+        """
+        :return: The bounding box as a random event.
+        """
+        return SimpleEvent({self.x_variable: self.x_interval,
+                            self.y_variable: self.y_interval,
+                            self.z_variable: self.z_interval})
+
+    @classmethod
+    def from_simple_event(cls, simple_event: SimpleEvent):
+        """
+        Create a list of bounding boxes from a simple random event.
+
+        :param simple_event: The random event.
+        :return: The list of bounding boxes.
+        """
+        result = []
+        for x, y, z in itertools.product(simple_event[cls.x_variable].simple_sets,
+                                         simple_event[cls.y_variable].simple_sets,
+                                         simple_event[cls.z_variable].simple_sets):
+            result.append(cls(x.lower, y.lower, z.lower, x.upper, y.upper, z.upper))
+        return result
+
+    @classmethod
+    def from_event(cls, event: Event) -> List[Self]:
+        """
+        Create a list of bounding boxes from a random event.
+
+        :param event: The random event.
+        :return: The list of bounding boxes.
+        """
+        return [box for simple_event in event.simple_sets for box in cls.from_simple_event(simple_event)]
+
+    def intersection_with(self, other: BoundingBox) -> Optional[BoundingBox]:
+        """
+        Compute the intersection of two bounding boxes.
+
+        :param other: The other bounding box.
+        :return: The intersection of the two bounding boxes or None if they do not intersect.
+        """
+        result = self.simple_event.intersection_with(other.simple_event)
+        if result.is_empty():
+            return None
+        return self.__class__.from_simple_event(result)[0]
+
+    def contains(self, x: float, y: float, z: float):
+        """
+        Check if the bounding box contains a point.
+
+        :param x: The x-coordinate of the point.
+        :param y: The y-coordinate of the point.
+        :param z: The z-coordinate of the point.
+        :return: True if the bounding box contains the point, False otherwise.
+        """
+        return self.simple_event.contains((x, y, z))
+
+    @classmethod
+    def merge_multiple_bounding_boxes_into_mesh(cls, bounding_boxes: List[BoundingBox],
                                                 save_mesh_to: Optional[str] = None,
                                                 use_random_events: bool = True,
                                                 plot: bool = False) -> trimesh.Trimesh:
@@ -196,16 +323,18 @@ class BoundingBox:
         :return: The mesh of the merged bounding boxes.
         """
         if use_random_events:
-            x = Continuous("x")
-            y = Continuous("y")
-            z = Continuous("z")
 
             all_intervals = [(box.get_min(), box.get_max()) for box in bounding_boxes]
-            event = Event()
+            event = None
             for min_point, max_point in all_intervals:
-                new_event = SimpleEvent({x: closed(min_point[0], max_point[0]), y: closed(min_point[1], max_point[1]),
-                                         z: closed(min_point[2], max_point[2])}).as_composite_set()
-                event = event.union_with(new_event)
+                new_event = SimpleEvent({cls.x_variable: closed(min_point[0], max_point[0]),
+                                         cls.y_variable: closed(min_point[1], max_point[1]),
+                                         cls.z_variable: closed(min_point[2], max_point[2])}).as_composite_set()
+                # TODO fix this when random events is fixed.
+                if event:
+                    event = event.__deepcopy__().union_with(new_event)
+                else:
+                    event = new_event
             if plot:
                 fig = go.Figure(event.plot(), event.plotly_layout())
                 fig.update_layout(title="Merged Bounding Boxes")
@@ -352,6 +481,33 @@ class BoundingBox:
         """
         return [self.max_x, self.max_y, self.max_z]
 
+    def enlarge(self, min_x: float = 0., min_y:float = 0, min_z: float = 0,
+                max_x: float = 0., max_y: float = 0., max_z: float = 0.):
+        """
+        Enlarge the axis-aligned bounding box by a given amount in-place.
+        :param min_x: The amount to enlarge the minimum x-coordinate
+        :param min_y: The amount to enlarge the minimum y-coordinate
+        :param min_z: The amount to enlarge the minimum z-coordinate
+        :param max_x: The amount to enlarge the maximum x-coordinate
+        :param max_y: The amount to enlarge the maximum y-coordinate
+        :param max_z: The amount to enlarge the maximum z-coordinate
+        """
+        self.min_x -= min_x
+        self.min_y -= min_y
+        self.min_z -= min_z
+        self.max_x += max_x
+        self.max_y += max_y
+        self.max_z += max_z
+
+    def enlarge_all(self, amount: float):
+        """
+        Enlarge the axis-aligned bounding box in all dimensions by a given amount in-place.
+
+        :param amount: The amount to enlarge the bounding box
+        """
+        self.enlarge(amount, amount, amount,
+                     amount, amount, amount)
+
     @property
     def width(self) -> float:
         return self.max_x - self.min_x
@@ -381,7 +537,6 @@ class BoundingBox:
         ax.set_zlim(0, 2)
 
         plt.show()
-
 
 @dataclass
 class AxisAlignedBoundingBox(BoundingBox):

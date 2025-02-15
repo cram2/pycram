@@ -6,7 +6,7 @@ numpy==1.24.3
 pytransform3d~=1.9.1
 graphviz
 anytree>=2.8.0
-SQLAlchemy>=2.0.36
+SQLAlchemy>=2.0.36, <2.0.38
 tqdm==4.66.3
 psutil==5.9.7
 lxml==4.9.1
@@ -21,10 +21,10 @@ dm_control
 trimesh
 deprecated
 probabilistic_model>=6.0.2
-random_events>=3.1.2
+random_events>=4.1.0
 sympy
 pint>=0.21.1
-Pygments~=2.14.0
+Pygments>=2.15.0
 typeguard~=4.3.0
 gymnasium
 inflection>=0.5.1

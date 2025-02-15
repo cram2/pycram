@@ -82,8 +82,7 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
         with UseProspectionWorld():
             object_desig = object_designator.resolve() if hasattr(object_designator, "resolve") else object_designator
             pro_obj = World.current_world.get_prospection_object_for_object(object_desig.world_object)
-            pro_obj.set_pose(Pose([0, 0, 0], [0, 0, 0, 1]))
-            bounding_box = pro_obj.get_axis_aligned_bounding_box()
+            bounding_box = pro_obj.get_axis_aligned_bounding_box(False)
 
             obj_x = bounding_box.max_x - bounding_box.min_x
             obj_y = bounding_box.max_y - bounding_box.min_y
