@@ -75,7 +75,7 @@ class WorldConfig:
     position_tolerance: float = 1e-3
     orientation_tolerance: float = 10 * math.pi / 180
     prismatic_joint_position_tolerance: float = 1e-2
-    revolute_joint_position_tolerance: float = 5 * math.pi / 180
+    revolute_joint_position_tolerance: float = 2 * math.pi / 180
     """
     The acceptable error for the position and orientation of an object/link, and the joint positions.
     """

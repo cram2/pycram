@@ -1867,10 +1867,10 @@ class WorldSync(threading.Thread):
         # Set the pose of the prospection objects to the pose of the world objects
         obj_pose_dict = {prospection_obj: obj.pose
                          for obj, prospection_obj in self.object_to_prospection_object_map.items()}
-        self.world.prospection_world.reset_multiple_objects_base_poses(obj_pose_dict)
         for obj, prospection_obj in self.object_to_prospection_object_map.items():
             prospection_obj.set_attachments(obj.attachments)
             prospection_obj.joint_states = obj.joint_states
+        self.world.prospection_world.reset_multiple_objects_base_poses(obj_pose_dict)
 
     def check_for_equal(self) -> bool:
         """

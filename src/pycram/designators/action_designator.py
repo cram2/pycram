@@ -11,6 +11,7 @@ import numpy as np
 import trimesh
 from sqlalchemy.orm import Session
 from tf import transformations
+from trimesh import Trimesh
 from typing_extensions import List, Union, Optional, Type, Dict, Any
 
 from pycrap.ontologies import PhysicalObject, Location
@@ -22,17 +23,19 @@ from ..datastructures.dataclasses import AxisAlignedBoundingBox, RotatedBounding
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty, \
     VisibleProperty
-from ..description import Joint
+from ..description import Joint, Link
 from ..failure_handling import try_action
 from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
-    ObjectNotGraspedError, TorsoGoalNotReached, ConfigurationNotReached, ObjectNotInGraspingArea
+    ObjectNotGraspedError, TorsoGoalNotReached, ConfigurationNotReached, ObjectNotInGraspingArea, \
+    ObjectNotPlacedAtTargetLocation, ObjectStillInContact, GripperIsNotOpen
 from ..robot_description import RobotDescription, KinematicChainDescription
 from ..ros.logging import logwarn
 from ..ros.ros_tools import sleep
 from ..ros_utils.viz_marker_publisher import ManualMarkerPublisher
 from ..tasktree import with_tree
+from ..validation.error_checkers import PoseErrorChecker
 from ..validation.goal_validator import MultiJointPositionGoalValidator, create_multiple_joint_goal_validator
 from ..world_concepts.world_object import Object
 from ..world_reasoning import contact
@@ -452,23 +455,70 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         """
         fingers_link_names = self.arm_chain.end_effector.fingers_link_names
         if fingers_link_names:
-            fingers_links = [World.robot.links[link_name] for link_name in fingers_link_names]
-            fingers_bbs: List[RotatedBoundingBox] = [link.get_axis_aligned_bounding_box() for link in fingers_links]
-            merged_mesh = BoundingBox.merge_multiple_bounding_boxes_into_mesh(fingers_bbs, use_random_events=False,
-                                                                              plot=False)
-            obj_bb = self.world_object.get_rotated_bounding_box()
-            intersection = merged_mesh.intersection(obj_bb.mesh)
-            centroid = intersection.centroid
-            # cast a ray from each finger to the object and check if it intersects with the object
-            for finger_name in fingers_link_names:
-                finger = World.robot.links[finger_name]
-                result = World.current_world.ray_test(finger.position_as_list, centroid)
-                if result.intersected and result.obj_id == self.world_object.id:
-                    continue
-                else:
-                    raise ObjectNotInGraspingArea(self.world_object, World.robot, self.arm, self.grasp)
+            empty_space = self.get_empty_space_between_fingers(fingers_link_names)
+            intersection = self.get_intersection_between_object_bounding_box_and_empty_space(empty_space)
+            if not self.is_body_in_region(intersection, fingers_link_names):
+                raise ObjectNotInGraspingArea(self.world_object, World.robot, self.arm, self.grasp)
         else:
             logwarn(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
+
+    def get_empty_space_between_fingers(self, fingers_link_names: List[str]) -> Trimesh:
+        """
+        Check if there is empty space between the fingers of the gripper.
+
+        :param fingers_link_names: The names of the links that represent the fingers of the gripper.
+        :return: The empty space between the fingers.
+        """
+        fingers_links = [World.robot.links[link_name] for link_name in fingers_link_names]
+        fingers_chs: List[Trimesh] = [link.get_convex_hull() for link in fingers_links]
+        fingers_only_ch = fingers_chs[0].union(fingers_chs[1:])
+        fingers_plus_empty_space = fingers_only_ch.convex_hull
+        empty_space_between_fingers = fingers_plus_empty_space.difference(fingers_only_ch)
+        # 10 cm^3 (if we assume a finger area of at least 2 cm^2, this means we allow at least 5 cm distance between
+        # fingers).
+        if empty_space_between_fingers.volume * 10 ** 6 < 10:
+            raise GripperIsNotOpen(World.robot, self.arm)
+        return empty_space_between_fingers
+
+    def get_intersection_between_object_bounding_box_and_empty_space(self, empty_space: Trimesh) -> Trimesh:
+        """
+        Get the intersection between the object and the empty space between the fingers.
+
+        :param empty_space: The empty space between the fingers.
+        :return: The intersection between the object and the empty space between the fingers.
+        """
+        obj_bb = self.world_object.get_axis_aligned_bounding_box()
+        try:
+            intersection = empty_space.intersection(obj_bb.as_mesh)
+        except ValueError:
+            # This will be raised when the merged_ch has no volume, which means that the gripper was closed
+            # completely and there is no empty space between the fingers.
+            raise GripperIsNotOpen(World.robot, self.arm)
+        if intersection.volume * 10 ** 6 < 10:
+            raise ObjectNotInGraspingArea(self.world_object, World.robot, self.arm, self.grasp)
+        return intersection
+
+    def is_body_in_region(self, intersection: Trimesh, fingers_link_names: List[str]):
+        """
+        Check if the object body is in the intersection between the object and the empty space between the fingers.
+
+        :param intersection: The intersection between the object and the empty space between the fingers.
+        :param fingers_link_names: The names of the links that represent the fingers of the gripper.
+        """
+        centroid = intersection.centroid
+        # cast a ray from each finger to the centroid and check if it intersects with the object
+        # this is necessary as the bounding box is usually different from the exact shape of the object
+        # (e.g. concave objects)
+        for finger_name in fingers_link_names:
+            finger = World.robot.links[finger_name]
+            result = World.current_world.ray_test(finger.position_as_list, centroid)
+            if result.intersected and result.obj_id == self.world_object.id:
+                continue
+            else:
+                return False
+        return True
+
+
 
 
 @dataclass
@@ -554,20 +604,17 @@ class PickUpActionPerformable(ActionAbstract):
         """
         Check if picked up object is in contact with the gripper.
         """
-        world = World.current_world
-        robot = world.robot
-        obj = self.object_designator.world_object
-        in_contact, contact_links = contact(obj, robot, return_links=True)
+        contact_links = self.world_object.get_contact_points_with_body(World.robot).get_bodies_in_contact()
         fingers_link_names = self.arm_chain.end_effector.fingers_link_names
         if fingers_link_names:
-            fingers_in_contact = [link.name in fingers_link_names for _, link in contact_links]
-            if in_contact and len(fingers_in_contact) >= 2:
+            fingers_in_contact = [link.name in fingers_link_names for link in contact_links]
+            if len(fingers_in_contact) >= 2:
                 return
         else:
             gripper_link_names = self.arm_chain.end_effector.links
-            if in_contact and any([link.name in gripper_link_names for _, link in contact_links]):
+            if any([link.name in gripper_link_names for link in contact_links]):
                 return
-        raise ObjectNotGraspedError(obj, self.arm, self.grasp)
+        raise ObjectNotGraspedError(self.world_object, self.arm, self.grasp)
 
     @cached_property
     def arm_chain(self) -> KinematicChainDescription:
@@ -600,25 +647,76 @@ class PlaceActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        object_pose = self.object_designator.world_object.get_pose()
-        local_tf = LocalTransformer()
+        target_pose = self.calculate_target_pose_of_gripper()
+        MoveTCPMotion(target_pose, self.arm).perform()
 
-        # Transformations such that the target position is the position of the object and not the tcp
-        tcp_to_object = local_tf.transform_pose(object_pose,
-                                                World.robot.get_link_tf_frame(
-                                                    RobotDescription.current_robot_description.get_arm_chain(
-                                                        self.arm).get_tool_frame()))
-        target_diff = self.target_location.to_transform("target").inverse_times(
-            tcp_to_object.to_transform("object")).to_pose()
-
-        MoveTCPMotion(target_diff, self.arm).perform()
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()
         World.robot.detach(self.object_designator.world_object)
-        retract_pose = local_tf.transform_pose(target_diff, World.robot.get_link_tf_frame(
-            RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()))
-        retract_pose.position.x -= 0.03
+
+        retract_pose = self.calculate_retract_pose(target_pose, distance=0.03)
         MoveTCPMotion(retract_pose, self.arm).perform()
 
+    def calculate_target_pose_of_gripper(self):
+        # Transformations such that the target position is the position of the object and not the tcp
+        tcp_to_object = self.local_transformer.transform_pose(self.world_object.pose, self.gripper_tool_frame)
+        target_diff = self.target_location.to_transform("target").inverse_times(
+            tcp_to_object.to_transform("object")).to_pose()
+        return target_diff
+
+    def calculate_retract_pose(self, target_pose: Pose, distance: float) -> Pose:
+        """
+        Calculate the retract pose of the gripper.
+
+        :param target_pose: The target pose of the gripper.
+        :param distance: The distance the gripper should be retracted.
+        """
+        retract_pose = self.local_transformer.transform_pose(target_pose, self.gripper_tool_frame)
+        retract_pose.position.x -= distance
+        return retract_pose
+
+    @cached_property
+    def world_object(self) -> Object:
+        return self.object_designator.world_object
+
+    @cached_property
+    def gripper_tool_frame(self) -> str:
+        return self.gripper_link.tf_frame
+
+    @cached_property
+    def gripper_link(self) -> Link:
+        return World.robot.links[self.arm_chain.get_tool_frame()]
+
+    @cached_property
+    def arm_chain(self) -> KinematicChainDescription:
+        return RobotDescription.current_robot_description.get_arm_chain(self.arm)
+
+    @cached_property
+    def local_transformer(self) -> LocalTransformer:
+        return LocalTransformer()
+
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        """
+        Check if the object is placed at the target location.
+        """
+        self.validate_loss_of_contact()
+        self.validate_placement_location()
+
+    def validate_loss_of_contact(self):
+        """
+        Check if the object is still in contact with the robot after placing it.
+        """
+        contact_links = self.world_object.get_contact_points_with_body(World.robot).get_bodies_in_contact()
+        if contact_links:
+            raise ObjectStillInContact(self.world_object, contact_links,
+                                       self.target_location, World.robot, self.arm)
+
+    def validate_placement_location(self):
+        """
+        Check if the object is placed at the target location.
+        """
+        pose_error_checker = PoseErrorChecker(World.conf.get_pose_tolerance())
+        if not pose_error_checker.is_error_acceptable(self.world_object.pose, self.target_location):
+            raise ObjectNotPlacedAtTargetLocation(self.world_object, self.target_location, World.robot, self.arm)
 
 @dataclass
 class NavigateActionPerformable(ActionAbstract):

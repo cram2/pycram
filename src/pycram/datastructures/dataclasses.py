@@ -378,10 +378,10 @@ class BoundingBox:
         :param boxes: The list of boxes
         :return: The mesh.
         """
-        return trimesh.util.concatenate([box.mesh for box in boxes])
+        return trimesh.util.concatenate([box.as_mesh for box in boxes])
 
     @property
-    def mesh(self) -> trimesh.Trimesh:
+    def as_mesh(self) -> trimesh.Trimesh:
         """
         :return: The mesh of the bounding box.
         """

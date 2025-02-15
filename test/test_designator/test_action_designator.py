@@ -6,7 +6,9 @@ from pycram.designator import ObjectDesignatorDescription
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, FaceAtPerformable, MoveTorsoAction
-from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError, ObjectNotInGraspingArea
+from pycram.designators.motion_designator import MoveGripperMotion
+from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError, \
+    ObjectNotInGraspingArea, ObjectStillInContact, GripperIsNotOpen
 from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
@@ -82,6 +84,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
+            self._test_validate_action_pre_perform(performable, GripperIsNotOpen)
+            MoveGripperMotion(GripperState.OPEN, Arms.LEFT).perform()
             self._test_validate_action_pre_perform(performable, ObjectNotInGraspingArea)
             performable.perform()
 
@@ -98,12 +102,15 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_place(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
+        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9],
+                                                                              [0, 0, 0, 1])],
+                                                    [Arms.LEFT])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
+            self._test_validate_action_pre_perform(description, ObjectStillInContact)
             description.resolve().perform()
         self.assertFalse(object_description.resolve().world_object in self.robot.attachments.keys())
 

@@ -7,6 +7,8 @@ from typing_extensions import TYPE_CHECKING, List, Optional
 
 
 if TYPE_CHECKING:
+    from .datastructures.pose import Pose
+    from .description import Link
     from .world_concepts.world_object import Object
     from .datastructures.enums import JointType, MultiverseAPIName, Arms, StaticJointState, Grasp
     from .validation.goal_validator import MultiJointPositionGoalValidator
@@ -113,6 +115,14 @@ class GripperLowLevelFailure(LowLevelFailure):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class GripperIsNotOpen(GripperLowLevelFailure):
+    """Thrown when the gripper is not open when it should be open."""
+
+    def __init__(self, robot: Object, arm: Arms, *args, **kwargs):
+        super().__init__(f"The gripper of arm {arm.name} of robot {robot.name} should be open but is not",
+                         *args, **kwargs)
 
 
 class GripperClosedCompletely(GripperLowLevelFailure):
@@ -238,6 +248,33 @@ class ObjectUndeliverable(HighLevelFailure):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class ObjectPlacingError(HighLevelFailure):
+    """Thrown when the placing of the object fails."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class ObjectStillInContact(ObjectPlacingError):
+    """Thrown when the object is still in contact with the robot after placing."""
+
+    def __init__(self, obj: Object, contact_links: List[Link], placing_pose: Pose, robot: Object, arm: Arms,
+                 *args, **kwargs):
+        contact_links = [link.name for link in contact_links]
+        super().__init__(f"Object {obj.name} is still in contact with {robot.name}, the contact links are"
+                         f"{contact_links}, after placing at"
+                         f" target pose {placing_pose.position_as_list()}{placing_pose.orientation_as_list()} using"
+                         f" {arm.name} arm", *args, **kwargs)
+
+
+class ObjectNotPlacedAtTargetLocation(ObjectPlacingError):
+    """Thrown when the object was not placed at the target location."""
+
+    def __init__(self, obj: Object, placing_pose: Pose, robot: Object, arm: Arms, *args, **kwargs):
+        super().__init__(f"Object {obj.name} was not placed at target pose {placing_pose.position_as_list()}"
+                         f"{placing_pose.orientation_as_list()} using {arm.name} arm of {robot.name}", *args, **kwargs)
 
 
 class ObjectUnfetchable(HighLevelFailure):
