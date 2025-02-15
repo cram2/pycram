@@ -320,8 +320,9 @@ class Grasping(Task):
 
 
 class ObjectNotGraspedError(Grasping):
-    def __init__(self, obj: Object, arm: Arms, *args, **kwargs):
-        super().__init__(f"object {obj.name} was not grasped by arm {arm}", *args, **kwargs)
+    def __init__(self, obj: Object, arm: Arms, grasp: Grasp, *args, **kwargs):
+        super().__init__(f"object {obj.name} was not grasped by {arm.name} arm using {grasp.name} grasp",
+                         *args, **kwargs)
 
 
 class Looking(Task):

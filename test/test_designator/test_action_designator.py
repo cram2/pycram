@@ -6,7 +6,7 @@ from pycram.designator import ObjectDesignatorDescription
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, FaceAtPerformable, MoveTorsoAction
-from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError
+from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError, ObjectNotInGraspingArea
 from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
@@ -74,14 +74,25 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(description.ground().target_location, Pose([0.3, 0, 0], [0, 0, 0, 1]))
         self.assertEqual(self.robot.get_pose(), Pose([0.3, 0, 0]))
 
+    def test_reach_to_pick_up(self):
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        performable = action_designator.ReachToPickUpActionPerformable(object_description.resolve(),
+                                                                       Arms.LEFT, Grasp.FRONT, 0.03)
+        self.assertEqual(performable.object_designator.name, "milk")
+        with simulated_robot:
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
+            MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
+            self._test_validate_action_pre_perform(performable, ObjectNotInGraspingArea)
+            performable.perform()
+
     def test_pick_up(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.PickUpAction(object_description, [Arms.LEFT], [Grasp.FRONT])
         self.assertEqual(description.ground().object_designator.name, "milk")
-        self._test_validate_action_pre_perform(description, ObjectNotGraspedError)
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
+            self._test_validate_action_pre_perform(description, ObjectNotGraspedError)
             description.resolve().perform()
         self.assertTrue(object_description.resolve().world_object in self.robot.attachments.keys())
 
@@ -162,7 +173,11 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def _test_validate_action_pre_perform(self, action_description, failure):
         try:
-            action_description.ground().validate(max_wait_time=timedelta(milliseconds=30))
+            if hasattr(action_description, "ground"):
+                grounded = action_description.ground()
+            else:
+                grounded = action_description
+            grounded.validate(max_wait_time=timedelta(milliseconds=30))
             self.fail(f"{failure.__name__} should have been raised.")
         except failure:
             pass

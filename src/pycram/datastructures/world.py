@@ -922,7 +922,7 @@ class World(WorldEntity, ABC):
         :return: the axis aligned bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_object_rotated_bounding_box(self, obj: Object) -> RotatedBoundingBox:
         """
@@ -930,7 +930,7 @@ class World(WorldEntity, ABC):
         :return: the rotated bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
         """
@@ -938,7 +938,7 @@ class World(WorldEntity, ABC):
         :return: The axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_link_rotated_bounding_box(self, link: Link) -> RotatedBoundingBox:
         """
@@ -946,7 +946,7 @@ class World(WorldEntity, ABC):
         :return: The rotated bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     @abstractmethod
     def set_realtime(self, real_time: bool) -> None:

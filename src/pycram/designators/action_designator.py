@@ -8,6 +8,7 @@ from datetime import timedelta
 from functools import cached_property
 
 import numpy as np
+import trimesh
 from sqlalchemy.orm import Session
 from tf import transformations
 from typing_extensions import List, Union, Optional, Type, Dict, Any
@@ -452,13 +453,15 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         fingers_link_names = self.arm_chain.end_effector.fingers_link_names
         if fingers_link_names:
             fingers_links = [World.robot.links[link_name] for link_name in fingers_link_names]
-            fingers_bbs: List[RotatedBoundingBox] = [link.get_rotated_bounding_box() for link in fingers_links]
-            merged_mesh = BoundingBox.merge_multiple_bounding_boxes_into_mesh(fingers_bbs, use_random_events=True)
-            centroid = merged_mesh.centroid.tolist()
+            fingers_bbs: List[RotatedBoundingBox] = [link.get_axis_aligned_bounding_box() for link in fingers_links]
+            merged_mesh = BoundingBox.merge_multiple_bounding_boxes_into_mesh(fingers_bbs, use_random_events=False,
+                                                                              plot=False)
+            obj_bb = self.world_object.get_rotated_bounding_box()
+            intersection = merged_mesh.intersection(obj_bb.mesh)
+            centroid = intersection.centroid
             # cast a ray from each finger to the object and check if it intersects with the object
             for finger_name in fingers_link_names:
                 finger = World.robot.links[finger_name]
-                World.current_world.add_vis_axis(Pose(centroid))
                 result = World.current_world.ray_test(finger.position_as_list, centroid)
                 if result.intersected and result.obj_id == self.world_object.id:
                     continue
@@ -522,10 +525,6 @@ class PickUpActionPerformable(ActionAbstract):
         # Remove the vis axis from the world
         World.current_world.remove_vis_axis()
 
-    @cached_property
-    def world_object(self) -> Object:
-        return self.object_designator.world_object
-
     def lift_object(self, distance: float = 0.1):
         lift_to_pose = self.gripper_pose()
         lift_to_pose.pose.position.z += distance
@@ -537,7 +536,7 @@ class PickUpActionPerformable(ActionAbstract):
 
         :return: The pose of the gripper.
         """
-        gripper_link = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
+        gripper_link = self.arm_chain.get_tool_frame()
         return World.robot.links[gripper_link].pose
 
     # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
@@ -558,12 +557,25 @@ class PickUpActionPerformable(ActionAbstract):
         world = World.current_world
         robot = world.robot
         obj = self.object_designator.world_object
-        gripper_links = world.robot_description.get_arm_chain(self.arm).end_effector.links
         in_contact, contact_links = contact(obj, robot, return_links=True)
-        if not in_contact or not any([link.name in gripper_links for _, link in contact_links]):
-            # TODO: Would be better to check for contact with both fingers
-            #  (maybe introduce left and right finger links in the end effector description)
-            raise ObjectNotGraspedError(obj, self.arm)
+        fingers_link_names = self.arm_chain.end_effector.fingers_link_names
+        if fingers_link_names:
+            fingers_in_contact = [link.name in fingers_link_names for _, link in contact_links]
+            if in_contact and len(fingers_in_contact) >= 2:
+                return
+        else:
+            gripper_link_names = self.arm_chain.end_effector.links
+            if in_contact and any([link.name in gripper_link_names for _, link in contact_links]):
+                return
+        raise ObjectNotGraspedError(obj, self.arm, self.grasp)
+
+    @cached_property
+    def arm_chain(self) -> KinematicChainDescription:
+        return RobotDescription.current_robot_description.get_arm_chain(self.arm)
+
+    @cached_property
+    def world_object(self) -> Object:
+        return self.object_designator.world_object
 
 
 @dataclass

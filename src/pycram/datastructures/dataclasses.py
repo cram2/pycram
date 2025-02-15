@@ -349,6 +349,27 @@ class BoundingBox:
             mesh.export(save_mesh_to)
         return mesh
 
+    @property
+    def transform_as_array(self) -> np.ndarray:
+        """
+        :return: The transformation of the bounding box as a numpy array.
+        """
+        return self.transform.get_homogeneous_matrix()
+
+    @property
+    @abstractmethod
+    def transform(self) -> Transform:
+        """
+        Get the transformation of the bounding box.
+        """
+        pass
+
+    def extents(self) -> np.ndarray:
+        """
+        :return: The size of the bounding box in each dimension.
+        """
+        return np.array([self.width, self.depth, self.depth])
+
     @staticmethod
     def get_mesh_from_boxes(boxes: List[BoundingBox]) -> trimesh.Trimesh:
         """
@@ -357,14 +378,14 @@ class BoundingBox:
         :param boxes: The list of boxes
         :return: The mesh.
         """
-        # for every atomic interval
-        all_vertices = []
-        all_faces = []
-        for i, box in enumerate(boxes):
-            # Create a 3D mesh trace for the rectangle
-            all_vertices.extend(box.get_points_list())
-            all_faces.extend((np.array(BoundingBox.get_box_faces()) + i * 8).tolist())
-        return trimesh.Trimesh(np.array(all_vertices), np.array(all_faces))
+        return trimesh.util.concatenate([box.mesh for box in boxes])
+
+    @property
+    def mesh(self) -> trimesh.Trimesh:
+        """
+        :return: The mesh of the bounding box.
+        """
+        return trimesh.primitives.Box(self.extents(), self.transform_as_array)
 
     @staticmethod
     def get_mesh_from_event(event: Event) -> trimesh.Trimesh:
@@ -538,8 +559,13 @@ class BoundingBox:
 
         plt.show()
 
+
 @dataclass
 class AxisAlignedBoundingBox(BoundingBox):
+
+    @property
+    def transform(self) -> Transform:
+        return Transform(self.origin)
 
     def get_rotated_box(self, transform: Transform) -> RotatedBoundingBox:
         """
@@ -600,9 +626,13 @@ class RotatedBoundingBox(BoundingBox):
         :param transform: The transformation
         :param points: The points of the rotated bounding box.
         """
-        self.transform: Optional[Transform] = transform
+        self._transform: Optional[Transform] = transform
         super().__init__(min_x, min_y, min_z, max_x, max_y, max_z)
         self._points: Optional[List[Point]] = points
+
+    @property
+    def transform(self) -> Transform:
+        return self._transform
 
     @classmethod
     def from_min_max(cls, min_point: Sequence[float], max_point: Sequence[float],
