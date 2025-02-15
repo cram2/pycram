@@ -732,9 +732,14 @@ class EndEffectorDescription:
     Name of the gripper of the robot if it has one, this is used when the gripper is a different Object with its own
     description file outside the robot description file.
     """
+    fingers_link_names: Optional[List[str]] = None
+    """
+    List of all links of the fingers of the gripper
+    """
 
     def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject,
-                 gripper_object_name: Optional[str] = None, opening_distance: Optional[float] = None):
+                 gripper_object_name: Optional[str] = None, opening_distance: Optional[float] = None,
+                 fingers_link_names: Optional[List[str]] = None):
         """
         Initialize the EndEffectorDescription object.
 
@@ -743,6 +748,8 @@ class EndEffectorDescription:
         :param tool_frame: Name of the tool frame link in the URDf
         :param urdf_object: URDF object of the robot
         :param gripper_object_name: Name of the gripper if it is a separate Object outside the robot description.
+        :param opening_distance: Distance the gripper can open, in cm.
+        :param fingers_link_names: List of all link names of the fingers of the gripper if it has fingers.
         """
         self.name: str = name
         self.start_link: str = start_link
@@ -754,6 +761,7 @@ class EndEffectorDescription:
         self._init_links_joints()
         self.gripper_object_name = gripper_object_name
         self.opening_distance: Optional[float] = opening_distance
+        self.fingers_link_names: Optional[List[str]] = fingers_link_names
 
     def _init_links_joints(self):
         """

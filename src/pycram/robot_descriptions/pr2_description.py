@@ -34,7 +34,8 @@ pr2_description.add_kinematic_chain_description(left_arm)
 
 ################################## Left Gripper ##################################
 left_gripper = EndEffectorDescription("left_gripper", "l_gripper_palm_link", "l_gripper_tool_frame",
-                                      pr2_description.urdf_object)
+                                      pr2_description.urdf_object,
+                                      fingers_link_names=['l_gripper_l_finger_link', 'l_gripper_r_finger_link'])
 left_gripper.add_static_joint_states(GripperState.OPEN, {'l_gripper_l_finger_joint': 0.548,
                                                          'l_gripper_r_finger_joint': 0.548})
 left_gripper.add_static_joint_states(GripperState.CLOSE, {'l_gripper_l_finger_joint': 0.0,
@@ -57,7 +58,8 @@ pr2_description.add_kinematic_chain_description(right_arm)
 
 ################################## Right Gripper ##################################
 right_gripper = EndEffectorDescription("right_gripper", "r_gripper_palm_link", "r_gripper_tool_frame",
-                                       pr2_description.urdf_object)
+                                       pr2_description.urdf_object,
+                                       fingers_link_names=['r_gripper_l_finger_link', 'r_gripper_r_finger_link'])
 right_gripper.add_static_joint_states(GripperState.OPEN, {'r_gripper_l_finger_joint': 0.548,
                                                           'r_gripper_r_finger_joint': 0.548})
 right_gripper.add_static_joint_states(GripperState.CLOSE, {'r_gripper_l_finger_joint': 0.0,

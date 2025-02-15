@@ -8,7 +8,7 @@ from typing_extensions import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
-    from .datastructures.enums import JointType, MultiverseAPIName, Arms, StaticJointState
+    from .datastructures.enums import JointType, MultiverseAPIName, Arms, StaticJointState, Grasp
     from .validation.goal_validator import MultiJointPositionGoalValidator
 
 
@@ -392,6 +392,13 @@ class ReachabilityFailure(PlanFailure):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class ObjectNotInGraspingArea(ReachabilityFailure):
+    def __init__(self, obj: Object, robot: Object, arm: Arms, grasp: Grasp, *args, **kwargs):
+        message = (f"object {obj.name} is not in the grasping area of robot {robot.name} using {arm.name} arm and"
+                   f" {grasp.name} grasp")
+        super().__init__(message, *args, **kwargs)
 
 
 class TorsoFailure(PlanFailure):

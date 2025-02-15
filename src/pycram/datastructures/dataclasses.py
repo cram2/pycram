@@ -71,6 +71,10 @@ class ManipulatorData:
     """
     The opening distance of the gripper.
     """
+    fingers_link_names: Optional[List[str]] = None
+    """
+    List of link names for the fingers of the gripper.
+    """
     relative_dir: str = ''
     """
     Relative directory of the manipulator description file in the resources directory.
@@ -181,7 +185,7 @@ class BoundingBox:
     def merge_multiple_bounding_boxes_into_mesh(bounding_boxes: List[BoundingBox],
                                                 save_mesh_to: Optional[str] = None,
                                                 use_random_events: bool = True,
-                                                plot: bool = False) -> trimesh.parent.Geometry3D:
+                                                plot: bool = False) -> trimesh.Trimesh:
         """
         Merge multiple axis-aligned bounding boxes into a single mesh.
 
@@ -217,7 +221,7 @@ class BoundingBox:
         return mesh
 
     @staticmethod
-    def get_mesh_from_boxes(boxes: List[BoundingBox]) -> trimesh.parent.Geometry3D:
+    def get_mesh_from_boxes(boxes: List[BoundingBox]) -> trimesh.Trimesh:
         """
         Get the mesh from the boxes
 
@@ -234,7 +238,7 @@ class BoundingBox:
         return trimesh.Trimesh(np.array(all_vertices), np.array(all_faces))
 
     @staticmethod
-    def get_mesh_from_event(event: Event) -> trimesh.parent.Geometry3D:
+    def get_mesh_from_event(event: Event) -> trimesh.Trimesh:
         """
         Get the mesh from the event.
 

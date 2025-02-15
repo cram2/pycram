@@ -21,7 +21,8 @@ data = ManipulatorData(
     gripper_joint_names=[f'finger_joint{i}' for i in [1, 2]],
     closed_joint_values=[0.0, 0.0],
     open_joint_values=[0.04, 0.04],
-    opening_distance=0.08 * meter)
+    opening_distance=0.08 * meter,
+    fingers_link_names=["left_finger", "right_finger"])
 
 multiverse_resources = find_multiverse_resources_path()
 

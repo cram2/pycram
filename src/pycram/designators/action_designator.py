@@ -5,6 +5,7 @@ import abc
 import inspect
 import itertools
 from datetime import timedelta
+from functools import cached_property
 
 import numpy as np
 from sqlalchemy.orm import Session
@@ -16,6 +17,7 @@ from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveArmJointsMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
+from ..datastructures.dataclasses import AxisAlignedBoundingBox, RotatedBoundingBox, BoundingBox, RayResult
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty, \
     VisibleProperty
@@ -24,17 +26,20 @@ from ..failure_handling import try_action
 from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
-    ObjectNotGraspedError, TorsoGoalNotReached, ConfigurationNotReached
-from ..robot_description import RobotDescription
+    ObjectNotGraspedError, TorsoGoalNotReached, ConfigurationNotReached, ObjectNotInGraspingArea
+from ..robot_description import RobotDescription, KinematicChainDescription
+from ..ros.logging import logwarn
 from ..ros.ros_tools import sleep
+from ..ros_utils.viz_marker_publisher import ManualMarkerPublisher
 from ..tasktree import with_tree
 from ..validation.goal_validator import MultiJointPositionGoalValidator, create_multiple_joint_goal_validator
+from ..world_concepts.world_object import Object
 from ..world_reasoning import contact
 
 from owlready2 import Thing
 
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
-    TorsoState, StaticJointState
+    TorsoState, StaticJointState, Frame
 
 from ..designator import ActionDesignatorDescription
 from ..datastructures.pose import Pose
@@ -46,7 +51,7 @@ from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Naviga
                                      LookAtAction as ORMLookAtAction, DetectAction as ORMDetectAction,
                                      TransportAction as ORMTransportAction, OpenAction as ORMOpenAction,
                                      CloseAction as ORMCloseAction, GraspingAction as ORMGraspingAction, Action,
-                                     FaceAtAction as ORMFaceAtAction)
+                                     FaceAtAction as ORMFaceAtAction, ReachToPickUpAction as ORMReachToPickUpAction)
 from ..orm.base import Pose as ORMPose
 from ..orm.object_designator import Object as ORMObject
 from ..orm.action_designator import Action as ORMAction
@@ -269,6 +274,201 @@ class ParkArmsActionPerformable(ActionAbstract):
 
 
 @dataclass
+class ReachToPickUpActionPerformable(ActionAbstract):
+    """
+    Let the robot reach a specific pose.
+    """
+
+    object_designator: ObjectDesignatorDescription.Object
+    """
+    Object designator_description describing the object that should be picked up
+    """
+
+    arm: Arms
+    """
+    The arm that should be used for pick up
+    """
+
+    grasp: Grasp
+    """
+    The grasp that should be used. For example, 'left' or 'right'
+    """
+
+    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
+    """
+    The object at the time this Action got created. It is used to be a static, information holding entity. It is
+    not updated when the BulletWorld object is changed.
+    """
+
+    prepose_distance: float
+    """
+    The distance in meters the gripper should be at before picking up the object
+    """
+
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMReachToPickUpAction)
+
+    def __post_init__(self):
+        super(ActionAbstract, self).__post_init__()
+        # Store the object's data copy at execution
+        self.object_at_execution = self.object_designator.frozen_copy()
+
+    @with_tree
+    def plan(self) -> None:
+        adjusted_oTm = self.adjust_target_pose_to_grasp_type()
+
+        pre_pose = self.calculate_pre_grasping_pose(adjusted_oTm)
+
+        MoveGripperMotion(motion=GripperState.OPEN, gripper=self.arm).perform()
+
+        self.go_to_pose(pre_pose)
+
+        self.approach_target_pose(adjusted_oTm)
+
+        # Remove the vis axis from the world if it was added
+        World.current_world.remove_vis_axis()
+
+    def approach_target_pose(self, pose: Pose, add_vis_axis: bool = True):
+        """
+        Go to the target pose by moving in a straight line motion.
+
+        :param pose: The pose to go to.
+        :param add_vis_axis: If a visual axis should be added to the world.
+        """
+        self.go_to_pose(pose, MovementType.STRAIGHT_CARTESIAN, add_vis_axis)
+
+    def go_to_pose(self, pose: Pose, movement_type: MovementType = MovementType.CARTESIAN,
+                   add_vis_axis: bool = True):
+        """
+        Go to a specific pose.
+
+        :param pose: The pose to go to.
+        :param movement_type: The type of movement that should be performed.
+        :param add_vis_axis: If a visual axis should be added to the world.
+        """
+        pose = self.transform_to_map_frame(pose)
+        if add_vis_axis:
+            World.current_world.add_vis_axis(pose)
+        MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
+
+    def adjust_target_pose_to_grasp_type(self) -> Pose:
+        """
+        Adjust the target pose according to the grasp type by adjusting the orientation of the gripper.
+
+        :return: The adjusted target pose.
+        """
+        # Get grasp orientation and target pose
+        grasp = RobotDescription.current_robot_description.grasps[self.grasp]
+        # oTm = Object Pose in Frame map
+        oTm = self.world_object.get_pose()
+        # Transform the object pose to the object frame, basically the origin of the object frame
+        mTo = self.transform_to_object_frame(oTm)
+        # Adjust the pose according to the special knowledge of the object designator_description
+        adjusted_pose = self.object_designator.special_knowledge_adjustment_pose(self.grasp, mTo)
+        # Transform the adjusted pose to the map frame
+        adjusted_oTm = self.transform_to_map_frame(adjusted_pose)
+        # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
+        adjusted_oTm.multiply_quaternion(grasp)
+        return adjusted_oTm
+
+    def calculate_pre_grasping_pose(self, obj_pose: Pose) -> Pose:
+        """
+        Calculate the pre grasping pose of the object depending on the gripper and the pre-pose distance.
+
+        :return: The pre grasping pose of the object.
+        """
+        # pre-pose depending on the gripper.
+        oTg = self.transform_to_gripper_frame(obj_pose)
+        oTg.pose.position.x -= self.prepose_distance  # in x since this is how the gripper is oriented
+        return self.transform_to_map_frame(oTg)
+
+    def transform_to_gripper_frame(self, pose: Pose) -> Pose:
+        """
+        Transform a pose to the gripper frame.
+
+        :param pose: The pose to transform.
+        :return: The transformed pose.
+        """
+        return self.transform_pose(pose, self.gripper_frame)
+
+    def transform_to_object_frame(self, pose: Pose) -> Pose:
+        """
+        Transform a pose to the object frame.
+
+        :param pose: The pose to transform.
+        :return: The transformed pose.
+        """
+        return self.local_transformer.transform_to_object_frame(pose, self.world_object)
+
+    def transform_to_map_frame(self, pose: Pose) -> Pose:
+        """
+        Transform a pose to the map frame.
+
+        :param pose: The pose to transform.
+        :return: The transformed pose.
+        """
+        return self.transform_pose(pose, Frame.Map.value)
+
+    def transform_pose(self, pose: Pose, frame: str) -> Pose:
+        """
+        Transform a pose to a different frame.
+
+        :param pose: The pose to transform.
+        :param frame: The frame to transform the pose to.
+        :return: The transformed pose.
+        """
+        return self.world_object.local_transformer.transform_pose(pose, frame)
+
+    @cached_property
+    def local_transformer(self) -> LocalTransformer:
+        return self.world_object.local_transformer
+
+    @cached_property
+    def world_object(self) -> Object:
+        return self.object_designator.world_object
+
+    @cached_property
+    def gripper_frame(self) -> str:
+        return World.robot.get_link_tf_frame(self.arm_chain.get_tool_frame())
+
+    @cached_property
+    def arm_chain(self) -> KinematicChainDescription:
+        return RobotDescription.current_robot_description.get_arm_chain(self.arm)
+
+    # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
+    #  ActionAbstract
+    def to_sql(self) -> Action:
+        return ORMReachToPickUpAction(arm=self.arm, grasp=self.grasp, prepose_distance=self.prepose_distance)
+
+    def insert(self, session: Session, **kwargs) -> Action:
+        action = super(ActionAbstract, self).insert(session)
+        action.object = self.object_at_execution.insert(session)
+        session.add(action)
+        return action
+
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        """
+        Check if object is contained in the gripper such that it can be grasped and picked up.
+        """
+        fingers_link_names = self.arm_chain.end_effector.fingers_link_names
+        if fingers_link_names:
+            fingers_links = [World.robot.links[link_name] for link_name in fingers_link_names]
+            fingers_bbs: List[RotatedBoundingBox] = [link.get_rotated_bounding_box() for link in fingers_links]
+            merged_mesh = BoundingBox.merge_multiple_bounding_boxes_into_mesh(fingers_bbs, use_random_events=True)
+            centroid = merged_mesh.centroid.tolist()
+            # cast a ray from each finger to the object and check if it intersects with the object
+            for finger_name in fingers_link_names:
+                finger = World.robot.links[finger_name]
+                World.current_world.add_vis_axis(Pose(centroid))
+                result = World.current_world.ray_test(finger.position_as_list, centroid)
+                if result.intersected and result.obj_id == self.world_object.id:
+                    continue
+                else:
+                    raise ObjectNotInGraspingArea(self.world_object, World.robot, self.arm, self.grasp)
+        else:
+            logwarn(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
+
+
+@dataclass
 class PickUpActionPerformable(ActionAbstract):
     """
     Let the robot pick up an object.
@@ -309,67 +509,45 @@ class PickUpActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        robot = World.robot
-        # Retrieve object and robot from designators
-        object = self.object_designator.world_object
 
-        # Get grasp orientation and target pose
-        grasp = RobotDescription.current_robot_description.grasps[self.grasp]
-        # oTm = Object Pose in Frame map
-        oTm = object.get_pose()
-        # Transform the object pose to the object frame, basically the origin of the object frame
-        mTo = object.local_transformer.transform_to_object_frame(oTm, object)
-        # Adjust the pose according to the special knowledge of the object designator_description
-        adjusted_pose = self.object_designator.special_knowledge_adjustment_pose(self.grasp, mTo)
-        # Transform the adjusted pose to the map frame
-        adjusted_oTm = object.local_transformer.transform_pose(adjusted_pose, "map")
-        # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
-
-        adjusted_oTm.multiply_quaternion(grasp)
-
-        # prepose depending on the gripper (its annoying we have to put pr2_1 here tbh
-        arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.arm)
-        gripper_frame = robot.get_link_tf_frame(arm_chain.get_tool_frame())
-
-        oTg = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
-        oTg.pose.position.x -= self.prepose_distance  # in x since this is how the gripper is oriented
-        prepose = object.local_transformer.transform_pose(oTg, "map")
-
-        # Perform the motion with the prepose and open gripper
-        World.current_world.add_vis_axis(prepose)
-        MoveGripperMotion(motion=GripperState.OPEN, gripper=self.arm).perform()
-        MoveTCPMotion(prepose, self.arm, allow_gripper_collision=True).perform()
-
-        # Perform the motion with the adjusted pose -> actual grasp and close gripper
-        oTg = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
-        adjusted_oTm = object.local_transformer.transform_pose(oTg, "map")
-        World.current_world.add_vis_axis(adjusted_oTm)
-        MoveTCPMotion(adjusted_oTm, self.arm, allow_gripper_collision=True,
-                      movement_type=MovementType.STRAIGHT_CARTESIAN).perform()
+        ReachToPickUpActionPerformable(self.object_designator, self.arm, self.grasp, self.prepose_distance).perform()
 
         MoveGripperMotion(motion=GripperState.CLOSE, gripper=self.arm).perform()
 
-        # Validate the pick-up before attaching the object
-        self.validate()
-
         tool_frame = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
-        robot.attach(object, tool_frame)
+        World.robot.attach(self.world_object, tool_frame)
 
-        # Lift object
-        World.current_world.add_vis_axis(adjusted_oTm)
-        MoveTCPMotion(adjusted_oTm, self.arm, allow_gripper_collision=True).perform()
+        self.lift_object(distance=0.1)
 
         # Remove the vis axis from the world
         World.current_world.remove_vis_axis()
 
-    # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in ActionAbstract
+    @cached_property
+    def world_object(self) -> Object:
+        return self.object_designator.world_object
+
+    def lift_object(self, distance: float = 0.1):
+        lift_to_pose = self.gripper_pose()
+        lift_to_pose.pose.position.z += distance
+        MoveTCPMotion(lift_to_pose, self.arm, allow_gripper_collision=True).perform()
+
+    def gripper_pose(self) -> Pose:
+        """
+        Get the pose of the gripper.
+
+        :return: The pose of the gripper.
+        """
+        gripper_link = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
+        return World.robot.links[gripper_link].pose
+
+    # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
+    #  ActionAbstract
     def to_sql(self) -> Action:
         return ORMPickUpAction(arm=self.arm, grasp=self.grasp, prepose_distance=self.prepose_distance)
 
     def insert(self, session: Session, **kwargs) -> Action:
         action = super(ActionAbstract, self).insert(session)
         action.object = self.object_at_execution.insert(session)
-
         session.add(action)
         return action
 

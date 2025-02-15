@@ -5,6 +5,10 @@ from enum import Enum, auto
 from ..failures import UnsupportedJointType
 
 
+class Frame(Enum):
+    Map = "map"
+
+
 class StaticJointState(Enum):
     Park = "park"
 

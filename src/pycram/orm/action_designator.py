@@ -64,6 +64,15 @@ class GripAction(ObjectMixin, Action):
     # TODO grasped_object
 
 
+class ReachToPickUpAction(ObjectMixin, Action):
+    """ORM Class of pycram.designators.action_designator.PickUpAction."""
+
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
+    arm: Mapped[Arms]
+    grasp: Mapped[Grasp]
+    prepose_distance: Mapped[float]
+
+
 class PickUpAction(ObjectMixin, Action):
     """ORM Class of pycram.designators.action_designator.PickUpAction."""
 
