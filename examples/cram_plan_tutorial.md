@@ -161,6 +161,7 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
         good_torsos.append(torso)
         picked_up_arm = pose.reachable_arms[0]
         grasp = Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else Grasp.FRONT
+        grasp = Grasp.BOTTOM if issubclass(obj_desig.world_object.obj_type, Bowl) else grasp
         PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp=grasp,
                                 prepose_distance=0.03).perform()
 

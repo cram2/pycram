@@ -189,7 +189,7 @@ from pycram.designators.action_designator import LookAtAction
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
 
-target_location = Pose([3, 2, 0.5], [0, 0, 0, 1])
+target_location = Pose([3, 2, 1], [0, 0, 0, 1])
 with simulated_robot:
     LookAtAction(targets=[target_location]).resolve().perform()
 ```
@@ -210,6 +210,7 @@ from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
+from pycram.datastructures.enums import DetectionTechnique
 
 milk_desig = BelieveObject(names=["milk"])
 
@@ -220,7 +221,7 @@ with simulated_robot:
 
     LookAtAction(targets=[milk_desig.resolve().pose]).resolve().perform()
 
-    obj_desig = DetectAction(milk_desig).resolve().perform()
+    obj_desig = DetectAction(DetectionTechnique.ALL,object_designator_description=milk_desig).resolve().perform()
 
     print(obj_desig)
 ```

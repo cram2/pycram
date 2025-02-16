@@ -13,7 +13,7 @@ from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
 import pycrap
-from pycrap.ontologies import PhysicalObject
+from pycrap.ontologies import PhysicalObject, Robot, Floor, Apartment
 from pycrap.ontology_wrapper import OntologyWrapper
 
 from ..cache_manager import CacheManager
