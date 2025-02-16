@@ -13,7 +13,7 @@ from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
 import pycrap
-from pycrap.ontologies import PhysicalObject
+from pycrap.ontologies import PhysicalObject, Robot, Floor, Apartment
 from pycrap.ontology_wrapper import OntologyWrapper
 
 from ..cache_manager import CacheManager
@@ -27,7 +27,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
 from ..datastructures.enums import JointType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity, PhysicalBody, WorldEntity
-from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
+from ..failures import ProspectionObjectNotFound, ObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
 from ..ros.data_types import Time
@@ -433,8 +433,10 @@ class World(WorldEntity, ABC):
             self.objects.remove(obj)
             self.remove_object_from_original_state(obj)
 
-        if World.robot == obj and not self.is_prospection_world:
-            World.robot = None
+            if World.robot == obj and not self.is_prospection_world:
+                World.robot = None
+        else:
+            logwarn(f"Object {obj.name} could not be removed from the simulator, but all attachments were removed")
 
         self.object_lock.release()
 
@@ -920,7 +922,7 @@ class World(WorldEntity, ABC):
         :return: the axis aligned bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_object_rotated_bounding_box(self, obj: Object) -> RotatedBoundingBox:
         """
@@ -928,7 +930,7 @@ class World(WorldEntity, ABC):
         :return: the rotated bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
         """
@@ -936,7 +938,7 @@ class World(WorldEntity, ABC):
         :return: The axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_link_rotated_bounding_box(self, link: Link) -> RotatedBoundingBox:
         """
@@ -944,7 +946,7 @@ class World(WorldEntity, ABC):
         :return: The rotated bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     @abstractmethod
     def set_realtime(self, real_time: bool) -> None:
@@ -1800,7 +1802,7 @@ class WorldSync(threading.Thread):
         except KeyError:
             if prospection_object in self.world.objects:
                 return prospection_object
-            raise WorldObjectNotFound(prospection_object)
+            raise ObjectNotFound(prospection_object)
 
     def get_prospection_object(self, obj: Object) -> Object:
         """
@@ -1865,10 +1867,10 @@ class WorldSync(threading.Thread):
         # Set the pose of the prospection objects to the pose of the world objects
         obj_pose_dict = {prospection_obj: obj.pose
                          for obj, prospection_obj in self.object_to_prospection_object_map.items()}
-        self.world.prospection_world.reset_multiple_objects_base_poses(obj_pose_dict)
         for obj, prospection_obj in self.object_to_prospection_object_map.items():
             prospection_obj.set_attachments(obj.attachments)
             prospection_obj.joint_states = obj.joint_states
+        self.world.prospection_world.reset_multiple_objects_base_poses(obj_pose_dict)
 
     def check_for_equal(self) -> bool:
         """

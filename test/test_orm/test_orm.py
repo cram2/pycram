@@ -97,10 +97,10 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
         self.assertEqual(len(node_results), len(pycram.tasktree.task_tree.root))
 
         position_results = self.session.scalars(select(pycram.orm.base.Position)).all()
-        self.assertEqual(14, len(position_results))
+        self.assertEqual(16, len(position_results))
 
         quaternion_results = self.session.scalars(select(pycram.orm.base.Quaternion)).all()
-        self.assertEqual(14, len(quaternion_results))
+        self.assertEqual(16, len(quaternion_results))
 
         park_arms_results = self.session.scalars(select(pycram.orm.action_designator.ParkArmsAction)).all()
         self.assertEqual(0, len(park_arms_results))
@@ -109,7 +109,7 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
         self.assertEqual(1, len(navigate_results))
 
         action_results = self.session.scalars(select(pycram.orm.action_designator.Action)).all()
-        self.assertEqual(4, len(action_results))
+        self.assertEqual(5, len(action_results))
 
     def test_metadata_existence(self):
         pycram.orm.base.ProcessMetaData().description = "metadata_existence_test"
@@ -284,7 +284,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
     def test_open_and_closeAction(self):
         apartment = Object("apartment", Apartment, "apartment.urdf")
         apartment_desig = BelieveObject(names=["apartment"]).resolve()
-        handle_desig = object_designator.ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig, type=ObjectType.ENVIRONMENT).resolve()
+        handle_desig = object_designator.ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig).resolve()
 
         self.kitchen.set_pose(Pose([20, 20, 0], [0, 0, 0, 1]))
 

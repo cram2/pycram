@@ -7,7 +7,7 @@ from ..worlds.bullet_world import World
 from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_description import RobotDescription
-from ..datastructures.enums import Arms, ExecutionType
+from ..datastructures.enums import Arms, ExecutionType, StaticJointState
 
 
 def _park_arms(arm):
@@ -19,7 +19,8 @@ def _park_arms(arm):
 
     robot = World.robot
     if arm == "left":
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left", "park").items():
+        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left",
+                                                                                             StaticJointState.Park).items():
             robot.set_joint_position(joint, pose)
 
 

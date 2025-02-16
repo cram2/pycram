@@ -1,11 +1,19 @@
 from __future__ import annotations
+
+from datetime import timedelta
 from pathlib import Path
 
-from typing_extensions import TYPE_CHECKING, List
+from typing_extensions import TYPE_CHECKING, List, Optional
+
 
 if TYPE_CHECKING:
+    from .datastructures.pose import Pose
+    from .description import Link, Joint
     from .world_concepts.world_object import Object
-    from .datastructures.enums import JointType, MultiverseAPIName, Arms
+    from .datastructures.enums import JointType, MultiverseAPIName, Arms, StaticJointState, Grasp, DetectionTechnique
+    from .validation.goal_validator import MultiJointPositionGoalValidator
+    from .designator import ObjectDesignatorDescription
+    from .designators.location_designator import Location
 
 
 class PlanFailure(Exception):
@@ -83,6 +91,24 @@ class EnvironmentManipulationGoalNotReached(ManipulationLowLevelFailure):
         super().__init__(*args, **kwargs)
 
 
+class ContainerNotOpenedError(ManipulationLowLevelFailure):
+    """Thrown when the container is not opened after the manipulation action."""
+
+    def __init__(self, obj_part: Link, joint: Joint, robot: Object, arm: Arms, *args, **kwargs):
+        super().__init__(f"Container {obj_part.name} with joint name {joint.name} is not opened"
+                         f" (current position is {joint.position}) and limits {joint.limits},"
+                         f" using {arm.name} arm of {robot.name} robot", *args, **kwargs)
+
+
+class ContainerNotClosedError(ManipulationLowLevelFailure):
+    """Thrown when the container is not closed after the manipulation action."""
+
+    def __init__(self, obj_part: Link, joint: Joint, robot: Object, arm: Arms, *args, **kwargs):
+        super().__init__(f"Container {obj_part.name} with joint name {joint.name} is not closed"
+                         f" (current position is {joint.position}) and limits {joint.limits},"
+                         f" using {arm.name} arm of {robot.name} robot", *args, **kwargs)
+
+
 class EnvironmentManipulationImpossible(HighLevelFailure):
     """Thrown when environment manipulation cannot be achieved."""
 
@@ -109,6 +135,14 @@ class GripperLowLevelFailure(LowLevelFailure):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class GripperIsNotOpen(GripperLowLevelFailure):
+    """Thrown when the gripper is not open when it should be open."""
+
+    def __init__(self, robot: Object, arm: Arms, *args, **kwargs):
+        super().__init__(f"The gripper of arm {arm.name} of robot {robot.name} should be open but is not",
+                         *args, **kwargs)
 
 
 class GripperClosedCompletely(GripperLowLevelFailure):
@@ -139,6 +173,14 @@ class LookingHighLevelFailure(HighLevelFailure):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class LookAtGoalNotReached(LookingHighLevelFailure):
+    """Thrown when the look at goal is not reached."""
+
+    def __init__(self, robot: Object, target: Pose, *args, **kwargs):
+        super().__init__(f"Look at action failed for {robot.name} and target "
+                         f"{target.position_as_list()}{target.orientation_as_list()}", *args, **kwargs)
 
 
 class ManipulationGoalInCollision(HighLevelFailure):
@@ -214,11 +256,19 @@ class ObjectNotVisible(HighLevelFailure):
         super().__init__(*args, **kwargs)
 
 
-class ObjectNowhereToBeFound(HighLevelFailure):
+class ObjectNotFound(HighLevelFailure):
     """Thrown when the robot cannot find an object of a given description in its surroundings."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, object_name: str):
+        super().__init__(f"Object {object_name} not found")
+
+
+class LinkNotFound(HighLevelFailure):
+    """Thrown when the robot cannot find a link of a given description"""
+
+    def __init__(self, link_name: str, of_object: Optional[str] = None):
+        of_object = of_object if of_object else "Unknown"
+        super().__init__(f"Link {link_name} not found in object {of_object}")
 
 
 class ObjectUndeliverable(HighLevelFailure):
@@ -226,6 +276,33 @@ class ObjectUndeliverable(HighLevelFailure):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class ObjectPlacingError(HighLevelFailure):
+    """Thrown when the placing of the object fails."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class ObjectStillInContact(ObjectPlacingError):
+    """Thrown when the object is still in contact with the robot after placing."""
+
+    def __init__(self, obj: Object, contact_links: List[Link], placing_pose: Pose, robot: Object, arm: Arms,
+                 *args, **kwargs):
+        contact_links = [link.name for link in contact_links]
+        super().__init__(f"Object {obj.name} is still in contact with {robot.name}, the contact links are"
+                         f"{contact_links}, after placing at"
+                         f" target pose {placing_pose.position_as_list()}{placing_pose.orientation_as_list()} using"
+                         f" {arm.name} arm", *args, **kwargs)
+
+
+class ObjectNotPlacedAtTargetLocation(ObjectPlacingError):
+    """Thrown when the object was not placed at the target location."""
+
+    def __init__(self, obj: Object, placing_pose: Pose, robot: Object, arm: Arms, *args, **kwargs):
+        super().__init__(f"Object {obj.name} was not placed at target pose {placing_pose.position_as_list()}"
+                         f"{placing_pose.orientation_as_list()} using {arm.name} arm of {robot.name}", *args, **kwargs)
 
 
 class ObjectUnfetchable(HighLevelFailure):
@@ -253,9 +330,10 @@ class PerceptionObjectNotFound(PerceptionLowLevelFailure):
     """Thrown when an attempt to find an object by perception fails -- and this can still be interpreted as the robot
     not looking in the right direction, as opposed to the object being absent."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
+    def __init__(self, obj_desc: ObjectDesignatorDescription, technique: DetectionTechnique, region: Location,
+                 *args, **kwargs):
+        super().__init__(f"object described by {obj_desc} not found using {technique.name} technique in region"
+                         f" {region}", *args, **kwargs)
 
 class PerceptionObjectNotInWorld(PerceptionLowLevelFailure):
     """Thrown when an attempt to find an object by perception fails -- and this is because the object can be assumed
@@ -282,8 +360,8 @@ class TorsoLowLevelFailure(LowLevelFailure):
 class TorsoGoalNotReached(TorsoLowLevelFailure):
     """Thrown when the torso moved as a result of a torso action but the goal was not reached."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, goal_validator: MultiJointPositionGoalValidator,  *args, **kwargs):
+        super().__init__(goal_validator.goal_not_achieved_message, *args, **kwargs)
 
 
 class TorsoGoalUnreachable(TorsoLowLevelFailure):
@@ -308,8 +386,10 @@ class Grasping(Task):
 
 
 class ObjectNotGraspedError(Grasping):
-    def __init__(self, obj: Object, arm: Arms, *args, **kwargs):
-        super().__init__(f"object {obj.name} was not grasped by arm {arm}", *args, **kwargs)
+    def __init__(self, obj: Object, arm: Arms, grasp: Optional[Grasp], *args, **kwargs):
+        grasp_str = f"using {grasp.name} grasp" if grasp else ""
+        super().__init__(f"object {obj.name} was not grasped by {arm.name} arm" + grasp_str,
+                         *args, **kwargs)
 
 
 class Looking(Task):
@@ -319,7 +399,7 @@ class Looking(Task):
         super().__init__(*args, **kwargs)
 
 
-class ObjectPoseMisestimation(PlanFailure):
+class ObjectPoseMissestimation(PlanFailure):
     """"""
 
     def __init__(self, *args, **kwargs):
@@ -327,13 +407,6 @@ class ObjectPoseMisestimation(PlanFailure):
 
 
 class SuccessfulCompletion(PlanFailure):
-    """"""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-
-class ObjectNotFound(PlanFailure):
     """"""
 
     def __init__(self, *args, **kwargs):
@@ -389,6 +462,13 @@ class ReachabilityFailure(PlanFailure):
         super().__init__(*args, **kwargs)
 
 
+class ObjectNotInGraspingArea(ReachabilityFailure):
+    def __init__(self, obj: Object, robot: Object, arm: Arms, grasp: Grasp, *args, **kwargs):
+        message = (f"object {obj.name} is not in the grasping area of robot {robot.name} using {arm.name} arm and"
+                   f" {grasp.name} grasp")
+        super().__init__(message, *args, **kwargs)
+
+
 class TorsoFailure(PlanFailure):
     """"""
 
@@ -399,8 +479,11 @@ class TorsoFailure(PlanFailure):
 class ConfigurationNotReached(PlanFailure):
     """"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, goal_validator: MultiJointPositionGoalValidator, configuration_type: StaticJointState,
+                 *args, **kwargs):
+        super().__init__(f"configuration_type: {configuration_type.name},"
+                         f" {goal_validator.goal_not_achieved_message}",
+                         *args, **kwargs)
 
 
 class Timeout(PlanFailure):
@@ -466,11 +549,6 @@ They are usually related to a bug in the code or a misuse of the framework (e.g.
 class ProspectionObjectNotFound(KeyError):
     def __init__(self, obj: 'Object'):
         super().__init__(f"The given object {obj.name} is not in the prospection world.")
-
-
-class WorldObjectNotFound(KeyError):
-    def __init__(self, obj: 'Object'):
-        super().__init__(f"The given object {obj.name} is not in the main world.")
 
 
 class ObjectAlreadyExists(Exception):

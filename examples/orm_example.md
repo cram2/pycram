@@ -173,6 +173,9 @@ class SayingActionPerformable(ActionAbstract):
     @with_tree
     def plan(self) -> None:
         print(self.text)
+
+    def validate(self, result=None):
+        pass
 ```
 
 Now we got our new ActionDesignator called Saying and its ORM version. Since this class got created after all other classes got inserted into the database (in the beginning of the notebook) we have to insert it manually. 

@@ -21,7 +21,7 @@ from .datastructures.pose import Pose, Transform
 from .datastructures.world_entity import WorldEntity, PhysicalBody
 from .failures import ObjectDescriptionNotFound, LinkHasNoGeometry, LinkGeometryHasNoMesh
 from .local_transformer import LocalTransformer
-from .ros.logging import logwarn_once
+from .ros.logging import logwarn_once, logwarn
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
@@ -502,6 +502,13 @@ class RootLink(Link, ABC):
         """
         return self.object.pose
 
+    @pose.setter
+    def pose(self, pose: Pose) -> None:
+        """
+        Set the pose of the root link to the given pose by setting the pose of the object.
+        """
+        self.object.pose = pose
+
     def __copy__(self):
         return RootLink(self.object)
 
@@ -612,10 +619,10 @@ class Joint(WorldEntity, ObjectEntity, JointDescription, ABC):
         if self.has_limits:
             low_lim, up_lim = self.limits
             if not low_lim <= joint_position <= up_lim:
-                logging.warning(
+                logwarn(
                     f"The joint position has to be within the limits of the joint. The joint limits for {self.name}"
                     f" are {low_lim} and {up_lim}")
-                logging.warning(f"The given joint position was: {joint_position}")
+                logwarn(f"The given joint position was: {joint_position}")
                 # Temporarily disabled because kdl outputs values exciting joint limits
                 # return
         self.reset_position(joint_position)
