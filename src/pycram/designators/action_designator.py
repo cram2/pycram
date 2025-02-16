@@ -4,53 +4,36 @@ from __future__ import annotations
 import abc
 import inspect
 import itertools
+from dataclasses import dataclass, field
 from datetime import timedelta
 from functools import cached_property
 
 import numpy as np
-import trimesh
 from sqlalchemy.orm import Session
 from tf import transformations
-from trimesh import Trimesh
 from typing_extensions import List, Union, Optional, Type, Dict, Any
 
-from pycrap.ontologies import PhysicalObject, Location
+from pycrap.ontologies import Location
 from .location_designator import CostmapLocation
-from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveArmJointsMotion, MoveTCPMotion, MoveMotion, \
+from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
-from ..datastructures.dataclasses import AxisAlignedBoundingBox, RotatedBoundingBox, BoundingBox, RayResult
+from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
+    TorsoState, StaticJointState, Frame, FindBodyInRegionMethod
 from ..datastructures.partial_designator import PartialDesignator
-from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty, \
-    VisibleProperty
+from ..datastructures.pose import Pose
+from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty
+from ..datastructures.world import World, UseProspectionWorld
 from ..description import Joint, Link
+from ..designator import ActionDesignatorDescription
 from ..failure_handling import try_action
-from ..knowledge.knowledge_engine import ReasoningInstance
-from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
     ObjectNotGraspedError, TorsoGoalNotReached, ConfigurationNotReached, ObjectNotInGraspingArea, \
-    ObjectNotPlacedAtTargetLocation, ObjectStillInContact, GripperIsNotOpen, LookAtGoalNotReached, \
+    ObjectNotPlacedAtTargetLocation, ObjectStillInContact, LookAtGoalNotReached, \
     ContainerNotOpenedError, ContainerNotClosedError
-from ..robot_description import RobotDescription, KinematicChainDescription
-from ..ros.logging import logwarn
-from ..ros.ros_tools import sleep
-from ..ros_utils.viz_marker_publisher import ManualMarkerPublisher
-from ..tasktree import with_tree
-from ..validation.error_checkers import PoseErrorChecker
-from ..validation.goal_validator import MultiJointPositionGoalValidator, create_multiple_joint_goal_validator
-from ..world_concepts.world_object import Object
-from ..world_reasoning import contact
-from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
-
-from owlready2 import Thing
-
-from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
-    TorsoState, StaticJointState, Frame
-
-from ..designator import ActionDesignatorDescription
-from ..datastructures.pose import Pose
-from ..datastructures.world import World, UseProspectionWorld
-
+from ..knowledge.knowledge_engine import ReasoningInstance
+from ..local_transformer import LocalTransformer
+from ..orm.action_designator import Action as ORMAction
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
@@ -60,8 +43,14 @@ from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Naviga
                                      FaceAtAction as ORMFaceAtAction, ReachToPickUpAction as ORMReachToPickUpAction)
 from ..orm.base import Pose as ORMPose
 from ..orm.object_designator import Object as ORMObject
-from ..orm.action_designator import Action as ORMAction
-from dataclasses import dataclass, field
+from ..robot_description import RobotDescription, KinematicChainDescription
+from ..ros.logging import logwarn
+from ..tasktree import with_tree
+from ..validation.error_checkers import PoseErrorChecker
+from ..validation.goal_validator import create_multiple_joint_goal_validator
+from ..world_concepts.world_object import Object
+from ..world_reasoning import move_away_all_objects_to_create_empty_space, generate_object_at_target, \
+    cast_a_ray_from_camera, has_gripper_grasped_body, is_body_between_fingers
 
 
 # ----------------------------------------------------------------------------
@@ -457,70 +446,11 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         """
         fingers_link_names = self.arm_chain.end_effector.fingers_link_names
         if fingers_link_names:
-            empty_space = self.get_empty_space_between_fingers(fingers_link_names)
-            intersection = self.get_intersection_between_object_bounding_box_and_empty_space(empty_space)
-            if not self.is_body_in_region(intersection, fingers_link_names):
+            if not is_body_between_fingers(self.world_object, fingers_link_names,
+                                           method=FindBodyInRegionMethod.MultiRay):
                 raise ObjectNotInGraspingArea(self.world_object, World.robot, self.arm, self.grasp)
         else:
             logwarn(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
-
-    def get_empty_space_between_fingers(self, fingers_link_names: List[str]) -> Trimesh:
-        """
-        Check if there is empty space between the fingers of the gripper.
-
-        :param fingers_link_names: The names of the links that represent the fingers of the gripper.
-        :return: The empty space between the fingers.
-        """
-        fingers_links = [World.robot.links[link_name] for link_name in fingers_link_names]
-        fingers_chs: List[Trimesh] = [link.get_convex_hull() for link in fingers_links]
-        fingers_only_ch = fingers_chs[0].union(fingers_chs[1:])
-        fingers_plus_empty_space = fingers_only_ch.convex_hull
-        empty_space_between_fingers = fingers_plus_empty_space.difference(fingers_only_ch)
-        # 10 cm^3 (if we assume a finger area of at least 2 cm^2, this means we allow at least 5 cm distance between
-        # fingers).
-        if empty_space_between_fingers.volume * 10 ** 6 < 10:
-            raise GripperIsNotOpen(World.robot, self.arm)
-        return empty_space_between_fingers
-
-    def get_intersection_between_object_bounding_box_and_empty_space(self, empty_space: Trimesh) -> Trimesh:
-        """
-        Get the intersection between the object and the empty space between the fingers.
-
-        :param empty_space: The empty space between the fingers.
-        :return: The intersection between the object and the empty space between the fingers.
-        """
-        obj_bb = self.world_object.get_axis_aligned_bounding_box()
-        try:
-            intersection = empty_space.intersection(obj_bb.as_mesh)
-        except ValueError:
-            # This will be raised when the merged_ch has no volume, which means that the gripper was closed
-            # completely and there is no empty space between the fingers.
-            raise GripperIsNotOpen(World.robot, self.arm)
-        if intersection.volume * 10 ** 6 < 10:
-            raise ObjectNotInGraspingArea(self.world_object, World.robot, self.arm, self.grasp)
-        return intersection
-
-    def is_body_in_region(self, intersection: Trimesh, fingers_link_names: List[str]):
-        """
-        Check if the object body is in the intersection between the object and the empty space between the fingers.
-
-        :param intersection: The intersection between the object and the empty space between the fingers.
-        :param fingers_link_names: The names of the links that represent the fingers of the gripper.
-        """
-        centroid = intersection.centroid
-        # cast a ray from each finger to the centroid and check if it intersects with the object
-        # this is necessary as the bounding box is usually different from the exact shape of the object
-        # (e.g. concave objects)
-        for finger_name in fingers_link_names:
-            finger = World.robot.links[finger_name]
-            result = World.current_world.ray_test(finger.position_as_list, centroid)
-            if result.intersected and result.obj_id == self.world_object.id:
-                continue
-            else:
-                return False
-        return True
-
-
 
 
 @dataclass
@@ -564,7 +494,6 @@ class PickUpActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-
         ReachToPickUpActionPerformable(self.object_designator, self.arm, self.grasp, self.prepose_distance).perform()
 
         MoveGripperMotion(motion=GripperState.CLOSE, gripper=self.arm).perform()
@@ -606,17 +535,8 @@ class PickUpActionPerformable(ActionAbstract):
         """
         Check if picked up object is in contact with the gripper.
         """
-        contact_links = self.world_object.get_contact_points_with_body(World.robot).get_bodies_in_contact()
-        fingers_link_names = self.arm_chain.end_effector.fingers_link_names
-        if fingers_link_names:
-            fingers_in_contact = [link.name in fingers_link_names for link in contact_links]
-            if len(fingers_in_contact) >= 2:
-                return
-        else:
-            gripper_link_names = self.arm_chain.end_effector.links
-            if any([link.name in gripper_link_names for link in contact_links]):
-                return
-        raise ObjectNotGraspedError(self.world_object, self.arm, self.grasp)
+        if not has_gripper_grasped_body(self.arm, self.world_object):
+            raise ObjectNotGraspedError(self.world_object, self.arm, self.grasp)
 
     @cached_property
     def arm_chain(self) -> KinematicChainDescription:
@@ -719,6 +639,7 @@ class PlaceActionPerformable(ActionAbstract):
         pose_error_checker = PoseErrorChecker(World.conf.get_pose_tolerance())
         if not pose_error_checker.is_error_acceptable(self.world_object.pose, self.target_location):
             raise ObjectNotPlacedAtTargetLocation(self.world_object, self.target_location, World.robot, self.arm)
+
 
 @dataclass
 class NavigateActionPerformable(ActionAbstract):
@@ -825,27 +746,18 @@ class LookAtActionPerformable(ActionAbstract):
         LookingMotion(target=self.target).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        """
+        Check if the robot is looking at the target location by spawning a virtual object at the target location and
+        creating a ray from the camera and checking if it intersects with the object.
+        """
         with UseProspectionWorld():
-            for obj in World.current_world.objects:
-                if obj.name not in [World.robot.name, "floor"]:
-                    obj.set_position([100, 100, 0])
-            gen_obj_desc = GenericObjectDescription("target", [0, 0, 0], [0.2, 0.2, 0.2])
-            gen_obj = Object("target", PhysicalObject, None, gen_obj_desc)
-            gen_obj.set_pose(self.target)
-            camera_link_name = RobotDescription.current_robot_description.get_camera_link()
-            camera_link = World.robot.get_link(camera_link_name)
-            camera_pose = camera_link.pose
-            camera_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
-            target = np.array(camera_axis) * 10
-            target_pose = Pose(target, frame=camera_link.tf_frame)
-            target_pose = World.robot.local_transformer.transform_pose(target_pose, Frame.Map.value)
-            ray_result: RayResult = World.current_world.ray_test(camera_pose.position_as_list(),
-                                                                 target_pose.position_as_list())
+            move_away_all_objects_to_create_empty_space(exclude_objects=[World.robot.name, "floor"])
+            # Create a virtual object at the target location, the current size is 40x40x40 cm which is very big in
+            # my opinion, maybe this indicates that the looking at action is not accurate # TODO check this
+            gen_obj = generate_object_at_target(self.target.position_as_list(), size=(0.4, 0.4, 0.4))
+            ray_result = cast_a_ray_from_camera()
             gen_obj.remove()
-            if not ray_result.intersected:
-                raise LookAtGoalNotReached(World.robot, self.target)
-            if ray_result.obj_id != gen_obj.id:
-                gen_obj.remove()
+            if not ray_result.intersected or ray_result.obj_id != gen_obj.id:
                 raise LookAtGoalNotReached(World.robot, self.target)
 
 
@@ -916,12 +828,11 @@ class OpenActionPerformable(ActionAbstract):
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        obj_part = self.object_designator.world_object
-        container_joint_name = obj_part.find_joint_above_link(self.object_designator.name)
-        lower_limit, upper_limit = obj_part.get_joint_limits(container_joint_name)
-        joint_obj: Joint = obj_part.joints[container_joint_name]
-        if joint_obj.position < upper_limit - joint_obj.acceptable_error:
-            raise ContainerNotOpenedError(obj_part, joint_obj, World.robot, self.arm)
+        """
+        Check if the container is opened, this assumes that the container state can be read accurately from the
+        real world.
+        """
+        validate_close_open(self.object_designator, self.arm, OpenActionPerformable)
 
 
 @dataclass
@@ -951,12 +862,42 @@ class CloseActionPerformable(ActionAbstract):
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        obj_part = self.object_designator.world_object
-        container_joint_name = obj_part.find_joint_above_link(self.object_designator.name)
-        lower_limit, upper_limit = obj_part.get_joint_limits(container_joint_name)
-        joint_obj: Joint = obj_part.joints[container_joint_name]
-        if joint_obj.position > lower_limit + joint_obj.acceptable_error:
-            raise ContainerNotClosedError(obj_part, joint_obj, World.robot, self.arm)
+        """
+        Check if the container is closed, this assumes that the container state can be read accurately from the
+        real world.
+        """
+        validate_close_open(self.object_designator, self.arm, CloseActionPerformable)
+
+
+def validate_close_open(object_designator: ObjectDesignatorDescription.Object, arm: Arms,
+                        action_type: Union[OpenActionPerformable, CloseActionPerformable]):
+    """
+    Validates if the container is opened or closed by checking the joint position of the container.
+
+    :param object_designator: The object designator_description describing the object that should be opened or closed.
+    :param arm: The arm that should be used for opening or closing the container.
+    :param action_type: The type of the action that should be validated.
+    """
+    obj_part = object_designator.world_object
+    container_joint_name = obj_part.find_joint_above_link(object_designator.name)
+    lower_limit, upper_limit = obj_part.get_joint_limits(container_joint_name)
+    joint_obj: Joint = obj_part.joints[container_joint_name]
+    if issubclass(action_type, CloseActionPerformable):
+        check_closed(joint_obj, obj_part, arm, lower_limit)
+    elif issubclass(action_type, OpenActionPerformable):
+        check_opened(joint_obj, obj_part, arm, upper_limit)
+    else:
+        raise ValueError(f"Invalid action type: {action_type}")
+
+
+def check_opened(joint_obj: Joint, obj_part: Link, arm: Arms, upper_limit: float):
+    if joint_obj.position < upper_limit - joint_obj.acceptable_error:
+        raise ContainerNotOpenedError(obj_part, joint_obj, World.robot, arm)
+
+
+def check_closed(joint_obj: Joint, obj_part: Link, arm: Arms, lower_limit: float):
+    if joint_obj.position > lower_limit + joint_obj.acceptable_error:
+        raise ContainerNotClosedError(obj_part, joint_obj, World.robot, arm)
 
 
 @dataclass

@@ -5,6 +5,26 @@ from enum import Enum, auto
 from ..failures import UnsupportedJointType
 
 
+class FindBodyInRegionMethod(Enum):
+    """
+    Enum for the different methods to find a body in a region.
+    """
+    FingerToCentroid = auto()
+    """
+    The FingerToCentroid method is used to find the body in a region by casting a ray from each finger to the
+     centroid of the region.
+    """
+    Centroid = auto()
+    """
+    The Centroid method is used to find the body in a region by calculating the centroid of the region and
+    casting two rays from opposite sides of the region to the centroid.
+    """
+    MultiRay = auto()
+    """
+    The MultiRay method is used to find the body in a region by casting multiple rays covering the region.
+    """
+
+
 class Frame(Enum):
     Map = "map"
 

@@ -26,6 +26,46 @@ if TYPE_CHECKING:
     from .robot_description import CameraDescription
 
 
+def get_rays_from_min_max(min_bound: List[float], max_bound: List[float], step_size_in_meters: float = 0.01)\
+        -> np.ndarray:
+    """
+    Get rays from min and max bounds as an array of start and end 3D points.
+
+    :param min_bound: The minimum bound of the rays, a list of 3 floats.
+    :param max_bound: The maximum bound of the rays, a list of 3 floats.
+    :param step_size_in_meters: The step size in meters between the rays.
+    :return: The rays as an array of shape (n, 3, 2) where n is number of rays, 3 is because each point has x, y, and z,
+    and 2 is for the start and end points of the rays.
+    """
+    n_steps = np.ceil(np.abs(max_bound[1:] - min_bound[1:]) / step_size_in_meters).astype(int)
+    rays_start_x = np.ones((n_steps[0], n_steps[1])) * min_bound[0]
+    rays_end_x = np.ones((n_steps[0], n_steps[1])) * max_bound[0]
+    y_values = np.linspace(min_bound[1], max_bound[1], n_steps[0])
+    z_values = np.linspace(min_bound[2], max_bound[2], n_steps[1])
+    rays_start_y = np.tile(y_values, (n_steps[1], 1)).T
+    rays_end_y = rays_start_y
+    rays_start_z = np.tile(z_values, (n_steps[0], 1))
+    rays_end_z = rays_start_z
+    rays_start = np.stack((rays_start_x, rays_start_y, rays_start_z), axis=-1)
+    rays_end = np.stack((rays_end_x, rays_end_y, rays_end_z), axis=-1)
+    rays_start = rays_start.reshape(-1, 3)
+    rays_end = rays_end.reshape(-1, 3)
+    # The shape of rays is (num_rays, 3, 2), while num_rays = n_steps[0] (num y step) * n_steps[1] (num z step)
+    return np.stack((rays_start, rays_end), axis=-1)
+
+
+def chunks(lst: List, n: int) -> List:
+    """
+    Yield successive n-sized chunks from lst.
+
+    :param lst: The list from which chunks should be yielded
+    :param n: Size of the chunks
+    :return: A list of size n from lst
+    """
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+
 class bcolors:
     """
     Color codes which can be used to highlight Text in the Terminal. For example,

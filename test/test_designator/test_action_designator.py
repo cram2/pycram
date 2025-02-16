@@ -86,7 +86,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
-            self._test_validate_action_pre_perform(performable, GripperIsNotOpen)
+            self._test_validate_action_pre_perform(performable, ObjectNotInGraspingArea)
             MoveGripperMotion(GripperState.OPEN, Arms.LEFT).perform()
             self._test_validate_action_pre_perform(performable, ObjectNotInGraspingArea)
             performable.perform()

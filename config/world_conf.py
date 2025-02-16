@@ -2,7 +2,7 @@ import math
 import os
 
 import yaml
-from typing_extensions import Tuple, Type, Dict
+from typing_extensions import Tuple, Type, Dict, Optional
 from ..description import ObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
 from ..utils import classproperty
@@ -109,6 +109,11 @@ class WorldConfig:
     depth_images_are_in_meter: bool = False
     """
     Whether the depth images produced by :meth:`datastructures.world.World.get_images_for_target` are in meters.
+    """
+
+    max_batch_size_for_rays: Optional[int] = 16380
+    """
+    The maximum batch size for the rays when using the ray test batch.
     """
 
     @classproperty
