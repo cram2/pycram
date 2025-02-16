@@ -155,6 +155,14 @@ class LookingHighLevelFailure(HighLevelFailure):
         super().__init__(*args, **kwargs)
 
 
+class LookAtGoalNotReached(LookingHighLevelFailure):
+    """Thrown when the look at goal is not reached."""
+
+    def __init__(self, robot: Object, target: Pose, *args, **kwargs):
+        super().__init__(f"Look at action failed for {robot.name} and target "
+                         f"{target.position_as_list()}{target.orientation_as_list()}", *args, **kwargs)
+
+
 class ManipulationGoalInCollision(HighLevelFailure):
     """Thrown when executing a manipulation action results in a collision."""
 

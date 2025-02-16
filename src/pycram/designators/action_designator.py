@@ -29,7 +29,7 @@ from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
     ObjectNotGraspedError, TorsoGoalNotReached, ConfigurationNotReached, ObjectNotInGraspingArea, \
-    ObjectNotPlacedAtTargetLocation, ObjectStillInContact, GripperIsNotOpen
+    ObjectNotPlacedAtTargetLocation, ObjectStillInContact, GripperIsNotOpen, LookAtGoalNotReached
 from ..robot_description import RobotDescription, KinematicChainDescription
 from ..ros.logging import logwarn
 from ..ros.ros_tools import sleep
@@ -39,6 +39,7 @@ from ..validation.error_checkers import PoseErrorChecker
 from ..validation.goal_validator import MultiJointPositionGoalValidator, create_multiple_joint_goal_validator
 from ..world_concepts.world_object import Object
 from ..world_reasoning import contact
+from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 
 from owlready2 import Thing
 
@@ -47,7 +48,7 @@ from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique
 
 from ..designator import ActionDesignatorDescription
 from ..datastructures.pose import Pose
-from ..datastructures.world import World
+from ..datastructures.world import World, UseProspectionWorld
 
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
@@ -742,7 +743,9 @@ class NavigateActionPerformable(ActionAbstract):
         return try_action(motion_action, failure_type=NavigationGoalNotReachedError)
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        pass
+        pose_validator = PoseErrorChecker(World.conf.get_pose_tolerance())
+        if not pose_validator.is_error_acceptable(World.robot.pose, self.target_location):
+            raise NavigationGoalNotReachedError(World.robot, self.target_location)
 
 
 @dataclass
@@ -799,6 +802,10 @@ class TransportActionPerformable(ActionAbstract):
         PlaceActionPerformable(self.object_designator, self.arm, self.target_location).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
 
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        # The validation of each atomic action is done in the action itself, so no more validation needed here.
+        pass
+
 
 @dataclass
 class LookAtActionPerformable(ActionAbstract):
@@ -815,6 +822,30 @@ class LookAtActionPerformable(ActionAbstract):
     @with_tree
     def plan(self) -> None:
         LookingMotion(target=self.target).perform()
+
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        with UseProspectionWorld():
+            for obj in World.current_world.objects:
+                if obj.name not in [World.robot.name, "floor"]:
+                    obj.set_position([100, 100, 0])
+            gen_obj_desc = GenericObjectDescription("target", [0, 0, 0], [0.1, 0.1, 0.1])
+            gen_obj = Object("target", PhysicalObject, None, gen_obj_desc)
+            gen_obj.set_pose(self.target)
+            camera_link_name = RobotDescription.current_robot_description.get_camera_link()
+            camera_link = World.robot.get_link(camera_link_name)
+            camera_pose = camera_link.pose
+            camera_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
+            target = np.array(camera_axis) * 10
+            target_pose = Pose(target, frame=camera_link.tf_frame)
+            target_pose = World.robot.local_transformer.transform_pose(target_pose, Frame.Map.value)
+            ray_result: RayResult = World.current_world.ray_test(camera_pose.position_as_list(),
+                                                                 target_pose.position_as_list())
+            gen_obj.remove()
+            if not ray_result.intersected:
+                raise LookAtGoalNotReached(World.robot, self.target)
+            if ray_result.obj_id != gen_obj.id:
+                gen_obj.remove()
+                raise LookAtGoalNotReached(World.robot, self.target)
 
 
 @dataclass
@@ -904,7 +935,6 @@ class CloseActionPerformable(ActionAbstract):
     def plan(self) -> None:
         GraspingActionPerformable(self.arm, self.object_designator, self.grasping_prepose_distance).perform()
         ClosingMotion(self.object_designator, self.arm).perform()
-
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
 
 

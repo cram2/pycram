@@ -17,6 +17,7 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
 
 from .enums import JointType, Shape, VirtualMobileBaseJointName
 from .pose import Pose, Point, Transform
+from ..ros.logging import logwarn
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
 if TYPE_CHECKING:
@@ -502,7 +503,7 @@ class BoundingBox:
         """
         return [self.max_x, self.max_y, self.max_z]
 
-    def enlarge(self, min_x: float = 0., min_y:float = 0, min_z: float = 0,
+    def enlarge(self, min_x: float = 0., min_y: float = 0, min_z: float = 0,
                 max_x: float = 0., max_y: float = 0., max_z: float = 0.):
         """
         Enlarge the axis-aligned bounding box by a given amount in-place.
@@ -1376,8 +1377,8 @@ class RayResult:
         return: Whether the ray intersects with a body.
         """
         if not self.obj_id:
-            raise ValueError("obj_id should be available to check if the ray intersects with a body,"
-                             "It appears that the ray result is not valid.")
+            logwarn("obj_id should be available to check if the ray intersects with a body,"
+                    "It appears that the ray result is not valid.")
         return self.obj_id != -1
 
     @property

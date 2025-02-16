@@ -8,7 +8,7 @@ from pycram.designators.action_designator import MoveTorsoActionPerformable, Pic
     NavigateActionPerformable, FaceAtPerformable, MoveTorsoAction
 from pycram.designators.motion_designator import MoveGripperMotion
 from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError, \
-    ObjectNotInGraspingArea, ObjectStillInContact, GripperIsNotOpen
+    ObjectNotInGraspingArea, ObjectStillInContact, GripperIsNotOpen, NavigationGoalNotReachedError, LookAtGoalNotReached
 from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
@@ -72,6 +72,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_navigate(self):
         description = action_designator.NavigateAction([Pose([0.3, 0, 0], [0, 0, 0, 1])])
         with simulated_robot:
+            self._test_validate_action_pre_perform(description, NavigationGoalNotReachedError)
             description.resolve().perform()
         self.assertEqual(description.ground().target_location, Pose([0.3, 0, 0], [0, 0, 0, 1]))
         self.assertEqual(self.robot.get_pose(), Pose([0.3, 0, 0]))
@@ -118,8 +119,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         description = action_designator.LookAtAction([Pose([1, 0, 1])])
         self.assertEqual(description.ground().target, Pose([1, 0, 1]))
         with simulated_robot:
+            self._test_validate_action_pre_perform(description, LookAtGoalNotReached)
             description.resolve().perform()
-        # TODO: Needs a way to test the approximate looking direction of the robot
 
     def test_detect(self):
         self.kitchen.set_pose(Pose([10, 10, 0]))
