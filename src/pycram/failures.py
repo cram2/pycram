@@ -368,8 +368,9 @@ class Grasping(Task):
 
 
 class ObjectNotGraspedError(Grasping):
-    def __init__(self, obj: Object, arm: Arms, grasp: Grasp, *args, **kwargs):
-        super().__init__(f"object {obj.name} was not grasped by {arm.name} arm using {grasp.name} grasp",
+    def __init__(self, obj: Object, arm: Arms, grasp: Optional[Grasp], *args, **kwargs):
+        grasp_str = f"using {grasp.name} grasp" if grasp else ""
+        super().__init__(f"object {obj.name} was not grasped by {arm.name} arm" + grasp_str,
                          *args, **kwargs)
 
 

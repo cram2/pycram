@@ -169,6 +169,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         milk_desig = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.GraspingAction([Arms.RIGHT], milk_desig)
         with simulated_robot:
+            self._test_validate_action_pre_perform(description, ObjectNotGraspedError)
             description.resolve().perform()
         dist = np.linalg.norm(
             np.array(self.robot.get_link_position_as_list(RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_tool_frame())) -

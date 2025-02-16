@@ -881,7 +881,7 @@ class DetectActionPerformable(ActionAbstract):
         return try_action(DetectingMotion(technique=self.technique, state=self.state,
                                           object_designator_description=self.object_designator_description,
                                           region=self.region), PerceptionObjectNotFound)
-    
+
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         if not result:
             raise PerceptionObjectNotFound(self.object_designator_description, self.technique, self.region)
@@ -981,6 +981,13 @@ class GraspingActionPerformable(ActionAbstract):
 
         MoveTCPMotion(object_pose, self.arm, allow_gripper_collision=True).perform()
         MoveGripperMotion(GripperState.CLOSE, self.arm, allow_gripper_collision=True).perform()
+
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        contact_links = self.object_desig.world_object.get_contact_points_with_body(World.robot).get_bodies_in_contact()
+        arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.arm)
+        gripper_links = arm_chain.end_effector.links
+        if not any([link.name in gripper_links for link in contact_links]):
+            raise ObjectNotGraspedError(self.object_desig.world_object, self.arm, None)
 
 
 @dataclass
