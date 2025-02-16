@@ -487,7 +487,7 @@ def is_body_in_region(body: PhysicalBody, region: Trimesh, step_size_in_meters: 
     :param method: The method to use to find the body in the region.
     """
     min_bound, max_bound = region.bounds
-    reduction = 0.005
+    reduction = 0.002
     min_bound = min_bound + np.array([reduction]*3)
     max_bound = max_bound - np.array([reduction]*3)
     if method == FindBodyInRegionMethod.Centroid:

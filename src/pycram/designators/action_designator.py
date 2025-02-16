@@ -575,7 +575,7 @@ class PlaceActionPerformable(ActionAbstract):
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()
         World.robot.detach(self.object_designator.world_object)
 
-        retract_pose = self.calculate_retract_pose(target_pose, distance=0.03)
+        retract_pose = self.calculate_retract_pose(target_pose, distance=0.05)
         MoveTCPMotion(retract_pose, self.arm).perform()
 
     def calculate_target_pose_of_gripper(self):
