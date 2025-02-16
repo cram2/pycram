@@ -29,7 +29,8 @@ from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
     ObjectNotGraspedError, TorsoGoalNotReached, ConfigurationNotReached, ObjectNotInGraspingArea, \
-    ObjectNotPlacedAtTargetLocation, ObjectStillInContact, GripperIsNotOpen, LookAtGoalNotReached
+    ObjectNotPlacedAtTargetLocation, ObjectStillInContact, GripperIsNotOpen, LookAtGoalNotReached, \
+    ContainerNotOpenedError, ContainerNotClosedError
 from ..robot_description import RobotDescription, KinematicChainDescription
 from ..ros.logging import logwarn
 from ..ros.ros_tools import sleep
@@ -828,7 +829,7 @@ class LookAtActionPerformable(ActionAbstract):
             for obj in World.current_world.objects:
                 if obj.name not in [World.robot.name, "floor"]:
                     obj.set_position([100, 100, 0])
-            gen_obj_desc = GenericObjectDescription("target", [0, 0, 0], [0.1, 0.1, 0.1])
+            gen_obj_desc = GenericObjectDescription("target", [0, 0, 0], [0.2, 0.2, 0.2])
             gen_obj = Object("target", PhysicalObject, None, gen_obj_desc)
             gen_obj.set_pose(self.target)
             camera_link_name = RobotDescription.current_robot_description.get_camera_link()
@@ -914,6 +915,14 @@ class OpenActionPerformable(ActionAbstract):
 
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
 
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        obj_part = self.object_designator.world_object
+        container_joint_name = obj_part.find_joint_above_link(self.object_designator.name)
+        lower_limit, upper_limit = obj_part.get_joint_limits(container_joint_name)
+        joint_obj: Joint = obj_part.joints[container_joint_name]
+        if joint_obj.position < upper_limit - joint_obj.acceptable_error:
+            raise ContainerNotOpenedError(obj_part, joint_obj, World.robot, self.arm)
+
 
 @dataclass
 class CloseActionPerformable(ActionAbstract):
@@ -940,6 +949,14 @@ class CloseActionPerformable(ActionAbstract):
         GraspingActionPerformable(self.arm, self.object_designator, self.grasping_prepose_distance).perform()
         ClosingMotion(self.object_designator, self.arm).perform()
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
+
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        obj_part = self.object_designator.world_object
+        container_joint_name = obj_part.find_joint_above_link(self.object_designator.name)
+        lower_limit, upper_limit = obj_part.get_joint_limits(container_joint_name)
+        joint_obj: Joint = obj_part.joints[container_joint_name]
+        if joint_obj.position > lower_limit + joint_obj.acceptable_error:
+            raise ContainerNotClosedError(obj_part, joint_obj, World.robot, self.arm)
 
 
 @dataclass
@@ -1026,6 +1043,10 @@ class FaceAtPerformable(ActionAbstract):
         # look at target
         LookAtActionPerformable(self.pose).perform()
 
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        # The validation will be done in the LookAtActionPerformable.perform() method so no need to validate here.
+        pass
+
 
 @dataclass
 class MoveAndPickUpPerformable(ActionAbstract):
@@ -1070,6 +1091,10 @@ class MoveAndPickUpPerformable(ActionAbstract):
         PickUpActionPerformable(self.object_designator, self.arm, self.grasp,
                                 self.pick_up_prepose_distance).perform()
 
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        # The validation will be done in each of the atomic action perform methods so no need to validate here.
+        pass
+
 
 @dataclass
 class MoveAndPlacePerformable(ActionAbstract):
@@ -1107,6 +1132,10 @@ class MoveAndPlacePerformable(ActionAbstract):
         NavigateActionPerformable(self.standing_position, self.keep_joint_states).perform()
         FaceAtPerformable(self.target_location, self.keep_joint_states).perform()
         PlaceActionPerformable(self.object_designator, self.arm, self.target_location).perform()
+
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        # The validation will be done in each of the atomic action perform methods so no need to validate here.
+        pass
 
 
 # ----------------------------------------------------------------------------

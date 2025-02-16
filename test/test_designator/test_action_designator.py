@@ -9,7 +9,7 @@ from pycram.designators.action_designator import MoveTorsoActionPerformable, Pic
 from pycram.designators.motion_designator import MoveGripperMotion
 from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError, \
     ObjectNotInGraspingArea, ObjectStillInContact, GripperIsNotOpen, NavigationGoalNotReachedError, \
-    LookAtGoalNotReached, PerceptionObjectNotFound
+    LookAtGoalNotReached, PerceptionObjectNotFound, ContainerNotOpenedError, ContainerNotClosedError
 from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
@@ -137,17 +137,36 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(detected_object[0].world_object.world, self.milk.world)
 
     # Skipped since open and close work only in the apartment at the moment
-    @unittest.skip
     def test_open(self):
-        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        kitchen_designator = object_designator.ObjectDesignatorDescription(names=["kitchen"]).resolve()
+        object_description = object_designator.ObjectPart(names=["kitchen_island_left_upper_drawer_main"],
+                                                          part_of=kitchen_designator)
         description = action_designator.OpenAction(object_description, [Arms.LEFT])
-        self.assertEqual(description.ground().object_designator.name, "milk")
+        self.assertEqual(description.ground().object_designator.name, "kitchen_island_left_upper_drawer_main")
+        self._test_validate_action_pre_perform(description, ContainerNotOpenedError)
 
-    @unittest.skip
+        # TODO: This is a simulated effect of the action, not the action itself.
+        link = self.kitchen.links["kitchen_island_left_upper_drawer_main"]
+        joint = self.kitchen.find_joint_above_link(link.name)
+        self.kitchen.joints[joint].position = self.kitchen.joints[joint].upper_limit
+
+        description.ground().validate()
+
     def test_close(self):
-        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        kitchen_designator = object_designator.ObjectDesignatorDescription(names=["kitchen"]).resolve()
+        object_description = object_designator.ObjectPart(names=["kitchen_island_left_upper_drawer_main"],
+                                                          part_of=kitchen_designator)
         description = action_designator.CloseAction(object_description, [Arms.LEFT])
-        self.assertEqual(description.ground().object_designator.name, "milk")
+        self.assertEqual(description.ground().object_designator.name, "kitchen_island_left_upper_drawer_main")
+
+        link = self.kitchen.links["kitchen_island_left_upper_drawer_main"]
+        joint = self.kitchen.find_joint_above_link(link.name)
+        self.kitchen.joints[joint].position = self.kitchen.joints[joint].upper_limit
+        self._test_validate_action_pre_perform(description, ContainerNotClosedError)
+
+        # TODO: This is a simulated effect of the action, not the action itself.
+        self.kitchen.joints[joint].position = self.kitchen.joints[joint].lower_limit
+        description.ground().validate()
 
     def test_transport(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])

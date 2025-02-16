@@ -8,7 +8,7 @@ from typing_extensions import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
     from .datastructures.pose import Pose
-    from .description import Link
+    from .description import Link, Joint
     from .world_concepts.world_object import Object
     from .datastructures.enums import JointType, MultiverseAPIName, Arms, StaticJointState, Grasp, DetectionTechnique
     from .validation.goal_validator import MultiJointPositionGoalValidator
@@ -89,6 +89,24 @@ class EnvironmentManipulationGoalNotReached(ManipulationLowLevelFailure):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class ContainerNotOpenedError(ManipulationLowLevelFailure):
+    """Thrown when the container is not opened after the manipulation action."""
+
+    def __init__(self, obj_part: Link, joint: Joint, robot: Object, arm: Arms, *args, **kwargs):
+        super().__init__(f"Container {obj_part.name} with joint name {joint.name} is not opened"
+                         f" (current position is {joint.position}) and limits {joint.limits},"
+                         f" using {arm.name} arm of {robot.name} robot", *args, **kwargs)
+
+
+class ContainerNotClosedError(ManipulationLowLevelFailure):
+    """Thrown when the container is not closed after the manipulation action."""
+
+    def __init__(self, obj_part: Link, joint: Joint, robot: Object, arm: Arms, *args, **kwargs):
+        super().__init__(f"Container {obj_part.name} with joint name {joint.name} is not closed"
+                         f" (current position is {joint.position}) and limits {joint.limits},"
+                         f" using {arm.name} arm of {robot.name} robot", *args, **kwargs)
 
 
 class EnvironmentManipulationImpossible(HighLevelFailure):
