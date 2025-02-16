@@ -42,16 +42,15 @@ class RobotDescriptionManager:
         :param name: Name of the robot to which the description should be loaded.
         :return: The loaded robot description.
         """
-        if name in self.descriptions.keys():
-            RobotDescription.current_robot_description = self.descriptions[name]
-            return self.descriptions[name]
-        else:
-            for key in self.descriptions.keys():
-                if key in name.lower():
-                    RobotDescription.current_robot_description = self.descriptions[key]
-                    return self.descriptions[key]
-            else:
-                logerr(f"Robot description {name} not found")
+        if RobotDescription.current_robot_description:
+            RobotDescription.current_robot_description.unload()
+
+        for key in self.descriptions.keys():
+            if name in self.descriptions[key].urdf_object.name or key in name.lower():
+                self.descriptions[key].load()
+                return self.descriptions[key]
+        logerr(f"Robot description {name} not found")
+
 
     def register_description(self, description: RobotDescription):
         """
@@ -377,6 +376,20 @@ class RobotDescription:
             if chain.arm_type == arm:
                 return chain
         raise ValueError(f"There is no Kinematic Chain for the Arm {arm}")
+
+    def load(self):
+        """
+        Loads the robot description in the robot description manager, can be overridden to take more parameter into
+        account.
+        """
+        RobotDescription.current_robot_description = self
+
+    def unload(self):
+        """
+        Unloads the robot description in the robot description manager, can be overridden to take more parameter into
+        account.
+        """
+        RobotDescription.current_robot_description = None
 
 
 class KinematicChainDescription:

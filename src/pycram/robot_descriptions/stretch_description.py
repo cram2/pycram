@@ -1,3 +1,7 @@
+import numpy as np
+import tf
+
+from ..pose_generator_and_validator import PoseGenerator
 from ..ros.ros_tools import get_ros_package_path
 
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
@@ -69,6 +73,24 @@ stretch_description.add_grasp_orientations({Grasp.FRONT: [0, 0, 0, 1],
                                             Grasp.LEFT: [0, 0, -1, 1],
                                             Grasp.RIGHT: [0, 0, 1, 1],
                                             Grasp.TOP: [0, 1, 0, 1]})
+
+################################### Custom Orientation Generator ##############
+def stretch_orientation_generator(position, origin):
+    angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi + np.pi / 16
+    quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle + np.pi / 2, axes="sxyz"))
+    return quaternion
+
+################################ Load Function #################################
+def load(description):
+    RobotDescriptionManager.current_robot_description = description
+    PoseGenerator.override_orientation_generator = stretch_orientation_generator
+
+def unload(description):
+    RobotDescriptionManager.current_robot_description = None
+    PoseGenerator.override_orientation_generator = None
+
+stretch_description.load = load
+stretch_description.unload = unload
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()
