@@ -369,7 +369,7 @@ class BoundingBox:
         """
         :return: The size of the bounding box in each dimension.
         """
-        return np.array([self.width, self.depth, self.depth])
+        return np.array([self.width, self.depth, self.height])
 
     @staticmethod
     def get_mesh_from_boxes(boxes: List[BoundingBox]) -> trimesh.Trimesh:
@@ -379,7 +379,11 @@ class BoundingBox:
         :param boxes: The list of boxes
         :return: The mesh.
         """
-        return trimesh.util.concatenate([box.as_mesh for box in boxes])
+        first_box_mesh = boxes[0].as_mesh
+        if len(boxes) == 1:
+            return first_box_mesh
+        else:
+            return first_box_mesh.union([box.as_mesh for box in boxes[1:]]).convex_hull
 
     @property
     def as_mesh(self) -> trimesh.Trimesh:

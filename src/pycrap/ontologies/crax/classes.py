@@ -105,6 +105,10 @@ class Agent(Base):
     ...
 
 
+class Human(Base):
+    ...
+
+
 class Room(Base):
     ...
 

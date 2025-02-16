@@ -1,6 +1,6 @@
 from .dependencies import *
 from .classes import *
-#from .individuals import *
+# from .individuals import *
 from .object_properties import *
 
 Floor.is_a = [PhysicalObject]
@@ -8,6 +8,8 @@ Floor.is_a = [PhysicalObject]
 Milk.is_a = [Food]
 
 Robot.is_a = [Agent]
+
+Human.is_a = [Agent]
 
 Cereal.is_a = [Food]
 
@@ -59,7 +61,6 @@ Supporter.is_a = [PhysicalObject]
 
 SupportedObject.is_a = [PhysicalObject]
 
-
 is_part_of.is_a = [ObjectProperty, TransitiveProperty, ReflexiveProperty]
 is_part_of.domain = [PhysicalObject]
 is_part_of.range = [PhysicalObject]
@@ -102,6 +103,3 @@ supports.inverse_property = is_supported_by
 is_supported_by.is_a = [ObjectProperty, TransitiveProperty]
 is_supported_by.domain = [SupportedObject]
 is_supported_by.range = [Supporter]
-
-
-

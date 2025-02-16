@@ -858,7 +858,7 @@ class ObjectDescription(EntityDescription):
                     mesh.apply_transform(transform)
                 path = path.replace(extension, ".obj")
                 mesh.export(path)
-            self.generate_from_mesh_file(path, name, save_path=save_path, color=color, scale=scale_mesh)
+            self.generate_from_mesh_file(path, name, save_path=save_path, color=color)
         elif extension == self.get_file_extension():
             self.generate_from_description_file(path, save_path=save_path)
         else:

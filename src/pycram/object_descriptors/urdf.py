@@ -337,7 +337,8 @@ class ObjectDescription(AbstractObjectDescription):
             with suppress_stdout_stderr():
                 return URDF.from_xml_string(file.read())
 
-    def generate_from_mesh_file(self, path: str, name: str, save_path: str, color: Optional[Color] = Color(), scale = Optional[float]) -> None:
+    def generate_from_mesh_file(self, path: str, name: str, save_path: str, color: Optional[Color] = Color(),
+                                scale: Optional[float] = None) -> None:
         """
         Generate a URDf file with the given .obj or .stl file as mesh. In addition, use the given rgba_color to create a
          material tag in the URDF. The URDF file will be saved to the given save_path.
@@ -370,6 +371,7 @@ class ObjectDescription(AbstractObjectDescription):
                         </robot>'
         urdf_template = self.fix_missing_inertial(urdf_template)
         rgb = " ".join(list(map(str, color.get_rgba())))
+        scale = scale if scale is not None else 1
         s = " ".join([str(scale)] * 3)
         pathlib_obj = pathlib.Path(path)
         path = str(pathlib_obj.resolve())
