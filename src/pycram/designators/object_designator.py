@@ -80,7 +80,17 @@ class ObjectPart(ObjectDesignatorDescription):
     class Object(ObjectDesignatorDescription.Object):
 
         # The rest of attributes is inherited
-        part_pose: Pose
+        _part_pose: Pose
+
+        @property
+        def part_pose(self) -> Pose:
+            if self.world_object:
+                self._part_pose = self.world_object.links[self.name].pose
+            return self._part_pose
+
+        @part_pose.setter
+        def part_pose(self, value: Pose):
+            self._part_pose = value
 
         def to_sql(self) -> ORMObjectPart:
             return ORMObjectPart(obj_type=self.obj_type, name=self.name)
