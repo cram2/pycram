@@ -8,7 +8,6 @@ from abc import ABC, abstractmethod
 from copy import copy
 
 import numpy as np
-import pycram_bullet
 from geometry_msgs.msg import Point
 from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
@@ -1002,13 +1001,10 @@ class World(WorldEntity, ABC):
 
         :param remove_saved_states: Whether to remove the saved states.
         """
-        try:
-            self.exit_prospection_world_if_exists()
-            self.reset_world(remove_saved_states)
-            self.remove_all_objects()
-            self.disconnect_from_physics_server()
-        except pycram_bullet.error as e:
-            logwarn(f"Error while exiting the world: {e}")
+        self.exit_prospection_world_if_exists()
+        self.reset_world(remove_saved_states)
+        self.remove_all_objects()
+        self.disconnect_from_physics_server()
         self.reset_robot()
         self.join_threads()
         self.ontology.destroy_individuals()

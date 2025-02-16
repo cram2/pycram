@@ -108,7 +108,7 @@ class StateEntity:
         """
         if saved_file_dir is not None:
             self.restore_state_from_file(saved_file_dir, state_id)
-        elif state_id and state_id in self.saved_states:
+        else:
             self.current_state = self.saved_states[state_id]
 
     def remove_saved_states(self) -> None:
