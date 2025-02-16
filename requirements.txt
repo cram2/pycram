@@ -28,3 +28,5 @@ Pygments>=2.15.0
 typeguard~=4.3.0
 gymnasium
 inflection>=0.5.1
+manifold3d==3.0.1
+pyglet==1.5.31
