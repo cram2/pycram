@@ -109,7 +109,7 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
         self.assertEqual(1, len(navigate_results))
 
         action_results = self.session.scalars(select(pycram.orm.action_designator.Action)).all()
-        self.assertEqual(4, len(action_results))
+        self.assertEqual(5, len(action_results))
 
     def test_metadata_existence(self):
         pycram.orm.base.ProcessMetaData().description = "metadata_existence_test"
