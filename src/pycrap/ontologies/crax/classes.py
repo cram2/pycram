@@ -249,3 +249,17 @@ class Task(Base):
 
 class RootLink(Base):
     ...
+
+
+class Supporter(Base):
+    """
+    A physical object that supports another object.
+    """
+    ...
+
+
+class SupportedObject(Base):
+    """
+    A physical object that is supported by another object.
+    """
+    ...

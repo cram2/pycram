@@ -65,3 +65,15 @@ class is_physically_contained_in(BaseProperty):
     """
     A spatial relation holding between an object (the container), and objects it contains.
     """
+
+class supports(BaseProperty):
+    """
+    A relation between an object (the supporter) and another object (the supportee) where the supporter cancels the
+     effect of gravity on the supportee.
+    """
+
+class is_supported_by(BaseProperty):
+    """
+    A relation between an object (the supporter) and another object (the supportee) where the supporter cancels the
+     effect of gravity on the supportee. The inverse of the supports relation.
+    """

@@ -55,6 +55,10 @@ Action.is_a = [Event]
 
 PhysicalTask.is_a = [Entity]
 
+Supporter.is_a = [PhysicalObject]
+
+SupportedObject.is_a = [PhysicalObject]
+
 
 is_part_of.is_a = [ObjectProperty, TransitiveProperty, ReflexiveProperty]
 is_part_of.domain = [PhysicalObject]
@@ -89,6 +93,15 @@ is_contained_in.range = [Base]
 is_physically_contained_in.is_a = [ObjectProperty, TransitiveProperty]
 is_physically_contained_in.domain = [PhysicalObject]
 is_physically_contained_in.range = [Container]
+
+supports.is_a = [ObjectProperty, TransitiveProperty]
+supports.domain = [Supporter]
+supports.range = [SupportedObject]
+supports.inverse_property = is_supported_by
+
+is_supported_by.is_a = [ObjectProperty, TransitiveProperty]
+is_supported_by.domain = [SupportedObject]
+is_supported_by.range = [Supporter]
 
 
 

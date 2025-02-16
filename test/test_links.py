@@ -1,10 +1,9 @@
 import numpy as np
 from tf.transformations import quaternion_from_euler
-from typing_extensions import List
 
-from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.dataclasses import Color, BoundingBox as BB
 from pycram.datastructures.pose import Pose
+from pycram.testing import BulletWorldTestCase
 
 
 class TestLinks(BulletWorldTestCase):
@@ -27,7 +26,7 @@ class TestLinks(BulletWorldTestCase):
         self.assertEqual(len(self.kitchen.contained_bodies), 2)
 
     def test_get_convex_hull(self):
-        self.milk.set_orientation(quaternion_from_euler(0, np.pi/4, 0))
+        self.milk.set_orientation(quaternion_from_euler(0, np.pi / 4, 0))
         hull = self.milk.root_link.get_convex_hull()
         self.assertIsNotNone(hull)
         self.assertTrue(len(hull.vertices) > 0)
@@ -37,7 +36,7 @@ class TestLinks(BulletWorldTestCase):
             BB.plot_3d_points([hull.vertices])
 
     def test_rotated_bounding_box(self):
-        self.milk.set_pose(Pose([1, 1, 1], quaternion_from_euler(np.pi/4, 0, 0).tolist()))
+        self.milk.set_pose(Pose([1, 1, 1], quaternion_from_euler(np.pi / 4, 0, 0).tolist()))
         aabb = self.milk.get_axis_aligned_bounding_box()
         aabb_points = np.array(aabb.get_points_list())
         rbb = self.milk.get_rotated_bounding_box()
@@ -72,5 +71,3 @@ class TestLinks(BulletWorldTestCase):
         link = self.robot.get_link('base_link')
         link.color = Color(1, 0, 0, 1)
         self.assertEqual(link.color.get_rgba(), [1, 0, 0, 1])
-
-
