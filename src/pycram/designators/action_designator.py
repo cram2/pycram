@@ -1000,7 +1000,8 @@ class GraspingActionPerformable(ActionAbstract):
         MoveGripperMotion(GripperState.CLOSE, self.arm, allow_gripper_collision=True).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        contact_links = self.object_desig.world_object.get_contact_points_with_body(World.robot).get_bodies_in_contact()
+        link = self.object_desig.world_object.links[self.object_desig.name]
+        contact_links = link.get_contact_points_with_body(World.robot).get_bodies_in_contact()
         arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.arm)
         gripper_links = arm_chain.end_effector.links
         if not any([link.name in gripper_links for link in contact_links]):
