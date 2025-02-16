@@ -10,8 +10,10 @@ if TYPE_CHECKING:
     from .datastructures.pose import Pose
     from .description import Link
     from .world_concepts.world_object import Object
-    from .datastructures.enums import JointType, MultiverseAPIName, Arms, StaticJointState, Grasp
+    from .datastructures.enums import JointType, MultiverseAPIName, Arms, StaticJointState, Grasp, DetectionTechnique
     from .validation.goal_validator import MultiJointPositionGoalValidator
+    from .designator import ObjectDesignatorDescription
+    from .designators.location_designator import Location
 
 
 class PlanFailure(Exception):
@@ -310,9 +312,10 @@ class PerceptionObjectNotFound(PerceptionLowLevelFailure):
     """Thrown when an attempt to find an object by perception fails -- and this can still be interpreted as the robot
     not looking in the right direction, as opposed to the object being absent."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
+    def __init__(self, obj_desc: ObjectDesignatorDescription, technique: DetectionTechnique, region: Location,
+                 *args, **kwargs):
+        super().__init__(f"object described by {obj_desc} not found using {technique.name} technique in region"
+                         f" {region}", *args, **kwargs)
 
 class PerceptionObjectNotInWorld(PerceptionLowLevelFailure):
     """Thrown when an attempt to find an object by perception fails -- and this is because the object can be assumed

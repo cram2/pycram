@@ -8,7 +8,8 @@ from pycram.designators.action_designator import MoveTorsoActionPerformable, Pic
     NavigateActionPerformable, FaceAtPerformable, MoveTorsoAction
 from pycram.designators.motion_designator import MoveGripperMotion
 from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError, \
-    ObjectNotInGraspingArea, ObjectStillInContact, GripperIsNotOpen, NavigationGoalNotReachedError, LookAtGoalNotReached
+    ObjectNotInGraspingArea, ObjectStillInContact, GripperIsNotOpen, NavigationGoalNotReachedError, \
+    LookAtGoalNotReached, PerceptionObjectNotFound
 from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
@@ -128,6 +129,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         object_description = ObjectDesignatorDescription(types=[Milk])
         description = action_designator.DetectAction(technique=DetectionTechnique.TYPES, object_designator_description=object_description)
         with simulated_robot:
+            self._test_validate_action_pre_perform(description, PerceptionObjectNotFound)
             detected_object = description.resolve().perform()
 
         self.assertEqual(detected_object[0].name, "milk")

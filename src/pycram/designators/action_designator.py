@@ -881,6 +881,10 @@ class DetectActionPerformable(ActionAbstract):
         return try_action(DetectingMotion(technique=self.technique, state=self.state,
                                           object_designator_description=self.object_designator_description,
                                           region=self.region), PerceptionObjectNotFound)
+    
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        if not result:
+            raise PerceptionObjectNotFound(self.object_designator_description, self.technique, self.region)
 
 
 @dataclass
