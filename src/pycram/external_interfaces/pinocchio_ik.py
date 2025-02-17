@@ -8,6 +8,7 @@ from typing_extensions import List, Tuple, Dict
 from ..failures import IKError
 from ..world_concepts.world_object import Object
 from ..datastructures.pose import Pose
+from ..config.ik_conf import PinocchioConfig
 
 def create_joint_configuration(robot: Object, model) -> np.ndarray[float]:
     """
@@ -48,10 +49,10 @@ def compute_ik(target_link: str, target_pose: Pose, robot: Object) -> Dict[str, 
     # Initial joint configuration
     # q = pinocchio.neutral(model)
     q = create_joint_configuration(robot, model)
-    eps = 1e-4
-    IT_MAX = 10000
-    DT = 1e-1
-    damp = 1e-12
+    eps = PinocchioConfig.error_threshold
+    IT_MAX = PinocchioConfig.max_iterations
+    DT = PinocchioConfig.time_step
+    damp = PinocchioConfig.dampening_factor
 
     # q, success = inverse_kinematics_translation(model, q, data, JOINT_ID, oMdes, eps, IT_MAX, DT, damp)
     q, success = inverse_kinematics_logarithmic(model, q, data, JOINT_ID, oMdes, eps, IT_MAX, DT, damp)
@@ -75,28 +76,24 @@ def inverse_kinematics_logarithmic(model, configuration, data, target_joint_id, 
     :param max_iter: The maximum number of iterations.
     :param dt: The time step.
     :param damp: The damping factor.
-    :return: The final joint configuration.
+    :return: The final joint configuration and a boolean indicating if the computation was successful.
     """
     q = configuration
-    i = 0
-    while True:
+    success = False
+    for i in range(max_iter):
         pinocchio.forwardKinematics(model, data, q)
         iMd = data.oMi[target_joint_id].actInv(target_transformation)
         err = pinocchio.log(iMd).vector  # in joint frame
         if norm(err) < eps:
             success = True
             break
-        if i >= max_iter:
-            success = False
-            break
         J = pinocchio.computeJointJacobian(model, data, q, target_joint_id)  # in joint frame
         J = -np.dot(pinocchio.Jlog6(iMd.inverse()), J)
         v = -J.T.dot(solve(J.dot(J.T) + damp * np.eye(6), err))
         q = pinocchio.integrate(model, q, v * dt)
-        q = clip_joints_to_limits(q, list(zip(model.lowerPositionLimit, model.upperPositionLimit)))
+        q = clip_joints_to_limits(q, model.lowerPositionLimit, model.upperPositionLimit)
         # if not i % 10:
         #     print("%d: error = %s" % (i, err.T))
-        i += 1
     return q, success
 
 
@@ -114,29 +111,25 @@ def inverse_kinematics_translation(model, configuration, data, target_joint_id, 
     :param max_iter: The maximum number of iterations.
     :param dt: The time step.
     :param damp: The damping factor.
-    :return: The final joint configuration.
+    :return: The final joint configuration and a boolean indicating if the computation was successful.
     """
     q = configuration
-    it = 0
-    while True:
+    success = False
+    for i in range(max_iter):
         pinocchio.forwardKinematics(model, data, q)
         iMd = data.oMi[target_joint_id].actInv(target_transformation)
         err = iMd.translation
         if norm(err) < eps:
             success = True
             break
-        if it >= max_iter:
-            success = False
-            break
         J = pinocchio.computeJointJacobian(model, data, q, target_joint_id)  # in joint frame
         J = -J[:3, :]  # linear part of the Jacobian
         v = -J.T.dot(solve(J.dot(J.T) + damp * np.eye(3), err))
         q = pinocchio.integrate(model, q, v * dt)
-        q = clip_joints_to_limits(q, list(zip(model.lowerPositionLimit, model.upperPositionLimit)))
+        q = clip_joints_to_limits(q, model.lowerPositionLimit, model.upperPositionLimit)
 
-        # if not it % 10:
+        # if not i % 10:
         #     print("%d: error = %s" % (it, err.T))
-        it += 1
     return q, success
 
 def parse_configuration_vector_to_joint_positions(configuration: np.ndarray[float], model) -> Dict[str, float]:
@@ -163,12 +156,13 @@ def parse_configuration_vector_to_joint_positions(configuration: np.ndarray[floa
     return result
 
 
-def clip_joints_to_limits(joint_positions: List[float], joint_limits: List[Tuple[float, float]]) -> np.ndarray[float]:
+def clip_joints_to_limits(joint_positions: List[float], lower_limits: List[float], upper_limits: List[float]) -> np.ndarray[float]:
     """
     Clip the joint positions to the joint limits.
 
     :param joint_positions: The joint positions to clip.
-    :param joint_limits: The joint limits to clip to as a list of tuples (min, max).
+    :param lower_limits: A List of lower joint limits.
+    :param upper_limits: A List of upper joint limits.
     :return: The clipped joint positions.
     """
-    return np.array([min(max(joint_position, joint_limit[0]), joint_limit[1]) for joint_position, joint_limit in zip(joint_positions, joint_limits)])
+    return np.clip(joint_positions, lower_limits, upper_limits)
