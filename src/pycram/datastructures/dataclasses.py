@@ -17,7 +17,7 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
 
 from .enums import JointType, Shape, VirtualMobileBaseJointName
 from .pose import Pose, Point, Transform
-from ..ros.logging import logwarn
+from ..ros import logwarn
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
 if TYPE_CHECKING:
