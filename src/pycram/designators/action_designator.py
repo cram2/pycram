@@ -19,7 +19,7 @@ from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveTCPMotio
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
-    TorsoState, StaticJointState, Frame, FindBodyInRegionMethod
+    TorsoState, StaticJointState, Frame, FindBodyInRegionMethod, ContainerManipulationType
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.pose import Pose
 from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty
@@ -30,7 +30,7 @@ from ..failure_handling import try_action
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
     ObjectNotGraspedError, TorsoGoalNotReached, ConfigurationNotReached, ObjectNotInGraspingArea, \
     ObjectNotPlacedAtTargetLocation, ObjectStillInContact, LookAtGoalNotReached, \
-    ContainerNotOpenedError, ContainerNotClosedError
+    ContainerManipulationError
 from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
 from ..orm.action_designator import Action as ORMAction
@@ -536,7 +536,7 @@ class PickUpActionPerformable(ActionAbstract):
         Check if picked up object is in contact with the gripper.
         """
         if not has_gripper_grasped_body(self.arm, self.world_object):
-            raise ObjectNotGraspedError(self.world_object, self.arm, self.grasp)
+            raise ObjectNotGraspedError(self.world_object, World.robot, self.arm, self.grasp)
 
     @cached_property
     def arm_chain(self) -> KinematicChainDescription:
@@ -892,12 +892,14 @@ def validate_close_open(object_designator: ObjectDesignatorDescription.Object, a
 
 def check_opened(joint_obj: Joint, obj_part: Link, arm: Arms, upper_limit: float):
     if joint_obj.position < upper_limit - joint_obj.acceptable_error:
-        raise ContainerNotOpenedError(obj_part, joint_obj, World.robot, arm)
+        raise ContainerManipulationError(World.robot, [arm], obj_part, joint_obj,
+                                         ContainerManipulationType.Opening)
 
 
 def check_closed(joint_obj: Joint, obj_part: Link, arm: Arms, lower_limit: float):
     if joint_obj.position > lower_limit + joint_obj.acceptable_error:
-        raise ContainerNotClosedError(obj_part, joint_obj, World.robot, arm)
+        raise ContainerManipulationError(World.robot, [arm], obj_part, joint_obj,
+                                         ContainerManipulationType.Closing)
 
 
 @dataclass
@@ -949,7 +951,7 @@ class GraspingActionPerformable(ActionAbstract):
         arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.arm)
         gripper_links = arm_chain.end_effector.links
         if not any([link.name in gripper_links for link in contact_links]):
-            raise ObjectNotGraspedError(self.object_desig.world_object, self.arm, None)
+            raise ObjectNotGraspedError(self.object_desig.world_object, World.robot, self.arm, None)
 
 
 @dataclass
