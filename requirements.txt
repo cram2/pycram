@@ -32,4 +32,3 @@ pin==2.7.0
 inflection>=0.5.1
 manifold3d>=3.0.1
 transforms3d
-
