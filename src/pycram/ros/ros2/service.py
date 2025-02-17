@@ -11,9 +11,6 @@ class ServiceProxy:
         self.service = node.create_client(service_message, topic_name)
         self.message_type = service_message
     def __call__(self, *args, **kwargs):
-        print(type(self.message_type.Request))
-        print(type(args[0]))
-        print(isinstance(self.message_type.Request, type(args[0])))
         future = self.service.call_async(*args, **kwargs)
         while not future.done():
             time.sleep(0.1)
@@ -24,9 +21,6 @@ class ServiceProxy:
 
 
 def get_service_proxy(topic_name: str, service_message) -> rclpy.client.Client:
-    # if topic_name not in services:
-    #     services[topic_name] = node.create_client(topic_name, service_message)
-    # return services[topic_name]
     service = ServiceProxy(topic_name, service_message)
     services[topic_name] = service
     return service

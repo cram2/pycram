@@ -32,7 +32,7 @@ elif os.environ.get('ROS_VERSION') == "2":
 
     setup(
         name=package_name,
-        version='0.0.0',
+        version='0.0.2',
         packages=find_packages(exclude=['test']),
         data_files=[
             ('share/ament_index/resource_index/packages',
@@ -41,10 +41,10 @@ elif os.environ.get('ROS_VERSION') == "2":
         ] + generate_data_files('share/' + package_name + '/', 'resources'),
         install_requires=['setuptools'],
         zip_safe=True,
-        maintainer='jonas',
-        maintainer_email='j.dech@gmx.net',
-        description='TODO: Package description',
-        license='TODO: License declaration',
+        maintainer='Jonas Dech',
+        maintainer_email='jdech@uni-bremen.de',
+        description='A Python library for cognitive robot control',
+        license='Gplv3',
         tests_require=['pytest'],
         entry_points={
             'console_scripts': [

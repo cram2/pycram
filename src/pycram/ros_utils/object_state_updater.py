@@ -7,7 +7,7 @@ from sensor_msgs.msg import JointState
 from ..datastructures.world import World
 from ..robot_description import RobotDescription
 from ..datastructures.pose import Pose
-from ..ros import  Time, Duration
+from ..ros import  Time, Duration, sleep
 from ..ros import  wait_for_message, create_timer
 
 
@@ -32,7 +32,7 @@ class RobotStateUpdater:
         self.tf_listener = tf.TransformListener()
         self.tf_listener.clear()
 
-        time.sleep(1)
+        sleep(1)
         self.tf_topic = tf_topic
         self.joint_state_topic = joint_state_topic
         self.tf_timer = create_timer(Duration().from_sec(0.1), self._subscribe_tf)

@@ -1,6 +1,11 @@
 # Funky MonkeyPatching for ROS2 compatability
 import builtin_interfaces.msg
 def to_sec(self):
+    """
+    Returns the time in seconds from a builtin_interfaces.msg.Time message.
+
+    :return: The time in seconds.
+    """
     return self.sec
 
 builtin_interfaces.msg.Time.to_sec = to_sec

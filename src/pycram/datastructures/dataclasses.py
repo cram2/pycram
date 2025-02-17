@@ -1040,13 +1040,13 @@ class VirtualMobileBaseJoints:
 
     translation_x: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_X.value,
                                                          JointType.PRISMATIC,
-                                                         Point(x=1, y=0, z=0))
+                                                         Point(x=1.0, y=0.0, z=0.0))
     translation_y: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_Y.value,
                                                          JointType.PRISMATIC,
-                                                         Point(x=0, y=1, z=0))
+                                                         Point(x=0.0, y=1.0, z=0.0))
     angular_z: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.ANGULAR_Z.value,
                                                      JointType.REVOLUTE,
-                                                     Point(x=0, y=0, z=1))
+                                                     Point(x=0.0, y=0.0, z=1.0))
 
     @property
     def names(self) -> List[str]:
