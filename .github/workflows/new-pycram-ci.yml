@@ -49,6 +49,7 @@ jobs:
       - name: Remake workspace & start roscore
         run: |
           sudo -s
+          sudo apt-get install python3-catkin-tools -y
           source /opt/ros/noetic/setup.bash
           cd /opt/ros/overlay_ws
           catkin build
