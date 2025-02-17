@@ -1,6 +1,6 @@
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState
+from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState, StaticJointState
 from ..ros import get_ros_package_path
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "Armar6" + '.urdf'
@@ -12,7 +12,7 @@ armar_description = RobotDescription("Armar6", "world", "torso", "torso_joint",
 left_arm = KinematicChainDescription("left", "world", "arm_t8_r0",
                                      armar_description.urdf_object, arm_type=Arms.LEFT)
 
-left_arm.add_static_joint_states("park", {"torso_joint": -0.15,
+left_arm.add_static_joint_states(StaticJointState.Park, {"torso_joint": -0.15,
                                           "arm_t12_joint_r0": 0,
                                           "arm_t23_joint_r0": 0,
                                           "arm_t34_joint_r0": 1.5,
@@ -64,7 +64,7 @@ left_arm.end_effector = left_gripper
 right_arm = KinematicChainDescription("right", "world", "arm_t8_r1",
                                       armar_description.urdf_object, arm_type=Arms.RIGHT)
 
-right_arm.add_static_joint_states("park", {"torso_joint": -0.15,
+right_arm.add_static_joint_states(StaticJointState.Park, {"torso_joint": -0.15,
                                            "arm_t12_joint_r1": 0,
                                            "arm_t23_joint_r1": 0,
                                            "arm_t34_joint_r1": 1.5,

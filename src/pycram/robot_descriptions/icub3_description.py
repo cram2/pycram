@@ -1,6 +1,6 @@
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState
+from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState, StaticJointState
 from ..ros import get_ros_package_path
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "iCub3" + '.urdf'
@@ -12,7 +12,7 @@ icub_description = RobotDescription("iCub3", "base_footprint", "torso_1", "torso
 left_arm = KinematicChainDescription("left", "root_link", "l_hand",
                                      icub_description.urdf_object, arm_type=Arms.LEFT)
 
-left_arm.add_static_joint_states("park", {"torso_roll": 0,
+left_arm.add_static_joint_states(StaticJointState.Park, {"torso_roll": 0,
                                           "torso_pitch": 0,
                                           "torso_yaw": 0,
                                           "l_shoulder_pitch": 0,
@@ -77,7 +77,7 @@ left_arm.end_effector = left_gripper
 right_arm = KinematicChainDescription("right", "root_link", "r_hand",
                                       icub_description.urdf_object, arm_type=Arms.RIGHT)
 
-right_arm.add_static_joint_states("park", {"torso_roll": 0,
+right_arm.add_static_joint_states(StaticJointState.Park, {"torso_roll": 0,
                                            "torso_pitch": 0,
                                            "torso_yaw": 0,
                                            "r_shoulder_pitch": 0,

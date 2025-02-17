@@ -1,14 +1,20 @@
 from typing import Optional, Tuple
 
-from typing_extensions import List, Any, Union, Dict, Self
-
 from geometry_msgs.msg import Point
+from trimesh import Trimesh
+from typing_extensions import List, Any, Union, Dict, Self, TYPE_CHECKING
 
-from ..datastructures.dataclasses import VisualShape, BoxVisualShape, Color
+from .urdf import ObjectDescription as UrdfObjectDescription
+from ..config.world_conf import WorldConfig
+from ..datastructures.dataclasses import VisualShape, BoxVisualShape, Color, AxisAlignedBoundingBox, RotatedBoundingBox, \
+    BoundingBox
 from ..datastructures.enums import JointType
 from ..datastructures.pose import Pose
 from ..description import JointDescription as AbstractJointDescription, LinkDescription as AbstractLinkDescription, \
     ObjectDescription as AbstractObjectDescription, ObjectDescription
+
+if TYPE_CHECKING:
+    pass
 
 
 class NamedBoxVisualShape(BoxVisualShape):
@@ -118,7 +124,69 @@ class ObjectDescription(AbstractObjectDescription):
                           child_pose_wrt_parent: Optional[Pose] = None,
                           in_place: bool = False,
                           new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
-        raise NotImplementedError
+        return self.merge_using_bounding_boxes(other, child_pose_wrt_parent, new_description_file)
+
+    def merge_using_bounding_boxes(self, other: ObjectDescription, child_pose_wrt_parent: Optional[Pose] = None,
+                                   new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
+        """
+        Merge the current object description with another object description by merging their bounding boxes and
+        creating a URDF description with the new merged bounding box/ mesh.
+
+        :param other: The other object description to merge with.
+        :param child_pose_wrt_parent: The pose of the child object wrt the parent object.
+        :param new_description_file: The path to save the new description file.
+        :return: The new object description.
+        """
+        my_bounding_box: AxisAlignedBoundingBox = self._links[0].geometry.get_axis_aligned_bounding_box()
+        other_bounding_box: AxisAlignedBoundingBox = other._links[0].geometry.get_axis_aligned_bounding_box()
+        transform = child_pose_wrt_parent.to_transform(self.name)
+        other_bounding_box: RotatedBoundingBox = other_bounding_box.get_rotated_box(transform)
+        new_mesh = BoundingBox.merge_multiple_bounding_boxes_into_mesh([my_bounding_box, other_bounding_box],
+                                                                       use_random_events=False)
+        return self.create_urdf_from_mesh(new_mesh, path=new_description_file)
+
+    def merge_using_urdf(self, other: ObjectDescription, child_pose_wrt_parent: Optional[Pose] = None,
+                         new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
+        """
+        Merge the current object description with another object description by creating a URDF description for both
+        objects and merging them.
+
+        :param other: The other object description to merge with.
+        :param child_pose_wrt_parent: The pose of the child object wrt the parent object.
+        :param new_description_file: The path to save the new description file.
+        :return: The new object description.
+        """
+        my_urdf_description = self.create_urdf_from_mesh()
+        other_urdf_description = other.create_urdf_from_mesh()
+        return my_urdf_description.merge_description(other_urdf_description,
+                                                     child_pose_wrt_parent=child_pose_wrt_parent,
+                                                     new_description_file=new_description_file)
+
+    def create_urdf_from_mesh(self, mesh: Optional[Trimesh] = None,
+                              mesh_file_path: Optional[str] = None,
+                              path: Optional[str] = None) -> UrdfObjectDescription:
+        """
+        Create a URDF description from the mesh and the current object description.
+
+        :param mesh: The mesh to create the URDF description from.
+        :param mesh_file_path: The path to the mesh file.
+        :param path: The path to save the URDF description.
+        :return: The URDF object description.
+        """
+        mesh = mesh if mesh else self.get_mesh()
+        mesh_file_path = mesh_file_path if mesh_file_path else f"{WorldConfig.cache_dir}/{self.name}.obj"
+        mesh.export(mesh_file_path)
+        path = f"{WorldConfig.cache_dir}/{self.name}.urdf" if not path else path
+        new_description = UrdfObjectDescription()
+        new_description.generate_from_mesh_file(mesh_file_path, self.name, path)
+        new_description.update_description_from_file(path)
+        return new_description
+
+    def get_mesh(self) -> Trimesh:
+        """
+        Get the mesh of the object.
+        """
+        return self._links[0].geometry.get_axis_aligned_bounding_box().as_mesh
 
     def load_description(self, path: str) -> Any:
         ...

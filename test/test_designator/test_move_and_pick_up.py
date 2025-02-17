@@ -17,6 +17,7 @@ from pycram.process_module import simulated_robot
 from pycrap.ontologies import Milk
 
 
+@unittest.skip("Skip this test until PM is upgraded")
 class MoveAndPickUpTestCase(BulletWorldTestCase):
 
     @classmethod

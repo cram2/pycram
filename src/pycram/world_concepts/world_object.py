@@ -467,19 +467,8 @@ class Object(PhysicalBody):
         for joint_name, joint_id in self.joint_name_to_id.items():
             parsed_joint_description = self.description.get_joint_by_name(joint_name)
             is_virtual = self.is_joint_virtual(joint_name)
-            self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
-            if not self.world.is_prospection_world:
-                individual = self.ontology_concept(joint_name, namespace=self.world.ontology.ontology)
-                self.world.ontology.python_objects[individual] = parsed_joint_description
-                individual.is_a = [self.ontology_concept, has_child_link.some(
-                    self.get_joint_child_link(joint_name).ontology_individual),
-                                   has_parent_link.some(
-                                       self.get_joint_child_link(joint_name).ontology_individual)]
-                link_individual = self.get_joint_child_link(joint_name).ontology_individual
-
-                if self.get_joint_parent_link(joint_name).ontology_individual:
-                    link_individual.is_part_of = [
-                        self.get_joint_parent_link(joint_name).ontology_individual]
+            self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self,
+                                                             is_virtual=is_virtual)
 
     def is_joint_virtual(self, name: str):
         """
@@ -730,10 +719,9 @@ class Object(PhysicalBody):
         description = self.description.merge_description(other.description, child_pose_wrt_parent=child_pose,
                                                          new_description_file=new_description_file)
         name = self.name if name is None else name
-        path = self.path if new_description_file is None else description.xml_path
         other.remove()
         self.remove()
-        return Object(name, self.obj_type, path, description=description, pose=pose, world=self.world)
+        return Object(name, self.obj_type, description.xml_path, description=description, pose=pose, world=self.world)
 
     def attach(self,
                child_object: Object,
@@ -1039,6 +1027,8 @@ class Object(PhysicalBody):
                 joint.current_state = joint_states[joint.id]
 
     def robot_virtual_move_base_joints_names(self):
+        if self.robot_description.virtual_mobile_base_joints is None:
+            return []
         return self.robot_description.virtual_mobile_base_joints.names
 
     def remove_saved_states(self) -> None:
@@ -1108,13 +1098,13 @@ class Object(PhysicalBody):
             pose.frame = position.frame
         elif isinstance(position, Point):
             target_position = position
-        elif isinstance(position, List):
+        elif isinstance(position, (List, np.ndarray, tuple)):
             if len(position) == 3:
                 target_position = Point(**dict(zip(["x", "y", "z"], position)))
             else:
-                raise ValueError("The given position has to be a list of 3 values.")
+                raise ValueError("The given position has to be a sequence of 3 values.")
         else:
-            raise TypeError("The given position has to be a Pose, Point or an iterable of xyz values.")
+            raise TypeError("The given position has to be a Pose, Point or a sequence of xyz values.")
 
         pose.position = target_position
         pose.orientation = self.get_orientation()

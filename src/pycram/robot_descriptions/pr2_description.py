@@ -1,15 +1,15 @@
 from ..datastructures.dataclasses import VirtualMobileBaseJoints
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState
+from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState, StaticJointState
 from ..ros import  get_ros_package_path
 from ..units import meter
 
-from ..helper import get_robot_mjcf_path
+from ..helper import get_robot_description_path
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
 
-mjcf_filename = get_robot_mjcf_path("", "pr2")
+mjcf_filename = get_robot_description_path("", "pr2")
 
 pr2_description = RobotDescription("pr2", "base_link", "torso_lift_link",
                                    "torso_lift_joint", filename,
@@ -23,7 +23,7 @@ pr2_description = RobotDescription("pr2", "base_link", "torso_lift_link",
 ################################## Left Arm ##################################
 left_arm = KinematicChainDescription("left", "torso_lift_link", "l_wrist_roll_link",
                                      pr2_description.urdf_object, arm_type=Arms.LEFT)
-left_arm.add_static_joint_states("park", {'l_shoulder_pan_joint': 1.712,
+left_arm.add_static_joint_states(StaticJointState.Park, {'l_shoulder_pan_joint': 1.712,
                                           'l_shoulder_lift_joint': -0.264,
                                           'l_upper_arm_roll_joint': 1.38,
                                           'l_elbow_flex_joint': -2.12,
@@ -46,7 +46,7 @@ left_arm.end_effector = left_gripper
 ################################## Right Arm ##################################
 right_arm = KinematicChainDescription("right", "torso_lift_link", "r_wrist_roll_link",
                                       pr2_description.urdf_object, arm_type=Arms.RIGHT)
-right_arm.add_static_joint_states("park", {'r_shoulder_pan_joint': -1.712,
+right_arm.add_static_joint_states(StaticJointState.Park, {'r_shoulder_pan_joint': -1.712,
                                            'r_shoulder_lift_joint': -0.256,
                                            'r_upper_arm_roll_joint': -1.463,
                                            'r_elbow_flex_joint': -2.12,

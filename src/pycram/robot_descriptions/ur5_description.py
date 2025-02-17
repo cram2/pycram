@@ -1,7 +1,7 @@
 from ..ros import  get_ros_package_path
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager
-from ..datastructures.enums import Arms, Grasp, GripperState, GripperType
+from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, StaticJointState
 from ..units import meter
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "ur5_robotiq" + '.urdf'
@@ -12,7 +12,7 @@ ur5_description = RobotDescription("ur5_robotiq", "world", "base_link", "ee_link
 ################################## Arm ##################################
 arm = KinematicChainDescription("manipulator", "base_link", "wrist_3_link", ur5_description.urdf_object, arm_type=Arms.RIGHT)
 
-arm.add_static_joint_states("home", {'shoulder_pan_joint': 0.0,
+arm.add_static_joint_states(StaticJointState.Park, {'shoulder_pan_joint': 0.0,
                                      'shoulder_lift_joint': 0.0,
                                      'elbow_joint': 0.0,
                                      'wrist_1_joint': 0.0,

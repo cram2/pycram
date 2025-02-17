@@ -5,12 +5,13 @@ from enum import Enum
 
 from typing_extensions import List, Dict, Union, Optional
 
-from .datastructures.dataclasses import VirtualMobileBaseJoints
-from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType
+from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData
+from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState
+from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
+    get_robot_description_path
 from .object_descriptors.urdf import ObjectDescription as URDFObject
 from .ros import  logerr
 from .utils import suppress_stdout_stderr
-from .helper import parse_mjcf_actuators
 
 
 class RobotDescriptionManager:
@@ -159,6 +160,31 @@ class RobotDescription:
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
         self.virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = virtual_mobile_base_joints
         self.gripper_name = gripper_name
+
+    def add_arm(self, end_link: str,
+                arm_type: Arms = Arms.RIGHT,
+                arm_name: str = "manipulator",
+                arm_home_values: Optional[Dict[str, float]] = None,
+                arm_start: Optional[str] = None) -> KinematicChainDescription:
+        """
+        Creates and adds an arm to the RobotDescription.
+
+        :param end_link: Last link of the arm
+        :param arm_type: Type of the arm
+        :param arm_name: Name of the arm
+        :param arm_home_values: Dictionary of joint names and their home values (default configuration) (e.g. park arms)
+        :param arm_start: Start link of the arm
+        """
+        if arm_start is None:
+            arm_start = self.base_link if self.torso_link == '' else self.torso_link
+        arm = KinematicChainDescription(arm_name, arm_start, end_link,
+                                        self.urdf_object, arm_type=arm_type)
+
+        if arm_home_values is not None:
+            arm.add_static_joint_states(StaticJointState.Park, arm_home_values)
+
+        self.add_kinematic_chain_description(arm)
+        return arm
 
     @property
     def has_actuators(self):
@@ -482,6 +508,48 @@ class KinematicChainDescription:
         self.joint_names = list(filter(lambda j: self.urdf_object.joint_map[j].type != JointType.FIXED
                                                  or self.include_fixed_joints, joints))
 
+    def create_end_effector(self,
+                            name: str,
+                            tool_frame,
+                            opened_joint_values: Dict[str, float],
+                            closed_joint_values: Dict[str, float],
+                            relative_dir: Optional[str] = None,
+                            resources_dir: Optional[str] = None,
+                            description_name: str = "gripper",
+                            opening_distance: Optional[float] = None) -> EndEffectorDescription:
+        """
+        Create a gripper end effector description.
+
+        :param name: The name of the gripper.
+        :param tool_frame: The name of the tool frame.
+        :param opened_joint_values: The joint values when the gripper is open.
+        :param closed_joint_values: The joint values when the gripper is closed.
+        :param relative_dir: The relative directory of the gripper in the Multiverse resources/robots directory.
+        :param resources_dir: The path to the resources directory.
+        :param description_name: The name of the gripper description.
+        :param opening_distance: The openning distance of the gripper.
+        :return: The gripper end effector description.
+        """
+        if resources_dir is None:
+            resources_dir = find_multiverse_resources_path()
+        if relative_dir is not None:
+            gripper_filename = get_robot_description_path(relative_dir, name,
+                                                          description_type=DescriptionType.URDF,
+                                                          resources_dir=resources_dir)
+            gripper_urdf_obj = URDFObject(gripper_filename)
+            gripper_object_name = name
+        else:
+            gripper_urdf_obj = self.urdf_object
+            gripper_object_name = None
+        gripper = EndEffectorDescription(description_name, name, tool_frame,
+                                         gripper_urdf_obj, gripper_object_name=gripper_object_name,
+                                         opening_distance=opening_distance)
+
+        gripper.add_static_joint_states(GripperState.OPEN, opened_joint_values)
+        gripper.add_static_joint_states(GripperState.CLOSE, closed_joint_values)
+        self.end_effector = gripper
+        return gripper
+
     def get_joints(self) -> List[str]:
         """
         Get a list of all joints of the chain.
@@ -666,7 +734,7 @@ class EndEffectorDescription:
     """
 
     def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject,
-                 gripper_object_name: Optional[str] = None):
+                 gripper_object_name: Optional[str] = None, opening_distance: Optional[float] = None):
         """
         Initialize the EndEffectorDescription object.
 
@@ -685,7 +753,7 @@ class EndEffectorDescription:
         self.static_joint_states: Dict[GripperState, Dict[str, float]] = {}
         self._init_links_joints()
         self.gripper_object_name = gripper_object_name
-
+        self.opening_distance: Optional[float] = opening_distance
 
     def _init_links_joints(self):
         """
@@ -734,3 +802,29 @@ class EndEffectorDescription:
         :return: List of joint names
         """
         return self.joint_names
+
+
+def create_manipulator_description(data: ManipulatorData,
+                                   urdf_filename: str,
+                                   mjcf_filename: Optional[str] = None) -> RobotDescription:
+    """
+    Create a robot description from a ManipulatorData object.
+
+    :param data: ManipulatorData object containing all necessary information about the manipulator.
+    :param urdf_filename: Path to the URDF file of the robot.
+    :param mjcf_filename: Path to the MJCF file of the robot.
+    :return: A RobotDescription object
+    """
+    gripper_object_name = None if data.gripper_relative_dir is None else data.gripper_name
+    robot_description = RobotDescription(data.name, data.base_link, "", "",
+                                         urdf_filename, mjcf_path=mjcf_filename, gripper_name=gripper_object_name)
+
+    arm = robot_description.add_arm(data.arm_end_link,
+                                    arm_home_values=dict(zip(data.joint_names, data.home_joint_values)))
+
+    arm.create_end_effector(data.gripper_name, data.gripper_tool_frame,
+                            dict(zip(data.gripper_joint_names, data.open_joint_values)),
+                            dict(zip(data.gripper_joint_names, data.closed_joint_values)),
+                            relative_dir=data.gripper_relative_dir, opening_distance=data.opening_distance)
+
+    return robot_description

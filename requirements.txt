@@ -21,7 +21,7 @@ dm_control
 trimesh
 deprecated
 probabilistic_model>=6.0.2
-random_events>=3.1.2, <4.0.0
+random_events>=4.1.0
 sympy
 pint>=0.21.1
 Pygments>=2.15.0
@@ -29,4 +29,5 @@ typeguard~=4.3.0
 gymnasium
 pin==2.7.0
 inflection>=0.5.1
+manifold3d>=3.0.1
 transforms3d

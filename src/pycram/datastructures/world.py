@@ -12,7 +12,7 @@ from geometry_msgs.msg import Point
 from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
-
+import pycrap
 from pycrap.ontologies import PhysicalObject
 from pycrap.ontology_wrapper import OntologyWrapper
 
@@ -27,7 +27,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
 from ..datastructures.enums import JointType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity, PhysicalBody, WorldEntity
-from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
+from ..failures import ProspectionObjectNotFound, ObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
 from ..ros import  Time
@@ -93,9 +93,10 @@ class World(WorldEntity, ABC):
         :param clear_cache: Whether to clear the cache directory.
         :param id_: The unique id of the world.
         """
-
-        WorldEntity.__init__(self, id_, self)
         self.ontology = OntologyWrapper()
+        self.is_prospection_world: bool = is_prospection
+        WorldEntity.__init__(self, id_, self, concept=pycrap.ontologies.World)
+
         self.latest_state_id: Optional[int] = None
 
         if clear_cache or (self.conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
@@ -113,7 +114,6 @@ class World(WorldEntity, ABC):
         self.objects: List[Object] = []
         # List of all Objects in the World
 
-        self.is_prospection_world: bool = is_prospection
         self._init_and_sync_prospection_world()
 
         self.local_transformer = LocalTransformer()
@@ -433,8 +433,10 @@ class World(WorldEntity, ABC):
             self.objects.remove(obj)
             self.remove_object_from_original_state(obj)
 
-        if World.robot == obj and not self.is_prospection_world:
-            World.robot = None
+            if World.robot == obj and not self.is_prospection_world:
+                World.robot = None
+        else:
+            logwarn(f"Object {obj.name} could not be removed from the simulator, but all attachments were removed")
 
         self.object_lock.release()
 
@@ -1800,7 +1802,7 @@ class WorldSync(threading.Thread):
         except KeyError:
             if prospection_object in self.world.objects:
                 return prospection_object
-            raise WorldObjectNotFound(prospection_object)
+            raise ObjectNotFound(prospection_object)
 
     def get_prospection_object(self, obj: Object) -> Object:
         """
