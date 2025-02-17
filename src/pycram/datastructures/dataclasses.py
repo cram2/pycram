@@ -17,6 +17,7 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
 
 from .enums import JointType, Shape, VirtualMobileBaseJointName
 from .pose import Pose, Point, Transform
+from ..ros.logging import logwarn
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
 if TYPE_CHECKING:
@@ -345,25 +346,50 @@ class BoundingBox:
             mesh.export(save_mesh_to)
         return mesh
 
+    @property
+    def transform_as_array(self) -> np.ndarray:
+        """
+        :return: The transformation of the bounding box as a numpy array.
+        """
+        return self.transform.get_homogeneous_matrix()
+
+    @property
+    @abstractmethod
+    def transform(self) -> Transform:
+        """
+        Get the transformation of the bounding box.
+        """
+        pass
+
+    def extents(self) -> np.ndarray:
+        """
+        :return: The size of the bounding box in each dimension.
+        """
+        return np.array([self.width, self.depth, self.height])
+
     @staticmethod
-    def get_mesh_from_boxes(boxes: List[BoundingBox]) -> trimesh.parent.Geometry3D:
+    def get_mesh_from_boxes(boxes: List[BoundingBox]) -> trimesh.Trimesh:
         """
         Get the mesh from the boxes
 
         :param boxes: The list of boxes
         :return: The mesh.
         """
-        # for every atomic interval
-        all_vertices = []
-        all_faces = []
-        for i, box in enumerate(boxes):
-            # Create a 3D mesh trace for the rectangle
-            all_vertices.extend(box.get_points_list())
-            all_faces.extend((np.array(BoundingBox.get_box_faces()) + i * 8).tolist())
-        return trimesh.Trimesh(np.array(all_vertices), np.array(all_faces))
+        first_box_mesh = boxes[0].as_mesh
+        if len(boxes) == 1:
+            return first_box_mesh
+        else:
+            return first_box_mesh.union([box.as_mesh for box in boxes[1:]]).convex_hull
+
+    @property
+    def as_mesh(self) -> trimesh.Trimesh:
+        """
+        :return: The mesh of the bounding box.
+        """
+        return trimesh.primitives.Box(self.extents(), self.transform_as_array)
 
     @staticmethod
-    def get_mesh_from_event(event: Event) -> trimesh.parent.Geometry3D:
+    def get_mesh_from_event(event: Event) -> trimesh.Trimesh:
         """
         Get the mesh from the event.
 
@@ -477,7 +503,7 @@ class BoundingBox:
         """
         return [self.max_x, self.max_y, self.max_z]
 
-    def enlarge(self, min_x: float = 0., min_y:float = 0, min_z: float = 0,
+    def enlarge(self, min_x: float = 0., min_y: float = 0, min_z: float = 0,
                 max_x: float = 0., max_y: float = 0., max_z: float = 0.):
         """
         Enlarge the axis-aligned bounding box by a given amount in-place.
@@ -534,8 +560,13 @@ class BoundingBox:
 
         plt.show()
 
+
 @dataclass
 class AxisAlignedBoundingBox(BoundingBox):
+
+    @property
+    def transform(self) -> Transform:
+        return Transform(self.origin)
 
     def get_rotated_box(self, transform: Transform) -> RotatedBoundingBox:
         """
@@ -596,9 +627,13 @@ class RotatedBoundingBox(BoundingBox):
         :param transform: The transformation
         :param points: The points of the rotated bounding box.
         """
-        self.transform: Optional[Transform] = transform
+        self._transform: Optional[Transform] = transform
         super().__init__(min_x, min_y, min_z, max_x, max_y, max_z)
         self._points: Optional[List[Point]] = points
+
+    @property
+    def transform(self) -> Transform:
+        return self._transform
 
     @classmethod
     def from_min_max(cls, min_point: Sequence[float], max_point: Sequence[float],
@@ -1342,8 +1377,8 @@ class RayResult:
         return: Whether the ray intersects with a body.
         """
         if not self.obj_id:
-            raise ValueError("obj_id should be available to check if the ray intersects with a body,"
-                             "It appears that the ray result is not valid.")
+            logwarn("obj_id should be available to check if the ray intersects with a body,"
+                    "It appears that the ray result is not valid.")
         return self.obj_id != -1
 
     @property
