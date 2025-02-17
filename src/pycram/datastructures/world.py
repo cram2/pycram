@@ -131,6 +131,20 @@ class World(WorldEntity, ABC):
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
 
+    @staticmethod
+    def update_containment_for(bodies: List[PhysicalBody]) -> List[PhysicalBody]:
+        """
+        Update the containment for the given bodies.
+
+        :param bodies: The bodies to update the containment for.
+        :return: The updated bodies.
+        """
+        checked_bodies: List[PhysicalObject] = []
+        for body in bodies:
+            body.update_containment(excluded_objects=checked_bodies)
+            checked_bodies.append(body)
+        return checked_bodies
+
     @property
     def parent_entity(self) -> Optional[WorldEntity]:
         """

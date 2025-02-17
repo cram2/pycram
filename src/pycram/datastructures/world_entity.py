@@ -4,6 +4,7 @@ import os
 import pickle
 from abc import ABC, abstractmethod
 from copy import copy
+from threading import RLock
 
 from trimesh.parent import Geometry3D
 from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union, Type
@@ -170,6 +171,7 @@ class PhysicalBody(WorldEntity, ABC):
         self._is_translating: Optional[bool] = None
         self._is_rotating: Optional[bool] = None
         self._velocity: Optional[List[float]] = None
+        self.ontology_lock: RLock = RLock()
 
     def contains_body(self, body: PhysicalBody) -> bool:
         """
@@ -178,16 +180,18 @@ class PhysicalBody(WorldEntity, ABC):
         :param body: The physical body to check if it is contained by this body.
         :return: True if the body contains the other body, otherwise False.
         """
-        contained_bodies = self.contained_bodies
-        return body in contained_bodies or (body.parent_entity and body.parent_entity in contained_bodies)
+        with self.ontology_lock:
+            contained_bodies = self.contained_bodies
+            return body in contained_bodies or (body.parent_entity and body.parent_entity in contained_bodies)
 
     @property
     def contained_bodies(self) -> List[PhysicalBody]:
         """
         :return: True if the object contains the other object, otherwise False.
         """
-        self.world.ontology.reason()
-        return [self.world.ontology.python_objects[phys_obj] for phys_obj in self.ontology_individual.contains_object]
+        with self.ontology_lock:
+            self.world.ontology.reason()
+            return [self.world.ontology.python_objects[phys_obj] for phys_obj in self.ontology_individual.contains_object]
 
     @contained_bodies.setter
     def contained_bodies(self, bodies: List[PhysicalBody]) -> None:
@@ -196,7 +200,8 @@ class PhysicalBody(WorldEntity, ABC):
 
         :param bodies: The bodies that are contained in this body.
         """
-        self.ontology_individual.contains_object = [body.ontology_individual for body in bodies]
+        with self.ontology_lock:
+            self.ontology_individual.contains_object = [body.ontology_individual for body in bodies]
 
     @abstractmethod
     def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:

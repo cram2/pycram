@@ -309,6 +309,16 @@ class BoundingBox:
         """
         return self.simple_event.contains((x, y, z))
 
+    def contains_box(self, other: BoundingBox):
+        """
+        Check if the bounding box contains another bounding box.
+
+        :param other: The other bounding box.
+        :return: True if the bounding box contains the other bounding box, False otherwise.
+        """
+        return self.min_x <= other.min_x and self.min_y <= other.min_y and self.min_z <= other.min_z and \
+            self.max_x >= other.max_x and self.max_y >= other.max_y and self.max_z >= other.max_z
+
     @classmethod
     def merge_multiple_bounding_boxes_into_mesh(cls, bounding_boxes: List[BoundingBox],
                                                 save_mesh_to: Optional[str] = None,
@@ -1123,7 +1133,7 @@ class ContactPointsList(list):
 
         :return: A list of bodies that are in contact.
         """
-        return [point.body_b for point in self]
+        return set([point.body_b for point in self])
 
     def check_if_two_objects_are_in_contact(self, obj_a: Object, obj_b: Object) -> bool:
         """
