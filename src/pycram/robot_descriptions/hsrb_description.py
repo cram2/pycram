@@ -2,7 +2,7 @@ from ..ros.ros_tools import get_ros_package_path
 
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import GripperState, Grasp, Arms, TorsoState, GripperType
+from ..datastructures.enums import GripperState, Grasp, Arms, TorsoState, GripperType, StaticJointState
 from ..units import meter
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "hsrb" + '.urdf'
@@ -14,7 +14,7 @@ hsrb_description = RobotDescription("hsrb", "base_link", "arm_lift_link", "arm_l
 left_arm = KinematicChainDescription("left_arm", "arm_lift_link", "hand_palm_link",
                                      hsrb_description.urdf_object, arm_type=Arms.LEFT)
 
-left_arm.add_static_joint_states("park", {'arm_flex_joint': 0.0,
+left_arm.add_static_joint_states(StaticJointState.Park, {'arm_flex_joint': 0.0,
                                           'arm_roll_joint': 1.5,
                                           'wrist_flex_joint': -1.85,
                                           'wrist_roll_joint': 0.0})

@@ -167,8 +167,6 @@ class CostmapLocation(LocationDesignatorDescription):
 
            :yield: An instance of CostmapLocation.Location with a valid position that satisfies the given constraints
            """
-        min_height = RobotDescription.current_robot_description.get_default_camera().minimal_height
-        max_height = RobotDescription.current_robot_description.get_default_camera().maximal_height
         # This ensures that the costmaps always get a position as their origin.
         if isinstance(self.target, ObjectDesignatorDescription.Object):
             target_pose = self.target.world_object.get_pose()
@@ -193,6 +191,8 @@ class CostmapLocation(LocationDesignatorDescription):
             gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
             final_map += gaussian
         if self.visible_for:
+            min_height = RobotDescription.current_robot_description.get_default_camera().minimal_height
+            max_height = RobotDescription.current_robot_description.get_default_camera().maximal_height
             visible = VisibilityCostmap(min_height, max_height, 200, 0.02,
                                         Pose(target_pose.position_as_list()), target_object=target_object,
                                         robot=test_robot)
