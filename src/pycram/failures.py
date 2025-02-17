@@ -736,68 +736,208 @@ They are usually related to a bug in the code or a misuse of the framework (e.g.
 """
 
 
-class FailedAPIResponse(Exception):
+class MultiverseFailedAPIResponse(Exception):
+    """
+    Exception raised when a Multiverse API call fails.
+    """
+    api_response: List[str]
+    """
+    The response of the API call that failed.
+    """
+    api_name: MultiverseAPIName
+    """
+    The name of the API that failed.
+    """
     def __init__(self, api_response: List[str], api_name: MultiverseAPIName, *args, **kwargs):
+        self.api_response = api_response
+        self.api_name = api_name
         super().__init__(f"{api_name} api request with arguments {args} and keyword arguments {kwargs}"
                          f" failed with response {api_response}")
 
 
 class ProspectionObjectNotFound(KeyError):
-    def __init__(self, obj: 'Object'):
+    """
+    Exception raised when an object was not found in the prospection world.
+    """
+    obj: Object
+    """
+    The object that was not found in the prospection world.
+    """
+    def __init__(self, obj: Object):
+        self.obj = obj
         super().__init__(f"The given object {obj.name} is not in the prospection world.")
 
 
 class ObjectAlreadyExists(Exception):
-    def __init__(self, obj: 'Object'):
+    """
+    Exception raised when an object with the same name already exists in the world.
+    """
+    obj: Object
+    """
+    The object that already exists in the world.
+    """
+    def __init__(self, obj: Object):
+        self.obj = obj
         super().__init__(f"An object with the name {obj.name} already exists in the world.")
 
 
 class ObjectDescriptionNotFound(KeyError):
+    """
+    Exception raised when the description of an object was not found.
+    """
+    object_name: str
+    """
+    The name of the object whose description was not found.
+    """
+    path: str
+    """
+    The path of the object whose description was not found.
+    """
+    extension: str
+    """
+    The description extension of the object whose description was not found.
+    """
     def __init__(self, object_name: str, path: str, extension: str):
+        self.object_name = object_name
+        self.path = path
+        self.extension = extension
         super().__init__(f"{object_name} with path {path} and extension {extension} is not in supported extensions, and"
                          f" the description data was not found on the ROS parameter server")
 
 
-class WorldMismatchErrorBetweenObjects(Exception):
+class WorldMismatchErrorBetweenAttachedObjects(Exception):
+    """
+    Exception raised when two objects that are attached to each other have a mismatch in the world they belong to.
+    """
+    obj_1: Object
+    """
+    The first object that has a mismatch in the world.
+    """
+    obj_2: Object
+    """
+    The second object that has a mismatch in the world.
+    """
     def __init__(self, obj_1: 'Object', obj_2: 'Object'):
+        self.obj_1 = obj_1
+        self.obj_2 = obj_2
         super().__init__(f"World mismatch between the attached objects {obj_1.name} and {obj_2.name},"
                          f"obj_1.world: {obj_1.world}, obj_2.world: {obj_2.world}")
 
 
 class ObjectFrameNotFoundError(KeyError):
+    """
+    Exception raised when a tf frame of an object is not found.
+    """
+    frame_name: str
+    """
+    The name of the frame that was not found.
+    """
     def __init__(self, frame_name: str):
+        self.frame_name = frame_name
         super().__init__(f"Frame {frame_name} does not belong to any of the objects in the world.")
 
 
 class MultiplePossibleTipLinks(Exception):
+    """
+    Exception raised when multiple tip links are found for an object.
+    """
+    object_name: str
+    """
+    The name of the object that has multiple tip links.
+    """
+    start_link: str
+    """
+    The start link of the object that has multiple tip links.
+    """
+    tip_links: List[str]
+    """
+    The list of tip links that are found for the object.
+    """
     def __init__(self, object_name: str, start_link: str, tip_links: List[str]):
+        self.object_name = object_name
+        self.start_link = start_link
+        self.tip_links = tip_links
         super().__init__(f"Multiple possible tip links found for object {object_name} with start link {start_link}:"
                          f" {tip_links}")
 
 
 class UnsupportedFileExtension(Exception):
+    """
+    Exception raised when an object mesh/description has an unsupported file extension.
+    """
+    object_name: str
+    """
+    The name of the object that has an unsupported file extension.
+    """
+    path: str
+    """
+    The path of the object description/mesh that has an unsupported file extension.
+    """
+    extension: str
+    """
+    The unsupported file extension of the object description/mesh.
+    """
     def __init__(self, object_name: str, path: str):
-        extension = Path(path).suffix
+        self.object_name = object_name
+        self.path = path
+        self.extension = Path(path).suffix
         super().__init__(f"Unsupported file extension for object {object_name} with path {path}"
-                         f"and extension {extension}")
+                         f"and extension {self.extension}")
 
 
 class ObjectDescriptionUndefined(Exception):
+    """
+    Exception raised when the given object description type is not defined or couldn't be resolved to a known type.
+    """
+    object_name: str
+    """
+    The name of the object that has an undefined description.
+    """
     def __init__(self, object_name: str):
-        super().__init__(f"Object description for object {object_name} is not defined, eith a path or a description"
+        self.object_name = object_name
+        super().__init__(f"Object description for object {object_name} is not defined, either a path or a description"
                          f"object should be provided.")
 
 
 class UnsupportedJointType(Exception):
-    def __init__(self, joint_type: 'JointType'):
+    """
+    Exception raised when an unsupported joint type is used.
+    """
+    joint_type: JointType
+    """
+    The unsupported joint type that was used.
+    """
+    def __init__(self, joint_type: JointType):
+        self.joint_type = joint_type
         super().__init__(f"Unsupported joint type: {joint_type}")
 
 
 class LinkHasNoGeometry(Exception):
+    """
+    Exception raised when a link has no geometry (i.e. no visual or collision elements).
+    """
+    link_name: str
+    """
+    The name of the link that has no geometry.
+    """
     def __init__(self, link_name: str):
+        self.link_name = link_name
         super().__init__(f"Link {link_name} has no geometry.")
 
 
 class LinkGeometryHasNoMesh(Exception):
+    """
+    Exception raised when a link geometry has no mesh or is not of type mesh.
+    """
+    link_name: str
+    """
+    The name of the link that has no mesh.
+    """
+    geometry_type: str
+    """
+    The type of the link geometry.
+    """
     def __init__(self, link_name: str, geometry_type: str):
+        self.link_name = link_name
+        self.geometry_type = geometry_type
         super().__init__(f"Link {link_name} geometry with type {geometry_type} has no mesh.")
