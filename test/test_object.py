@@ -1,6 +1,6 @@
 import numpy as np
 import trimesh.parent
-from tf.transformations import quaternion_from_euler
+from pycram.tf_transformations import quaternion_from_euler
 
 from pycram.testing import BulletWorldTestCase
 
@@ -32,12 +32,12 @@ class TestObject(BulletWorldTestCase):
             Object("milk2", Milk, malformed_file)
 
     def test_move_base_to_origin_pose(self):
-        self.milk.set_position(Point(1, 2, 3), base=False)
+        self.milk.set_position(Point(x=1, y=2, z=3), base=False)
         self.milk.move_base_to_origin_pose()
         self.assertEqual(self.milk.get_base_position_as_list(), [1, 2, 3])
 
     def test_set_position_as_point(self):
-        self.milk.set_position(Point(1, 2, 3))
+        self.milk.set_position(Point(x=1, y=2, z=3))
         self.assertEqual(self.milk.get_position_as_list(), [1, 2, 3])
 
     def test_uni_direction_attachment(self):
@@ -78,7 +78,7 @@ class TestObject(BulletWorldTestCase):
         self.assertEqual(self.milk.get_orientation_as_list(), [1, 0, 0, 0])
 
     def test_set_orientation_as_quaternion(self):
-        self.milk.set_orientation(Quaternion(*[1, 0, 0, 0]))
+        self.milk.set_orientation(Quaternion(**dict(zip(["x", "y", "z", "w"], [1, 0, 0, 0]))))
         self.assertEqual(self.milk.get_orientation_as_list(), [1, 0, 0, 0])
 
     def test_set_orientation_as_ndarray(self):
@@ -98,7 +98,7 @@ class TestObject(BulletWorldTestCase):
         self.assertEqual(self.milk.get_position_as_list(), [1, 2, 3])
 
     def test_get_joint_axis(self):
-        self.assertEqual(self.robot.get_joint_axis("head_pan_joint"), Point(0.0, 0.0, 1.0))
+        self.assertEqual(self.robot.get_joint_axis("head_pan_joint"), Point(x=0.0, y=0.0, z=1.0))
 
     def test_get_joint_type(self):
         self.assertEqual(self.robot.get_joint_type("head_pan_joint"), JointType.REVOLUTE)
@@ -179,7 +179,7 @@ class TestObject(BulletWorldTestCase):
     def test_merge_bounding_box(self):
         cereal_2 = Object("cereal2", Food, "breakfast_cereal.stl",
                           pose=self.cereal.pose)
-        cereal_2.set_orientation(quaternion_from_euler(0, 0, np.pi / 2).tolist())
+        cereal_2.set_orientation(quaternion_from_euler(0, 0, np.pi / 2))
         cereal_bbox = self.cereal.get_axis_aligned_bounding_box(False)
         cereal_2_bbox = cereal_2.get_axis_aligned_bounding_box(False)
         plot = False

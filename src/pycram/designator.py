@@ -10,7 +10,7 @@ from typing_extensions import get_type_hints
 from pycrap.ontologies import PhysicalObject, Agent
 from .datastructures.property import Property, EmptyProperty
 from .failures import PlanFailure
-from .ros.logging import logwarn, loginfo
+from .ros import logwarn, loginfo
 from sqlalchemy.orm.session import Session
 
 from .datastructures.world import World

@@ -7,7 +7,7 @@ from ..datastructures.world import World
 from ..designators.motion_designator import MoveGripperMotion
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions.ur5e_controlled_description import data as ur5e_data
-from ..ros.publisher import create_publisher
+from ..ros import create_publisher
 
 
 class RobotiqMoveGripperReal(ProcessModule):

@@ -4,7 +4,7 @@ from .base import Base
 from ..designators.object_designator import *
 import json
 
-from ..ros.logging import loginfo, logwarn
+from ..ros import  loginfo, logwarn
 
 
 

@@ -1,8 +1,8 @@
 import numpy as np
-import tf
+from ..tf_transformations import quaternion_from_euler
 
 from ..pose_generator_and_validator import PoseGenerator
-from ..ros.ros_tools import get_ros_package_path
+from ..ros import  get_ros_package_path
 
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     CameraDescription, RobotDescriptionManager
@@ -77,7 +77,7 @@ stretch_description.add_grasp_orientations({Grasp.FRONT: [0, 0, 0, 1],
 ################################### Custom Orientation Generator ##############
 def stretch_orientation_generator(position, origin):
     angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi + np.pi / 16
-    quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle + np.pi / 2, axes="sxyz"))
+    quaternion = list(quaternion_from_euler(0, 0, angle + np.pi / 2, axes="sxyz"))
     return quaternion
 
 ################################ Load Function #################################

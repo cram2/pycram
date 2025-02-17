@@ -52,7 +52,7 @@ class BashLexerExtended(RegexLexer):
              r'shopt|source|suspend|test|time|times|trap|true|type|typeset|'
              r'ulimit|umask|unalias|unset|wait|'
              # Custom added keywords
-             r'sudo|apt|apt-get|apt-cache|mkdir|rosdep|git|roslaunch|pip|vcs|catkin_make|'
+             r'sudo|apt|apt-get|apt-cache|mkdir|rosdep|git|roslaunch|pip|vcs|catkin_make|catkin|'
              r'python|make'
              # End of custom added keywords
              r')(?=[\s)`])',

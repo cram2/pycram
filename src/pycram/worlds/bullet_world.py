@@ -20,7 +20,7 @@ from ..datastructures.world import World
 from ..datastructures.world_entity import PhysicalBody
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription
-from ..ros.logging import logwarn, loginfo
+from ..ros import  logwarn, loginfo
 from ..validation.goal_validator import (validate_multiple_joint_positions, validate_joint_position,
                                          validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
@@ -376,7 +376,7 @@ class BulletWorld(World):
                               link_poses=[Pose(), Pose(), Pose()], link_masses=[1.0, 1.0, 1.0],
                               link_inertial_frame_poses=[Pose(), Pose(), Pose()], link_parent_indices=[0, 0, 0],
                               link_joint_types=[JointType.FIXED.value, JointType.FIXED.value, JointType.FIXED.value],
-                              link_joint_axis=[Point(1, 0, 0), Point(0, 1, 0), Point(0, 0, 1)],
+                              link_joint_axis=[Point(x=1, y=0, z=0), Point(x=0, y=1, z=0), Point(x=0, y=0, z=1)],
                               link_collision_shape_indices=[-1, -1, -1])
 
         body_id = self._create_multi_body(multibody)

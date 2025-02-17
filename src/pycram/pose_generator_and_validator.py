@@ -1,8 +1,8 @@
 import numpy as np
-import tf
+from .tf_transformations import quaternion_from_euler
 from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional
 
-from .datastructures.enums import Arms, Grasp
+from .datastructures.enums import Arms
 from .costmaps import Costmap
 from .datastructures.pose import Pose, Transform
 from .datastructures.world import World
@@ -10,7 +10,7 @@ from .external_interfaces.ik import request_ik
 from .failures import IKError
 from .local_transformer import LocalTransformer
 from .robot_description import RobotDescription
-from .ros.logging import logdebug
+from .ros import  logdebug
 from .world_concepts.world_object import Object
 from .world_reasoning import contact
 
@@ -98,7 +98,7 @@ class PoseGenerator:
         :return: A quaternion of the calculated orientation
         """
         angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi
-        quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
+        quaternion = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
         return quaternion
 
 

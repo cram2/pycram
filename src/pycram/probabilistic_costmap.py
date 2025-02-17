@@ -2,11 +2,9 @@ from enum import Enum, auto
 from functools import cached_property
 
 import numpy as np
-import tf
-from geometry_msgs.msg import Point
 from std_msgs.msg import ColorRGBA
-from tf.transformations import quaternion_from_matrix
-from random_events.interval import closed, closed_open
+from .tf_transformations import quaternion_from_euler
+from random_events.interval import closed_open
 from typing_extensions import Optional, Type
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -14,13 +12,11 @@ from .datastructures.world import World
 from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
 import matplotlib.colorbar
 from .datastructures.pose import Pose
-from .ros.data_types import Duration
-from .ros.publisher import create_publisher
-from .units import meter, centimeter
-from .robot_description import RobotDescription
+from .ros import  create_publisher
+from .units import meter
 
-from pint import Unit, Quantity
-from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event, fully_factorized
+from pint import Quantity
+from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event
 from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
@@ -135,7 +131,7 @@ class ProbabilisticCostmap:
         y = sample[1]
         position = [x, y, self.origin.position.z]
         angle = np.arctan2(position[1] - self.origin.position.y, position[0] - self.origin.position.x) + np.pi
-        orientation = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
+        orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
         return Pose(position, orientation, self.origin.frame)
 
     def visualize(self):
@@ -152,8 +148,8 @@ class ProbabilisticCostmap:
         marker.id = 0
         marker.action = Marker.ADD
         marker.header.frame_id = self.origin.frame
-        marker.pose = Pose()
-        marker.lifetime = Duration(60)
+        marker.pose = Pose().pose
+        # marker.lifetime = Duration(60)
         marker.scale.x = 0.05
         marker.scale.y = 0.05
 
@@ -162,7 +158,7 @@ class ProbabilisticCostmap:
             position = self.sample_to_pose(sample).pose.position
             position.z = 0.1
             marker.points.append(position)
-            marker.colors.append(ColorRGBA(*colorscale(likelihood)[:3], 1))
+            marker.colors.append(ColorRGBA(**dict(zip(["r", "g", "b","a"], [*colorscale(likelihood)[:3], 1.0]))))
 
         marker_array = MarkerArray()
         marker_array.markers.append(marker)

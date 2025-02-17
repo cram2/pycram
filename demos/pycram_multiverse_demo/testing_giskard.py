@@ -32,8 +32,8 @@ def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> WorldResult:
 def get_pose_stamped(position, orientation):
     pose_stamped = PoseStamped()
     pose_stamped.header.frame_id = 'map'
-    pose_stamped.pose.position = Point(*position)
-    pose_stamped.pose.orientation = Quaternion(*orientation)
+    pose_stamped.pose.position = Point(**dict(zip(["x", "y", "z"], position)))
+    pose_stamped.pose.orientation = Quaternion(**dict(zip(["x", "y", "z", "w"],orientation)))
     return pose_stamped
 
 

@@ -1,4 +1,4 @@
-import tf
+from ..tf_transformations import quaternion_from_euler
 
 from ....datastructures.enums import StaticJointState
 from ....datastructures.pose import Pose
@@ -43,7 +43,7 @@ class GiskardLocation(CostmapLocation):
                 last_point_names = trajectory.trajectory.joint_names
                 last_joint_states = dict(zip(last_point_names, last_point_positions))
                 orientation = list(
-                    tf.transformations.quaternion_from_euler(0, 0, last_joint_states["brumbrum_yaw"], axes="sxyz"))
+                    quaternion_from_euler(0, 0, last_joint_states["brumbrum_yaw"], axes="sxyz"))
                 pose = Pose([last_joint_states["brumbrum_x"], last_joint_states["brumbrum_y"], 0], orientation)
 
                 robot_joint_states = {}

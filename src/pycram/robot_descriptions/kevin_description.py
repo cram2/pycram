@@ -1,6 +1,6 @@
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, CameraDescription, \
     RobotDescriptionManager
-from ..ros.ros_tools import get_ros_package_path
+from ..ros import  get_ros_package_path
 from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState
 from ..datastructures.dataclasses import VirtualMobileBaseJoints
 from ..units import meter

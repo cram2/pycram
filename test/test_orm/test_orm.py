@@ -240,6 +240,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         previous_position = object_description.resolve().pose
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
+            ParkArmsActionPerformable(Arms.BOTH).perform()
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             NavigateActionPerformable(Pose([1.3, 1, 0.9], [0, 0, 0, 1]), True).perform()
             PlaceActionPerformable(object_description.resolve(), Arms.LEFT, Pose([2.0, 1.6, 1.8], [0, 0, 0, 1])).perform()

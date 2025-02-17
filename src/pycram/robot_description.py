@@ -10,7 +10,7 @@ from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointT
 from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
     get_robot_description_path
 from .object_descriptors.urdf import ObjectDescription as URDFObject
-from .ros.logging import logerr
+from .ros import  logerr
 from .utils import suppress_stdout_stderr
 
 

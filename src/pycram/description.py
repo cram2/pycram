@@ -20,7 +20,7 @@ from .datastructures.pose import Pose, Transform
 from .datastructures.world_entity import WorldEntity, PhysicalBody
 from .failures import ObjectDescriptionNotFound, LinkHasNoGeometry, LinkGeometryHasNoMesh
 from .local_transformer import LocalTransformer
-from .ros.logging import logwarn_once
+from .ros import  logwarn_once
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
