@@ -12,7 +12,7 @@ from ....datastructures.pose import Pose, Transform
 from ....datastructures.enums import Arms, Grasp
 from ....robot_description import RobotDescription, KinematicChainDescription
 from ....designator import ObjectDesignatorDescription
-from ....ros.logging import loginfo
+from ....ros import loginfo
 
 
 class DualArmPickupAction(PickUpAction):

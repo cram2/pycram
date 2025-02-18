@@ -78,3 +78,5 @@ class MultiverseConfig(WorldConfig):
     use_multiverse_process_modules = True
 
     depth_images_are_in_meter = True
+
+    max_batch_size_for_rays = None

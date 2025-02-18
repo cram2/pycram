@@ -19,14 +19,15 @@ from typing_extensions import Tuple, List, Optional, Iterator
 
 from .datastructures.dataclasses import BoxVisualShape, Color
 from .datastructures.pose import Transform
-from .ros import  logwarn
+from .ros import logwarn
 from .datastructures.dataclasses import AxisAlignedBoundingBox
 from .datastructures.pose import Pose
 from .datastructures.world import UseProspectionWorld
 from .datastructures.world import World
 from .description import Link
 from .local_transformer import LocalTransformer
-from .ros import  wait_for_message
+from .ros import wait_for_message
+from .utils import chunks
 from .world_concepts.world_object import Object
 
 
@@ -454,7 +455,7 @@ class OccupancyCostmap(Costmap):
         i = 0
         j = 0
         floor_id = self.world.get_object_by_name("floor").id
-        for n in self._chunks(np.array(rays), 16380):
+        for n in chunks(np.array(rays), World.current_world.conf.max_batch_size_for_rays):
             r_t = World.current_world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
             while r_t is None:
                 r_t = World.current_world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
@@ -488,17 +489,6 @@ class OccupancyCostmap(Costmap):
         map = np.pad(map, (offset // 2, offset // 2 + odd))
 
         return np.flip(map)
-
-    def _chunks(self, lst: List, n: int) -> List:
-        """
-        Yield successive n-sized chunks from lst.
-
-        :param lst: The list from which chunks should be yielded
-        :param n: Size of the chunks
-        :return: A list of size n from lst
-        """
-        for i in range(0, len(lst), n):
-            yield lst[i:i + n]
 
 
 class VisibilityCostmap(Costmap):

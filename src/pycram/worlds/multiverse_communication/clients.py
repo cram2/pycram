@@ -16,7 +16,7 @@ from ...datastructures.dataclasses import MultiverseRayResult, MultiverseContact
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
 from ...datastructures.pose import Pose
-from ...failures import FailedAPIResponse
+from ...failures import MultiverseFailedAPIResponse
 from ...utils import wxyz_to_xyzw
 from ...world_concepts.constraints import Constraint
 from ...world_concepts.world_object import Object, Link
@@ -874,7 +874,7 @@ class MultiverseAPI(MultiverseClient):
         for api_name, response in responses.items():
             for val in response:
                 if 'failed' in val:
-                    raise FailedAPIResponse(response, api_name, api_data[api_name])
+                    raise MultiverseFailedAPIResponse(response, api_name, api_data[api_name])
 
     def _get_all_apis_responses(self) -> Dict[API, List[str]]:
         """

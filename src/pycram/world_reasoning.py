@@ -1,15 +1,19 @@
 import numpy as np
+from trimesh import Trimesh
 from typing_extensions import List, Tuple, Optional, Union, Dict
 
-from .datastructures.dataclasses import ContactPointsList
+from pycrap.ontologies import PhysicalObject
+from .datastructures.dataclasses import ContactPointsList, RayResult
+from .datastructures.enums import Frame, Arms, FindBodyInRegionMethod
 from .datastructures.pose import Pose, Transform
 from .datastructures.world import World, UseProspectionWorld
+from .datastructures.world_entity import PhysicalBody
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
+from .object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from .robot_description import RobotDescription
-from .ros import  logdebug
-from .utils import RayTestUtils
+from .ros import logdebug, logwarn
+from .utils import RayTestUtils, chunks, get_rays_from_min_max
 from .world_concepts.world_object import Object, Link
-from .config import world_conf as conf
 
 
 def stable(obj: Object) -> bool:
@@ -329,3 +333,176 @@ def link_pose_for_joint_config(
         for joint, pose in joint_config.items():
             prospection_object.set_joint_position(joint, pose)
         return prospection_object.get_link_pose(link_name)
+
+
+def move_away_all_objects_to_create_empty_space(exclude_objects: List[str] = None):
+    """
+    Move all objects away from the robot to create an empty space for the robot to look at the target location.
+
+    :param exclude_objects: The objects that should not be moved away.
+    """
+    exclude_objects = exclude_objects or []
+    step = 10
+    for i, obj in enumerate(World.current_world.objects):
+        if obj.name not in exclude_objects:
+            obj.set_position([100 + step * i, 100 + step * i, 0])
+
+
+def generate_object_at_target(target_location: List[float], size: Tuple[float] = (0.2, 0.2, 0.2),
+                              name: str = "target") -> Object:
+    """
+    Generate a virtual object at the target location.
+
+    :param target_location: The target location at which the object should be generated.
+    :param size: The size of the object.
+    :param name: The name of the object.
+    """
+    gen_obj_desc = GenericObjectDescription(name, [0, 0, 0], [s / 2 for s in size])
+    gen_obj = Object(name, PhysicalObject, None, gen_obj_desc)
+    gen_obj.set_pose(Pose(target_location))
+    return gen_obj
+
+
+def cast_a_ray_from_camera(max_distance: float = 10):
+    """
+    Cast a ray from the camera to the target position.
+
+    :param max_distance: The maximum distance the ray should be cast if no object is found.
+    """
+    camera_link_name = RobotDescription.current_robot_description.get_camera_link()
+    camera_link = World.robot.get_link(camera_link_name)
+    camera_pose = camera_link.pose
+    camera_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
+    target = np.array(camera_axis) * max_distance
+    target_pose = Pose(target, frame=camera_link.tf_frame)
+    target_pose = World.robot.local_transformer.transform_pose(target_pose, Frame.Map.value)
+    ray_result: RayResult = World.current_world.ray_test(camera_pose.position_as_list(),
+                                                         target_pose.position_as_list())
+    return ray_result
+
+
+def has_gripper_grasped_body(arm: Arms, body: PhysicalBody) -> bool:
+    """
+    Check if the gripper has grasped the body by checking if the gripper fingers are in contact with the body.
+    else it will check if the gripper links are in contact with the body.
+    Note: This is different from :meth:`pycram.world_reasoning.is_held_object` as it only checks if the gripper is in
+     contact with the body, not if it is attached to the gripper.
+
+    :param arm: The arm for which the grasping should be checked.
+    :param body: The body for which the grasping should be checked.
+    :return: True if the gripper has grasped the body, False otherwise.
+    """
+    contact_links = body.get_contact_points_with_body(World.robot).get_bodies_in_contact()
+    arm_chain = RobotDescription.current_robot_description.get_arm_chain(arm)
+    fingers_link_names = arm_chain.end_effector.fingers_link_names
+    if fingers_link_names:
+        fingers_in_contact = [link.name in fingers_link_names for link in contact_links]
+        if len(fingers_in_contact) >= 2:
+            return True
+    else:
+        logwarn(f"It is not possible to be certain of grasping if gripper fingers are not defined.")
+        gripper_link_names = arm_chain.end_effector.links
+        if any([link.name in gripper_link_names for link in contact_links]):
+            return True
+    return False
+
+
+def is_body_between_fingers(body: PhysicalBody, fingers_link_names: List[str],
+                            method: FindBodyInRegionMethod = FindBodyInRegionMethod.FingerToCentroid) -> bool:
+    """
+    Check if the body is between the fingers of the gripper.
+
+    :param body: The body for which the check should be done.
+    :param fingers_link_names: The names of the links that represent the fingers of the gripper.
+    :param method: The method to use to find the body in the region.
+    """
+    empty_space = get_empty_space_between_fingers(fingers_link_names)
+    if empty_space is None:
+        return False
+    intersection = get_intersection_between_body_bounding_box_and_empty_space(body, empty_space)
+    if intersection is None:
+        return False
+    if method == FindBodyInRegionMethod.FingerToCentroid:
+        # cast a ray from each finger to the centroid and check if it intersects with the object
+        # this is necessary as the bounding box is usually different from the exact shape of the object
+        # (e.g. concave objects)
+        centroid = intersection.centroid
+        for finger_name in fingers_link_names:
+            finger = World.robot.links[finger_name]
+            result = World.current_world.ray_test(finger.position_as_list, centroid)
+            if not (result.intersected and result.obj_id == body.id):
+                return False
+        return True
+    else:
+        return is_body_in_region(body, intersection, method=method)
+
+
+def get_empty_space_between_fingers(fingers_link_names: List[str]) -> Optional[Trimesh]:
+    """
+    Check if there is empty space between the fingers of the gripper.
+
+    :param fingers_link_names: The names of the links that represent the fingers of the gripper.
+    :return: The empty space between the fingers.
+    """
+    fingers_links = [World.robot.links[link_name] for link_name in fingers_link_names]
+    fingers_chs: List[Trimesh] = [link.get_convex_hull() for link in fingers_links]
+    fingers_only_ch = fingers_chs[0].union(fingers_chs[1:])
+    fingers_plus_empty_space = fingers_only_ch.convex_hull
+    empty_space_between_fingers = fingers_plus_empty_space.difference(fingers_only_ch)
+    # 10 cm^3 (if we assume a finger area of at least 2 cm^2, this means we allow at least 5 cm distance between
+    # fingers).
+    if empty_space_between_fingers.volume * 10 ** 6 < 10:
+        return None
+    return empty_space_between_fingers
+
+
+def get_intersection_between_body_bounding_box_and_empty_space(body: PhysicalBody, empty_space: Trimesh) \
+        -> Optional[Trimesh]:
+    """
+    Get the intersection between the body and the empty space between the fingers.
+
+    :param body: The body for which the intersection should be calculated.
+    :param empty_space: The empty space between the fingers.
+    :return: The intersection between the body and the empty space between the fingers.
+    """
+    body_bb = body.get_axis_aligned_bounding_box()
+    try:
+        intersection = empty_space.intersection(body_bb.as_mesh)
+    except ValueError:
+        # This will be raised when the empty_space has no volume.
+        return None
+    if intersection.volume * 10 ** 6 < 10:
+        return None
+    return intersection
+
+
+def is_body_in_region(body: PhysicalBody, region: Trimesh, step_size_in_meters: float = 0.01,
+                      method: FindBodyInRegionMethod = FindBodyInRegionMethod.Centroid) -> bool:
+    """
+    Check if the body is in the given region.
+
+    :param body: The body for which the check should be done.
+    :param region: The region to check if the body is in.
+    :param step_size_in_meters: The step size in meters between the rays.
+    :param method: The method to use to find the body in the region.
+    """
+    min_bound, max_bound = region.bounds
+    reduction = 0.002
+    min_bound = min_bound + np.array([reduction]*3)
+    max_bound = max_bound - np.array([reduction]*3)
+    if method == FindBodyInRegionMethod.Centroid:
+        centroid = region.centroid
+        ray1 = World.current_world.ray_test(min_bound, centroid)
+        ray2 = World.current_world.ray_test(max_bound, centroid)
+        return any([ray.intersected and ray.obj_id == body.id for ray in [ray1, ray2]])
+    elif method == FindBodyInRegionMethod.MultiRay:
+        # cast multiple rays with small steps starting from min_bound to max_bound
+        rays = get_rays_from_min_max(min_bound, max_bound, step_size_in_meters)
+        max_batch_size = World.current_world.conf.max_batch_size_for_rays
+        max_batch_size = max_batch_size if max_batch_size is not None else rays.shape[0]
+        for n in chunks(rays, max_batch_size):
+            ray_results = World.current_world.ray_test_batch(n[:, :, 0].reshape((-1, 3)), n[:, :, 1].reshape((-1, 3)))
+            obj_ids = [result.obj_id for result in ray_results if result.intersected]
+            if body.id in obj_ids:
+                return True
+        return False

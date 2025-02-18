@@ -103,8 +103,8 @@ edges_cm = scm.get_edges_map(0.06, horizontal_only=True)
 poses_list = list(PoseGenerator(edges_cm, number_of_samples=-1))
 poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x.position_as_list()))
 object_poses = get_n_random_positions(poses_list)
-object_names = ["bowl", "breakfast_cereal", "spoon"]
-object_types = [Bowl, Cereal, Spoon]
+object_names = ["breakfast_cereal", "milk"]
+object_types = [Cereal, Milk]
 objects = {}
 object_desig = {}
 for obj_name, obj_type, obj_pose in zip(object_names, object_types, object_poses):
@@ -153,14 +153,14 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
         if torso is None:
             torso={"torso_lift_joint": 0.2}
         MoveTorsoActionPerformable(torso).perform()
-        location = CostmapLocation(target=obj_desig, reachable_for=robot_desig)
+        grasp = Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else Grasp.FRONT
+        location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, grasps = [grasp])
         pose = location.resolve()
         print()
         NavigateActionPerformable(pose.pose, True).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         good_torsos.append(torso)
         picked_up_arm = pose.reachable_arms[0]
-        grasp = Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else Grasp.FRONT
         PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp=grasp,
                                 prepose_distance=0.03).perform()
 

@@ -1,10 +1,15 @@
 import time
 import unittest
+from datetime import timedelta
 
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, FaceAtPerformable, MoveTorsoAction
+from pycram.designators.motion_designator import MoveGripperMotion
+from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError, \
+    ObjectNotInGraspingArea, ObjectStillInContact, GripperIsNotOpen, NavigationGoalNotReachedError, \
+    LookAtGoalNotReached, PerceptionObjectNotFound, ContainerManipulationError
 from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
@@ -23,6 +28,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         description = action_designator.MoveTorsoAction([TorsoState.HIGH])
         torso_joint = RobotDescription.current_robot_description.torso_joint
         self.assertEqual(description.ground().joint_positions[torso_joint], 0.3)
+        self._test_validate_action_pre_perform(description, TorsoGoalNotReached)
         with simulated_robot:
             description.resolve().perform()
         self.assertEqual(self.world.robot.get_joint_position(torso_joint),
@@ -53,6 +59,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_park_arms(self):
         description = action_designator.ParkArmsAction([Arms.BOTH])
         self.assertEqual(description.ground().arm, Arms.BOTH)
+        self._test_validate_action_pre_perform(description, ConfigurationNotReached)
         with simulated_robot:
             description.resolve().perform()
         for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right",
@@ -66,9 +73,23 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_navigate(self):
         description = action_designator.NavigateAction([Pose([0.3, 0, 0], [0, 0, 0, 1])])
         with simulated_robot:
+            self._test_validate_action_pre_perform(description, NavigationGoalNotReachedError)
             description.resolve().perform()
         self.assertEqual(description.ground().target_location, Pose([0.3, 0, 0], [0, 0, 0, 1]))
         self.assertEqual(self.robot.get_pose(), Pose([0.3, 0, 0]))
+
+    def test_reach_to_pick_up(self):
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        performable = action_designator.ReachToPickUpActionPerformable(object_description.resolve(),
+                                                                       Arms.LEFT, Grasp.FRONT, 0.03)
+        self.assertEqual(performable.object_designator.name, "milk")
+        with simulated_robot:
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
+            MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
+            self._test_validate_action_pre_perform(performable, ObjectNotInGraspingArea)
+            MoveGripperMotion(GripperState.OPEN, Arms.LEFT).perform()
+            self._test_validate_action_pre_perform(performable, ObjectNotInGraspingArea)
+            performable.perform()
 
     def test_pick_up(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -77,17 +98,21 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
+            self._test_validate_action_pre_perform(description, ObjectNotGraspedError)
             description.resolve().perform()
         self.assertTrue(object_description.resolve().world_object in self.robot.attachments.keys())
 
     def test_place(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
+        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9],
+                                                                              [0, 0, 0, 1])],
+                                                    [Arms.LEFT])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
+            self._test_validate_action_pre_perform(description, ObjectStillInContact)
             description.resolve().perform()
         self.assertFalse(object_description.resolve().world_object in self.robot.attachments.keys())
 
@@ -95,8 +120,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         description = action_designator.LookAtAction([Pose([1, 0, 1])])
         self.assertEqual(description.ground().target, Pose([1, 0, 1]))
         with simulated_robot:
+            self._test_validate_action_pre_perform(description, LookAtGoalNotReached)
             description.resolve().perform()
-        # TODO: Needs a way to test the approximate looking direction of the robot
 
     def test_detect(self):
         self.kitchen.set_pose(Pose([10, 10, 0]))
@@ -104,6 +129,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         object_description = ObjectDesignatorDescription(types=[Milk])
         description = action_designator.DetectAction(technique=DetectionTechnique.TYPES, object_designator_description=object_description)
         with simulated_robot:
+            self._test_validate_action_pre_perform(description, PerceptionObjectNotFound)
             detected_object = description.resolve().perform()
 
         self.assertEqual(detected_object[0].name, "milk")
@@ -111,17 +137,36 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(detected_object[0].world_object.world, self.milk.world)
 
     # Skipped since open and close work only in the apartment at the moment
-    @unittest.skip
     def test_open(self):
-        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        kitchen_designator = object_designator.ObjectDesignatorDescription(names=["kitchen"]).resolve()
+        object_description = object_designator.ObjectPart(names=["kitchen_island_left_upper_drawer_main"],
+                                                          part_of=kitchen_designator)
         description = action_designator.OpenAction(object_description, [Arms.LEFT])
-        self.assertEqual(description.ground().object_designator.name, "milk")
+        self.assertEqual(description.ground().object_designator.name, "kitchen_island_left_upper_drawer_main")
+        self._test_validate_action_pre_perform(description, ContainerManipulationError)
 
-    @unittest.skip
+        # TODO: This is a simulated effect of the action, not the action itself.
+        link = self.kitchen.links["kitchen_island_left_upper_drawer_main"]
+        joint = self.kitchen.find_joint_above_link(link.name)
+        self.kitchen.joints[joint].position = self.kitchen.joints[joint].upper_limit
+
+        description.ground().validate()
+
     def test_close(self):
-        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        kitchen_designator = object_designator.ObjectDesignatorDescription(names=["kitchen"]).resolve()
+        object_description = object_designator.ObjectPart(names=["kitchen_island_left_upper_drawer_main"],
+                                                          part_of=kitchen_designator)
         description = action_designator.CloseAction(object_description, [Arms.LEFT])
-        self.assertEqual(description.ground().object_designator.name, "milk")
+        self.assertEqual(description.ground().object_designator.name, "kitchen_island_left_upper_drawer_main")
+
+        link = self.kitchen.links["kitchen_island_left_upper_drawer_main"]
+        joint = self.kitchen.find_joint_above_link(link.name)
+        self.kitchen.joints[joint].position = self.kitchen.joints[joint].upper_limit
+        self._test_validate_action_pre_perform(description, ContainerManipulationError)
+
+        # TODO: This is a simulated effect of the action, not the action itself.
+        self.kitchen.joints[joint].position = self.kitchen.joints[joint].lower_limit
+        description.ground().validate()
 
     def test_transport(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -143,6 +188,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         milk_desig = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.GraspingAction([Arms.RIGHT], milk_desig)
         with simulated_robot:
+            self._test_validate_action_pre_perform(description, ObjectNotGraspedError)
             description.resolve().perform()
         dist = np.linalg.norm(
             np.array(self.robot.get_link_position_as_list(RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_tool_frame())) -
@@ -154,3 +200,14 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             FaceAtPerformable(self.milk.pose, True).perform()
             milk_in_robot_frame = LocalTransformer().transform_to_object_frame(self.milk.pose, self.robot)
             self.assertAlmostEqual(milk_in_robot_frame.position.y, 0.)
+
+    def _test_validate_action_pre_perform(self, action_description, failure):
+        try:
+            if hasattr(action_description, "ground"):
+                grounded = action_description.ground()
+            else:
+                grounded = action_description
+            grounded.validate(max_wait_time=timedelta(milliseconds=30))
+            self.fail(f"{failure.__name__} should have been raised.")
+        except failure:
+            pass

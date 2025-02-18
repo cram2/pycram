@@ -1,8 +1,8 @@
 import math
+import os
 
 import yaml
-import os
-from typing_extensions import Tuple, Type, Dict
+from typing_extensions import Tuple, Type, Dict, Optional
 from ..description import ObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
 from ..utils import classproperty
@@ -73,7 +73,7 @@ class WorldConfig:
     position_tolerance: float = 1e-3
     orientation_tolerance: float = 10 * math.pi / 180
     prismatic_joint_position_tolerance: float = 1e-2
-    revolute_joint_position_tolerance: float = 5 * math.pi / 180
+    revolute_joint_position_tolerance: float = 2 * math.pi / 180
     """
     The acceptable error for the position and orientation of an object/link, and the joint positions.
     """
@@ -107,6 +107,11 @@ class WorldConfig:
     depth_images_are_in_meter: bool = False
     """
     Whether the depth images produced by :meth:`datastructures.world.World.get_images_for_target` are in meters.
+    """
+
+    max_batch_size_for_rays: Optional[int] = 16380
+    """
+    The maximum batch size for the rays when using the ray test batch.
     """
 
     @classproperty
