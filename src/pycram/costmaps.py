@@ -969,12 +969,16 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
 
     def generate_map(self) -> None:
         super().generate_map()
-        valid_area = Event()
+        valid_area = None
         for rectangle in self.partitioning_rectangles():
             # rectangle.scale(1/self.resolution, 1/self.resolution)
             rectangle.translate(self.origin.position.x, self.origin.position.y)
-            valid_area.simple_sets.add(SimpleEvent({self.x: closed(rectangle.x_lower, rectangle.x_upper),
-                                                    self.y: closed(rectangle.y_lower, rectangle.y_upper)}))
+            rectangle_event = SimpleEvent({self.x: closed(rectangle.x_lower, rectangle.x_upper),
+                                                    self.y: closed(rectangle.y_lower, rectangle.y_upper)}).as_composite_set()
+            if valid_area is None:
+                valid_area = rectangle_event
+            else:
+                valid_area |= rectangle_event
 
         assert len(valid_area.simple_sets) == 1, ("The map at the basis of a Semantic costmap must be an axis aligned"
                                                   "bounding box")
@@ -988,6 +992,7 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
     def sample_to_pose(self, sample: np.ndarray) -> Pose:
         """
         Convert a sample from the costmap to a pose.
+
         :param sample: The sample to convert
         :return: The pose corresponding to the sample
         """

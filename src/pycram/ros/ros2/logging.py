@@ -20,17 +20,16 @@ def set_logger_level(level: LoggerLevel):
     :param level: The level to set the logger to.
     """
     lev = rclpy.logging.LoggingSeverity.INFO
-    match level:
-        case LoggerLevel.DEBUG:
-            lev = rclpy.logging.LoggingSeverity.DEBUG
-        case LoggerLevel.INFO:
-            lev = rclpy.logging.LoggingSeverity.INFO
-        case LoggerLevel.WARN:
-            lev = rclpy.logging.LoggingSeverity.WARN
-        case LoggerLevel.ERROR:
-            lev = rclpy.logging.LoggingSeverity.ERROR
-        case LoggerLevel.FATAL:
-            lev = rclpy.logging.LoggingSeverity.FATAL
+    if level == LoggerLevel.DEBUG:
+        lev = rclpy.logging.LoggingSeverity.DEBUG
+    elif level == LoggerLevel.INFO:
+        lev = rclpy.logging.LoggingSeverity.INFO
+    elif level == LoggerLevel.WARN:
+        lev = rclpy.logging.LoggingSeverity.WARN
+    elif level == LoggerLevel.ERROR:
+        lev = rclpy.logging.LoggingSeverity.ERROR
+    elif level == LoggerLevel.FATAL:
+        lev = rclpy.logging.LoggingSeverity.FATAL
 
     node.get_logger().set_level(lev)
 

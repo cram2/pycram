@@ -1,9 +1,10 @@
 from __future__ import annotations
 import sys
 import logging
-
-from tf2_geometry_msgs import do_transform_pose
+import numpy as np
 from .ros import Time, Duration, logerr
+from geometry_msgs.msg import TransformStamped, PoseStamped
+from transforms3d.quaternions import quat2mat, mat2quat
 
 if 'world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.world.")
@@ -12,7 +13,7 @@ class TransformerROS:
     pass
 
 from .datastructures.pose import Pose, Transform
-from typing_extensions import List, Optional, Union, Iterable, TYPE_CHECKING
+from typing_extensions import List, Optional, Union, Iterable, TYPE_CHECKING, Tuple
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
@@ -20,6 +21,110 @@ if TYPE_CHECKING:
 
 
 from tf2_ros import Buffer
+
+def _build_affine(
+        rotation: Optional[Iterable] = None,
+        translation: Optional[Iterable] = None) -> np.ndarray:
+    """
+    Build an affine matrix from a quaternion and a translation.
+
+    :param rotation: The quaternion as [w, x, y, z]
+    :param translation: The translation as [x, y, z]
+    :returns: The quaternion and the translation array
+    """
+    affine = np.eye(4)
+    if rotation is not None:
+        affine[:3, :3] = quat2mat(np.asarray(rotation))
+    if translation is not None:
+        affine[:3, 3] = np.asarray(translation)
+    return affine
+
+def _transform_to_affine(transform: TransformStamped) -> np.ndarray:
+    """
+    Convert a `TransformStamped` to a affine matrix.
+
+    :param transform: The transform that should be converted
+    :returns: The affine transform
+    """
+    transform = transform.transform
+    transform_rotation_matrix = [
+        transform.rotation.w,
+        transform.rotation.x,
+        transform.rotation.y,
+        transform.rotation.z
+    ]
+    transform_translation = [
+        transform.translation.x,
+        transform.translation.y,
+        transform.translation.z
+    ]
+    return _build_affine(transform_rotation_matrix, transform_translation)
+
+
+def _decompose_affine(affine: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Decompose an affine transformation into a quaternion and the translation.
+
+    :param affine: The affine transformation matrix
+    :returns: The quaternion and the translation array
+    """
+    return mat2quat(affine[:3, :3]), affine[:3, 3]
+
+# Pose
+def do_transform_pose(
+        pose: Pose,
+        transform: TransformStamped) -> Pose:
+    """
+    Transform a `Pose` using a given `TransformStamped`.
+
+    This method is used to share the tranformation done in
+    `do_transform_pose_stamped()` and `do_transform_pose_with_covariance_stamped()`
+
+    :param pose: The pose
+    :param transform: The transform
+    :returns: The transformed pose
+    """
+    quaternion, point = _decompose_affine(
+        np.matmul(
+            _transform_to_affine(transform),
+            _build_affine(
+                translation=[
+                    pose.position.x,
+                    pose.position.y,
+                    pose.position.z
+                ],
+                rotation=[
+                    pose.orientation.w,
+                    pose.orientation.x,
+                    pose.orientation.y,
+                    pose.orientation.z])))
+    res = Pose()
+    res.position.x = point[0]
+    res.position.y = point[1]
+    res.position.z = point[2]
+    res.orientation.w = quaternion[0]
+    res.orientation.x = quaternion[1]
+    res.orientation.y = quaternion[2]
+    res.orientation.z = quaternion[3]
+    return res
+
+
+# PoseStamped
+def do_transform_pose_stamped(
+        pose: PoseStamped,
+        transform: TransformStamped) -> PoseStamped:
+    """
+    Transform a `PoseStamped` using a given `TransformStamped`.
+
+    :param pose: The stamped pose
+    :param transform: The transform
+    :returns: The transformed pose stamped
+    """
+    res = PoseStamped()
+    res.pose = do_transform_pose(pose.pose, transform)
+    res.header = transform.header
+    return res
+
 
 
 class LocalTransformer(Buffer):
@@ -57,7 +162,8 @@ class LocalTransformer(Buffer):
 
         # If the singelton was already initialized
         self._initialized = True
-        self.registration.add(Pose, do_transform_pose)
+        self.registration.add(Pose, do_transform_pose_stamped)
+        self.registration.add(PoseStamped, do_transform_pose_stamped)
 
     def transform_to_object_frame(self, pose: Pose,
                                   world_object: Object, link_name: str = None) -> Union[
