@@ -340,7 +340,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         :param movement_type: The type of movement that should be performed.
         :param add_vis_axis: If a visual axis should be added to the world.
         """
-        pose = self.transform_to_map_frame(pose)
+        pose = self.transform_pose(pose, Frame.Map.value)
         if add_vis_axis:
             World.current_world.add_vis_axis(pose)
         MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
@@ -356,11 +356,11 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         # oTm = Object Pose in Frame map
         oTm = self.world_object.get_pose()
         # Transform the object pose to the object frame, basically the origin of the object frame
-        mTo = self.transform_to_object_frame(oTm)
+        mTo = self.local_transformer.transform_to_object_frame(oTm, self.world_object)
         # Adjust the pose according to the special knowledge of the object designator_description
         adjusted_pose = self.object_designator.special_knowledge_adjustment_pose(self.grasp, mTo)
         # Transform the adjusted pose to the map frame
-        adjusted_oTm = self.transform_to_map_frame(adjusted_pose)
+        adjusted_oTm = self.transform_pose(adjusted_pose, Frame.Map.value)
         # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
         adjusted_oTm.multiply_quaternion(grasp)
         return adjusted_oTm
@@ -374,7 +374,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         # pre-pose depending on the gripper.
         oTg = self.transform_to_gripper_frame(obj_pose)
         oTg.pose.position.x -= self.prepose_distance  # in x since this is how the gripper is oriented
-        return self.transform_to_map_frame(oTg)
+        return self.transform_pose(oTg, Frame.Map.value)
 
     def transform_to_gripper_frame(self, pose: Pose) -> Pose:
         """
@@ -385,24 +385,6 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         """
         return self.transform_pose(pose, self.gripper_frame)
 
-    def transform_to_object_frame(self, pose: Pose) -> Pose:
-        """
-        Transform a pose to the object frame.
-
-        :param pose: The pose to transform.
-        :return: The transformed pose.
-        """
-        return self.local_transformer.transform_to_object_frame(pose, self.world_object)
-
-    def transform_to_map_frame(self, pose: Pose) -> Pose:
-        """
-        Transform a pose to the map frame.
-
-        :param pose: The pose to transform.
-        :return: The transformed pose.
-        """
-        return self.transform_pose(pose, Frame.Map.value)
-
     def transform_pose(self, pose: Pose, frame: str) -> Pose:
         """
         Transform a pose to a different frame.
@@ -411,7 +393,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         :param frame: The frame to transform the pose to.
         :return: The transformed pose.
         """
-        return self.world_object.local_transformer.transform_pose(pose, frame)
+        return self.local_transformer.transform_pose(pose, frame)
 
     @cached_property
     def local_transformer(self) -> LocalTransformer:
@@ -579,11 +561,16 @@ class PlaceActionPerformable(ActionAbstract):
         MoveTCPMotion(retract_pose, self.arm).perform()
 
     def calculate_target_pose_of_gripper(self):
-        # Transformations such that the target position is the position of the object and not the tcp
-        tcp_to_object = self.local_transformer.transform_pose(self.world_object.pose, self.gripper_tool_frame)
-        target_diff = self.target_location.to_transform("target").inverse_times(
-            tcp_to_object.to_transform("object")).to_pose()
-        return target_diff
+        """
+        Calculate the target pose of the gripper given the target pose of the held object.
+        wTg (world to gripper) = wTo (world to object target) * oTg (object to gripper, this is constant since object
+        is attached to the gripper)
+        """
+        gripper_pose_in_object = self.local_transformer.transform_pose(self.gripper_pose, self.world_object.tf_frame)
+        object_to_gripper = gripper_pose_in_object.to_transform("object")
+        world_to_object_target = self.target_location.to_transform("target")
+        world_to_gripper_target = world_to_object_target * object_to_gripper
+        return world_to_gripper_target.to_pose()
 
     def calculate_retract_pose(self, target_pose: Pose, distance: float) -> Pose:
         """
@@ -599,6 +586,15 @@ class PlaceActionPerformable(ActionAbstract):
     @cached_property
     def world_object(self) -> Object:
         return self.object_designator.world_object
+
+    @property
+    def gripper_pose(self) -> Pose:
+        """
+        Get the pose of the gripper.
+
+        :return: The pose of the gripper.
+        """
+        return self.gripper_link.pose
 
     @cached_property
     def gripper_tool_frame(self) -> str:
