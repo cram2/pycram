@@ -1001,9 +1001,9 @@ class World(WorldEntity, ABC):
 
         :param remove_saved_states: Whether to remove the saved states.
         """
-        self.exit_prospection_world_if_exists()
         self.reset_world(remove_saved_states)
         self.remove_all_objects()
+        self.exit_prospection_world_if_exists()
         self.disconnect_from_physics_server()
         self.reset_robot()
         self.join_threads()
@@ -1702,9 +1702,6 @@ class World(WorldEntity, ABC):
         The saved original state of the world.
         """
         return self.saved_states[self.original_state_id]
-
-    def __del__(self):
-        self.exit()
 
     def __eq__(self, other: World):
         if not isinstance(other, self.__class__):

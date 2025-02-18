@@ -80,5 +80,5 @@ jobs:
       - name: Run tests
         run: |
           source /opt/ros/overlay_ws/devel/setup.bash 
-          roscd pycram/examples
+          roscd pycram/examples/tmp
           treon --thread 1 -v --exclude=migrate_neems.ipynb --exclude=improving_actions.ipynb
