@@ -1,5 +1,4 @@
 import math
-import os
 
 import yaml
 from typing_extensions import Tuple, Type, Dict, Optional
@@ -14,11 +13,7 @@ class WorldConfig:
     A class to store the configuration of the world, this can be inherited to create a new configuration class for a
     specific world (e.g. multiverse has MultiverseConfig which inherits from this class).
     """
-    if os.environ.get("ROS_VERSION") == "2":
-        resources_path = os.path.join(os.path.dirname(__file__), '..', '..', 'resources')
-    else:
-        resources_path = os.path.join(os.path.dirname(__file__), '..', '..', 'resources')
-    resources_path = os.path.abspath(resources_path)
+    resources_path = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'resources'))
     """
     Global reference for the resources path, this is used to search for the description files of the robot and
      the objects.
