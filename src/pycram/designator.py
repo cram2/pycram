@@ -16,17 +16,6 @@ from .datastructures.pose import Pose
 from .datastructures.property import EmptyProperty
 from .datastructures.world import World
 from .failures import PlanFailure
-from .ros import logwarn, loginfo
-from sqlalchemy.orm.session import Session
-
-from .datastructures.world import World
-from .world_concepts.world_object import Object as WorldObject
-from .utils import GeneratorList, bcolors
-from threading import Lock
-from time import time
-from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable, TYPE_CHECKING
-
-from .local_transformer import LocalTransformer
 from .language import Language
 from .local_transformer import LocalTransformer
 from .orm.action_designator import (Action as ORMAction)
@@ -34,7 +23,7 @@ from .orm.base import RobotState, ProcessMetaData
 from .orm.motion_designator import Motion as ORMMotionDesignator
 from .orm.object_designator import (Object as ORMObjectDesignator)
 from .robot_description import RobotDescription
-from .ros.logging import loginfo
+from .ros import loginfo
 from .tasktree import with_tree
 from .utils import bcolors
 from .world_concepts.world_object import Object as WorldObject

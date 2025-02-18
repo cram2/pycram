@@ -60,7 +60,7 @@ from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Naviga
 from ..orm.base import Pose as ORMPose
 from ..orm.object_designator import Object as ORMObject
 from ..robot_description import RobotDescription, KinematicChainDescription
-from ..ros.logging import logwarn
+from ..ros import logwarn
 from ..tasktree import with_tree
 from ..validation.error_checkers import PoseErrorChecker
 from ..validation.goal_validator import create_multiple_joint_goal_validator

@@ -17,7 +17,7 @@ class WorldConfig:
     if os.environ.get("ROS_VERSION") == "2":
         resources_path = os.path.join(os.path.dirname(__file__), '..', '..', 'resources')
     else:
-        resources_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'resources')
+        resources_path = os.path.join(os.path.dirname(__file__), '..', '..', 'resources')
     resources_path = os.path.abspath(resources_path)
     """
     Global reference for the resources path, this is used to search for the description files of the robot and

@@ -82,7 +82,7 @@ from pycram.datastructures.world import World
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.dataclasses import ReasoningResult
 from pycram.costmaps import OccupancyCostmap
-from pycram.ros.logging import loginfo
+from pycram.ros import loginfo
 import numpy as np
 
 class ExampleKnowledge(KnowledgeSource, ReachableProperty, SpaceIsFreeProperty):

@@ -1,5 +1,5 @@
 import os
 if os.environ.get('ROS_VERSION') == '1':
-    from .ros1 import  *
+    from .ros1 import *
 elif os.environ.get('ROS_VERSION') == '2':
-    from .ros2 import  *
+    from .ros2 import *
