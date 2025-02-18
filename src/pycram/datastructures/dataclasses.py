@@ -17,7 +17,7 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
 
 from .enums import JointType, Shape, VirtualMobileBaseJointName
 from .pose import Pose, Point, Transform
-from ..ros.logging import logwarn
+from ..ros import logwarn
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
 if TYPE_CHECKING:
@@ -373,7 +373,7 @@ class BoundingBox:
         """
         :return: The size of the bounding box in each dimension.
         """
-        return np.array([self.width, self.depth, self.depth])
+        return np.array([self.width, self.depth, self.height])
 
     @staticmethod
     def get_mesh_from_boxes(boxes: List[BoundingBox]) -> trimesh.Trimesh:
@@ -383,7 +383,11 @@ class BoundingBox:
         :param boxes: The list of boxes
         :return: The mesh.
         """
-        return trimesh.util.concatenate([box.as_mesh for box in boxes])
+        first_box_mesh = boxes[0].as_mesh
+        if len(boxes) == 1:
+            return first_box_mesh
+        else:
+            return first_box_mesh.union([box.as_mesh for box in boxes[1:]]).convex_hull
 
     @property
     def as_mesh(self) -> trimesh.Trimesh:
@@ -450,7 +454,7 @@ class BoundingBox:
 
     @property
     def origin_point(self) -> Point:
-        return Point(*self.origin)
+        return Point(**dict(zip(["x", "y", "z"], self.origin)))
 
     def get_points_list(self) -> List[List[float]]:
         """
@@ -462,14 +466,14 @@ class BoundingBox:
         """
         :return: The points of the bounding box as a list of Point instances.
         """
-        return [Point(self.min_x, self.min_y, self.min_z),
-                Point(self.min_x, self.min_y, self.max_z),
-                Point(self.min_x, self.max_y, self.min_z),
-                Point(self.min_x, self.max_y, self.max_z),
-                Point(self.max_x, self.min_y, self.min_z),
-                Point(self.max_x, self.min_y, self.max_z),
-                Point(self.max_x, self.max_y, self.min_z),
-                Point(self.max_x, self.max_y, self.max_z)]
+        return [Point(x=self.min_x, y=self.min_y, z=self.min_z),
+                Point(x=self.min_x, y=self.min_y, z=self.max_z),
+                Point(x=self.min_x, y=self.max_y, z=self.min_z),
+                Point(x=self.min_x, y=self.max_y, z=self.max_z),
+                Point(x=self.max_x, y=self.min_y, z=self.min_z),
+                Point(x=self.max_x, y=self.min_y, z=self.max_z),
+                Point(x=self.max_x, y=self.max_y, z=self.min_z),
+                Point(x=self.max_x, y=self.max_y, z=self.max_z)]
 
     def get_min_max_points(self) -> Tuple[Point, Point]:
         """
@@ -481,13 +485,13 @@ class BoundingBox:
         """
         :return: The axis-aligned bounding box as a minimum point
         """
-        return Point(self.min_x, self.min_y, self.min_z)
+        return Point(x=self.min_x, y=self.min_y, z=self.min_z)
 
     def get_max_point(self) -> Point:
         """
         :return: The axis-aligned bounding box as a maximum point
         """
-        return Point(self.max_x, self.max_y, self.max_z)
+        return Point(x=self.max_x, y=self.max_y, z=self.max_z)
 
     def get_min_max(self) -> Tuple[List[float], List[float]]:
         """
@@ -658,7 +662,7 @@ class RotatedBoundingBox(BoundingBox):
         points_array = np.array([[point.x, point.y, point.z] for point in super().get_points()])
         if self._points is None:
             transformed_points = self.transform.apply_transform_to_array_of_points(points_array).tolist()
-            self._points = [Point(*point) for point in transformed_points]
+            self._points = [Point(**dict(zip(["x", "y", "z"], point))) for point in transformed_points]
         return self._points
 
 
@@ -1270,7 +1274,7 @@ class TextAnnotation:
     text: str
     position: List[float]
     id: int
-    color: Color = Color(0, 0, 0, 1)
+    color: Color = field(default_factory=lambda: Color(0, 0, 0, 1))
     size: float = 0.1
 
 
@@ -1303,13 +1307,13 @@ class VirtualMobileBaseJoints:
 
     translation_x: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_X.value,
                                                          JointType.PRISMATIC,
-                                                         Point(1, 0, 0))
+                                                         Point(x=1.0, y=0.0, z=0.0))
     translation_y: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_Y.value,
                                                          JointType.PRISMATIC,
-                                                         Point(0, 1, 0))
+                                                         Point(x=0.0, y=1.0, z=0.0))
     angular_z: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.ANGULAR_Z.value,
                                                      JointType.REVOLUTE,
-                                                     Point(0, 0, 1))
+                                                     Point(x=0.0, y=0.0, z=1.0))
 
     @property
     def names(self) -> List[str]:

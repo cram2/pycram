@@ -1,10 +1,9 @@
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
 from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState, StaticJointState
-import rospkg
+from ..ros import get_ros_package_path
 
-rospack = rospkg.RosPack()
-filename = rospack.get_path('pycram') + '/resources/robots/' + "Armar6" + '.urdf'
+filename = get_ros_package_path('pycram') + '/resources/robots/' + "Armar6" + '.urdf'
 
 armar_description = RobotDescription("Armar6", "world", "torso", "torso_joint",
                                       filename)

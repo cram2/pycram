@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 
 from .datastructures.enums import DescriptionType
 from .object_descriptors.urdf import ObjectDescription as URDFObject
-from .ros.logging import logwarn
+from .ros import  logwarn
 
 
 class Singleton(type):

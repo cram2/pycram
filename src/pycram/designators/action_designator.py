@@ -10,7 +10,7 @@ from functools import cached_property
 
 import numpy as np
 from sqlalchemy.orm import Session
-from tf import transformations
+from ..tf_transformations import quaternion_from_euler
 from typing_extensions import List, Union, Optional, Type, Dict, Any
 
 from pycrap.ontologies import Location
@@ -33,13 +33,29 @@ from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNot
     ContainerManipulationError
 from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
+from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
+    ObjectNotGraspedError
+from ..robot_description import RobotDescription
+from ..ros import  sleep
+from ..tasktree import with_tree
+from ..world_reasoning import contact
+
+from owlready2 import Thing
+
+from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
+    TorsoState, StaticJointState
+
+from ..designator import ActionDesignatorDescription
+from ..datastructures.pose import Pose
+from ..datastructures.world import World
+
 from ..orm.action_designator import Action as ORMAction
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
                                      LookAtAction as ORMLookAtAction, DetectAction as ORMDetectAction,
                                      TransportAction as ORMTransportAction, OpenAction as ORMOpenAction,
-                                     CloseAction as ORMCloseAction, GraspingAction as ORMGraspingAction, Action,
+                                     CloseAction as ORMCloseAction, GraspingAction as ORMGraspingAction,
                                      FaceAtAction as ORMFaceAtAction, ReachToPickUpAction as ORMReachToPickUpAction)
 from ..orm.base import Pose as ORMPose
 from ..orm.object_designator import Object as ORMObject
@@ -975,7 +991,7 @@ class FaceAtPerformable(ActionAbstract):
         # calculate orientation for robot to face the object
         angle = np.arctan2(robot_position.position.y - self.pose.position.y,
                            robot_position.position.x - self.pose.position.x) + np.pi
-        orientation = list(transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
+        orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
 
         # create new robot pose
         new_robot_pose = Pose(robot_position.position_as_list(), orientation)

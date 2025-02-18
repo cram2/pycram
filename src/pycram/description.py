@@ -20,7 +20,7 @@ from .datastructures.pose import Pose, Transform
 from .datastructures.world_entity import WorldEntity, PhysicalBody
 from .failures import ObjectDescriptionNotFound, LinkHasNoGeometry, LinkGeometryHasNoMesh
 from .local_transformer import LocalTransformer
-from .ros.logging import logwarn_once, logwarn
+from .ros import logwarn_once, logwarn
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
@@ -857,7 +857,7 @@ class ObjectDescription(EntityDescription):
                     mesh.apply_transform(transform)
                 path = path.replace(extension, ".obj")
                 mesh.export(path)
-            self.generate_from_mesh_file(path, name, save_path=save_path, color=color, scale=scale_mesh)
+            self.generate_from_mesh_file(path, name, save_path=save_path, color=color)
         elif extension == self.get_file_extension():
             self.generate_from_description_file(path, save_path=save_path)
         else:

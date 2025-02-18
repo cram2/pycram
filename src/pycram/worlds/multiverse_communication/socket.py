@@ -7,7 +7,7 @@ from typing_extensions import Optional, List, Dict, Callable, TypeVar
 
 from ...datastructures.dataclasses import MultiverseMetaData
 from ...config.multiverse_conf import MultiverseConfig as Conf
-from ...ros.logging import loginfo, logwarn
+from ...ros import loginfo, logwarn
 
 T = TypeVar("T")
 

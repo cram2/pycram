@@ -1,5 +1,5 @@
 import numpy as np
-from tf.transformations import quaternion_from_euler
+from pycram.tf_transformations import quaternion_from_euler
 from typing_extensions import List
 
 from pycram.testing import BulletWorldTestCase
@@ -20,7 +20,7 @@ class TestLinks(BulletWorldTestCase):
             BB.plot_3d_points([hull.vertices])
 
     def test_rotated_bounding_box(self):
-        self.milk.set_pose(Pose([1, 1, 1], quaternion_from_euler(np.pi/4, 0, 0).tolist()))
+        self.milk.set_pose(Pose([1, 1, 1], quaternion_from_euler(np.pi/4, 0, 0)))
         aabb = self.milk.get_axis_aligned_bounding_box()
         aabb_points = np.array(aabb.get_points_list())
         rbb = self.milk.get_rotated_bounding_box()

@@ -25,8 +25,8 @@ from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenAttachedObj
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
-from ..ros.data_types import Time
-from ..ros.logging import logwarn, logerr
+from ..ros import  Time
+from ..ros import  logwarn, logerr
 
 try:
     from ..object_descriptors.mjcf import ObjectDescription as MJCF
@@ -719,10 +719,9 @@ class Object(PhysicalBody):
         description = self.description.merge_description(other.description, child_pose_wrt_parent=child_pose,
                                                          new_description_file=new_description_file)
         name = self.name if name is None else name
-        path = self.path if new_description_file is None else description.xml_path
         other.remove()
         self.remove()
-        return Object(name, self.obj_type, path, description=description, pose=pose, world=self.world)
+        return Object(name, self.obj_type, description.xml_path, description=description, pose=pose, world=self.world)
 
     def attach(self,
                child_object: Object,
@@ -1101,7 +1100,7 @@ class Object(PhysicalBody):
             target_position = position
         elif isinstance(position, (List, np.ndarray, tuple)):
             if len(position) == 3:
-                target_position = Point(*position)
+                target_position = Point(**dict(zip(["x", "y", "z"], position)))
             else:
                 raise ValueError("The given position has to be a sequence of 3 values.")
         else:
@@ -1126,7 +1125,7 @@ class Object(PhysicalBody):
             target_orientation = orientation
         elif (isinstance(orientation, list) or isinstance(orientation, np.ndarray) or isinstance(orientation, tuple)) \
                 and len(orientation) == 4:
-            target_orientation = Quaternion(*orientation)
+            target_orientation = Quaternion(**dict(zip(["x", "y", "z", "w"], orientation)))
         else:
             raise TypeError("The given orientation has to be a Pose, Quaternion or one of list/tuple/ndarray of xyzw.")
 

@@ -305,7 +305,7 @@ handle_deisg = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig)
 with simulated_robot:
     MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
     ParkArmsAction([Arms.BOTH]).resolve().perform()
-    NavigateAction([Pose([1.7474915981292725, 2.8073629093170166, 0.0],
+    NavigateAction([Pose([1.7474915981292725, 2.6873629093170166, 0.0],
                          [-0.0, 0.0, 0.5253598267689507, -0.850880163370435])]).resolve().perform()
     CloseAction(handle_deisg, [Arms.RIGHT]).resolve().perform()
 ```

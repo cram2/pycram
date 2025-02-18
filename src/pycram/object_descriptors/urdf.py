@@ -7,12 +7,13 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 from geometry_msgs.msg import Point
-from tf.transformations import quaternion_from_euler, euler_from_quaternion
+from ..tf_transformations import quaternion_from_euler, euler_from_quaternion
 from typing_extensions import Union, List, Optional, Dict, Tuple, Type, Self
 from urdf_parser_py import urdf
 from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as URDF_Cylinder,
                                  Sphere as URDF_Sphere, Mesh as URDF_Mesh)
 
+from ..ros import get_ros_package_path
 from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
     SphereVisualShape, MeshVisualShape
 from ..datastructures.enums import JointType
@@ -20,8 +21,8 @@ from ..datastructures.pose import Pose
 from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
 from ..failures import MultiplePossibleTipLinks
-from ..ros.logging import logerr
-from ..ros.ros_tools import create_ros_pack, ResourceNotFound, get_parameter
+from ..ros import  logerr
+from ..ros import  create_ros_pack, ResourceNotFound, get_parameter
 from ..utils import suppress_stdout_stderr
 from ..datastructures.mixins import HasConcept
 
@@ -73,7 +74,7 @@ class LinkDescription(AbstractLinkDescription):
         if coll.origin is None:
             return None
         return Pose(coll.origin.xyz,
-                    quaternion_from_euler(*coll.origin.rpy).tolist())
+                    quaternion_from_euler(*coll.origin.rpy))
 
     @property
     def name(self) -> str:
@@ -131,7 +132,7 @@ class JointDescription(AbstractJointDescription):
         """
         :return: The axis of this joint, for example the rotation axis for a revolute joint.
         """
-        return Point(*self.parsed_description.axis)
+        return Point(**dict(zip(["x", "y", "z"],self.parsed_description.axis)))
 
     @property
     def lower_limit(self) -> Union[float, None]:
@@ -338,7 +339,8 @@ class ObjectDescription(AbstractObjectDescription):
             with suppress_stdout_stderr():
                 return URDF.from_xml_string(file.read())
 
-    def generate_from_mesh_file(self, path: str, name: str, save_path: str, color: Optional[Color] = Color(), scale = Optional[float]) -> None:
+    def generate_from_mesh_file(self, path: str, name: str, save_path: str, color: Optional[Color] = Color(),
+                                scale: Optional[float] = None) -> None:
         """
         Generate a URDf file with the given .obj or .stl file as mesh. In addition, use the given rgba_color to create a
          material tag in the URDF. The URDF file will be saved to the given save_path.
@@ -371,6 +373,7 @@ class ObjectDescription(AbstractObjectDescription):
                         </robot>'
         urdf_template = self.fix_missing_inertial(urdf_template)
         rgb = " ".join(list(map(str, color.get_rgba())))
+        scale = scale if scale is not None else 1
         s = " ".join([str(scale)] * 3)
         pathlib_obj = pathlib.Path(path)
         path = str(pathlib_obj.resolve())
@@ -466,13 +469,12 @@ class ObjectDescription(AbstractObjectDescription):
         :param urdf_string: The name of the URDf on the parameter server
         :return: The URDF string with paths in the filesystem instead of ROS packages
         """
-        r = create_ros_pack()
         new_urdf_string = ""
         for line in urdf_string.split('\n'):
             if "package://" in line:
                 s = line.split('//')
                 s1 = s[1].split('/')
-                path = r.get_path(s1[0])
+                path = get_ros_package_path(s1[0])
                 line = line.replace("package://" + s1[0], path)
             if 'file://' in line:
                 line = line.replace("file://", './')

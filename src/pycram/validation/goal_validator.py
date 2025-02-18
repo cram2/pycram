@@ -8,7 +8,7 @@ from typing_extensions import Any, Callable, Optional, Union, Iterable, Dict, TY
 from .error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, SingleValueErrorChecker
 from ..datastructures.enums import JointType
-from ..ros.logging import logerr, logwarn
+from ..ros import logerr, logwarn
 
 if TYPE_CHECKING:
     from ..datastructures.world import World

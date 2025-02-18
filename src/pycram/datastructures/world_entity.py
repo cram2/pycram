@@ -13,7 +13,7 @@ from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, Phy
     AxisAlignedBoundingBox, RotatedBoundingBox
 from .mixins import HasConcept
 from ..local_transformer import LocalTransformer
-from ..ros.data_types import Time
+from ..ros import  Time
 
 if TYPE_CHECKING:
     from ..datastructures.world import World
