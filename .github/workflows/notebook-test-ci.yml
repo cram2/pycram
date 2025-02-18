@@ -75,7 +75,7 @@ jobs:
       - name: Source and start ROS
         run: |
           source /opt/ros/overlay_ws/devel/setup.bash 
-          roslaunch pycram ik_and_description.launch &
+          roscore &
 
       - name: Run tests
         run: |
