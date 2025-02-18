@@ -91,6 +91,8 @@ with simulated_robot:
 
     ParkArmsAction([Arms.LEFT if pickup_arm == Arms.LEFT else Arms.RIGHT]).resolve().perform()
 
+    NavigateAction([drawer_open_loc.pose]).resolve().perform()
+
     CloseAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
