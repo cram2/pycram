@@ -12,6 +12,7 @@ echo "Setting up virtual environment"
 python -m venv pycram/pycram-venv --system-site-packages
 source pycram/pycram-venv/bin/activate
 echo "Installing python dependencies"
+pip install -U setuptools
 pip install -r pycram/requirements.txt
 echo "Cheking for dependencies of other ros packages"
 rosdep update && rosdep install --from-paths . -i -y
