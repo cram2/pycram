@@ -19,23 +19,12 @@ class TableConceptTestCase(unittest.TestCase):
 
     def test_rules(self):
         with self.ontology.ontology:
-            class Kitchen(Thing): pass
-
-            class Fridge(Thing): pass
-
-            class Milk(Thing): pass
-
-            class Room(Thing): pass
-
-            class is_part_of(Thing >> Thing): pass
-
-            class contains_object(Thing >> Thing): pass
 
             kitchen = Kitchen()
-            fridge = Fridge()
+            drawer = Drawer()
             milk = Milk()
-            fridge.is_part_of = [kitchen]
-            fridge.contains_object = [milk]
+            drawer.is_part_of = [kitchen]
+            drawer.contains_object = [milk]
             rule = Imp()
             rule.set_as_rule("""is_part_of(?part, ?parent), contains_object(?part, ?object) -> contains_object(?parent, ?object)""")
             sync_reasoner_pellet(infer_property_values=True, infer_data_property_values=True)

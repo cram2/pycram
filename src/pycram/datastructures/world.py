@@ -9,12 +9,12 @@ from copy import copy
 
 import numpy as np
 from geometry_msgs.msg import Point
+from owlready2 import Imp
 from trimesh import Trimesh
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
 import pycrap
 from pycrap.ontologies import PhysicalObject, Robot, Floor, Apartment
-from pycrap.ontologies.crax.rules import Rule
 from pycrap.ontology_wrapper import OntologyWrapper
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
@@ -134,19 +134,12 @@ class World(WorldEntity, ABC):
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
 
-        self.rules: Dict[str, Rule] = {}
-
     def _set_world_rules(self):
         if self.is_prospection_world:
             return
-        Rule("""is_part_of(?part, ?parent), contains_object(?part, ?object) -> contains_object(?parent, ?object)""",
-             world=self, name="hierarchical_containment_rule")
-        Rule("""Kitchen(?entity) -> Room(?entity)""",
-             world=self, name="simple_rule")
-
-    def add_rule(self, rule: Rule):
-        self.rules[rule.onto_name] = rule
-        self.ontology.reason()
+        with self.ontology.ontology:
+            hierarchical_containment_rule = Imp()
+            hierarchical_containment_rule.set_as_rule("""is_part_of(?part, ?parent), contains_object(?part, ?object) -> contains_object(?parent, ?object)""")
 
     @staticmethod
     def update_containment_for(bodies: List[PhysicalBody],

@@ -105,5 +105,3 @@ supports.inverse_property = is_supported_by
 is_supported_by.is_a = [ObjectProperty, TransitiveProperty]
 is_supported_by.domain = [SupportedObject]
 is_supported_by.range = [Supporter]
-
-Rule.is_a = [Imp]

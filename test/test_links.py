@@ -38,8 +38,6 @@ class TestLinks(BulletWorldTestCase):
 
         self.world.update_containment_for([self.milk])
 
-        self.assertTrue(Room in self.kitchen.ontology_individual.is_a)
-        self.assertTrue(Food in self.kitchen.ontology_individual.is_a)
         self.assertTrue(self.kitchen.contains_body(self.milk))
         self.assertTrue(self.kitchen.links["iai_fridge_main"].contains_body(self.milk))
 

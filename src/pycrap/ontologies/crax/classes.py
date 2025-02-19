@@ -1,10 +1,6 @@
+from owlready2 import Imp
+
 from .dependencies import *
-
-
-class Rule(Base):
-    """
-    A class that represents a rule in PyCRAP.
-    """
 
 
 class World(Base):
