@@ -66,7 +66,9 @@ class PartialDesignator:
                 newkeywors[key] = value
             elif key not in newkeywors.keys():
                 newkeywors[key] = value
-        return PartialDesignator(self.performable, *fargs, **newkeywors)
+        self.kwargs.update(dict(signature(self.performable).bind_partial(*fargs, **fkwargs).arguments))
+        return self
+        #return PartialDesignator(self.performable, *fargs, **newkeywors)
 
     def __iter__(self) -> ActionDesignatorDescription.Action:
         """

@@ -5,7 +5,8 @@ from pycram.designators.action_designator import PickUpAction, PickUpActionPerfo
     MoveTorsoAction, NavigateAction
 from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import Arms, Grasp, GripperState, TorsoState
-
+from pycrap.ontologies import Milk
+from pycram.process_module import simulated_robot
 
 class TestPartialDesignator(BulletWorldTestCase):
     def test_partial_desig_construction(self):
@@ -69,26 +70,28 @@ class TestPartialActions(BulletWorldTestCase):
             self.assertTrue(action.torso_state in [TorsoState.HIGH, TorsoState.MID])
 
     def test_partial_navigate_action_perform(self):
-        move1 = NavigateAction(Pose([1, 0, 0])).resolve().perform()
-        self.assertEqual(self.robot.pose.position_as_list(), [1, 0, 0])
+        with simulated_robot:
+            move1 = NavigateAction(Pose([1, 0, 0])).resolve().perform()
+            self.assertEqual(self.robot.pose.position_as_list(), [1, 0, 0])
 
     def test_partial_navigate_action_multiple(self):
         nav = NavigateAction([Pose([1, 0, 0]), Pose([2, 0, 0]), Pose([3, 0, 0])])
         nav_goals = [[1, 0, 0], [2, 0, 0], [3, 0, 0]]
         for i, action in enumerate(nav):
-            action.perform()
-            self.assertEqual(self.robot.pose.position_as_list(), nav_goals[i])
+            with simulated_robot:
+                action.perform()
+                self.assertEqual(self.robot.pose.position_as_list(), nav_goals[i])
 
     def test_partial_pickup_action(self):
         milk_desig = BelieveObject(names=["milk"])
         pick = PickUpAction(milk_desig, [Arms.LEFT, Arms.RIGHT], Grasp.FRONT)
         pick_action = pick.resolve()
-        self.assertEqual(pick_action.object_designator, milk_desig)
+        self.assertEqual(pick_action.object_designator.obj_type, Milk)
         self.assertEqual(pick_action.arm, Arms.LEFT)
         self.assertEqual(pick_action.grasp, Grasp.FRONT)
 
     def test_partial_pickup_action_insert_param(self):
         milk_desig = BelieveObject(names=["milk"])
         pick = PickUpAction(milk_desig, [Arms.LEFT, Arms.RIGHT])
-        pick(grasp=Grasp.FRONT).resolve()
-        self.assertEqual(pick.grasp, Grasp.FRONT)
+        pick_action = pick(grasp=Grasp.FRONT).resolve()
+        self.assertEqual(pick_action.grasp, Grasp.FRONT)

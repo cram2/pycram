@@ -964,13 +964,6 @@ class NavigateAction(ActionDesignatorDescription):
         PartialDesignator.__init__(self, NavigateActionPerformable, target_location=target_locations,
                                    keep_joint_states=keep_joint_states)
         self.target_locations: Union[Pose, List[Pose]] = target_locations
-        if len(self.target_locations) == 1:
-            self.knowledge_condition = SpaceIsFreeProperty(self.target_locations[0])
-        else:
-            root = SpaceIsFreeProperty(self.target_locations[0])
-            for location in self.target_locations[1:]:
-                root |= SpaceIsFreeProperty(location)
-            self.knowledge_condition = root
         self.keep_joint_states: Optional[Union[bool, List[bool]]] = keep_joint_states
 
     def ground(self) -> NavigateActionPerformable:
