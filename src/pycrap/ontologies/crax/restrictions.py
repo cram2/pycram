@@ -19,11 +19,11 @@ Food.is_a = [PhysicalObject]
 
 Apartment.is_a = [Room]
 
+Container.is_a = [PhysicalObject]
+
 Room.is_a = [Location, Container]
 
 Cup.is_a = [Container]
-
-Spoon.is_a = [PhysicalObject]
 
 Bowl.is_a = [Container]
 
@@ -31,7 +31,7 @@ Cabinet.is_a = [Container]
 
 Drawer.is_a = [Container]
 
-Container.is_a = [PhysicalObject]
+Spoon.is_a = [PhysicalObject]
 
 ContinuousJoint.is_a = [HingeJoint]
 
