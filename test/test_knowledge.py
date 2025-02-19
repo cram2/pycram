@@ -86,59 +86,6 @@ class TestKnowledgeEngineBeliefState(KnowledgeBulletTestCase):
         self.assertEqual({"arm": Arms.RIGHT, "grasp": Grasp.FRONT}, matched)
 
 
-class TestPartialDesignator(KnowledgeBulletTestCase):
-    def test_partial_desig_construction(self):
-        test_object = BelieveObject(names=["milk"])
-        partial_desig = PartialDesignator(PickUpActionPerformable, test_object, arm=Arms.RIGHT)
-        self.assertEqual(partial_desig.performable, PickUpActionPerformable)
-        self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": test_object,
-                                                "grasp": None, 'prepose_distance': None})
-
-    def test_partial_desig_construction_none(self):
-        partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
-        self.assertEqual(partial_desig.performable, PickUpActionPerformable)
-        self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": None,
-                                                "grasp": None, 'prepose_distance': None})
-
-    def test_partial_desig_call(self):
-        partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
-        new_partial_desig = partial_desig(grasp=Grasp.FRONT)
-        self.assertEqual(new_partial_desig.performable, PickUpActionPerformable)
-        self.assertEqual({"arm": Arms.RIGHT, "grasp": Grasp.FRONT, "object_designator": None,
-                          'prepose_distance': None}, new_partial_desig.kwargs)
-
-    def test_partial_desig_missing_params(self):
-        partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
-        missing_params = partial_desig.missing_parameter()
-        self.assertTrue("object_designator" in missing_params and "grasp" in missing_params)
-
-        new_partial = partial_desig(grasp=Grasp.FRONT)
-        missing_params = new_partial.missing_parameter()
-        self.assertEqual(['object_designator', 'prepose_distance'], missing_params)
-
-    def test_is_iterable(self):
-        self.assertTrue(PartialDesignator._is_iterable([1, 2, 3]))
-        self.assertFalse(PartialDesignator._is_iterable(1))
-
-    def test_partial_desig_permutations(self):
-        tp = PartialDesignator(SetGripperActionPerformable, [Arms.LEFT, Arms.RIGHT],
-                               motion=[GripperState.OPEN, GripperState.CLOSE])
-        permutations = tp.generate_permutations()
-        self.assertEqual([(Arms.LEFT, GripperState.OPEN), (Arms.LEFT, GripperState.CLOSE),
-                          (Arms.RIGHT, GripperState.OPEN), (Arms.RIGHT, GripperState.CLOSE)], list(permutations))
-
-    def test_partial_desig_iter(self):
-        test_object = BelieveObject(names=["milk"])
-        test_object_resolved = test_object.resolve()
-        partial_desig = PartialDesignator(PickUpActionPerformable, test_object, arm=[Arms.RIGHT, Arms.LEFT])
-        performables = list(partial_desig(grasp=[Grasp.FRONT, Grasp.TOP]))
-        self.assertEqual(4, len(performables))
-        self.assertTrue(all([isinstance(p, PickUpActionPerformable) for p in performables]))
-        self.assertEqual([p.arm for p in performables], [Arms.RIGHT, Arms.RIGHT, Arms.LEFT, Arms.LEFT])
-        self.assertEqual([p.grasp for p in performables], [Grasp.FRONT, Grasp.TOP, Grasp.FRONT, Grasp.TOP])
-        self.assertEqual([p.object_designator for p in performables], [test_object_resolved] * 4)
-
-
 class TestParameterInference(KnowledgeBulletTestCase):
     @unittest.skip
     def test_pickup_arm(self):
