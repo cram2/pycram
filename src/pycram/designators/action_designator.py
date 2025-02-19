@@ -742,7 +742,7 @@ class MoveTorsoAction(ActionDesignatorDescription):
     """
     performable_class = MoveTorsoActionPerformable
 
-    def __init__(self, torso_states: List[TorsoState]):
+    def __init__(self, torso_states: Union[TorsoState, List[TorsoState]]):
         """
         Create a designator_description description to move the torso of the robot up and down.
 
@@ -750,7 +750,7 @@ class MoveTorsoAction(ActionDesignatorDescription):
         """
         super().__init__()
         PartialDesignator.__init__(self, MoveTorsoActionPerformable, torso_state=torso_states)
-        self.torso_states: List[TorsoState] = torso_states
+        self.torso_states: Union[TorsoState, List[TorsoState]] = torso_states
 
     def ground(self) -> MoveTorsoActionPerformable:
         """
@@ -768,7 +768,7 @@ class SetGripperAction(ActionDesignatorDescription):
 
     performable_class = SetGripperActionPerformable
 
-    def __init__(self, grippers: List[Arms], motions: List[GripperState]):
+    def __init__(self, grippers: Union[Arms, List[Arms]], motions: Union[GripperState, List[GripperState]]):
         """
         Sets the gripper state, the desired state is given with the motion. Motion can either be 'open' or 'close'.
 
@@ -777,8 +777,8 @@ class SetGripperAction(ActionDesignatorDescription):
         """
         super().__init__()
         PartialDesignator.__init__(self, SetGripperActionPerformable, gripper=grippers, motion=motions)
-        self.grippers: List[Arms] = grippers
-        self.motions: List[GripperState] = motions
+        self.grippers: Union[Arms, List[Arms]] = grippers
+        self.motions: Union[GripperState, List[GripperState]] = motions
 
     def ground(self) -> SetGripperActionPerformable:
         """
@@ -798,10 +798,11 @@ class ReleaseAction(ActionDesignatorDescription):
 
     performable_class = ReleaseActionPerformable
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription, grippers: List[Arms] = None):
+    def __init__(self, object_designator_description: ObjectDesignatorDescription,
+                 grippers: Optional[Union[Arms, List[Arms]]] = None):
         super().__init__()
         PartialDesignator.__init__(self, ReleaseActionPerformable, gripper=grippers,)
-        self.grippers: List[Arms] = grippers
+        self.grippers: Optional[Union[Arms, List[Arms]]] = grippers
         self.object_designator_description = object_designator_description
 
     def ground(self) -> ReleaseActionPerformable:
@@ -828,14 +829,15 @@ class GripAction(ActionDesignatorDescription):
 
     performable_class = GripActionPerformable
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription, grippers: List[Arms] = None,
-                 efforts: List[float] = None):
+    def __init__(self, object_designator_description: ObjectDesignatorDescription,
+                 grippers: Optional[Union[Arms, List[Arms]]] = None,
+                 efforts: Optional[Union[float, List[float]]] = None):
         super().__init__()
         PartialDesignator.__init__(self, GripActionPerformable, gripper=grippers, object_designator=object_designator_description,
                                    effort=efforts)
-        self.grippers: List[Arms] = grippers
+        self.grippers: Optional[Union[Arms, List[Arms]]] = grippers
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
-        self.efforts: List[float] = efforts
+        self.efforts: Optional[Union[float, List[float]]] = efforts
 
     def ground(self) -> GripActionPerformable:
         return GripActionPerformable(self.grippers[0], self.object_designator_description.ground(), self.efforts[0])
@@ -848,7 +850,7 @@ class ParkArmsAction(ActionDesignatorDescription):
 
     performable_class = ParkArmsActionPerformable
 
-    def __init__(self, arms: List[Arms]):
+    def __init__(self, arms: Union[Arms, List[Arms]]):
         """
         Moves the arms in the pre-defined parking position. Arms are taken from pycram.enum.Arms
 
@@ -856,7 +858,7 @@ class ParkArmsAction(ActionDesignatorDescription):
         """
         super().__init__()
         PartialDesignator.__init__(self, ParkArmsActionPerformable, arm=arms)
-        self.arms: List[Arms] = arms
+        self.arms: Union[Arms, List[Arms]] = arms
 
     def ground(self) -> ParkArmsActionPerformable:
         """
@@ -876,7 +878,8 @@ class PickUpAction(ActionDesignatorDescription):
 
     def __init__(self,
                  object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
-                 arms: List[Arms] = None, grasps: List[Grasp] = None, prepose_distance: float = 0.03):
+                 arms: Optional[Union[Arms, List[Arms]]] = None, grasps: Optional[Union[Grasp, List[Grasp]]] = None,
+                 prepose_distance: Optional[Union[float, List[float]]] = 0.03):
         """
         Lets the robot pick up an object. The description needs an object designator_description describing the object that should be
         picked up, an arm that should be used as well as the grasp from which side the object should be picked up.
@@ -892,11 +895,11 @@ class PickUpAction(ActionDesignatorDescription):
                                    grasp=grasps, prepose_distance=prepose_distance)
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
-        self.arms: List[Arms] = arms
-        self.grasps: List[Grasp] = grasps
+        self.arms: Union[Arms, List[Arms]] = arms
+        self.grasps: Union[Grasp, List[Grasp]] = grasps
         object_desig = self.object_designator_description if isinstance(self.object_designator_description,
                                                                         ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
-        self.prepose_distance: float = prepose_distance
+        self.prepose_distance: Union[float, List[float]] = prepose_distance
         self.knowledge_condition = GraspableProperty(self.object_designator_description) & ReachableProperty(
             object_desig.pose)
 
@@ -910,8 +913,8 @@ class PlaceAction(ActionDesignatorDescription):
 
     def __init__(self,
                  object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
-                 target_locations: List[Pose],
-                 arms: List[Arms] = None):
+                 target_locations: Union[Pose, List[Pose]],
+                 arms: Optional[Union[Arms, List[Arms]]] = None):
         """
         Create an Action Description to place an object
 
@@ -926,8 +929,8 @@ class PlaceAction(ActionDesignatorDescription):
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         object_desig = self.object_designator_description if isinstance(self.object_designator_description,
                                                                         ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
-        self.target_locations: List[Pose] = target_locations
-        self.arms: List[Arms] = arms
+        self.target_locations: Union[Pose, List[Pose]] = target_locations
+        self.arms: Optional[Union[Arms, List[Arms]]] = arms
         self.knowledge_condition = ReachableProperty(object_desig.pose)
 
     def ground(self) -> PlaceActionPerformable:
@@ -949,7 +952,8 @@ class NavigateAction(ActionDesignatorDescription):
 
     performable_class = NavigateActionPerformable
 
-    def __init__(self, target_locations: List[Pose], keep_joint_states: bool = False):
+    def __init__(self, target_locations: Union[Pose, List[Pose]],
+                 keep_joint_states: Optional[Union[bool, List[bool]]] = False):
         """
         Navigates the robot to a location.
 
@@ -959,7 +963,7 @@ class NavigateAction(ActionDesignatorDescription):
         super().__init__()
         PartialDesignator.__init__(self, NavigateActionPerformable, target_location=target_locations,
                                    keep_joint_states=keep_joint_states)
-        self.target_locations: List[Pose] = target_locations
+        self.target_locations: Union[Pose, List[Pose]] = target_locations
         if len(self.target_locations) == 1:
             self.knowledge_condition = SpaceIsFreeProperty(self.target_locations[0])
         else:
@@ -967,7 +971,7 @@ class NavigateAction(ActionDesignatorDescription):
             for location in self.target_locations[1:]:
                 root |= SpaceIsFreeProperty(location)
             self.knowledge_condition = root
-        self.keep_joint_states: bool = keep_joint_states
+        self.keep_joint_states: Optional[Union[bool, List[bool]]] = keep_joint_states
 
     def ground(self) -> NavigateActionPerformable:
         """
@@ -987,9 +991,9 @@ class TransportAction(ActionDesignatorDescription):
 
     def __init__(self,
                  object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
-                 target_locations: List[Pose],
-                 arms: List[Arms] = None,
-                 pickup_prepose_distance: float = 0.03):
+                 target_locations: Union[Pose, List[Pose]],
+                 arms: Optional[Union[Arms, List[Arms]]] = None,
+                 pickup_prepose_distance: Optional[Union[float, List[float]]] = 0.03):
         """
         Designator representing a pick and place plan.
 
@@ -1004,9 +1008,9 @@ class TransportAction(ActionDesignatorDescription):
                                    target_location=target_locations, arm=arms, pickup_prepose_distance=pickup_prepose_distance)
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
-        self.arms: List[Arms] = arms
-        self.target_locations: List[Pose] = target_locations
-        self.pickup_prepose_distance: float = pickup_prepose_distance
+        self.arms: Optional[Union[Arms, List[Arms]]] = arms
+        self.target_locations: Union[Pose, List[Pose]] = target_locations
+        self.pickup_prepose_distance: Optional[Union[float, List[float]]] = pickup_prepose_distance
 
     def ground(self) -> TransportActionPerformable:
         """
@@ -1029,7 +1033,7 @@ class LookAtAction(ActionDesignatorDescription):
 
     performable_class = LookAtActionPerformable
 
-    def __init__(self, targets: List[Pose]):
+    def __init__(self, targets: Union[Pose, List[Pose]]):
         """
         Moves the head of the robot such that it points towards the given target location.
 
@@ -1037,7 +1041,7 @@ class LookAtAction(ActionDesignatorDescription):
         """
         super().__init__()
         PartialDesignator.__init__(self, LookAtActionPerformable, target=targets)
-        self.targets: List[Pose] = targets
+        self.targets: Union[Pose, List[Pose]] = targets
 
     def ground(self) -> LookAtActionPerformable:
         """
@@ -1055,9 +1059,10 @@ class DetectAction(ActionDesignatorDescription):
 
     performable_class = DetectActionPerformable
 
-    def __init__(self, technique: DetectionTechnique, state: Optional[DetectionState] = None,
+    def __init__(self, technique: Union[DetectionTechnique, List[DetectionTechnique]],
+                 state: Optional[Union[DetectionState, List[DetectionState]]] = None,
                  object_designator_description: Optional[ObjectDesignatorDescription] = None,
-                 region: Optional[Location] = None):
+                 region: Optional[Union[Location, List[Location]]] = None):
         """
         Tries to detect an object in the field of view (FOV) of the robot.
 
@@ -1065,10 +1070,10 @@ class DetectAction(ActionDesignatorDescription):
         super().__init__()
         PartialDesignator.__init__(self, DetectActionPerformable, technique=technique, state=state,
                                    object_designator_description=object_designator_description, region=region)
-        self.technique: DetectionTechnique = technique
-        self.state: DetectionState = DetectionState.START if state is None else state
+        self.technique: Union[DetectionTechnique, List[DetectionTechnique]] = technique
+        self.state: Optional[Union[DetectionState, List[DetectionState]]] = DetectionState.START if state is None else state
         self.object_designator_description: Optional[ObjectDesignatorDescription] = object_designator_description
-        self.region: Optional[Location] = region
+        self.region:Optional[Union[Location, List[Location]]] = region
         # TODO: Implement knowledge condition
         # self.knowledge_condition = VisibleProperty(self.object_designator_description)
 
@@ -1090,8 +1095,9 @@ class OpenAction(ActionDesignatorDescription):
 
     performable_class = OpenActionPerformable
 
-    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms] = None,
-                 grasping_prepose_distance: float = 0.03):
+    def __init__(self, object_designator_description: ObjectPart,
+                 arms: Union[Arms, List[Arms]] = None,
+                 grasping_prepose_distance: Union[float, List[float]] = 0.03):
         """
         Moves the arm of the robot to open a container.
 
@@ -1103,8 +1109,8 @@ class OpenAction(ActionDesignatorDescription):
         PartialDesignator.__init__(self, OpenActionPerformable, object_designator=object_designator_description, arm=arms,
                                    grasping_prepose_distance=grasping_prepose_distance)
         self.object_designator_description: ObjectPart = object_designator_description
-        self.arms: List[Arms] = arms
-        self.grasping_prepose_distance: float = grasping_prepose_distance
+        self.arms: Union[Arms, List[Arms]] = arms
+        self.grasping_prepose_distance: Union[float, List[float]] = grasping_prepose_distance
         self.knowledge_condition = GripperIsFreeProperty(self.arms)
 
     def ground(self) -> OpenActionPerformable:
@@ -1127,8 +1133,9 @@ class CloseAction(ActionDesignatorDescription):
 
     performable_class = CloseActionPerformable
 
-    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms] = None,
-                 grasping_prepose_distance: float = 0.03):
+    def __init__(self, object_designator_description: ObjectPart,
+                 arms: Union[Arms, List[Arms]] = None,
+                 grasping_prepose_distance: Union[float, List[float]] = 0.03):
         """
         Attempts to close an open container
 
@@ -1141,8 +1148,8 @@ class CloseAction(ActionDesignatorDescription):
         PartialDesignator.__init__(self, CloseActionPerformable, object_designator=object_designator_description, arm=arms,
                                    grasping_prepose_distance=grasping_prepose_distance)
         self.object_designator_description: ObjectPart = object_designator_description
-        self.arms: List[Arms] = arms
-        self.grasping_prepose_distance: float = grasping_prepose_distance
+        self.arms: Union[Arms, List[Arms]] = arms
+        self.grasping_prepose_distance: Union[float, List[float]] = grasping_prepose_distance
         self.knowledge_condition = GripperIsFreeProperty(self.arms)
 
     def ground(self) -> CloseActionPerformable:
@@ -1163,8 +1170,9 @@ class GraspingAction(ActionDesignatorDescription):
 
     performable_class = GraspingActionPerformable
 
-    def __init__(self, object_description: Union[ObjectDesignatorDescription, ObjectPart], arms: List[Arms] = None,
-                 prepose_distance: float = 0.03):
+    def __init__(self, object_description: Union[ObjectDesignatorDescription, ObjectPart],
+                 arms: Union[Arms, List[Arms]] = None,
+                 prepose_distance: Union[float, List[float]] = 0.03):
         """
         Will try to grasp the object described by the given description. Grasping is done by moving into a pre grasp
         position 10 cm before the object, opening the gripper, moving to the object and then closing the gripper.
@@ -1176,9 +1184,9 @@ class GraspingAction(ActionDesignatorDescription):
         super().__init__()
         PartialDesignator.__init__(self, GraspingActionPerformable, arm=arms, object_desig=object_description,
                                    prepose_distance=prepose_distance)
-        self.arms: List[Arms] = arms
+        self.arms: Union[Arms, List[Arms]] = arms
         self.object_description: ObjectDesignatorDescription = object_description
-        self.prepose_distance: float = prepose_distance
+        self.prepose_distance: Union[float, List[float]] = prepose_distance
 
     def ground(self) -> GraspingActionPerformable:
         """

@@ -298,7 +298,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language, PartialDesign
         self.knowledge_condition = EmptyProperty()
         self.ground = self.resolve
 
-    def resolve(self) -> Type[ActionDesignatorDescription.Action]:
+    def resolve(self) -> ActionDesignatorDescription.Action:
         """
         Resolves this designator_description to a performable designtor by using the reasoning of the knowledge engine.
         This method will simply take the first result from iterating over the designator_description.
