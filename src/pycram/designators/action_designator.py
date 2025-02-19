@@ -496,7 +496,7 @@ class DetectActionPerformable(ActionAbstract):
     """
     The state of the detection, e.g Start Stop for continues perception
     """
-    object_designator_description: Optional[ObjectDesignatorDescription] = None
+    object_designator_description: Optional[ObjectDesignatorDescription.Object] = None
     """
     The type of the object that should be detected, only considered if technique is equal to Type
     """
@@ -776,6 +776,7 @@ class SetGripperAction(ActionDesignatorDescription):
         :param motions: A list of possible motions
         """
         super().__init__()
+        PartialDesignator.__init__(self, SetGripperActionPerformable, gripper=grippers, motion=motions)
         self.grippers: List[Arms] = grippers
         self.motions: List[GripperState] = motions
 
@@ -786,15 +787,6 @@ class SetGripperAction(ActionDesignatorDescription):
         :return: A performable designator_description
         """
         return SetGripperActionPerformable(self.grippers[0], self.motions[0])
-
-    def __iter__(self):
-        """
-        Iterates over all possible combinations of grippers and motions
-
-        :return: A performable designator_description with a combination of gripper and motion
-        """
-        for parameter_combination in itertools.product(self.grippers, self.motions):
-            yield SetGripperActionPerformable(*parameter_combination)
 
 
 class ReleaseAction(ActionDesignatorDescription):
@@ -808,6 +800,7 @@ class ReleaseAction(ActionDesignatorDescription):
 
     def __init__(self, object_designator_description: ObjectDesignatorDescription, grippers: List[Arms] = None):
         super().__init__()
+        PartialDesignator.__init__(self, ReleaseActionPerformable, gripper=grippers,)
         self.grippers: List[Arms] = grippers
         self.object_designator_description = object_designator_description
 
@@ -838,20 +831,14 @@ class GripAction(ActionDesignatorDescription):
     def __init__(self, object_designator_description: ObjectDesignatorDescription, grippers: List[Arms] = None,
                  efforts: List[float] = None):
         super().__init__()
+        PartialDesignator.__init__(self, GripActionPerformable, gripper=grippers, object_designator=object_designator_description,
+                                   effort=efforts)
         self.grippers: List[Arms] = grippers
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.efforts: List[float] = efforts
 
     def ground(self) -> GripActionPerformable:
         return GripActionPerformable(self.grippers[0], self.object_designator_description.ground(), self.efforts[0])
-
-    def __iter__(self):
-        ri = ReasoningInstance(self,
-                               PartialDesignator(GripActionPerformable, self.grippers,
-                                                 self.object_designator_description,
-                                                 self.efforts))
-        for desig in ri:
-            yield desig
 
 
 class ParkArmsAction(ActionDesignatorDescription):
@@ -868,6 +855,7 @@ class ParkArmsAction(ActionDesignatorDescription):
         :param arms: A list of possible arms, that could be used
         """
         super().__init__()
+        PartialDesignator.__init__(self, ParkArmsActionPerformable, arm=arms)
         self.arms: List[Arms] = arms
 
     def ground(self) -> ParkArmsActionPerformable:
@@ -877,15 +865,6 @@ class ParkArmsAction(ActionDesignatorDescription):
         :return: A performable designator_description
         """
         return ParkArmsActionPerformable(self.arms[0])
-
-    def __iter__(self) -> ParkArmsActionPerformable:
-        """
-        Iterates over all possible solutions and returns a performable designator with the arm.
-
-        :return: A performable designator_description
-        """
-        for arm in self.arms:
-            yield ParkArmsActionPerformable(arm)
 
 
 class PickUpAction(ActionDesignatorDescription):
@@ -909,6 +888,8 @@ class PickUpAction(ActionDesignatorDescription):
         object.
         """
         super().__init__()
+        PartialDesignator.__init__(self, PickUpActionPerformable, object_designator=object_designator_description, arm=arms,
+                                   grasp=grasps, prepose_distance=prepose_distance)
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.arms: List[Arms] = arms
@@ -918,14 +899,6 @@ class PickUpAction(ActionDesignatorDescription):
         self.prepose_distance: float = prepose_distance
         self.knowledge_condition = GraspableProperty(self.object_designator_description) & ReachableProperty(
             object_desig.pose)
-
-    def __iter__(self) -> PickUpActionPerformable:
-        ri = ReasoningInstance(self,
-                               PartialDesignator(PickUpActionPerformable, self.object_designator_description, self.arms,
-                                                 self.grasps, self.prepose_distance))
-        # Here is where the magic happens
-        for desig in ri:
-            yield desig
 
 
 class PlaceAction(ActionDesignatorDescription):
@@ -947,6 +920,8 @@ class PlaceAction(ActionDesignatorDescription):
         :param arms: List of possible arms to use
         """
         super().__init__()
+        PartialDesignator.__init__(self, PlaceActionPerformable, object_designator=object_designator_description, arm=arms,
+                                   target_location=target_locations)
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         object_desig = self.object_designator_description if isinstance(self.object_designator_description,
@@ -966,13 +941,6 @@ class PlaceAction(ActionDesignatorDescription):
 
         return PlaceActionPerformable(obj_desig, self.arms[0], self.target_locations[0])
 
-    def __iter__(self) -> PlaceActionPerformable:
-        ri = ReasoningInstance(self,
-                               PartialDesignator(PlaceActionPerformable, self.object_designator_description, self.arms,
-                                                 self.target_locations))
-        for desig in ri:
-            yield desig
-
 
 class NavigateAction(ActionDesignatorDescription):
     """
@@ -989,6 +957,8 @@ class NavigateAction(ActionDesignatorDescription):
         :param keep_joint_states: If the joint states should be kept the same during the navigation.
         """
         super().__init__()
+        PartialDesignator.__init__(self, NavigateActionPerformable, target_location=target_locations,
+                                   keep_joint_states=keep_joint_states)
         self.target_locations: List[Pose] = target_locations
         if len(self.target_locations) == 1:
             self.knowledge_condition = SpaceIsFreeProperty(self.target_locations[0])
@@ -1006,15 +976,6 @@ class NavigateAction(ActionDesignatorDescription):
         :return: A performable designator_description
         """
         return NavigateActionPerformable(self.target_locations[0], self.keep_joint_states)
-
-    def __iter__(self) -> NavigateActionPerformable:
-        """
-        Iterates over all possible target locations
-
-        :return: A performable designator_description
-        """
-        for location in self.target_locations:
-            yield NavigateActionPerformable(location, self.keep_joint_states)
 
 
 class TransportAction(ActionDesignatorDescription):
@@ -1039,6 +1000,8 @@ class TransportAction(ActionDesignatorDescription):
          picking up the object.
         """
         super().__init__()
+        PartialDesignator.__init__(self, TransportActionPerformable, object_designator=object_designator_description,
+                                   target_location=target_locations, arm=arms, pickup_prepose_distance=pickup_prepose_distance)
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.arms: List[Arms] = arms
@@ -1058,16 +1021,6 @@ class TransportAction(ActionDesignatorDescription):
         return TransportActionPerformable(obj_desig, self.target_locations[0], self.arms[0],
                                           self.pickup_prepose_distance)
 
-    def __iter__(self) -> TransportActionPerformable:
-        obj_desig = self.object_designator_description \
-            if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object) \
-            else self.object_designator_description.resolve()
-        ri = ReasoningInstance(self,
-                               PartialDesignator(TransportActionPerformable, obj_desig, self.target_locations,
-                                                 self.arms, self.pickup_prepose_distance))
-        for desig in ri:
-            yield desig
-
 
 class LookAtAction(ActionDesignatorDescription):
     """
@@ -1083,6 +1036,7 @@ class LookAtAction(ActionDesignatorDescription):
         :param targets: A list of possible locations to look at
         """
         super().__init__()
+        PartialDesignator.__init__(self, LookAtActionPerformable, target=targets)
         self.targets: List[Pose] = targets
 
     def ground(self) -> LookAtActionPerformable:
@@ -1092,15 +1046,6 @@ class LookAtAction(ActionDesignatorDescription):
         :return: A performable designator_description
         """
         return LookAtActionPerformable(self.targets[0])
-
-    def __iter__(self) -> LookAtActionPerformable:
-        """
-        Iterates over all possible target locations
-
-        :return: A performable designator_description
-        """
-        for target in self.targets:
-            yield LookAtActionPerformable(target)
 
 
 class DetectAction(ActionDesignatorDescription):
@@ -1118,6 +1063,8 @@ class DetectAction(ActionDesignatorDescription):
 
       """
         super().__init__()
+        PartialDesignator.__init__(self, DetectActionPerformable, technique=technique, state=state,
+                                   object_designator_description=object_designator_description, region=region)
         self.technique: DetectionTechnique = technique
         self.state: DetectionState = DetectionState.START if state is None else state
         self.object_designator_description: Optional[ObjectDesignatorDescription] = object_designator_description
@@ -1132,14 +1079,6 @@ class DetectAction(ActionDesignatorDescription):
         :return: A performable designator_description
         """
         return DetectActionPerformable(self.technique, self.state, self.object_designator_description, self.region)
-
-    def __iter__(self) -> DetectActionPerformable:
-        """
-        Iterates over all possible values for this designator_description and returns a performable action designator_description with the value.
-
-        :return: A performable action designator_description
-        """
-        yield DetectActionPerformable(self.technique, self.state, self.object_designator_description, self.region)
 
 
 class OpenAction(ActionDesignatorDescription):
@@ -1161,6 +1100,8 @@ class OpenAction(ActionDesignatorDescription):
         :param grasping_prepose_distance: The distance in meters between gripper and handle before approaching to grasp.
         """
         super().__init__()
+        PartialDesignator.__init__(self, OpenActionPerformable, object_designator=object_designator_description, arm=arms,
+                                   grasping_prepose_distance=grasping_prepose_distance)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[Arms] = arms
         self.grasping_prepose_distance: float = grasping_prepose_distance
@@ -1175,18 +1116,6 @@ class OpenAction(ActionDesignatorDescription):
         """
         return OpenActionPerformable(self.object_designator_description.resolve(), self.arms[0],
                                      grasping_prepose_distance=self.grasping_prepose_distance)
-
-    def __iter__(self) -> OpenActionPerformable:
-        """
-        Iterates over all possible values for this designator_description and returns a performable action designator_description with the value.
-
-        :return: A performable action designator_description
-        """
-        ri = ReasoningInstance(self,
-                               PartialDesignator(OpenActionPerformable, self.object_designator_description, self.arms,
-                                                 self.grasping_prepose_distance))
-        for desig in ri:
-            yield desig
 
 
 class CloseAction(ActionDesignatorDescription):
@@ -1209,6 +1138,8 @@ class CloseAction(ActionDesignatorDescription):
         to grasp.
         """
         super().__init__()
+        PartialDesignator.__init__(self, CloseActionPerformable, object_designator=object_designator_description, arm=arms,
+                                   grasping_prepose_distance=grasping_prepose_distance)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[Arms] = arms
         self.grasping_prepose_distance: float = grasping_prepose_distance
@@ -1223,18 +1154,6 @@ class CloseAction(ActionDesignatorDescription):
         """
         return CloseActionPerformable(self.object_designator_description.resolve(), self.arms[0],
                                       self.grasping_prepose_distance)
-
-    def __iter__(self) -> CloseActionPerformable:
-        """
-        Iterates over all possible solutions for this designator_description and returns a performable action designator.
-
-        :yield: A performable fully parametrized Action designator
-        """
-        ri = ReasoningInstance(self,
-                               PartialDesignator(CloseActionPerformable, self.object_designator_description, self.arms,
-                                                 self.grasping_prepose_distance))
-        for desig in ri:
-            yield desig
 
 
 class GraspingAction(ActionDesignatorDescription):
@@ -1255,6 +1174,8 @@ class GraspingAction(ActionDesignatorDescription):
         :param prepose_distance: The distance in meters between the gripper and the object before approaching to grasp.
         """
         super().__init__()
+        PartialDesignator.__init__(self, GraspingActionPerformable, arm=arms, object_desig=object_description,
+                                   prepose_distance=prepose_distance)
         self.arms: List[Arms] = arms
         self.object_description: ObjectDesignatorDescription = object_description
         self.prepose_distance: float = prepose_distance
@@ -1267,16 +1188,3 @@ class GraspingAction(ActionDesignatorDescription):
         :return: A performable action designator_description that contains specific arguments
         """
         return GraspingActionPerformable(self.arms[0], self.object_description.resolve(), self.prepose_distance)
-
-    def __iter__(self) -> CloseActionPerformable:
-        """
-        Iterates over all possible solutions for this designator_description and returns a performable action
-        designator.
-
-        :yield: A fully parametrized Action designator
-        """
-        ri = ReasoningInstance(self,
-                               PartialDesignator(GraspingActionPerformable, self.object_description, self.arms,
-                                                 self.prepose_distance))
-        for desig in ri:
-            yield desig

@@ -22,7 +22,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_move_torso(self):
         description = action_designator.MoveTorsoAction([TorsoState.HIGH])
         torso_joint = RobotDescription.current_robot_description.torso_joint
-        self.assertEqual(description.ground().joint_positions[torso_joint], 0.3)
+        self.assertEqual(description.ground().torso_state, TorsoState.HIGH)
         with simulated_robot:
             description.resolve().perform()
         self.assertEqual(self.world.robot.get_joint_position(torso_joint),
@@ -141,7 +141,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.milk.set_pose(Pose([-1.4, 1, 1]))
         self.robot.set_pose(Pose([-2.14, 1.06, 0]))
         milk_desig = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.GraspingAction([Arms.RIGHT], milk_desig)
+        description = action_designator.GraspingAction(milk_desig, [Arms.RIGHT] )
         with simulated_robot:
             description.resolve().perform()
         dist = np.linalg.norm(

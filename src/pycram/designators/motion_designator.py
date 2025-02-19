@@ -170,7 +170,7 @@ class DetectingMotion(BaseMotion):
     """
     State of the detection
     """
-    object_designator_description: Optional[ObjectDesignatorDescription] = None
+    object_designator_description: Optional[ObjectDesignatorDescription.Object] = None
     """
     Description of the object that should be detected
     """

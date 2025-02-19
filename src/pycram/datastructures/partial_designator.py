@@ -76,18 +76,16 @@ class PartialDesignator:
 
         :return: A new performable object for each permutation of arguments and keyword arguments
         """
-        for kwargs_combination in PartialDesignator.generate_permutations(self.kwargs.values()):
+        for kwargs_combination in self.generate_permutations():
             yield self.performable(**dict(zip(self.kwargs.keys(), kwargs_combination)))
 
-    @staticmethod
-    def generate_permutations(args: Iterable) -> List:
+    def generate_permutations(self) -> List:
         """
         Generates the cartesian product of the given arguments. Arguments can also be a list of lists of arguments.
 
-        :param args: An iterable with arguments
         :yields: A list with a possible permutation of the given arguments
         """
-        iter_list = [x if PartialDesignator._is_iterable(x) else [x] for x in args]
+        iter_list = [x if PartialDesignator._is_iterable(x) else [x] for x in self.kwargs.values()]
         for combination in product(*iter_list):
             yield combination
 

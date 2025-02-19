@@ -377,7 +377,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         Name of the object
         """
 
-        obj_type: ObjectType
+        obj_type: PhysicalObject
         """
         Type of the object
         """

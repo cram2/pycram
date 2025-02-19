@@ -95,14 +95,15 @@ class DefaultDetecting(ProcessModule):
         front_facing_axis = camera_description.front_facing_axis
         query_result = []
         world_objects = []
-        try:
-            object_types = designator.object_designator_description.types
-        except AttributeError:
-            object_types = None
+
         if designator.technique == DetectionTechnique.TYPES:
-            for obj_type in object_types:
-                list1 = World.current_world.get_object_by_type(obj_type)
-                world_objects = world_objects + list1
+            try:
+                object_types = designator.object_designator_description.obj_type
+            except AttributeError:
+                raise AttributeError("The object designator does not contain a type attribute")
+
+            list1 = World.current_world.get_object_by_type(object_types)
+            world_objects = world_objects + list1
         elif designator.technique == DetectionTechnique.ALL:
             world_objects = World.current_world.get_scene_objects()
         elif designator.technique == DetectionTechnique.HUMAN:
