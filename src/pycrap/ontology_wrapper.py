@@ -3,7 +3,7 @@ import tempfile
 import owlready2
 from typing_extensions import Dict, Any
 
-from .ontologies.base import Base, ontology as default_pycrap_ontology
+from .ontologies.base import Base, ontology as default_pycrap_ontology, ontology_file as default_pycrap_ontology_file
 
 
 class OntologyWrapper:
@@ -30,8 +30,8 @@ class OntologyWrapper:
     """
 
     def __init__(self):
-        self.file = tempfile.NamedTemporaryFile(delete=True)
-        self.ontology = owlready2.get_ontology("file://" + self.path).load()
+        self.file = default_pycrap_ontology_file
+        self.ontology = default_pycrap_ontology
         self.ontology.name = "PyCRAP"
         self.python_objects = {}
 
@@ -77,7 +77,7 @@ class OntologyWrapper:
         """
         Reason over the ontology. This may take a long time.
         """
-        owlready2.sync_reasoner_pellet([self.ontology, default_pycrap_ontology],
+        owlready2.sync_reasoner_pellet(default_pycrap_ontology,
                                        infer_property_values=True, infer_data_property_values=True, debug=False)
 
     def add_individual(self, individual: Base, python_object: Any):

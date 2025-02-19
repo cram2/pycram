@@ -1,6 +1,12 @@
 from .dependencies import *
 
 
+class Rule(Base):
+    """
+    A class that represents a rule in PyCRAP.
+    """
+
+
 class World(Base):
     """
     The world could be the belief state of an agent about the world.

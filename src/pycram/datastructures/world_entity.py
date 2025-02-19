@@ -4,15 +4,14 @@ import os
 import pickle
 from abc import ABC, abstractmethod
 from copy import copy
-from dataclasses import dataclass
 from threading import RLock
 
 from trimesh.parent import Geometry3D
-from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union, Type
+from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union, Type, Tuple
 
-from pycrap.ontologies import PhysicalObject
+from pycrap.ontologies import PhysicalObject, Room, Location
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
-    AxisAlignedBoundingBox, RotatedBoundingBox
+    AxisAlignedBoundingBox, RotatedBoundingBox, RayResult
 from .enums import AdjacentBodyMethod
 from .mixins import HasConcept
 from ..local_transformer import LocalTransformer
@@ -20,7 +19,7 @@ from ..ros import Time, logdebug
 
 if TYPE_CHECKING:
     from ..datastructures.world import World
-    from .pose import Pose, GeoQuaternion as Quaternion, Transform
+    from .pose import Pose, GeoQuaternion as Quaternion, Transform, Point
 
 
 class StateEntity:
@@ -132,6 +131,9 @@ class WorldEntity(StateEntity, HasConcept, ABC):
         self.world: World = world
         HasConcept.__init__(self, name=self.name, world=self.world, concept=concept, parse_name=parse_name)
 
+    def reset_concepts(self):
+        self.ontology_individual.reload()
+
     @property
     @abstractmethod
     def name(self) -> str:
@@ -174,18 +176,38 @@ class PhysicalBody(WorldEntity, ABC):
         self._is_rotating: Optional[bool] = None
         self._velocity: Optional[List[float]] = None
         self.ontology_lock: RLock = RLock()
+        self.updated_containment_of_parts: bool = False
+        self.latest_known_parts: Dict[str, PhysicalBody] = {}
+
+    def reset_concepts(self):
+        super().reset_concepts()
+        self.contained_bodies = []
+        for part in self.parts.values():
+            part.reset_concepts()
+
+    @property
+    @abstractmethod
+    def parts(self) -> Dict[str, PhysicalBody]:
+        """
+        :return: The parts of this body as a dictionary mapping the part name to the part.
+        """
+        ...
 
     def update_containment(self, excluded_bodies: Optional[List[PhysicalBody]] = None,
                            candidate_selection_method: AdjacentBodyMethod = AdjacentBodyMethod.ClosestPoints,
                            max_distance: float = 0.5) -> None:
         """
-        Update the containment of the object by checking if it contains other bodies, excluding the given excluded
-        bodies.
+        Update the containment of the object by checking if it is contained in other bodies,
+         excluding the given excluded bodies.
 
         :param excluded_bodies: The bodies that should be excluded from the containment check.
         :param candidate_selection_method: The method to select the candidates for the containment check.
         :param max_distance: The maximum distance from this body to other bodies to consider a body as a candidate.
         """
+        # if not self.updated_containment_of_parts or self.latest_known_parts != self.parts:
+        #     if len(self.parts) > 0:
+        #         self.contained_bodies = [part for part in self.parts.values()]
+        #         self.updated_containment_of_parts = True
         excluded_bodies = [] if excluded_bodies is None else excluded_bodies
         excluded_bodies.append(self)
         if candidate_selection_method == AdjacentBodyMethod.ClosestPoints:
@@ -220,29 +242,7 @@ class PhysicalBody(WorldEntity, ABC):
         if max_distance <= 0:
             raise ValueError("The distance should be greater than zero.")
 
-        bb = self.get_axis_aligned_bounding_box()
-        origin = bb.origin_point
-
-        # x-axis rays
-        ray_x_left_start = [bb.min_x, origin.y, origin.z]
-        ray_x_left_end = [bb.min_x - max_distance, origin.y, origin.z]
-        ray_x_right_start = [bb.max_x, origin.y, origin.z]
-        ray_x_right_end = [bb.max_x + max_distance, origin.y, origin.z]
-        # y-axis rays
-        ray_y_left_start = [origin.x, bb.min_y, origin.z]
-        ray_y_left_end = [origin.x, bb.min_y - max_distance, origin.z]
-        ray_y_right_start = [origin.x, bb.max_y, origin.z]
-        ray_y_right_end = [origin.x, bb.max_y + max_distance, origin.z]
-        # z-axis rays
-        ray_z_left_start = [origin.x, origin.y, bb.min_z]
-        ray_z_left_end = [origin.x, origin.y, bb.min_z - max_distance]
-        ray_z_right_start = [origin.x, origin.y, bb.max_z]
-        ray_z_right_end = [origin.x, origin.y, bb.max_z + max_distance]
-
-        rays_start = [ray_x_left_start, ray_x_right_start, ray_y_left_start, ray_y_right_start, ray_z_left_start,
-                      ray_z_right_start]
-        rays_end = [ray_x_left_end, ray_x_right_end, ray_y_left_end, ray_y_right_end, ray_z_left_end, ray_z_right_end]
-
+        rays_start, rays_end = self.cast_rays_in_all_directions(max_distance)
         rays_results = self.world.ray_test_batch(rays_start, rays_end)
 
         bodies_ids = set([(rr.obj_id, rr.link_id) for rr in rays_results if rr.intersected])
@@ -250,6 +250,43 @@ class PhysicalBody(WorldEntity, ABC):
         bodies = [self.world.get_object_by_id(obj_id).get_link_by_id(link_id) for obj_id, link_id in bodies_ids]
 
         return bodies
+
+    def cast_rays_in_all_directions(self, max_distance: float = 0.5) -> List[RayResult]:
+        """
+        Get the rays in all 6 directions (+x, -x, +y, -y, +z,  and -z directions).
+
+        :param max_distance: The maximum distance the rays can travel.
+        :return: The rays in all 6 directions.
+        """
+        bb = self.get_axis_aligned_bounding_box()
+        origin = bb.origin
+        min_, max_ = bb.get_min_max()
+
+        rays_start, rays_end = [], []
+        for i in range(3):
+            i_rays_start, i_rays_end = self.get_axis_rays(origin, min_[i], max_[i], i, max_distance)
+            rays_start.extend(i_rays_start)
+            rays_end.extend(i_rays_end)
+
+        return self.world.ray_test_batch(rays_start, rays_end)
+
+    @staticmethod
+    def get_axis_rays(origin: List[float], min_val: float, max_val: float, idx: int, max_distance: float = 0.5)\
+            -> Tuple[List[List[float]], List[List[float]]]:
+        """
+        Get the rays in the given axis.
+
+        :param origin: The origin of the rays.
+        :param min_val: The start in the -ve direction of the axis.
+        :param max_val: The start in the +ve direction of the axis.
+        :param idx: The index of the direction/axis.
+        :param max_distance: The maximum distance the rays can travel.
+        """
+        ray_left_start = [min_val if i == idx else origin[i] for i in range(3)]
+        ray_left_end = [min_val - max_distance if i == idx else origin[i] for i in range(3)]
+        ray_right_start = [max_val if i == idx else origin[i] for i in range(3)]
+        ray_right_end = [max_val + max_distance if i == idx else origin[i] for i in range(3)]
+        return [ray_left_start, ray_right_start], [ray_left_end, ray_right_end]
 
     def contains_body(self, body: PhysicalBody) -> bool:
         """
@@ -269,7 +306,8 @@ class PhysicalBody(WorldEntity, ABC):
         """
         with self.ontology_lock:
             self.world.ontology.reason()
-            return [self.world.ontology.python_objects[phys_obj] for phys_obj in self.ontology_individual.contains_object]
+            return [self.world.ontology.python_objects[phys_obj]
+                    for phys_obj in self.ontology_individual.contains_object]
 
     @contained_bodies.setter
     def contained_bodies(self, bodies: List[PhysicalBody]) -> None:

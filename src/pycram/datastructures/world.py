@@ -14,8 +14,8 @@ from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKI
 
 import pycrap
 from pycrap.ontologies import PhysicalObject, Robot, Floor, Apartment
+from pycrap.ontologies.crax.rules import Rule
 from pycrap.ontology_wrapper import OntologyWrapper
-
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
@@ -26,12 +26,12 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox, RayResult)
 from ..datastructures.enums import JointType, WorldMode, Arms, AdjacentBodyMethod as ABM
 from ..datastructures.pose import Pose, Transform
-from ..datastructures.world_entity import StateEntity, PhysicalBody, WorldEntity
+from ..datastructures.world_entity import PhysicalBody, WorldEntity
 from ..failures import ProspectionObjectNotFound, ObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
-from ..ros import  Time
-from ..ros import  logwarn
+from ..ros import Time
+from ..ros import logwarn
 from ..validation.goal_validator import (GoalValidator,
                                          validate_joint_position, validate_multiple_joint_positions,
                                          validate_object_pose, validate_multiple_object_poses)
@@ -93,8 +93,11 @@ class World(WorldEntity, ABC):
         :param clear_cache: Whether to clear the cache directory.
         :param id_: The unique id of the world.
         """
-        self.ontology = OntologyWrapper()
         self.is_prospection_world: bool = is_prospection
+        if not is_prospection:
+            self.ontology = OntologyWrapper()
+        else:
+            self.ontology = None
         WorldEntity.__init__(self, id_, self, concept=pycrap.ontologies.World)
 
         self.latest_state_id: Optional[int] = None
@@ -131,9 +134,23 @@ class World(WorldEntity, ABC):
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
 
+        self.rules: Dict[str, Rule] = {}
+
+    def _set_world_rules(self):
+        if self.is_prospection_world:
+            return
+        Rule("""is_part_of(?part, ?parent), contains_object(?part, ?object) -> contains_object(?parent, ?object)""",
+             world=self, name="hierarchical_containment_rule")
+        Rule("""Kitchen(?entity) -> Room(?entity)""",
+             world=self, name="simple_rule")
+
+    def add_rule(self, rule: Rule):
+        self.rules[rule.onto_name] = rule
+        self.ontology.reason()
+
     @staticmethod
     def update_containment_for(bodies: List[PhysicalBody],
-                               candidate_selection_method: ABM = ABM.ClosestPoints)\
+                               candidate_selection_method: ABM = ABM.ClosestPoints) \
             -> List[PhysicalBody]:
         """
         Update the containment for the given bodies.
@@ -1307,6 +1324,13 @@ class World(WorldEntity, ABC):
             self.remove_saved_states()
             self.original_state_id = self.save_state(use_same_id=True)
 
+    def reset_concepts(self):
+        """
+        Reset the concepts of the World.
+        """
+        super().reset_concepts()
+        [obj.reset_concepts() for obj in self.objects]
+
     def remove_saved_states(self) -> None:
         """
         Remove all saved states of the World.
@@ -1336,7 +1360,7 @@ class World(WorldEntity, ABC):
         for obj in list(self.current_world.objects):
             obj.update_link_transforms(curr_time)
 
-    def ray_test(self, from_position: List[float], to_position: List[float], calculate_distance: bool = False)\
+    def ray_test(self, from_position: List[float], to_position: List[float], calculate_distance: bool = False) \
             -> RayResult:
         """
         A wrapper around the :py:meth:`~pycram.world.World._ray_test` method that also calculates the distance
@@ -1425,7 +1449,7 @@ class World(WorldEntity, ABC):
         link_parent = [0 for _ in range(num_of_shapes)]
         link_joints = [JointType.FIXED.value for _ in range(num_of_shapes)]
         link_collision = [-1 for _ in range(num_of_shapes)]
-        link_joint_axis = [Point(x=1, y=0,z=0) for _ in range(num_of_shapes)]
+        link_joint_axis = [Point(x=1, y=0, z=0) for _ in range(num_of_shapes)]
 
         multi_body = MultiBody(base_visual_shape_index=-1, base_pose=pose,
                                link_visual_shape_indices=visual_shape_ids, link_poses=link_poses,

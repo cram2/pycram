@@ -204,6 +204,17 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
 
+    def reset(self):
+        """
+        Reset the link to its initial state.
+        """
+        self.constraint_ids = {}
+        self.reset_concepts()
+
+    @property
+    def parts(self) -> Dict[str, PhysicalBody]:
+        return {}
+
     @property
     def parent_entity(self) -> Object:
         """

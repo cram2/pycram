@@ -70,6 +70,7 @@ class BulletWorldTestCase(EmptyBulletWorldTestCase):
         cls.kitchen = Object("kitchen", Kitchen, "kitchen" + cls.extension)
         cls.cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
                             pose=Pose([1.3, 0.7, 0.95]))
+        cls.world._set_world_rules()
 
 class BulletWorldGUITestCase(BulletWorldTestCase):
     render_mode = WorldMode.GUI

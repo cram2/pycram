@@ -126,6 +126,10 @@ class Object(PhysicalBody):
         self.world.add_object(self)
 
     @property
+    def parts(self) -> Dict[str, PhysicalBody]:
+        return self.links
+
+    @property
     def tf_frame(self) -> str:
         """
         The tf frame of the object.
@@ -660,11 +664,28 @@ class Object(PhysicalBody):
 
         :param remove_saved_states: If True the saved states will be removed.
         """
+        self.reset_concepts()
         self.detach_all()
-        self.reset_all_joints_positions()
+        self.reset_all_links()
+        self.reset_all_joints()
         self.set_pose(self.original_pose)
         if remove_saved_states:
             self.remove_saved_states()
+
+    def reset_all_joints(self) -> None:
+        """
+        Reset all joints of the object.
+        """
+        for joint in self.joints.values():
+            joint.reset_concepts()
+        self.reset_all_joints_positions()
+
+    def reset_all_links(self) -> None:
+        """
+        Reset all links of the object.
+        """
+        for link in self.links.values():
+            link.reset()
 
     @property
     def is_an_environment(self) -> bool:
