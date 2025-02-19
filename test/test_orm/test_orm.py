@@ -84,7 +84,7 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
+            MoveTorsoActionPerformable(TorsoState.HIGH).perform()
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             description.resolve().perform()
 
@@ -159,7 +159,7 @@ class MixinTestCase(DatabaseTestCaseMixin):
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
+            MoveTorsoActionPerformable(TorsoState.HIGH).perform()
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             description.resolve().perform()
 
@@ -188,7 +188,7 @@ class ORMObjectDesignatorTestCase(DatabaseTestCaseMixin):
         torso_joint = RobotDescription.current_robot_description.torso_joint
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
+            MoveTorsoActionPerformable(TorsoState.HIGH).perform()
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             description.resolve().perform()
         pycram.orm.base.ProcessMetaData().description = "Unittest"
@@ -349,7 +349,7 @@ class BelieveObjectTestCase(unittest.TestCase):
         with simulated_robot:
             ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-            MoveTorsoAction([0.25]).resolve().perform()
+            MoveTorsoAction(TorsoState.HIGH).resolve().perform()
             NavigateAction(target_locations=[Pose([2, -1.89, 0])]).resolve().perform()
 
             LookAtAction(targets=[Pose([1, -1.78, 0.55])]).resolve().perform()
@@ -394,7 +394,7 @@ class ViewsSchemaTest(DatabaseTestCaseMixin):
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
-            MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
+            MoveTorsoActionPerformable(TorsoState.HIGH).perform()
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
             description.resolve().perform()
         pycram.orm.base.ProcessMetaData().description = "pickUpWithContextView_test"
@@ -417,7 +417,7 @@ class ViewsSchemaTest(DatabaseTestCaseMixin):
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
-            MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
+            MoveTorsoActionPerformable(TorsoState.HIGH).perform()
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
             description.resolve().perform()
         pycram.orm.base.ProcessMetaData().description = "pickUpWithContextView_conditions_test"

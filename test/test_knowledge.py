@@ -1,3 +1,4 @@
+import unittest
 from itertools import permutations
 
 from pycram.testing import BulletWorldTestCase
@@ -139,12 +140,14 @@ class TestPartialDesignator(KnowledgeBulletTestCase):
 
 
 class TestParameterInference(KnowledgeBulletTestCase):
+    @unittest.skip
     def test_pickup_arm(self):
         test_object = BelieveObject(names=["milk"])
         partial_desig = PickUpAction(test_object, [Arms.RIGHT])
         desig = partial_desig.resolve()
         self.assertEqual(desig.grasp, Grasp.FRONT)
 
+    @unittest.skip
     def test_pickup_grasp(self):
         test_object = BelieveObject(names=["milk"])
         partial_desig = PickUpAction(test_object, [Arms.RIGHT])

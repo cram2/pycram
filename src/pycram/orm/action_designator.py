@@ -37,7 +37,7 @@ class MoveTorsoAction(Action):
     """ORM Class of pycram.designators.action_designator.MoveTorsoAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
-    torso_state: Mapped[TorsoState] = mapped_column(init=False)
+    torso_state: Mapped[TorsoState] = mapped_column(default=None)
 
 
 class SetGripperAction(Action):
