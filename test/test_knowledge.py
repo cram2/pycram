@@ -1,11 +1,15 @@
+from itertools import permutations
+
 from pycram.testing import BulletWorldTestCase
 from knowledge_testcase import KnowledgeSourceTestCase, TestProperty, KnowledgeBulletTestCase
-from pycram.datastructures.enums import Arms, Grasp, ObjectType
+from pycram.datastructures.enums import Arms, Grasp, ObjectType, TorsoState, GripperState
 from pycram.datastructures.partial_designator import PartialDesignator
 from pycram.datastructures.pose import Pose
-from pycram.designators.action_designator import PickUpAction, PickUpActionPerformable, OpenAction
+from pycram.designators.action_designator import PickUpAction, PickUpActionPerformable, OpenAction, MoveTorsoAction, \
+    MoveTorsoActionPerformable
 from pycram.designators.object_designator import BelieveObject, ObjectPart
 from pycram.knowledge.knowledge_engine import KnowledgeEngine
+from pycram.designators.action_designator import SetGripperAction, SetGripperActionPerformable
 
 
 class TestKnowledgeSource(KnowledgeSourceTestCase):
@@ -116,10 +120,11 @@ class TestPartialDesignator(KnowledgeBulletTestCase):
         self.assertFalse(PartialDesignator._is_iterable(1))
 
     def test_partial_desig_permutations(self):
-        l1 = [1, 2]
-        l2 = [Arms.RIGHT, Arms.LEFT]
-        permutations = PartialDesignator.generate_permutations([l1, l2])
-        self.assertEqual([(1, Arms.RIGHT), (1, Arms.LEFT), (2, Arms.RIGHT), (2, Arms.LEFT)], list(permutations))
+        tp = PartialDesignator(SetGripperActionPerformable, [Arms.LEFT, Arms.RIGHT],
+                               motion=[GripperState.OPEN, GripperState.CLOSE])
+        permutations = tp.generate_permutations()
+        self.assertEqual([(Arms.LEFT, GripperState.OPEN), (Arms.LEFT, GripperState.CLOSE),
+                          (Arms.RIGHT, GripperState.OPEN), (Arms.RIGHT, GripperState.CLOSE)], list(permutations))
 
     def test_partial_desig_iter(self):
         test_object = BelieveObject(names=["milk"])
