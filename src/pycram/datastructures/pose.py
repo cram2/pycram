@@ -14,9 +14,9 @@ import sqlalchemy.orm
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
-from ..ros import  Time
+from ..ros import Time
 from ..validation.error_checkers import calculate_pose_error
-from ..ros import  logwarn, logerr
+from ..ros import logwarn, logerr
 
 
 def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
