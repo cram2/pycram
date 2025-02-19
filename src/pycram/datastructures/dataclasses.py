@@ -6,12 +6,12 @@ from copy import deepcopy, copy
 from dataclasses import dataclass, fields, field
 
 import numpy as np
+import plotly.graph_objects as go
 import trimesh
 from matplotlib import pyplot as plt
-from random_events.variable import Continuous
 from random_events.interval import closed, SimpleInterval, Bound
 from random_events.product_algebra import SimpleEvent, Event
-import plotly.graph_objects as go
+from random_events.variable import Continuous
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, Self, \
     deprecated
 
@@ -29,6 +29,10 @@ if TYPE_CHECKING:
 
 @dataclass
 class ManipulatorData:
+    """
+    A dataclass for storing the information of a manipulator that is used for creating a robot description for that
+    manipulator. A manipulator is an Arm with an end-effector that can be used to interact with the environment.
+    """
     name: str
     """
     Name of the Manipulator.
@@ -72,6 +76,10 @@ class ManipulatorData:
     opening_distance: float
     """
     The opening distance of the gripper.
+    """
+    fingers_link_names: Optional[List[str]] = None
+    """
+    List of link names for the fingers of the gripper.
     """
     relative_dir: str = ''
     """
@@ -309,7 +317,7 @@ class BoundingBox:
     def merge_multiple_bounding_boxes_into_mesh(cls, bounding_boxes: List[BoundingBox],
                                                 save_mesh_to: Optional[str] = None,
                                                 use_random_events: bool = True,
-                                                plot: bool = False) -> trimesh.parent.Geometry3D:
+                                                plot: bool = False) -> trimesh.Trimesh:
         """
         Merge multiple axis-aligned bounding boxes into a single mesh.
 

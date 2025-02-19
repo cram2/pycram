@@ -13,7 +13,7 @@ from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
 import pycrap
-from pycrap.ontologies import PhysicalObject
+from pycrap.ontologies import PhysicalObject, Robot, Floor, Apartment
 from pycrap.ontology_wrapper import OntologyWrapper
 
 from ..cache_manager import CacheManager
@@ -922,7 +922,7 @@ class World(WorldEntity, ABC):
         :return: the axis aligned bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_object_rotated_bounding_box(self, obj: Object) -> RotatedBoundingBox:
         """
@@ -930,7 +930,7 @@ class World(WorldEntity, ABC):
         :return: the rotated bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
         """
@@ -938,7 +938,7 @@ class World(WorldEntity, ABC):
         :return: The axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_link_rotated_bounding_box(self, link: Link) -> RotatedBoundingBox:
         """
@@ -946,7 +946,7 @@ class World(WorldEntity, ABC):
         :return: The rotated bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     @abstractmethod
     def set_realtime(self, real_time: bool) -> None:
@@ -1864,10 +1864,10 @@ class WorldSync(threading.Thread):
         # Set the pose of the prospection objects to the pose of the world objects
         obj_pose_dict = {prospection_obj: obj.pose
                          for obj, prospection_obj in self.object_to_prospection_object_map.items()}
-        self.world.prospection_world.reset_multiple_objects_base_poses(obj_pose_dict)
         for obj, prospection_obj in self.object_to_prospection_object_map.items():
             prospection_obj.set_attachments(obj.attachments)
             prospection_obj.joint_states = obj.joint_states
+        self.world.prospection_world.reset_multiple_objects_base_poses(obj_pose_dict)
 
     def check_for_equal(self) -> bool:
         """

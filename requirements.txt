@@ -30,6 +30,7 @@ typeguard~=4.3.0
 gymnasium
 pin==2.7.0
 inflection>=0.5.1
-manifold3d>=3.0.1
+manifold3d==3.0.1
 transforms3d
+pyglet==1.5.31
 

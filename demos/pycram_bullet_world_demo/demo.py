@@ -74,7 +74,7 @@ with simulated_robot:
 
     OpenAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
     spoon.detach(apartment)
-
+    ParkArmsAction([Arms.BOTH]).resolve().perform()
     # Detect and pickup the spoon
     LookAtAction([apartment.get_link_pose("handle_cab10_t")]).resolve().perform()
 
@@ -90,6 +90,8 @@ with simulated_robot:
     PickUpAction(spoon_desig, [pickup_arm], [Grasp.TOP]).resolve().perform()
 
     ParkArmsAction([Arms.LEFT if pickup_arm == Arms.LEFT else Arms.RIGHT]).resolve().perform()
+
+    NavigateAction([drawer_open_loc.pose]).resolve().perform()
 
     CloseAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
 

@@ -4,37 +4,34 @@ from __future__ import annotations
 import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
-from inspect import isgenerator, isgeneratorfunction
+from datetime import timedelta
 
+from sqlalchemy.orm.session import Session
+from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable
 from typing_extensions import get_type_hints
+
 from pycrap.ontologies import PhysicalObject, Agent
-from .datastructures.property import Property, EmptyProperty
+from .datastructures.enums import ObjectType, Grasp
+from .datastructures.pose import Pose
+from .datastructures.property import EmptyProperty
 from .failures import PlanFailure
-from .ros import logwarn, loginfo
 from sqlalchemy.orm.session import Session
 
 from .datastructures.world import World
 from .datastructures.partial_designator import PartialDesignator
-from .world_concepts.world_object import Object as WorldObject
-from .utils import GeneratorList, bcolors
-from threading import Lock
-from time import time
 from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable, TYPE_CHECKING
 
-from .local_transformer import LocalTransformer
 from .language import Language
-from .datastructures.pose import Pose
-from .robot_description import RobotDescription
-from .datastructures.enums import ObjectType, Grasp
-
-import logging
-
+from .local_transformer import LocalTransformer
 from .orm.action_designator import (Action as ORMAction)
-from .orm.object_designator import (Object as ORMObjectDesignator)
-from .orm.motion_designator import Motion as ORMMotionDesignator
-
 from .orm.base import RobotState, ProcessMetaData
+from .orm.motion_designator import Motion as ORMMotionDesignator
+from .orm.object_designator import (Object as ORMObjectDesignator)
+from .robot_description import RobotDescription
+from .ros import loginfo
 from .tasktree import with_tree
+from .utils import bcolors
+from .world_concepts.world_object import Object as WorldObject
 
 
 class DesignatorError(Exception):
@@ -48,10 +45,12 @@ class DesignatorError(Exception):
 class ResolutionError(Exception):
     def __init__(self, missing_properties: List[str], wrong_type: Dict, current_type: Any,
                  designator: DesignatorDescription):
-        self.error = f"\nSome requiered properties where missing or had the wrong type when grounding the Designator: {designator}.\n"
+        self.error = (f"\nSome required properties where missing or had the wrong type when grounding the Designator:"
+                      f" {designator}.\n")
         self.missing = f"The missing properties where: {missing_properties}\n"
-        self.wrong = f"The properties with the wrong type along with the currrent -and right type :\n"
-        self.head = "Property   |   Current Type    |     Right Type\n-------------------------------------------------------------\n"
+        self.wrong = f"The properties with the wrong type along with the current -and right type :\n"
+        self.head = ("Property   |   Current Type    |     Right Type\n------------------------------------"
+                     "-------------------------\n")
         self.tab = ""
         for prop in wrong_type.keys():
             self.tab += prop + "     " + str(current_type[prop]) + "      " + str(wrong_type[prop]) + "\n"
@@ -110,8 +109,6 @@ class DesignatorDescription(ABC):
     def copy(self) -> DesignatorDescription:
         return self
 
-
-
     def get_optional_parameter(self) -> List[str]:
         """
         Returns a list of optional parameter names of this designator_description description.
@@ -149,8 +146,6 @@ class ActionDesignatorDescription(DesignatorDescription, Language, PartialDesign
     Reference to the performable class that is used to execute the action.
     """
 
-
-
     @dataclass
     class Action:
         """
@@ -182,7 +177,8 @@ class ActionDesignatorDescription(DesignatorDescription, Language, PartialDesign
         def __post_init__(self):
             self.robot_position = World.robot.get_pose()
             if RobotDescription.current_robot_description.torso_joint != "":
-                self.robot_torso_height = World.robot.get_joint_position(RobotDescription.current_robot_description.torso_joint)
+                self.robot_torso_height = World.robot.get_joint_position(
+                    RobotDescription.current_robot_description.torso_joint)
             else:
                 self.robot_torso_height = 0.0
             self.robot_type = World.robot.obj_type
@@ -193,6 +189,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language, PartialDesign
 
             :return: The result of the action in the plan
             """
+            result: Optional[Any] = None
             for pre_perform in self._pre_perform_callbacks:
                 pre_perform(self)
             try:
@@ -202,6 +199,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language, PartialDesign
             finally:
                 for post_perform in self._post_perform_callbacks:
                     post_perform(self)
+                self.validate(result)
             return result
 
         @with_tree
@@ -210,6 +208,15 @@ class ActionDesignatorDescription(DesignatorDescription, Language, PartialDesign
             Plan of the action. To be overridden by subclasses.
 
             :return: The result of the action, if there is any
+            """
+            raise NotImplementedError()
+
+        def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+            """
+            Validate the action after performing it, by checking if the action effects are as expected.
+
+            :param result: The result of the action if there is any
+            :param max_wait_time: The maximum time to wait for the action to be validated, before raising an error.
             """
             raise NotImplementedError()
 
@@ -593,5 +600,3 @@ class BaseMotion(ABC):
         # if missing != [] or wrong_type != {}:
         #     raise ResolutionError(missing, wrong_type, current_type, self.__class__)
         #
-
-
