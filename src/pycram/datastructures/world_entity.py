@@ -4,6 +4,7 @@ import os
 import pickle
 from abc import ABC, abstractmethod
 from copy import copy
+from dataclasses import dataclass
 from threading import RLock
 
 from trimesh.parent import Geometry3D
@@ -12,13 +13,14 @@ from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, U
 from pycrap.ontologies import PhysicalObject
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
     AxisAlignedBoundingBox, RotatedBoundingBox
+from .enums import AdjacentBodyMethod
 from .mixins import HasConcept
 from ..local_transformer import LocalTransformer
-from ..ros import  Time
+from ..ros import Time, logdebug
 
 if TYPE_CHECKING:
     from ..datastructures.world import World
-    from .pose import Pose, Point, GeoQuaternion as Quaternion, Transform
+    from .pose import Pose, GeoQuaternion as Quaternion, Transform
 
 
 class StateEntity:
@@ -172,6 +174,82 @@ class PhysicalBody(WorldEntity, ABC):
         self._is_rotating: Optional[bool] = None
         self._velocity: Optional[List[float]] = None
         self.ontology_lock: RLock = RLock()
+
+    def update_containment(self, excluded_bodies: Optional[List[PhysicalBody]] = None,
+                           candidate_selection_method: AdjacentBodyMethod = AdjacentBodyMethod.ClosestPoints,
+                           max_distance: float = 0.5) -> None:
+        """
+        Update the containment of the object by checking if it contains other bodies, excluding the given excluded
+        bodies.
+
+        :param excluded_bodies: The bodies that should be excluded from the containment check.
+        :param candidate_selection_method: The method to select the candidates for the containment check.
+        :param max_distance: The maximum distance from this body to other bodies to consider a body as a candidate.
+        """
+        excluded_bodies = [] if excluded_bodies is None else excluded_bodies
+        excluded_bodies.append(self)
+        if candidate_selection_method == AdjacentBodyMethod.ClosestPoints:
+            bodies = self.get_adjacent_bodies_using_closest_points(max_distance)
+        else:
+            bodies = self.get_adjacent_bodies_using_rays(max_distance)
+        for body in bodies:
+            if body in excluded_bodies:
+                continue
+            if body.get_axis_aligned_bounding_box().contains_box(self.get_axis_aligned_bounding_box()):
+                logdebug(f"{body.name} contains {self.name}")
+                body.contained_bodies = [self]
+
+    def get_adjacent_bodies_using_closest_points(self, max_distance: float = 0.5) -> List[PhysicalBody]:
+        """
+        Get the adjacent bodies of the body using the closest points between the bodies.
+
+        :param max_distance: The maximum distance to consider a body as adjacent.
+        :return: The bodies that are adjacent to this body if any.
+        """
+        closest_points = self.closest_points(max_distance)
+        return closest_points.get_all_bodies(excluded=[self])
+
+    def get_adjacent_bodies_using_rays(self, max_distance: float = 0.5) -> List[PhysicalBody]:
+        """
+        Cast rays in the 6 rays in all directions (+x, -x, +y, -y, +z,  and -z directions) to find the adjacent bodies
+         of the body.
+
+        :param max_distance: The max distance that the rays can travel.
+        :return: The bodies that are adjacent to this body if any.
+        """
+        if max_distance <= 0:
+            raise ValueError("The distance should be greater than zero.")
+
+        bb = self.get_axis_aligned_bounding_box()
+        origin = bb.origin_point
+
+        # x-axis rays
+        ray_x_left_start = [bb.min_x, origin.y, origin.z]
+        ray_x_left_end = [bb.min_x - max_distance, origin.y, origin.z]
+        ray_x_right_start = [bb.max_x, origin.y, origin.z]
+        ray_x_right_end = [bb.max_x + max_distance, origin.y, origin.z]
+        # y-axis rays
+        ray_y_left_start = [origin.x, bb.min_y, origin.z]
+        ray_y_left_end = [origin.x, bb.min_y - max_distance, origin.z]
+        ray_y_right_start = [origin.x, bb.max_y, origin.z]
+        ray_y_right_end = [origin.x, bb.max_y + max_distance, origin.z]
+        # z-axis rays
+        ray_z_left_start = [origin.x, origin.y, bb.min_z]
+        ray_z_left_end = [origin.x, origin.y, bb.min_z - max_distance]
+        ray_z_right_start = [origin.x, origin.y, bb.max_z]
+        ray_z_right_end = [origin.x, origin.y, bb.max_z + max_distance]
+
+        rays_start = [ray_x_left_start, ray_x_right_start, ray_y_left_start, ray_y_right_start, ray_z_left_start,
+                      ray_z_right_start]
+        rays_end = [ray_x_left_end, ray_x_right_end, ray_y_left_end, ray_y_right_end, ray_z_left_end, ray_z_right_end]
+
+        rays_results = self.world.ray_test_batch(rays_start, rays_end)
+
+        bodies_ids = set([(rr.obj_id, rr.link_id) for rr in rays_results if rr.intersected])
+
+        bodies = [self.world.get_object_by_id(obj_id).get_link_by_id(link_id) for obj_id, link_id in bodies_ids]
+
+        return bodies
 
     def contains_body(self, body: PhysicalBody) -> bool:
         """

@@ -9,7 +9,7 @@ from copy import copy
 
 import numpy as np
 from geometry_msgs.msg import Point
-from trimesh.parent import Geometry3D
+from trimesh import Trimesh
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
 import pycrap
@@ -24,7 +24,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                           ObjectState, WorldState, ClosestPointsList,
                                           ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox, RayResult)
-from ..datastructures.enums import JointType, WorldMode, Arms
+from ..datastructures.enums import JointType, WorldMode, Arms, AdjacentBodyMethod as ABM
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity, PhysicalBody, WorldEntity
 from ..failures import ProspectionObjectNotFound, ObjectNotFound
@@ -132,16 +132,20 @@ class World(WorldEntity, ABC):
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
 
     @staticmethod
-    def update_containment_for(bodies: List[PhysicalBody]) -> List[PhysicalBody]:
+    def update_containment_for(bodies: List[PhysicalBody],
+                               candidate_selection_method: ABM = ABM.ClosestPoints)\
+            -> List[PhysicalBody]:
         """
         Update the containment for the given bodies.
 
         :param bodies: The bodies to update the containment for.
+        :param candidate_selection_method: The method to select the candidate bodies for containment update.
         :return: The updated bodies.
         """
-        checked_bodies: List[PhysicalObject] = []
+        checked_bodies: List[PhysicalBody] = []
         for body in bodies:
-            body.update_containment(excluded_objects=checked_bodies)
+            body.update_containment(excluded_bodies=checked_bodies,
+                                    candidate_selection_method=candidate_selection_method)
             checked_bodies.append(body)
         return checked_bodies
 
@@ -159,7 +163,7 @@ class World(WorldEntity, ABC):
         """
         return self.__class__.__name__
 
-    def get_body_convex_hull(self, body: PhysicalBody) -> Geometry3D:
+    def get_body_convex_hull(self, body: PhysicalBody) -> Trimesh:
         """
         :param body: The body object.
         :return: The convex hull of the body as a Geometry3D object.

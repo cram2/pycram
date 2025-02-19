@@ -9,7 +9,6 @@ from geometry_msgs.msg import Point, Quaternion
 from trimesh.parent import Geometry3D
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
-import pycrap.ontologies
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList, RotatedBoundingBox, VirtualJoint)
@@ -23,8 +22,7 @@ from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenAttachedObj
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
-from ..ros import  Time
-from ..ros import  logwarn, logerr
+from ..ros import logwarn, logerr, Time
 
 try:
     from ..object_descriptors.mjcf import ObjectDescription as MJCF
@@ -32,11 +30,8 @@ except ImportError:
     MJCF = None
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
-from ..datastructures.mixins import HasConcept
-from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, \
-    has_child_link, has_parent_link, is_part_of, Robot, Link as CraxLink, Floor, Location, RootLink
-
-from pycrap.urdf_parser import parse_furniture, parse_joint_types
+from pycrap.ontologies import PhysicalObject, Joint, \
+    Robot, Floor, Location
 
 Link = ObjectDescription.Link
 
@@ -130,42 +125,6 @@ class Object(PhysicalBody):
 
         self.world.add_object(self)
 
-    def update_containment(self, excluded_objects: Optional[List[Object]] = None) -> None:
-        """
-        Update the containment of the object by checking if it contains other objects, excluding the given excluded
-        objects.
-
-        :param excluded_objects: The objects that should be excluded from the containment check.
-        """
-        excluded_objects = [] if excluded_objects is None else excluded_objects
-        excluded_objects.append(self)
-        bb = self.get_axis_aligned_bounding_box()
-        origin = Point(*bb.origin)
-        distance = 0.5
-        ray_x_left_start = [bb.min_x, origin.y, origin.z]
-        ray_x_left_end = [bb.min_x - distance, origin.y, origin.z]
-        ray_x_right_start = [bb.max_x, origin.y, origin.z]
-        ray_x_right_end = [bb.max_x + distance, origin.y, origin.z]
-        ray_y_left_start = [origin.x, bb.min_y, origin.z]
-        ray_y_left_end = [origin.x, bb.min_y - distance, origin.z]
-        ray_y_right_start = [origin.x, bb.max_y, origin.z]
-        ray_y_right_end = [origin.x, bb.max_y + distance, origin.z]
-        ray_z_left_start = [origin.x, origin.y, bb.min_z]
-        ray_z_left_end = [origin.x, origin.y, bb.min_z - distance]
-        ray_z_right_start = [origin.x, origin.y, bb.max_z]
-        ray_z_right_end = [origin.x, origin.y, bb.max_z + distance]
-        rays_start = [ray_x_left_start, ray_x_right_start, ray_y_left_start, ray_y_right_start, ray_z_left_start,
-                        ray_z_right_start]
-        rays_end = [ray_x_left_end, ray_x_right_end, ray_y_left_end, ray_y_right_end, ray_z_left_end, ray_z_right_end]
-        rays_results = self.world.ray_test_batch(rays_start, rays_end)
-        bodies_ids = set([(rr.obj_id, rr.link_id) for rr in rays_results if rr.intersected])
-        bodies = [self.world.get_object_by_id(obj_id).get_link_by_id(link_id) for obj_id, link_id in bodies_ids]
-        for body in bodies:
-            if body not in excluded_objects:
-                if body.get_axis_aligned_bounding_box().contains_box(self.get_axis_aligned_bounding_box()):
-                    print(f"{body.name} contains {self.name}")
-                    body.contained_bodies = [self]
-
     @property
     def tf_frame(self) -> str:
         """
@@ -213,11 +172,11 @@ class Object(PhysicalBody):
                 for link_name, color in rgba_color.items():
                     self.links[link_name].color = color
 
-    def get_mesh_path(self) -> str:
+    def get_mesh_path(self) -> List[str]:
         """
         Get the path to the mesh file of the object.
 
-        :return: The path to the mesh file.
+        :return: The path(s) to the mesh file(s).
         """
         if self.has_one_link:
             return self.root_link.get_mesh_path()
