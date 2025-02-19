@@ -17,7 +17,7 @@ from gtts import gTTS
 
 import io
 
-from ..ros.logging import logdebug
+from ..ros import  logdebug
 
 
 

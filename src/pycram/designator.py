@@ -23,7 +23,7 @@ from .orm.base import RobotState, ProcessMetaData
 from .orm.motion_designator import Motion as ORMMotionDesignator
 from .orm.object_designator import (Object as ORMObjectDesignator)
 from .robot_description import RobotDescription
-from .ros.logging import loginfo
+from .ros import loginfo
 from .tasktree import with_tree
 from .utils import bcolors
 from .world_concepts.world_object import Object as WorldObject

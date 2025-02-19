@@ -5,6 +5,20 @@ from enum import Enum, auto
 from ..failures import UnsupportedJointType
 
 
+class ContainerManipulationType(Enum):
+    """
+    Enum for the different types of container manipulation.
+    """
+    Opening = auto()
+    """
+    The Opening type is used to open a container.
+    """
+    Closing = auto()
+    """
+    The Closing type is used to close a container.
+    """
+
+
 class FindBodyInRegionMethod(Enum):
     """
     Enum for the different methods to find a body in a region.

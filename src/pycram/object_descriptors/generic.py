@@ -66,7 +66,7 @@ class JointDescription(AbstractJointDescription):
 
     @property
     def axis(self) -> Point:
-        return Point(0, 0, 0)
+        return Point(x=0, y=0, z=0)
 
     @property
     def has_limits(self) -> bool:

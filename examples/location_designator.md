@@ -212,8 +212,8 @@ robot to reach a target pose.
 work.
 
 ```python
-import rosnode
-if "/giskard" in rosnode.get_node_names():
+from pycram.ros import get_node_names
+if "/giskard" in get_node_names():
 
     from pycram.designators.specialized_designators.location.giskard_location import GiskardLocation
     

@@ -30,8 +30,8 @@ from ..datastructures.world_entity import StateEntity, PhysicalBody, WorldEntity
 from ..failures import ProspectionObjectNotFound, ObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
-from ..ros.data_types import Time
-from ..ros.logging import logwarn
+from ..ros import  Time
+from ..ros import  logwarn
 from ..validation.goal_validator import (GoalValidator,
                                          validate_joint_position, validate_multiple_joint_positions,
                                          validate_object_pose, validate_multiple_object_poses)
@@ -488,7 +488,7 @@ class World(WorldEntity, ABC):
         constraint = Constraint(parent_link=parent_link,
                                 child_link=child_link,
                                 _type=JointType.FIXED,
-                                axis_in_child_frame=Point(0, 0, 0),
+                                axis_in_child_frame=Point(x=0, y=0, z=0),
                                 constraint_to_parent=child_to_parent_transform,
                                 child_to_constraint=Transform(frame=child_link.tf_frame)
                                 )
@@ -1015,9 +1015,9 @@ class World(WorldEntity, ABC):
 
         :param remove_saved_states: Whether to remove the saved states.
         """
-        self.exit_prospection_world_if_exists()
         self.reset_world(remove_saved_states)
         self.remove_all_objects()
+        self.exit_prospection_world_if_exists()
         self.disconnect_from_physics_server()
         self.reset_robot()
         self.join_threads()
@@ -1421,7 +1421,7 @@ class World(WorldEntity, ABC):
         link_parent = [0 for _ in range(num_of_shapes)]
         link_joints = [JointType.FIXED.value for _ in range(num_of_shapes)]
         link_collision = [-1 for _ in range(num_of_shapes)]
-        link_joint_axis = [Point(1, 0, 0) for _ in range(num_of_shapes)]
+        link_joint_axis = [Point(x=1, y=0,z=0) for _ in range(num_of_shapes)]
 
         multi_body = MultiBody(base_visual_shape_index=-1, base_pose=pose,
                                link_visual_shape_indices=visual_shape_ids, link_poses=link_poses,
@@ -1716,9 +1716,6 @@ class World(WorldEntity, ABC):
         The saved original state of the world.
         """
         return self.saved_states[self.original_state_id]
-
-    def __del__(self):
-        self.exit()
 
     def __eq__(self, other: World):
         if not isinstance(other, self.__class__):

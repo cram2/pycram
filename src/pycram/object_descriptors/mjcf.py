@@ -15,7 +15,7 @@ from ..datastructures.pose import Pose
 from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription, ObjectDescription
 from ..failures import MultiplePossibleTipLinks
-from ..ros.ros_tools import get_parameter
+from ..ros import  get_parameter
 
 try:
     from multiverse_parser import Configuration, Factory, InertiaSource, GeomBuilder
@@ -144,7 +144,7 @@ class JointDescription(AbstractJointDescription):
         """
         :return: The axis of this joint, for example the rotation axis for a revolute joint.
         """
-        return Point(*self.parsed_description.axis)
+        return Point(**dict(zip(["x", "y", "z"], self.parsed_description)))
 
     @property
     def lower_limit(self) -> Union[float, None]:

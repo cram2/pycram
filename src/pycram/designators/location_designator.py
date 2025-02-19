@@ -12,7 +12,7 @@ from ..designator import DesignatorError, LocationDesignatorDescription
 from ..local_transformer import LocalTransformer
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
 from ..robot_description import RobotDescription
-from ..ros.logging import logdebug
+from ..ros import  logdebug
 from ..world_concepts.world_object import Object, Link
 from ..world_reasoning import link_pose_for_joint_config, contact, is_held_object, prospect_robot_contact
 

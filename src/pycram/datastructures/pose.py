@@ -5,18 +5,18 @@ import math
 import datetime
 from collections.abc import Sequence
 
-from tf.transformations import euler_from_quaternion
+from ..tf_transformations import euler_from_quaternion, translation_matrix, quaternion_matrix, concatenate_matrices, \
+    inverse_matrix, translation_from_matrix, quaternion_from_matrix
 from typing_extensions import List, Union, Optional, Sized, Self, Tuple
 
 import numpy as np
 import sqlalchemy.orm
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
-from tf import transformations
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
-from ..ros.data_types import Time
+from ..ros import  Time
 from ..validation.error_checkers import calculate_pose_error
-from ..ros.logging import logwarn, logerr
+from ..ros import  logwarn, logerr
 
 
 def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
@@ -90,6 +90,18 @@ class Pose(PoseStamped):
         p.pose = pose_stamped.pose
         return p
 
+    def to_pose_stamped(self) -> PoseStamped:
+        """
+        Converts this Pose to a PoseStamped message. This is useful for compatibility with ROS.
+
+        :return: A PoseStamped message with the same information as this Pose
+        """
+        return  PoseStamped(
+            header=self.header,
+            pose=self.pose
+        )
+
+
     def get_position_diff(self, target_pose: Self) -> Point:
         """
         Get the difference between the target and the current positions.
@@ -97,8 +109,8 @@ class Pose(PoseStamped):
         :param target_pose: The target pose.
         :return: The difference between the two positions.
         """
-        return Point(target_pose.position.x - self.position.x, target_pose.position.y - self.position.y,
-                     target_pose.position.z - self.position.z)
+        return Point(x=target_pose.position.x - self.position.x, y=target_pose.position.y - self.position.y,
+                     z=target_pose.position.z - self.position.z)
 
     def get_z_angle_difference(self, target_pose: Self) -> float:
         """
@@ -300,7 +312,7 @@ class Pose(PoseStamped):
 
         position = Position(*self.position_as_list())
         position.process_metadata = metadata
-        orientation = Quaternion(*self.orientation_as_list())
+        orientation = Quaternion(**dict(zip(["x", "y", "z", "w"],self.orientation_as_list())))
         orientation.process_metadata = metadata
         session.add(position)
         session.add(orientation)
@@ -389,8 +401,8 @@ class Transform(TransformStamped):
         """
         :return: The homogeneous matrix of this Transform
         """
-        translation = transformations.translation_matrix(self.translation_as_list())
-        rotation = transformations.quaternion_matrix(self.rotation_as_list())
+        translation = translation_matrix(self.translation_as_list())
+        rotation = quaternion_matrix(self.rotation_as_list())
         return np.dot(translation, rotation)
 
     @classmethod
@@ -521,11 +533,11 @@ class Transform(TransformStamped):
 
         :return: A new inverted Transform
         """
-        transform = transformations.concatenate_matrices(transformations.translation_matrix(self.translation_as_list()),
-                                                         transformations.quaternion_matrix(self.rotation_as_list()))
-        inverse_transform = transformations.inverse_matrix(transform)
-        translation = transformations.translation_from_matrix(inverse_transform)
-        quaternion = transformations.quaternion_from_matrix(inverse_transform)
+        transform = concatenate_matrices(translation_matrix(self.translation_as_list()),
+                                                         quaternion_matrix(self.rotation_as_list()))
+        inverse_transform = inverse_matrix(transform)
+        translation = translation_from_matrix(inverse_transform)
+        quaternion = quaternion_from_matrix(inverse_transform)
         return Transform(list(translation), list(quaternion), self.child_frame_id, self.header.frame_id, self.header.stamp)
 
     def __mul__(self, other: Transform) -> Union[Transform, None]:
@@ -539,17 +551,17 @@ class Transform(TransformStamped):
         if not isinstance(other, Transform):
             logerr(f"Can only multiply two Transforms")
             return
-        self_trans = transformations.translation_matrix(self.translation_as_list())
-        self_rot = transformations.quaternion_matrix(self.rotation_as_list())
+        self_trans = translation_matrix(self.translation_as_list())
+        self_rot = quaternion_matrix(self.rotation_as_list())
         self_mat = np.dot(self_trans, self_rot)
 
-        other_trans = transformations.translation_matrix(other.translation_as_list())
-        other_rot = transformations.quaternion_matrix(other.rotation_as_list())
+        other_trans = translation_matrix(other.translation_as_list())
+        other_rot = quaternion_matrix(other.rotation_as_list())
         other_mat = np.dot(other_trans, other_rot)
 
         new_mat = np.dot(self_mat, other_mat)
-        new_trans = transformations.translation_from_matrix(new_mat)
-        new_rot = transformations.quaternion_from_matrix(new_mat)
+        new_trans = translation_from_matrix(new_mat)
+        new_rot = quaternion_from_matrix(new_mat)
         return Transform(list(new_trans), list(new_rot), self.frame, other.child_frame_id)
 
     def inverse_times(self, other_transform: Transform) -> Transform:

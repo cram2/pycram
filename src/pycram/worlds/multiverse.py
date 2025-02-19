@@ -5,7 +5,7 @@ from pathlib import Path
 from time import sleep
 
 import numpy as np
-from tf.transformations import quaternion_matrix
+from ..tf_transformations import quaternion_matrix
 from typing_extensions import List, Dict, Optional, Union, Tuple, Callable, Type
 
 import pycrap
@@ -23,7 +23,7 @@ from ..description import Link, Joint
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.mjcf import ObjectDescription as MJCF, PrimitiveObjectFactory
 from ..robot_description import RobotDescription
-from ..ros.logging import logwarn
+from ..ros import  logwarn
 from ..utils import RayTestUtils, wxyz_to_xyzw, xyzw_to_wxyz, adjust_camera_pose_based_on_target
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position, validate_multiple_object_poses

@@ -2,7 +2,7 @@ import logging
 from datetime import timedelta
 
 import rospy
-from tf.transformations import quaternion_from_euler
+from ..tf_transformations import quaternion_from_euler
 from typing_extensions import Type
 
 import pycrap

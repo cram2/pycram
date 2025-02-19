@@ -18,13 +18,13 @@ from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
 from ..datastructures.world_entity import PhysicalBody
 from ..description import ObjectDescription, LinkDescription, Joint
-from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, UnsupportedFileExtension, \
+from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenAttachedObjects, UnsupportedFileExtension, \
     ObjectDescriptionUndefined
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
-from ..ros.data_types import Time
-from ..ros.logging import logwarn, logerr
+from ..ros import  Time
+from ..ros import  logwarn, logerr
 
 try:
     from ..object_descriptors.mjcf import ObjectDescription as MJCF
@@ -1003,7 +1003,7 @@ class Object(PhysicalBody):
         :return: The attachment transform.
         """
         if self.world != child_object.world:
-            raise WorldMismatchErrorBetweenObjects(self, child_object)
+            raise WorldMismatchErrorBetweenAttachedObjects(self, child_object)
         att_transform = attachment.parent_to_child_transform.copy()
         if self.world.is_prospection_world and not attachment.parent_object.world.is_prospection_world:
             att_transform.frame = self.tf_prospection_world_prefix + att_transform.frame
@@ -1123,7 +1123,7 @@ class Object(PhysicalBody):
             target_position = position
         elif isinstance(position, (List, np.ndarray, tuple)):
             if len(position) == 3:
-                target_position = Point(*position)
+                target_position = Point(**dict(zip(["x", "y", "z"], position)))
             else:
                 raise ValueError("The given position has to be a sequence of 3 values.")
         else:
@@ -1148,7 +1148,7 @@ class Object(PhysicalBody):
             target_orientation = orientation
         elif (isinstance(orientation, list) or isinstance(orientation, np.ndarray) or isinstance(orientation, tuple)) \
                 and len(orientation) == 4:
-            target_orientation = Quaternion(*orientation)
+            target_orientation = Quaternion(**dict(zip(["x", "y", "z", "w"], orientation)))
         else:
             raise TypeError("The given orientation has to be a Pose, Quaternion or one of list/tuple/ndarray of xyzw.")
 

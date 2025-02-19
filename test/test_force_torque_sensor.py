@@ -22,21 +22,18 @@ class ForceTorqueSensorTestCase(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             ForceTorqueSensorSimulated('invalid_joint')
 
-    @patch('pycram.ros_utils.force_torque_sensor.rospy')
-    def test_initialization_force_torque_sensor(self, mock_rospy):
+    def test_initialization_force_torque_sensor(self):
         sensor = ForceTorqueSensor('hsrb')
         self.assertEqual(sensor.robot_name, 'hsrb')
         self.assertEqual(sensor.wrench_topic_name, '/hsrb/wrist_wrench/compensated')
 
-    @patch('pycram.ros_utils.force_torque_sensor.rospy')
-    def test_get_last_value(self, mock_rospy):
+    def test_get_last_value(self):
         sensor = ForceTorqueSensor('hsrb')
         mock_data = MagicMock(spec=WrenchStamped)
         sensor.whole_data = {sensor.filtered: [mock_data], sensor.unfiltered: [mock_data]}
         self.assertEqual(sensor.get_last_value(), mock_data)
 
-    @patch('pycram.ros_utils.force_torque_sensor.rospy')
-    def test_get_derivative(self, mock_rospy):
+    def test_get_derivative(self):
         sensor = ForceTorqueSensor('hsrb')
         mock_data1 = MagicMock(spec=WrenchStamped)
         mock_data2 = MagicMock(spec=WrenchStamped)

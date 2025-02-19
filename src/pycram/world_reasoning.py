@@ -11,7 +11,7 @@ from .datastructures.world_entity import PhysicalBody
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from .robot_description import RobotDescription
-from .ros.logging import logdebug, logwarn
+from .ros import logdebug, logwarn
 from .utils import RayTestUtils, chunks, get_rays_from_min_max
 from .world_concepts.world_object import Object, Link
 

@@ -10,7 +10,7 @@ from functools import cached_property
 
 import numpy as np
 from sqlalchemy.orm import Session
-from tf import transformations
+from ..tf_transformations import quaternion_from_euler
 from typing_extensions import List, Union, Optional, Type, Dict, Any
 
 from pycrap.ontologies import Location
@@ -19,7 +19,7 @@ from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveTCPMotio
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
-    TorsoState, StaticJointState, Frame, FindBodyInRegionMethod
+    TorsoState, StaticJointState, Frame, FindBodyInRegionMethod, ContainerManipulationType
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.pose import Pose
 from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty
@@ -30,21 +30,37 @@ from ..failure_handling import try_action
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
     ObjectNotGraspedError, TorsoGoalNotReached, ConfigurationNotReached, ObjectNotInGraspingArea, \
     ObjectNotPlacedAtTargetLocation, ObjectStillInContact, LookAtGoalNotReached, \
-    ContainerNotOpenedError, ContainerNotClosedError
+    ContainerManipulationError
 from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
+from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
+    ObjectNotGraspedError
+from ..robot_description import RobotDescription
+from ..ros import  sleep
+from ..tasktree import with_tree
+from ..world_reasoning import contact
+
+from owlready2 import Thing
+
+from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
+    TorsoState, StaticJointState
+
+from ..designator import ActionDesignatorDescription
+from ..datastructures.pose import Pose
+from ..datastructures.world import World
+
 from ..orm.action_designator import Action as ORMAction
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
                                      LookAtAction as ORMLookAtAction, DetectAction as ORMDetectAction,
                                      TransportAction as ORMTransportAction, OpenAction as ORMOpenAction,
-                                     CloseAction as ORMCloseAction, GraspingAction as ORMGraspingAction, Action,
+                                     CloseAction as ORMCloseAction, GraspingAction as ORMGraspingAction,
                                      FaceAtAction as ORMFaceAtAction, ReachToPickUpAction as ORMReachToPickUpAction)
 from ..orm.base import Pose as ORMPose
 from ..orm.object_designator import Object as ORMObject
 from ..robot_description import RobotDescription, KinematicChainDescription
-from ..ros.logging import logwarn
+from ..ros import logwarn
 from ..tasktree import with_tree
 from ..validation.error_checkers import PoseErrorChecker
 from ..validation.goal_validator import create_multiple_joint_goal_validator
@@ -340,7 +356,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         :param movement_type: The type of movement that should be performed.
         :param add_vis_axis: If a visual axis should be added to the world.
         """
-        pose = self.transform_to_map_frame(pose)
+        pose = self.transform_pose(pose, Frame.Map.value)
         if add_vis_axis:
             World.current_world.add_vis_axis(pose)
         MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
@@ -356,11 +372,11 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         # oTm = Object Pose in Frame map
         oTm = self.world_object.get_pose()
         # Transform the object pose to the object frame, basically the origin of the object frame
-        mTo = self.transform_to_object_frame(oTm)
+        mTo = self.local_transformer.transform_to_object_frame(oTm, self.world_object)
         # Adjust the pose according to the special knowledge of the object designator_description
         adjusted_pose = self.object_designator.special_knowledge_adjustment_pose(self.grasp, mTo)
         # Transform the adjusted pose to the map frame
-        adjusted_oTm = self.transform_to_map_frame(adjusted_pose)
+        adjusted_oTm = self.transform_pose(adjusted_pose, Frame.Map.value)
         # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
         adjusted_oTm.multiply_quaternion(grasp)
         return adjusted_oTm
@@ -374,7 +390,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         # pre-pose depending on the gripper.
         oTg = self.transform_to_gripper_frame(obj_pose)
         oTg.pose.position.x -= self.prepose_distance  # in x since this is how the gripper is oriented
-        return self.transform_to_map_frame(oTg)
+        return self.transform_pose(oTg, Frame.Map.value)
 
     def transform_to_gripper_frame(self, pose: Pose) -> Pose:
         """
@@ -385,24 +401,6 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         """
         return self.transform_pose(pose, self.gripper_frame)
 
-    def transform_to_object_frame(self, pose: Pose) -> Pose:
-        """
-        Transform a pose to the object frame.
-
-        :param pose: The pose to transform.
-        :return: The transformed pose.
-        """
-        return self.local_transformer.transform_to_object_frame(pose, self.world_object)
-
-    def transform_to_map_frame(self, pose: Pose) -> Pose:
-        """
-        Transform a pose to the map frame.
-
-        :param pose: The pose to transform.
-        :return: The transformed pose.
-        """
-        return self.transform_pose(pose, Frame.Map.value)
-
     def transform_pose(self, pose: Pose, frame: str) -> Pose:
         """
         Transform a pose to a different frame.
@@ -411,7 +409,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         :param frame: The frame to transform the pose to.
         :return: The transformed pose.
         """
-        return self.world_object.local_transformer.transform_pose(pose, frame)
+        return self.local_transformer.transform_pose(pose, frame)
 
     @cached_property
     def local_transformer(self) -> LocalTransformer:
@@ -536,7 +534,7 @@ class PickUpActionPerformable(ActionAbstract):
         Check if picked up object is in contact with the gripper.
         """
         if not has_gripper_grasped_body(self.arm, self.world_object):
-            raise ObjectNotGraspedError(self.world_object, self.arm, self.grasp)
+            raise ObjectNotGraspedError(self.world_object, World.robot, self.arm, self.grasp)
 
     @cached_property
     def arm_chain(self) -> KinematicChainDescription:
@@ -579,11 +577,16 @@ class PlaceActionPerformable(ActionAbstract):
         MoveTCPMotion(retract_pose, self.arm).perform()
 
     def calculate_target_pose_of_gripper(self):
-        # Transformations such that the target position is the position of the object and not the tcp
-        tcp_to_object = self.local_transformer.transform_pose(self.world_object.pose, self.gripper_tool_frame)
-        target_diff = self.target_location.to_transform("target").inverse_times(
-            tcp_to_object.to_transform("object")).to_pose()
-        return target_diff
+        """
+        Calculate the target pose of the gripper given the target pose of the held object.
+        wTg (world to gripper) = wTo (world to object target) * oTg (object to gripper, this is constant since object
+        is attached to the gripper)
+        """
+        gripper_pose_in_object = self.local_transformer.transform_pose(self.gripper_pose, self.world_object.tf_frame)
+        object_to_gripper = gripper_pose_in_object.to_transform("object")
+        world_to_object_target = self.target_location.to_transform("target")
+        world_to_gripper_target = world_to_object_target * object_to_gripper
+        return world_to_gripper_target.to_pose()
 
     def calculate_retract_pose(self, target_pose: Pose, distance: float) -> Pose:
         """
@@ -599,6 +602,15 @@ class PlaceActionPerformable(ActionAbstract):
     @cached_property
     def world_object(self) -> Object:
         return self.object_designator.world_object
+
+    @property
+    def gripper_pose(self) -> Pose:
+        """
+        Get the pose of the gripper.
+
+        :return: The pose of the gripper.
+        """
+        return self.gripper_link.pose
 
     @cached_property
     def gripper_tool_frame(self) -> str:
@@ -892,12 +904,14 @@ def validate_close_open(object_designator: ObjectDesignatorDescription.Object, a
 
 def check_opened(joint_obj: Joint, obj_part: Link, arm: Arms, upper_limit: float):
     if joint_obj.position < upper_limit - joint_obj.acceptable_error:
-        raise ContainerNotOpenedError(obj_part, joint_obj, World.robot, arm)
+        raise ContainerManipulationError(World.robot, [arm], obj_part, joint_obj,
+                                         ContainerManipulationType.Opening)
 
 
 def check_closed(joint_obj: Joint, obj_part: Link, arm: Arms, lower_limit: float):
     if joint_obj.position > lower_limit + joint_obj.acceptable_error:
-        raise ContainerNotClosedError(obj_part, joint_obj, World.robot, arm)
+        raise ContainerManipulationError(World.robot, [arm], obj_part, joint_obj,
+                                         ContainerManipulationType.Closing)
 
 
 @dataclass
@@ -949,7 +963,7 @@ class GraspingActionPerformable(ActionAbstract):
         arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.arm)
         gripper_links = arm_chain.end_effector.links
         if not any([link.name in gripper_links for link in contact_links]):
-            raise ObjectNotGraspedError(self.object_desig.world_object, self.arm, None)
+            raise ObjectNotGraspedError(self.object_desig.world_object, World.robot, self.arm, None)
 
 
 @dataclass
@@ -977,7 +991,7 @@ class FaceAtPerformable(ActionAbstract):
         # calculate orientation for robot to face the object
         angle = np.arctan2(robot_position.position.y - self.pose.position.y,
                            robot_position.position.x - self.pose.position.x) + np.pi
-        orientation = list(transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
+        orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
 
         # create new robot pose
         new_robot_pose = Pose(robot_position.position_as_list(), orientation)

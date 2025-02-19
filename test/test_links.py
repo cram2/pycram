@@ -1,5 +1,5 @@
 import numpy as np
-from tf.transformations import quaternion_from_euler
+from pycram.tf_transformations import quaternion_from_euler
 
 from pycram.datastructures.dataclasses import Color, BoundingBox as BB
 from pycram.datastructures.pose import Pose
