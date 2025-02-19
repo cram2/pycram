@@ -169,7 +169,10 @@ class MoveTorsoActionPerformable(ActionAbstract):
         """
         Create a goal validator for the joint positions and wait until the goal is achieved or the timeout is reached.
         """
-        validator = create_multiple_joint_goal_validator(World.current_world.robot, self.joint_positions)
+
+        joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
+                                                                                                  self.torso_state)
+        validator = create_multiple_joint_goal_validator(World.current_world.robot, joint_positions)
         validator.wait_until_goal_is_achieved(max_wait_time=max_wait_time,
                                               time_per_read=timedelta(milliseconds=20))
         if not validator.goal_achieved:
