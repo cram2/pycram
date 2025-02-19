@@ -134,18 +134,17 @@ class MoveTorsoActionPerformable(ActionAbstract):
     """
     Move the torso of the robot up and down.
     """
-
-    joint_positions: dict
+    torso_state: TorsoState
     """
-    The joint positions that should be set. The keys are the joint names and the values are the joint positions.
+    The state of the torso that should be set
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMMoveTorsoAction)
 
     @with_tree
     def plan(self) -> None:
-        joints_positions = list(self.joint_positions.items())
-        joints, positions = zip(*joints_positions)
-        MoveJointsMotion(list(joints), list(positions)).perform()
+        joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
+                                                                                                  self.torso_state)
+        MoveJointsMotion(list(joint_positions.keys()), list(joint_positions.values())).perform()
 
 
 @dataclass
@@ -750,6 +749,7 @@ class MoveTorsoAction(ActionDesignatorDescription):
         :param torso_states: A list of possible states for the torso. The states are defined in the robot description.
         """
         super().__init__()
+        PartialDesignator.__init__(self, MoveTorsoActionPerformable, torso_state=torso_states)
         self.torso_states: List[TorsoState] = torso_states
 
     def ground(self) -> MoveTorsoActionPerformable:
@@ -758,20 +758,7 @@ class MoveTorsoAction(ActionDesignatorDescription):
 
         :return: A performable action designator_description
         """
-        joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
-                                                                                                  self.torso_states[0])
-        return MoveTorsoActionPerformable(joint_positions)
-
-    def __iter__(self):
-        """
-        Iterates over all possible values for this designator_description and returns a performable action designator_description with the value.
-
-        :return: A performable action designator_description
-        """
-        for torso_state in self.torso_states:
-            joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
-                                                                                                      torso_state)
-            yield MoveTorsoActionPerformable(joint_positions)
+        return self.resolve()
 
 
 class SetGripperAction(ActionDesignatorDescription):

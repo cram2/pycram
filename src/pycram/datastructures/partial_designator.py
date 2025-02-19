@@ -68,7 +68,7 @@ class PartialDesignator:
                 newkeywors[key] = value
         return PartialDesignator(self.performable, *fargs, **newkeywors)
 
-    def __iter__(self) -> Type[ActionDesignatorDescription.Action]:
+    def __iter__(self) -> ActionDesignatorDescription.Action:
         """
         Iterates over all possible permutations of the arguments and keyword arguments and creates a new performable
         object for each permutation. In case there are conflicting parameters the args will be used over the keyword

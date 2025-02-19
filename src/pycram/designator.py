@@ -14,6 +14,7 @@ from .ros import logwarn, loginfo
 from sqlalchemy.orm.session import Session
 
 from .datastructures.world import World
+from .datastructures.partial_designator import PartialDesignator
 from .world_concepts.world_object import Object as WorldObject
 from .utils import GeneratorList, bcolors
 from threading import Lock
@@ -132,7 +133,7 @@ class DesignatorDescription(ABC):
         """
         return get_type_hints(self.__init__)
 
-class ActionDesignatorDescription(DesignatorDescription, Language):
+class ActionDesignatorDescription(DesignatorDescription, Language, PartialDesignator):
     """
     Abstract class for action designator_description descriptions.
     Descriptions hold possible parameter ranges for action designators.
@@ -312,13 +313,13 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         """Fill all missing parameters and chose plan to execute. """
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
 
-    def __iter__(self):
-        """
-        Iterate through all possible performables fitting this description
-
-        :yield: A resolved action designator
-        """
-        yield self.ground()
+    # def __iter__(self):
+    #     """
+    #     Iterate through all possible performables fitting this description
+    #
+    #     :yield: A resolved action designator
+    #     """
+    #     yield self.ground()
 
 
 class LocationDesignatorDescription(DesignatorDescription):
