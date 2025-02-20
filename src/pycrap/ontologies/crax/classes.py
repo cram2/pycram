@@ -38,6 +38,10 @@ class Kitchen(Base):
     A kitchen.
     """
 
+class PouringTool(Base):
+    """
+    The Tool that is used for pouring, can be cup, bottle, etc.
+    """
 
 class Food(Base):
     ...
