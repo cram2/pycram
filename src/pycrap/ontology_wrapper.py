@@ -77,7 +77,7 @@ class OntologyWrapper:
         """
         Reason over the ontology. This may take a long time.
         """
-        owlready2.sync_reasoner(default_pycrap_ontology, infer_property_values=True, debug=False)
+        owlready2.sync_reasoner(self.ontology, infer_property_values=True, debug=False)
 
     def add_individual(self, individual: Base, python_object: Any):
         self.python_objects[individual] = python_object
