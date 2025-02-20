@@ -9,12 +9,11 @@ from copy import copy
 
 import numpy as np
 from geometry_msgs.msg import Point
-from owlready2 import Imp
 from trimesh import Trimesh
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
 import pycrap
-from pycrap.ontologies import PhysicalObject, Robot, Floor, Apartment, is_part_of, contains_object
+from pycrap.ontologies import PhysicalObject, Robot, Floor, Apartment
 from pycrap.ontologies.crax.rules import HierarchicalContainment, CRAXRule
 from pycrap.ontology_wrapper import OntologyWrapper
 from ..cache_manager import CacheManager
@@ -38,7 +37,6 @@ from ..validation.goal_validator import (GoalValidator,
                                          validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.event import Event
-from ..datastructures.rule import Rule
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
@@ -136,7 +134,7 @@ class World(WorldEntity, ABC):
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
 
-        self.rules: Dict[CRAXRule, Rule] = {}
+        self.rules: List[CRAXRule] = []
 
         self._set_world_rules()
 
@@ -154,7 +152,7 @@ class World(WorldEntity, ABC):
 
         :param crax_rule: The rule to be added.
         """
-        self.rules[crax_rule] = Rule(crax_rule, self)
+        self.rules.append(crax_rule)
 
     @staticmethod
     def update_containment_for(bodies: List[PhysicalBody],

@@ -4,6 +4,7 @@ import tempfile
 
 ontology_file = tempfile.NamedTemporaryFile()
 ontology = get_ontology("file://" + ontology_file.name).load()
+CRAX_ONTOLOGY_NAME = "PyCRAP"
 
 
 class Base(Thing, metaclass=ThingClass):

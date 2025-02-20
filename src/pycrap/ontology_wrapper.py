@@ -3,7 +3,8 @@ import tempfile
 import owlready2
 from typing_extensions import Dict, Any
 
-from .ontologies.base import Base, ontology as default_pycrap_ontology, ontology_file as default_pycrap_ontology_file
+from .ontologies.base import Base, ontology as default_pycrap_ontology, ontology_file as default_pycrap_ontology_file, \
+    CRAX_ONTOLOGY_NAME
 
 
 class OntologyWrapper:
@@ -32,7 +33,7 @@ class OntologyWrapper:
     def __init__(self):
         self.file = default_pycrap_ontology_file
         self.ontology = default_pycrap_ontology
-        self.ontology.name = "PyCRAP"
+        self.ontology.name = CRAX_ONTOLOGY_NAME
         self.python_objects = {}
 
     @property
