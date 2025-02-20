@@ -15,6 +15,7 @@ from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKI
 
 import pycrap
 from pycrap.ontologies import PhysicalObject, Robot, Floor, Apartment, is_part_of, contains_object
+from pycrap.ontologies.crax.rules import HierarchicalContainment, CRAXRule
 from pycrap.ontology_wrapper import OntologyWrapper
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
@@ -135,7 +136,7 @@ class World(WorldEntity, ABC):
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
 
-        self.rules: Dict[str, Rule] = {}
+        self.rules: Dict[CRAXRule, Rule] = {}
 
         self._set_world_rules()
 
@@ -145,20 +146,15 @@ class World(WorldEntity, ABC):
         """
         if self.is_prospection_world:
             return
-        self.add_rule("hierarchical_containment",
-                      f"""
-                      {is_part_of}(?part, ?parent), {contains_object}(?part, ?object)
-                       -> {contains_object}(?parent, ?object)""",
-                      )
+        self.add_rule(HierarchicalContainment())
 
-    def add_rule(self, name: str, rule: str):
+    def add_rule(self, crax_rule: CRAXRule):
         """
         Append a rule to the world rules' dictionary.
 
-        :param name: The name of the rule.
-        :param rule: The rule in SWRL syntax.
+        :param crax_rule: The rule to be added.
         """
-        self.rules[name] = Rule(rule, self, name)
+        self.rules[crax_rule] = Rule(crax_rule, self)
 
     @staticmethod
     def update_containment_for(bodies: List[PhysicalBody],
