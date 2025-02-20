@@ -320,8 +320,7 @@ class BoundingBox:
         :param other: The other bounding box.
         :return: True if the bounding box contains the other bounding box, False otherwise.
         """
-        return self.min_x <= other.min_x and self.min_y <= other.min_y and self.min_z <= other.min_z and \
-            self.max_x >= other.max_x and self.max_y >= other.max_y and self.max_z >= other.max_z
+        return (other.simple_event.as_composite_set() - self.simple_event.as_composite_set()).is_empty()
 
     @classmethod
     def merge_multiple_bounding_boxes_into_mesh(cls, bounding_boxes: List[BoundingBox],

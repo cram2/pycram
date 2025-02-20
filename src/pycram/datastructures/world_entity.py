@@ -204,10 +204,6 @@ class PhysicalBody(WorldEntity, ABC):
         :param candidate_selection_method: The method to select the candidates for the containment check.
         :param max_distance: The maximum distance from this body to other bodies to consider a body as a candidate.
         """
-        # if not self.updated_containment_of_parts or self.latest_known_parts != self.parts:
-        #     if len(self.parts) > 0:
-        #         self.contained_bodies = [part for part in self.parts.values()]
-        #         self.updated_containment_of_parts = True
         excluded_bodies = [] if excluded_bodies is None else excluded_bodies
         excluded_bodies.append(self)
         if candidate_selection_method == AdjacentBodyMethod.ClosestPoints:
