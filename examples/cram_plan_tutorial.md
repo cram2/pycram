@@ -1,4 +1,4 @@
----
+from src.pycram.designators.motion_designator import MoveJointsMotion---
 jupyter:
   jupytext:
     text_representation:
@@ -152,7 +152,7 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
         ParkArmsActionPerformable(Arms.BOTH).perform()
         if torso is None:
             torso={"torso_lift_joint": 0.2}
-        MoveTorsoActionPerformable(torso).perform()
+        MoveJointsMotion(list(torso.keys()), list(torso.values())).perform()
         grasp = Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else Grasp.FRONT
         location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, grasps = [grasp])
         pose = location.resolve()
