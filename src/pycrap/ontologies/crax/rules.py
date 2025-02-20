@@ -12,9 +12,9 @@ class CRAXRule(ABC):
     """
     A class that represents a rule in PyCRAP.
     """
-    all_rules: Dict[Tuple[Ontology, Type[CRAXRule]], CRAXRule] = {}
+    all_rules: Dict[Ontology, Dict[Type[CRAXRule], CRAXRule]] = {}
     """
-    A dictionary that maps rule classes to rule instances, so that the same rule is not created multiple times.
+    A dictionary that maps ontology rule classes to rule instances, so that the same rule is not created multiple times.
     """
 
     def __init__(self, ontology: Ontology = CRAXOntology,
@@ -27,16 +27,20 @@ class CRAXRule(ABC):
         """
         self.ontology = ontology
         self.ontology_name = ontology_name
-        if self.rule_key in CRAXRule.all_rules:
+        if self.rule_in_all_rules:
             self.rule = self._get_old_rule()
         else:
             self.rule = self._add_rule()
+
+    @property
+    def rule_in_all_rules(self):
+        return self.ontology in CRAXRule.all_rules and type(self) in CRAXRule.all_rules[self.ontology]
 
     def _get_old_rule(self):
         """
         Gets the old rule from the all_rules dictionary.
         """
-        return CRAXRule.all_rules[self.rule_key].rule
+        return CRAXRule.all_rules[self.ontology][type(self)].rule
 
     def _add_rule(self):
         """
@@ -46,13 +50,6 @@ class CRAXRule(ABC):
         rule_body = self.rule_body.replace(f"{self.ontology_name}.", "")
         rule.set_as_rule(rule_body)
         return rule
-
-    @property
-    def rule_key(self) -> Tuple[Ontology, Type[CRAXRule]]:
-        """
-        :return: The key of the rule in the all_rules dictionary.
-        """
-        return self.ontology, type(self)
 
     @property
     def name(self):

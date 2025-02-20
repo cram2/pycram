@@ -134,8 +134,6 @@ class World(WorldEntity, ABC):
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
 
-        self.rules: List[CRAXRule] = []
-
         self._set_world_rules()
 
     def _set_world_rules(self):
@@ -144,15 +142,14 @@ class World(WorldEntity, ABC):
         """
         if self.is_prospection_world:
             return
-        self.add_rule(HierarchicalContainment())
+        HierarchicalContainment()
 
-    def add_rule(self, crax_rule: CRAXRule):
+    @property
+    def rules(self) -> List[CRAXRule]:
         """
-        Append a rule to the world rules' dictionary.
-
-        :param crax_rule: The rule to be added.
+        Return the rules of the world.
         """
-        self.rules.append(crax_rule)
+        return list(CRAXRule.all_rules[self.ontology].values())
 
     @staticmethod
     def update_containment_for(bodies: List[PhysicalBody],
