@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod, ABC
 
 from owlready2 import Imp, Ontology
-from typing_extensions import Type, Dict, Tuple
+from typing_extensions import Type, Dict
 
 from .object_properties import ontology as CRAXOntology, is_part_of, contains_object, CRAX_ONTOLOGY_NAME
 
