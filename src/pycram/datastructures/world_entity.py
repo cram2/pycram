@@ -132,7 +132,11 @@ class WorldEntity(StateEntity, HasConcept, ABC):
         HasConcept.__init__(self, name=self.name, world=self.world, concept=concept, parse_name=parse_name)
 
     def reset_concepts(self):
-        self.ontology_individual.reload()
+        """
+        Reset the concepts of this entity.
+        """
+        if not self.world.is_prospection_world and hasattr(self.ontology_individual, 'reload'):
+            self.ontology_individual.reload()
 
     @property
     @abstractmethod

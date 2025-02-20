@@ -1,4 +1,6 @@
 import numpy as np
+from owlready2 import Imp
+
 from pycram.tf_transformations import quaternion_from_euler
 
 from pycram.datastructures.dataclasses import Color, BoundingBox as BB

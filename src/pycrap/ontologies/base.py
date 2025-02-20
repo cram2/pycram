@@ -13,7 +13,6 @@ class Base(Thing, metaclass=ThingClass):
 class BaseProperty(ObjectProperty):
     namespace = ontology
 
+
 class BaseDatatype(DatatypeProperty):
     namespace = ontology
-
-

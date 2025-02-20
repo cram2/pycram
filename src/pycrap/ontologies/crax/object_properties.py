@@ -1,5 +1,3 @@
-from typing_extensions import List
-
 from .dependencies import *
 
 

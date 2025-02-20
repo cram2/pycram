@@ -14,7 +14,7 @@ from trimesh import Trimesh
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
 import pycrap
-from pycrap.ontologies import PhysicalObject, Robot, Floor, Apartment
+from pycrap.ontologies import PhysicalObject, Robot, Floor, Apartment, is_part_of, contains_object
 from pycrap.ontology_wrapper import OntologyWrapper
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
@@ -37,6 +37,7 @@ from ..validation.goal_validator import (GoalValidator,
                                          validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.event import Event
+from ..datastructures.rule import Rule
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
@@ -134,19 +135,37 @@ class World(WorldEntity, ABC):
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
 
+        self.rules: Dict[str, Rule] = {}
+
+        self._set_world_rules()
+
     def _set_world_rules(self):
+        """
+        Create the rules for the world.
+        """
         if self.is_prospection_world:
             return
-        with self.ontology.ontology:
-            hierarchical_containment_rule = Imp()
-            hierarchical_containment_rule.set_as_rule("""is_part_of(?part, ?parent), contains_object(?part, ?object) -> contains_object(?parent, ?object)""")
+        self.add_rule("hierarchical_containment",
+                      f"""
+                      {is_part_of}(?part, ?parent), {contains_object}(?part, ?object)
+                       -> {contains_object}(?parent, ?object)""",
+                      )
+
+    def add_rule(self, name: str, rule: str):
+        """
+        Append a rule to the world rules' dictionary.
+
+        :param name: The name of the rule.
+        :param rule: The rule in SWRL syntax.
+        """
+        self.rules[name] = Rule(rule, self, name)
 
     @staticmethod
     def update_containment_for(bodies: List[PhysicalBody],
                                candidate_selection_method: ABM = ABM.ClosestPoints) \
             -> List[PhysicalBody]:
         """
-        Update the containment for the given bodies.
+        Update the containment for the given bodies by checking if they are contained in other bodies.
 
         :param bodies: The bodies to update the containment for.
         :param candidate_selection_method: The method to select the candidate bodies for containment update.
@@ -1035,7 +1054,8 @@ class World(WorldEntity, ABC):
         self.disconnect_from_physics_server()
         self.reset_robot()
         self.join_threads()
-        self.ontology.destroy_individuals()
+        if self.ontology:
+            self.ontology.destroy_individuals()
         if World.current_world == self:
             World.current_world = None
 
