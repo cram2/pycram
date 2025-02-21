@@ -1,21 +1,35 @@
 import ast
+from typing import Dict
+from pathlib import Path
 
-def extract_class_attribute_docstrings(file_path):
+
+def extract_dataclass_attribute_comments(file_path: Path):
+    """
+    Parses the given Python file and returns a dictionary that contains the defined classes,
+    their attributes and the comment that is given below the attribute.
+    """
     with open(file_path, 'r') as file:
         file_content = file.read()
     tree = ast.parse(file_content)
+    class_var_comment: Dict= {}
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef):
-            print(f"Class: {node.name}")
+            classname = node.name
+            class_var_comment[classname] = {}
+            last_assign = []
             for item in node.body:
                 if isinstance(item, ast.AnnAssign):
-                    print(f"{item.target.id} -> {item.annotation.id}")
-                if isinstance(item, ast.Assign):
-                    for target in item.targets:
-                        print(f"{target.id}")
-                if isinstance(item, ast.Expr):
-                    print(f"Comment: {item.value.s}")
+                    last_assign = [item.target.id]
+                    class_var_comment[classname][item.target.id] = ""
+                elif isinstance(item, ast.Assign):
+                    last_assign = list(map(lambda tar : tar.id, list(item.targets)))
+                    class_var_comment[classname] = {**class_var_comment[classname],
+                                                    **{var: "" for var in last_assign}}
+                elif last_assign and isinstance(item, ast.Expr):
+                    class_var_comment[classname] = {**class_var_comment[classname],
+                                                    **{var: item.value.s for var in last_assign}}
+                    last_assign = []
+    return class_var_comment
 
 
-
-extract_class_attribute_docstrings('test.py')
+print(extract_dataclass_attribute_comments(Path('test.py')))
