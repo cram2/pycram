@@ -730,10 +730,11 @@ class Object(PhysicalBody):
         description = self.description.merge_description(other.description, child_pose_wrt_parent=child_pose,
                                                          new_description_file=new_description_file)
         name = self.name if name is None else name
-        path = self.path if new_description_file is None else description.xml_path
+        color = self.color if isinstance(self.color, Color) else self.color[self.root_link.name]
         other.remove()
         self.remove()
-        return Object(name, self.obj_type, path, description=description, pose=pose, world=self.world)
+        return Object(name, self.obj_type, description.xml_path, description=description, pose=pose, world=self.world,
+                      color=color)
 
     def attach(self,
                child_object: Object,
