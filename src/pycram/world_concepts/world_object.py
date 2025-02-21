@@ -20,13 +20,13 @@ from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
 from ..datastructures.world_entity import PhysicalBody, WorldEntity
 from ..description import ObjectDescription, LinkDescription, Joint
-from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, UnsupportedFileExtension, \
+from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenAttachedObjects, UnsupportedFileExtension, \
     ObjectDescriptionUndefined
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
-from ..ros.data_types import Time
-from ..ros.logging import logwarn, logerr
+from ..ros import  Time
+from ..ros import  logwarn, logerr
 
 try:
     from ..object_descriptors.mjcf import ObjectDescription as MJCF
@@ -467,19 +467,8 @@ class Object(PhysicalBody):
         for joint_name, joint_id in self.joint_name_to_id.items():
             parsed_joint_description = self.description.get_joint_by_name(joint_name)
             is_virtual = self.is_joint_virtual(joint_name)
-            self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
-            if not self.world.is_prospection_world:
-                individual = self.ontology_concept(joint_name, namespace=self.world.ontology.ontology)
-                self.world.ontology.python_objects[individual] = parsed_joint_description
-                individual.is_a = [self.ontology_concept, has_child_link.some(
-                    self.get_joint_child_link(joint_name).ontology_individual),
-                                   has_parent_link.some(
-                                       self.get_joint_child_link(joint_name).ontology_individual)]
-                link_individual = self.get_joint_child_link(joint_name).ontology_individual
-
-                if self.get_joint_parent_link(joint_name).ontology_individual:
-                    link_individual.is_part_of = [
-                        self.get_joint_parent_link(joint_name).ontology_individual]
+            self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self,
+                                                             is_virtual=is_virtual)
 
     def is_joint_virtual(self, name: str):
         """
@@ -993,7 +982,7 @@ class Object(PhysicalBody):
         :return: The attachment transform.
         """
         if self.world != child_object.world:
-            raise WorldMismatchErrorBetweenObjects(self, child_object)
+            raise WorldMismatchErrorBetweenAttachedObjects(self, child_object)
         att_transform = attachment.parent_to_child_transform.copy()
         if self.world.is_prospection_world and not attachment.parent_object.world.is_prospection_world:
             att_transform.frame = self.tf_prospection_world_prefix + att_transform.frame
@@ -1040,6 +1029,8 @@ class Object(PhysicalBody):
                 joint.current_state = joint_states[joint.id]
 
     def robot_virtual_move_base_joints_names(self):
+        if self.robot_description.virtual_mobile_base_joints is None:
+            return []
         return self.robot_description.virtual_mobile_base_joints.names
 
     def remove_saved_states(self) -> None:
@@ -1109,13 +1100,13 @@ class Object(PhysicalBody):
             pose.frame = position.frame
         elif isinstance(position, Point):
             target_position = position
-        elif isinstance(position, List):
+        elif isinstance(position, (List, np.ndarray, tuple)):
             if len(position) == 3:
-                target_position = Point(*position)
+                target_position = Point(**dict(zip(["x", "y", "z"], position)))
             else:
-                raise ValueError("The given position has to be a list of 3 values.")
+                raise ValueError("The given position has to be a sequence of 3 values.")
         else:
-            raise TypeError("The given position has to be a Pose, Point or an iterable of xyz values.")
+            raise TypeError("The given position has to be a Pose, Point or a sequence of xyz values.")
 
         pose.position = target_position
         pose.orientation = self.get_orientation()
@@ -1136,7 +1127,7 @@ class Object(PhysicalBody):
             target_orientation = orientation
         elif (isinstance(orientation, list) or isinstance(orientation, np.ndarray) or isinstance(orientation, tuple)) \
                 and len(orientation) == 4:
-            target_orientation = Quaternion(*orientation)
+            target_orientation = Quaternion(**dict(zip(["x", "y", "z", "w"], orientation)))
         else:
             raise TypeError("The given orientation has to be a Pose, Quaternion or one of list/tuple/ndarray of xyzw.")
 

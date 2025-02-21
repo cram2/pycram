@@ -16,7 +16,7 @@ from ...datastructures.dataclasses import MultiverseRayResult, MultiverseContact
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
 from ...datastructures.pose import Pose
-from ...failures import FailedAPIResponse
+from ...failures import MultiverseFailedAPIResponse
 from ...utils import wxyz_to_xyzw
 from ...world_concepts.constraints import Constraint
 from ...world_concepts.world_object import Object, Link
@@ -546,8 +546,8 @@ class MultiverseAPI(MultiverseClient):
         bounding_boxes_data = self._get_bounding_box(body_name, with_children)
         bounding_boxes = []
         for bounding_box in bounding_boxes_data:
-            origin = Point(bounding_box[0], bounding_box[1], bounding_box[2])
-            size = Point(bounding_box[3], bounding_box[4], bounding_box[5])
+            origin = Point(x=bounding_box[0], y=bounding_box[1], z=bounding_box[2])
+            size = Point(x=bounding_box[3], y=bounding_box[4], z=bounding_box[5])
             bounding_boxes.append(AxisAlignedBoundingBox.from_origin_and_half_extents(origin, size))
         if with_children:
             return bounding_boxes
@@ -874,7 +874,7 @@ class MultiverseAPI(MultiverseClient):
         for api_name, response in responses.items():
             for val in response:
                 if 'failed' in val:
-                    raise FailedAPIResponse(response, api_name, api_data[api_name])
+                    raise MultiverseFailedAPIResponse(response, api_name, api_data[api_name])
 
     def _get_all_apis_responses(self) -> Dict[API, List[str]]:
         """

@@ -12,8 +12,8 @@ from geometry_msgs.msg import Point
 from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
-
-from pycrap.ontologies import PhysicalObject
+import pycrap
+from pycrap.ontologies import PhysicalObject, Robot, Floor, Apartment
 from pycrap.ontology_wrapper import OntologyWrapper
 
 from ..cache_manager import CacheManager
@@ -27,11 +27,11 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
 from ..datastructures.enums import JointType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity, PhysicalBody, WorldEntity
-from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
+from ..failures import ProspectionObjectNotFound, ObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
-from ..ros.data_types import Time
-from ..ros.logging import logwarn
+from ..ros import  Time
+from ..ros import  logwarn
 from ..validation.goal_validator import (GoalValidator,
                                          validate_joint_position, validate_multiple_joint_positions,
                                          validate_object_pose, validate_multiple_object_poses)
@@ -93,9 +93,10 @@ class World(WorldEntity, ABC):
         :param clear_cache: Whether to clear the cache directory.
         :param id_: The unique id of the world.
         """
-
-        WorldEntity.__init__(self, id_, self)
         self.ontology = OntologyWrapper()
+        self.is_prospection_world: bool = is_prospection
+        WorldEntity.__init__(self, id_, self, concept=pycrap.ontologies.World)
+
         self.latest_state_id: Optional[int] = None
 
         if clear_cache or (self.conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
@@ -113,7 +114,6 @@ class World(WorldEntity, ABC):
         self.objects: List[Object] = []
         # List of all Objects in the World
 
-        self.is_prospection_world: bool = is_prospection
         self._init_and_sync_prospection_world()
 
         self.local_transformer = LocalTransformer()
@@ -433,8 +433,10 @@ class World(WorldEntity, ABC):
             self.objects.remove(obj)
             self.remove_object_from_original_state(obj)
 
-        if World.robot == obj and not self.is_prospection_world:
-            World.robot = None
+            if World.robot == obj and not self.is_prospection_world:
+                World.robot = None
+        else:
+            logwarn(f"Object {obj.name} could not be removed from the simulator, but all attachments were removed")
 
         self.object_lock.release()
 
@@ -472,7 +474,7 @@ class World(WorldEntity, ABC):
         constraint = Constraint(parent_link=parent_link,
                                 child_link=child_link,
                                 _type=JointType.FIXED,
-                                axis_in_child_frame=Point(0, 0, 0),
+                                axis_in_child_frame=Point(x=0, y=0, z=0),
                                 constraint_to_parent=child_to_parent_transform,
                                 child_to_constraint=Transform(frame=child_link.tf_frame)
                                 )
@@ -920,7 +922,7 @@ class World(WorldEntity, ABC):
         :return: the axis aligned bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_object_rotated_bounding_box(self, obj: Object) -> RotatedBoundingBox:
         """
@@ -928,7 +930,7 @@ class World(WorldEntity, ABC):
         :return: the rotated bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
         """
@@ -936,7 +938,7 @@ class World(WorldEntity, ABC):
         :return: The axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_link_rotated_bounding_box(self, link: Link) -> RotatedBoundingBox:
         """
@@ -944,7 +946,7 @@ class World(WorldEntity, ABC):
         :return: The rotated bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     @abstractmethod
     def set_realtime(self, real_time: bool) -> None:
@@ -999,9 +1001,9 @@ class World(WorldEntity, ABC):
 
         :param remove_saved_states: Whether to remove the saved states.
         """
-        self.exit_prospection_world_if_exists()
         self.reset_world(remove_saved_states)
         self.remove_all_objects()
+        self.exit_prospection_world_if_exists()
         self.disconnect_from_physics_server()
         self.reset_robot()
         self.join_threads()
@@ -1405,7 +1407,7 @@ class World(WorldEntity, ABC):
         link_parent = [0 for _ in range(num_of_shapes)]
         link_joints = [JointType.FIXED.value for _ in range(num_of_shapes)]
         link_collision = [-1 for _ in range(num_of_shapes)]
-        link_joint_axis = [Point(1, 0, 0) for _ in range(num_of_shapes)]
+        link_joint_axis = [Point(x=1, y=0,z=0) for _ in range(num_of_shapes)]
 
         multi_body = MultiBody(base_visual_shape_index=-1, base_pose=pose,
                                link_visual_shape_indices=visual_shape_ids, link_poses=link_poses,
@@ -1701,9 +1703,6 @@ class World(WorldEntity, ABC):
         """
         return self.saved_states[self.original_state_id]
 
-    def __del__(self):
-        self.exit()
-
     def __eq__(self, other: World):
         if not isinstance(other, self.__class__):
             return False
@@ -1800,7 +1799,7 @@ class WorldSync(threading.Thread):
         except KeyError:
             if prospection_object in self.world.objects:
                 return prospection_object
-            raise WorldObjectNotFound(prospection_object)
+            raise ObjectNotFound(prospection_object)
 
     def get_prospection_object(self, obj: Object) -> Object:
         """
@@ -1865,10 +1864,10 @@ class WorldSync(threading.Thread):
         # Set the pose of the prospection objects to the pose of the world objects
         obj_pose_dict = {prospection_obj: obj.pose
                          for obj, prospection_obj in self.object_to_prospection_object_map.items()}
-        self.world.prospection_world.reset_multiple_objects_base_poses(obj_pose_dict)
         for obj, prospection_obj in self.object_to_prospection_object_map.items():
             prospection_obj.set_attachments(obj.attachments)
             prospection_obj.joint_states = obj.joint_states
+        self.world.prospection_world.reset_multiple_objects_base_poses(obj_pose_dict)
 
     def check_for_equal(self) -> bool:
         """

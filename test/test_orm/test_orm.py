@@ -97,10 +97,10 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
         self.assertEqual(len(node_results), len(pycram.tasktree.task_tree.root))
 
         position_results = self.session.scalars(select(pycram.orm.base.Position)).all()
-        self.assertEqual(14, len(position_results))
+        self.assertEqual(16, len(position_results))
 
         quaternion_results = self.session.scalars(select(pycram.orm.base.Quaternion)).all()
-        self.assertEqual(14, len(quaternion_results))
+        self.assertEqual(16, len(quaternion_results))
 
         park_arms_results = self.session.scalars(select(pycram.orm.action_designator.ParkArmsAction)).all()
         self.assertEqual(0, len(park_arms_results))
@@ -109,7 +109,7 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
         self.assertEqual(1, len(navigate_results))
 
         action_results = self.session.scalars(select(pycram.orm.action_designator.Action)).all()
-        self.assertEqual(4, len(action_results))
+        self.assertEqual(5, len(action_results))
 
     def test_metadata_existence(self):
         pycram.orm.base.ProcessMetaData().description = "metadata_existence_test"
@@ -240,6 +240,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         previous_position = object_description.resolve().pose
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
+            ParkArmsActionPerformable(Arms.BOTH).perform()
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             NavigateActionPerformable(Pose([1.3, 1, 0.9], [0, 0, 0, 1]), True).perform()
             PlaceActionPerformable(object_description.resolve(), Arms.LEFT, Pose([2.0, 1.6, 1.8], [0, 0, 0, 1])).perform()
@@ -284,7 +285,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
     def test_open_and_closeAction(self):
         apartment = Object("apartment", Apartment, "apartment.urdf")
         apartment_desig = BelieveObject(names=["apartment"]).resolve()
-        handle_desig = object_designator.ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig, type=ObjectType.ENVIRONMENT).resolve()
+        handle_desig = object_designator.ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig).resolve()
 
         self.kitchen.set_pose(Pose([20, 20, 0], [0, 0, 0, 1]))
 

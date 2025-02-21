@@ -89,7 +89,7 @@ def get_n_random_positions(pose_list, n=4, dist=0.5, random=True):
 
 ```python
 import pycrap
-from tf.transformations import quaternion_from_euler
+from pycram.tf_transformations import quaternion_from_euler
 
 from pycram.costmaps import SemanticCostmap
 from pycram.pose_generator_and_validator import PoseGenerator
@@ -103,8 +103,8 @@ edges_cm = scm.get_edges_map(0.06, horizontal_only=True)
 poses_list = list(PoseGenerator(edges_cm, number_of_samples=-1))
 poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x.position_as_list()))
 object_poses = get_n_random_positions(poses_list)
-object_names = ["bowl", "breakfast_cereal", "spoon"]
-object_types = [Bowl, Cereal, Spoon]
+object_names = ["breakfast_cereal", "milk"]
+object_types = [Cereal, Milk]
 objects = {}
 object_desig = {}
 for obj_name, obj_type, obj_pose in zip(object_names, object_types, object_poses):
@@ -112,7 +112,7 @@ for obj_name, obj_type, obj_pose in zip(object_names, object_types, object_poses
         z_angle = np.pi
     else:
         z_angle = 0
-    orientation = quaternion_from_euler(0, 0, z_angle).tolist()
+    orientation = quaternion_from_euler(0, 0, z_angle)
     objects[obj_name] = Object(obj_name, obj_type, obj_name + ".stl",
                                pose=Pose([obj_pose.position.x, obj_pose.position.y, table_top.z],
                                          orientation))
@@ -153,14 +153,14 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
         if torso is None:
             torso={"torso_lift_joint": 0.2}
         MoveTorsoActionPerformable(torso).perform()
-        location = CostmapLocation(target=obj_desig, reachable_for=robot_desig)
+        grasp = Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else Grasp.FRONT
+        location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, grasps = [grasp])
         pose = location.resolve()
         print()
         NavigateActionPerformable(pose.pose, True).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         good_torsos.append(torso)
         picked_up_arm = pose.reachable_arms[0]
-        grasp = Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else Grasp.FRONT
         PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp=grasp,
                                 prepose_distance=0.03).perform()
 
@@ -184,7 +184,7 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
                     z_angle = np.pi
                 else:
                     z_angle = 0
-                orientation = quaternion_from_euler(0, 0, z_angle).tolist()
+                orientation = quaternion_from_euler(0, 0, z_angle)
                 pose_island.pose = Pose(pose_island.pose.position_as_list(), orientation)
                 pose_island.pose.position.z += 0.07
                 print(pose_island.pose.position)
@@ -207,7 +207,7 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
 good_torsos = []
 for obj_name in object_names:
     done = False
-    torso = {"torso_lift_joint": 0.3}if len(good_torsos) == 0 else good_torsos[-1]
+    torso = {"torso_lift_joint": 0.25}if len(good_torsos) == 0 else good_torsos[-1]
     while not done:
         try:
             plan(object_desig[obj_name], torso=torso, place=counter_name)
@@ -218,8 +218,8 @@ for obj_name in object_names:
         except (StopIteration, IKError) as e:
             print(type(e))
             print("no solution")
-            torso += 0.05
-            if torso > 0.3:
+            torso["torso_lift_joint"] += 0.05
+            if torso["torso_lift_joint"] > 0.3:
                 break
 print(good_torsos)
 ```

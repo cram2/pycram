@@ -1,5 +1,6 @@
-import tf
+from ..tf_transformations import quaternion_from_euler
 
+from ....datastructures.enums import StaticJointState
 from ....datastructures.pose import Pose
 from ....designators.location_designator import CostmapLocation
 from ....external_interfaces.giskard import projection_cartesian_goal_with_approach, projection_joint_goal
@@ -34,7 +35,7 @@ class GiskardLocation(CostmapLocation):
                         + GaussianCostmap(200, 15, 0.02, target_map))
         for maybe_pose in PoseGenerator(near_costmap, 200):
             for chain in manipulator_descs:
-                projection_joint_goal(chain.get_static_joint_states("park"), allow_collisions=True)
+                projection_joint_goal(chain.get_static_joint_states(StaticJointState.Park), allow_collisions=True)
 
                 trajectory = projection_cartesian_goal_with_approach(maybe_pose, target_map, chain.tool_frame,
                                                                      "map", RobotDescription.current_robot_description.base_link)
@@ -42,7 +43,7 @@ class GiskardLocation(CostmapLocation):
                 last_point_names = trajectory.trajectory.joint_names
                 last_joint_states = dict(zip(last_point_names, last_point_positions))
                 orientation = list(
-                    tf.transformations.quaternion_from_euler(0, 0, last_joint_states["brumbrum_yaw"], axes="sxyz"))
+                    quaternion_from_euler(0, 0, last_joint_states["brumbrum_yaw"], axes="sxyz"))
                 pose = Pose([last_joint_states["brumbrum_x"], last_joint_states["brumbrum_y"], 0], orientation)
 
                 robot_joint_states = {}

@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 import psutil
-from tf.transformations import quaternion_from_euler, quaternion_multiply
+from pycram.tf_transformations import quaternion_from_euler, quaternion_multiply
 from typing_extensions import Optional, List
 
 import pycrap
@@ -14,7 +14,7 @@ from pycram.datastructures.pose import Pose
 from pycram.robot_description import RobotDescriptionManager
 from pycram.world_concepts.world_object import Object
 from pycram.validation.error_checkers import calculate_angle_between_quaternions
-from pycram.helper import get_robot_mjcf_path, parse_mjcf_actuators
+from pycram.helper import get_robot_description_path, parse_mjcf_actuators
 from pycram.object_descriptors.generic import ObjectDescription as GenericObjectDescription
 
 multiverse_installed = True
@@ -128,7 +128,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertTrue(len(contact_points) > 0)
 
     def test_parse_mjcf_actuators(self):
-        mjcf_file = get_robot_mjcf_path("pal_robotics", "tiago_dual")
+        mjcf_file = get_robot_description_path("pal_robotics", "tiago_dual")
         self.assertTrue(os.path.exists(mjcf_file))
         joint_actuators = parse_mjcf_actuators(mjcf_file)
         self.assertIsInstance(joint_actuators, dict)

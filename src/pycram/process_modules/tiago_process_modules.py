@@ -14,7 +14,7 @@ from .default_process_modules import DefaultOpen, DefaultClose, DefaultMoveGripp
     DefaultNavigation, DefaultMoveHead, DefaultDetecting, DefaultMoveArmJoints, DefaultWorldStateDetecting, \
     DefaultDetectingReal
 from ..robot_description import RobotDescription
-from ..ros.logging import logdebug
+from ..ros import  logdebug
 from ..external_interfaces import giskard
 from ..world_concepts.world_object import Object
 from ..external_interfaces.robokudo import send_query

@@ -11,7 +11,7 @@ from geometry_msgs.msg import PoseStamped, Point, Quaternion
 
 from pycram.helper import find_multiverse_resources_path
 import pycram.ros  # this to start the ros node
-from pycram.ros.logging import loginfo
+from pycram.ros import loginfo
 
 
 def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> WorldResult:
@@ -32,8 +32,8 @@ def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> WorldResult:
 def get_pose_stamped(position, orientation):
     pose_stamped = PoseStamped()
     pose_stamped.header.frame_id = 'map'
-    pose_stamped.pose.position = Point(*position)
-    pose_stamped.pose.orientation = Quaternion(*orientation)
+    pose_stamped.pose.position = Point(**dict(zip(["x", "y", "z"], position)))
+    pose_stamped.pose.orientation = Quaternion(**dict(zip(["x", "y", "z", "w"],orientation)))
     return pose_stamped
 
 

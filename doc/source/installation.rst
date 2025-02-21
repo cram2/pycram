@@ -20,7 +20,8 @@ Installing ROS
 
 PyCRAM uses ROS for a variety of functionality, for this reason you need a working ROS installation on your machine.
 For information on how to install ROS please referee to the official
-documentation `here <http://wiki.ros.org/noetic/Installation/Ubuntu>`_.
+documentation `here <http://wiki.ros.org/noetic/Installation/Ubuntu>`_ for ROS1 Noetic
+or `here <https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html>`_ for ROS2 Foxy.
 
 Installing Dependencies
 =======================
@@ -28,13 +29,78 @@ Installing Dependencies
 The dependencies you will need are:
     * Pip
     * vcstool
+    * curl
 
 These are available via the Ubuntu apt-repos and can be installed via the terminal:
 
 
 .. code-block:: shell
 
-    sudo apt-get install python3-pip python3-vcstool
+    sudo apt-get install python3-pip python3-vcstool curl
+
+
+
+Using the install script
+=========================
+.. _install-script:
+
+The easiest way to install PyCRAM is to use the install script. This script will install all necessary dependencies and
+clone the PyCRAM repository into your ROS workspace. Furthermore, will it setup the Python environment for PyCRAM and
+install the necessary Python packages.
+
+Additionally the script can install the IPython startup scripts which come in handy when using PyCRAM in an IPython shell
+for development.
+
+To use the script you have to setup a ROS workspace before:
+
+.. code-block:: shell
+    mkdir -p ~/workspace/ros/src
+    cd workspace/ros
+    catkin build
+    source install/setup.bash
+    cd src
+
+Now you can run the install script, *The scripts excepts that it is executed from /workspace/ros/src*:
+
+.. code-block:: shell
+
+    curl -s https://raw.githubusercontent.com/cram2/pycram/dev/scripts/install.sh | bash
+
+
+PyCRAM on Ubuntu24.04 (ROS Jazzy)
+===================================
+.. _install-pycram-24:
+
+Before installing PyCRAM you need to setup a ROS workspace into which PyCRAM can be cloned.
+
+.. code-block:: shell
+
+    mkdir -p ~/workspace/ros/src
+    cd workspace/ros
+    colcon build --symlink-install
+    source install/setup.bash
+
+If ``colcon build`` does not work this probably means that you did not source your ROS installation.
+Source it by invoking:
+
+.. code-block:: shell
+
+    source /opt/ros/jazzy/setup.bash
+
+Now you can install PyCRAM into your ROS workspace.
+
+.. code-block:: shell
+
+    cd ~/workspace/ros/src
+    vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram-ros2.rosinstall --recursive
+    rosdep update
+    rosdep install --ignore-src --from-paths . -r
+    cd ..
+    colcon build --symlink-install
+    source devel/setup.bash
+    echo "source ~/workspace/ros/install/setup.bash" >> ~/.bashrc
+
+Afterwards continue with the steps under `Python Dependencies`_.
 
 PyCRAM on Ubuntu 20.04 (ROS Noetic)
 ===================================
@@ -46,16 +112,15 @@ Before installing PyCRAM you need to setup a ROS workspace into which PyCRAM can
 
     mkdir -p ~/workspace/ros/src
     cd workspace/ros
-    catkin_make
+    catkin build
     source devel/setup.bash
 
-If ``catkin_make`` does not work this probably means that you did not source your ROS installation.
+If ``catkin build`` does not work this probably means that you did not source your ROS installation.
 Source it by invoking:
 
 .. code-block:: shell
 
     source /opt/ros/noetic/setup.bash
-
 
 Now you can install PyCRAM into your ROS workspace.
 
@@ -66,21 +131,12 @@ Now you can install PyCRAM into your ROS workspace.
     rosdep update
     rosdep install --ignore-src --from-paths . -r
     cd ..
-    catkin_make
+    catkin build
     source devel/setup.bash
     echo "source ~/workspace/ros/devel/setup.bash" >> ~/.bashrc
 
 The cloning and setting up can take several minutes. After the command finishes you should see a number of repositories
 in your ROS workspace.
-
-Now the last thing that needs to be done is clone the submodules of the PyCRAM repo, this is done via the following
-commands.
-
-.. code-block:: shell
-
-    cd src/pycram
-    git submodule init
-    git submodule update
 
 The cloned repository contains the source code for PyCRAM as well as two short demos which demonstrate how to use it.
 
@@ -134,7 +190,7 @@ You can build your ROS workspace with the following commands:
 .. code-block:: shell
 
     cd ~/workspace/ros
-    catkin_make
+    catkin build
     source devel/setup.bash
 
 Using PyCRAM

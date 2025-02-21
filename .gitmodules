@@ -1,0 +1,3 @@
+[submodule "resources/Multiverse-Assets"]
+	path = resources/Multiverse-Assets
+	url = git@github.com:Multiverse-Framework/Multiverse-Assets.git

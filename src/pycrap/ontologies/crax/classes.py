@@ -1,89 +1,125 @@
 from .dependencies import *
 
+
+class World(Base):
+    """
+    The world could be the belief state of an agent about the world.
+    """
+
+
 class Floor(Base):
     """
     The floor of the world.
     """
+
 
 class Milk(Base):
     """
     A milk carton.
     """
 
+
 class Robot(Base):
     """
     The robot.
     """
+
 
 class Cereal(Base):
     """
     A cereal box.
     """
 
+
 class Kitchen(Base):
     """
     A kitchen.
     """
 
+class PouringTool(Base):
+    """
+    The Tool that is used for pouring, can be cup, bottle, etc.
+    """
+
 class Food(Base):
     ...
+
 
 class Apartment(Base):
     ...
 
+
 class Cup(Base):
     ...
+
 
 class Spoon(Base):
     ...
 
+
 class Bowl(Base):
     ...
+
 
 class Cabinet(Base):
     ...
 
+
 class Washer(Base):
     ...
+
 
 class Drawer(Base):
     ...
 
+
 class Refrigerator(Base):
     ...
+
 
 class Sink(Base):
     ...
 
+
 class Door(Base):
     ...
+
 
 class Cutting(Base):
     ...
 
+
 class Pouring(Base):
     ...
+
 
 class Handle(Base):
     ...
 
+
 class Link(Base):
     ...
+
 
 class PhysicalObject(Base):
     ...
 
+
 class Agent(Base):
     ...
+
 
 class Room(Base):
     ...
 
+
 class Location(Base):
     ...
 
+
 class Container(Base):
     ...
+
 
 class Joint(Base):
     ...
@@ -112,40 +148,48 @@ class MovableJoint(Base):
     A joint where the two connected links can move relative to each other in some dimension.
     """
 
+
 class FloatingJoint(Base):
     """
     A joint that allows motion for all 6 degrees of freedom.
     """
+
 
 class PlanarJoint(Base):
     """
     A joint that allows motion in a plane perpendicular to an axis.
     """
 
+
 class PrismaticJoint(Base):
     """
     A sliding joint that slides along an axis, and has a limited range specified by the upper and lower limits.
     """
+
 
 class RevoluteJoint(Base):
     """
     A hinge joint that rotates along an axis and has a limited range specified by the upper and lower limits.
     """
 
+
 class DesignedFurniture(Base):
     """
     An object used to make a room or building suitable for living or working.
     """
+
 
 class Surface(Base):
     """
     The outside part or uppermost layer of something.
     """
 
+
 class PhysicalTask(Base):
     """
     A task in which a PhysicalAgent affects some physical object.
     """
+
 
 class Action(Base):
     """
@@ -191,10 +235,12 @@ class Event(Base):
     For this reason, in this ontology version of DOLCE, both events and situations are allowed, together with descriptions (the reason for the inclusion of the D&S framewrok in DOLCE), in order to encode the modelling needs, independently from the position (if any) chosen by the model designer.
     """
 
+
 class Entity(Base):
     """
     Anything: real, possible, or imaginary, which some modeller wants to talk about for some purpose.
     """
+
 
 class Task(Base):
     """
@@ -203,6 +249,7 @@ class Task(Base):
     The actions to execute a task can also be organized according to a Plan that is not the same as the one that defines the task (if any).
     For example, reaching a destination could be defined by a plan to get on holidays, while the plan to execute the task can consist of putting some travels into a sequence.
     """
+
 
 class RootLink(Base):
     ...

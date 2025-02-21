@@ -8,7 +8,7 @@ import shutil
 from typing_extensions import List, TYPE_CHECKING, Optional
 
 from .datastructures.dataclasses import Color
-from .ros.logging import loginfo
+from .ros import  loginfo
 
 if TYPE_CHECKING:
     from .description import ObjectDescription

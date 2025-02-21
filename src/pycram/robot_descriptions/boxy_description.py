@@ -1,7 +1,7 @@
-from ..ros.ros_tools import  get_ros_package_path
+from ..ros import   get_ros_package_path
 from ..robot_description import RobotDescription, CameraDescription, KinematicChainDescription, \
     EndEffectorDescription, RobotDescriptionManager
-from ..datastructures.enums import Arms, Grasp, GripperState, TorsoState, GripperType
+from ..datastructures.enums import Arms, Grasp, GripperState, TorsoState, GripperType, StaticJointState
 from ..units import meter
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "boxy" + '.urdf'
@@ -13,7 +13,7 @@ boxy_description = RobotDescription("boxy", "base_link", "triangle_base_link", "
 right_arm = KinematicChainDescription("right_arm", "calib_right_arm_base_link", "right_arm_7_link",
                                       boxy_description.urdf_object, arm_type=Arms.RIGHT)
 
-right_arm.add_static_joint_states("park", {"right_arm_0_joint": 1.858,
+right_arm.add_static_joint_states(StaticJointState.Park, {"right_arm_0_joint": 1.858,
                                            "right_arm_1_joint": -0.70571,
                                            "right_arm_2_joint": -0.9614,
                                            "right_arm_3_joint": 0.602,
@@ -38,7 +38,7 @@ right_arm.end_effector = right_gripper
 left_arm = KinematicChainDescription("left_arm", "calib_left_arm_base_link", "left_arm_7_link",
                                      boxy_description.urdf_object, arm_type=Arms.LEFT)
 
-left_arm.add_static_joint_states("park", {"left_arm_0_joint": -1.858,
+left_arm.add_static_joint_states(StaticJointState.Park, {"left_arm_0_joint": -1.858,
                                           "left_arm_1_joint": 0.70571,
                                           "left_arm_2_joint": 0.9614,
                                           "left_arm_3_joint": -0.602,

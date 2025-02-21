@@ -1,3 +1,5 @@
+from __future__ import annotations
+from datetime import timedelta
 from time import sleep, time
 
 import numpy as np
@@ -6,7 +8,7 @@ from typing_extensions import Any, Callable, Optional, Union, Iterable, Dict, TY
 from .error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, SingleValueErrorChecker
 from ..datastructures.enums import JointType
-from ..ros.logging import logerr
+from ..ros import logerr, logwarn
 
 if TYPE_CHECKING:
     from ..datastructures.world import World
@@ -28,6 +30,10 @@ class GoalValidator:
     raise_error: Optional[bool] = False
     """
     Whether to raise an error if the goal is not achieved.
+    """
+    total_wait_time: Optional[timedelta] = None
+    """
+    The total wait time that was spent waiting for the goal to be achieved.
     """
 
     def __init__(self, error_checker: ErrorChecker, current_value_getter: OptionalArgCallable,
@@ -67,8 +73,8 @@ class GoalValidator:
         self.register_goal(goal_value, current_value_getter_input, initial_value, acceptable_error)
         self.wait_until_goal_is_achieved(max_wait_time, time_per_read)
 
-    def wait_until_goal_is_achieved(self, max_wait_time: Optional[float] = 2,
-                                    time_per_read: Optional[float] = 0.01) -> None:
+    def wait_until_goal_is_achieved(self, max_wait_time: Optional[timedelta] = timedelta(seconds=2),
+                                    time_per_read: Optional[timedelta] = timedelta(milliseconds=10)) -> None:
         """
         Wait until the target is reached.
 
@@ -76,24 +82,25 @@ class GoalValidator:
         :param time_per_read: The time to wait between each read.
         """
         if self.goal_value is None:
+            logwarn("Goal value is None, skipping waiting for goal to be achieved")
             return  # Skip if goal value is None
         start_time = time()
         current = self.current_value
         while not self.goal_achieved:
-            sleep(time_per_read)
-            if time() - start_time > max_wait_time:
+            self.total_wait_time = timedelta(seconds=time() - start_time)
+            if self.total_wait_time > max_wait_time:
                 msg = f"Failed to achieve goal from initial error {self.initial_error} with" \
-                      f" goal {self.goal_value} within {max_wait_time}" \
+                      f" goal {self.goal_value} within {max_wait_time.total_seconds()}" \
                       f" seconds, the current value is {current}, error is {self.current_error}, percentage" \
                       f" of goal achieved is {self.percentage_of_goal_achieved}"
                 if self.raise_error:
                     logerr(msg)
                     raise TimeoutError(msg)
                 else:
-                    # logwarn(msg)
+                    logwarn(msg)
                     break
+            sleep(time_per_read.total_seconds())
             current = self.current_value
-        self.reset()
 
     def reset(self) -> None:
         """
@@ -257,6 +264,15 @@ class GoalValidator:
         Check if the error is acceptable.
         """
         return self.error_checker.is_error_acceptable(self.current_value, self.goal_value)
+
+    @property
+    def goal_not_achieved_message(self):
+        """
+        Message to be displayed when the goal is not achieved.
+        """
+        return f"Goal not achieved, current value: {self.current_value}, error: {self.current_error}, " \
+               f"percentage of goal achieved: {self.percentage_of_goal_achieved}, " \
+               f"with initial error: {self.initial_error}, goal: {self.goal_value}"
 
 
 class PoseGoalValidator(GoalValidator):
@@ -472,7 +488,7 @@ def validate_object_pose(pose_setter_func):
     :param pose_setter_func: The function to set the pose of the object.
     """
 
-    def wrapper(world: 'World', obj: 'Object', pose: 'Pose'):
+    def wrapper(world: World, obj: Object, pose: Pose):
 
         if not world.current_world.conf.validate_goals:
             return pose_setter_func(world, obj, pose)
@@ -500,7 +516,7 @@ def validate_multiple_object_poses(pose_setter_func):
     :param pose_setter_func: The function to set multiple poses of the objects.
     """
 
-    def wrapper(world: 'World', object_poses: Dict['Object', 'Pose']):
+    def wrapper(world: World, object_poses: Dict[Object, Pose]):
 
         if not world.current_world.conf.validate_goals:
             return pose_setter_func(world, object_poses)
@@ -527,7 +543,7 @@ def validate_joint_position(position_setter_func):
     :param position_setter_func: The function to set the joint position.
     """
 
-    def wrapper(world: 'World', joint: 'Joint', position: float):
+    def wrapper(world: World, joint: Joint, position: float):
 
         if not world.current_world.conf.validate_goals:
             return position_setter_func(world, joint, position)
@@ -560,7 +576,7 @@ def validate_multiple_joint_positions(position_setter_func):
     :param position_setter_func: The function to set the joint positions.
     """
 
-    def wrapper(world: 'World', joint_positions: Dict['Joint', float]):
+    def wrapper(world: World, joint_positions: Dict[Joint, float]):
         if not world.current_world.conf.validate_goals:
             return position_setter_func(world, joint_positions)
         joint_positions_to_validate = {joint: position for joint, position in joint_positions.items()
@@ -568,15 +584,9 @@ def validate_multiple_joint_positions(position_setter_func):
         if not joint_positions_to_validate:
             return position_setter_func(world, joint_positions)
 
-        multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
-            lambda x: list(world.get_multiple_joint_positions(x).values()),
-            acceptable_revolute_joint_position_error=world.conf.revolute_joint_position_tolerance,
-            acceptable_prismatic_joint_position_error=world.conf.prismatic_joint_position_tolerance,
-            acceptable_percentage_of_goal_achieved=world.conf.acceptable_percentage_of_goal)
+        robot = list(joint_positions.keys())[0].object
+        multi_joint_position_goal_validator = create_multiple_joint_goal_validator(robot, joint_positions_to_validate)
 
-        joint_types = [joint.type for joint in joint_positions_to_validate.keys()]
-        multi_joint_position_goal_validator.register_goal(list(joint_positions_to_validate.values()), joint_types,
-                                                          list(joint_positions_to_validate.keys()))
         if not position_setter_func(world, joint_positions):
             return False
 
@@ -584,3 +594,27 @@ def validate_multiple_joint_positions(position_setter_func):
         return True
 
     return wrapper
+
+
+def create_multiple_joint_goal_validator(robot: Object,
+                                         joint_positions: Union[Dict[Joint, float], Dict[str, float]]) \
+        -> MultiJointPositionGoalValidator:
+    """
+    Validate the multiple joint goals, and wait until the goal is achieved.
+
+    :param robot: The robot object.
+    :param joint_positions: The joint positions to validate.
+    """
+    world = robot.world
+    multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
+        lambda x: list(world.get_multiple_joint_positions(x).values()),
+        acceptable_revolute_joint_position_error=world.conf.revolute_joint_position_tolerance,
+        acceptable_prismatic_joint_position_error=world.conf.prismatic_joint_position_tolerance,
+        acceptable_percentage_of_goal_achieved=world.conf.acceptable_percentage_of_goal)
+    joint_objects = list(joint_positions.keys())
+    if isinstance(joint_objects[0], str):
+        joint_objects = [robot.joints[joint_name] for joint_name in joint_objects]
+    joint_types = [joint.type for joint in joint_objects]
+    multi_joint_position_goal_validator.register_goal(list(joint_positions.values()), joint_types,
+                                                      joint_objects)
+    return multi_joint_position_goal_validator

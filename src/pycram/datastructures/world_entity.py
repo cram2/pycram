@@ -13,7 +13,7 @@ from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, Phy
     AxisAlignedBoundingBox, RotatedBoundingBox
 from .mixins import HasConcept
 from ..local_transformer import LocalTransformer
-from ..ros.data_types import Time
+from ..ros import  Time
 
 if TYPE_CHECKING:
     from ..datastructures.world import World
@@ -118,15 +118,16 @@ class StateEntity:
         self._saved_states = {}
 
 
-class WorldEntity(StateEntity, ABC):
+class WorldEntity(StateEntity, HasConcept, ABC):
     """
     A class that represents an entity of the world, such as an object or a link.
     """
 
-    def __init__(self, _id: int, world: World):
+    def __init__(self, _id: int, world: World, concept: Type[PhysicalObject] = PhysicalObject, parse_name: bool = True):
         StateEntity.__init__(self)
         self.id = _id
         self.world: World = world
+        HasConcept.__init__(self, name=self.name, world=self.world, concept=concept, parse_name=parse_name)
 
     @property
     @abstractmethod
@@ -156,7 +157,7 @@ class WorldEntity(StateEntity, ABC):
         return hash((self.id, self.name, self.parent_entity))
 
 
-class PhysicalBody(WorldEntity, HasConcept, ABC):
+class PhysicalBody(WorldEntity, ABC):
     """
     A class that represents a physical body in the world that has some related physical properties.
     """
@@ -168,8 +169,7 @@ class PhysicalBody(WorldEntity, HasConcept, ABC):
 
     def __init__(self, body_id: int, world: World, concept: Type[PhysicalObject] = PhysicalObject,
                  parse_name: bool = True):
-        WorldEntity.__init__(self, body_id, world)
-        HasConcept.__init__(self, name=self.name, world=self.world, concept=concept, parse_name=parse_name)
+        WorldEntity.__init__(self, body_id, world, concept, parse_name)
 
         self.local_transformer = LocalTransformer()
         self._is_translating: Optional[bool] = None

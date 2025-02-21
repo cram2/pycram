@@ -6,17 +6,18 @@ from copy import deepcopy, copy
 from dataclasses import dataclass, fields, field
 
 import numpy as np
+import plotly.graph_objects as go
 import trimesh
 from matplotlib import pyplot as plt
-from random_events.variable import Continuous
 from random_events.interval import closed, SimpleInterval, Bound
 from random_events.product_algebra import SimpleEvent, Event
-import plotly.graph_objects as go
+from random_events.variable import Continuous
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, Self, \
     deprecated
 
 from .enums import JointType, Shape, VirtualMobileBaseJointName
 from .pose import Pose, Point, Transform
+from ..ros import logwarn
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
 if TYPE_CHECKING:
@@ -24,6 +25,83 @@ if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
     from ..world_concepts.constraints import Attachment
     from .world_entity import PhysicalBody
+
+
+@dataclass
+class ManipulatorData:
+    """
+    A dataclass for storing the information of a manipulator that is used for creating a robot description for that
+    manipulator. A manipulator is an Arm with an end-effector that can be used to interact with the environment.
+    """
+    name: str
+    """
+    Name of the Manipulator.
+    """
+    base_link: str
+    """
+    Manipulator's base link.
+    """
+    arm_end_link: str
+    """
+    Manipulator's arm end link.
+    """
+    joint_names: List[str]
+    """
+    List of joint names.
+    """
+    home_joint_values: List[float]
+    """
+    List of joint values for the home position. (default position)
+    """
+    gripper_name: str
+    """
+    Name of the gripper at the end of the arm.
+    """
+    gripper_tool_frame: str
+    """
+    Name of the frame of the gripper tool.
+    """
+    gripper_joint_names: List[str]
+    """
+    List of gripper joint names.
+    """
+    closed_joint_values: List[float]
+    """
+    List of joint values for the gripper in the closed position.
+    """
+    open_joint_values: List[float]
+    """
+    List of joint values for the gripper in the open position.
+    """
+    opening_distance: float
+    """
+    The opening distance of the gripper.
+    """
+    fingers_link_names: Optional[List[str]] = None
+    """
+    List of link names for the fingers of the gripper.
+    """
+    relative_dir: str = ''
+    """
+    Relative directory of the manipulator description file in the resources directory.
+    """
+    gripper_cmd_topic: Optional[str] = None
+    """
+    Gripper command topic in ROS if it has one.
+    """
+    gripper_open_cmd_value: Optional[float] = None
+    """
+    Grip open command value.
+    """
+    gripper_close_cmd_value: Optional[float] = None
+    """
+    Grip close command value.
+    """
+    gripper_relative_dir: Optional[str] = None
+    """
+    Relative directory of the gripper description file in the resources directory if it has one and is not part of the
+     manipulator description file.
+    """
 
 
 def get_point_as_list(point: Point) -> List[float]:
@@ -239,7 +317,7 @@ class BoundingBox:
     def merge_multiple_bounding_boxes_into_mesh(cls, bounding_boxes: List[BoundingBox],
                                                 save_mesh_to: Optional[str] = None,
                                                 use_random_events: bool = True,
-                                                plot: bool = False) -> trimesh.parent.Geometry3D:
+                                                plot: bool = False) -> trimesh.Trimesh:
         """
         Merge multiple axis-aligned bounding boxes into a single mesh.
 
@@ -276,25 +354,50 @@ class BoundingBox:
             mesh.export(save_mesh_to)
         return mesh
 
+    @property
+    def transform_as_array(self) -> np.ndarray:
+        """
+        :return: The transformation of the bounding box as a numpy array.
+        """
+        return self.transform.get_homogeneous_matrix()
+
+    @property
+    @abstractmethod
+    def transform(self) -> Transform:
+        """
+        Get the transformation of the bounding box.
+        """
+        pass
+
+    def extents(self) -> np.ndarray:
+        """
+        :return: The size of the bounding box in each dimension.
+        """
+        return np.array([self.width, self.depth, self.height])
+
     @staticmethod
-    def get_mesh_from_boxes(boxes: List[BoundingBox]) -> trimesh.parent.Geometry3D:
+    def get_mesh_from_boxes(boxes: List[BoundingBox]) -> trimesh.Trimesh:
         """
         Get the mesh from the boxes
 
         :param boxes: The list of boxes
         :return: The mesh.
         """
-        # for every atomic interval
-        all_vertices = []
-        all_faces = []
-        for i, box in enumerate(boxes):
-            # Create a 3D mesh trace for the rectangle
-            all_vertices.extend(box.get_points_list())
-            all_faces.extend((np.array(BoundingBox.get_box_faces()) + i * 8).tolist())
-        return trimesh.Trimesh(np.array(all_vertices), np.array(all_faces))
+        first_box_mesh = boxes[0].as_mesh
+        if len(boxes) == 1:
+            return first_box_mesh
+        else:
+            return first_box_mesh.union([box.as_mesh for box in boxes[1:]]).convex_hull
+
+    @property
+    def as_mesh(self) -> trimesh.Trimesh:
+        """
+        :return: The mesh of the bounding box.
+        """
+        return trimesh.primitives.Box(self.extents(), self.transform_as_array)
 
     @staticmethod
-    def get_mesh_from_event(event: Event) -> trimesh.parent.Geometry3D:
+    def get_mesh_from_event(event: Event) -> trimesh.Trimesh:
         """
         Get the mesh from the event.
 
@@ -351,7 +454,7 @@ class BoundingBox:
 
     @property
     def origin_point(self) -> Point:
-        return Point(*self.origin)
+        return Point(**dict(zip(["x", "y", "z"], self.origin)))
 
     def get_points_list(self) -> List[List[float]]:
         """
@@ -363,14 +466,14 @@ class BoundingBox:
         """
         :return: The points of the bounding box as a list of Point instances.
         """
-        return [Point(self.min_x, self.min_y, self.min_z),
-                Point(self.min_x, self.min_y, self.max_z),
-                Point(self.min_x, self.max_y, self.min_z),
-                Point(self.min_x, self.max_y, self.max_z),
-                Point(self.max_x, self.min_y, self.min_z),
-                Point(self.max_x, self.min_y, self.max_z),
-                Point(self.max_x, self.max_y, self.min_z),
-                Point(self.max_x, self.max_y, self.max_z)]
+        return [Point(x=self.min_x, y=self.min_y, z=self.min_z),
+                Point(x=self.min_x, y=self.min_y, z=self.max_z),
+                Point(x=self.min_x, y=self.max_y, z=self.min_z),
+                Point(x=self.min_x, y=self.max_y, z=self.max_z),
+                Point(x=self.max_x, y=self.min_y, z=self.min_z),
+                Point(x=self.max_x, y=self.min_y, z=self.max_z),
+                Point(x=self.max_x, y=self.max_y, z=self.min_z),
+                Point(x=self.max_x, y=self.max_y, z=self.max_z)]
 
     def get_min_max_points(self) -> Tuple[Point, Point]:
         """
@@ -382,13 +485,13 @@ class BoundingBox:
         """
         :return: The axis-aligned bounding box as a minimum point
         """
-        return Point(self.min_x, self.min_y, self.min_z)
+        return Point(x=self.min_x, y=self.min_y, z=self.min_z)
 
     def get_max_point(self) -> Point:
         """
         :return: The axis-aligned bounding box as a maximum point
         """
-        return Point(self.max_x, self.max_y, self.max_z)
+        return Point(x=self.max_x, y=self.max_y, z=self.max_z)
 
     def get_min_max(self) -> Tuple[List[float], List[float]]:
         """
@@ -408,7 +511,7 @@ class BoundingBox:
         """
         return [self.max_x, self.max_y, self.max_z]
 
-    def enlarge(self, min_x: float = 0., min_y:float = 0, min_z: float = 0,
+    def enlarge(self, min_x: float = 0., min_y: float = 0, min_z: float = 0,
                 max_x: float = 0., max_y: float = 0., max_z: float = 0.):
         """
         Enlarge the axis-aligned bounding box by a given amount in-place.
@@ -465,8 +568,13 @@ class BoundingBox:
 
         plt.show()
 
+
 @dataclass
 class AxisAlignedBoundingBox(BoundingBox):
+
+    @property
+    def transform(self) -> Transform:
+        return Transform(self.origin)
 
     def get_rotated_box(self, transform: Transform) -> RotatedBoundingBox:
         """
@@ -527,9 +635,13 @@ class RotatedBoundingBox(BoundingBox):
         :param transform: The transformation
         :param points: The points of the rotated bounding box.
         """
-        self.transform: Optional[Transform] = transform
+        self._transform: Optional[Transform] = transform
         super().__init__(min_x, min_y, min_z, max_x, max_y, max_z)
         self._points: Optional[List[Point]] = points
+
+    @property
+    def transform(self) -> Transform:
+        return self._transform
 
     @classmethod
     def from_min_max(cls, min_point: Sequence[float], max_point: Sequence[float],
@@ -550,7 +662,7 @@ class RotatedBoundingBox(BoundingBox):
         points_array = np.array([[point.x, point.y, point.z] for point in super().get_points()])
         if self._points is None:
             transformed_points = self.transform.apply_transform_to_array_of_points(points_array).tolist()
-            self._points = [Point(*point) for point in transformed_points]
+            self._points = [Point(**dict(zip(["x", "y", "z"], point))) for point in transformed_points]
         return self._points
 
 
@@ -972,7 +1084,7 @@ class ContactPoint:
     position_on_body_b: Optional[List[float]] = None
     normal_on_body_b: Optional[List[float]] = None  # the contact normal vector on object b pointing towards object a
     distance: Optional[float] = None  # distance between the two objects (+ve for separation, -ve for penetration)
-    normal_force: Optional[List[float]] = None  # normal force applied during last step simulation
+    normal_force: Optional[float] = None  # normal force applied during last step simulation
     lateral_friction_1: Optional[LateralFriction] = None
     lateral_friction_2: Optional[LateralFriction] = None
 
@@ -1162,7 +1274,7 @@ class TextAnnotation:
     text: str
     position: List[float]
     id: int
-    color: Color = Color(0, 0, 0, 1)
+    color: Color = field(default_factory=lambda: Color(0, 0, 0, 1))
     size: float = 0.1
 
 
@@ -1195,13 +1307,13 @@ class VirtualMobileBaseJoints:
 
     translation_x: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_X.value,
                                                          JointType.PRISMATIC,
-                                                         Point(1, 0, 0))
+                                                         Point(x=1.0, y=0.0, z=0.0))
     translation_y: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_Y.value,
                                                          JointType.PRISMATIC,
-                                                         Point(0, 1, 0))
+                                                         Point(x=0.0, y=1.0, z=0.0))
     angular_z: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.ANGULAR_Z.value,
                                                      JointType.REVOLUTE,
-                                                     Point(0, 0, 1))
+                                                     Point(x=0.0, y=0.0, z=1.0))
 
     @property
     def names(self) -> List[str]:
@@ -1273,8 +1385,8 @@ class RayResult:
         return: Whether the ray intersects with a body.
         """
         if not self.obj_id:
-            raise ValueError("obj_id should be available to check if the ray intersects with a body,"
-                             "It appears that the ray result is not valid.")
+            logwarn("obj_id should be available to check if the ray intersects with a body,"
+                    "It appears that the ray result is not valid.")
         return self.obj_id != -1
 
     @property

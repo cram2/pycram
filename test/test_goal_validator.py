@@ -1,5 +1,5 @@
 import numpy as np
-from tf.transformations import quaternion_from_euler
+from pycram.tf_transformations import quaternion_from_euler
 from typing_extensions import Optional, List
 
 from pycram.testing import BulletWorldTestCase
@@ -73,7 +73,7 @@ class TestGoalValidator(BulletWorldTestCase):
         self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertEqual(goal_validator.current_error, [np.pi / 2])
         self.cereal.set_orientation(cereal_goal_orientation)
-        for v1, v2 in zip(self.cereal.get_orientation_as_list(), cereal_goal_orientation.tolist()):
+        for v1, v2 in zip(self.cereal.get_orientation_as_list(), cereal_goal_orientation):
             self.assertAlmostEqual(v1, v2, places=5)
         self.assertTrue(goal_validator.goal_achieved)
         self.assertAlmostEqual(goal_validator.actual_percentage_of_goal_achieved, 1, places=5)
