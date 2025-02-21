@@ -834,7 +834,15 @@ class ObjectDescription(EntityDescription):
                 if mesh_transform is not None:
                     transform = mesh_transform.get_homogeneous_matrix()
                     mesh.apply_transform(transform)
-                path = path.replace(extension, ".obj")
+
+                root_dir = os.path.dirname(path)
+                object_name = os.path.basename(path).split('.')[0]
+
+                new_dir_name = f"converted_{object_name}"
+                path = os.path.join(root_dir, new_dir_name, object_name+".obj")
+
+                if not os.path.exists(path):
+                    os.makedirs(os.path.dirname(path), exist_ok=True)
                 mesh.export(path)
             self.generate_from_mesh_file(path, name, save_path=save_path, color=color, scale=scale_mesh)
         elif extension == self.get_file_extension():
