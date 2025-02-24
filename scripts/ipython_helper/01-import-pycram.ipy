@@ -1,12 +1,12 @@
 import os
 import sys
 if "pycram" in os.path.abspath(os.getcwd()):
-    from pycram.designators.action_designators import *
-    from pycram.designators.motion_designators import *
-    from pycram.designators.location_designators import *
-    from pycram.designators.object_designators import *
+    from pycram.designators.action_designator import *
+    from pycram.designators.motion_designator import *
+    from pycram.designators.location_designator import *
+    from pycram.designators.object_designator import *
     from pycram.datastructures.pose import Pose
     from pycram.worlds.bullet_world import BulletWorld
     from pycram.process_module import simulated_robot, real_robot
-    from pycram.world_concept.world_object import Object
+    from pycram.world_concepts.world_object import Object
     from pycrap.ontologies import Robot, Apartment, Milk
