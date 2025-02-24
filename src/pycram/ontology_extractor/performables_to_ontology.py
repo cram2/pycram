@@ -4,45 +4,46 @@ from random_events.utils import recursive_subclasses, get_full_class_name
 import inspect
 from owlready2 import *
 
-action_performable_classes = {}
-parameter_classes = set()
-for c in recursive_subclasses(ActionDesignatorDescription):
-    name = get_full_class_name(c)
-    action_performable_classes[name] = {}
-    performable_comment = c.__doc__
-    action_performable_classes[name]['comment'] = performable_comment
-    action_performable_classes[name]['parameters'] = {}
-    for parameter in inspect.signature(c.__init__).parameters.values():
-        if parameter.name == 'self':
-            continue
-        action_performable_classes[name]['parameters'][parameter.name] = parameter.annotation
-        parameter_classes.add(parameter.annotation)
-# Create ontology from assessed python structures
-output_ontology = get_ontology("pycram_performables.owl")
-with output_ontology:
-    class Performable(Thing):
-        pass
+def parse_class_structure():
+    clazzes = {}
+    all_param_clazzes = set()
+    for clazz in recursive_subclasses(ActionDesignatorDescription):
+        name = get_full_class_name(clazz)
+        clazzes[name] = {}
+        docstring = clazz.__doc__
+        clazzes[name]['doc'] = docstring
+        clazzes[name]['parameters'] = {}
+        for init_param in inspect.signature(clazz.__init__).parameters.values():
+            param_name = init_param.name
+            if not param_name == 'self':
+                clazzes[name]['parameters'][param_name] = init_param.annotation
+                all_param_clazzes.add(init_param.annotation)
 
-    class Parameter(Thing):
-        pass
+    output_ontology = get_ontology("Performable")
+    with output_ontology:
+        class Performable(Thing):
+            pass
 
-    class has_parameter(Performable >> Parameter):
-        pass
+        class Parameter(Thing):
+            pass
 
-    class has_description(DataProperty):
-        range = [str]
+        class has_parameter(Performable >> Parameter):
+            pass
 
-    parameter_cls_dict = {parameter_cls: types.new_class(parameter_cls, (Parameter,))
-                          for parameter_cls in parameter_classes}
+        class has_description(DataProperty):
+            range = [str]
 
-    for perf_name, perf_details in action_performable_classes.items():
-        perf_ins = Performable(perf_name)
-        perf_ins.has_description = [perf_details['comment']]
-        para_instances = []
-        for para_name, para_cls in perf_details['parameters'].items():
-            para_ins = parameter_cls_dict[para_cls]()
-            para_ins.has_description = [para_name]
-            para_instances.append(para_ins)
-        perf_ins.has_parameter = para_instances
+        parameter_cls_dict = {parameter_cls: types.new_class(parameter_cls, (Parameter,))
+                              for parameter_cls in all_param_clazzes}
 
-output_ontology.save(file= "performables.owl", format="rdfxml")
+        for clazzname, clazzinfos in clazzes.items():
+            performable = Performable(clazzname)
+            performable.has_description = [clazzinfos['doc']]
+            params = []
+            for para_name, para_cls in clazzinfos['parameters'].items():
+                parameter = parameter_cls_dict[para_cls]()
+                parameter.has_description = para_name
+                params.append(parameter)
+            performable.has_parameter = params
+
+    output_ontology.save(file= "performables.owl", format="rdfxml")
