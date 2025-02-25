@@ -5,7 +5,7 @@ from geometry_msgs.msg import Vector3
 
 from owlready2 import Thing
 
-from ...action_designator import PickUpAction, PickUpActionPerformable
+from ...action_designator import PickUpAction, PickUpAction
 from ....local_transformer import LocalTransformer
 from ....datastructures.world import World
 from ....datastructures.pose import Pose, Transform
@@ -45,7 +45,7 @@ class DualArmPickupAction(PickUpAction):
         self.gripper_list: List[KinematicChainDescription] = [left_gripper, right_gripper]
 
 
-    def ground(self) -> PickUpActionPerformable:
+    def ground(self) -> PickUpAction:
         if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object):
             obj_desig = self.object_designator_description
         else:
@@ -72,4 +72,4 @@ class DualArmPickupAction(PickUpAction):
         winner = self.gripper_list[min_index]
         loginfo(f"Winner is {winner.arm_type.name} with distance {min(distances):.2f}")
 
-        return PickUpActionPerformable(object_designator=obj_desig, arm=winner.arm_type, grasp=self.grasps[0])
+        return PickUpAction(object_designator=obj_desig, arm=winner.arm_type, grasp=self.grasps[0])

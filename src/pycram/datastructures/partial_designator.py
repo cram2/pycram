@@ -9,7 +9,7 @@ from inspect import signature
 
 
 if TYPE_CHECKING:
-    from ..designator import ActionDesignatorDescription
+    from ..designator import ActionDescription
 
 
 class PartialDesignator:
@@ -29,7 +29,7 @@ class PartialDesignator:
             for performable in partial_designator(Grasp.FRONT):
                 performable.perform()
     """
-    performable: Type[ActionDesignatorDescription.Action] = None
+    performable: Type[ActionDescription] = None
     """
     Reference to the performable class that should be initialized
     """

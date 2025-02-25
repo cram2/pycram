@@ -112,10 +112,10 @@ navigations = session.scalars(select(pycram.orm.action_designator.NavigateAction
 print(*navigations, sep="\n")
 ```
 
-Due to the inheritance mapped in the ORM package, we can also obtain all executed actions with just one query. 
+Due to the inheritance mapped in the ORM package, we can also obtain all executed actions with just one query.
 
 ```python
-actions = session.scalars(select(pycram.orm.action_designator.Action)).all()
+actions = session.scalars(select(pycram.orm.action_designator.ActionDescription)).all()
 print(*actions, sep="\n")
 ```
 

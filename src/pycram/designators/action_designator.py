@@ -25,7 +25,7 @@ from ..datastructures.pose import Pose
 from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty
 from ..datastructures.world import World, UseProspectionWorld
 from ..description import Joint, Link
-from ..designator import ActionDesignatorDescription
+from ..designator import ActionDescription
 from ..failure_handling import try_action
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
     ObjectNotGraspedError, TorsoGoalNotReached, ConfigurationNotReached, ObjectNotInGraspingArea, \
@@ -45,7 +45,6 @@ from owlready2 import Thing
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
     TorsoState, StaticJointState
 
-from ..designator import ActionDesignatorDescription
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 
@@ -75,7 +74,7 @@ from ..world_reasoning import move_away_all_objects_to_create_empty_space, gener
 
 
 @dataclass
-class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
+class ActionAbstract(ActionDescription, abc.ABC):
     """Base class for performable performables."""
     orm_class: Type[ORMAction] = field(init=False, default=None, repr=False)
     """
@@ -92,7 +91,7 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
         """
         pass
 
-    def to_sql(self) -> Action:
+    def to_sql(self) -> ActionDescription:
         """
         Convert this action to its ORM equivalent.
 
@@ -114,7 +113,7 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
 
         return self.orm_class(*parameters)
 
-    def insert(self, session: Session, **kwargs) -> Action:
+    def insert(self, session: Session, **kwargs) -> ActionDescription:
         """
         Insert this action into the database.
 
@@ -149,7 +148,7 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
 
 
 @dataclass
-class MoveTorsoActionPerformable(ActionAbstract):
+class MoveTorsoAction(ActionAbstract):
     """
     Move the torso of the robot up and down.
     """
@@ -158,6 +157,7 @@ class MoveTorsoActionPerformable(ActionAbstract):
     The state of the torso that should be set
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMMoveTorsoAction)
+
 
     @with_tree
     def plan(self) -> None:
@@ -180,7 +180,7 @@ class MoveTorsoActionPerformable(ActionAbstract):
 
 
 @dataclass
-class SetGripperActionPerformable(ActionAbstract):
+class SetGripperAction(ActionAbstract):
     """
     Set the gripper state of the robot.
     """
@@ -212,7 +212,7 @@ class SetGripperActionPerformable(ActionAbstract):
 
 
 @dataclass
-class ReleaseActionPerformable(ActionAbstract):
+class ReleaseAction(ActionAbstract):
     """
     Releases an Object from the robot.
 
@@ -228,7 +228,7 @@ class ReleaseActionPerformable(ActionAbstract):
 
 
 @dataclass
-class GripActionPerformable(ActionAbstract):
+class GripAction(ActionAbstract):
     """
     Grip an object with the robot.
 
@@ -245,7 +245,7 @@ class GripActionPerformable(ActionAbstract):
 
 
 @dataclass
-class ParkArmsActionPerformable(ActionAbstract):
+class ParkArmsAction(ActionAbstract):
     """
     Park the arms of the robot.
     """
@@ -287,7 +287,7 @@ class ParkArmsActionPerformable(ActionAbstract):
 
 
 @dataclass
-class ReachToPickUpActionPerformable(ActionAbstract):
+class ReachToPickUpAction(ActionAbstract):
     """
     Let the robot reach a specific pose.
     """
@@ -431,10 +431,10 @@ class ReachToPickUpActionPerformable(ActionAbstract):
 
     # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
     #  ActionAbstract
-    def to_sql(self) -> Action:
+    def to_sql(self) -> ActionDescription:
         return ORMReachToPickUpAction(arm=self.arm, grasp=self.grasp, prepose_distance=self.prepose_distance)
 
-    def insert(self, session: Session, **kwargs) -> Action:
+    def insert(self, session: Session, **kwargs) -> ActionDescription:
         action = super(ActionAbstract, self).insert(session)
         action.object = self.object_at_execution.insert(session)
         session.add(action)
@@ -454,7 +454,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
 
 
 @dataclass
-class PickUpActionPerformable(ActionAbstract):
+class PickUpAction(ActionAbstract):
     """
     Let the robot pick up an object.
     """
@@ -494,7 +494,7 @@ class PickUpActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        ReachToPickUpActionPerformable(self.object_designator, self.arm, self.grasp, self.prepose_distance).perform()
+        ReachToPickUpAction(self.object_designator, self.arm, self.grasp, self.prepose_distance).perform()
 
         MoveGripperMotion(motion=GripperState.CLOSE, gripper=self.arm).perform()
 
@@ -522,10 +522,10 @@ class PickUpActionPerformable(ActionAbstract):
 
     # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
     #  ActionAbstract
-    def to_sql(self) -> Action:
+    def to_sql(self) -> ActionDescription:
         return ORMPickUpAction(arm=self.arm, grasp=self.grasp, prepose_distance=self.prepose_distance)
 
-    def insert(self, session: Session, **kwargs) -> Action:
+    def insert(self, session: Session, **kwargs) -> ActionDescription:
         action = super(ActionAbstract, self).insert(session)
         action.object = self.object_at_execution.insert(session)
         session.add(action)
@@ -548,7 +548,7 @@ class PickUpActionPerformable(ActionAbstract):
 
 
 @dataclass
-class PlaceActionPerformable(ActionAbstract):
+class PlaceAction(ActionAbstract):
     """
     Places an Object at a position using an arm.
     """
@@ -656,7 +656,7 @@ class PlaceActionPerformable(ActionAbstract):
 
 
 @dataclass
-class NavigateActionPerformable(ActionAbstract):
+class NavigateAction(ActionAbstract):
     """
     Navigates the Robot to a position.
     """
@@ -685,7 +685,7 @@ class NavigateActionPerformable(ActionAbstract):
 
 
 @dataclass
-class TransportActionPerformable(ActionAbstract):
+class TransportAction(ActionAbstract):
     """
     Transports an object to a position using an arm
     """
@@ -711,7 +711,7 @@ class TransportActionPerformable(ActionAbstract):
     @with_tree
     def plan(self) -> None:
         robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
-        ParkArmsActionPerformable(Arms.BOTH).perform()
+        ParkArmsAction(Arms.BOTH).perform()
         pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig_resolved,
                                      reachable_arm=self.arm, prepose_distance=self.pickup_prepose_distance)
         # Tries to find a pick-up position for the robot that uses the given arm
@@ -724,19 +724,19 @@ class TransportActionPerformable(ActionAbstract):
             raise ObjectUnfetchable(
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
 
-        NavigateActionPerformable(pickup_pose.pose, True).perform()
-        PickUpActionPerformable(self.object_designator, self.arm, Grasp.FRONT,
-                                prepose_distance=self.pickup_prepose_distance).perform()
-        ParkArmsActionPerformable(Arms.BOTH).perform()
+        NavigateAction(pickup_pose.pose, True).perform()
+        PickUpAction(self.object_designator, self.arm, Grasp.FRONT,
+                     prepose_distance=self.pickup_prepose_distance).perform()
+        ParkArmsAction(Arms.BOTH).perform()
         try:
             place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig_resolved,
                                         reachable_arm=self.arm).resolve()
         except StopIteration:
             raise ReachabilityFailure(
                 f"No location found from where the robot can reach the target location: {self.target_location}")
-        NavigateActionPerformable(place_loc.pose, True).perform()
-        PlaceActionPerformable(self.object_designator, self.arm, self.target_location).perform()
-        ParkArmsActionPerformable(Arms.BOTH).perform()
+        NavigateAction(place_loc.pose, True).perform()
+        PlaceAction(self.object_designator, self.arm, self.target_location).perform()
+        ParkArmsAction(Arms.BOTH).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation of each atomic action is done in the action itself, so no more validation needed here.
@@ -744,7 +744,7 @@ class TransportActionPerformable(ActionAbstract):
 
 
 @dataclass
-class LookAtActionPerformable(ActionAbstract):
+class LookAtAction(ActionAbstract):
     """
     Lets the robot look at a position.
     """
@@ -776,7 +776,7 @@ class LookAtActionPerformable(ActionAbstract):
 
 
 @dataclass
-class DetectActionPerformable(ActionAbstract):
+class DetectAction(ActionAbstract):
     """
     Detects an object that fits the object description and returns an object designator_description describing the object.
 
@@ -815,7 +815,7 @@ class DetectActionPerformable(ActionAbstract):
 
 
 @dataclass
-class OpenActionPerformable(ActionAbstract):
+class OpenAction(ActionAbstract):
     """
     Opens a container like object
     """
@@ -836,7 +836,7 @@ class OpenActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        GraspingActionPerformable(self.arm, self.object_designator, self.grasping_prepose_distance).perform()
+        GraspingAction(self.arm, self.object_designator, self.grasping_prepose_distance).perform()
         OpeningMotion(self.object_designator, self.arm).perform()
 
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
@@ -846,11 +846,11 @@ class OpenActionPerformable(ActionAbstract):
         Check if the container is opened, this assumes that the container state can be read accurately from the
         real world.
         """
-        validate_close_open(self.object_designator, self.arm, OpenActionPerformable)
+        validate_close_open(self.object_designator, self.arm, OpenAction)
 
 
 @dataclass
-class CloseActionPerformable(ActionAbstract):
+class CloseAction(ActionAbstract):
     """
     Closes a container like object.
     """
@@ -871,7 +871,7 @@ class CloseActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        GraspingActionPerformable(self.arm, self.object_designator, self.grasping_prepose_distance).perform()
+        GraspingAction(self.arm, self.object_designator, self.grasping_prepose_distance).perform()
         ClosingMotion(self.object_designator, self.arm).perform()
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
 
@@ -880,11 +880,11 @@ class CloseActionPerformable(ActionAbstract):
         Check if the container is closed, this assumes that the container state can be read accurately from the
         real world.
         """
-        validate_close_open(self.object_designator, self.arm, CloseActionPerformable)
+        validate_close_open(self.object_designator, self.arm, CloseAction)
 
 
 def validate_close_open(object_designator: ObjectDesignatorDescription.Object, arm: Arms,
-                        action_type: Union[OpenActionPerformable, CloseActionPerformable]):
+                        action_type: Union[OpenAction, CloseAction]):
     """
     Validates if the container is opened or closed by checking the joint position of the container.
 
@@ -896,9 +896,9 @@ def validate_close_open(object_designator: ObjectDesignatorDescription.Object, a
     container_joint_name = obj_part.find_joint_above_link(object_designator.name)
     lower_limit, upper_limit = obj_part.get_joint_limits(container_joint_name)
     joint_obj: Joint = obj_part.joints[container_joint_name]
-    if issubclass(action_type, CloseActionPerformable):
+    if issubclass(action_type, CloseAction):
         check_closed(joint_obj, obj_part, arm, lower_limit)
-    elif issubclass(action_type, OpenActionPerformable):
+    elif issubclass(action_type, OpenAction):
         check_opened(joint_obj, obj_part, arm, upper_limit)
     else:
         raise ValueError(f"Invalid action type: {action_type}")
@@ -917,7 +917,7 @@ def check_closed(joint_obj: Joint, obj_part: Link, arm: Arms, lower_limit: float
 
 
 @dataclass
-class GraspingActionPerformable(ActionAbstract):
+class GraspingAction(ActionAbstract):
     """
     Grasps an object described by the given Object Designator description
     """
@@ -969,7 +969,7 @@ class GraspingActionPerformable(ActionAbstract):
 
 
 @dataclass
-class FaceAtPerformable(ActionAbstract):
+class FaceAtAction(ActionAbstract):
     """
     Turn the robot chassis such that is faces the ``pose`` and after that perform a look at action.
     """
@@ -999,10 +999,10 @@ class FaceAtPerformable(ActionAbstract):
         new_robot_pose = Pose(robot_position.position_as_list(), orientation)
 
         # turn robot
-        NavigateActionPerformable(new_robot_pose, self.keep_joint_states).perform()
+        NavigateAction(new_robot_pose, self.keep_joint_states).perform()
 
         # look at target
-        LookAtActionPerformable(self.pose).perform()
+        LookAtAction(self.pose).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in the LookAtActionPerformable.perform() method so no need to validate here.
@@ -1010,7 +1010,7 @@ class FaceAtPerformable(ActionAbstract):
 
 
 @dataclass
-class MoveAndPickUpPerformable(ActionAbstract):
+class MoveAndPickUpAction(ActionAbstract):
     """
     Navigate to `standing_position`, then turn towards the object and pick it up.
     """
@@ -1047,10 +1047,10 @@ class MoveAndPickUpPerformable(ActionAbstract):
 
     # @with_tree
     def plan(self):
-        NavigateActionPerformable(self.standing_position, self.keep_joint_states).perform()
-        FaceAtPerformable(self.object_designator.pose, self.keep_joint_states).perform()
-        PickUpActionPerformable(self.object_designator, self.arm, self.grasp,
-                                self.pick_up_prepose_distance).perform()
+        NavigateAction(self.standing_position, self.keep_joint_states).perform()
+        FaceAtAction(self.object_designator.pose, self.keep_joint_states).perform()
+        PickUpAction(self.object_designator, self.arm, self.grasp,
+                     self.pick_up_prepose_distance).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
@@ -1058,7 +1058,7 @@ class MoveAndPickUpPerformable(ActionAbstract):
 
 
 @dataclass
-class MoveAndPlacePerformable(ActionAbstract):
+class MoveAndPlaceAction(ActionAbstract):
     """
     Navigate to `standing_position`, then turn towards the object and pick it up.
     """
@@ -1090,470 +1090,10 @@ class MoveAndPlacePerformable(ActionAbstract):
 
     @with_tree
     def plan(self):
-        NavigateActionPerformable(self.standing_position, self.keep_joint_states).perform()
-        FaceAtPerformable(self.target_location, self.keep_joint_states).perform()
-        PlaceActionPerformable(self.object_designator, self.arm, self.target_location).perform()
+        NavigateAction(self.standing_position, self.keep_joint_states).perform()
+        FaceAtAction(self.target_location, self.keep_joint_states).perform()
+        PlaceAction(self.object_designator, self.arm, self.target_location).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
         pass
-
-
-# ----------------------------------------------------------------------------
-#               Action Designators Description
-# ----------------------------------------------------------------------------
-
-
-class MoveTorsoAction(ActionDesignatorDescription):
-    """
-    Action Designator for Moving the torso of the robot up and down
-    """
-    performable_class = MoveTorsoActionPerformable
-
-    def __init__(self, torso_states: Union[TorsoState, List[TorsoState]]):
-        """
-        Create a designator_description description to move the torso of the robot up and down.
-
-        :param torso_states: A list of possible states for the torso. The states are defined in the robot description.
-        """
-        super().__init__()
-        PartialDesignator.__init__(self, MoveTorsoActionPerformable, torso_state=torso_states)
-        self.torso_states: Union[TorsoState, List[TorsoState]] = torso_states
-
-    def ground(self) -> MoveTorsoActionPerformable:
-        """
-        Creates a performable action designator_description with the first element from the list of possible torso heights.
-
-        :return: A performable action designator_description
-        """
-        return self.resolve()
-
-
-class SetGripperAction(ActionDesignatorDescription):
-    """
-    Set the gripper state of the robot
-    """
-
-    performable_class = SetGripperActionPerformable
-
-    def __init__(self, grippers: Union[Arms, List[Arms]], motions: Union[GripperState, List[GripperState]]):
-        """
-        Sets the gripper state, the desired state is given with the motion. Motion can either be 'open' or 'close'.
-
-        :param grippers: A list of possible grippers
-        :param motions: A list of possible motions
-        """
-        super().__init__()
-        PartialDesignator.__init__(self, SetGripperActionPerformable, gripper=grippers, motion=motions)
-        self.grippers: Union[Arms, List[Arms]] = grippers
-        self.motions: Union[GripperState, List[GripperState]] = motions
-
-    def ground(self) -> SetGripperActionPerformable:
-        """
-        Default specialized_designators that returns a performable designator_description with the first element in the grippers and motions list.
-
-        :return: A performable designator_description
-        """
-        return SetGripperActionPerformable(self.grippers[0], self.motions[0])
-
-
-class ReleaseAction(ActionDesignatorDescription):
-    """
-    Releases an Object from the robot.
-
-    Note: This action can not be used yet.
-    """
-
-    performable_class = ReleaseActionPerformable
-
-    def __init__(self, object_designator_description: ObjectDesignatorDescription,
-                 grippers: Optional[Union[Arms, List[Arms]]] = None):
-        super().__init__()
-        PartialDesignator.__init__(self, ReleaseActionPerformable, gripper=grippers,)
-        self.grippers: Optional[Union[Arms, List[Arms]]] = grippers
-        self.object_designator_description = object_designator_description
-
-    def ground(self) -> ReleaseActionPerformable:
-        return ReleaseActionPerformable(self.grippers[0], self.object_designator_description.ground())
-
-    def __iter__(self):
-        ri = ReasoningInstance(self,
-                               PartialDesignator(ReleaseActionPerformable, self.grippers,
-                                                 self.object_designator_description))
-        for desig in ri:
-            yield desig
-
-
-class GripAction(ActionDesignatorDescription):
-    """
-    Grip an object with the robot.
-
-    :ivar grippers: The grippers to consider
-    :ivar object_designator_description: The description of objects to consider
-    :ivar efforts: The efforts to consider
-
-    Note: This action can not be used yet.
-    """
-
-    performable_class = GripActionPerformable
-
-    def __init__(self, object_designator_description: ObjectDesignatorDescription,
-                 grippers: Optional[Union[Arms, List[Arms]]] = None,
-                 efforts: Optional[Union[float, List[float]]] = None):
-        super().__init__()
-        PartialDesignator.__init__(self, GripActionPerformable, gripper=grippers, object_designator=object_designator_description,
-                                   effort=efforts)
-        self.grippers: Optional[Union[Arms, List[Arms]]] = grippers
-        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
-        self.efforts: Optional[Union[float, List[float]]] = efforts
-
-    def ground(self) -> GripActionPerformable:
-        return GripActionPerformable(self.grippers[0], self.object_designator_description.ground(), self.efforts[0])
-
-
-class ParkArmsAction(ActionDesignatorDescription):
-    """
-    Park the arms of the robot.
-    """
-
-    performable_class = ParkArmsActionPerformable
-
-    def __init__(self, arms: Union[Arms, List[Arms]]):
-        """
-        Moves the arms in the pre-defined parking position. Arms are taken from pycram.enum.Arms
-
-        :param arms: A list of possible arms, that could be used
-        """
-        super().__init__()
-        PartialDesignator.__init__(self, ParkArmsActionPerformable, arm=arms)
-        self.arms: Union[Arms, List[Arms]] = arms
-
-    def ground(self) -> ParkArmsActionPerformable:
-        """
-        Default specialized_designators that returns a performable designator_description with the first element of the list of possible arms
-
-        :return: A performable designator_description
-        """
-        return ParkArmsActionPerformable(self.arms[0])
-
-
-class PickUpAction(ActionDesignatorDescription):
-    """
-    Designator to let the robot pick up an object.
-    """
-
-    performable_class = PickUpActionPerformable
-
-    def __init__(self,
-                 object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
-                 arms: Optional[Union[Arms, List[Arms]]] = None, grasps: Optional[Union[Grasp, List[Grasp]]] = None,
-                 prepose_distance: Optional[Union[float, List[float]]] = 0.03):
-        """
-        Lets the robot pick up an object. The description needs an object designator_description describing the object that should be
-        picked up, an arm that should be used as well as the grasp from which side the object should be picked up.
-
-        :param object_designator_description: List of possible object designator_description
-        :param arms: List of possible arms that could be used
-        :param grasps: List of possible grasps for the object
-        :param prepose_distance: The distance between the object and the gripper in the x-axis before picking up the
-        object.
-        """
-        super().__init__()
-        PartialDesignator.__init__(self, PickUpActionPerformable, object_designator=object_designator_description, arm=arms,
-                                   grasp=grasps, prepose_distance=prepose_distance)
-        self.object_designator_description: Union[
-            ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
-        self.arms: Union[Arms, List[Arms]] = arms
-        self.grasps: Union[Grasp, List[Grasp]] = grasps
-        object_desig = self.object_designator_description if isinstance(self.object_designator_description,
-                                                                        ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
-        self.prepose_distance: Union[float, List[float]] = prepose_distance
-        self.knowledge_condition = GraspableProperty(self.object_designator_description) & ReachableProperty(
-            object_desig.pose)
-
-
-class PlaceAction(ActionDesignatorDescription):
-    """
-    Places an Object at a position using an arm.
-    """
-
-    performable_class = PlaceActionPerformable
-
-    def __init__(self,
-                 object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
-                 target_locations: Union[Pose, List[Pose]],
-                 arms: Optional[Union[Arms, List[Arms]]] = None):
-        """
-        Create an Action Description to place an object
-
-        :param object_designator_description: Description of object to place.
-        :param target_locations: List of possible positions/orientations to place the object
-        :param arms: List of possible arms to use
-        """
-        super().__init__()
-        PartialDesignator.__init__(self, PlaceActionPerformable, object_designator=object_designator_description, arm=arms,
-                                   target_location=target_locations)
-        self.object_designator_description: Union[
-            ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
-        object_desig = self.object_designator_description if isinstance(self.object_designator_description,
-                                                                        ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
-        self.target_locations: Union[Pose, List[Pose]] = target_locations
-        self.arms: Optional[Union[Arms, List[Arms]]] = arms
-        self.knowledge_condition = ReachableProperty(object_desig.pose)
-
-    def ground(self) -> PlaceActionPerformable:
-        """
-        Default specialized_designators that returns a performable designator_description with the first entries from the list of possible entries.
-
-        :return: A performable designator_description
-        """
-        obj_desig = self.object_designator_description if isinstance(self.object_designator_description,
-                                                                     ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
-
-        return PlaceActionPerformable(obj_desig, self.arms[0], self.target_locations[0])
-
-
-class NavigateAction(ActionDesignatorDescription):
-    """
-    Navigates the Robot to a position.
-    """
-
-    performable_class = NavigateActionPerformable
-
-    def __init__(self, target_locations: Union[Pose, List[Pose]],
-                 keep_joint_states: Optional[Union[bool, List[bool]]] = False):
-        """
-        Navigates the robot to a location.
-
-        :param target_locations: A list of possible target locations for the navigation.
-        :param keep_joint_states: If the joint states should be kept the same during the navigation.
-        """
-        super().__init__()
-        PartialDesignator.__init__(self, NavigateActionPerformable, target_location=target_locations,
-                                   keep_joint_states=keep_joint_states)
-        self.target_locations: Union[Pose, List[Pose]] = target_locations
-        self.keep_joint_states: Optional[Union[bool, List[bool]]] = keep_joint_states
-
-    def ground(self) -> NavigateActionPerformable:
-        """
-        Default specialized_designators that returns a performable designator_description with the first entry of possible target locations.
-
-        :return: A performable designator_description
-        """
-        return NavigateActionPerformable(self.target_locations[0], self.keep_joint_states)
-
-
-class TransportAction(ActionDesignatorDescription):
-    """
-    Transports an object to a position using an arm
-    """
-
-    performable_class = TransportActionPerformable
-
-    def __init__(self,
-                 object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
-                 target_locations: Union[Pose, List[Pose]],
-                 arms: Optional[Union[Arms, List[Arms]]] = None,
-                 pickup_prepose_distance: Optional[Union[float, List[float]]] = 0.03):
-        """
-        Designator representing a pick and place plan.
-
-        :param object_designator_description: Object designator_description description or a specified Object designator_description that should be transported
-        :param target_locations: A list of possible target locations for the object to be placed
-        :param arms: A List of possible arms that could be used for transporting
-        :param pickup_prepose_distance: The distance between the object and the gripper in the x-axis before
-         picking up the object.
-        """
-        super().__init__()
-        PartialDesignator.__init__(self, TransportActionPerformable, object_designator=object_designator_description,
-                                   target_location=target_locations, arm=arms, pickup_prepose_distance=pickup_prepose_distance)
-        self.object_designator_description: Union[
-            ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
-        self.arms: Optional[Union[Arms, List[Arms]]] = arms
-        self.target_locations: Union[Pose, List[Pose]] = target_locations
-        self.pickup_prepose_distance: Optional[Union[float, List[float]]] = pickup_prepose_distance
-
-    def ground(self) -> TransportActionPerformable:
-        """
-        Default specialized_designators that returns a performable designator_description with the first entries from the lists of possible parameter.
-
-        :return: A performable designator_description
-        """
-        obj_desig = self.object_designator_description \
-            if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object) \
-            else self.object_designator_description.resolve()
-
-        return TransportActionPerformable(obj_desig, self.target_locations[0], self.arms[0],
-                                          self.pickup_prepose_distance)
-
-
-class LookAtAction(ActionDesignatorDescription):
-    """
-    Lets the robot look at a position.
-    """
-
-    performable_class = LookAtActionPerformable
-
-    def __init__(self, targets: Union[Pose, List[Pose]]):
-        """
-        Moves the head of the robot such that it points towards the given target location.
-
-        :param targets: A list of possible locations to look at
-        """
-        super().__init__()
-        PartialDesignator.__init__(self, LookAtActionPerformable, target=targets)
-        self.targets: Union[Pose, List[Pose]] = targets
-
-    def ground(self) -> LookAtActionPerformable:
-        """
-        Default specialized_designators that returns a performable designator_description with the first entry in the list of possible targets
-
-        :return: A performable designator_description
-        """
-        return LookAtActionPerformable(self.targets[0])
-
-
-class DetectAction(ActionDesignatorDescription):
-    """
-    Detects an object that fits the object description and returns an object designator_description describing the object.
-    """
-
-    performable_class = DetectActionPerformable
-
-    def __init__(self, technique: Union[DetectionTechnique, List[DetectionTechnique]],
-                 state: Optional[Union[DetectionState, List[DetectionState]]] = None,
-                 object_designator_description: Optional[ObjectDesignatorDescription] = None,
-                 region: Optional[Union[Location, List[Location]]] = None):
-        """
-        Tries to detect an object in the field of view (FOV) of the robot.
-
-      """
-        super().__init__()
-        PartialDesignator.__init__(self, DetectActionPerformable, technique=technique, state=state,
-                                   object_designator_description=object_designator_description, region=region)
-        self.technique: Union[DetectionTechnique, List[DetectionTechnique]] = technique
-        self.state: Optional[Union[DetectionState, List[DetectionState]]] = DetectionState.START if state is None else state
-        self.object_designator_description: Optional[ObjectDesignatorDescription] = object_designator_description
-        self.region:Optional[Union[Location, List[Location]]] = region
-        # TODO: Implement knowledge condition
-        # self.knowledge_condition = VisibleProperty(self.object_designator_description)
-
-    def ground(self) -> DetectActionPerformable:
-        """
-        Default specialized_designators that returns a performable designator_description with the executed object description.
-
-        :return: A performable designator_description
-        """
-        return DetectActionPerformable(self.technique, self.state, self.object_designator_description, self.region)
-
-
-class OpenAction(ActionDesignatorDescription):
-    """
-    Opens a container like object
-
-    Can currently not be used
-    """
-
-    performable_class = OpenActionPerformable
-
-    def __init__(self, object_designator_description: ObjectPart,
-                 arms: Union[Arms, List[Arms]] = None,
-                 grasping_prepose_distance: Union[float, List[float]] = 0.03):
-        """
-        Moves the arm of the robot to open a container.
-
-        :param object_designator_description: Object designator_description describing the handle that should be used to open
-        :param arms: A list of possible arms that should be used
-        :param grasping_prepose_distance: The distance in meters between gripper and handle before approaching to grasp.
-        """
-        super().__init__()
-        PartialDesignator.__init__(self, OpenActionPerformable, object_designator=object_designator_description, arm=arms,
-                                   grasping_prepose_distance=grasping_prepose_distance)
-        self.object_designator_description: ObjectPart = object_designator_description
-        self.arms: Union[Arms, List[Arms]] = arms
-        self.grasping_prepose_distance: Union[float, List[float]] = grasping_prepose_distance
-        self.knowledge_condition = GripperIsFreeProperty(self.arms)
-
-    def ground(self) -> OpenActionPerformable:
-        """
-        Default specialized_designators that returns a performable designator_description with the executed object description and the first entries
-        from the lists of possible parameter.
-
-        :return: A performable designator_description
-        """
-        return OpenActionPerformable(self.object_designator_description.resolve(), self.arms[0],
-                                     grasping_prepose_distance=self.grasping_prepose_distance)
-
-
-class CloseAction(ActionDesignatorDescription):
-    """
-    Closes a container like object.
-
-    Can currently not be used
-    """
-
-    performable_class = CloseActionPerformable
-
-    def __init__(self, object_designator_description: ObjectPart,
-                 arms: Union[Arms, List[Arms]] = None,
-                 grasping_prepose_distance: Union[float, List[float]] = 0.03):
-        """
-        Attempts to close an open container
-
-        :param object_designator_description: Object designator_description description of the handle that should be used
-        :param arms: A list of possible arms to use
-        :param grasping_prepose_distance: The distance in meters between the gripper and the handle before approaching
-        to grasp.
-        """
-        super().__init__()
-        PartialDesignator.__init__(self, CloseActionPerformable, object_designator=object_designator_description, arm=arms,
-                                   grasping_prepose_distance=grasping_prepose_distance)
-        self.object_designator_description: ObjectPart = object_designator_description
-        self.arms: Union[Arms, List[Arms]] = arms
-        self.grasping_prepose_distance: Union[float, List[float]] = grasping_prepose_distance
-        self.knowledge_condition = GripperIsFreeProperty(self.arms)
-
-    def ground(self) -> CloseActionPerformable:
-        """
-        Default specialized_designators that returns a performable designator_description with the executed object designator_description and the first entry from
-        the list of possible arms.
-
-        :return: A performable designator_description
-        """
-        return CloseActionPerformable(self.object_designator_description.resolve(), self.arms[0],
-                                      self.grasping_prepose_distance)
-
-
-class GraspingAction(ActionDesignatorDescription):
-    """
-    Grasps an object described by the given Object Designator description
-    """
-
-    performable_class = GraspingActionPerformable
-
-    def __init__(self, object_description: Union[ObjectDesignatorDescription, ObjectPart],
-                 arms: Union[Arms, List[Arms]] = None,
-                 prepose_distance: Union[float, List[float]] = 0.03):
-        """
-        Will try to grasp the object described by the given description. Grasping is done by moving into a pre grasp
-        position 10 cm before the object, opening the gripper, moving to the object and then closing the gripper.
-
-        :param arms: List of Arms that should be used for grasping
-        :param object_description: Description of the object that should be grasped
-        :param prepose_distance: The distance in meters between the gripper and the object before approaching to grasp.
-        """
-        super().__init__()
-        PartialDesignator.__init__(self, GraspingActionPerformable, arm=arms, object_desig=object_description,
-                                   prepose_distance=prepose_distance)
-        self.arms: Union[Arms, List[Arms]] = arms
-        self.object_description: ObjectDesignatorDescription = object_description
-        self.prepose_distance: Union[float, List[float]] = prepose_distance
-
-    def ground(self) -> GraspingActionPerformable:
-        """
-        Default specialized_designators that takes the first element from the list of arms and the first solution for the object
-        designator_description description ond returns it.
-
-        :return: A performable action designator_description that contains specific arguments
-        """
-        return GraspingActionPerformable(self.arms[0], self.object_description.resolve(), self.prepose_distance)
