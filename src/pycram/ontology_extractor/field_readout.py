@@ -1,15 +1,14 @@
-from pycram.designators.action_designator import OpenActionPerformable
 from random_events.utils import get_full_class_name
 from typing import Dict
 import inspect
 import ast
-def extract_dataclass_attribute_comments(clazz):
+
+def _extract_dataclass_attribute_comments(clazz):
     """
     Parses the given Python file and returns a dictionary that contains the defined classes,
     their attributes and the comment that is given below the attribute.
     """
     file_path = inspect.getfile(clazz)
-    print(f"Parsing parameters from class at: {file_path}")
     with open(file_path, 'r') as file:
         file_content = file.read()
     tree = ast.parse(file_content)
@@ -33,17 +32,16 @@ def extract_dataclass_attribute_comments(clazz):
                     last_assign = []
     return class_var_comment[clazz.__name__]
 
-def full_parse(clazz):
+def parse(clazz):
     output = {"classname": get_full_class_name(clazz), "doc": clazz.__doc__, "parameters": {}}
-    parameter_docstring = extract_dataclass_attribute_comments(clazz)
+    parameter_docstring = _extract_dataclass_attribute_comments(clazz)
     parameters = inspect.signature(clazz.__init__).parameters
-    for k in list(parameters.keys())[1:]:
-        output["parameters"][k] = {
-        "class": clazz.get_type_hints()[k],
-        "docstring": clazz.get_type_hints()[k].__doc__,
-        "param_docstring": parameter_docstring[k],
-        "default_value": parameters[k].default
+    for param in list(parameters.keys())[1:]:
+        output["parameters"][param] = {
+        "class": clazz.get_type_hints()[param],
+        "classname": clazz.get_type_hints()[param].__class__.__name__,
+        "docstring": clazz.get_type_hints()[param].__doc__,
+        "param_docstring": parameter_docstring[param],
+        "default_value": parameters[param].default
         }
     return output
-
-print(full_parse(OpenActionPerformable))

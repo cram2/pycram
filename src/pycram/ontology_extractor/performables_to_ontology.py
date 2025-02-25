@@ -3,23 +3,17 @@ from pycram.designators.action_designator import ActionAbstract
 from random_events.utils import recursive_subclasses, get_full_class_name
 import inspect
 from owlready2 import *
+from field_readout import parse
 
 def parse_class_structure():
     clazzes = {}
     all_param_clazzes = set()
-    for clazz in recursive_subclasses(ActionDesignatorDescription):
-        name = get_full_class_name(clazz)
-        clazzes[name] = {}
-        docstring = clazz.__doc__
-        clazzes[name]['doc'] = docstring
-        clazzes[name]['parameters'] = {}
-        for init_param in inspect.signature(clazz.__init__).parameters.values():
-            param_name = init_param.name
-            if not param_name == 'self':
-                clazzes[name]['parameters'][param_name] = init_param.annotation
-                all_param_clazzes.add(init_param.annotation)
+    # TODO: Doesnt work with ActionDesignatorDescription as the root of the class tree to be parsed.
+    for clazz in recursive_subclasses(ActionAbstract):
+        parse_result = parse(clazz)
+        all_param_clazzes.update(set(map(lambda param: param["class"], parse_result["parameters"].values())))
 
-    output_ontology = get_ontology("Performable")
+    output_ontology = get_ontology("performables")
     with output_ontology:
         class Performable(Thing):
             pass
@@ -45,5 +39,7 @@ def parse_class_structure():
                 parameter.has_description = para_name
                 params.append(parameter)
             performable.has_parameter = params
-
+    
     output_ontology.save(file= "performables.owl", format="rdfxml")
+
+parse_class_structure()
