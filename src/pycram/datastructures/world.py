@@ -1889,4 +1889,3 @@ class WorldSync(threading.Thread):
             eql = eql and obj.get_pose().dist(prospection_obj.get_pose()) < 0.001
         self.equal_states = eql
         return eql
-# Temporary
