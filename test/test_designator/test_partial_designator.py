@@ -1,7 +1,7 @@
 from pycram.datastructures.partial_designator import PartialDesignator
 from pycram.datastructures.pose import Pose
 from pycram.testing import BulletWorldTestCase
-from pycram.designators.action_designator import PickUpAction, PickUpActionPerformable, SetGripperActionPerformable, \
+from pycram.designators.action_designator import PickUpAction, PickUpAction, SetGripperAction, \
     MoveTorsoAction, NavigateAction
 from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import Arms, Grasp, GripperState, TorsoState
@@ -11,26 +11,26 @@ from pycram.process_module import simulated_robot
 class TestPartialDesignator(BulletWorldTestCase):
     def test_partial_desig_construction(self):
         test_object = BelieveObject(names=["milk"])
-        partial_desig = PartialDesignator(PickUpActionPerformable, test_object, arm=Arms.RIGHT)
-        self.assertEqual(partial_desig.performable, PickUpActionPerformable)
+        partial_desig = PartialDesignator(PickUpAction, test_object, arm=Arms.RIGHT)
+        self.assertEqual(partial_desig.performable, PickUpAction)
         self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": test_object,
                                                 "grasp": None, 'prepose_distance': None})
 
     def test_partial_desig_construction_none(self):
-        partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
-        self.assertEqual(partial_desig.performable, PickUpActionPerformable)
+        partial_desig = PartialDesignator(PickUpAction, None, arm=Arms.RIGHT)
+        self.assertEqual(partial_desig.performable, PickUpAction)
         self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": None,
                                                 "grasp": None, 'prepose_distance': None})
 
     def test_partial_desig_call(self):
-        partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
+        partial_desig = PartialDesignator(PickUpAction, None, arm=Arms.RIGHT)
         new_partial_desig = partial_desig(grasp=Grasp.FRONT)
-        self.assertEqual(new_partial_desig.performable, PickUpActionPerformable)
+        self.assertEqual(new_partial_desig.performable, PickUpAction)
         self.assertEqual({"arm": Arms.RIGHT, "grasp": Grasp.FRONT, "object_designator": None,
                           'prepose_distance': None}, new_partial_desig.kwargs)
 
     def test_partial_desig_missing_params(self):
-        partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
+        partial_desig = PartialDesignator(PickUpAction, None, arm=Arms.RIGHT)
         missing_params = partial_desig.missing_parameter()
         self.assertTrue("object_designator" in missing_params and "grasp" in missing_params)
 
@@ -43,7 +43,7 @@ class TestPartialDesignator(BulletWorldTestCase):
         self.assertFalse(PartialDesignator._is_iterable(1))
 
     def test_partial_desig_permutations(self):
-        tp = PartialDesignator(SetGripperActionPerformable, [Arms.LEFT, Arms.RIGHT],
+        tp = PartialDesignator(SetGripperAction, [Arms.LEFT, Arms.RIGHT],
                                motion=[GripperState.OPEN, GripperState.CLOSE])
         permutations = tp.generate_permutations()
         self.assertEqual([(Arms.LEFT, GripperState.OPEN), (Arms.LEFT, GripperState.CLOSE),
@@ -52,10 +52,10 @@ class TestPartialDesignator(BulletWorldTestCase):
     def test_partial_desig_iter(self):
         test_object = BelieveObject(names=["milk"])
         test_object_resolved = test_object.resolve()
-        partial_desig = PartialDesignator(PickUpActionPerformable, test_object, arm=[Arms.RIGHT, Arms.LEFT])
+        partial_desig = PartialDesignator(PickUpAction, test_object, arm=[Arms.RIGHT, Arms.LEFT])
         performables = list(partial_desig(grasp=[Grasp.FRONT, Grasp.TOP]))
         self.assertEqual(4, len(performables))
-        self.assertTrue(all([isinstance(p, PickUpActionPerformable) for p in performables]))
+        self.assertTrue(all([isinstance(p, PickUpAction) for p in performables]))
         self.assertEqual([p.arm for p in performables], [Arms.RIGHT, Arms.RIGHT, Arms.LEFT, Arms.LEFT])
         self.assertEqual([p.grasp for p in performables], [Grasp.FRONT, Grasp.TOP, Grasp.FRONT, Grasp.TOP])
         self.assertEqual([p.object_designator for p in performables], [test_object_resolved] * 4)

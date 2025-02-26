@@ -25,7 +25,7 @@ class PartialDesignator:
     .. code-block:: python
 
             # Example usage
-            partial_designator = PartialDesignator(PickUpActionPerformable, milk_object_designator, arm=[Arms.RIGHT, Arms.LEFT])
+            partial_designator = PartialDesignator(PickUpAction, milk_object_designator, arm=[Arms.RIGHT, Arms.LEFT])
             for performable in partial_designator(Grasp.FRONT):
                 performable.perform()
     """

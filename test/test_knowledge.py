@@ -6,11 +6,11 @@ from knowledge_testcase import KnowledgeSourceTestCase, TestProperty, KnowledgeB
 from pycram.datastructures.enums import Arms, Grasp, ObjectType, TorsoState, GripperState
 from pycram.datastructures.partial_designator import PartialDesignator
 from pycram.datastructures.pose import Pose
-from pycram.designators.action_designator import PickUpAction, PickUpActionPerformable, OpenAction, MoveTorsoAction, \
+from pycram.designators.action_designator import PickUpAction, PickUpAction, OpenAction, MoveTorsoAction, \
     MoveTorsoActionPerformable
 from pycram.designators.object_designator import BelieveObject, ObjectPart
 from pycram.knowledge.knowledge_engine import KnowledgeEngine
-from pycram.designators.action_designator import SetGripperAction, SetGripperActionPerformable
+from pycram.designators.action_designator import SetGripperAction, SetGripperAction
 
 
 class TestKnowledgeSource(KnowledgeSourceTestCase):

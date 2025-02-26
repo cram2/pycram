@@ -41,6 +41,7 @@ from ..tasktree import with_tree
 from ..world_reasoning import contact
 
 from owlready2 import Thing
+from ..config.action_conf import ActionConfig
 
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
     TorsoState, StaticJointState
@@ -218,10 +219,11 @@ class ReleaseAction(ActionAbstract):
 
     Note: This action can not ve used yet.
     """
+    object_designator: ObjectDesignatorDescription.Object
 
     gripper: Arms
 
-    object_designator: ObjectDesignatorDescription.Object
+
 
     def plan(self) -> None:
         raise NotImplementedError
@@ -234,9 +236,8 @@ class GripAction(ActionAbstract):
 
     Note: This action can not be used yet.
     """
-
-    gripper: Arms
     object_designator: ObjectDesignatorDescription.Object
+    gripper: Arms
     effort: float
 
     @with_tree
@@ -313,7 +314,7 @@ class ReachToPickUpAction(ActionAbstract):
     not updated when the BulletWorld object is changed.
     """
 
-    prepose_distance: float
+    prepose_distance: float = ActionConfig.pick_up_pre_pose_distance
     """
     The distance in meters the gripper should be at before picking up the object
     """
@@ -480,17 +481,21 @@ class PickUpAction(ActionAbstract):
     not updated when the BulletWorld object is changed.
     """
 
-    prepose_distance: float
+    prepose_distance: float = 0.03
     """
     The distance in meters the gripper should be at before picking up the object
     """
+
+    _pre_perform_callbacks = []
 
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMPickUpAction)
 
     def __post_init__(self):
         super(ActionAbstract, self).__post_init__()
         # Store the object's data copy at execution
-        self.object_at_execution = self.object_designator.frozen_copy()
+        @PickUpAction.pre_perform
+        def pre_perform(pick_up_action: PickUpAction):
+            pick_up_action.object_at_execution = pick_up_action.object_designator.frozen_copy()
 
     @with_tree
     def plan(self) -> None:
@@ -557,14 +562,15 @@ class PlaceAction(ActionAbstract):
     """
     Object designator_description describing the object that should be place
     """
-    arm: Arms
-    """
-    Arm that is currently holding the object
-    """
     target_location: Pose
     """
     Pose in the world at which the object should be placed
     """
+    arm: Arms
+    """
+    Arm that is currently holding the object
+    """
+
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMPlaceAction)
 
     @with_tree
@@ -666,7 +672,7 @@ class NavigateAction(ActionAbstract):
     Location to which the robot should be navigated
     """
 
-    keep_joint_states: bool
+    keep_joint_states: bool = ActionConfig.navigate_keep_joint_states
     """
     Keep the joint states of the robot the same during the navigation.
     """
@@ -702,7 +708,7 @@ class TransportAction(ActionAbstract):
     """
     Arm that should be used
     """
-    pickup_prepose_distance: float
+    pickup_prepose_distance: float = 0.03
     """
     Distance between the object and the gripper in the x-axis before picking up the object.
     """
@@ -735,7 +741,7 @@ class TransportAction(ActionAbstract):
             raise ReachabilityFailure(
                 f"No location found from where the robot can reach the target location: {self.target_location}")
         NavigateAction(place_loc.pose, True).perform()
-        PlaceAction(self.object_designator, self.arm, self.target_location).perform()
+        PlaceAction(self.object_designator, self.target_location, self.arm).perform()
         ParkArmsAction(Arms.BOTH).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
@@ -787,7 +793,7 @@ class DetectAction(ActionAbstract):
     """
     The technique that should be used for detection
     """
-    state: DetectionState
+    state: DetectionState = None
     """
     The state of the detection, e.g Start Stop for continues perception
     """
@@ -828,7 +834,7 @@ class OpenAction(ActionAbstract):
     """
     Arm that should be used for opening the container
     """
-    grasping_prepose_distance: float
+    grasping_prepose_distance: float = ActionConfig.grasping_prepose_distance
     """
     The distance in meters the gripper should be at in the x-axis away from the handle.
     """
@@ -863,7 +869,7 @@ class CloseAction(ActionAbstract):
     """
     Arm that should be used for closing
     """
-    grasping_prepose_distance: float
+    grasping_prepose_distance: float = ActionConfig.grasping_prepose_distance
     """
     The distance in meters between the gripper and the handle before approaching to grasp.
     """
@@ -921,15 +927,15 @@ class GraspingAction(ActionAbstract):
     """
     Grasps an object described by the given Object Designator description
     """
-    arm: Arms
-    """
-    The arm that should be used to grasp
-    """
     object_desig: Union[ObjectDesignatorDescription.Object, ObjectPart.Object]
     """
     Object Designator for the object that should be grasped
     """
-    prepose_distance: float
+    arm: Arms
+    """
+    The arm that should be used to grasp
+    """
+    prepose_distance: float = 0.03
     """
     The distance in meters the gripper should be at before grasping the object
     """
@@ -978,7 +984,7 @@ class FaceAtAction(ActionAbstract):
     """
     The pose to face 
     """
-    keep_joint_states: bool
+    keep_joint_states: bool = ActionConfig.face_at_keep_joint_states
     """
     Keep the joint states of the robot the same during the navigation.
     """
@@ -1035,12 +1041,12 @@ class MoveAndPickUpAction(ActionAbstract):
     The grasp to use
     """
 
-    keep_joint_states: bool
+    keep_joint_states: bool = ActionConfig.navigate_keep_joint_states
     """
     Keep the joint states of the robot the same during the navigation.
     """
 
-    pick_up_prepose_distance: float
+    pick_up_prepose_distance: float = ActionConfig.pick_up_pre_pose_distance
     """
     The distance in meters the gripper should be at before picking up the object
     """
