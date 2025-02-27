@@ -190,7 +190,7 @@ class SetGripperAction(ActionAbstract):
     """
     The gripper that should be set 
     """
-    motion: GripperState
+    motion: GripperState = None
     """
     The motion that should be set on the gripper
     """
@@ -221,7 +221,7 @@ class ReleaseAction(ActionAbstract):
     """
     object_designator: ObjectDesignatorDescription.Object
 
-    gripper: Arms
+    gripper: Arms = None
 
 
 
@@ -237,8 +237,8 @@ class GripAction(ActionAbstract):
     Note: This action can not be used yet.
     """
     object_designator: ObjectDesignatorDescription.Object
-    gripper: Arms
-    effort: float
+    gripper: Arms = None
+    effort: float = None
 
     @with_tree
     def plan(self) -> None:
@@ -298,12 +298,12 @@ class ReachToPickUpAction(ActionAbstract):
     Object designator_description describing the object that should be picked up
     """
 
-    arm: Arms
+    arm: Arms = None
     """
     The arm that should be used for pick up
     """
 
-    grasp: Grasp
+    grasp: Grasp = None
     """
     The grasp that should be used. For example, 'left' or 'right'
     """
@@ -314,7 +314,7 @@ class ReachToPickUpAction(ActionAbstract):
     not updated when the BulletWorld object is changed.
     """
 
-    prepose_distance: float = ActionConfig.pick_up_pre_pose_distance
+    prepose_distance: float = ActionConfig.pick_up_prepose_distance
     """
     The distance in meters the gripper should be at before picking up the object
     """
@@ -465,12 +465,12 @@ class PickUpAction(ActionAbstract):
     Object designator_description describing the object that should be picked up
     """
 
-    arm: Arms
+    arm: Arms = None
     """
     The arm that should be used for pick up
     """
 
-    grasp: Grasp
+    grasp: Grasp = None
     """
     The grasp that should be used. For example, 'left' or 'right'
     """
@@ -481,7 +481,7 @@ class PickUpAction(ActionAbstract):
     not updated when the BulletWorld object is changed.
     """
 
-    prepose_distance: float = 0.03
+    prepose_distance: float = ActionConfig.pick_up_prepose_distance
     """
     The distance in meters the gripper should be at before picking up the object
     """
@@ -566,7 +566,7 @@ class PlaceAction(ActionAbstract):
     """
     Pose in the world at which the object should be placed
     """
-    arm: Arms
+    arm: Arms = None
     """
     Arm that is currently holding the object
     """
@@ -704,11 +704,11 @@ class TransportAction(ActionAbstract):
     """
     Target Location to which the object should be transported
     """
-    arm: Arms
+    arm: Arms = None
     """
     Arm that should be used
     """
-    pickup_prepose_distance: float = 0.03
+    pickup_prepose_distance: float = ActionConfig.pick_up_prepose_distance
     """
     Distance between the object and the gripper in the x-axis before picking up the object.
     """
@@ -830,7 +830,7 @@ class OpenAction(ActionAbstract):
     """
     Object designator_description describing the object that should be opened
     """
-    arm: Arms
+    arm: Arms = None
     """
     Arm that should be used for opening the container
     """
@@ -865,7 +865,7 @@ class CloseAction(ActionAbstract):
     """
     Object designator_description describing the object that should be closed
     """
-    arm: Arms
+    arm: Arms = None
     """
     Arm that should be used for closing
     """
@@ -931,11 +931,11 @@ class GraspingAction(ActionAbstract):
     """
     Object Designator for the object that should be grasped
     """
-    arm: Arms
+    arm: Arms = None
     """
     The arm that should be used to grasp
     """
-    prepose_distance: float = 0.03
+    prepose_distance: float = ActionConfig.grasping_prepose_distance
     """
     The distance in meters the gripper should be at before grasping the object
     """
@@ -1031,12 +1031,12 @@ class MoveAndPickUpAction(ActionAbstract):
     The object to pick up
     """
 
-    arm: Arms
+    arm: Arms = None
     """
     The arm to use
     """
 
-    grasp: Grasp
+    grasp: Grasp = None
     """
     The grasp to use
     """
@@ -1046,7 +1046,7 @@ class MoveAndPickUpAction(ActionAbstract):
     Keep the joint states of the robot the same during the navigation.
     """
 
-    pick_up_prepose_distance: float = ActionConfig.pick_up_pre_pose_distance
+    pick_up_prepose_distance: float = ActionConfig.pick_up_prepose_distance
     """
     The distance in meters the gripper should be at before picking up the object
     """
@@ -1089,7 +1089,7 @@ class MoveAndPlaceAction(ActionAbstract):
     The arm to use
     """
 
-    keep_joint_states: bool
+    keep_joint_states: bool = ActionConfig.navigate_keep_joint_states
     """
     Keep the joint states of the robot the same during the navigation.
     """
