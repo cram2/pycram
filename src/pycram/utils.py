@@ -15,7 +15,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
 from .tf_transformations import quaternion_about_axis, quaternion_multiply
-from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence
+from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence, Any
 
 from .datastructures.dataclasses import Color
 from .datastructures.pose import Pose
@@ -669,3 +669,18 @@ def classproperty(func):
         func = classmethod(func)
 
     return ClassPropertyDescriptor(func)
+
+
+def _is_iterable(obj: Any) -> bool:
+    """
+    Checks if the given object is iterable.
+
+    :param obj: The object that should be checked
+    :return: True if the object is iterable, False otherwise
+    """
+    try:
+        iter(obj)
+    except TypeError:
+        return False
+    return True
+
