@@ -1,6 +1,6 @@
 
 class ActionConfig:
-    pick_up_pre_pose_distance = 0.03
+    pick_up_prepose_distance = 0.03
 
     grasping_prepose_distance = 0.03
 

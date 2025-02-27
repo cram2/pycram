@@ -1,5 +1,5 @@
-from pycram.designators.action_designator MoveTorsoAction, PickUpAction, \
-    NavigateAction, MoveTorsoAction
+from pycram.designators.action_designator import MoveTorsoAction, PickUpAction, \
+    NavigateAction
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import Arms, Grasp, GripperState, TorsoState
 from pycram.process_module import simulated_robot

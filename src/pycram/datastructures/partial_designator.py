@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING
 from itertools import product
 from inspect import signature
-from ..utils import _is_iterable
+from ..utils import is_iterable
 
 
 if TYPE_CHECKING:
@@ -80,7 +80,7 @@ class PartialDesignator:
         :yields: A list with a possible permutation of the given arguments
         """
         self._init_kwargs()
-        iter_list = [x if _is_iterable(x) else [x] for x in self.kwargs.values()]
+        iter_list = [x if is_iterable(x) else [x] for x in self.kwargs.values()]
         for combination in product(*iter_list):
             yield combination
 

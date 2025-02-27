@@ -171,7 +171,7 @@ class KnowledgeEngine:
         result_dict = {}
         for key, value in parameter.items():
             # if key in designator_description.get_optional_parameter() and designator_description.__getattribute__(key) is None:
-            if key in designator.performable_class.get_type_hints().keys():
+            if key in designator.get_type_hints(localns=locals()).keys():
                 result_dict[key] = value
         return result_dict
 
@@ -182,7 +182,7 @@ class KnowledgeEngine:
         """
         result_dict = {}
         for key, value in parameter.items():
-            for parameter_name, type_hint in designator.performable_class.get_type_hints().items():
+            for parameter_name, type_hint in designator.get_type_hints(localns=locals()).items():
                 try:
                     # Distinction between Enum and other types, since check_type would check Enums and floats as an Enum
                     # is technically just a number. Also excludes type hints, since they do not work with issubclass

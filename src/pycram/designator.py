@@ -7,9 +7,6 @@ from dataclasses import dataclass, field, fields
 from datetime import timedelta
 
 from sqlalchemy.orm.session import Session
-from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable
-from typing_extensions import get_type_hints
-
 from pycrap.ontologies import PhysicalObject, Agent
 from .datastructures.enums import ObjectType, Grasp
 from .datastructures.pose import Pose
@@ -19,7 +16,8 @@ from sqlalchemy.orm.session import Session
 
 from .datastructures.world import World
 from .datastructures.partial_designator import PartialDesignator
-from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable, TYPE_CHECKING
+from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable, TYPE_CHECKING, ForwardRef
+from typing import get_type_hints
 
 from .language import Language
 from .local_transformer import LocalTransformer
@@ -32,7 +30,6 @@ from .ros import loginfo
 from .tasktree import with_tree
 from .utils import bcolors
 from .world_concepts.world_object import Object as WorldObject
-
 
 class DesignatorError(Exception):
     """Implementation of designator_description errors."""
@@ -242,13 +239,15 @@ class ActionDescription(PartialDesignator, Language):
         return action
 
     @classmethod
-    def get_type_hints(cls) -> Dict[str, Any]:
+    def get_type_hints(cls, localns=None) -> Dict[str, Any]:
         """
         Returns the type hints of the __init__ method of this designator_description description.
 
         :return:
         """
-        return get_type_hints(cls)
+        l = localns if localns is not None else locals()
+        print(l)
+        return get_type_hints(cls, localns=l)
 
     @classmethod
     def pre_perform(cls, func) -> Callable:

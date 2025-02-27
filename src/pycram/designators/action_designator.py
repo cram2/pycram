@@ -11,7 +11,7 @@ from functools import cached_property
 import numpy as np
 from sqlalchemy.orm import Session
 from ..tf_transformations import quaternion_from_euler
-from typing_extensions import List, Union, Optional, Type, Dict, Any
+from typing_extensions import List, Union, Optional, Type, Dict, Any, ForwardRef
 
 from pycrap.ontologies import Location
 from .location_designator import CostmapLocation
@@ -20,9 +20,6 @@ from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveTCPMotio
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
     TorsoState, StaticJointState, Frame, FindBodyInRegionMethod, ContainerManipulationType
-from ..datastructures.partial_designator import PartialDesignator
-from ..datastructures.pose import Pose
-from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty
 from ..datastructures.world import World, UseProspectionWorld
 from ..description import Joint, Link
 from ..designator import ActionDescription
@@ -31,16 +28,9 @@ from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNot
     ObjectNotGraspedError, TorsoGoalNotReached, ConfigurationNotReached, ObjectNotInGraspingArea, \
     ObjectNotPlacedAtTargetLocation, ObjectStillInContact, LookAtGoalNotReached, \
     ContainerManipulationError
-from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
     ObjectNotGraspedError
-from ..robot_description import RobotDescription
-from ..ros import  sleep
-from ..tasktree import with_tree
-from ..world_reasoning import contact
-
-from owlready2 import Thing
 from ..config.action_conf import ActionConfig
 
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
@@ -67,7 +57,6 @@ from ..validation.goal_validator import create_multiple_joint_goal_validator
 from ..world_concepts.world_object import Object
 from ..world_reasoning import move_away_all_objects_to_create_empty_space, generate_object_at_target, \
     cast_a_ray_from_camera, has_gripper_grasped_body, is_body_between_fingers
-
 
 # ----------------------------------------------------------------------------
 # ---------------- Performables ----------------------------------------------

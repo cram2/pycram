@@ -671,7 +671,7 @@ def classproperty(func):
     return ClassPropertyDescriptor(func)
 
 
-def _is_iterable(obj: Any) -> bool:
+def is_iterable(obj: Any) -> bool:
     """
     Checks if the given object is iterable.
 

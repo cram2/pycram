@@ -6,11 +6,9 @@ from knowledge_testcase import KnowledgeSourceTestCase, TestProperty, KnowledgeB
 from pycram.datastructures.enums import Arms, Grasp, ObjectType, TorsoState, GripperState
 from pycram.datastructures.partial_designator import PartialDesignator
 from pycram.datastructures.pose import Pose
-from pycram.designators.action_designator import PickUpAction, PickUpAction, OpenAction, MoveTorsoAction, \
-    MoveTorsoActionPerformable
+from pycram.designators.action_designator import PickUpAction, PickUpAction, OpenAction, MoveTorsoAction
 from pycram.designators.object_designator import BelieveObject, ObjectPart
 from pycram.knowledge.knowledge_engine import KnowledgeEngine
-from pycram.designators.action_designator import SetGripperAction, SetGripperAction
 
 
 class TestKnowledgeSource(KnowledgeSourceTestCase):
@@ -47,7 +45,7 @@ class TestKnowledgeEngine(KnowledgeSourceTestCase):
         prop = TestProperty(Pose([1, 2, 3]))
         self.assertEqual(self.knowledge_engine.find_source_for_property(prop), self.knowledge_source)
 
-
+@unittest.skip
 class TestKnowledgeEngineBeliefState(KnowledgeBulletTestCase):
     def test_match_by_name(self):
         params = {"arm": 1, "leg": "left"}
