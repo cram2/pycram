@@ -18,7 +18,7 @@ class TaskTreeTestCase(BulletWorldTestCase):
     def plan(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
-        self.assertEqual(description.ground().object_designator.name, "milk")
+        self.assertEqual(description.resolve().object_designator.name, "milk")
         with simulated_robot:
             NavigateAction(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoAction([TorsoState.HIGH]).resolve().perform()

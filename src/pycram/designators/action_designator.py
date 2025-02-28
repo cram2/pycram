@@ -58,6 +58,7 @@ from ..world_concepts.world_object import Object
 from ..world_reasoning import move_away_all_objects_to_create_empty_space, generate_object_at_target, \
     cast_a_ray_from_camera, has_gripper_grasped_body, is_body_between_fingers
 
+
 # ----------------------------------------------------------------------------
 # ---------------- Performables ----------------------------------------------
 # ----------------------------------------------------------------------------
@@ -148,7 +149,6 @@ class MoveTorsoAction(ActionAbstract):
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMMoveTorsoAction)
 
-
     @with_tree
     def plan(self) -> None:
         joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
@@ -211,8 +211,6 @@ class ReleaseAction(ActionAbstract):
     object_designator: ObjectDesignatorDescription.Object
 
     gripper: Arms = None
-
-
 
     def plan(self) -> None:
         raise NotImplementedError
@@ -481,6 +479,7 @@ class PickUpAction(ActionAbstract):
 
     def __post_init__(self):
         super(ActionAbstract, self).__post_init__()
+
         # Store the object's data copy at execution
         @PickUpAction.pre_perform
         def pre_perform(pick_up_action: PickUpAction):
@@ -831,7 +830,7 @@ class OpenAction(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        GraspingAction(self.arm, self.object_designator, self.grasping_prepose_distance).perform()
+        GraspingAction(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
         OpeningMotion(self.object_designator, self.arm).perform()
 
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
@@ -866,7 +865,7 @@ class CloseAction(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        GraspingAction(self.arm, self.object_designator, self.grasping_prepose_distance).perform()
+        GraspingAction(self.object_designator, self.arm,  self.grasping_prepose_distance).perform()
         ClosingMotion(self.object_designator, self.arm).perform()
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
 

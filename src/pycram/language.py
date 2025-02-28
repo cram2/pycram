@@ -341,7 +341,7 @@ class Sequential(Language):
                     if threading.get_ident() in self.block_list:
                         self.block_list.remove(threading.get_ident())
                     return State.FAILED, children_return_values
-                self.root.executing_thread[child] = threading.get_ident()
+                self.root.executing_thread[id(child)] = threading.get_ident()
                 ret_val = child.resolve().perform()
                 if isinstance(ret_val, tuple):
                     child_state, child_result = ret_val
@@ -450,7 +450,7 @@ class Parallel(Language):
                 else:
                     giskard.par_threads[self].append(threading.get_ident())
             try:
-                self.root.executing_thread[child] = threading.get_ident()
+                self.root.executing_thread[id(child)] = threading.get_ident()
                 result = child_node.resolve().perform()
                 if isinstance(result, tuple):
                     child_state, child_result = result
