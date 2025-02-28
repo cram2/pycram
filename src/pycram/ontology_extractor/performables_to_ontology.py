@@ -61,14 +61,8 @@ class ActionAbstractDigest:
             default_value=parameters_inspection[param].default
         ) for param in list(parameters_inspection.keys())[1:]]
 
-    def get_all_parameter_classes(self):
-        return set(map(lambda param: param.clazz, self.parameters))
-
 def create_ontology_from_performables():
     classes = [ActionAbstractDigest(clazz) for clazz in recursive_subclasses(ActionAbstract)]
-    all_classes_params = set()
-    for clazz in classes:
-        all_classes_params.update(clazz.get_all_parameter_classes())
 
     output_ontology = get_ontology("performables")
     with output_ontology:
@@ -84,21 +78,21 @@ def create_ontology_from_performables():
         class has_description(DataProperty):
             range = [str]
 
-        parameter_cls_dict = {parameter_cls: types.new_class(parameter_cls, (Parameter,))
-                              for parameter_cls in all_classes_params}
-
-        for clazz in classes:
-            performable = Performable(clazz)
-            performable.has_description = clazz.docstring
-            params = []
-            for param in clazz.parameters:
-                param_instance = parameter_cls_dict[param.clazz]()
-                param_instance.has_description = param.param_docstring
-                params.append(param_instance)
-                #TODO Hier werden noch nicht alle informationen aus einem Parameter richtig ausgelesen.
-                # Der Docstring der Parameter-Klasse muss in jedem Fall noch dem Parameter-Classe
-                # (der Ontologischen) hinterlegt werden.
-            performable.has_parameter = params
+    all_params_classes = {param.classname: param.clazz for clazz in classes for param in clazz.parameters}
+    parameter_cls_dict = {classname: types.new_class(classname, (Parameter,))
+                          for classname in all_params_classes.keys()}
+    for clazz in classes:
+        performable = Performable(clazz)
+        performable.has_description = [clazz.docstring]
+        params = []
+        for param in clazz.parameters:
+            param_instance = parameter_cls_dict[param.classname]()
+            param_instance.has_description = [param.param_docstring]
+            params.append(param_instance)
+            #TODO Hier werden noch nicht alle informationen aus einem Parameter richtig ausgelesen.
+            # Der Docstring der Parameter-Klasse muss in jedem Fall noch dem Parameter-Classe
+            # (der Ontologischen) hinterlegt werden.
+        performable.has_parameter = params
     
     output_ontology.save(file= "performables.owl", format="rdfxml")
 
