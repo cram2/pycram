@@ -20,10 +20,17 @@ class ParameterDigest:
     param_docstring: str
     default_value: Any
 
+    def get_default_value(self):
+        if not self.default_value == inspect.Parameter.empty:
+            return [str(self.default_value)]
+        else:
+            return None
+
 class ActionAbstractDigest:
     def __init__(self, clazz):
         self.clazz: Type[ActionAbstract] = clazz
-        self.classname: str = get_full_class_name(clazz)
+        self.full_name: str = get_full_class_name(clazz)
+        self.classname: str = clazz.__name__
         self.docstring: str = clazz.__doc__
         self.parameters: Optional[List[ParameterDigest]] = self.extract_dataclass_parameter_information(clazz)
 
@@ -78,20 +85,26 @@ def create_ontology_from_performables():
         class has_description(DataProperty):
             range = [str]
 
-    all_params_classes = {param.classname: param.clazz for clazz in classes for param in clazz.parameters}
+        class has_default_value(DataProperty):
+            pass
+
+    all_params_classes = {param.classname: param.clazz for clazz_digest in classes for param in clazz_digest.parameters}
     parameter_cls_dict = {classname: types.new_class(classname, (Parameter,))
                           for classname in all_params_classes.keys()}
-    for clazz in classes:
-        performable = Performable(clazz)
-        performable.has_description = [clazz.docstring]
+
+    for classname, parameter_class in parameter_cls_dict.items():
+        parameter_class.has_description = all_params_classes[classname].__doc__
+
+    for clazz_digest in classes:
+        performable = Performable(clazz_digest.classname)
+        performable.has_description = [clazz_digest.docstring]
         params = []
-        for param in clazz.parameters:
+        for param in clazz_digest.parameters:
             param_instance = parameter_cls_dict[param.classname]()
             param_instance.has_description = [param.param_docstring]
+            if default_value :=param.get_default_value():
+                param_instance.has_default_value = default_value
             params.append(param_instance)
-            #TODO Hier werden noch nicht alle informationen aus einem Parameter richtig ausgelesen.
-            # Der Docstring der Parameter-Klasse muss in jedem Fall noch dem Parameter-Classe
-            # (der Ontologischen) hinterlegt werden.
         performable.has_parameter = params
     
     output_ontology.save(file= "performables.owl", format="rdfxml")
