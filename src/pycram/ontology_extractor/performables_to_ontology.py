@@ -1,9 +1,11 @@
 from enum import EnumMeta
+from types import UnionType
+
 from pycram.designators.action_designator import ActionAbstract
 from random_events.utils import recursive_subclasses
 from owlready2 import *
 from random_events.utils import get_full_class_name
-from typing import Dict, List, Type, Optional, Any
+from typing import Dict, List, Type, Optional, Any, get_origin, Union, get_args
 from dataclasses import dataclass
 import inspect
 import ast
@@ -21,9 +23,7 @@ class ParameterDigest:
     docstring_of_parameter: str
     parameter_default_value: Any
     is_enum: bool
-
-    def __str__(self):
-        return str(super.__str__(self)) + "\n"
+    is_optional: bool
 
     def get_default_value(self):
         if not self.parameter_default_value == inspect.Parameter.empty:
@@ -53,6 +53,11 @@ class ActionAbstractDigest:
             else:
                 return text
 
+        def is_optional_type(t):
+            if get_origin(t) is (Union or UnionType):
+                return None in get_args(t)
+            return False
+
         with open(inspect.getfile(clazz), 'r') as file:
             file_content = file.read()
         tree = ast.parse(file_content)
@@ -79,7 +84,8 @@ class ActionAbstractDigest:
             docstring_of_parameter_clazz=clazz.get_type_hints()[param].__doc__,
             docstring_of_parameter=class_param_comment[param],
             parameter_default_value=parameters_inspection[param].default,
-            is_enum=clazz.get_type_hints()[param].__class__ == EnumMeta
+            is_enum=clazz.get_type_hints()[param].__class__ == EnumMeta,
+            is_optional=is_optional_type(clazz.get_type_hints()[param])
         ) for param in list(parameters_inspection.keys())]
 
 def create_ontology_from_performables():
@@ -122,6 +128,8 @@ def create_ontology_from_performables():
         for param in clazz_digest.parameters:
             param_instance = all_param_classes_to_ontological_class[param.clazzname](param.parameter_name)
             param_instance.has_description = [param.docstring_of_parameter]
+            # TODO Here you must evaluate if the parameter is optional (on a per-instance basis)
+            # Question: Do I have a link of the actual parameterDigest for per instance at hand still?!
             if param.get_default_value():
                 param_instance.has_default_value = param.get_default_value()
             params.append(param_instance)
