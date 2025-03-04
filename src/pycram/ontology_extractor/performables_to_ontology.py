@@ -66,7 +66,7 @@ class ActionAbstractDigest:
         parameters_inspection = inspect.signature(clazz.__init__).parameters
         return [ParameterDigest(
             clazz=clazz.get_type_hints()[param],
-            clazzname=clazz.__name__,
+            clazzname=str(clazz.get_type_hints()[param].__class__.__name__),
             parameter_name=param,
             docstring_of_parameter_clazz=clazz.get_type_hints()[param].__doc__,
             docstring_of_parameter=class_param_comment[param],
@@ -93,24 +93,22 @@ def create_ontology_from_performables():
         class has_default_value(DataProperty):
             pass
 
-    all_params_classes = {param.parameter_name: param.clazz for clazz_digest in classes for param in clazz_digest.parameters}
-    parameter_cls_dict = {classname: types.new_class(classname, (Parameter,))
-                          for classname in all_params_classes.keys()}
-
-    for classname, parameter_class in parameter_cls_dict.items():
-        parameter_class.has_description = all_params_classes[classname].__doc__
+    all_param_classes_to_ontological_class = {}
+    for clazz in classes:
+        for parameter in clazz.parameters:
+            if (clazzname := parameter.clazzname) not in all_param_classes_to_ontological_class.keys():
+                all_param_classes_to_ontological_class[clazzname] = types.new_class(clazzname, (Parameter,))
+                all_param_classes_to_ontological_class[clazzname].has_description = parameter.docstring_of_parameter_clazz
 
     for clazz_digest in classes:
-        for p in clazz_digest.parameters:
-            print(p)
         performable = Performable(clazz_digest.classname)
         performable.has_description = [clazz_digest.docstring]
         params = []
         for param in clazz_digest.parameters:
-            param_instance = parameter_cls_dict[param.parameter_name]()
+            param_instance = all_param_classes_to_ontological_class[param.clazzname](param.parameter_name)
             param_instance.has_description = [param.docstring_of_parameter]
-            if default_value :=param.get_default_value():
-                param_instance.has_default_value = default_value
+            if param.get_default_value():
+                param_instance.has_default_value = param.get_default_value()
             params.append(param_instance)
         performable.has_parameter = params
     
