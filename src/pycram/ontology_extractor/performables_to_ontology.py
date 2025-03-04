@@ -109,11 +109,11 @@ def create_ontology_from_performables():
     for clazz in classes:
         for parameter in clazz.parameters:
             if (clazzname := parameter.clazzname) not in all_param_classes_to_ontological_class.keys():
-                all_param_classes_to_ontological_class[clazzname] = types.new_class(clazzname, (Parameter,))
-                all_param_classes_to_ontological_class[clazzname].has_description = parameter.docstring_of_parameter_clazz
+                parameter_clazz = types.new_class(clazzname, (Parameter,))
+                parameter_clazz.has_description = parameter.docstring_of_parameter_clazz
                 if parameter.is_enum:
-                    all_param_classes_to_ontological_class[clazzname].has_possible_value = [key for key in parameter.clazz.__members__]
-
+                    parameter_clazz.has_possible_value = [key for key in parameter.clazz.__members__]
+                all_param_classes_to_ontological_class[clazzname] = parameter_clazz
 
     for clazz_digest in classes:
         performable = Performable(clazz_digest.classname)
