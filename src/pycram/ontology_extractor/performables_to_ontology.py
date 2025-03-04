@@ -15,14 +15,18 @@ class ParameterDigest:
     Encapsulation of meta information about a parameter.
     """
     clazz: Any
-    classname: str
-    docstring: str
-    param_docstring: str
-    default_value: Any
+    clazzname: str
+    parameter_name: str
+    docstring_of_parameter_clazz: str
+    docstring_of_parameter: str
+    parameter_default_value: Any
+
+    def __str__(self):
+        return str(super.__str__(self)) + "\n"
 
     def get_default_value(self):
-        if not self.default_value == inspect.Parameter.empty:
-            return [str(self.default_value)]
+        if not self.parameter_default_value == inspect.Parameter.empty:
+            return [str(self.parameter_default_value)]
         else:
             return None
 
@@ -62,10 +66,11 @@ class ActionAbstractDigest:
         parameters_inspection = inspect.signature(clazz.__init__).parameters
         return [ParameterDigest(
             clazz=clazz.get_type_hints()[param],
-            classname=clazz.get_type_hints()[param].__class__.__name__,
-            docstring=clazz.get_type_hints()[param].__doc__,
-            param_docstring=class_param_comment[param],
-            default_value=parameters_inspection[param].default
+            clazzname=clazz.__name__,
+            parameter_name=param,
+            docstring_of_parameter_clazz=clazz.get_type_hints()[param].__doc__,
+            docstring_of_parameter=class_param_comment[param],
+            parameter_default_value=parameters_inspection[param].default
         ) for param in list(parameters_inspection.keys())[1:]]
 
 def create_ontology_from_performables():
@@ -88,7 +93,7 @@ def create_ontology_from_performables():
         class has_default_value(DataProperty):
             pass
 
-    all_params_classes = {param.classname: param.clazz for clazz_digest in classes for param in clazz_digest.parameters}
+    all_params_classes = {param.parameter_name: param.clazz for clazz_digest in classes for param in clazz_digest.parameters}
     parameter_cls_dict = {classname: types.new_class(classname, (Parameter,))
                           for classname in all_params_classes.keys()}
 
@@ -96,12 +101,14 @@ def create_ontology_from_performables():
         parameter_class.has_description = all_params_classes[classname].__doc__
 
     for clazz_digest in classes:
+        for p in clazz_digest.parameters:
+            print(p)
         performable = Performable(clazz_digest.classname)
         performable.has_description = [clazz_digest.docstring]
         params = []
         for param in clazz_digest.parameters:
-            param_instance = parameter_cls_dict[param.classname]()
-            param_instance.has_description = [param.param_docstring]
+            param_instance = parameter_cls_dict[param.parameter_name]()
+            param_instance.has_description = [param.docstring_of_parameter]
             if default_value :=param.get_default_value():
                 param_instance.has_default_value = default_value
             params.append(param_instance)
