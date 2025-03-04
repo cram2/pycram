@@ -1,5 +1,4 @@
-from typing_extensions import Self
-
+from enum import EnumMeta
 from pycram.designators.action_designator import ActionAbstract
 from random_events.utils import recursive_subclasses
 from owlready2 import *
@@ -8,6 +7,7 @@ from typing import Dict, List, Type, Optional, Any
 from dataclasses import dataclass
 import inspect
 import ast
+import re
 
 @dataclass
 class ParameterDigest:
@@ -20,6 +20,7 @@ class ParameterDigest:
     docstring_of_parameter_clazz: str
     docstring_of_parameter: str
     parameter_default_value: Any
+    is_enum: bool
 
     def __str__(self):
         return str(super.__str__(self)) + "\n"
@@ -45,6 +46,13 @@ class ActionAbstractDigest:
         :param clazz: Clazz to parse
         :return: List of parameter information.
         """
+
+        def extract_content_between_quotes(text):
+            if match := re.search(r"'(.*?)'", text):
+                return match.group(1)
+            else:
+                return text
+
         with open(inspect.getfile(clazz), 'r') as file:
             file_content = file.read()
         tree = ast.parse(file_content)
@@ -63,15 +71,16 @@ class ActionAbstractDigest:
                         class_param_comment = {**class_param_comment, **{var: item.value.s for var in last_assign}}
                         last_assign = []
 
-        parameters_inspection = inspect.signature(clazz.__init__).parameters
+        parameters_inspection = inspect.signature(clazz).parameters
         return [ParameterDigest(
             clazz=clazz.get_type_hints()[param],
-            clazzname=str(clazz.get_type_hints()[param].__class__.__name__),
+            clazzname=extract_content_between_quotes(str(clazz.get_type_hints()[param])),
             parameter_name=param,
             docstring_of_parameter_clazz=clazz.get_type_hints()[param].__doc__,
             docstring_of_parameter=class_param_comment[param],
-            parameter_default_value=parameters_inspection[param].default
-        ) for param in list(parameters_inspection.keys())[1:]]
+            parameter_default_value=parameters_inspection[param].default,
+            is_enum=clazz.get_type_hints()[param].__class__ == EnumMeta
+        ) for param in list(parameters_inspection.keys())]
 
 def create_ontology_from_performables():
     classes = [ActionAbstractDigest(clazz) for clazz in recursive_subclasses(ActionAbstract)]
@@ -93,12 +102,18 @@ def create_ontology_from_performables():
         class has_default_value(DataProperty):
             pass
 
+        class has_possible_value(Parameter >> DataProperty):
+            pass
+
     all_param_classes_to_ontological_class = {}
     for clazz in classes:
         for parameter in clazz.parameters:
             if (clazzname := parameter.clazzname) not in all_param_classes_to_ontological_class.keys():
                 all_param_classes_to_ontological_class[clazzname] = types.new_class(clazzname, (Parameter,))
                 all_param_classes_to_ontological_class[clazzname].has_description = parameter.docstring_of_parameter_clazz
+                if parameter.is_enum:
+                    all_param_classes_to_ontological_class[clazzname].has_possible_value = [key for key in parameter.clazz.__members__]
+
 
     for clazz_digest in classes:
         performable = Performable(clazz_digest.classname)
