@@ -1,6 +1,5 @@
+import types
 from enum import EnumMeta
-from types import UnionType
-
 from pycram.designators.action_designator import ActionAbstract
 from random_events.utils import recursive_subclasses
 from owlready2 import *
@@ -54,7 +53,7 @@ class ActionAbstractDigest:
                 return text
 
         def is_optional_type(t):
-            if get_origin(t) is (Union or UnionType):
+            if get_origin(t) is Union:
                 return None in get_args(t)
             return False
 
@@ -99,6 +98,9 @@ def create_ontology_from_performables():
         class Parameter(Thing):
             pass
 
+        class Enum(Thing):
+            pass
+
         class has_parameter(Performable >> Parameter):
             pass
 
@@ -108,7 +110,7 @@ def create_ontology_from_performables():
         class has_default_value(DataProperty):
             pass
 
-        class has_possible_value(Parameter >> DataProperty):
+        class has_possible_value(Parameter >> Enum):
             pass
 
     all_param_classes_to_ontological_class = {}
@@ -118,7 +120,9 @@ def create_ontology_from_performables():
                 parameter_clazz = types.new_class(clazzname, (Parameter,))
                 parameter_clazz.has_description = parameter.docstring_of_parameter_clazz
                 if parameter.is_enum:
-                    parameter_clazz.has_possible_value = [key for key in parameter.clazz.__members__]
+                    enum_state_class = types.new_class(clazzname + "_Values", (Enum,))
+                    parameter_clazz.has_possible_value = [enum_state_class(enum_member)
+                                                          for enum_member in parameter.clazz.__members__]
                 all_param_classes_to_ontological_class[clazzname] = parameter_clazz
 
     for clazz_digest in classes:
@@ -132,6 +136,7 @@ def create_ontology_from_performables():
             # Question: Do I have a link of the actual parameterDigest for per instance at hand still?!
             if param.get_default_value():
                 param_instance.has_default_value = param.get_default_value()
+            # TODO: Default values are not correctly parsed
             params.append(param_instance)
         performable.has_parameter = params
     
