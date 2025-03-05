@@ -16,7 +16,6 @@ class ParameterDigest:
     Encapsulation of meta information about a parameter.
     """
     clazz: Any
-    clazzname: str
     parameter_name: str
     docstring_of_parameter_clazz: str
     docstring_of_parameter: str
@@ -46,15 +45,9 @@ class ActionAbstractDigest:
         :return: List of parameter information.
         """
 
-        def extract_content_between_quotes(text):
-            if match := re.search(r"'(.*?)'", text):
-                return match.group(1)
-            else:
-                return text
-
         def is_optional_type(t):
             if get_origin(t) is Union:
-                return None in get_args(t)
+                return type(None) in get_args(t)
             return False
 
         with open(inspect.getfile(clazz), 'r') as file:
@@ -78,7 +71,6 @@ class ActionAbstractDigest:
         parameters_inspection = inspect.signature(clazz).parameters
         return [ParameterDigest(
             clazz=clazz.get_type_hints()[param],
-            clazzname=extract_content_between_quotes(str(clazz.get_type_hints()[param])),
             parameter_name=param,
             docstring_of_parameter_clazz=clazz.get_type_hints()[param].__doc__,
             docstring_of_parameter=class_param_comment[param],
@@ -88,6 +80,24 @@ class ActionAbstractDigest:
         ) for param in list(parameters_inspection.keys())]
 
 def create_ontology_from_performables():
+    def unwrap_clazzname(parameter: ParameterDigest) -> str:
+        def extract_content_between_quotes(text):
+            if match := re.search(r"'(.*?)'", text):
+                return match.group(1)
+            else:
+                return text
+
+        def get_optional_type(t):
+            optional_types = [arg for arg in get_args(t) if arg is not type(None)]
+            if len(optional_types) > 1:
+                print(f"Optional type has more than one type: {optional_types} (Type: {t})")
+            return optional_types[0] if len(optional_types) == 1 else None
+
+        clazz = parameter.clazz
+        if parameter.is_optional:
+            clazz = get_optional_type(parameter.clazz)
+        return extract_content_between_quotes(str(clazz))
+
     classes = [ActionAbstractDigest(clazz) for clazz in recursive_subclasses(ActionAbstract)]
 
     output_ontology = get_ontology("performables")
@@ -113,16 +123,19 @@ def create_ontology_from_performables():
         class has_possible_value(Parameter >> Enum):
             pass
 
+        class is_optional(Parameter >> bool):
+            pass
+        
     all_param_classes_to_ontological_class = {}
     for clazz in classes:
-        for parameter in clazz.parameters:
-            if (clazzname := parameter.clazzname) not in all_param_classes_to_ontological_class.keys():
+        for param in clazz.parameters:
+            if (clazzname := unwrap_clazzname(param)) not in all_param_classes_to_ontological_class.keys():
                 parameter_clazz = types.new_class(clazzname, (Parameter,))
-                parameter_clazz.has_description = parameter.docstring_of_parameter_clazz
-                if parameter.is_enum:
+                parameter_clazz.has_description = param.docstring_of_parameter_clazz
+                if param.is_enum:
                     enum_state_class = types.new_class(clazzname + "_Values", (Enum,))
                     parameter_clazz.has_possible_value = [enum_state_class(enum_member)
-                                                          for enum_member in parameter.clazz.__members__]
+                                                          for enum_member in param.clazz.__members__]
                 all_param_classes_to_ontological_class[clazzname] = parameter_clazz
 
     for clazz_digest in classes:
@@ -130,10 +143,10 @@ def create_ontology_from_performables():
         performable.has_description = [clazz_digest.docstring]
         params = []
         for param in clazz_digest.parameters:
-            param_instance = all_param_classes_to_ontological_class[param.clazzname](param.parameter_name)
+            param_instance = all_param_classes_to_ontological_class[unwrap_clazzname(param)](param.parameter_name)
             param_instance.has_description = [param.docstring_of_parameter]
-            # TODO Here you must evaluate if the parameter is optional (on a per-instance basis)
-            # Question: Do I have a link of the actual parameterDigest for per instance at hand still?!
+            param_instance.is_optional = [True] if param.is_optional else [False]
+            
             if param.get_default_value():
                 param_instance.has_default_value = param.get_default_value()
             # TODO: Default values are not correctly parsed
