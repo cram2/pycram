@@ -16,7 +16,8 @@ from sqlalchemy.orm.session import Session
 
 from .datastructures.world import World
 from .datastructures.partial_designator import PartialDesignator
-from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable, TYPE_CHECKING, ForwardRef
+from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable, TYPE_CHECKING, ForwardRef, \
+    Self
 from typing import get_type_hints
 
 from .language import Language
@@ -128,7 +129,7 @@ class DesignatorDescription(ABC):
         return get_type_hints(self.__init__)
 
 @dataclass
-class ActionDescription(PartialDesignator, Language):
+class ActionDescription(Language):
     """
     The performable designator_description with a single element for each list of possible parameter.
     """
@@ -279,13 +280,10 @@ class ActionDescription(PartialDesignator, Language):
 
         return wrapper
 
-    def resolve(self):
-        """
-        Resolve the action and generates a possible parameterization.
+    @classmethod
+    def description(cls, *args, **kwargs) -> PartialDesignator[Self]:
+        raise NotImplementedError()
 
-        :return: A completely parameterized action which can be performed.
-        """
-        return next(iter(self))
 
 
 class LocationDesignatorDescription(DesignatorDescription):

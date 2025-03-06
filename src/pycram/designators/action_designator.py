@@ -9,8 +9,10 @@ from functools import cached_property
 
 import numpy as np
 from sqlalchemy.orm import Session
+
+from pycram.datastructures.partial_designator import PartialDesignator
 from ..tf_transformations import quaternion_from_euler
-from typing_extensions import List, Union, Optional, Type, Dict, Any
+from typing_extensions import List, Union, Optional, Type, Dict, Any, Iterable
 
 from pycrap.ontologies import Location
 from .location_designator import CostmapLocation
@@ -165,6 +167,10 @@ class MoveTorsoAction(ActionAbstract):
         if not validator.goal_achieved:
             raise TorsoGoalNotReached(validator)
 
+    @classmethod
+    def description(cls, torso_state: Union[List[TorsoState], TorsoState]) -> PartialDesignator[MoveTorsoAction]:
+        return PartialDesignator(MoveTorsoAction, torso_state=torso_state)
+
 
 @dataclass
 class SetGripperAction(ActionAbstract):
@@ -197,6 +203,11 @@ class SetGripperAction(ActionAbstract):
         """
         pass
 
+    @classmethod
+    def description(cls, gripper:  Union[List[Arms], Arms],
+                    motion:  Union[List[GripperState], GripperState] = None) -> PartialDesignator[SetGripperAction]:
+        return PartialDesignator(SetGripperAction, gripper=gripper, motion=motion)
+
 
 @dataclass
 class ReleaseAction(ActionAbstract):
@@ -211,6 +222,10 @@ class ReleaseAction(ActionAbstract):
 
     def plan(self) -> None:
         raise NotImplementedError
+
+    @classmethod
+    def description(cls, object_designator: ObjectDesignatorDescription, gripper: Arms = None) -> PartialDesignator[ReleaseAction]:
+        return PartialDesignator(ReleaseAction, object_designator=object_designator, gripper=gripper)
 
 
 @dataclass
@@ -227,6 +242,12 @@ class GripAction(ActionAbstract):
     @with_tree
     def plan(self) -> None:
         raise NotImplementedError()
+
+    @classmethod
+    def description(cls, object_designator: ObjectDesignatorDescription,
+                    gripper: Union[List[Arms], Arms] = None, effort: Union[List[float], float] = None,):
+        return PartialDesignator(GripAction, object_designator=object_designator,
+                                 gripper=gripper, effort=effort)
 
 
 @dataclass
@@ -269,6 +290,10 @@ class ParkArmsAction(ActionAbstract):
                                               time_per_read=timedelta(milliseconds=20))
         if not validator.goal_achieved:
             raise ConfigurationNotReached(validator, configuration_type=StaticJointState.Park)
+
+    @classmethod
+    def description(cls, arm:  Union[List[Arms], Arms]) -> PartialDesignator[ParkArmsAction]:
+        return PartialDesignator(ParkArmsAction, arm=arm)
 
 
 @dataclass
@@ -437,6 +462,16 @@ class ReachToPickUpAction(ActionAbstract):
         else:
             logwarn(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
 
+    @classmethod
+    def description(cls, object_designator: ObjectDesignatorDescription.Object,
+                    arm:  Union[List[Arms], Arms] = None,
+                    grasp:  Union[List[Grasp], Grasp] = None,
+                    prepose_distance:  Union[List[float], float] = ActionConfig.pick_up_prepose_distance) -> PartialDesignator[ReachToPickUpAction]:
+        return PartialDesignator(ReachToPickUpAction, object_designator=object_designator,
+                                                      arm=arm,
+                                                      grasp=grasp,
+                                                      prepose_distance=prepose_distance)
+
 
 @dataclass
 class PickUpAction(ActionAbstract):
@@ -538,6 +573,14 @@ class PickUpAction(ActionAbstract):
     @cached_property
     def world_object(self) -> Object:
         return self.object_designator.world_object
+
+    @classmethod
+    def description(cls, object_designator: ObjectDesignatorDescription,
+                    arm:  Union[List[Arms], Arms] = None,
+                    grasp:  Union[List[Grasp], Grasp] = None,
+                    prepose_distance:  Union[List[float], float] = ActionConfig.pick_up_prepose_distance) -> PartialDesignator[PickUpAction]:
+        return PartialDesignator(PickUpAction, object_designator=object_designator, arm=arm,
+                                 grasp=grasp, prepose_distance=prepose_distance)
 
 
 @dataclass
@@ -648,6 +691,14 @@ class PlaceAction(ActionAbstract):
         if not pose_error_checker.is_error_acceptable(self.world_object.pose, self.target_location):
             raise ObjectNotPlacedAtTargetLocation(self.world_object, self.target_location, World.robot, self.arm)
 
+    @classmethod
+    def description(cls, object_designator:  ObjectDesignatorDescription.Object,
+                    target_location: Union[List[Pose], Pose],
+                    arm: Union[List[Arms], Arms] = None) -> PartialDesignator[PlaceAction]:
+        return PartialDesignator(PlaceAction, object_designator=object_designator,
+                                 target_location=target_location,
+                                 arm=arm)
+
 
 @dataclass
 class NavigateAction(ActionAbstract):
@@ -676,6 +727,13 @@ class NavigateAction(ActionAbstract):
         pose_validator = PoseErrorChecker(World.conf.get_pose_tolerance())
         if not pose_validator.is_error_acceptable(World.robot.pose, self.target_location):
             raise NavigationGoalNotReachedError(World.robot.pose, self.target_location)
+
+    @classmethod
+    def description(cls, target_location: Union[Iterable[Pose], Pose],
+                    keep_joint_states:  Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states) -> PartialDesignator[NavigateAction]:
+        return PartialDesignator(NavigateAction, target_location=target_location,
+                                                 keep_joint_states=keep_joint_states)
+
 
 
 @dataclass
@@ -736,6 +794,16 @@ class TransportAction(ActionAbstract):
         # The validation of each atomic action is done in the action itself, so no more validation needed here.
         pass
 
+    @classmethod
+    def description(cls, object_designator: ObjectDesignatorDescription,
+                    target_location: Union[Iterable[Pose], Pose],
+                    arm: Union[List[Arms], Arms] = None,
+                    pickup_prepose_distance: Union[List[float], float] = ActionConfig.pick_up_prepose_distance) -> PartialDesignator[TransportAction]:
+        return PartialDesignator(TransportAction, object_designator=object_designator,
+                                 target_location=target_location,
+                                 arm=arm,
+                                 pickup_prepose_distance=pickup_prepose_distance)
+
 
 @dataclass
 class LookAtAction(ActionAbstract):
@@ -767,6 +835,10 @@ class LookAtAction(ActionAbstract):
             gen_obj.remove()
             if not ray_result.intersected or ray_result.obj_id != gen_obj.id:
                 raise LookAtGoalNotReached(World.robot, self.target)
+
+    @classmethod
+    def description(cls, target: Union[Iterable[Pose], Pose]) -> PartialDesignator[LookAtAction]:
+        return PartialDesignator(LookAtAction, target=target)
 
 
 @dataclass
@@ -807,6 +879,16 @@ class DetectAction(ActionAbstract):
         if not result:
             raise PerceptionObjectNotFound(self.object_designator_description, self.technique, self.region)
 
+    @classmethod
+    def description(cls, technique: DetectionTechnique,
+                    state: Union[List[DetectionState], DetectionState] = None,
+                    object_designator_description: ObjectDesignatorDescription = None,
+                    region: Union[List[Location], Location] = None) -> PartialDesignator[LookAtAction]:
+        return PartialDesignator(DetectAction, technique=technique,
+                                 state=state,
+                                 object_designator_description=object_designator_description,
+                                 region=region)
+
 
 @dataclass
 class OpenAction(ActionAbstract):
@@ -842,6 +924,14 @@ class OpenAction(ActionAbstract):
         """
         validate_close_open(self.object_designator, self.arm, OpenAction)
 
+    @classmethod
+    def description(cls, object_designator: ObjectPart.Object,
+                    arm: Union[List[Arms], Arms] = None,
+                    grasping_prepose_distance: Union[List[float], float] = ActionConfig.grasping_prepose_distance) -> PartialDesignator[OpenAction]:
+        return PartialDesignator(OpenAction, object_designator=object_designator,
+                                 arm=arm,
+                                 grasping_prepose_distance=grasping_prepose_distance)
+
 
 @dataclass
 class CloseAction(ActionAbstract):
@@ -875,6 +965,14 @@ class CloseAction(ActionAbstract):
         real world.
         """
         validate_close_open(self.object_designator, self.arm, CloseAction)
+
+    @classmethod
+    def description(cls, object_designator: ObjectPart.Object,
+                    arm: Union[List[Arms], Arms] = None,
+                    grasping_prepose_distance: Union[List[float], float] = ActionConfig.grasping_prepose_distance) -> PartialDesignator[CloseAction]:
+        return PartialDesignator(CloseAction, object_designator=object_designator,
+                                 arm=arm,
+                                 grasping_prepose_distance=grasping_prepose_distance)
 
 
 def validate_close_open(object_designator: ObjectDesignatorDescription.Object, arm: Arms,
@@ -961,6 +1059,12 @@ class GraspingAction(ActionAbstract):
         if not any([link.name in gripper_links for link in contact_links]):
             raise ObjectNotGraspedError(self.object_desig.world_object, World.robot, self.arm, None)
 
+    @classmethod
+    def description(cls, object_desig: ObjectDesignatorDescription,
+                    arm: Union[List[Arms], Arms] = None,
+                    prepose_distance: Union[List[float], float] = ActionConfig.grasping_prepose_distance) -> PartialDesignator[GraspingAction]:
+        return PartialDesignator(GraspingAction, object_desig=object_desig, arm=arm, prepose_distance=prepose_distance)
+
 
 @dataclass
 class FaceAtAction(ActionAbstract):
@@ -1001,6 +1105,11 @@ class FaceAtAction(ActionAbstract):
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in the LookAtActionPerformable.perform() method so no need to validate here.
         pass
+
+    @classmethod
+    def description(cls, pose: Union[List[Pose], Pose],
+                    keep_joint_states: Union[List[bool], bool] = ActionConfig.face_at_keep_joint_states) -> PartialDesignator[FaceAtAction]:
+        return PartialDesignator(FaceAtAction, pose=pose, keep_joint_states=keep_joint_states)
 
 
 @dataclass
@@ -1050,6 +1159,21 @@ class MoveAndPickUpAction(ActionAbstract):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
         pass
 
+    @classmethod
+    def description(cls, standing_position: Union[List[Pose], Pose],
+                    object_designator: ObjectDesignatorDescription,
+                    arm: Union[List[Arms], Arms] = None,
+                    grasp: Union[List[Grasp], Grasp] = None,
+                    keep_joint_states:  Union[List[bool], bool] = ActionConfig.navigate_keep_joint_states,
+                    pick_up_prepose_distance: Union[List[float], float] = ActionConfig.pick_up_prepose_distance) -> PartialDesignator[MoveAndPickUpAction]:
+        return PartialDesignator(MoveAndPickUpAction,
+                                 standing_position=standing_position,
+                                 object_designator=object_designator,
+                                 arm=arm,
+                                 grasp=grasp,
+                                 pick_up_prepose_distance=pick_up_prepose_distance)
+
+
 
 @dataclass
 class MoveAndPlaceAction(ActionAbstract):
@@ -1091,3 +1215,35 @@ class MoveAndPlaceAction(ActionAbstract):
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
         pass
+
+    @classmethod
+    def description(cls, standing_position: Union[List[Pose], Pose],
+                    object_designator: ObjectDesignatorDescription,
+                    target_location: Union[List[Pose], Pose],
+                    arm: Union[List[Arms], Arms] = None,
+                    keep_joint_states: Union[List[bool], bool] = ActionConfig.navigate_keep_joint_states,) -> \
+    PartialDesignator[MoveAndPlaceAction]:
+        return PartialDesignator(MoveAndPlaceAction,
+                                 standing_position=standing_position,
+                                 object_designator=object_designator,
+                                 target_location=target_location,
+                                 arm=arm)
+
+MoveTorsoActionDescription = MoveTorsoAction.description
+SetGripperActionDescription = SetGripperAction.description
+ParkArmsActionDescription = ParkArmsAction.description
+ReachToPickUpActionDescription = ReachToPickUpAction.description
+PickUpActionDescription = PickUpAction.description
+PlaceActionDescription = PlaceAction.description
+NavigateActionDescription = NavigateAction.description
+TransportActionDescription = TransportAction.description
+LookAtActionDescription = LookAtAction.description
+DetectActionDescription = DetectAction.description
+OpenActionDescription = OpenAction.description
+CloseActionDescription = CloseAction.description
+GraspingActionDescription = GraspingAction.description
+FaceAtActionDescription = FaceAtAction.description
+MoveAndPickUpActionDescription = MoveAndPickUpAction.description
+MoveAndPlaceActionDescription = MoveAndPlaceAction.description
+ReleaseActionDescription = ReleaseAction.description
+GripActionDescription = GripAction.description
