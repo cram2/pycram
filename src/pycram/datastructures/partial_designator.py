@@ -1,7 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING, TypeVar, Generic, Iterator, Iterable
+from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING, TypeVar, Generic, Iterator, Iterable, AnyStr
 from itertools import product
 from inspect import signature
 
@@ -83,9 +83,9 @@ class PartialDesignator(Supertype, Language):
         :return: A new performable object for each permutation of arguments and keyword arguments
         """
         for kwargs_combination in self.generate_permutations():
-            yield self.performable(**dict(zip(self.kwargs.keys(), kwargs_combination)))
+            yield self.performable(**kwargs_combination)
 
-    def generate_permutations(self) -> List:
+    def generate_permutations(self) -> Iterator[Dict[str, Any]]:
         """
         Generates the cartesian product of the given arguments. Arguments can also be a list of lists of arguments.
 
@@ -93,7 +93,7 @@ class PartialDesignator(Supertype, Language):
         """
         iter_list = [x if is_iterable(x) else [x] for x in self.kwargs.values()]
         for combination in product(*iter_list):
-            yield combination
+            yield dict(zip(self.kwargs.keys(), combination))
 
     def missing_parameter(self) -> List[str]:
         """

@@ -324,7 +324,7 @@ SPECIAL_KNOWLEDGE = {
 }
 
 
-class ObjectDesignatorDescription(DesignatorDescription):
+class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
     """
     Class for object designator_description descriptions.
     Descriptions hold possible parameter ranges for object designators.
@@ -458,6 +458,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         :param types: A list of types that could represent the object
         """
         super().__init__()
+        PartialDesignator.__init__(self, ObjectDesignatorDescription.Object, name=names, obj_type=types)
         self.types: Optional[List[ObjectType]] = types
         self.names: Optional[List[str]] = names
 
@@ -475,18 +476,20 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         :yield: A executed object designator_description
         """
-        # for every world object
-        for obj in World.current_world.objects:
+        for params in self.generate_permutations():
 
-            # skip if name does not match specification
-            if self.names and obj.name not in self.names:
-                continue
+            # for every world object
+            for obj in World.current_world.objects:
 
-            # skip if type does not match specification
-            if self.types and obj.obj_type not in self.types:
-                continue
+                # skip if name does not match specification
+                if self.names and obj.name not in params.values():
+                    continue
 
-            yield self.Object(obj.name, obj.obj_type, obj)
+                # skip if type does not match specification
+                if self.types and obj.obj_type not in params.values():
+                    continue
+
+                yield self.Object(obj.name, obj.obj_type, obj)
 
 
 @dataclass

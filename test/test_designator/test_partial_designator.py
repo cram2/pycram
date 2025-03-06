@@ -47,7 +47,12 @@ class TestPartialDesignator(BulletWorldTestCase):
         tp = PartialDesignator(SetGripperAction, [Arms.LEFT, Arms.RIGHT], motion=[GripperState.OPEN, GripperState.CLOSE])
         permutations = tp.generate_permutations()
         self.assertEqual([(Arms.LEFT, GripperState.OPEN), (Arms.LEFT, GripperState.CLOSE),
-                          (Arms.RIGHT, GripperState.OPEN), (Arms.RIGHT, GripperState.CLOSE)], list(permutations))
+                          (Arms.RIGHT, GripperState.OPEN), (Arms.RIGHT, GripperState.CLOSE)], [tuple(p.values()) for p in permutations])
+
+    def test_partial_desig_permutation_dict(self):
+        tp = PartialDesignator(SetGripperAction, [Arms.LEFT, Arms.RIGHT], motion=[GripperState.OPEN, GripperState.CLOSE])
+        permutations = tp.generate_permutations()
+        self.assertEqual({"gripper": Arms.LEFT, "motion": GripperState.OPEN}, list(permutations)[0])
 
     def test_partial_desig_iter(self):
         test_object = BelieveObject(names=["milk"])
