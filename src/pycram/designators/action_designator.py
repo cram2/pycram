@@ -692,7 +692,7 @@ class PlaceAction(ActionAbstract):
             raise ObjectNotPlacedAtTargetLocation(self.world_object, self.target_location, World.robot, self.arm)
 
     @classmethod
-    def description(cls, object_designator:  ObjectDesignatorDescription.Object,
+    def description(cls, object_designator:  ObjectDesignatorDescription,
                     target_location: Union[List[Pose], Pose],
                     arm: Union[List[Arms], Arms] = None) -> PartialDesignator[PlaceAction]:
         return PartialDesignator(PlaceAction, object_designator=object_designator,
@@ -925,7 +925,7 @@ class OpenAction(ActionAbstract):
         validate_close_open(self.object_designator, self.arm, OpenAction)
 
     @classmethod
-    def description(cls, object_designator: ObjectPart.Object,
+    def description(cls, object_designator: ObjectPart,
                     arm: Union[List[Arms], Arms] = None,
                     grasping_prepose_distance: Union[List[float], float] = ActionConfig.grasping_prepose_distance) -> PartialDesignator[OpenAction]:
         return PartialDesignator(OpenAction, object_designator=object_designator,

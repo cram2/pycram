@@ -79,7 +79,7 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
     @with_tree
     def plan(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
+        description = action_designator.PlaceActionDescription(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         torso_joint = RobotDescription.current_robot_description.torso_joint
         self.assertEqual(description.resolve().object_designator.name, "milk")
         with simulated_robot:
@@ -154,7 +154,7 @@ class MixinTestCase(DatabaseTestCaseMixin):
     @with_tree
     def plan(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
+        description = action_designator.PlaceActionDescription(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         torso_joint = RobotDescription.current_robot_description.torso_joint
         self.assertEqual(description.resolve().object_designator.name, "milk")
         with simulated_robot:
@@ -183,7 +183,7 @@ class ORMObjectDesignatorTestCase(DatabaseTestCaseMixin):
 
     def test_plan_serialization(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
+        description = action_designator.PlaceActionDescription(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.resolve().object_designator.name, "milk")
         torso_joint = RobotDescription.current_robot_description.torso_joint
         with simulated_robot:
@@ -258,7 +258,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
     @unittest.skip
     def test_lookAt_and_detectAction(self):
         object_description = ObjectDesignatorDescription(types=[Milk])
-        action = DetectAction(technique=DetectionTechnique.TYPES,
+        action = DetectActionDescription(technique=DetectionTechnique.TYPES,
                                          state=DetectionState.START,
                                          object_designator_description=object_description,
                                          region=None).resolve()
@@ -347,19 +347,19 @@ class BelieveObjectTestCase(unittest.TestCase):
         # TODO: Find better way to separate BelieveObject no pose from Object pose
 
         with simulated_robot:
-            ParkArmsAction([Arms.BOTH]).resolve().perform()
+            ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
 
-            MoveTorsoAction(TorsoState.HIGH).resolve().perform()
-            NavigateAction(target_locations=[Pose([2, -1.89, 0])]).resolve().perform()
+            MoveTorsoActionDescription(TorsoState.HIGH).resolve().perform()
+            NavigateActionDescription(target_location=[Pose([2, -1.89, 0])]).resolve().perform()
 
-            LookAtAction(targets=[Pose([1, -1.78, 0.55])]).resolve().perform()
+            LookAtActionDescription(target=[Pose([1, -1.78, 0.55])]).resolve().perform()
 
-            object_dict = DetectAction(technique=DetectionTechnique.TYPES,
+            object_dict = DetectActionDescription(technique=DetectionTechnique.TYPES,
                                         object_designator_description=BelieveObject(types=[Milk])).resolve().perform()
             object_desig = object_dict[0]
-            TransportAction(object_desig, [Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
+            TransportActionDescription(object_desig, [Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
 
-            ParkArmsAction([Arms.BOTH]).resolve().perform()
+            ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
             pycram.orm.base.ProcessMetaData().description = "BelieveObject_test"
             task_tree.root.insert(self.session)
 
@@ -389,7 +389,7 @@ class ViewsSchemaTest(DatabaseTestCaseMixin):
         if self.engine.dialect.name == "sqlite":
             return
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
+        description = action_designator.PlaceActionDescription(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         torso_joint = RobotDescription.current_robot_description.torso_joint
         self.assertEqual(description.resolve().object_designator.name, "milk")
         with simulated_robot:

@@ -5,6 +5,7 @@ from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING, TypeV
 from itertools import product
 from inspect import signature
 
+from ..language import Language
 from ..utils import is_iterable
 
 
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
 else:
     Supertype = Iterable
 
-class PartialDesignator(Supertype):
+class PartialDesignator(Supertype, Language):
     """
     A partial designator_description is somewhat between a DesignatorDescription and a specified designator_description. Basically it is a
     partially initialized specified designator_description which can take a list of input arguments (like a DesignatorDescription)
@@ -47,6 +48,7 @@ class PartialDesignator(Supertype):
     """
 
     def __init__(self, performable: T, *args, **kwargs):
+        super().__init__(None, None)
         self.performable = performable
         self.kwargs = dict(signature(self.performable).bind_partial(*args, **kwargs).arguments)
         for key in dict(signature(self.performable).parameters).keys():

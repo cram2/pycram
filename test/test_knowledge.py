@@ -6,7 +6,8 @@ from knowledge_testcase import KnowledgeSourceTestCase, TestProperty, KnowledgeB
 from pycram.datastructures.enums import Arms, Grasp, ObjectType, TorsoState, GripperState
 from pycram.datastructures.partial_designator import PartialDesignator
 from pycram.datastructures.pose import Pose
-from pycram.designators.action_designator import PickUpAction, PickUpAction, OpenAction, MoveTorsoAction
+from pycram.designators.action_designator import PickUpAction, PickUpAction, OpenAction, MoveTorsoAction, \
+    PickUpActionDescription, OpenActionDescription
 from pycram.designators.object_designator import BelieveObject, ObjectPart
 from pycram.knowledge.knowledge_engine import KnowledgeEngine
 
@@ -49,37 +50,37 @@ class TestKnowledgeEngine(KnowledgeSourceTestCase):
 class TestKnowledgeEngineBeliefState(KnowledgeBulletTestCase):
     def test_match_by_name(self):
         params = {"arm": 1, "leg": "left"}
-        desig = PickUpAction(BelieveObject(names=["milk"]))
+        desig = PickUpActionDescription(BelieveObject(names=["milk"]))
         matched = self.knowledge_engine._match_by_name(params, desig)
         self.assertEqual({"arm": 1}, matched)
 
     def test_match_by_name_no_match(self):
         params = {"test": 1, "leg": "left"}
-        desig = PickUpAction(BelieveObject(names=["milk"]))
+        desig = PickUpActionDescription(BelieveObject(names=["milk"]))
         matched = self.knowledge_engine._match_by_name(params, desig)
         self.assertEqual({}, matched)
 
     def test_match_by_type(self):
         params = {"test": Arms.RIGHT, "leg": "left"}
-        desig = PickUpAction(BelieveObject(names=["milk"]))
+        desig = PickUpActionDescription(BelieveObject(names=["milk"]))
         matched = self.knowledge_engine._match_by_type(params, desig)
         self.assertEqual({"arm": Arms.RIGHT}, matched)
 
     def test_match_by_type_no_match(self):
         params = {"test": {"test": 1}, "leg": "left"}
-        desig = PickUpAction(BelieveObject(names=["milk"]))
+        desig = PickUpActionDescription(BelieveObject(names=["milk"]))
         matched = self.knowledge_engine._match_by_type(params, desig)
         self.assertEqual({}, matched)
 
     def test_match_reasoned_parameter(self):
         params = {"arm": Arms.RIGHT, "leg": "left"}
-        desig = PickUpAction(BelieveObject(names=["milk"]))
+        desig = PickUpActionDescription(BelieveObject(names=["milk"]))
         matched = self.knowledge_engine.match_reasoned_parameter(params, desig)
         self.assertEqual({"arm": Arms.RIGHT}, matched)
 
     def test_match_reasoned_parameter_full(self):
         params = {"arm": Arms.RIGHT, "gasp": Grasp.FRONT}
-        desig = PickUpAction(BelieveObject(names=["milk"]))
+        desig = PickUpActionDescription(BelieveObject(names=["milk"]))
         matched = self.knowledge_engine.match_reasoned_parameter(params, desig)
         self.assertEqual({"arm": Arms.RIGHT, "grasp": Grasp.FRONT}, matched)
 
@@ -88,14 +89,14 @@ class TestParameterInference(KnowledgeBulletTestCase):
     @unittest.skip
     def test_pickup_arm(self):
         test_object = BelieveObject(names=["milk"])
-        partial_desig = PickUpAction(test_object, [Arms.RIGHT])
+        partial_desig = PickUpActionDescription(test_object, [Arms.RIGHT])
         desig = partial_desig.resolve()
         self.assertEqual(desig.grasp, Grasp.FRONT)
 
     @unittest.skip
     def test_pickup_grasp(self):
         test_object = BelieveObject(names=["milk"])
-        partial_desig = PickUpAction(test_object, [Arms.RIGHT])
+        partial_desig = PickUpActionDescription(test_object, [Arms.RIGHT])
         desig = partial_desig.resolve()
         self.assertEqual(desig.grasp, Grasp.FRONT)
 
@@ -104,7 +105,7 @@ class TestParameterInference(KnowledgeBulletTestCase):
         self.robot.set_joint_position("torso_lift_joint", 0.3)
         env_object = BelieveObject(names=["kitchen"]).resolve()
         handle_desig = ObjectPart(["kitchen_island_middle_upper_drawer_handle"], env_object)
-        partial_desig = OpenAction(handle_desig, [Arms.RIGHT])
+        partial_desig = OpenActionDescription(handle_desig, [Arms.RIGHT])
         desig = partial_desig.resolve()
         self.assertEqual(desig.arm, Arms.RIGHT)
 

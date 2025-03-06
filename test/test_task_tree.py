@@ -10,6 +10,7 @@ import anytree
 from pycram.testing import BulletWorldTestCase
 import pycram.failures
 from pycram.designators import object_designator, action_designator
+from pycram.designators.action_designator import MoveTorsoActionDescription
 
 
 class TaskTreeTestCase(BulletWorldTestCase):
@@ -17,11 +18,11 @@ class TaskTreeTestCase(BulletWorldTestCase):
     @with_tree
     def plan(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
+        description = action_designator.PlaceActionDescription(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.resolve().object_designator.name, "milk")
         with simulated_robot:
             NavigateAction(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
+            MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
             PickUpAction(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             description.resolve().perform()
 

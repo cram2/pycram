@@ -129,7 +129,7 @@ class DesignatorDescription(ABC):
         return get_type_hints(self.__init__)
 
 @dataclass
-class ActionDescription(Language):
+class ActionDescription:
     """
     The performable designator_description with a single element for each list of possible parameter.
     """
