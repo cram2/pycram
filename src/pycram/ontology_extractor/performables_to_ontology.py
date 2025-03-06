@@ -81,11 +81,11 @@ class ActionAbstractDigest:
 
 def create_ontology_from_performables():
     def unwrap_clazzname(parameter: ParameterDigest) -> str:
-
         def extract_content_between_quotes(text: str) -> str:
             if match := re.search(r"'(.*?)'", text):
-                text = match.group(1)
-            return text
+                return match.group(1)
+            else:
+                return text
 
         def remove_spaces(text: str) -> str:
             return text.replace(" ", "")
