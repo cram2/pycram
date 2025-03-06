@@ -81,22 +81,25 @@ class ActionAbstractDigest:
 
 def create_ontology_from_performables():
     def unwrap_clazzname(parameter: ParameterDigest) -> str:
-        def extract_content_between_quotes(text):
-            if match := re.search(r"'(.*?)'", text):
-                return match.group(1)
-            else:
-                return text
 
+        def extract_content_between_quotes(text: str) -> str:
+            if match := re.search(r"'(.*?)'", text):
+                text = match.group(1)
+            return text
+
+        def remove_spaces(text: str) -> str:
+            return text.replace(" ", "")
+        
         def get_optional_type(t):
             optional_types = [arg for arg in get_args(t) if arg is not type(None)]
             if len(optional_types) > 1:
                 print(f"Optional type has more than one type: {optional_types} (Type: {t})")
-            return optional_types[0] if len(optional_types) == 1 else None
+            return get_full_class_name(optional_types[0]) if len(optional_types) >= 1 else None
 
         clazz = parameter.clazz
         if parameter.is_optional:
             clazz = get_optional_type(parameter.clazz)
-        return extract_content_between_quotes(str(clazz))
+        return remove_spaces(extract_content_between_quotes(str(clazz)))
 
     classes = [ActionAbstractDigest(clazz) for clazz in recursive_subclasses(ActionAbstract)]
 
@@ -128,11 +131,15 @@ def create_ontology_from_performables():
         
     all_param_classes_to_ontological_class = {}
     for clazz in classes:
+        print(f">>>> Class: {clazz.classname}")
         for param in clazz.parameters:
             if (clazzname := unwrap_clazzname(param)) not in all_param_classes_to_ontological_class.keys():
+                print(f"\tParameter class: {clazzname}")
                 parameter_clazz = types.new_class(clazzname, (Parameter,))
                 parameter_clazz.has_description = param.docstring_of_parameter_clazz
                 if param.is_enum:
+                    #TODO: The Enum States should rather be instances of an enum class there should only be
+                    #a single connection from enum class to enum values
                     enum_state_class = types.new_class(clazzname + "_Values", (Enum,))
                     parameter_clazz.has_possible_value = [enum_state_class(enum_member)
                                                           for enum_member in param.clazz.__members__]
