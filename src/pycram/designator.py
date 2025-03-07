@@ -330,126 +330,6 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
     Descriptions hold possible parameter ranges for object designators.
     """
 
-    @dataclass
-    class Object:
-        """
-        A single element that fits the description.
-        """
-
-        name: str
-        """
-        Name of the object
-        """
-
-        obj_type: PhysicalObject
-        """
-        Type of the object
-        """
-
-        world_object: Optional[WorldObject]
-        """
-        Reference to the World object
-        """
-
-        _pose: Optional[Callable] = field(init=False)
-        """
-        A callable returning the pose of this object. The _pose member is used overwritten for data copies
-        which will not update when the original world_object is moved.
-        """
-
-        def __post_init__(self):
-            if self.world_object:
-                self._pose = self.world_object.get_pose
-
-        def to_sql(self) -> ORMObjectDesignator:
-            """
-            Create an ORM object that corresponds to this description.
-
-            :return: The created ORM object.
-            """
-            print(str(self.obj_type))
-            return ORMObjectDesignator(name=self.name, obj_type=str(self.obj_type))
-
-        def insert(self, session: Session) -> ORMObjectDesignator:
-            """
-            Add and commit this and all related objects to the session.
-            Auto-Incrementing primary keys and foreign keys have to be filled by this method.
-
-            :param session: Session with a database that is used to add and commit the objects
-            :return: The completely instanced ORM object
-            """
-            metadata = ProcessMetaData().insert(session)
-            pose = self.pose.insert(session)
-
-            # create object orm designator_description
-            obj = self.to_sql()
-            obj.process_metadata = metadata
-            obj.pose = pose
-            session.add(obj)
-            return obj
-
-        def frozen_copy(self) -> 'ObjectDesignatorDescription.Object':
-            """
-            :return: A copy containing only the fields of this class.
-                The WorldObject attached to this pycram object is not copied.
-                The _pose gets set to a method
-                that statically returns the pose of the object when this method was called.
-            """
-            result = ObjectDesignatorDescription.Object(self.name, self.obj_type, None)
-            # get current object pose and set resulting pose to always be that
-            pose = self.pose
-            result.pose = lambda: pose
-            return result
-
-        @property
-        def pose(self):
-            """
-            Property of the current position and orientation of the object.
-            Evaluate the _pose function.
-
-            :return: Position and orientation
-            """
-            return self._pose()
-
-        @pose.setter
-        def pose(self, value: Callable):
-            """
-            Set the pose to a new method that returns the current pose.
-
-            :param value: A callable that returns a pose.
-            """
-            self._pose = value
-
-        def __repr__(self):
-            return self.__class__.__qualname__ + f"(" + ', '.join(
-                [f"{f.name}={self.__getattribute__(f.name)}" for f in fields(self)] + [
-                    f"pose={self.pose}"]) + ')'
-
-        def special_knowledge_adjustment_pose(self, grasp: Grasp, pose: Pose) -> Pose:
-            """
-            Get the adjusted target pose based on special knowledge for "grasp front".
-
-            :param grasp: From which side the object should be grasped
-            :param pose: Pose at which the object should be grasped, before adjustment
-            :return: The adjusted grasp pose
-            """
-            lt = LocalTransformer()
-            pose_in_object = lt.transform_pose(pose, self.world_object.tf_frame)
-
-            special_knowledge = []  # Initialize as an empty list
-            if self.obj_type in SPECIAL_KNOWLEDGE:
-                special_knowledge = SPECIAL_KNOWLEDGE[self.obj_type]
-
-            for key, value in special_knowledge:
-                if key == grasp:
-                    # Adjust target pose based on special knowledge
-                    pose_in_object.pose.position.x += value[0]
-                    pose_in_object.pose.position.y += value[1]
-                    pose_in_object.pose.position.z += value[2]
-                    loginfo("Adjusted target pose based on special knowledge for grasp: %s", grasp)
-                    return pose_in_object
-            return pose
-
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None):
         """
         Base of all object designator_description descriptions. Every object designator_description has the name and type of the object.
@@ -458,11 +338,11 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
         :param types: A list of types that could represent the object
         """
         super().__init__()
-        PartialDesignator.__init__(self, ObjectDesignatorDescription.Object, name=names, obj_type=types)
+        PartialDesignator.__init__(self, ObjectDesignatorDescription, names=names, types=types)
         self.types: Optional[List[ObjectType]] = types
         self.names: Optional[List[str]] = names
 
-    def ground(self) -> Union[Object, bool]:
+    def ground(self) -> WorldObject:
         """
         Return the first object from the world that fits the description.
 
@@ -470,7 +350,7 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
         """
         return next(iter(self))
 
-    def __iter__(self) -> Iterable[Object]:
+    def __iter__(self) -> Iterable[WorldObject]:
         """
         Iterate through all possible objects fitting this description
 
@@ -489,8 +369,8 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
                 if self.types and obj.obj_type not in params.values():
                     continue
 
-                yield self.Object(obj.name, obj.obj_type, obj)
-
+                # yield self.Object(obj.name, obj.obj_type, obj)
+                yield obj
 
 @dataclass
 class BaseMotion(ABC):

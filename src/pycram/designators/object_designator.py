@@ -55,62 +55,13 @@ class BelieveObject(ObjectDesignatorDescription):
     Description for Objects that are only believed in.
     """
 
-    @dataclasses.dataclass
-    class Object(ObjectDesignatorDescription.Object):
-        """
-        Concrete object that is believed in.
-        """
-
-        def to_sql(self) -> ORMBelieveObject:
-            return ORMBelieveObject(name=self.name, obj_type=str(self.obj_type))
-
-        def insert(self, session: sqlalchemy.orm.session.Session) -> ORMBelieveObject:
-            metadata = ProcessMetaData().insert(session)
-            self_ = self.to_sql()
-            self_.process_metadata = metadata
-            session.add(self_)
-
-            return self_
-
-
 class ObjectPart(ObjectDesignatorDescription):
     """
     Object Designator Descriptions for Objects that are part of some other object.
     """
 
-    @dataclasses.dataclass
-    class Object(ObjectDesignatorDescription.Object):
-
-        part_of: ObjectDesignatorDescription.Object
-
-        # The rest of attributes is inherited
-        _part_pose: Pose
-
-        @property
-        def part_pose(self) -> Pose:
-            if self.world_object:
-                self._part_pose = self.world_object.links[self.name].pose
-            return self._part_pose
-
-        @part_pose.setter
-        def part_pose(self, value: Pose):
-            self._part_pose = value
-
-        def to_sql(self) -> ORMObjectPart:
-            return ORMObjectPart(obj_type=self.obj_type, name=self.name)
-
-        def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObjectPart:
-            metadata = ProcessMetaData().insert(session)
-            pose = self.part_pose.insert(session)
-            obj = self.to_sql()
-            obj.process_metadata = metadata
-            obj.pose = pose
-            session.add(obj)
-
-            return obj
-
     def __init__(self, names: List[str],
-                 part_of: ObjectDesignatorDescription.Object,
+                 part_of: WorldObject,
                  type: Optional[ObjectType] = None):
         """
         Describing the relationship between an object and a specific part of it.
@@ -120,7 +71,7 @@ class ObjectPart(ObjectDesignatorDescription):
         :param type: Type of the part
         """
         super().__init__(names, type)
-        PartialDesignator.__init__(self, ObjectPart.Object, name=names, part_of=part_of, obj_type=type)
+        PartialDesignator.__init__(self, ObjectPart, names=names, part_of=part_of, type=type)
 
         if not part_of:
             raise AttributeError("part_of cannot be None.")
@@ -129,7 +80,7 @@ class ObjectPart(ObjectDesignatorDescription):
         self.names: Optional[List[str]] = names
         self.part_of = part_of
 
-    def ground(self) -> Object:
+    def ground(self) -> WorldObject:
         """
         Default specialized_designators, returns the first result of the iterator of this instance.
 
@@ -144,6 +95,5 @@ class ObjectPart(ObjectDesignatorDescription):
         :yield: A resolved Object designator
         """
         for params in self.generate_permutations():
-            if params["name"] in params["part_of"].world_object.link_name_to_id.keys():
-                yield self.Object(params["name"], params["obj_type"], self.part_of.world_object, params["part_of"],
-                                  params["part_of"].world_object.get_link_pose(params["name"]))
+            if params["name"] in params["part_of"].links.keys():
+                yield params["part_of"].links[params["name"]]

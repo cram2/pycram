@@ -10,6 +10,7 @@ from ..datastructures.pose import Pose
 from ..datastructures.world import World, UseProspectionWorld
 from ..designator import DesignatorError, LocationDesignatorDescription
 from ..local_transformer import LocalTransformer
+from ..object_descriptors.urdf import ObjectDescription
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
 from ..robot_description import RobotDescription
 from ..ros import  logdebug
@@ -56,7 +57,7 @@ class ObjectRelativeLocation(LocationDesignatorDescription):
         """
         Pose relative to the object
         """
-        reference_object: ObjectDesignatorDescription.Object
+        reference_object: Object
         """
         Object to which the pose is relative
         """
@@ -115,9 +116,9 @@ class CostmapLocation(LocationDesignatorDescription):
         List of grasps that were tried to reach the pose
         """
 
-    def __init__(self, target: Union[Pose, ObjectDesignatorDescription.Object],
-                 reachable_for: Optional[ObjectDesignatorDescription.Object] = None,
-                 visible_for: Optional[ObjectDesignatorDescription.Object] = None,
+    def __init__(self, target: Union[Pose, Object],
+                 reachable_for: Optional[Object] = None,
+                 visible_for: Optional[Object] = None,
                  reachable_arm: Optional[Arms] = None,
                  prepose_distance: float = 0.03,
                  check_collision_at_start: bool = True,
@@ -137,9 +138,9 @@ class CostmapLocation(LocationDesignatorDescription):
         :param grasps: List of grasps that should be tried to reach the target pose
         """
         super().__init__()
-        self.target: Union[Pose, ObjectDesignatorDescription.Object] = target
-        self.reachable_for: ObjectDesignatorDescription.Object = reachable_for
-        self.visible_for: ObjectDesignatorDescription.Object = visible_for
+        self.target: Union[Pose, Object] = target
+        self.reachable_for: Object = reachable_for
+        self.visible_for: Object = visible_for
         self.reachable_arm: Optional[Arms] = reachable_arm
         self.prepose_distance = prepose_distance
         self.check_collision_at_start = check_collision_at_start
@@ -168,9 +169,9 @@ class CostmapLocation(LocationDesignatorDescription):
            :yield: An instance of CostmapLocation.Location with a valid position that satisfies the given constraints
            """
         # This ensures that the costmaps always get a position as their origin.
-        if isinstance(self.target, ObjectDesignatorDescription.Object):
-            target_pose = self.target.world_object.get_pose()
-            target_object = self.target.world_object
+        if isinstance(self.target, Object):
+            target_pose = self.target.get_pose()
+            target_object = self.target
         else:
             target_pose = self.target.copy()
             target_object = None
@@ -184,7 +185,7 @@ class CostmapLocation(LocationDesignatorDescription):
 
         test_robot = None
         if self.visible_for or self.reachable_for:
-            robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
+            robot_object = self.visible_for if self.visible_for else self.reachable_for
             test_robot = World.current_world.get_prospection_object_for_object(robot_object)
 
         if self.reachable_for:
@@ -210,7 +211,7 @@ class CostmapLocation(LocationDesignatorDescription):
                 found_grasps = []
                 if self.visible_for:
                     visible_prospection_object = World.current_world.get_prospection_object_for_object(
-                        self.target.world_object)
+                        self.target)
                     res = res and visibility_validator(maybe_pose, test_robot, visible_prospection_object,
                                                        World.current_world)
                 if self.reachable_for:
@@ -264,8 +265,8 @@ class AccessingLocation(LocationDesignatorDescription):
         List of arms that can be used to for accessing from this pose
         """
 
-    def __init__(self, handle_desig: ObjectPart.Object,
-                 robot_desig: ObjectDesignatorDescription.Object,
+    def __init__(self, handle_desig: ObjectDescription.Link,
+                 robot_desig: Object,
                  prepose_distance: float = 0.03):
         """
         Describes a position from where a drawer can be opened. For now this position should be calculated before the
@@ -276,8 +277,8 @@ class AccessingLocation(LocationDesignatorDescription):
         :param prepose_distance: Distance to the target pose where the robot should be checked for reachability.
         """
         super().__init__()
-        self.handle: ObjectPart.Object = handle_desig
-        self.robot: ObjectDesignatorDescription.Object = robot_desig.world_object
+        self.handle: ObjectDescription.Link = handle_desig
+        self.robot: Object = robot_desig
         self.prepose_distance = prepose_distance
 
     def ground(self) -> Location:
@@ -411,8 +412,8 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         """
         super().__init__()
         self.link_name: str = link_name
-        self.part_of: ObjectDesignatorDescription.Object = part_of
-        self.for_object: Optional[ObjectDesignatorDescription.Object] = for_object
+        self.part_of: Object = part_of
+        self.for_object: Optional[Object] = for_object
         self.edges_only: bool = edges_only
         self.horizontal_edges_only: bool = horizontal_edges_only
         self.edge_size_in_meters: float = edge_size_in_meters
@@ -434,13 +435,13 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
 
         :yield: An instance of SemanticCostmapLocation.Location with the found valid position of the Costmap.
         """
-        self.sem_costmap = SemanticCostmap(self.part_of.world_object, self.link_name)
+        self.sem_costmap = SemanticCostmap(self.part_of, self.link_name)
         if self.edges_only or self.horizontal_edges_only:
             self.sem_costmap = self.sem_costmap.get_edges_map(self.edge_size_in_meters,
                                                               horizontal_only=self.horizontal_edges_only)
         height_offset = 0
         if self.for_object:
-            min_p, max_p = self.for_object.world_object.get_axis_aligned_bounding_box().get_min_max_points()
+            min_p, max_p = self.for_object.get_axis_aligned_bounding_box().get_min_max_points()
             height_offset = (max_p.z - min_p.z) / 2
         for maybe_pose in PoseGenerator(self.sem_costmap):
             maybe_pose.position.z += height_offset

@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 else:
     Supertype = Iterable
 
-class PartialDesignator(Supertype, Language):
+class PartialDesignator(Language):
     """
     A partial designator_description is somewhat between a DesignatorDescription and a specified designator_description. Basically it is a
     partially initialized specified designator_description which can take a list of input arguments (like a DesignatorDescription)
