@@ -1,11 +1,12 @@
 import dataclasses
 
 import numpy as np
-from typing_extensions import List, Union, Iterable, Optional, Callable
+from typing_extensions import List, Union, Iterable, Optional, Callable, Iterator
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap, Costmap
 from ..datastructures.enums import JointType, Arms, Grasp
+from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.pose import Pose
 from ..datastructures.world import World, UseProspectionWorld
 from ..designator import DesignatorError, LocationDesignatorDescription
@@ -16,16 +17,13 @@ from ..robot_description import RobotDescription
 from ..ros import  logdebug
 from ..world_concepts.world_object import Object, Link
 from ..world_reasoning import link_pose_for_joint_config, contact, is_held_object, prospect_robot_contact
+from ..config.action_conf import ActionConfig
 
 
 class Location(LocationDesignatorDescription):
     """
     Default location designator which only wraps a pose.
     """
-
-    @dataclasses.dataclass
-    class Location(LocationDesignatorDescription.Location):
-        pass
 
     def __init__(self, pose: Pose):
         """
@@ -36,68 +34,13 @@ class Location(LocationDesignatorDescription):
         super().__init__()
         self.pose: Pose = pose
 
-    def ground(self) -> Location:
+    def ground(self) -> Pose:
         """
         Default specialized_designators which returns a resolved designator which contains the pose given in init.
 
         :return: A resolved designator
         """
-        return self.Location(self.pose)
-
-
-# TODO Maybe delete this
-class ObjectRelativeLocation(LocationDesignatorDescription):
-    """
-    Location relative to an object
-    """
-
-    @dataclasses.dataclass
-    class Location(LocationDesignatorDescription.Location):
-        relative_pose: Pose
-        """
-        Pose relative to the object
-        """
-        reference_object: Object
-        """
-        Object to which the pose is relative
-        """
-
-    def __init__(self, relative_pose: Pose = None, reference_object: ObjectDesignatorDescription = None):
-        """
-        Location designator representing a location relative to a given object.
-
-        :param relative_pose: Pose that should be relative, in world coordinate frame
-        :param reference_object: Object to which the pose should be relative
-        """
-        super().__init__()
-        self.relative_pose: Pose = relative_pose
-        self.reference_object: ObjectDesignatorDescription = reference_object
-
-    def ground(self) -> Location:
-        """
-        Default specialized_designators which returns a resolved location for description input. Resolved location is the first result
-        of the iteration of this instance.
-
-        :return: A resolved location
-        """
-        return next(iter(self))
-
-    def __iter__(self) -> Iterable[Location]:
-        """
-        Iterates over all possible solutions for a resolved location that is relative to the given object.
-
-        :yield: An instance of ObjectRelativeLocation.Location with the relative pose
-        """
-        if self.relative_pose is None or self.reference_object is None:
-            raise DesignatorError(
-                "Could not ground ObjectRelativeLocation: (Relative) pose and reference object must be given")
-        # Fetch the object pose and yield the grounded description
-        obj_grounded = self.reference_object.resolve()
-
-        lt = LocalTransformer()
-        pose = lt.transform_to_object_frame(self.relative_pose, obj_grounded)
-
-        yield self.Location(self.relative_pose, pose, self.reference_object)
+        return self.pose
 
 
 class CostmapLocation(LocationDesignatorDescription):
@@ -105,22 +48,11 @@ class CostmapLocation(LocationDesignatorDescription):
     Uses Costmaps to create locations for complex constrains
     """
 
-    @dataclasses.dataclass
-    class Location(LocationDesignatorDescription.Location):
-        reachable_arms: List[Arms]
-        """
-        List of arms with which the pose can be reached, is only used when the 'reachable_for' parameter is used
-        """
-        tried_grasps: List[Grasp]
-        """
-        List of grasps that were tried to reach the pose
-        """
-
     def __init__(self, target: Union[Pose, Object],
                  reachable_for: Optional[Object] = None,
                  visible_for: Optional[Object] = None,
                  reachable_arm: Optional[Arms] = None,
-                 prepose_distance: float = 0.03,
+                 prepose_distance: float = ActionConfig.pick_up_prepose_distance,
                  check_collision_at_start: bool = True,
                  ignore_collision_with: Optional[List[Object]] = None,
                  grasps: Optional[List[Grasp]] = None):
@@ -138,6 +70,9 @@ class CostmapLocation(LocationDesignatorDescription):
         :param grasps: List of grasps that should be tried to reach the target pose
         """
         super().__init__()
+        PartialDesignator.__init__(self, CostmapLocation, target=target, reachable_for=reachable_for, visible_for=visible_for,
+                                   reachable_arm=reachable_arm, prepose_distance=prepose_distance, check_collision_at_start=check_collision_at_start,
+                                   ignore_collision_with=ignore_collision_with, grasps=grasps)
         self.target: Union[Pose, Object] = target
         self.reachable_for: Object = reachable_for
         self.visible_for: Object = visible_for
@@ -147,7 +82,7 @@ class CostmapLocation(LocationDesignatorDescription):
         self.ignore_collision_with = ignore_collision_with if ignore_collision_with is not None else []
         self.grasps: List[Optional[Grasp]] = grasps if grasps is not None else [None]
 
-    def ground(self) -> Location:
+    def ground(self) -> Pose:
         """
         Default specialized_designators which returns the first result from the iterator of this instance.
 
@@ -155,7 +90,7 @@ class CostmapLocation(LocationDesignatorDescription):
         """
         return next(iter(self))
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Pose]:
         """
            Generates positions for a given set of constrains from a costmap and returns
            them. The generation is based of a costmap which itself is the product of
@@ -250,7 +185,8 @@ class CostmapLocation(LocationDesignatorDescription):
                             found_grasps.append(grasp)
                             break
                 if res:
-                    yield self.Location(maybe_pose, arms, found_grasps)
+                    yield maybe_pose
+                    # yield self.Location(maybe_pose, arms, found_grasps)
 
 
 class AccessingLocation(LocationDesignatorDescription):
@@ -258,16 +194,9 @@ class AccessingLocation(LocationDesignatorDescription):
     Location designator which describes poses used for opening drawers
     """
 
-    @dataclasses.dataclass
-    class Location(LocationDesignatorDescription.Location):
-        arms: List[Arms]
-        """
-        List of arms that can be used to for accessing from this pose
-        """
-
     def __init__(self, handle_desig: ObjectDescription.Link,
                  robot_desig: Object,
-                 prepose_distance: float = 0.03):
+                 prepose_distance: float = ActionConfig.grasping_prepose_distance):
         """
         Describes a position from where a drawer can be opened. For now this position should be calculated before the
         drawer will be opened. Calculating the pose while the drawer is open could lead to problems.
@@ -277,11 +206,12 @@ class AccessingLocation(LocationDesignatorDescription):
         :param prepose_distance: Distance to the target pose where the robot should be checked for reachability.
         """
         super().__init__()
+        PartialDesignator.__init__(self, AccessingLocation, handle_desig=handle_desig, robot_desig=robot_desig, prepose_distance=prepose_distance)
         self.handle: ObjectDescription.Link = handle_desig
         self.robot: Object = robot_desig
         self.prepose_distance = prepose_distance
 
-    def ground(self) -> Location:
+    def ground(self) -> Pose:
         """
         Default specialized_designators for this location designator, just returns the first element from the iteration
 
@@ -319,7 +249,7 @@ class AccessingLocation(LocationDesignatorDescription):
                        int(map_origin_idx[1] + i * unit_motion_vector[1] - j * orthogonal_vector[1]))
                 cost_map.map[idx] = 0
 
-    def __iter__(self) -> Location:
+    def __iter__(self) -> Iterator[Pose]:
         """
         Creates poses from which the robot can open the drawer specified by the ObjectPart designator describing the
         handle. Poses are validated by checking if the robot can grasp the handle while the drawer is closed and if
@@ -384,17 +314,14 @@ class AccessingLocation(LocationDesignatorDescription):
 
                     if valid_goal and len(arms_list) > 0:
                         logdebug(f"Found a valid goal pose for accessing {self.handle.name} with arms {arms_list}")
-                        yield self.Location(maybe_pose, arms_list)
+                        # yield self.Location(maybe_pose, arms_list)
+                        yield maybe_pose
 
 
 class SemanticCostmapLocation(LocationDesignatorDescription):
     """
     Locations over semantic entities, like a table surface
     """
-
-    @dataclasses.dataclass
-    class Location(LocationDesignatorDescription.Location):
-        pass
 
     def __init__(self, link_name, part_of, for_object=None, edges_only: bool = False,
                  horizontal_edges_only: bool = False, edge_size_in_meters: float = 0.06):
@@ -411,6 +338,8 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         :param edge_size_in_meters: Size of the edges in meters.
         """
         super().__init__()
+        PartialDesignator.__init__(self, SemanticCostmapLocation, link_name=link_name, part_of=part_of, for_object=for_object, edges_only=edges_only,
+                                   horizontal_edges_only=horizontal_edges_only, edge_size_in_meters=edge_size_in_meters)
         self.link_name: str = link_name
         self.part_of: Object = part_of
         self.for_object: Optional[Object] = for_object
@@ -419,7 +348,7 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         self.edge_size_in_meters: float = edge_size_in_meters
         self.sem_costmap: Optional[SemanticCostmap] = None
 
-    def ground(self) -> Location:
+    def ground(self) -> Pose:
         """
         Default specialized_designators which returns the first element of the iterator of this instance.
 
@@ -427,7 +356,7 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         """
         return next(iter(self))
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Pose]:
         """
         Creates a costmap on top of a link of an Object and creates positions from it. If there is a specific Object for
         which the position should be found, a height offset will be calculated which ensures that the bottom of the Object

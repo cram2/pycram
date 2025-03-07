@@ -286,26 +286,15 @@ class ActionDescription:
 
 
 
-class LocationDesignatorDescription(DesignatorDescription):
+class LocationDesignatorDescription(DesignatorDescription, PartialDesignator):
     """
     Parent class of location designator_description descriptions.
     """
 
-    @dataclass
-    class Location:
-        """
-        Resolved location that represents a specific point in the world which satisfies the constraints of the location
-        designator_description description.
-        """
-        pose: Pose
-        """
-        The executed pose of the location designator_description. Pose is inherited by all location designator_description.
-        """
-
     def __init__(self):
         super().__init__()
 
-    def ground(self) -> Location:
+    def ground(self) -> Pose:
         """
         Find a location that satisfies all constrains.
         """
