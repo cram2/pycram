@@ -7,7 +7,7 @@ import inspect
 import logging
 
 from anytree.exporter import DotExporter
-from typing_extensions import List, Optional, Callable
+from typing_extensions import List, Optional, Callable, Dict, Type
 import anytree
 import sqlalchemy.orm.session
 import tqdm
@@ -54,10 +54,6 @@ class TaskTreeNode(anytree.NodeMixin):
     end_time: Optional[datetime.datetime]
     """
     The ending time of the function, optional
-    """
-
-    """
-    The reason why this task failed, optional
     """
 
     def __init__(self, action: Optional[Action] = NoOperation(), parent: Optional[TaskTreeNode] = None,
@@ -204,6 +200,11 @@ class TaskTree(metaclass=Singleton):
     Must be a singleton.
     """
 
+    callbacks: Optional[Dict[Type[Action], List[Callable[[TaskTreeNode], None]]]] = None
+    """
+    Callbacks that are called when a node with a specific action is inserted.
+    """
+
     def __init__(self):
         """
         Create a new TaskTree with a root node.
@@ -212,6 +213,20 @@ class TaskTree(metaclass=Singleton):
         self.current_node = self.root
         self.name = "TaskTree"
         self.insert = self.root.insert
+
+    def add_callback(self, action_type: Type[Action], callback: Callable[[TaskTreeNode], None]):
+        """
+        Add a callback that is called when a node with a specific action is inserted.
+
+        :param action_type: The action type that triggers the callback.
+        :param callback: The callback to be called.
+        """
+        if self.callbacks is None:
+            self.callbacks = {}
+        if action_type in self.callbacks:
+            self.callbacks[action_type].append(callback)
+        else:
+            self.callbacks[action_type] = [callback]
 
     @property
     def children(self):
@@ -243,6 +258,9 @@ class TaskTree(metaclass=Singleton):
         """
         new_node = TaskTreeNode(action=action, parent=self.current_node)
         self.current_node = new_node
+        if self.callbacks and action.__class__ in self.callbacks:
+            for callback in self.callbacks[action.__class__]:
+                callback(new_node)
         return new_node
 
     @staticmethod
