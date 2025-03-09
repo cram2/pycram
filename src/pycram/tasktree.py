@@ -248,7 +248,9 @@ class TaskTree(metaclass=Singleton):
     @staticmethod
     def render(file_name: str):
         """
-        Render the task tree in a string format.
+        Render the task tree to a dot file and a png file.
+
+        :param file_name: The name of the file without extension.
         """
         def task_node_name(node):
             start_time = node.start_time.time() if node.start_time else node.start_time
