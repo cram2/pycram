@@ -342,6 +342,13 @@ class Pose(PoseStamped):
 
         self.orientation = (x, y, z, w)
 
+    def __str__(self):
+        return (f"Pose: {[round(v, 3) for v in self.position_as_list()]}, {[round(v, 3) for v in self.orientation_as_list()]}"
+                f" in frame {self.frame}")
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class Transform(TransformStamped):
     """

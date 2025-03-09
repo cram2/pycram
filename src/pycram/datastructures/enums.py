@@ -73,6 +73,12 @@ class Arms(int, Enum):
     RIGHT = 1
     BOTH = 2
 
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
 
 class TaskStatus(int, Enum):
     """
@@ -183,6 +189,12 @@ class GripperState(Enum):
     """
     OPEN = auto()
     CLOSE = auto()
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
 
 
 class GripperType(Enum):

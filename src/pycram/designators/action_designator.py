@@ -178,6 +178,12 @@ class MoveTorsoActionPerformable(ActionAbstract):
         if not validator.goal_achieved:
             raise TorsoGoalNotReached(validator)
 
+    def __str__(self):
+        return f"MoveTorsoAction: {self.joint_positions}"
+
+    def __repr__(self):
+        return self.__str__()
+
 
 @dataclass
 class SetGripperActionPerformable(ActionAbstract):
@@ -452,6 +458,14 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         else:
             logwarn(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
 
+    def __str__(self):
+        return (f"ReachToPickUpAction:\n"
+                f"Object: {self.object_designator.name}\n"
+                f"Arm: {self.arm}\n"
+                f"Grasp: {self.grasp}")
+
+    def __repr__(self):
+        return self.__str__()
 
 @dataclass
 class PickUpActionPerformable(ActionAbstract):
@@ -545,6 +559,15 @@ class PickUpActionPerformable(ActionAbstract):
     @cached_property
     def world_object(self) -> Object:
         return self.object_designator.world_object
+
+    def __str__(self):
+        return (f"PickUpAction:\n"
+                f"Object: {self.object_designator.name}\n"
+                f"Arm: {self.arm}\n"
+                f"Grasp: {self.grasp}")
+
+    def __repr__(self):
+        return self.__str__()
 
 
 @dataclass
@@ -653,6 +676,15 @@ class PlaceActionPerformable(ActionAbstract):
         pose_error_checker = PoseErrorChecker(World.conf.get_pose_tolerance())
         if not pose_error_checker.is_error_acceptable(self.world_object.pose, self.target_location):
             raise ObjectNotPlacedAtTargetLocation(self.world_object, self.target_location, World.robot, self.arm)
+
+    def __str__(self):
+        return (f"PlaceAction:\n"
+                f"Object: {self.object_designator.name}\n"
+                f"Arm: {self.arm}\n"
+                f"Target Location: {self.target_location}")
+
+    def __repr__(self):
+        return self.__str__()
 
 
 @dataclass
