@@ -291,6 +291,12 @@ class ParkArmsActionPerformable(ActionAbstract):
         if not validator.goal_achieved:
             raise ConfigurationNotReached(validator, configuration_type=StaticJointState.Park)
 
+    def __str__(self):
+        return f"ParkArmsAction: {self.arm}"
+
+    def __repr__(self):
+        return self.__str__()
+
 
 @dataclass
 class ReachToPickUpActionPerformable(ActionAbstract):
@@ -715,6 +721,12 @@ class NavigateActionPerformable(ActionAbstract):
         if not pose_validator.is_error_acceptable(World.robot.pose, self.target_location):
             raise NavigationGoalNotReachedError(World.robot, self.target_location)
 
+    def __str__(self):
+        return f"NavigateAction: {self.target_location}"
+
+    def __repr__(self):
+        return self.__str__()
+
 
 @dataclass
 class TransportActionPerformable(ActionAbstract):
@@ -774,6 +786,15 @@ class TransportActionPerformable(ActionAbstract):
         # The validation of each atomic action is done in the action itself, so no more validation needed here.
         pass
 
+    def __str__(self):
+        return (f"TransportAction:\n"
+                f"Object: {self.object_designator.name}\n"
+                f"Arm: {self.arm}\n"
+                f"Target Location: {self.target_location}")
+
+    def __repr__(self):
+        return self.__str__()
+
 
 @dataclass
 class LookAtActionPerformable(ActionAbstract):
@@ -805,6 +826,12 @@ class LookAtActionPerformable(ActionAbstract):
             gen_obj.remove()
             if not ray_result.intersected or ray_result.obj_id != gen_obj.id:
                 raise LookAtGoalNotReached(World.robot, self.target)
+
+    def __str__(self):
+        return f"LookAtAction: {self.target}"
+
+    def __repr__(self):
+        return self.__str__()
 
 
 @dataclass
@@ -845,6 +872,16 @@ class DetectActionPerformable(ActionAbstract):
         if not result:
             raise PerceptionObjectNotFound(self.object_designator_description, self.technique, self.region)
 
+    def __str__(self):
+        return (f"DetectAction:\n"
+                f"Technique: {self.technique}\n"
+                f"State: {self.state}\n"
+                f"Object Designator: {self.object_designator_description}\n"
+                f"Region: {self.region}")
+
+    def __repr__(self):
+        return self.__str__()
+
 
 @dataclass
 class OpenActionPerformable(ActionAbstract):
@@ -880,6 +917,13 @@ class OpenActionPerformable(ActionAbstract):
         """
         validate_close_open(self.object_designator, self.arm, OpenActionPerformable)
 
+    def __str__(self):
+        return (f"OpenAction: {self.object_designator.name}\n"
+                f"Arm: {self.arm}")
+
+    def __repr__(self):
+        return self.__str__()
+
 
 @dataclass
 class CloseActionPerformable(ActionAbstract):
@@ -913,6 +957,13 @@ class CloseActionPerformable(ActionAbstract):
         real world.
         """
         validate_close_open(self.object_designator, self.arm, CloseActionPerformable)
+
+    def __str__(self):
+        return (f"CloseAction: {self.object_designator.name}\n"
+                f"Arm: {self.arm}")
+
+    def __repr__(self):
+        return self.__str__()
 
 
 def validate_close_open(object_designator: ObjectDesignatorDescription.Object, arm: Arms,
@@ -999,6 +1050,13 @@ class GraspingActionPerformable(ActionAbstract):
         if not any([link.name in gripper_links for link in contact_links]):
             raise ObjectNotGraspedError(self.object_desig.world_object, World.robot, self.arm, None)
 
+    def __str__(self):
+        return (f"GraspingAction: {self.object_desig.name}\n"
+                f"Arm: {self.arm}")
+
+    def __repr__(self):
+        return self.__str__()
+
 
 @dataclass
 class FaceAtPerformable(ActionAbstract):
@@ -1039,6 +1097,9 @@ class FaceAtPerformable(ActionAbstract):
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in the LookAtActionPerformable.perform() method so no need to validate here.
         pass
+
+    def __str__(self):
+        return f"FaceAtAction: {self.pose}"
 
 
 @dataclass
@@ -1088,6 +1149,14 @@ class MoveAndPickUpPerformable(ActionAbstract):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
         pass
 
+    def __str__(self):
+        return (f"MoveAndPickUpAction: {self.object_designator.name}\n"
+                f"Arm: {self.arm}\n"
+                f"Grasp: {self.grasp}")
+
+    def __repr__(self):
+        return self.__str__()
+
 
 @dataclass
 class MoveAndPlacePerformable(ActionAbstract):
@@ -1129,6 +1198,15 @@ class MoveAndPlacePerformable(ActionAbstract):
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
         pass
+
+    def __str__(self):
+        return (f"MoveAndPlaceAction: {self.object_designator.name}\n"
+                f"standing_pose: {self.standing_position}\n"
+                f"target_location: {self.target_location}\n"
+                f"Arm: {self.arm}")
+
+    def __repr__(self):
+        return self.__str__()
 
 
 @dataclass
@@ -1200,6 +1278,15 @@ class PouringPerformable(ActionAbstract):
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
         pass
+
+    def __str__(self):
+        return (f"PouringAction: {self.object_.name}\n"
+                f"tool: {self.tool}\n"
+                f"technique: {self.technique}\n"
+                f"Arm: {self.arm}")
+
+    def __repr__(self):
+        return self.__str__()
 # ----------------------------------------------------------------------------
 #               Action Designators Description
 # ----------------------------------------------------------------------------
