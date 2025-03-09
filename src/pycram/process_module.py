@@ -6,6 +6,7 @@ ProcessModule -- implementation of process modules.
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 import inspect
+from datetime import timedelta
 from threading import Lock, get_ident
 import time
 from abc import ABC
@@ -26,9 +27,9 @@ class ProcessModule:
     Implementation of process modules. Process modules are the part that communicate with the outer world to execute
      designators.
     """
-    execution_delay = False
+    execution_delay: timedelta = timedelta(seconds=0)
     """
-    Adds a delay of 0.5 seconds after executing a process module, to make the execution in simulation more realistic
+    Adds a delay after executing a process module, to make the execution in simulation more realistic
     """
     block_list = []
     """
@@ -61,7 +62,7 @@ class ProcessModule:
         with self._lock:
             ret = self._execute(designator)
             if ProcessModule.execution_delay:
-                time.sleep(0.5)
+                time.sleep(self.execution_delay.total_seconds())
 
         return ret
 
@@ -91,7 +92,7 @@ class RealRobot:
         self.pre = ProcessModuleManager.execution_type
         ProcessModuleManager.execution_type = ExecutionType.REAL
         self.pre_delay = ProcessModule.execution_delay
-        ProcessModule.execution_delay = False
+        ProcessModule.execution_delay = timedelta(seconds=0)
 
     def __exit__(self, _type, value, traceback):
         """

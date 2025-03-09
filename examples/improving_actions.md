@@ -56,8 +56,10 @@ from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.process_module import ProcessModule, simulated_robot
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUp, Arms, Grasp
 from pycram.tasktree import task_tree, TaskTree 
+from datetime import timedelta
 
-ProcessModule.execution_delay = False
+
+ProcessModule.execution_delay =  timedelta(seconds=0)
 np.random.seed(69)
 random.seed(69)
 ```
