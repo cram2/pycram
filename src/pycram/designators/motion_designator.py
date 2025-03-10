@@ -7,7 +7,7 @@ from .object_designator import ObjectDesignatorDescription, ObjectPart
 from ..datastructures.enums import MovementType
 from ..failure_handling import try_motion
 from ..failures import PerceptionObjectNotFound, ToolPoseNotReachedError
-from ..object_descriptors.urdf import LinkDescription
+from ..object_descriptors.urdf import LinkDescription, ObjectDescription
 from ..process_module import ProcessModuleManager
 from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      MoveTCPMotion as ORMMoveTCPMotion, LookingMotion as ORMLookingMotion,
@@ -278,7 +278,7 @@ class OpeningMotion(BaseMotion):
     Designator for opening container
     """
 
-    object_part: LinkDescription
+    object_part: ObjectDescription.Link
     """
     Object designator for the drawer handle
     """
@@ -310,7 +310,7 @@ class ClosingMotion(BaseMotion):
     Designator for closing a container
     """
 
-    object_part: LinkDescription
+    object_part: ObjectDescription.Link
     """
     Object designator for the drawer handle
     """
