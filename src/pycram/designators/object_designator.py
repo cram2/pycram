@@ -32,7 +32,6 @@ class OntologyObjectDesignatorDescription:
     def __init__(self, search_result: _SearchList):
         self.search_result = list(search_result)
 
-
     def __iter__(self) -> Iterable[ObjectDesignatorDescription.Object]:
         """
         :return: The objects in the current world which match the search result in the 'is_a' relation.
@@ -54,6 +53,7 @@ class BelieveObject(ObjectDesignatorDescription):
     """
     Description for Objects that are only believed in.
     """
+
 
 class ObjectPart(ObjectDesignatorDescription):
     """
@@ -95,5 +95,5 @@ class ObjectPart(ObjectDesignatorDescription):
         :yield: A resolved Object designator
         """
         for params in self.generate_permutations():
-            if params["name"] in params["part_of"].links.keys():
-                yield params["part_of"].links[params["name"]]
+            if params["names"] in params["part_of"].links.keys():
+                yield params["part_of"].links[params["names"]]

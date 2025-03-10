@@ -11,6 +11,7 @@ import numpy as np
 from sqlalchemy.orm import Session
 
 from pycram.datastructures.partial_designator import PartialDesignator
+from ..datastructures.dataclasses import FrozenObject
 from ..tf_transformations import quaternion_from_euler
 from typing_extensions import List, Union, Optional, Type, Dict, Any, Iterable
 
@@ -21,7 +22,7 @@ from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveTCPMotio
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
 from ..datastructures.enums import Frame, FindBodyInRegionMethod, ContainerManipulationType
 from ..datastructures.world import World, UseProspectionWorld
-from ..description import Joint, Link
+from ..description import Joint, Link, ObjectDescription
 from ..designator import ActionDescription
 from ..failure_handling import try_action
 from ..failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotInGraspingArea, \
@@ -296,13 +297,23 @@ class ParkArmsAction(ActionAbstract):
         return PartialDesignator(ParkArmsAction, arm=arm)
 
 
+SPECIAL_KNOWLEDGE = {
+    'bigknife':
+        [("top", [-0.08, 0, 0])],
+    'whisk':
+        [("top", [-0.08, 0, 0])],
+    'bowl':
+        [("front", [1.0, 2.0, 3.0]),
+         ("key2", [4.0, 5.0, 6.0])]
+}
+
 @dataclass
 class ReachToPickUpAction(ActionAbstract):
     """
     Let the robot reach a specific pose.
     """
 
-    object_designator: ObjectDesignatorDescription.Object
+    object_designator: Object
     """
     Object designator_description describing the object that should be picked up
     """
@@ -317,7 +328,7 @@ class ReachToPickUpAction(ActionAbstract):
     The grasp that should be used. For example, 'left' or 'right'
     """
 
-    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
+    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False)
     """
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
     not updated when the BulletWorld object is changed.
@@ -382,16 +393,41 @@ class ReachToPickUpAction(ActionAbstract):
         # Get grasp orientation and target pose
         grasp = RobotDescription.current_robot_description.grasps[self.grasp]
         # oTm = Object Pose in Frame map
-        oTm = self.world_object.get_pose()
+        oTm = self.object_designator.get_pose()
         # Transform the object pose to the object frame, basically the origin of the object frame
-        mTo = self.local_transformer.transform_to_object_frame(oTm, self.world_object)
+        mTo = self.local_transformer.transform_to_object_frame(oTm, self.object_designator)
         # Adjust the pose according to the special knowledge of the object designator_description
-        adjusted_pose = self.object_designator.special_knowledge_adjustment_pose(self.grasp, mTo)
+        adjusted_pose = self.special_knowledge_adjustment_pose(self.grasp, mTo)
         # Transform the adjusted pose to the map frame
         adjusted_oTm = self.transform_pose(adjusted_pose, Frame.Map.value)
         # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
         adjusted_oTm.multiply_quaternion(grasp)
         return adjusted_oTm
+
+    def special_knowledge_adjustment_pose(self, grasp: Grasp, pose: Pose) -> Pose:
+        """
+        Get the adjusted target pose based on special knowledge for "grasp front".
+
+        :param grasp: From which side the object should be grasped
+        :param pose: Pose at which the object should be grasped, before adjustment
+        :return: The adjusted grasp pose
+        """
+        lt = LocalTransformer()
+        pose_in_object = lt.transform_pose(pose, self.object_designator.tf_frame)
+
+        special_knowledge = []  # Initialize as an empty list
+        if self.object_designator.obj_type in SPECIAL_KNOWLEDGE:
+            special_knowledge = SPECIAL_KNOWLEDGE[self.object_designator.obj_type]
+
+        for key, value in special_knowledge:
+            if key == grasp:
+                # Adjust target pose based on special knowledge
+                pose_in_object.pose.position.x += value[0]
+                pose_in_object.pose.position.y += value[1]
+                pose_in_object.pose.position.z += value[2]
+                loginfo("Adjusted target pose based on special knowledge for grasp: %s", grasp)
+                return pose_in_object
+        return pose
 
     def calculate_pre_grasping_pose(self, obj_pose: Pose) -> Pose:
         """
@@ -425,11 +461,7 @@ class ReachToPickUpAction(ActionAbstract):
 
     @cached_property
     def local_transformer(self) -> LocalTransformer:
-        return self.world_object.local_transformer
-
-    @cached_property
-    def world_object(self) -> Object:
-        return self.object_designator.world_object
+        return self.object_designator.local_transformer
 
     @cached_property
     def gripper_frame(self) -> str:
@@ -456,14 +488,14 @@ class ReachToPickUpAction(ActionAbstract):
         """
         fingers_link_names = self.arm_chain.end_effector.fingers_link_names
         if fingers_link_names:
-            if not is_body_between_fingers(self.world_object, fingers_link_names,
+            if not is_body_between_fingers(self.object_designator, fingers_link_names,
                                            method=FindBodyInRegionMethod.MultiRay):
-                raise ObjectNotInGraspingArea(self.world_object, World.robot, self.arm, self.grasp)
+                raise ObjectNotInGraspingArea(self.object_designator, World.robot, self.arm, self.grasp)
         else:
             logwarn(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
 
     @classmethod
-    def description(cls, object_designator: ObjectDesignatorDescription.Object,
+    def description(cls, object_designator: Object,
                     arm:  Union[List[Arms], Arms] = None,
                     grasp:  Union[List[Grasp], Grasp] = None,
                     prepose_distance:  Union[List[float], float] = ActionConfig.pick_up_prepose_distance) -> PartialDesignator[ReachToPickUpAction]:
@@ -494,7 +526,7 @@ class PickUpAction(ActionAbstract):
     The grasp that should be used. For example, 'left' or 'right'
     """
 
-    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
+    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False)
     """
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
     not updated when the BulletWorld object is changed.
@@ -527,7 +559,7 @@ class PickUpAction(ActionAbstract):
         MoveGripperMotion(motion=GripperState.CLOSE, gripper=self.arm).perform()
 
         tool_frame = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
-        World.robot.attach(self.world_object, tool_frame)
+        World.robot.attach(self.object_designator, tool_frame)
 
         self.lift_object(distance=0.1)
 
@@ -563,16 +595,12 @@ class PickUpAction(ActionAbstract):
         """
         Check if picked up object is in contact with the gripper.
         """
-        if not has_gripper_grasped_body(self.arm, self.world_object):
-            raise ObjectNotGraspedError(self.world_object, World.robot, self.arm, self.grasp)
+        if not has_gripper_grasped_body(self.arm, self.object_designator):
+            raise ObjectNotGraspedError(self.object_designator, World.robot, self.arm, self.grasp)
 
     @cached_property
     def arm_chain(self) -> KinematicChainDescription:
         return RobotDescription.current_robot_description.get_arm_chain(self.arm)
-
-    @cached_property
-    def world_object(self) -> Object:
-        return self.object_designator.world_object
 
     @classmethod
     def description(cls, object_designator: ObjectDesignatorDescription,
@@ -589,7 +617,7 @@ class PlaceAction(ActionAbstract):
     Places an Object at a position using an arm.
     """
 
-    object_designator: ObjectDesignatorDescription.Object
+    object_designator: Object
     """
     Object designator_description describing the object that should be place
     """
@@ -610,7 +638,7 @@ class PlaceAction(ActionAbstract):
         MoveTCPMotion(target_pose, self.arm).perform()
 
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()
-        World.robot.detach(self.object_designator.world_object)
+        World.robot.detach(self.object_designator)
 
         retract_pose = self.calculate_retract_pose(target_pose, distance=0.05)
         MoveTCPMotion(retract_pose, self.arm).perform()
@@ -621,7 +649,7 @@ class PlaceAction(ActionAbstract):
         wTg (world to gripper) = wTo (world to object target) * oTg (object to gripper, this is constant since object
         is attached to the gripper)
         """
-        gripper_pose_in_object = self.local_transformer.transform_pose(self.gripper_pose, self.world_object.tf_frame)
+        gripper_pose_in_object = self.local_transformer.transform_pose(self.gripper_pose, self.object_designator.tf_frame)
         object_to_gripper = gripper_pose_in_object.to_transform("object")
         world_to_object_target = self.target_location.to_transform("target")
         world_to_gripper_target = world_to_object_target * object_to_gripper
@@ -637,10 +665,6 @@ class PlaceAction(ActionAbstract):
         retract_pose = self.local_transformer.transform_pose(target_pose, self.gripper_tool_frame)
         retract_pose.position.x -= distance
         return retract_pose
-
-    @cached_property
-    def world_object(self) -> Object:
-        return self.object_designator.world_object
 
     @property
     def gripper_pose(self) -> Pose:
@@ -678,9 +702,9 @@ class PlaceAction(ActionAbstract):
         """
         Check if the object is still in contact with the robot after placing it.
         """
-        contact_links = self.world_object.get_contact_points_with_body(World.robot).get_bodies_in_contact()
+        contact_links = self.object_designator.get_contact_points_with_body(World.robot).get_bodies_in_contact()
         if contact_links:
-            raise ObjectStillInContact(self.world_object, contact_links,
+            raise ObjectStillInContact(self.object_designator, contact_links,
                                        self.target_location, World.robot, self.arm)
 
     def validate_placement_location(self):
@@ -688,8 +712,8 @@ class PlaceAction(ActionAbstract):
         Check if the object is placed at the target location.
         """
         pose_error_checker = PoseErrorChecker(World.conf.get_pose_tolerance())
-        if not pose_error_checker.is_error_acceptable(self.world_object.pose, self.target_location):
-            raise ObjectNotPlacedAtTargetLocation(self.world_object, self.target_location, World.robot, self.arm)
+        if not pose_error_checker.is_error_acceptable(self.object_designator.pose, self.target_location):
+            raise ObjectNotPlacedAtTargetLocation(self.object_designator, self.target_location, World.robot, self.arm)
 
     @classmethod
     def description(cls, object_designator:  ObjectDesignatorDescription,
@@ -767,16 +791,12 @@ class TransportAction(ActionAbstract):
         pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig_resolved,
                                      reachable_arm=self.arm, prepose_distance=self.pickup_prepose_distance)
         # Tries to find a pick-up position for the robot that uses the given arm
-        pickup_pose = None
-        for pose in pickup_loc:
-            if self.arm in pose.reachable_arms:
-                pickup_pose = pose
-                break
+        pickup_pose = pickup_loc.resolve()
         if not pickup_pose:
             raise ObjectUnfetchable(
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
 
-        NavigateAction(pickup_pose.pose, True).perform()
+        NavigateAction(pickup_pose, True).perform()
         PickUpAction(self.object_designator, self.arm, Grasp.FRONT,
                      prepose_distance=self.pickup_prepose_distance).perform()
         ParkArmsAction(Arms.BOTH).perform()
@@ -786,7 +806,7 @@ class TransportAction(ActionAbstract):
         except StopIteration:
             raise ReachabilityFailure(
                 f"No location found from where the robot can reach the target location: {self.target_location}")
-        NavigateAction(place_loc.pose, True).perform()
+        NavigateAction(place_loc, True).perform()
         PlaceAction(self.object_designator, self.target_location, self.arm).perform()
         ParkArmsAction(Arms.BOTH).perform()
 
@@ -975,7 +995,7 @@ class CloseAction(ActionAbstract):
                                  grasping_prepose_distance=grasping_prepose_distance)
 
 
-def validate_close_open(object_designator: ObjectDesignatorDescription.Object, arm: Arms,
+def validate_close_open(object_designator: ObjectDescription.Link, arm: Arms,
                         action_type: Union[Type[OpenAction], Type[CloseAction]]):
     """
     Validates if the container is opened or closed by checking the joint position of the container.
@@ -984,10 +1004,11 @@ def validate_close_open(object_designator: ObjectDesignatorDescription.Object, a
     :param arm: The arm that should be used for opening or closing the container.
     :param action_type: The type of the action that should be validated.
     """
-    obj_part = object_designator.world_object
-    container_joint_name = obj_part.find_joint_above_link(object_designator.name)
-    lower_limit, upper_limit = obj_part.get_joint_limits(container_joint_name)
-    joint_obj: Joint = obj_part.joints[container_joint_name]
+    obj_part = object_designator
+    obj = object_designator.parent_entity
+    container_joint_name = obj.find_joint_above_link(object_designator.name)
+    lower_limit, upper_limit = obj.get_joint_limits(container_joint_name)
+    joint_obj: Joint = obj.joints[container_joint_name]
     if issubclass(action_type, CloseAction):
         check_closed(joint_obj, obj_part, arm, lower_limit)
     elif issubclass(action_type, OpenAction):
@@ -1013,7 +1034,7 @@ class GraspingAction(ActionAbstract):
     """
     Grasps an object described by the given Object Designator description
     """
-    object_desig: Union[ObjectDesignatorDescription.Object, ObjectPart.Object]
+    object_desig: Union[Object, ObjectDescription.Link]
     """
     Object Designator for the object that should be grasped
     """
@@ -1029,10 +1050,11 @@ class GraspingAction(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        if isinstance(self.object_desig, ObjectPart.Object):
-            object_pose = self.object_desig.part_pose
-        else:
-            object_pose = self.object_desig.world_object.get_pose()
+        #if isinstance(self.object_desig, ObjectDescription.Link):
+        #    object_pose = self.object_desig.part_pose
+        #else:
+        #    object_pose = self.object_desig.world_object.get_pose()
+        object_pose = self.object_desig.pose
         lt = LocalTransformer()
         gripper_name = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
 
@@ -1049,15 +1071,16 @@ class GraspingAction(ActionAbstract):
         MoveGripperMotion(GripperState.CLOSE, self.arm, allow_gripper_collision=True).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        if isinstance(self.object_desig, ObjectPart.Object):
-            body = self.object_desig.world_object.links[self.object_desig.name]
-        else:
-            body = self.object_desig.world_object
+        #if isinstance(self.object_desig, ObjectPart.Object):
+        #    body = self.object_desig.world_object.links[self.object_desig.name]
+        #else:
+        #    body = self.object_desig.world_object
+        body = self.object_desig
         contact_links = body.get_contact_points_with_body(World.robot).get_bodies_in_contact()
         arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.arm)
         gripper_links = arm_chain.end_effector.links
         if not any([link.name in gripper_links for link in contact_links]):
-            raise ObjectNotGraspedError(self.object_desig.world_object, World.robot, self.arm, None)
+            raise ObjectNotGraspedError(self.object_desig, World.robot, self.arm, None)
 
     @classmethod
     def description(cls, object_desig: ObjectDesignatorDescription,

@@ -74,14 +74,15 @@ class CostmapLocation(LocationDesignatorDescription):
                                    visible_for=visible_for,
                                    reachable_arm=reachable_arm, prepose_distance=prepose_distance,
                                    check_collision_at_start=check_collision_at_start,
-                                   ignore_collision_with=ignore_collision_with, grasps=grasps)
+                                   ignore_collision_with=ignore_collision_with if ignore_collision_with is not None else [None],
+                                   grasps=grasps if grasps is not None else [None])
         self.target: Union[Pose, Object] = target
         self.reachable_for: Object = reachable_for
         self.visible_for: Object = visible_for
         self.reachable_arm: Optional[Arms] = reachable_arm
         self.prepose_distance = prepose_distance
         self.check_collision_at_start = check_collision_at_start
-        self.ignore_collision_with = ignore_collision_with if ignore_collision_with is not None else []
+        self.ignore_collision_with = ignore_collision_with if ignore_collision_with is not None else [None]
         self.grasps: List[Optional[Grasp]] = grasps if grasps is not None else [None]
 
     def ground(self) -> Pose:
@@ -105,7 +106,6 @@ class CostmapLocation(LocationDesignatorDescription):
 
            :yield: An instance of CostmapLocation.Location with a valid position that satisfies the given constraints
            """
-
         for params in self.generate_permutations():
             target = params["target"]
             reachable_for = params["reachable_for"]
@@ -114,7 +114,7 @@ class CostmapLocation(LocationDesignatorDescription):
             prepose_distance = params["prepose_distance"]
             check_collision_at_start = params["check_collision_at_start"]
             ignore_collision_with = params["ignore_collision_with"]
-            grasps = params["grasps"]
+            grasp = params["grasps"]
             # This ensures that the costmaps always get a position as their origin.
             if isinstance(target, Object):
                 target_pose = target.get_pose()
@@ -147,7 +147,7 @@ class CostmapLocation(LocationDesignatorDescription):
                 final_map += visible
 
             ignore_collision_with = [World.current_world.get_prospection_object_for_object(o) for o in
-                                     ignore_collision_with]
+                                     ignore_collision_with] if ignore_collision_with else []
             with UseProspectionWorld():
                 for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
                     if check_collision_at_start and (test_robot is not None):
@@ -170,32 +170,32 @@ class CostmapLocation(LocationDesignatorDescription):
                         else:
                             for chain in RobotDescription.current_robot_description.get_manipulator_chains():
                                 hand_links += chain.end_effector.links
-                        valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
-                                                             allowed_collision={test_robot: hand_links})
-                        if reachable_arm:
-                            res = res and valid and reachable_arm in arms
+                        #valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
+                        #                                     allowed_collision={test_robot: hand_links})
+                        #if reachable_arm:
+                        #    res = res and valid and reachable_arm in arms
 
-                        else:
+                        if not reachable_arm:
                             for description in RobotDescription.current_robot_description.get_manipulator_chains():
                                 hand_links += description.end_effector.links
                         allowed_collision = {test_robot: hand_links}
                         allowed_collision.update({o: o.link_names for o in ignore_collision_with})
-                        for grasp in grasps:
-                            target_pose_oriented = target_pose.copy()
-                            if grasp is not None:
-                                grasp_quaternion = RobotDescription.current_robot_description.grasps[grasp]
-                                target_pose_oriented.multiply_quaternion(grasp_quaternion)
-                            valid, arms = reachability_validator(maybe_pose, test_robot, target_pose_oriented,
-                                                                 allowed_collision=allowed_collision,
-                                                                 arm=reachable_arm,
-                                                                 prepose_distance=prepose_distance)
-                            if reachable_arm:
-                                res = res and valid and reachable_arm in arms
-                            else:
-                                res = res and valid
-                            if res:
-                                found_grasps.append(grasp)
-                                break
+
+                        target_pose_oriented = target_pose.copy()
+                        if grasp is not None:
+                            grasp_quaternion = RobotDescription.current_robot_description.grasps[grasp]
+                            target_pose_oriented.multiply_quaternion(grasp_quaternion)
+                        valid, arms = reachability_validator(maybe_pose, test_robot, target_pose_oriented,
+                                                             allowed_collision=allowed_collision,
+                                                             arm=reachable_arm,
+                                                             prepose_distance=prepose_distance)
+                        #if reachable_arm:
+                        #    res = res and valid and reachable_arm in arms
+
+                        res = res and valid
+                        #if res:
+                            #found_grasps.append(grasp)
+                        #    yield maybe_pose
                     if res:
                         yield maybe_pose
 

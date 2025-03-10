@@ -72,7 +72,6 @@ class PartialDesignator(Language):
                 newkeywors[key] = value
         self.kwargs.update(dict(signature(self.performable).bind_partial(*fargs, **fkwargs).arguments))
         return self
-        #return PartialDesignator(self.performable, *fargs, **newkeywors)
 
     def __iter__(self) -> T:
         """
@@ -91,7 +90,7 @@ class PartialDesignator(Language):
 
         :yields: A list with a possible permutation of the given arguments
         """
-        iter_list = [x if is_iterable(x) else [x] for x in self.kwargs.values()]
+        iter_list = [x if is_iterable(x) and not type(x) == str else [x] for x in self.kwargs.values()]
         for combination in product(*iter_list):
             yield dict(zip(self.kwargs.keys(), combination))
 

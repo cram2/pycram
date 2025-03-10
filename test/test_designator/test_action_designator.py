@@ -100,7 +100,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
             self._test_validate_action_pre_perform(description, ObjectNotGraspedError)
             description.resolve().perform()
-        self.assertTrue(object_description.resolve().world_object in self.robot.attachments.keys())
+        self.assertTrue(object_description.resolve() in self.robot.attachments.keys())
 
     def test_place(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -114,7 +114,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             PickUpAction(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
             self._test_validate_action_pre_perform(description, ObjectStillInContact)
             description.resolve().perform()
-        self.assertFalse(object_description.resolve().world_object in self.robot.attachments.keys())
+        self.assertFalse(object_description.resolve() in self.robot.attachments.keys())
 
     def test_look_at(self):
         description = action_designator.LookAtAction.description([Pose([1, 0, 1])])
@@ -134,7 +134,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
         self.assertEqual(detected_object[0].name, "milk")
         self.assertEqual(detected_object[0].obj_type, Milk)
-        self.assertEqual(detected_object[0].world_object.world, self.milk.world)
+        self.assertEqual(detected_object[0].world, self.milk.world)
 
     # Skipped since open and close work only in the apartment at the moment
     def test_open(self):

@@ -24,6 +24,7 @@ from ....designator import ObjectDesignatorDescription, ActionDescription
 from ....failures import ObjectUnreachable, PlanFailure
 from ....local_transformer import LocalTransformer
 from ....orm.views import PickUpWithContextView, PlaceWithContextView
+from ....world_concepts.world_object import Object
 
 
 class Grasp(IntEnum):
@@ -120,7 +121,7 @@ class MoveAndPickUp(ActionDescription, ProbabilisticAction):
     The amount of samples that should be drawn from the policy when iterating over it.
     """
 
-    object_designator: ObjectDesignatorDescription.Object
+    object_designator: Object
     """
     The object designator that should be picked up.
     """
@@ -135,7 +136,7 @@ class MoveAndPickUp(ActionDescription, ProbabilisticAction):
     The grasps that can be used for the pick up.
     """
 
-    def __init__(self, object_designator: ObjectDesignatorDescription.Object, arms: List[Arms], grasps: List[Grasp],
+    def __init__(self, object_designator: Object, arms: List[Arms], grasps: List[Grasp],
                  policy: Optional[ProbabilisticCircuit] = None):
         ProbabilisticAction.__init__(self, policy)
         self.object_designator = object_designator
@@ -145,7 +146,7 @@ class MoveAndPickUp(ActionDescription, ProbabilisticAction):
     def sample_to_action(self, sample: List) -> MoveAndPickUpAction:
         arm, grasp, relative_x, relative_y = sample
         position = [relative_x, relative_y, 0.]
-        pose = Pose(position, frame=self.object_designator.world_object.tf_frame)
+        pose = Pose(position, frame=self.object_designator.tf_frame)
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
         action = MoveAndPickUpAction(standing_position, self.object_designator, EArms[Arms(int(arm)).name],
@@ -282,7 +283,7 @@ class MoveAndPlace(ActionDescription, ProbabilisticAction):
     The amount of samples that should be drawn from the policy when iterating over it.
     """
 
-    object_designator: ObjectDesignatorDescription.Object
+    object_designator: Object
     """
     The object designator that should be picked up.
     """
@@ -297,7 +298,7 @@ class MoveAndPlace(ActionDescription, ProbabilisticAction):
     The arms that can be used for the pick up.
     """
 
-    def __init__(self, object_designator: ObjectDesignatorDescription.Object,
+    def __init__(self, object_designator: Object,
                  target_location: Pose, policy: Optional[ProbabilisticCircuit] = None):
         ProbabilisticAction.__init__(self, policy)
         self.object_designator = object_designator
