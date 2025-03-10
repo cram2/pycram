@@ -56,6 +56,11 @@ class TaskTreeNode(anytree.NodeMixin):
     The ending time of the function, optional
     """
 
+    reason: Optional[Exception] = None
+    """
+    The reason of failure if the action failed.
+    """
+
     def __init__(self, action: Optional[Action] = NoOperation(), parent: Optional[TaskTreeNode] = None,
                  children: Optional[List[TaskTreeNode]] = None, reason: Optional[Exception] = None):
         """
@@ -200,9 +205,13 @@ class TaskTree(metaclass=Singleton):
     Must be a singleton.
     """
 
-    callbacks: Optional[Dict[Type[Action], List[Callable[[TaskTreeNode], None]]]] = None
+    on_start_callbacks: Optional[Dict[Type[Action], List[Callable[[TaskTreeNode], None]]]] = None
     """
     Callbacks that are called when a node with a specific action is inserted.
+    """
+    on_end_callbacks: Optional[Dict[Type[Action], List[Callable[[TaskTreeNode], None]]]] = None
+    """
+    Callbacks that are called when an action related to specific node has ended.
     """
 
     def __init__(self):
@@ -213,20 +222,22 @@ class TaskTree(metaclass=Singleton):
         self.current_node = self.root
         self.name = "TaskTree"
         self.insert = self.root.insert
+        self.on_start_callbacks = {}
+        self.on_end_callbacks = {}
 
-    def add_callback(self, action_type: Type[Action], callback: Callable[[TaskTreeNode], None]):
+    def add_callback(self, action_type: Type[Action], callback: Callable[[TaskTreeNode], None], on_start: bool = True):
         """
         Add a callback that is called when a node with a specific action is inserted.
 
         :param action_type: The action type that triggers the callback.
         :param callback: The callback to be called.
+        :param on_start: Rather to call the callback on the start or the end of the action.
         """
-        if self.callbacks is None:
-            self.callbacks = {}
-        if action_type in self.callbacks:
-            self.callbacks[action_type].append(callback)
+        callbacks = self.on_start_callbacks if on_start else self.on_end_callbacks
+        if action_type in callbacks:
+            callbacks[action_type].append(callback)
         else:
-            self.callbacks[action_type] = [callback]
+            callbacks[action_type] = [callback]
 
     @property
     def children(self):
@@ -258,10 +269,26 @@ class TaskTree(metaclass=Singleton):
         """
         new_node = TaskTreeNode(action=action, parent=self.current_node)
         self.current_node = new_node
-        if self.callbacks and action.__class__ in self.callbacks:
-            for callback in self.callbacks[action.__class__]:
-                callback(new_node)
+        self.call_callbacks(new_node)
         return new_node
+
+    def call_callbacks(self, new_node: TaskTreeNode, on_start: bool = True):
+        """
+        Call all callbacks for the given action.
+
+        :param new_node: The new node that was added.
+        :param on_start: Rather to call the on_start_callbacks or the on_end_callbacks.
+        """
+        action: Action = new_node.action
+        callbacks = self.on_start_callbacks if on_start else self.on_end_callbacks
+        if callbacks:
+            callback_actions = list(callbacks.keys())
+            if action.__class__ in callback_actions:
+                for callback in callbacks[action.__class__]:
+                    callback(new_node)
+            if Action in callback_actions:
+                for callback in callbacks[Action]:
+                    callback(new_node)
 
     @staticmethod
     def render(file_name: str):
@@ -333,6 +360,7 @@ def with_tree(fun: Callable) -> Callable:
         finally:
             if task_tree.current_node.parent is not None:
                 task_tree.current_node.end_time = datetime.datetime.now()
+                task_tree.call_callbacks(task_tree.current_node, on_start=False)
                 task_tree.current_node = task_tree.current_node.parent
 
         return result
