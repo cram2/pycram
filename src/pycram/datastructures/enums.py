@@ -5,6 +5,18 @@ from enum import Enum, auto
 from ..failures import UnsupportedJointType
 
 
+class AdjacentBodyMethod(Enum):
+    ClosestPoints = auto()
+    """
+    The ClosestPoints method is used to find the closest points in other bodies to the body.
+    """
+    RayCasting = auto()
+    """
+    The RayCasting method is used to find the points in other bodies that are intersected by rays cast
+     from the body bounding box to 6 directions (up, down, left, right, front, back).
+    """
+
+
 class ContainerManipulationType(Enum):
     """
     Enum for the different types of container manipulation.

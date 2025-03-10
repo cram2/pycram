@@ -641,7 +641,7 @@ class PlaceActionPerformable(ActionAbstract):
         """
         Check if the object is still in contact with the robot after placing it.
         """
-        contact_links = self.world_object.get_contact_points_with_body(World.robot).get_bodies_in_contact()
+        contact_links = self.world_object.get_contact_points_with_body(World.robot).get_all_bodies()
         if contact_links:
             raise ObjectStillInContact(self.world_object, contact_links,
                                        self.target_location, World.robot, self.arm)
@@ -961,7 +961,7 @@ class GraspingActionPerformable(ActionAbstract):
             body = self.object_desig.world_object.links[self.object_desig.name]
         else:
             body = self.object_desig.world_object
-        contact_links = body.get_contact_points_with_body(World.robot).get_bodies_in_contact()
+        contact_links = body.get_contact_points_with_body(World.robot).get_all_bodies()
         arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.arm)
         gripper_links = arm_chain.end_effector.links
         if not any([link.name in gripper_links for link in contact_links]):

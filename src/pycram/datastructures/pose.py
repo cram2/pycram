@@ -1,22 +1,22 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import math
 import datetime
+import math
 from collections.abc import Sequence
-
-from ..tf_transformations import euler_from_quaternion, translation_matrix, quaternion_matrix, concatenate_matrices, \
-    inverse_matrix, translation_from_matrix, quaternion_from_matrix
-from typing_extensions import List, Union, Optional, Sized, Self, Tuple
 
 import numpy as np
 import sqlalchemy.orm
-from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
+from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
+from typing_extensions import List, Union, Optional, Self
+
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
-from ..ros import  Time
+from ..ros import Time
+from ..ros import logwarn, logerr
+from ..tf_transformations import euler_from_quaternion, translation_matrix, quaternion_matrix, concatenate_matrices, \
+    inverse_matrix, translation_from_matrix, quaternion_from_matrix
 from ..validation.error_checkers import calculate_pose_error
-from ..ros import  logwarn, logerr
 
 
 def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
@@ -26,7 +26,7 @@ def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
     :param quaternion: The quaternion that should be normalized
     :return: The normalized quaternion
     """
-    mag = math.sqrt(sum(v**2 for v in quaternion))
+    mag = math.sqrt(sum(v ** 2 for v in quaternion))
     normed_rotation = [f / mag for f in quaternion]
 
     geo_quaternion = GeoQuaternion()
@@ -96,11 +96,10 @@ class Pose(PoseStamped):
 
         :return: A PoseStamped message with the same information as this Pose
         """
-        return  PoseStamped(
+        return PoseStamped(
             header=self.header,
             pose=self.pose
         )
-
 
     def get_position_diff(self, target_pose: Self) -> Point:
         """
@@ -163,7 +162,7 @@ class Pose(PoseStamped):
         """
         if not isinstance(value, (list, tuple, np.ndarray, GeoPose, Point)):
             err_msg = "Position can only be one of (list, tuple, np.ndarray, geometry_msgs/Pose, Point) not " + \
-                        str(type(value))
+                      str(type(value))
             logerr(err_msg)
             raise TypeError(err_msg)
         if isinstance(value, (list, tuple, np.ndarray)) and len(value) == 3:
@@ -312,7 +311,7 @@ class Pose(PoseStamped):
 
         position = Position(*self.position_as_list())
         position.process_metadata = metadata
-        orientation = Quaternion(**dict(zip(["x", "y", "z", "w"],self.orientation_as_list())))
+        orientation = Quaternion(**dict(zip(["x", "y", "z", "w"], self.orientation_as_list())))
         orientation.process_metadata = metadata
         session.add(position)
         session.add(orientation)
@@ -356,6 +355,7 @@ class Transform(TransformStamped):
 
         Rotation: A quaternion representing the conversion of rotation between both frames
     """
+
     def __init__(self, translation: Optional[List[float]] = None, rotation: Optional[List[float]] = None,
                  frame: Optional[str] = "map", child_frame: Optional[str] = "", time: Time = None):
         """
@@ -501,7 +501,8 @@ class Transform(TransformStamped):
 
         :return: A copy of this pose
         """
-        t = Transform(self.translation_as_list(), self.rotation_as_list(), self.frame, self.child_frame_id, self.header.stamp)
+        t = Transform(self.translation_as_list(), self.rotation_as_list(), self.frame, self.child_frame_id,
+                      self.header.stamp)
         t.header.frame_id = self.header.frame_id
         # t.header.stamp = self.header.stamp
         return t
@@ -534,11 +535,12 @@ class Transform(TransformStamped):
         :return: A new inverted Transform
         """
         transform = concatenate_matrices(translation_matrix(self.translation_as_list()),
-                                                         quaternion_matrix(self.rotation_as_list()))
+                                         quaternion_matrix(self.rotation_as_list()))
         inverse_transform = inverse_matrix(transform)
         translation = translation_from_matrix(inverse_transform)
         quaternion = quaternion_from_matrix(inverse_transform)
-        return Transform(list(translation), list(quaternion), self.child_frame_id, self.header.frame_id, self.header.stamp)
+        return Transform(list(translation), list(quaternion), self.child_frame_id, self.header.frame_id,
+                         self.header.stamp)
 
     def __mul__(self, other: Transform) -> Union[Transform, None]:
         """

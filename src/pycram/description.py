@@ -7,8 +7,8 @@ from abc import ABC, abstractmethod
 
 import trimesh
 from geometry_msgs.msg import Point
-from trimesh.parent import Geometry3D
-from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Sequence, Self, Type
+from trimesh import Trimesh
+from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, Type
 
 import pycrap
 import pycrap.ontologies
@@ -204,6 +204,17 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
 
+    def reset(self):
+        """
+        Reset the link to its initial state.
+        """
+        self.constraint_ids = {}
+        self.reset_concepts()
+
+    @property
+    def parts(self) -> Dict[str, PhysicalBody]:
+        return {}
+
     @property
     def parent_entity(self) -> Object:
         """
@@ -245,18 +256,18 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
 
     def get_axis_aligned_bounding_box_from_geometry(self) -> AxisAlignedBoundingBox:
         if isinstance(self.geometry, List):
-            all_boxes = [geom.get_axis_aligned_bounding_box(self.get_mesh_path(geom))
+            all_boxes = [geom.get_axis_aligned_bounding_box(self.get_mesh_path([geom])[0])
                          if isinstance(geom, MeshVisualShape) else geom.get_axis_aligned_bounding_box()
                          for geom in self.geometry
                          ]
             bounding_box = AxisAlignedBoundingBox.from_multiple_bounding_boxes(all_boxes)
         else:
             geom = self.geometry
-            bounding_box = geom.get_axis_aligned_bounding_box(self.get_mesh_path(geom)) \
+            bounding_box = geom.get_axis_aligned_bounding_box(self.get_mesh_path([geom])[0]) \
                 if isinstance(geom, MeshVisualShape) else geom.get_axis_aligned_bounding_box()
         return bounding_box
 
-    def get_convex_hull(self) -> Geometry3D:
+    def get_convex_hull(self) -> Trimesh:
         """
         :return: The convex hull of the link geometry.
         """
@@ -264,9 +275,10 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
             return self.world.get_body_convex_hull(self)
         except NotImplementedError:
             if isinstance(self.geometry, MeshVisualShape):
-                mesh_path = self.get_mesh_path(self.geometry)
-                mesh = trimesh.load(mesh_path)
-                return trimesh.convex.convex_hull(mesh).apply_transform(self.transform.get_homogeneous_matrix())
+                mesh_paths = self.get_mesh_path(self.geometry)
+                meshes = [trimesh.load_mesh(mesh_path) for mesh_path in mesh_paths]
+                mesh = meshes[0].union(meshes[1:]) if len(meshes) > 1 else meshes[0]
+                return mesh.convex_hull.apply_transform(self.transform.get_homogeneous_matrix())
             else:
                 raise LinkGeometryHasNoMesh(self.name, type(self.geometry).__name__)
 
@@ -277,12 +289,16 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         hull = self.get_convex_hull()
         hull.show()
 
-    def get_mesh_path(self, geometry: MeshVisualShape) -> str:
+    def get_mesh_path(self, geometry: Optional[List[MeshVisualShape]] = None) -> List[str]:
         """
-        :param geometry: The geometry for which the mesh path should be returned.
-        :return: The path of the mesh file of this link if the geometry is a mesh.
+        :param geometry: The geometry/geometries for which the mesh path(s) should be returned.
+        :return: The path(s) of the mesh file(s) of this link if the geometry is a mesh.
         """
-        return self.get_mesh_filename(geometry)
+        if geometry is None:
+            geometry = self.geometry
+        if not hasattr(geometry, "__iter__"):
+            geometry = [geometry]
+        return [self.get_mesh_filename(geom) for geom in geometry if isinstance(geom, MeshVisualShape)]
 
     def get_mesh_filename(self, geometry: MeshVisualShape) -> str:
         """

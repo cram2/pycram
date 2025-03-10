@@ -313,6 +313,15 @@ class BoundingBox:
         """
         return self.simple_event.contains((x, y, z))
 
+    def contains_box(self, other: BoundingBox):
+        """
+        Check if the bounding box contains another bounding box.
+
+        :param other: The other bounding box.
+        :return: True if the bounding box contains the other bounding box, False otherwise.
+        """
+        return (other.simple_event.as_composite_set() - self.simple_event.as_composite_set()).is_empty()
+
     @classmethod
     def merge_multiple_bounding_boxes_into_mesh(cls, bounding_boxes: List[BoundingBox],
                                                 save_mesh_to: Optional[str] = None,
@@ -1092,6 +1101,10 @@ class ContactPoint:
     def normal(self) -> List[float]:
         return self.normal_on_body_b
 
+    @property
+    def bodies(self) -> Tuple[PhysicalBody, PhysicalBody]:
+        return self.body_a, self.body_b
+
     def __str__(self):
         return f"ContactPoint: {self.body_a.name} - {self.body_b.name}"
 
@@ -1117,17 +1130,16 @@ class ContactPointsList(list):
         :param previous_points: The initial points list.
         :return: A list of bodies that got removed.
         """
-        initial_bodies_in_contact = previous_points.get_bodies_in_contact()
-        current_bodies_in_contact = self.get_bodies_in_contact()
+        initial_bodies_in_contact = previous_points.get_all_bodies()
+        current_bodies_in_contact = self.get_all_bodies()
         return [body for body in initial_bodies_in_contact if body not in current_bodies_in_contact]
 
-    def get_bodies_in_contact(self) -> List[PhysicalBody]:
+    def get_all_bodies(self, excluded: List[PhysicalBody] = None) -> List[PhysicalBody]:
         """
-        Get the bodies in contact.
-
-        :return: A list of bodies that are in contact.
+        :return: A list of all involved bodies in the points.
         """
-        return [point.body_b for point in self]
+        excluded = excluded if excluded is not None else []
+        return list(set([body for point in self for body in point.bodies if body not in excluded]))
 
     def check_if_two_objects_are_in_contact(self, obj_a: Object, obj_b: Object) -> bool:
         """

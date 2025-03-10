@@ -392,7 +392,7 @@ def has_gripper_grasped_body(arm: Arms, body: PhysicalBody) -> bool:
     :param body: The body for which the grasping should be checked.
     :return: True if the gripper has grasped the body, False otherwise.
     """
-    contact_links = body.get_contact_points_with_body(World.robot).get_bodies_in_contact()
+    contact_links = body.get_contact_points_with_body(World.robot).get_all_bodies()
     arm_chain = RobotDescription.current_robot_description.get_arm_chain(arm)
     fingers_link_names = arm_chain.end_effector.fingers_link_names
     if fingers_link_names:
