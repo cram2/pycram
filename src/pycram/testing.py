@@ -28,7 +28,7 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
     def setUpClass(cls):
         cls.world = BulletWorld(mode=cls.render_mode)
         ProcessModule.execution_delay = False
-        cls.viz_marker_publisher = VizMarkerPublisher(as_prospection_world=True)
+        cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):
         task_tree.reset_tree()
