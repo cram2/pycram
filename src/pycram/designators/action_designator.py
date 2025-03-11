@@ -95,7 +95,7 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
         """
         pass
 
-    def to_sql(self) -> Action:
+    def to_sql(self) -> ORMAction:
         """
         Convert this action to its ORM equivalent.
 
@@ -117,7 +117,7 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
 
         return self.orm_class(*parameters)
 
-    def insert(self, session: Session, **kwargs) -> Action:
+    def insert(self, session: Session, **kwargs) -> ORMAction:
         """
         Insert this action into the database.
 
@@ -432,10 +432,10 @@ class ReachToPickUpActionPerformable(ActionAbstract):
 
     # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
     #  ActionAbstract
-    def to_sql(self) -> Action:
+    def to_sql(self) -> ORMAction:
         return ORMReachToPickUpAction(arm=self.arm, prepose_distance=self.prepose_distance)
 
-    def insert(self, session: Session, **kwargs) -> Action:
+    def insert(self, session: Session, **kwargs) -> ORMAction:
         action = super(ActionAbstract, self).insert(session)
         action.object = self.object_at_execution.insert(session)
         session.add(action)
@@ -524,10 +524,10 @@ class PickUpActionPerformable(ActionAbstract):
 
     # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
     #  ActionAbstract
-    def to_sql(self) -> Action:
+    def to_sql(self) -> ORMAction:
         return ORMPickUpAction(arm=self.arm, prepose_distance=self.prepose_distance)
 
-    def insert(self, session: Session, **kwargs) -> Action:
+    def insert(self, session: Session, **kwargs) -> ORMAction:
         action = super(ActionAbstract, self).insert(session)
         action.object = self.object_at_execution.insert(session)
         session.add(action)
@@ -643,7 +643,7 @@ class PlaceActionPerformable(ActionAbstract):
         """
         Check if the object is still in contact with the robot after placing it.
         """
-        contact_links = self.world_object.get_contact_points_with_body(World.robot).get_bodies_in_contact()
+        contact_links = self.world_object.get_contact_points_with_body(World.robot).get_all_bodies()
         if contact_links:
             raise ObjectStillInContact(self.world_object, contact_links,
                                        self.target_location, World.robot, self.arm)
@@ -971,7 +971,7 @@ class GraspingActionPerformable(ActionAbstract):
             body = self.object_desig.world_object.links[self.object_desig.name]
         else:
             body = self.object_desig.world_object
-        contact_links = body.get_contact_points_with_body(World.robot).get_bodies_in_contact()
+        contact_links = body.get_contact_points_with_body(World.robot).get_all_bodies()
         arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.arm)
         gripper_links = arm_chain.end_effector.links
         if not any([link.name in gripper_links for link in contact_links]):

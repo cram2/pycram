@@ -2,7 +2,9 @@ import tempfile
 
 import owlready2
 from typing_extensions import Dict, Any
-from .ontologies.base import Base, ontology as default_pycrap_ontology
+
+from .ontologies.base import Base, ontology as default_pycrap_ontology, ontology_file as default_pycrap_ontology_file, \
+    CRAX_ONTOLOGY_NAME
 
 
 class OntologyWrapper:
@@ -29,9 +31,9 @@ class OntologyWrapper:
     """
 
     def __init__(self):
-        self.file = tempfile.NamedTemporaryFile(delete=True)
-        self.ontology = owlready2.get_ontology("file://" + self.path).load()
-        self.ontology.name = "PyCRAP"
+        self.file = default_pycrap_ontology_file
+        self.ontology = default_pycrap_ontology
+        self.ontology.name = CRAX_ONTOLOGY_NAME
         self.python_objects = {}
 
     @property
@@ -55,7 +57,6 @@ class OntologyWrapper:
         """
         return default_pycrap_ontology.classes()
 
-
     def search(self, *args, **kwargs):
         """
         Check https://owlready2.readthedocs.io/en/latest/onto.html#simple-queries for details.
@@ -67,7 +68,6 @@ class OntologyWrapper:
     def search_one(self, *args, **kwargs):
         return self.ontology.search(*args, **kwargs)
 
-
     def __enter__(self):
         return self.ontology.__enter__()
 
@@ -78,9 +78,7 @@ class OntologyWrapper:
         """
         Reason over the ontology. This may take a long time.
         """
-        owlready2.sync_reasoner_pellet([self.ontology, default_pycrap_ontology],
-                                       infer_property_values=True, infer_data_property_values=True, debug=False)
+        owlready2.sync_reasoner(self.ontology, infer_property_values=True, debug=False)
 
-
-    def add_individual(self, individual :Base, python_object: Any):
+    def add_individual(self, individual: Base, python_object: Any):
         self.python_objects[individual] = python_object

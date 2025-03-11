@@ -1,16 +1,67 @@
 import numpy as np
-from pycram.tf_transformations import quaternion_from_euler
-from typing_extensions import List
+from owlready2 import Imp
 
-from pycram.testing import BulletWorldTestCase
+from pycram.tf_transformations import quaternion_from_euler
+
 from pycram.datastructures.dataclasses import Color, BoundingBox as BB
 from pycram.datastructures.pose import Pose
+from pycram.testing import BulletWorldTestCase
+from pycrap.ontologies import Room, Food
 
 
 class TestLinks(BulletWorldTestCase):
 
+    def tearDown(self):
+        super().tearDown()
+        self.world.reset_concepts()
+
+    def test_automatic_containment_detection(self):
+
+        self.world.update_containment_for([self.milk])
+
+        self.assertFalse(self.kitchen.contains_body(self.kitchen.links["iai_fridge_main"]))
+        self.assertFalse(self.kitchen.contains_body(self.milk))
+
+        self.milk.set_position(self.kitchen.links["iai_fridge_main"].position)
+
+        self.world.update_containment_for([self.milk])
+
+        self.assertTrue(self.kitchen.links["iai_fridge_main"].contains_body(self.milk))
+
+    def test_automatic_containment_detection_from_parts(self):
+
+        self.assertFalse(self.kitchen.contains_body(self.kitchen.links["iai_fridge_main"]))
+        self.assertFalse(self.kitchen.contains_body(self.milk))
+
+        self.world.update_containment_for([self.kitchen])
+        self.world.update_containment_for([self.milk])
+
+        self.milk.set_position(self.kitchen.links["iai_fridge_main"].position)
+
+        self.world.update_containment_for([self.milk])
+
+        self.assertTrue(self.kitchen.contains_body(self.milk))
+        self.assertTrue(self.kitchen.links["iai_fridge_main"].contains_body(self.milk))
+
+    def test_contains_body(self):
+
+        self.assertFalse(self.kitchen.contains_body(self.kitchen.links["iai_fridge_main"]))
+        self.assertFalse(self.kitchen.contains_body(self.milk))
+
+        self.kitchen.contained_bodies = [self.kitchen.links["iai_fridge_main"]]
+        self.assertTrue(self.kitchen.contains_body(self.kitchen.links["iai_fridge_main"]))
+        self.assertFalse(self.kitchen.contains_body(self.milk))
+
+        self.kitchen.links["iai_fridge_main"].contained_bodies = [self.milk]
+
+        # Kitchen should contain cabinet and drawer (reasoned)
+        self.assertTrue(self.kitchen.contains_body(self.kitchen.links["iai_fridge_main"]))
+        self.assertTrue(self.kitchen.links["iai_fridge_main"].contains_body(self.milk))
+        self.assertTrue(self.kitchen.contains_body(self.milk))
+        self.assertEqual(len(self.kitchen.contained_bodies), 2)
+
     def test_get_convex_hull(self):
-        self.milk.set_orientation(quaternion_from_euler(0, np.pi/4, 0))
+        self.milk.set_orientation(quaternion_from_euler(0, np.pi / 4, 0))
         hull = self.milk.root_link.get_convex_hull()
         self.assertIsNotNone(hull)
         self.assertTrue(len(hull.vertices) > 0)
@@ -20,7 +71,7 @@ class TestLinks(BulletWorldTestCase):
             BB.plot_3d_points([hull.vertices])
 
     def test_rotated_bounding_box(self):
-        self.milk.set_pose(Pose([1, 1, 1], quaternion_from_euler(np.pi/4, 0, 0)))
+        self.milk.set_pose(Pose([1, 1, 1], quaternion_from_euler(np.pi / 4, 0, 0)))
         aabb = self.milk.get_axis_aligned_bounding_box()
         aabb_points = np.array(aabb.get_points_list())
         rbb = self.milk.get_rotated_bounding_box()
@@ -55,5 +106,3 @@ class TestLinks(BulletWorldTestCase):
         link = self.robot.get_link('base_link')
         link.color = Color(1, 0, 0, 1)
         self.assertEqual(link.color.get_rgba(), [1, 0, 0, 1])
-
-

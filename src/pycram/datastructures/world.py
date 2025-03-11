@@ -9,13 +9,13 @@ from copy import copy
 
 import numpy as np
 from geometry_msgs.msg import Point
-from trimesh.parent import Geometry3D
+from trimesh import Trimesh
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
 import pycrap
 from pycrap.ontologies import PhysicalObject, Robot, Floor, Apartment
+from pycrap.ontologies.crax.rules import HierarchicalContainment, CRAXRule
 from pycrap.ontology_wrapper import OntologyWrapper
-
 from ..cache_manager import CacheManager
 from ..config.world_conf import WorldConfig
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
@@ -24,14 +24,14 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                           ObjectState, WorldState, ClosestPointsList,
                                           ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox, RayResult)
-from ..datastructures.enums import JointType, WorldMode, Arms
+from ..datastructures.enums import JointType, WorldMode, Arms, AdjacentBodyMethod as ABM
 from ..datastructures.pose import Pose, Transform
-from ..datastructures.world_entity import StateEntity, PhysicalBody, WorldEntity
+from ..datastructures.world_entity import PhysicalBody, WorldEntity
 from ..failures import ProspectionObjectNotFound, ObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
-from ..ros import  Time
-from ..ros import  logwarn
+from ..ros import Time
+from ..ros import logwarn
 from ..validation.goal_validator import (GoalValidator,
                                          validate_joint_position, validate_multiple_joint_positions,
                                          validate_object_pose, validate_multiple_object_poses)
@@ -93,8 +93,11 @@ class World(WorldEntity, ABC):
         :param clear_cache: Whether to clear the cache directory.
         :param id_: The unique id of the world.
         """
-        self.ontology = OntologyWrapper()
         self.is_prospection_world: bool = is_prospection
+        if not is_prospection:
+            self.ontology = OntologyWrapper()
+        else:
+            self.ontology = None
         WorldEntity.__init__(self, id_, self, concept=pycrap.ontologies.World)
 
         self.latest_state_id: Optional[int] = None
@@ -131,6 +134,41 @@ class World(WorldEntity, ABC):
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
 
+        self._set_world_rules()
+
+    def _set_world_rules(self):
+        """
+        Create the rules for the world.
+        """
+        if self.is_prospection_world:
+            return
+        HierarchicalContainment()
+
+    @property
+    def rules(self) -> List[CRAXRule]:
+        """
+        Return the rules of the world.
+        """
+        return list(CRAXRule.all_rules[self.ontology].values())
+
+    @staticmethod
+    def update_containment_for(bodies: List[PhysicalBody],
+                               candidate_selection_method: ABM = ABM.ClosestPoints) \
+            -> List[PhysicalBody]:
+        """
+        Update the containment for the given bodies by checking if they are contained in other bodies.
+
+        :param bodies: The bodies to update the containment for.
+        :param candidate_selection_method: The method to select the candidate bodies for containment update.
+        :return: The updated bodies.
+        """
+        checked_bodies: List[PhysicalBody] = []
+        for body in bodies:
+            body.update_containment(excluded_bodies=checked_bodies,
+                                    candidate_selection_method=candidate_selection_method)
+            checked_bodies.append(body)
+        return checked_bodies
+
     @property
     def parent_entity(self) -> Optional[WorldEntity]:
         """
@@ -145,7 +183,7 @@ class World(WorldEntity, ABC):
         """
         return self.__class__.__name__
 
-    def get_body_convex_hull(self, body: PhysicalBody) -> Geometry3D:
+    def get_body_convex_hull(self, body: PhysicalBody) -> Trimesh:
         """
         :param body: The body object.
         :return: The convex hull of the body as a Geometry3D object.
@@ -1007,7 +1045,8 @@ class World(WorldEntity, ABC):
         self.disconnect_from_physics_server()
         self.reset_robot()
         self.join_threads()
-        self.ontology.destroy_individuals()
+        if self.ontology:
+            self.ontology.destroy_individuals()
         if World.current_world == self:
             World.current_world = None
 
@@ -1289,6 +1328,13 @@ class World(WorldEntity, ABC):
             self.remove_saved_states()
             self.original_state_id = self.save_state(use_same_id=True)
 
+    def reset_concepts(self):
+        """
+        Reset the concepts of the World.
+        """
+        super().reset_concepts()
+        [obj.reset_concepts() for obj in self.objects]
+
     def remove_saved_states(self) -> None:
         """
         Remove all saved states of the World.
@@ -1318,7 +1364,7 @@ class World(WorldEntity, ABC):
         for obj in list(self.current_world.objects):
             obj.update_link_transforms(curr_time)
 
-    def ray_test(self, from_position: List[float], to_position: List[float], calculate_distance: bool = False)\
+    def ray_test(self, from_position: List[float], to_position: List[float], calculate_distance: bool = False) \
             -> RayResult:
         """
         A wrapper around the :py:meth:`~pycram.world.World._ray_test` method that also calculates the distance
@@ -1407,7 +1453,7 @@ class World(WorldEntity, ABC):
         link_parent = [0 for _ in range(num_of_shapes)]
         link_joints = [JointType.FIXED.value for _ in range(num_of_shapes)]
         link_collision = [-1 for _ in range(num_of_shapes)]
-        link_joint_axis = [Point(x=1, y=0,z=0) for _ in range(num_of_shapes)]
+        link_joint_axis = [Point(x=1, y=0, z=0) for _ in range(num_of_shapes)]
 
         multi_body = MultiBody(base_visual_shape_index=-1, base_pose=pose,
                                link_visual_shape_indices=visual_shape_ids, link_poses=link_poses,

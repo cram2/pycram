@@ -48,7 +48,6 @@ If you already have some data in your local database you can skip the next block
 some example data
 
 ```python
-from pycram.datastructures.enums import Arms, ObjectType
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot

@@ -3,8 +3,6 @@ import inspect
 import numpy as np
 from typing_extensions import List, TYPE_CHECKING
 
-from pycrap import *
-from ..datastructures.enums import JointType
 from ..datastructures.world import World
 from ..designators.motion_designator import *
 from ..external_interfaces import giskard
@@ -17,9 +15,8 @@ from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..process_module import ProcessModule
 from ..robot_description import RobotDescription
-from ..ros import  Duration
-from ..ros import  logdebug, loginfo, logwarn
-from ..ros import  get_time
+from ..ros import get_time
+from ..ros import logdebug, loginfo
 from ..utils import _apply_ik, map_color_names_to_rgba
 from ..world_concepts.world_object import Object
 from ..world_reasoning import visible, link_pose_for_joint_config
@@ -124,7 +121,7 @@ class DefaultDetecting(ProcessModule):
 
             for obj in query_result:
                 object_dict.append(ObjectDesignatorDescription.Object(obj.name, obj.obj_type,
-                                                   obj))
+                                                                      obj))
 
             return object_dict
 
@@ -186,7 +183,7 @@ class DefaultOpen(ProcessModule):
         container_joint_name = part_of_object.find_joint_above_link(desig.object_part.name)
         lower_limit, upper_limit = part_of_object.get_joint_limits(container_joint_name)
 
-        goal_pose = link_pose_for_joint_config(part_of_object,{
+        goal_pose = link_pose_for_joint_config(part_of_object, {
             container_joint_name: max(lower_limit, upper_limit - 0.05)}, desig.object_part.name)
 
         _move_arm_tcp(goal_pose, World.robot, desig.arm)
@@ -298,6 +295,7 @@ class DefaultDetectingReal(ProcessModule):
 
             return object_dict
 
+
 class DefaultNavigationReal(ProcessModule):
     """
     Process module for the real robot that sends a cartesian goal to giskard to move the robot base
@@ -308,6 +306,7 @@ class DefaultNavigationReal(ProcessModule):
         query_pose_nav(designator.target)
         if not World.current_world.robot.pose.almost_equal(designator.target, 0.05, 3):
             raise NavigationGoalNotReachedError(World.current_world.robot.pose, designator.target)
+
 
 class DefaultMoveHeadReal(ProcessModule):
     """
@@ -324,7 +323,8 @@ class DefaultMoveHeadReal(ProcessModule):
         pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_tilt_link"))
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
-        new_tilt = np.arctan2(pose_in_tilt.position.z, np.sqrt(pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2)) * -1
+        new_tilt = np.arctan2(pose_in_tilt.position.z,
+                              np.sqrt(pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2)) * -1
 
         current_pan = robot.get_joint_position("head_pan_joint")
         current_tilt = robot.get_joint_position("head_tilt_joint")
@@ -361,7 +361,6 @@ class DefaultMoveTCPReal(ProcessModule):
                                            use_monitor=designator.monitor_motion)
         if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.01, 3):
             raise ToolPoseNotReachedError(World.current_world.robot.get_link_pose(tip_link), designator.target)
-
 
 
 class DefaultMoveArmJointsReal(ProcessModule):

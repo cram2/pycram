@@ -1,13 +1,8 @@
-from typing import Any
-
 from threading import Lock
+
 # from ..external_interfaces.robokudo import query
-from ..utils import _apply_ik
-from ..external_interfaces import giskard
 from .default_process_modules import *
-from ..datastructures.world import World
 from ..designators.motion_designator import *
-from ..external_interfaces.ik import request_giskard_ik
 
 
 class KevinNavigate(DefaultNavigation):
@@ -22,6 +17,7 @@ class KevinMoveHead(DefaultMoveHead):
     Process module for the simulated Kevin that moves the head such that it looks at the given position
     """
     pass
+
 
 class KevinMoveGripper(DefaultMoveGripper):
     """
@@ -75,11 +71,14 @@ class KevinOpen(DefaultOpen):
     Process module for the simulated Kevin that opens an already grasped container
     """
     pass
+
+
 class KevinClose(DefaultClose):
     """
     Process module for the simulated Kevin that closes an already grasped container
     """
     pass
+
 
 ###########################################################
 ########## Process Modules for the Real Kevin ###########
@@ -93,7 +92,6 @@ class KevinManager(DefaultManager):
         super().__init__()
         self.robot_name = "kevin"
         self._navigate_lock = Lock()
-
 
     def navigate(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
