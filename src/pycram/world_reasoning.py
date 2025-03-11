@@ -4,13 +4,13 @@ from typing_extensions import List, Tuple, Optional, Union, Dict
 
 from pycrap.ontologies import PhysicalObject
 from .datastructures.dataclasses import ContactPointsList, RayResult
-from .datastructures.enums import Frame, Arms, FindBodyInRegionMethod
+from .datastructures.enums import Frame, Arms, FindBodyInRegionMethod, Grasp
 from .datastructures.pose import Pose, Transform
 from .datastructures.world import World, UseProspectionWorld
 from .datastructures.world_entity import PhysicalBody
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .object_descriptors.generic import ObjectDescription as GenericObjectDescription
-from .robot_description import RobotDescription
+from .robot_description import RobotDescription, KinematicChainDescription
 from .ros import logdebug, logwarn
 from .utils import RayTestUtils, chunks, get_rays_from_min_max
 from .world_concepts.world_object import Object, Link
@@ -79,7 +79,6 @@ def prospect_robot_contact(robot: Object, pose: Pose,
     """
     with UseProspectionWorld():
         prospection_robot = World.current_world.get_prospection_object_for_object(robot)
-        prospection_robot.set_pose(pose)
         floor = prospection_robot.world.get_object_by_name("floor")
         ignore_collision_with = [] if ignore_collision_with is None else ignore_collision_with
         ignore = [o.name for o in ignore_collision_with]
@@ -273,8 +272,8 @@ def reachable(
 def blocking(
         pose_or_object: Union[Object, Pose],
         robot: Object,
-        gripper_name: str,
-        grasp: str = None) -> Union[List[Object], None]:
+        gripper_chain: KinematicChainDescription,
+        grasp: Grasp = None) -> Union[List[Object], None]:
     """
     Checks if any objects are blocking another object when a robot tries to pick it. This works
     similar to the reachable predicate. First the inverse kinematics between the robot and the object will be
@@ -283,7 +282,7 @@ def blocking(
 
     :param pose_or_object: The object or pose for which blocking objects should be found
     :param robot: The robot Object who reaches for the object
-    :param gripper_name: The name of the end effector of the robot
+    :param gripper_chain: The kinematic chain of the used gripper
     :param grasp: The grasp type with which the object should be grasped
     :return: A list of objects the robot is in collision with when reaching for the specified object or None if the pose or object is not reachable.
     """
@@ -291,9 +290,10 @@ def blocking(
     with UseProspectionWorld():
         prospection_robot = World.current_world.get_prospection_object_for_object(robot)
         if grasp:
-            try_to_reach_with_grasp(pose_or_object, prospection_robot, gripper_name, grasp)
+            grasp_orientation = gripper_chain.end_effector.get_grasp(grasp, None, False)
+            try_to_reach_with_grasp(pose_or_object, prospection_robot, gripper_chain.get_tool_frame(), grasp_orientation)
         else:
-            try_to_reach(pose_or_object, prospection_robot, gripper_name)
+            try_to_reach(pose_or_object, prospection_robot, gripper_chain.get_tool_frame())
 
         block = [World.current_world.get_object_for_prospection_object(obj) for obj in World.current_world.objects
                  if contact(prospection_robot, obj)]

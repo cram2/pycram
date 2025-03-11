@@ -10,14 +10,18 @@ from __future__ import annotations
 from inspect import isgeneratorfunction
 import os
 import math
+from scipy.spatial.transform import Rotation as R
 
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
-from .tf_transformations import quaternion_about_axis, quaternion_multiply
-from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence
 
-from .datastructures.dataclasses import Color
+from pycrap.ontologies import Bowl, Spoon, PhysicalObject, Cereal
+from .datastructures.enums import ObjectType, AxisIdentifier, Grasp, Arms
+from .tf_transformations import quaternion_about_axis, quaternion_multiply
+from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence, Optional
+
+from .datastructures.dataclasses import Color, GraspDescription
 from .datastructures.pose import Pose
 from .local_transformer import LocalTransformer
 
@@ -269,7 +273,7 @@ def get_quaternion_between_camera_and_target(cam_pose: Pose, target_pose: Pose,
 
 def get_vector_between_poses(pose1: Pose, pose2: Pose) -> np.ndarray:
     """
-    Get the vector between two poses.
+    Get the vector between two poses, by computing position of pose2 - position of pose1.
 
     :param pose1: The first pose.
     :param pose2: The second pose.
@@ -328,6 +332,155 @@ def get_axis_angle_between_two_vectors(v1: np.ndarray, v2: np.ndarray) -> Tuple[
     axis = np.cross(v1, v2)
     angle = np.arccos(np.dot(v1, v2) - 1e-9)  # to avoid numerical errors
     return axis, angle
+
+
+##########################################
+# I could add these to the enum itself, so that we do something
+# like Grasp.FRONT.axis_index or something like that, if we dont
+# want these as global variables or we could do something else if
+# you have a good idea, i just dont want to write them into every
+# method that uses these mappings
+INDEX_TO_AXIS = {0: 'x', 1: 'y', 2: 'z'}
+AXIS_TO_INDEX = {'x': 0, 'y': 1, 'z': 2}
+AXIS_INDEX_TO_FACE = {
+    ('x', -1): Grasp.FRONT,
+    ('x', 1): Grasp.BACK,
+    ('y', 1): Grasp.LEFT,
+    ('y', -1): Grasp.RIGHT,
+    ('z', -1): Grasp.TOP,
+    ('z', 1): Grasp.BOTTOM
+}
+
+FACE_TO_AXIS_INDEX = {
+    Grasp.FRONT: ('x', -1),
+    Grasp.BACK: ('x', 1),
+    Grasp.LEFT: ('y', 1),
+    Grasp.RIGHT: ('y', -1),
+    Grasp.TOP: ('z', -1),
+    Grasp.BOTTOM: ('z', 1)
+}
+
+
+def calculate_object_faces(object_to_robot_vector: Tuple[float, float, float],
+                           specified_grasp_axis: Optional[AxisIdentifier] = None) -> Tuple[Grasp, Grasp]:
+    """
+    Determines the faces of the object based on the input vector.
+
+    If `specified_grasp_axis` is None, it calculates the primary and secondary faces based on the vector's magnitude
+    determining which sides of the object are most aligned with the robot. This will either be the x, y plane for side faces
+    or the z axis for top/bottom faces.
+    If `specified_grasp_axis` is provided, it only considers the specified axis and calculates the faces aligned
+    with that axis.
+
+    :param object_to_robot_vector: A 3D vector representing one of the robot's axes in the object's frame, with
+                          irrelevant components set to np.nan.
+    :param specified_grasp_axis: Specifies a specific axis (e.g., X, Y, Z) to focus on.
+
+    :return: A tuple of two Grasp enums representing the primary and secondary faces.
+    """
+    if specified_grasp_axis is None:
+        valid_indices = [AXIS_TO_INDEX['x'], AXIS_TO_INDEX['y'], AXIS_TO_INDEX['z']]
+    else:
+        valid_indices = [AXIS_TO_INDEX[specified_grasp_axis.name.lower()]]
+
+    valid_indices = [i for i in valid_indices if not np.isnan(object_to_robot_vector[i])]
+
+    object_to_robot_vector = object_to_robot_vector + 1e-9
+
+    abs_vector = np.abs(object_to_robot_vector)
+    sorted_indices = sorted(valid_indices, key=lambda i: abs_vector[i], reverse=True)
+
+    primary_index = sorted_indices[0]
+    primary_sign = int(np.sign(object_to_robot_vector[primary_index]))
+    primary_axis = INDEX_TO_AXIS[primary_index]
+    primary_face = AXIS_INDEX_TO_FACE[(primary_axis, primary_sign)]
+
+    if len(sorted_indices) > 1:
+        secondary_index = sorted_indices[1]
+        secondary_sign = int(np.sign(object_to_robot_vector[secondary_index]))
+        secondary_axis = INDEX_TO_AXIS[secondary_index]
+        secondary_face = AXIS_INDEX_TO_FACE[(secondary_axis, secondary_sign)]
+    else:
+        secondary_sign = -primary_sign
+        secondary_axis = primary_axis
+        secondary_face = AXIS_INDEX_TO_FACE[(secondary_axis, secondary_sign)]
+
+    return [primary_face, secondary_face]
+
+
+def calculate_grasp_descriptions(target_object, robot: Optional[Object] = None):
+    """
+    Calculates the grasp configurations of an object relative to the robot based on orientation and position.
+
+    This method determines the possible grasp configurations (side and top/bottom faces) of the object,
+    taking into account the object's orientation, position, and whether horizontal alignment is preferred.
+
+    :param target_object: The object whose grasp configurations are to be calculated.
+    :param robot: The robot for which the grasp configurations are being calculated.
+
+    :return: A sorted list of GraspDescription instances representing all grasp permutations.
+    """
+    from .robot_description import RobotDescription
+    obj_desig = target_object.resolve() if hasattr(target_object, 'resolve') else target_object
+    if hasattr(obj_desig, "position_as_list"):
+        objectTmap = obj_desig
+    else:
+        objectTmap = obj_desig.pose
+
+    base_link = RobotDescription.current_robot_description.base_link
+    if robot is None:
+        base_link_pose = obj_desig.world_object.world.robot.get_link_pose(base_link)
+    else:
+        base_link_pose = robot.get_link_pose(base_link)
+
+    side_axis, top, horizontal = get_preferred_grasp_alignment(target_object)
+    object_to_robot_vector_world = get_vector_between_poses(objectTmap, base_link_pose)
+
+    orientation = [objectTmap.orientation.x, objectTmap.orientation.y, objectTmap.orientation.z,
+                   objectTmap.orientation.w]
+    mapRobject = R.from_quat(orientation).as_matrix()
+    objectRmap = mapRobject.T
+
+    object_to_robot_vector_local = objectRmap.dot(object_to_robot_vector_world)
+    vector_x, vector_y, vector_z = object_to_robot_vector_local
+
+    vector_side = np.array([vector_x, vector_y, np.nan], dtype=float)
+    side_faces = calculate_object_faces(vector_side, side_axis)
+
+    vector_top = np.array([np.nan, np.nan, vector_z], dtype=float)
+    top_faces = calculate_object_faces(vector_top) if top else [None]
+
+    grasp_configs = [
+        GraspDescription(side_face=side, top_face=top_face, horizontal=horizontal)
+        for top_face in top_faces
+        for side in side_faces
+    ]
+
+    return grasp_configs
+
+
+def get_preferred_grasp_alignment(object: Object) -> Tuple[AxisIdentifier, bool, bool]:
+    """
+    Determines the preferred grasp alignment for an object based on its type.
+    The AxisIdentifier specifies the side grasp axis along which the object should be grasped. Only this axis will be
+    allowed as a sidegrasp.
+    The first boolean value indicates whether the object should be grasped along the Z axis. This does not affect the
+    sidegrasp axis.
+    The second boolean value indicates whether the object should be grasped horizontally.
+
+    :param object: The object to be grasped.
+
+    :return: A tuple of three values: the preferred side grasp axis, whether the object should be grasped horizontally,
+    """
+    object_type = object.obj_type if hasattr(object, 'obj_type') else PhysicalObject
+
+    preferred_alignment_dict = {Bowl: (None, True, True),
+                                Spoon: (AxisIdentifier.X, True, False),
+                                Cereal: (AxisIdentifier.X, False, False), }
+
+    sidegrasp_axis, grasp_top, grasp_horizontal = preferred_alignment_dict.get(object_type, (None, False, False))
+
+    return sidegrasp_axis, grasp_top, grasp_horizontal
 
 
 class RayTestUtils:

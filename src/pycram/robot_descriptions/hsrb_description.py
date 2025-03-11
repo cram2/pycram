@@ -64,12 +64,8 @@ hsrb_description.add_camera_description(hand_camera)
 neck = KinematicChainDescription("neck", "head_pan_link", "head_tilt_link",
                                  hsrb_description.urdf_object)
 
-################################## Grasps ##################################
-hsrb_description.add_grasp_orientations(
-    {Grasp.FRONT: [-1, 0, -1, 0],
-     Grasp.LEFT: [0, -1, 1, 0],
-     Grasp.RIGHT: [0, -1, -1, 0.0],
-     Grasp.TOP: [-1, 0, 0, 0]})
+################################# Grasps ##################################
+left_gripper.generate_all_grasp_orientations([-1, 0, -1, 0])
 
 hsrb_description.add_kinematic_chain_description(neck)
 

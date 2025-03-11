@@ -143,7 +143,7 @@ execute the plan.
 ```python
 from pycram.external_interfaces.ik import IKError
 from pycram.datastructures.enums import Grasp
-
+from pycram.datastructures.dataclasses import GraspDescription
 
 @pycram.tasktree.with_tree
 def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counter_name):
@@ -153,15 +153,15 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
         if torso is None:
             torso={"torso_lift_joint": 0.2}
         MoveTorsoActionPerformable(torso).perform()
-        grasp = Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else Grasp.FRONT
-        location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, grasps = [grasp])
+        grasp = GraspDescription(Grasp.FRONT, Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else None, False)  
+        location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, used_grasp_descriptions = [grasp])
         pose = location.resolve()
         print()
         NavigateActionPerformable(pose.pose, True).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         good_torsos.append(torso)
         picked_up_arm = pose.reachable_arms[0]
-        PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp=grasp,
+        PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp_description=grasp,
                                 prepose_distance=0.03).perform()
 
         ParkArmsActionPerformable(Arms.BOTH).perform()

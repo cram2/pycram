@@ -9,13 +9,15 @@ import numpy as np
 import plotly.graph_objects as go
 import trimesh
 from matplotlib import pyplot as plt
+from std_msgs.msg import ColorRGBA
+
 from random_events.interval import closed, SimpleInterval, Bound
 from random_events.product_algebra import SimpleEvent, Event
 from random_events.variable import Continuous
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, Self, \
     deprecated
 
-from .enums import JointType, Shape, VirtualMobileBaseJointName
+from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp
 from .pose import Pose, Point, Transform
 from ..ros import logwarn
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
@@ -174,6 +176,37 @@ class Color:
         """
         return [self.R, self.G, self.B]
 
+    @staticmethod
+    def get_color_from_string(color):
+        """
+        Retrieve a color based on string
+
+        :param color: Name of a color
+        """
+
+        converted_color = ColorRGBA()
+        value = lambda x: x / 255
+
+        if color == 'pink':
+            return ColorRGBA(r=value(255), g=value(0), b=value(255), a=1.0)
+        elif color == 'black':
+            return ColorRGBA(r=value(0), g=value(0), b=value(0), a=1.0)
+        elif color == 'white':
+            return ColorRGBA(r=value(255), g=value(255), b=value(255), a=1.0)
+        elif color == 'red':
+            return ColorRGBA(r=value(255), g=value(0), b=value(0), a=1.0)
+        elif color == 'green':
+            return ColorRGBA(r=value(0), g=value(255), b=value(0), a=1.0)
+        elif color == 'blue':
+            return ColorRGBA(r=value(0), g=value(0), b=value(255), a=1.0)
+        elif color == 'yellow':
+            return ColorRGBA(r=value(255), g=value(255), b=value(0), a=1.0)
+        elif color == 'cyan':
+            return ColorRGBA(r=value(0), g=value(255), b=value(255), a=1.0)
+
+        return converted_color
+
+
 
 @dataclass
 class BoundingBox:
@@ -182,6 +215,10 @@ class BoundingBox:
 
     An axis aligned bounding box is the cartesian product of the three closed intervals
     [min_x, max_x] x [min_y, max_y] x [min_z, max_z].
+
+    Depth is the distance between the min_x and max_x.
+    Width is the distance between the min_y and max_y.
+    Height is the distance between the min_z and max_z.
 
     Set-Algebraic operations are possible by converting the bounding box to a random event.
     """
@@ -373,7 +410,7 @@ class BoundingBox:
         """
         :return: The size of the bounding box in each dimension.
         """
-        return np.array([self.width, self.depth, self.height])
+        return np.array([self.depth, self.width, self.height])
 
     @staticmethod
     def get_mesh_from_boxes(boxes: List[BoundingBox]) -> trimesh.Trimesh:
@@ -539,16 +576,29 @@ class BoundingBox:
                      amount, amount, amount)
 
     @property
-    def width(self) -> float:
+    def depth(self) -> float:
+        """
+        According to the IAI conventions, found at https://ai.uni-bremen.de/wiki/3dmodeling/items
+        """
         return self.max_x - self.min_x
 
     @property
     def height(self) -> float:
+        """
+        According to the IAI conventions, found at https://ai.uni-bremen.de/wiki/3dmodeling/items
+        """
         return self.max_z - self.min_z
 
     @property
-    def depth(self) -> float:
+    def width(self) -> float:
+        """
+        According to the IAI conventions, found at https://ai.uni-bremen.de/wiki/3dmodeling/items
+        """
         return self.max_y - self.min_y
+
+    @property
+    def dimensions(self) -> List[float]:
+        return [self.depth, self.width, self.height]
 
     @staticmethod
     def plot_3d_points(list_of_points: List[np.ndarray]):
@@ -1451,3 +1501,38 @@ class ReasoningResult:
     """
     success: bool
     reasoned_parameter: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class GraspDescription:
+    """
+    Represents a grasp description with a side grasp, top face, and orientation alignment.
+
+    :param side_face: The primary side grasp face.
+    :param top_face: The top or bottom face of the object, or None if not applicable.
+    :param horizontal: Indicates if the grasp is aligned horizontally.
+    """
+    side_face: Grasp
+    top_face: Optional[Grasp] = None
+    horizontal: bool = False
+
+    def __post_init__(self):
+        allowed_side_faces = {Grasp.FRONT, Grasp.BACK, Grasp.LEFT, Grasp.RIGHT}
+        if self.side_face not in allowed_side_faces:
+            raise ValueError(f"Invalid value for side_face: {self.side_face}. Allowed values are {allowed_side_faces}")
+        allowed_top_faces = {Grasp.TOP, Grasp.BOTTOM, None}
+        if self.top_face not in allowed_top_faces:
+            raise ValueError(f"Invalid value for top_face: {self.top_face}. Allowed values are {allowed_top_faces}")
+        if not isinstance(self.horizontal, bool):
+            raise ValueError(f"Invalid value for horizontal: {self.horizontal}. Must be a boolean value.")
+
+    def __hash__(self):
+        return hash((self.side_face, self.top_face, self.horizontal))
+
+    def as_list(self) -> List[Union[Grasp, Optional[Grasp], bool]]:
+        """
+        Returns the GraspConfig as a list.
+
+        :return: A list representation of the grasp description.
+        """
+        return [self.side_face, self.top_face, self.horizontal]

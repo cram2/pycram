@@ -327,6 +327,7 @@ a cereal box from the kitchen counter and place it on the kitchen island. This i
 
 ```python
 from pycram.datastructures.enums import Grasp, TorsoState
+from pycram.datastructures.dataclasses import GraspDescription
 
 cereal_desig = ObjectDesignatorDescription(names=["cereal"])
 kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
@@ -341,7 +342,8 @@ with simulated_robot:
 
     NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
 
-    PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=[Grasp.FRONT]).resolve().perform()
+    grasp = GraspDescription(Grasp.FRONT, None, False)
+    PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasp_descriptions=[grasp]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 

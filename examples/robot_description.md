@@ -144,15 +144,42 @@ pr2_description.add_camera_description(camera)
 
 ## Grasps
 
-Grasps define how a robot interacts with objects. The grasps defined in the robot description define for each grasp (
-right, left, top, front) the orientation of the end-effector, relative to the base_frame of the robot, to achieve the
-respective grasp.
+Grasps define how a robot interacts with objects. The grasps defined in the robot description are set for each end-effector
+individually. The predefined grasp used is the Grasp.FRONT grasp of the robot. Based on this grasp, all other grasps are
+generated.
 
 ```python
-pr2_description.add_grasp_orientations({Grasp.FRONT: [0, 0, 0, 1],
-                                        Grasp.LEFT: [0, 0, -1, 1],
-                                        Grasp.RIGHT: [0, 0, 1, 1],
-                                        Grasp.TOP: [0, 1, 0, 1]})
+from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
+    RobotDescriptionManager, CameraDescription
+from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState, StaticJointState
+from ..units import meter
+
+################################## Right Arm ##################################
+right_arm = KinematicChainDescription("right", "torso_lift_link", "r_wrist_roll_link",
+                                      pr2_description.urdf_object, arm_type=Arms.RIGHT)
+right_arm.add_static_joint_states(StaticJointState.Park, {'r_shoulder_pan_joint': -1.712,
+                                           'r_shoulder_lift_joint': -0.256,
+                                           'r_upper_arm_roll_joint': -1.463,
+                                           'r_elbow_flex_joint': -2.12,
+                                           'r_forearm_roll_joint': 1.766,
+                                           'r_wrist_flex_joint': -0.07,
+                                           'r_wrist_roll_joint': 0.051})
+pr2_description.add_kinematic_chain_description(right_arm)
+
+################################## Right Gripper ##################################
+right_gripper = EndEffectorDescription("right_gripper", "r_gripper_palm_link", "r_gripper_tool_frame",
+                                       pr2_description.urdf_object,
+                                       fingers_link_names=['r_gripper_l_finger_tip_link', 'r_gripper_r_finger_tip_link'])
+right_gripper.add_static_joint_states(GripperState.OPEN, {'r_gripper_l_finger_joint': 0.548,
+                                                          'r_gripper_r_finger_joint': 0.548})
+right_gripper.add_static_joint_states(GripperState.CLOSE, {'r_gripper_l_finger_joint': 0.0,
+                                                           'r_gripper_r_finger_joint': 0.0})
+right_gripper.end_effector_type = GripperType.PARALLEL
+right_gripper.opening_distance = 0.086 * meter
+right_arm.end_effector = right_gripper
+
+right_gripper.generate_all_grasp_orientations([0, 0, 0, 1])
+
 ```
 
 ## Register Robot Description

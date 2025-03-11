@@ -163,9 +163,12 @@ icub_description.add_kinematic_chain("neck", "chest", "head")
 # icub_description.set_neck("neck_yaw", "neck_pitch", "neck_roll")
 
 ################################# Grasps ##################################
-orientation = [0.5, 0.5, 0.5, 0.5]
-# right_gripper.generate_all_grasp_orientations(orientation)
-# left_gripper.generate_all_grasp_orientations(orientation)
+left_orientation = [0.5, 0.5, 0.5, 0.5]
+left_gripper.generate_all_grasp_orientations(left_orientation)
+
+right_orientation = [0, 0, -0.707, 0.707]
+right_gripper.generate_all_grasp_orientations(right_orientation)
+# right_gripper.set_palm_axis([0, 1, 0])
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

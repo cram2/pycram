@@ -1,3 +1,4 @@
+from pycram.datastructures.dataclasses import GraspDescription
 from pycram.testing import BulletWorldTestCase
 from knowledge_testcase import KnowledgeSourceTestCase, TestProperty, KnowledgeBulletTestCase
 from pycram.datastructures.enums import Arms, Grasp, ObjectType
@@ -75,10 +76,11 @@ class TestKnowledgeEngineBeliefState(KnowledgeBulletTestCase):
         self.assertEqual({"arm": Arms.RIGHT}, matched)
 
     def test_match_reasoned_parameter_full(self):
-        params = {"arm": Arms.RIGHT, "gasp": Grasp.FRONT}
+        grasp_description = GraspDescription(Grasp.FRONT, None, False)
+        params = {"arm": Arms.RIGHT, "grasp_description": grasp_description}
         desig = PickUpAction(BelieveObject(names=["milk"]))
         matched = self.knowledge_engine.match_reasoned_parameter(params, desig)
-        self.assertEqual({"arm": Arms.RIGHT, "grasp": Grasp.FRONT}, matched)
+        self.assertEqual({"arm": Arms.RIGHT, "grasp_description": grasp_description}, matched)
 
 
 class TestPartialDesignator(KnowledgeBulletTestCase):
@@ -87,27 +89,29 @@ class TestPartialDesignator(KnowledgeBulletTestCase):
         partial_desig = PartialDesignator(PickUpActionPerformable, test_object, arm=Arms.RIGHT)
         self.assertEqual(partial_desig.performable, PickUpActionPerformable)
         self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": test_object,
-                                                "grasp": None, 'prepose_distance': None})
+                                                "grasp_description": None, 'prepose_distance': None})
 
     def test_partial_desig_construction_none(self):
         partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
         self.assertEqual(partial_desig.performable, PickUpActionPerformable)
         self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": None,
-                                                "grasp": None, 'prepose_distance': None})
+                                                "grasp_description": None, 'prepose_distance': None})
 
     def test_partial_desig_call(self):
         partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
-        new_partial_desig = partial_desig(grasp=Grasp.FRONT)
+        grasp_description = GraspDescription(Grasp.FRONT, None, False)
+        new_partial_desig = partial_desig(grasp_description=grasp_description)
         self.assertEqual(new_partial_desig.performable, PickUpActionPerformable)
-        self.assertEqual({"arm": Arms.RIGHT, "grasp": Grasp.FRONT, "object_designator": None,
+        self.assertEqual({"arm": Arms.RIGHT, "grasp_description": grasp_description, "object_designator": None,
                           'prepose_distance': None}, new_partial_desig.kwargs)
 
     def test_partial_desig_missing_params(self):
         partial_desig = PartialDesignator(PickUpActionPerformable, None, arm=Arms.RIGHT)
         missing_params = partial_desig.missing_parameter()
-        self.assertTrue("object_designator" in missing_params and "grasp" in missing_params)
+        self.assertTrue("object_designator" in missing_params and "grasp_description" in missing_params)
+        grasp_description = GraspDescription(Grasp.FRONT, None, False)
 
-        new_partial = partial_desig(grasp=Grasp.FRONT)
+        new_partial = partial_desig(grasp_description=grasp_description)
         missing_params = new_partial.missing_parameter()
         self.assertEqual(['object_designator', 'prepose_distance'], missing_params)
 
@@ -125,11 +129,14 @@ class TestPartialDesignator(KnowledgeBulletTestCase):
         test_object = BelieveObject(names=["milk"])
         test_object_resolved = test_object.resolve()
         partial_desig = PartialDesignator(PickUpActionPerformable, test_object, arm=[Arms.RIGHT, Arms.LEFT])
-        performables = list(partial_desig(grasp=[Grasp.FRONT, Grasp.TOP]))
+        grasp_description_front = GraspDescription(Grasp.FRONT, None, False)
+        grasp_description_top = GraspDescription(Grasp.FRONT, Grasp.TOP, False)
+
+        performables = list(partial_desig(grasp_description=[grasp_description_front, grasp_description_top]))
         self.assertEqual(4, len(performables))
         self.assertTrue(all([isinstance(p, PickUpActionPerformable) for p in performables]))
         self.assertEqual([p.arm for p in performables], [Arms.RIGHT, Arms.RIGHT, Arms.LEFT, Arms.LEFT])
-        self.assertEqual([p.grasp for p in performables], [Grasp.FRONT, Grasp.TOP, Grasp.FRONT, Grasp.TOP])
+        self.assertEqual([p.grasp_description for p in performables], [grasp_description_front, grasp_description_top] * 2)
         self.assertEqual([p.object_designator for p in performables], [test_object_resolved] * 4)
 
 
@@ -138,13 +145,15 @@ class TestParameterInference(KnowledgeBulletTestCase):
         test_object = BelieveObject(names=["milk"])
         partial_desig = PickUpAction(test_object, [Arms.RIGHT])
         desig = partial_desig.resolve()
-        self.assertEqual(desig.grasp, Grasp.FRONT)
+        grasp_description = GraspDescription(Grasp.FRONT, None, False)
+        self.assertEqual(desig.grasp_description, None)
 
     def test_pickup_grasp(self):
         test_object = BelieveObject(names=["milk"])
         partial_desig = PickUpAction(test_object, [Arms.RIGHT])
         desig = partial_desig.resolve()
-        self.assertEqual(desig.grasp, Grasp.FRONT)
+        grasp_description = GraspDescription(Grasp.FRONT, None, False)
+        self.assertEqual(desig.grasp_description, None)
 
     def test_open_gripper(self):
         self.robot.set_pose(Pose([-0.192, 1.999, 0], [0, 0, 0.8999, -0.437]))

@@ -99,7 +99,7 @@ def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Obje
 
 def try_to_reach_with_grasp(pose_or_object: Union[Pose, Object],
                             prospection_robot: Object, gripper_name: str,
-                            grasp: str) -> Union[Pose, None]:
+                            grasp_quaternion: List[float]) -> Union[Pose, None]:
     """
     Checks if the robot can reach a given position with a specific grasp orientation.
     To determine this the inverse kinematics are calculated and applied.
@@ -107,27 +107,26 @@ def try_to_reach_with_grasp(pose_or_object: Union[Pose, Object],
     :param pose_or_object: The position and rotation or Object for which reachability should be checked or an Object
     :param prospection_robot: The robot that should reach for the position
     :param gripper_name: The name of the end effector
-    :param grasp: The grasp type with which the object should be grasped
+    :param grasp_quaternion: The orientation of the grasp
     """
 
     input_pose = pose_or_object.get_pose() if isinstance(pose_or_object, Object) else pose_or_object
 
-    target_pose = apply_grasp_orientation_to_pose(grasp, input_pose)
+    target_pose = apply_grasp_orientation_to_pose(grasp_quaternion, input_pose)
 
     return try_to_reach(target_pose, prospection_robot, gripper_name)
 
 
-def apply_grasp_orientation_to_pose(grasp: str, pose: Pose) -> Pose:
+def apply_grasp_orientation_to_pose(grasp_orientation: List[float], pose: Pose) -> Pose:
     """
     Applies the orientation of a grasp to a given pose. This is done by using the grasp orientation
     of the given grasp and applying it to the given pose.
 
-    :param grasp: The name of the grasp
+    :param grasp_orientation: The orientation of the grasp
     :param pose: The pose to which the grasp orientation should be applied
     """
     local_transformer = LocalTransformer()
     target_map = local_transformer.transform_pose(pose, "map")
-    grasp_orientation = RobotDescription.current_robot_description.grasps[grasp]
     target_map.orientation.x = grasp_orientation[0]
     target_map.orientation.y = grasp_orientation[1]
     target_map.orientation.z = grasp_orientation[2]

@@ -113,32 +113,30 @@ right_gripper.end_effector_type = GripperType.FINGER
 right_arm.end_effector = right_gripper
 
 ################################## Torso ##################################
-torso = KinematicChainDescription("torso", "world", "torso",
+torso = KinematicChainDescription("torso", "platform", "torso",
                                   armar_description.urdf_object)
 
 torso.add_static_joint_states(TorsoState.HIGH, {"torso_joint": 0.0})
-
-torso.add_static_joint_states(TorsoState.MID, {"torso_joint": -0.15})
-
+torso.add_static_joint_states(TorsoState.MID, {'torso_joint': -0.185})
 torso.add_static_joint_states(TorsoState.LOW, {"torso_joint": -0.365})
 
 armar_description.add_kinematic_chain_description(torso)
 
 ################################## Camera ##################################
-camera = CameraDescription("Roboception", "Roboception", 1.8,
-                           2.1, 0.99483, 0.75049,
+camera = CameraDescription("Roboception", "Roboception", 1.371500015258789,
+                           1.7365000247955322, 0.99483, 0.75049,
                            [0, 0, 1])
 armar_description.add_camera_description(camera)
 
 ################################## Neck ##################################
 armar_description.add_kinematic_chain("neck", "lower_neck", "upper_neck")
-# armar_description.set_neck("neck_1_yaw", "neck_2_pitch")
+# armar_description.set_neck(yaw_joint="neck_1_yaw", pitch_joint="neck_2_pitch")
 
 
 ################################# Grasps ##################################
 orientation = [0.707, 0.707, 0.707, 0.707]
-# right_gripper.generate_all_grasp_orientations(orientation)
-# left_gripper.generate_all_grasp_orientations(orientation)
+right_gripper.generate_all_grasp_orientations(orientation)
+left_gripper.generate_all_grasp_orientations(orientation)
 
 
 ################################# Additionals ##################################

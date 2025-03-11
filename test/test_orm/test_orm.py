@@ -85,7 +85,8 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
+            grasp = GraspDescription(Grasp.FRONT, None, False)
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp, 0.03).perform()
             description.resolve().perform()
 
     def test_node(self):
@@ -160,7 +161,8 @@ class MixinTestCase(DatabaseTestCaseMixin):
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
+            grasp = GraspDescription(Grasp.FRONT, None, False)
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp, 0.03).perform()
             description.resolve().perform()
 
     def test_pose(self):
@@ -189,7 +191,8 @@ class ORMObjectDesignatorTestCase(DatabaseTestCaseMixin):
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
+            grasp = GraspDescription(Grasp.FRONT, None, False)
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp, 0.03).perform()
             description.resolve().perform()
         pycram.orm.base.ProcessMetaData().description = "Unittest"
         tt = pycram.tasktree.task_tree.root
@@ -241,7 +244,8 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             ParkArmsActionPerformable(Arms.BOTH).perform()
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT, 0.03).perform()
+            grasp = GraspDescription(Grasp.FRONT, None, False)
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp, 0.03).perform()
             NavigateActionPerformable(Pose([1.3, 1, 0.9], [0, 0, 0, 1]), True).perform()
             PlaceActionPerformable(object_description.resolve(), Arms.LEFT, Pose([2.0, 1.6, 1.8], [0, 0, 0, 1])).perform()
         pycram.orm.base.ProcessMetaData().description = "pickUpAction_test"
@@ -370,20 +374,19 @@ class ViewsSchemaTest(DatabaseTestCaseMixin):
         pycram.orm.base.ProcessMetaData().description = "view_creation_test"
         pycram.tasktree.task_tree.root.insert(self.session)
         view = PickUpWithContextView
-        self.assertEqual(len(view.__table__.columns), 12)
+        self.assertEqual(len(view.__table__.columns), 11)
         self.assertEqual(view.__table__.name, "PickUpWithContextView")
         self.assertEqual(view.__table__.columns[0].name, "id")
         self.assertEqual(view.__table__.columns[1].name, "arm")
-        self.assertEqual(view.__table__.columns[2].name, "grasp")
-        self.assertEqual(view.__table__.columns[3].name, "torso_height")
-        self.assertEqual(view.__table__.columns[4].name, "relative_x")
-        self.assertEqual(view.__table__.columns[5].name, "relative_y")
-        self.assertEqual(view.__table__.columns[6].name, "x")
-        self.assertEqual(view.__table__.columns[7].name, "y")
-        self.assertEqual(view.__table__.columns[8].name, "z")
-        self.assertEqual(view.__table__.columns[9].name, "w")
-        self.assertEqual(view.__table__.columns[10].name, "obj_type")
-        self.assertEqual(view.__table__.columns[11].name, "status")
+        self.assertEqual(view.__table__.columns[2].name, "torso_height")
+        self.assertEqual(view.__table__.columns[3].name, "relative_x")
+        self.assertEqual(view.__table__.columns[4].name, "relative_y")
+        self.assertEqual(view.__table__.columns[5].name, "x")
+        self.assertEqual(view.__table__.columns[6].name, "y")
+        self.assertEqual(view.__table__.columns[7].name, "z")
+        self.assertEqual(view.__table__.columns[8].name, "w")
+        self.assertEqual(view.__table__.columns[9].name, "obj_type")
+        self.assertEqual(view.__table__.columns[10].name, "status")
 
     def test_pickUpWithContextView(self):
         if self.engine.dialect.name == "sqlite":
@@ -395,13 +398,14 @@ class ViewsSchemaTest(DatabaseTestCaseMixin):
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
             MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
+            grasp = GraspDescription(Grasp.FRONT, None, False)
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp).perform()
             description.resolve().perform()
         pycram.orm.base.ProcessMetaData().description = "pickUpWithContextView_test"
         pycram.tasktree.task_tree.root.insert(self.session)
         result = self.session.scalars(select(PickUpWithContextView)).first()
         self.assertEqual(result.arm, Arms.LEFT)
-        self.assertEqual(result.grasp, Grasp.FRONT)
+        self.assertEqual(result.grasp, grasp)
         self.assertEqual(result.torso_height, 0.3)
         self.assertAlmostEqual(result.relative_x, -0.7, 6)
         self.assertAlmostEqual(result.relative_y, -0.6, 6)
@@ -418,7 +422,8 @@ class ViewsSchemaTest(DatabaseTestCaseMixin):
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
             MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
+            grasp = GraspDescription(Grasp.FRONT, None, False)
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp).perform()
             description.resolve().perform()
         pycram.orm.base.ProcessMetaData().description = "pickUpWithContextView_conditions_test"
         pycram.tasktree.task_tree.root.insert(self.session)

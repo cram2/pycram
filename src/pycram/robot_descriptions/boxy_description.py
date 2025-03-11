@@ -80,10 +80,8 @@ boxy_description.add_camera_description(camera)
 boxy_description.add_kinematic_chain("neck", "neck_base_link", "neck_wrist_3_link")
 
 ################################# Grasps ##################################
-boxy_description.add_grasp_orientations({Grasp.LEFT: [1, 0, 0, 1],
-                                         Grasp.TOP: [1, 1, 0, 0],
-                                         Grasp.RIGHT: [0, 1, 1, 0],
-                                         Grasp.FRONT: [1, 0, 1, 0]})
+left_gripper.generate_all_grasp_orientations([1, 0, 1, 0])
+right_gripper.generate_all_grasp_orientations([1, 0, 1, 0])
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

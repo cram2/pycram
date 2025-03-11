@@ -123,7 +123,7 @@ class PickUpWithContextView(base):
     """
 
     __table__ = view("PickUpWithContextView", Base.metadata,
-                     (select(PickUpAction.id, PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height,
+                     (select(PickUpAction.id, PickUpAction.arm, RobotState.torso_height,
                              (__robot_position.x-__object_position.x).label("relative_x"),
                              (__robot_position.y-__object_position.y).label("relative_y"), Quaternion.x, Quaternion.y,
                              Quaternion.z, Quaternion.w, Object.obj_type, TaskTreeNode.status)
@@ -138,7 +138,6 @@ class PickUpWithContextView(base):
 
     id: Mapped[int] = __table__.c.id
     arm: Mapped[str] = __table__.c.arm
-    grasp: Mapped[str] = __table__.c.grasp
     torso_height: Mapped[float] = __table__.c.torso_height
     relative_x: Mapped[float] = column_property(__table__.c.relative_x)
     relative_y: Mapped[float] = column_property(__table__.c.relative_y)
