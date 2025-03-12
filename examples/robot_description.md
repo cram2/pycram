@@ -149,10 +149,10 @@ individually. The predefined grasp used is the Grasp.FRONT grasp of the robot. B
 generated.
 
 ```python
-from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
+from pycram.robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState, StaticJointState
-from ..units import meter
+from pycram.datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState, StaticJointState
+from pycram.units import meter
 
 ################################## Right Arm ##################################
 right_arm = KinematicChainDescription("right", "torso_lift_link", "r_wrist_roll_link",
