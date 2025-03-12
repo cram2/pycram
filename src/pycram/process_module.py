@@ -10,13 +10,13 @@ from datetime import timedelta
 from threading import Lock, get_ident
 import time
 from abc import ABC
-from typing_extensions import Callable, Type, Any, Union
+from typing_extensions import Callable, Type, Any, Union, Optional
 
 from .language import Language
 from .robot_description import RobotDescription
 from typing_extensions import TYPE_CHECKING
 from .datastructures.enums import ExecutionType
-from .ros import  logerr, logwarn_once
+from .ros import logerr, logwarn_once
 
 if TYPE_CHECKING:
     from .designators.motion_designator import BaseMotion
@@ -27,7 +27,7 @@ class ProcessModule:
     Implementation of process modules. Process modules are the part that communicate with the outer world to execute
      designators.
     """
-    execution_delay: timedelta = timedelta(seconds=0)
+    execution_delay: Optional[timedelta] = None
     """
     Adds a delay after executing a process module, to make the execution in simulation more realistic
     """

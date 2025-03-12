@@ -32,7 +32,6 @@ import pycram.orm.base
 
 
 def main():
-    ProcessModule.execution_delay =  timedelta(seconds=0)
     np.random.seed(69)
     random.seed(69)
 

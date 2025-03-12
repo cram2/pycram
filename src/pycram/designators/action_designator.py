@@ -149,6 +149,22 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
 
         return action
 
+    def __str__(self):
+        # all fields that are not ORM classes
+        fields = {}
+        for key, value in vars(self).items():
+            if key.startswith("orm_"):
+                continue
+            if isinstance(value, ObjectDesignatorDescription.Object):
+                fields[key] = value.name
+            elif isinstance(value, Pose):
+                fields[key] = value.__str__()
+        fields_str = "\n".join([f"{key}: {value}" for key, value in fields.items()])
+        return f"{self.__class__.__name__.replace('Performable', '')}:\n{fields_str}"
+
+    def __repr__(self):
+        return self.__str__()
+
 
 @dataclass
 class MoveTorsoActionPerformable(ActionAbstract):
@@ -177,12 +193,6 @@ class MoveTorsoActionPerformable(ActionAbstract):
                                               time_per_read=timedelta(milliseconds=20))
         if not validator.goal_achieved:
             raise TorsoGoalNotReached(validator)
-
-    def __str__(self):
-        return f"MoveTorsoAction: {self.joint_positions}"
-
-    def __repr__(self):
-        return self.__str__()
 
 
 @dataclass
@@ -291,12 +301,6 @@ class ParkArmsActionPerformable(ActionAbstract):
         if not validator.goal_achieved:
             raise ConfigurationNotReached(validator, configuration_type=StaticJointState.Park)
 
-    def __str__(self):
-        return f"ParkArmsAction: {self.arm}"
-
-    def __repr__(self):
-        return self.__str__()
-
 
 @dataclass
 class ReachToPickUpActionPerformable(ActionAbstract):
@@ -319,7 +323,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
     The grasp that should be used. For example, 'left' or 'right'
     """
 
-    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
+    orm_object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
     """
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
     not updated when the BulletWorld object is changed.
@@ -335,7 +339,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
     def __post_init__(self):
         super(ActionAbstract, self).__post_init__()
         # Store the object's data copy at execution
-        self.object_at_execution = self.object_designator.frozen_copy()
+        self.orm_object_at_execution = self.object_designator.frozen_copy()
 
     @with_tree
     def plan(self) -> None:
@@ -441,14 +445,14 @@ class ReachToPickUpActionPerformable(ActionAbstract):
     def arm_chain(self) -> KinematicChainDescription:
         return RobotDescription.current_robot_description.get_arm_chain(self.arm)
 
-    # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
+    # TODO find a way to use orm_object_at_execution instead of object_designator in the automatic orm mapping in
     #  ActionAbstract
     def to_sql(self) -> ORMAction:
         return ORMReachToPickUpAction(arm=self.arm, grasp=self.grasp, prepose_distance=self.prepose_distance)
 
     def insert(self, session: Session, **kwargs) -> ORMAction:
         action = super(ActionAbstract, self).insert(session)
-        action.object = self.object_at_execution.insert(session)
+        action.object = self.orm_object_at_execution.insert(session)
         session.add(action)
         return action
 
@@ -464,14 +468,6 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         else:
             logwarn(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
 
-    def __str__(self):
-        return (f"ReachToPickUpAction:\n"
-                f"Object: {self.object_designator.name}\n"
-                f"Arm: {self.arm}\n"
-                f"Grasp: {self.grasp}")
-
-    def __repr__(self):
-        return self.__str__()
 
 @dataclass
 class PickUpActionPerformable(ActionAbstract):
@@ -494,7 +490,7 @@ class PickUpActionPerformable(ActionAbstract):
     The grasp that should be used. For example, 'left' or 'right'
     """
 
-    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
+    orm_object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
     """
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
     not updated when the BulletWorld object is changed.
@@ -510,7 +506,7 @@ class PickUpActionPerformable(ActionAbstract):
     def __post_init__(self):
         super(ActionAbstract, self).__post_init__()
         # Store the object's data copy at execution
-        self.object_at_execution = self.object_designator.frozen_copy()
+        self.orm_object_at_execution = self.object_designator.frozen_copy()
 
     @with_tree
     def plan(self) -> None:
@@ -540,14 +536,14 @@ class PickUpActionPerformable(ActionAbstract):
         gripper_link = self.arm_chain.get_tool_frame()
         return World.robot.links[gripper_link].pose
 
-    # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
+    # TODO find a way to use orm_object_at_execution instead of object_designator in the automatic orm mapping in
     #  ActionAbstract
     def to_sql(self) -> ORMAction:
         return ORMPickUpAction(arm=self.arm, grasp=self.grasp, prepose_distance=self.prepose_distance)
 
     def insert(self, session: Session, **kwargs) -> ORMAction:
         action = super(ActionAbstract, self).insert(session)
-        action.object = self.object_at_execution.insert(session)
+        action.object = self.orm_object_at_execution.insert(session)
         session.add(action)
         return action
 
@@ -565,15 +561,6 @@ class PickUpActionPerformable(ActionAbstract):
     @cached_property
     def world_object(self) -> Object:
         return self.object_designator.world_object
-
-    def __str__(self):
-        return (f"PickUpAction:\n"
-                f"Object: {self.object_designator.name}\n"
-                f"Arm: {self.arm}\n"
-                f"Grasp: {self.grasp}")
-
-    def __repr__(self):
-        return self.__str__()
 
 
 @dataclass
@@ -683,15 +670,6 @@ class PlaceActionPerformable(ActionAbstract):
         if not pose_error_checker.is_error_acceptable(self.world_object.pose, self.target_location):
             raise ObjectNotPlacedAtTargetLocation(self.world_object, self.target_location, World.robot, self.arm)
 
-    def __str__(self):
-        return (f"PlaceAction:\n"
-                f"Object: {self.object_designator.name}\n"
-                f"Arm: {self.arm}\n"
-                f"Target Location: {self.target_location}")
-
-    def __repr__(self):
-        return self.__str__()
-
 
 @dataclass
 class NavigateActionPerformable(ActionAbstract):
@@ -720,12 +698,6 @@ class NavigateActionPerformable(ActionAbstract):
         pose_validator = PoseErrorChecker(World.conf.get_pose_tolerance())
         if not pose_validator.is_error_acceptable(World.robot.pose, self.target_location):
             raise NavigationGoalNotReachedError(World.robot, self.target_location)
-
-    def __str__(self):
-        return f"NavigateAction: {self.target_location}"
-
-    def __repr__(self):
-        return self.__str__()
 
 
 @dataclass
@@ -786,15 +758,6 @@ class TransportActionPerformable(ActionAbstract):
         # The validation of each atomic action is done in the action itself, so no more validation needed here.
         pass
 
-    def __str__(self):
-        return (f"TransportAction:\n"
-                f"Object: {self.object_designator.name}\n"
-                f"Arm: {self.arm}\n"
-                f"Target Location: {self.target_location}")
-
-    def __repr__(self):
-        return self.__str__()
-
 
 @dataclass
 class LookAtActionPerformable(ActionAbstract):
@@ -827,12 +790,6 @@ class LookAtActionPerformable(ActionAbstract):
             if not ray_result.intersected or ray_result.obj_id != gen_obj.id:
                 raise LookAtGoalNotReached(World.robot, self.target)
 
-    def __str__(self):
-        return f"LookAtAction: {self.target}"
-
-    def __repr__(self):
-        return self.__str__()
-
 
 @dataclass
 class DetectActionPerformable(ActionAbstract):
@@ -860,7 +817,7 @@ class DetectActionPerformable(ActionAbstract):
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMDetectAction)
 
-    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False)
+    orm_object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False)
 
     @with_tree
     def plan(self) -> None:
@@ -871,16 +828,6 @@ class DetectActionPerformable(ActionAbstract):
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         if not result:
             raise PerceptionObjectNotFound(self.object_designator_description, self.technique, self.region)
-
-    def __str__(self):
-        return (f"DetectAction:\n"
-                f"Technique: {self.technique}\n"
-                f"State: {self.state}\n"
-                f"Object Designator: {self.object_designator_description}\n"
-                f"Region: {self.region}")
-
-    def __repr__(self):
-        return self.__str__()
 
 
 @dataclass
@@ -917,13 +864,6 @@ class OpenActionPerformable(ActionAbstract):
         """
         validate_close_open(self.object_designator, self.arm, OpenActionPerformable)
 
-    def __str__(self):
-        return (f"OpenAction: {self.object_designator.name}\n"
-                f"Arm: {self.arm}")
-
-    def __repr__(self):
-        return self.__str__()
-
 
 @dataclass
 class CloseActionPerformable(ActionAbstract):
@@ -957,13 +897,6 @@ class CloseActionPerformable(ActionAbstract):
         real world.
         """
         validate_close_open(self.object_designator, self.arm, CloseActionPerformable)
-
-    def __str__(self):
-        return (f"CloseAction: {self.object_designator.name}\n"
-                f"Arm: {self.arm}")
-
-    def __repr__(self):
-        return self.__str__()
 
 
 def validate_close_open(object_designator: ObjectDesignatorDescription.Object, arm: Arms,
@@ -1050,13 +983,6 @@ class GraspingActionPerformable(ActionAbstract):
         if not any([link.name in gripper_links for link in contact_links]):
             raise ObjectNotGraspedError(self.object_desig.world_object, World.robot, self.arm, None)
 
-    def __str__(self):
-        return (f"GraspingAction: {self.object_desig.name}\n"
-                f"Arm: {self.arm}")
-
-    def __repr__(self):
-        return self.__str__()
-
 
 @dataclass
 class FaceAtPerformable(ActionAbstract):
@@ -1097,9 +1023,6 @@ class FaceAtPerformable(ActionAbstract):
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in the LookAtActionPerformable.perform() method so no need to validate here.
         pass
-
-    def __str__(self):
-        return f"FaceAtAction: {self.pose}"
 
 
 @dataclass
@@ -1149,14 +1072,6 @@ class MoveAndPickUpPerformable(ActionAbstract):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
         pass
 
-    def __str__(self):
-        return (f"MoveAndPickUpAction: {self.object_designator.name}\n"
-                f"Arm: {self.arm}\n"
-                f"Grasp: {self.grasp}")
-
-    def __repr__(self):
-        return self.__str__()
-
 
 @dataclass
 class MoveAndPlacePerformable(ActionAbstract):
@@ -1198,15 +1113,6 @@ class MoveAndPlacePerformable(ActionAbstract):
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
         pass
-
-    def __str__(self):
-        return (f"MoveAndPlaceAction: {self.object_designator.name}\n"
-                f"standing_pose: {self.standing_position}\n"
-                f"target_location: {self.target_location}\n"
-                f"Arm: {self.arm}")
-
-    def __repr__(self):
-        return self.__str__()
 
 
 @dataclass
@@ -1278,15 +1184,6 @@ class PouringPerformable(ActionAbstract):
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
         pass
-
-    def __str__(self):
-        return (f"PouringAction: {self.object_.name}\n"
-                f"tool: {self.tool}\n"
-                f"technique: {self.technique}\n"
-                f"Arm: {self.arm}")
-
-    def __repr__(self):
-        return self.__str__()
 # ----------------------------------------------------------------------------
 #               Action Designators Description
 # ----------------------------------------------------------------------------
