@@ -6,6 +6,7 @@ import datetime
 import inspect
 import logging
 
+from anytree import RenderTree
 from anytree.exporter import DotExporter
 from typing_extensions import List, Optional, Callable
 import anytree
@@ -248,7 +249,9 @@ class TaskTree(metaclass=Singleton):
     @staticmethod
     def render(file_name: str):
         """
-        Render the task tree in a string format.
+        Render the task tree to a dot file and a png file.
+
+        :param file_name: The name of the file without extension.
         """
         def task_node_name(node):
             start_time = node.start_time.time() if node.start_time else node.start_time
@@ -262,6 +265,9 @@ class TaskTree(metaclass=Singleton):
             if not time_:
                 return None
             return f"{time_.minute}:{time_.second}:{int(time_.microsecond * 0.001)}"
+
+        for pre, _, node in RenderTree(task_tree.root):
+            print(f"{pre}{node.weight if hasattr(node, 'weight') and node.weight else ''} {node.__str__()}")
 
         de = DotExporter(task_tree.root,
                          nodenamefunc=task_node_name,
