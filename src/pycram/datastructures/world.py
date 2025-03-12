@@ -29,7 +29,6 @@ from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity, PhysicalBody, WorldEntity
 from ..failures import ProspectionObjectNotFound, ObjectNotFound
 from ..local_transformer import LocalTransformer
-from ..process_module import ProcessModule
 from ..robot_description import RobotDescription
 from ..ros import  Time
 from ..ros import  logwarn
@@ -104,7 +103,6 @@ class World(WorldEntity, ABC):
             self.cache_manager.clear_cache()
 
         GoalValidator.raise_error = self.conf.raise_goal_validator_error
-        ProcessModule.execution_delay = self.conf.execution_delay
 
         if World.current_world is None:
             World.current_world = self
