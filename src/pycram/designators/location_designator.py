@@ -113,7 +113,7 @@ class CostmapLocation(LocationDesignatorDescription):
         List of arms with which the pose can be reached, is only used when the 'reachable_for' parameter is used
         """
 
-        used_grasp_description: GraspDescription
+        grasp_description: GraspDescription
         """
         The grasp configuration used to reach the pose
         """
@@ -124,7 +124,7 @@ class CostmapLocation(LocationDesignatorDescription):
                  reachable_arms: Optional[List[Arms]] = None,
                  prepose_distance: float = 0.03,
                  ignore_collision_with: Optional[List[Object]] = None,
-                 used_grasp_descriptions: Optional[List[GraspDescription]] = None,
+                 grasp_descriptions: Optional[List[GraspDescription]] = None,
                  object_in_hand: Optional[ObjectDesignatorDescription.Object] = None):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
@@ -136,7 +136,7 @@ class CostmapLocation(LocationDesignatorDescription):
         :param reachable_arms: An optional list of arms that should be used to reach the pose
         :param prepose_distance: Distance to the target pose where the robot should be checked for reachability.
         :param ignore_collision_with: List of objects that should be ignored for collision checking.
-        :param used_grasp_descriptions: The grasp descriptions that should be tried to reach the pose
+        :param grasp_descriptions: The grasp descriptions that should be tried to reach the pose
         :param object_in_hand: The object that should be in the hand of the robot
         """
         super().__init__()
@@ -146,7 +146,7 @@ class CostmapLocation(LocationDesignatorDescription):
         self.reachable_arms: Optional[List[Arms]] = reachable_arms
         self.prepose_distance = prepose_distance
         self.ignore_collision_with = ignore_collision_with if ignore_collision_with is not None else []
-        self.used_grasp_descriptions: Optional[List[GraspDescription]] = used_grasp_descriptions
+        self.grasp_descriptions: Optional[List[GraspDescription]] = grasp_descriptions
         self.object_in_hand: Optional[ObjectDesignatorDescription.Object] = object_in_hand
 
     def ground(self) -> Location:
@@ -224,8 +224,8 @@ class CostmapLocation(LocationDesignatorDescription):
                                                        World.current_world)
                 if self.reachable_for:
 
-                    if self.used_grasp_descriptions:
-                        grasp_descriptions = self.used_grasp_descriptions
+                    if self.grasp_descriptions:
+                        grasp_descriptions = self.grasp_descriptions
                     else:
                         grasp_descriptions = calculate_grasp_descriptions(self.target, test_robot)
 
@@ -233,7 +233,7 @@ class CostmapLocation(LocationDesignatorDescription):
                     for grasp_description in grasp_descriptions:
                         valid, arms, _ = reachability_validator(test_robot, target_pose,
                                                                 arms=self.reachable_arms,
-                                                                used_grasp_description=grasp_description,
+                                                                grasp_description=grasp_description,
                                                                 object_in_hand=self.object_in_hand,
                                                                 prepose_distance=self.prepose_distance,
                                                                 allowed_collision=allowed_collision)
@@ -370,18 +370,18 @@ class AccessingLocation(LocationDesignatorDescription):
                     hand_links += description.end_effector.links
 
                 valid_init, arms_init, _ = reachability_validator(test_robot, init_pose,
-                                                               arms=[Arms.RIGHT, Arms.LEFT],
-                                                               used_grasp_description=grasp,
-                                                               allowed_collision={test_robot: hand_links},
-                                                               prepose_distance=self.prepose_distance)
+                                                                  arms=[Arms.RIGHT, Arms.LEFT],
+                                                                  grasp_description=grasp,
+                                                                  allowed_collision={test_robot: hand_links},
+                                                                  prepose_distance=self.prepose_distance)
 
                 if valid_init:
                     logdebug(f"Found a valid init pose for accessing {self.handle.name} with arms {arms_init}")
                     valid_goal, arms_goal, _ = reachability_validator(test_robot, goal_pose,
-                                                                   arms=arms_init,
-                                                                   used_grasp_description=grasp,
-                                                                   allowed_collision={test_robot: hand_links},
-                                                                   prepose_distance=self.prepose_distance)
+                                                                      arms=arms_init,
+                                                                      grasp_description=grasp,
+                                                                      allowed_collision={test_robot: hand_links},
+                                                                      prepose_distance=self.prepose_distance)
 
                     arms_list = list(set(arms_init).intersection(set(arms_goal)))
 

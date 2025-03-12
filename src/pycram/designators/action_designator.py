@@ -730,7 +730,7 @@ class TransportActionPerformable(ActionAbstract):
 
         NavigateActionPerformable(pickup_pose.pose, True).perform()
         PickUpActionPerformable(self.object_designator, pickup_pose.reachable_arms[0],
-                                pickup_pose.used_grasp_description,
+                                pickup_pose.grasp_description,
                                 prepose_distance=self.pickup_prepose_distance).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         try:
@@ -738,7 +738,7 @@ class TransportActionPerformable(ActionAbstract):
                 target=self.target_location,
                 reachable_for=robot_desig_resolved,
                 reachable_arms=[pickup_pose.reachable_arms[0]],
-                used_grasp_descriptions=[pickup_pose.used_grasp_description],
+                grasp_descriptions=[pickup_pose.grasp_description],
                 object_in_hand=self.object_designator
             ).resolve()
         except StopIteration:

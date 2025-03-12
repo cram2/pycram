@@ -97,7 +97,7 @@ with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
     top_grasp = GraspDescription(Grasp.FRONT, Grasp.TOP, False)
     spoon_pick_loc = CostmapLocation(spoon_desig, reachable_for=robot_desig.resolve(), reachable_arms=[pickup_arm],
-                                     used_grasp_descriptions=[top_grasp]).resolve()
+                                     grasp_descriptions=[top_grasp]).resolve()
     NavigateAction([spoon_pick_loc.pose]).resolve().perform()
 
     PickUpAction(spoon_desig, [pickup_arm], [top_grasp]).resolve().perform()

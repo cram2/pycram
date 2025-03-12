@@ -154,7 +154,7 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
             torso={"torso_lift_joint": 0.2}
         MoveTorsoActionPerformable(torso).perform()
         grasp = GraspDescription(Grasp.FRONT, Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else None, False)  
-        location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, used_grasp_descriptions = [grasp])
+        location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, grasp_descriptions = [grasp])
         pose = location.resolve()
         print()
         NavigateActionPerformable(pose.pose, True).perform()

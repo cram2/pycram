@@ -143,7 +143,7 @@ def visibility_validator(pose: Pose,
 def reachability_validator(robot: Object,
                            target: Pose,
                            arms: List[Arms],
-                           used_grasp_description: GraspDescription,
+                           grasp_description: GraspDescription,
                            object_in_hand: Optional[ObjectDesignatorDescription.Object] = None,
                            prepose_distance: float = 0.03,
                            allowed_collision: Dict[Object, List] = None,
@@ -158,7 +158,7 @@ def reachability_validator(robot: Object,
     :param robot: The robot object in the World for which the reachability should be validated.
     :param target: The target position or object instance which should be the target for reachability.
     :param arms: The arms that should be checked for reachability.
-    :param used_grasp_description: The grasp description that should be used for the reachability check.
+    :param grasp_description: The grasp description that should be used for the reachability check.
     :param object_in_hand: The object that is currently in the hand of the robot. If None the robot is assumed to have
     :param prepose_distance: The distance the robot should retract from the target position after/before reaching it.
     :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates
@@ -197,7 +197,7 @@ def reachability_validator(robot: Object,
             with_lifting = False
         else:
             grasp_orientation = RobotDescription.current_robot_description.get_arm_chain(
-                arm.arm_type).end_effector.grasps[used_grasp_description]
+                arm.arm_type).end_effector.grasps[grasp_description]
 
             target_pose.rotate_by_quaternion(grasp_orientation)
 
