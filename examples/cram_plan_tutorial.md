@@ -188,7 +188,7 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
                 pose_island.pose = Pose(pose_island.pose.position_as_list(), orientation)
                 pose_island.pose.position.z += 0.07
                 print(pose_island.pose.position)
-                place_location = CostmapLocation(target=pose_island.pose, reachable_for=robot_desig, reachable_arm=picked_up_arm)
+                place_location = CostmapLocation(target=pose_island.pose, reachable_for=robot_desig, reachable_arms=[picked_up_arm])
                 pose = place_location.resolve()
                 NavigateActionPerformable(pose.pose, True).perform()
                 PlaceActionPerformable(object_designator=obj_desig, target_location=pose_island.pose,

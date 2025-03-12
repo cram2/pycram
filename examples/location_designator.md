@@ -70,7 +70,27 @@ which we will be extending later.
 
 ```python
 from pycram.designators.location_designator import CostmapLocation
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object
+from pycram.datastructures.enums import ObjectType, WorldMode
+from pycram.datastructures.pose import Pose
+from pycrap.ontologies import Apartment, Robot, Milk
 
+use_multiverse = False
+viz_marker_publisher = None
+if use_multiverse:
+    try:
+        from pycram.worlds.multiverse import Multiverse
+        world = Multiverse()
+    except ImportError:
+        raise ImportError("Multiverse is not installed, please install it to use it.")
+else:
+    from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
+    world = BulletWorld()
+    viz_marker_publisher = VizMarkerPublisher()
+    
+apartment = Object("apartment", Apartment, "apartment.urdf")
+pr2 = Object("pr2", Robot, "pr2.urdf")
 target = apartment.get_pose()
 
 location_description = CostmapLocation(target)

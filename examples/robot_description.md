@@ -153,7 +153,10 @@ from pycram.robot_description import RobotDescription, KinematicChainDescription
     RobotDescriptionManager, CameraDescription
 from pycram.datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState, StaticJointState
 from pycram.units import meter
+from pycram.ros import get_ros_package_path
 
+filename = get_ros_package_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
+pr2_description = RobotDescription("pr2_example", "base_link", "torso_lift_link", "torso_lift_joint", filename)
 ################################## Right Arm ##################################
 right_arm = KinematicChainDescription("right", "torso_lift_link", "r_wrist_roll_link",
                                       pr2_description.urdf_object, arm_type=Arms.RIGHT)
