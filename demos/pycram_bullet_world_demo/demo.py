@@ -53,17 +53,25 @@ with simulated_robot:
 
     MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
 
+    loginfo("Handling milk")
+
     milk_desig = move_and_detect(Milk)
 
     TransportAction(milk_desig, [Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
+
+    loginfo("Handling cereal")
 
     cereal_desig = move_and_detect(Cereal)
 
     TransportAction(cereal_desig, [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])], [Arms.RIGHT]).resolve().perform()
 
+    loginfo("Handling bowl")
+
     bowl_desig = move_and_detect(Bowl)
 
     TransportAction(bowl_desig, [Pose([5, 3.3, 0.8], [0, 0, 1, 1])], [Arms.LEFT]).resolve().perform()
+
+    loginfo("Opening drawer to get spoon")
 
     MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
     # Finding and navigating to the drawer holding the spoon
@@ -78,6 +86,8 @@ with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
     # Detect and pickup the spoon
     LookAtAction([apartment.get_link_pose("handle_cab10_t")]).resolve().perform()
+
+    loginfo("Detecting and picking up spoon")
 
     spoon_desigs = DetectAction(technique=DetectionTechnique.TYPES,
                                 object_designator_description=BelieveObject(types=[Spoon])).resolve().perform()
@@ -96,11 +106,15 @@ with simulated_robot:
 
     NavigateAction([drawer_open_loc.pose]).resolve().perform()
 
+    loginfo("Closing drawer")
+
     CloseAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
     MoveTorsoAction([TorsoState.MID]).resolve().perform()
+
+    loginfo("Placing spoon")
 
     # Find a pose to place the spoon, move and then place it
     spoon_target_pose = Pose([4.7, 3.25, 0.8], [0, 0, 1, 1])
