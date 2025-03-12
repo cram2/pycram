@@ -161,6 +161,7 @@ class MixinTestCase(DatabaseTestCaseMixin):
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
+            ParkArmsActionPerformable(Arms.BOTH).perform()
             grasp = GraspDescription(Grasp.FRONT, None, False)
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp, 0.03).perform()
             description.resolve().perform()
@@ -374,19 +375,22 @@ class ViewsSchemaTest(DatabaseTestCaseMixin):
         pycram.orm.base.ProcessMetaData().description = "view_creation_test"
         pycram.tasktree.task_tree.root.insert(self.session)
         view = PickUpWithContextView
-        self.assertEqual(len(view.__table__.columns), 11)
+        self.assertEqual(len(view.__table__.columns), 14)
         self.assertEqual(view.__table__.name, "PickUpWithContextView")
         self.assertEqual(view.__table__.columns[0].name, "id")
         self.assertEqual(view.__table__.columns[1].name, "arm")
-        self.assertEqual(view.__table__.columns[2].name, "torso_height")
-        self.assertEqual(view.__table__.columns[3].name, "relative_x")
-        self.assertEqual(view.__table__.columns[4].name, "relative_y")
-        self.assertEqual(view.__table__.columns[5].name, "x")
-        self.assertEqual(view.__table__.columns[6].name, "y")
-        self.assertEqual(view.__table__.columns[7].name, "z")
-        self.assertEqual(view.__table__.columns[8].name, "w")
-        self.assertEqual(view.__table__.columns[9].name, "obj_type")
-        self.assertEqual(view.__table__.columns[10].name, "status")
+        self.assertEqual(view.__table__.columns[2].name, "side_grasp")
+        self.assertEqual(view.__table__.columns[3].name, "top_grasp")
+        self.assertEqual(view.__table__.columns[4].name, "horizontal")
+        self.assertEqual(view.__table__.columns[5].name, "torso_height")
+        self.assertEqual(view.__table__.columns[6].name, "relative_x")
+        self.assertEqual(view.__table__.columns[7].name, "relative_y")
+        self.assertEqual(view.__table__.columns[8].name, "x")
+        self.assertEqual(view.__table__.columns[9].name, "y")
+        self.assertEqual(view.__table__.columns[10].name, "z")
+        self.assertEqual(view.__table__.columns[11].name, "w")
+        self.assertEqual(view.__table__.columns[12].name, "obj_type")
+        self.assertEqual(view.__table__.columns[13].name, "status")
 
     def test_pickUpWithContextView(self):
         if self.engine.dialect.name == "sqlite":

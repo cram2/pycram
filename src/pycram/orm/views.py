@@ -4,7 +4,7 @@ import sqlalchemy.orm
 from sqlalchemy import table, inspect, event, select, engine, MetaData, Select, TableClause, ExecutableDDLElement
 from sqlalchemy.ext.compiler import compiles
 from .action_designator import PickUpAction, PlaceAction
-from .base import Position, RobotState, Pose, Base, Quaternion
+from .base import Position, RobotState, Pose, Base, Quaternion, GraspDescription
 from .object_designator import Object
 from .tasktree import TaskTreeNode
 
@@ -123,7 +123,8 @@ class PickUpWithContextView(base):
     """
 
     __table__ = view("PickUpWithContextView", Base.metadata,
-                     (select(PickUpAction.id, PickUpAction.arm, RobotState.torso_height,
+                     (select(PickUpAction.id, PickUpAction.arm, GraspDescription.side_grasp, GraspDescription.top_grasp,
+                             GraspDescription.horizontal, RobotState.torso_height,
                              (__robot_position.x-__object_position.x).label("relative_x"),
                              (__robot_position.y-__object_position.y).label("relative_y"), Quaternion.x, Quaternion.y,
                              Quaternion.z, Quaternion.w, Object.obj_type, TaskTreeNode.status)
