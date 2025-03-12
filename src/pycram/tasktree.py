@@ -258,10 +258,10 @@ class TaskTree(metaclass=Singleton):
             end_time = node.end_time.time() if node.end_time else node.end_time
             return f"Code: {node.action} \n" \
                    f"Status: {node.status} \n" \
-                   f"start_time: {time_to_str(start_time)}\n" \
-                   f"end_time: {time_to_str(end_time)}\n"
+                   f"start_time: {datetime_to_str(start_time)}\n" \
+                   f"end_time: {datetime_to_str(end_time)}\n"
 
-        def time_to_str(time_):
+        def datetime_to_str(time_):
             if not time_:
                 return None
             return f"{time_.minute}:{time_.second}:{int(time_.microsecond * 0.001)}"
