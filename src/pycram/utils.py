@@ -15,7 +15,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
 from .tf_transformations import quaternion_about_axis, quaternion_multiply
-from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence, Any
+from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence, Any, Iterable
 
 from .datastructures.dataclasses import Color
 from .datastructures.pose import Pose
@@ -684,3 +684,30 @@ def is_iterable(obj: Any) -> bool:
         return False
     return True
 
+
+def lazy_product(*iterables: Iterable) -> Iterable[Tuple]:
+    """
+    Lazily generate the cartesian product of the iterables.
+
+    :param iterables: Iterable of iterables to construct product for.
+    :return: Iterable of tuples in the cartesian product.
+    """
+
+    consumable_iterables = [iter(iterable) for iterable in iterables]
+
+    current_value = [next(consumable_iterable) for consumable_iterable in consumable_iterables]
+
+    while True:
+        yield tuple(current_value)
+
+        for index in range(len(consumable_iterables) -1, -1, -1):
+            current_iterable = consumable_iterables[index]
+            try:
+                consumable_value = next(current_iterable)
+                current_value[index] = consumable_value
+                break
+            except StopIteration as e:
+                if index == 0:
+                    return
+                consumable_iterables[index] = iter(iterables[index])
+                current_value[index] = next(consumable_iterables[index])

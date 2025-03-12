@@ -1,3 +1,5 @@
+import unittest
+
 from pycram.datastructures.partial_designator import PartialDesignator
 from pycram.datastructures.pose import Pose
 from pycram.testing import BulletWorldTestCase
@@ -6,7 +8,7 @@ from pycram.designators.action_designator import PickUpAction, PickUpAction, Set
 from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import Arms, Grasp, GripperState, TorsoState
 from pycrap.ontologies import Milk
-from pycram.utils import is_iterable
+from pycram.utils import is_iterable, lazy_product
 from pycram.process_module import simulated_robot
 
 class TestPartialDesignator(BulletWorldTestCase):
@@ -100,3 +102,34 @@ class TestPartialActions(BulletWorldTestCase):
         pick = PickUpActionDescription(milk_desig, [Arms.LEFT, Arms.RIGHT])
         pick_action = pick(grasp=Grasp.FRONT).resolve()
         self.assertEqual(pick_action.grasp, Grasp.FRONT)
+
+
+class TestLazyProduct(unittest.TestCase):
+
+    def test_lazy_product_result(self):
+        l1 = [0, 1]
+        l2 = [3, 4]
+        self.assertEqual(list(lazy_product(l1, l2)), [(0,3), (0,4), (1,3), (1,4)])
+
+    def test_lazy_product_single_input(self):
+        l1 = [0, 1]
+        self.assertEqual(list(lazy_product(l1)), [(0,), (1,)])
+
+    def test_lazy_product_lazy_evaluate(self):
+        def bad_generator():
+            for i in range(10):
+                if i == 5:
+                    raise RuntimeError()
+                yield i
+        l1 = iter(bad_generator())
+        l2 = iter(bad_generator())
+        res = next(lazy_product(l1, l2))
+        self.assertEqual(res, (0,0))
+
+    def test_lazy_product_error(self):
+        def bad_generator():
+            for i in range(10):
+                if i == 5:
+                    raise RuntimeError()
+                yield i
+        self.assertRaises(RuntimeError, lambda: list(lazy_product(bad_generator())))

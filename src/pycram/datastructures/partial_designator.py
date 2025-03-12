@@ -2,11 +2,10 @@
 from __future__ import annotations
 
 from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING, TypeVar, Generic, Iterator, Iterable, AnyStr
-from itertools import product
 from inspect import signature
 
 from ..language import Language
-from ..utils import is_iterable
+from ..utils import is_iterable, lazy_product
 
 
 if TYPE_CHECKING:
@@ -91,7 +90,7 @@ class PartialDesignator(Language):
         :yields: A list with a possible permutation of the given arguments
         """
         iter_list = [x if is_iterable(x) and not type(x) == str else [x] for x in self.kwargs.values()]
-        for combination in product(*iter_list):
+        for combination in lazy_product(*iter_list):
             yield dict(zip(self.kwargs.keys(), combination))
 
     def missing_parameter(self) -> List[str]:
