@@ -28,7 +28,6 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(mode=cls.render_mode)
-        ProcessModule.execution_delay = timedelta(seconds=0)
         cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):

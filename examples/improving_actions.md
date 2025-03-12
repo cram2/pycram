@@ -59,7 +59,6 @@ from pycram.tasktree import task_tree, TaskTree
 from datetime import timedelta
 
 
-ProcessModule.execution_delay =  timedelta(seconds=0)
 np.random.seed(69)
 random.seed(69)
 ```

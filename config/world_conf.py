@@ -1,5 +1,6 @@
 import math
 import os
+from datetime import timedelta
 
 import yaml
 from typing_extensions import Tuple, Type, Dict, Optional
@@ -112,6 +113,11 @@ class WorldConfig:
     max_batch_size_for_rays: Optional[int] = 16380
     """
     The maximum batch size for the rays when using the ray test batch.
+    """
+
+    execution_delay: timedelta = timedelta(seconds=0)
+    """
+    The delay between the execution of actions/motions to imitate real world execution time.
     """
 
     @classproperty
