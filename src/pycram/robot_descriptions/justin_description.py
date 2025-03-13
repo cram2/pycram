@@ -171,10 +171,10 @@ justin_description.add_kinematic_chain("neck", "torso4", "head2")
 
 ################################# Grasps ##################################
 orientation = [0.707, -0.707, 0.707, -0.707]
-left_gripper.generate_all_grasp_orientations(orientation)
+left_gripper.update_all_grasp_orientations(orientation)
 
 orientation = [0.707, 0.707, 0.707, 0.707]
-right_gripper.generate_all_grasp_orientations(orientation)
+right_gripper.update_all_grasp_orientations(orientation)
 
 
 ################################# Additionals ##################################

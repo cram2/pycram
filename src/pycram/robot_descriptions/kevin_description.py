@@ -59,7 +59,7 @@ torso.add_static_joint_states(TorsoState.LOW, {"robot_arm_column_joint": 0})
 
 kevin_description.add_kinematic_chain_description(torso)
 ################################# Grasps ##################################
-only_gripper_description.generate_all_grasp_orientations([0, 0, 0, 1])
+only_gripper_description.update_all_grasp_orientations([0, 0, 0, 1])
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

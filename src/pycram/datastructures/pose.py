@@ -4,19 +4,22 @@ from __future__ import annotations
 import datetime
 import math
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 import numpy as np
 import sqlalchemy.orm
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
-from typing_extensions import List, Union, Optional, Self
+from typing_extensions import List, Union, Optional, Self, Tuple
 
+from .enums import AxisIdentifier, Grasp
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
 from ..ros import Time
 from ..ros import logwarn, logerr
 from ..tf_transformations import euler_from_quaternion, translation_matrix, quaternion_matrix, concatenate_matrices, \
-    inverse_matrix, translation_from_matrix, quaternion_from_matrix
+    inverse_matrix, translation_from_matrix, quaternion_from_matrix, quaternion_multiply
 from ..validation.error_checkers import calculate_pose_error
+from scipy.spatial.transform import Rotation as R
 
 
 def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
@@ -332,16 +335,103 @@ class Pose(PoseStamped):
 
         :param quaternion: The quaternion by which this Pose should be rotated
         """
-        x1, y1, z1, w1 = self.orientation_as_list()
-        x2, y2, z2, w2 = quaternion
+        self.orientation = quaternion_multiply(self.orientation_as_list(), quaternion)
 
-        w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
-        x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
-        y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
-        z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
+    def get_vector_to_pose(self, other_pose: Pose) -> np.ndarray:
+        """
+        Get the vector between two poses, by computing position of other_pose - position of self.
 
-        norm = (x**2 + y**2 + z**2 + w**2) ** 0.5
-        self.orientation = (x / norm, y / norm, z / norm, w / norm)
+        :param other_pose: The other pose.
+
+        :return: The vector between the two poses.
+        """
+        return np.array(other_pose.position_as_list()) - np.array(self.position_as_list())
+
+    @staticmethod
+    def calculate_closest_faces(pose_to_robot_vector: Tuple[float, float, float],
+                                specified_grasp_axis: Optional[AxisIdentifier] = None) -> Tuple[
+        GraspDescription, GraspDescription]:
+        """
+        Determines the faces of the object based on the input vector.
+
+        If `specified_grasp_axis` is None, it calculates the primary and secondary faces based on the vector's magnitude
+        determining which sides of the object are most aligned with the robot. This will either be the x, y plane for side faces
+        or the z axis for top/bottom faces.
+        If `specified_grasp_axis` is provided, it only considers the specified axis and calculates the faces aligned
+        with that axis.
+
+        :param pose_to_robot_vector: A 3D vector representing one of the robot's axes in the pose's frame, with
+                              irrelevant components set to np.nan.
+        :param specified_grasp_axis: Specifies a specific axis (e.g., X, Y, Z) to focus on.
+
+        :return: A tuple of two Grasp enums representing the primary and secondary faces.
+        """
+        all_axes = [AxisIdentifier.X, AxisIdentifier.Y, AxisIdentifier.Z]
+
+        if specified_grasp_axis:
+            valid_axes = [specified_grasp_axis]
+        else:
+            valid_axes = [axis for axis in all_axes if not np.isnan(pose_to_robot_vector[axis.value.index(1)])]
+
+        object_to_robot_vector = np.array(pose_to_robot_vector) + 1e-9
+        sorted_axes = sorted(valid_axes, key=lambda axis: abs(object_to_robot_vector[axis.value.index(1)]),
+                             reverse=True)
+
+        primary_axis = sorted_axes[0]
+        primary_sign = int(np.sign(object_to_robot_vector[primary_axis.value.index(1)]))
+        primary_face = Grasp.from_axis_direction(primary_axis, primary_sign)
+
+        if len(sorted_axes) > 1:
+            secondary_axis = sorted_axes[1]
+            secondary_sign = int(np.sign(object_to_robot_vector[secondary_axis.value.index(1)]))
+            secondary_face = Grasp.from_axis_direction(secondary_axis, secondary_sign)
+        else:
+            secondary_sign = -primary_sign
+            secondary_axis = primary_axis
+            secondary_face = Grasp.from_axis_direction(secondary_axis, secondary_sign)
+
+        return primary_face, secondary_face
+
+    def calculate_grasp_descriptions(self, robot, grasp_alignment: Optional[PreferredGraspAlignment] = None) -> List[GraspDescription]:
+        """
+        This method determines the possible grasp configurations (approach axis and vertical alignment) of the self,
+        taking into account the self's orientation, position, and whether the gripper should be rotated by 90°.
+
+        :param robot: The robot for which the grasp configurations are being calculated.
+
+        :return: A sorted list of GraspDescription instances representing all grasp permutations.
+        """
+        objectTmap = self
+
+        robot_pose = robot.get_pose()
+
+        if grasp_alignment:
+            side_axis, vertical, rotated_gripper = grasp_alignment
+        else:
+            side_axis, vertical, rotated_gripper = None, False, False
+
+        object_to_robot_vector_world = objectTmap.get_vector_to_pose(robot_pose)
+        orientation = objectTmap.orientation_as_list()
+
+        mapRobject = R.from_quat(orientation).as_matrix()
+        objectRmap = mapRobject.T
+
+        object_to_robot_vector_local = objectRmap.dot(object_to_robot_vector_world)
+        vector_x, vector_y, vector_z = object_to_robot_vector_local
+
+        vector_side = np.array([vector_x, vector_y, np.nan], dtype=float)
+        side_faces = self.calculate_closest_faces(vector_side, side_axis)
+
+        vector_vertical = np.array([np.nan, np.nan, vector_z], dtype=float)
+        vertical_faces = self.calculate_closest_faces(vector_vertical) if vertical else [None]
+
+        grasp_configs = [
+            GraspDescription(approach_direction=side, vertical_alignment=top_face, rotate_gripper=rotated_gripper)
+            for top_face in vertical_faces
+            for side in side_faces
+        ]
+
+        return grasp_configs
 
 
 class Transform(TransformStamped):
@@ -612,3 +702,52 @@ class Transform(TransformStamped):
         :param new_rotation: The new rotation as a quaternion with xyzw
         """
         self.rotation = new_rotation
+
+@dataclass
+class PreferredGraspAlignment:
+    """
+    Description of the preferred grasp alignment for an object.
+    """
+    preferred_axis: AxisIdentifier
+    with_vertical_alignment: bool
+    with_rotated_gripper: bool
+
+@dataclass(frozen=True)
+class GraspDescription:
+    """
+    Represents a grasp description with a side grasp, top face, and orientation alignment.
+    """
+
+    approach_direction: Grasp
+    """
+    The primary approach direction. Must be one of {Grasp.FRONT, Grasp.BACK, Grasp.LEFT, Grasp.RIGHT}.
+    """
+
+    vertical_alignment: Optional[Grasp] = None
+    """
+    The vertical alignment when grasping the pose, or None if not applicable. Must be one of {Grasp.TOP, Grasp.BOTTOM, None}.
+    """
+
+    rotate_gripper: bool = False
+    """
+    Indicates if the gripper should be rotated by 90°. Must be a boolean.
+    """
+
+    def __post_init__(self):
+        allowed_approach_direction = {Grasp.FRONT, Grasp.BACK, Grasp.LEFT, Grasp.RIGHT}
+        if self.approach_direction not in allowed_approach_direction:
+            raise ValueError(
+                f"Invalid value for side_face: {self.approach_direction}. Allowed values are {allowed_approach_direction}")
+        allowed_vertical_alignment = {Grasp.TOP, Grasp.BOTTOM, None}
+        if self.vertical_alignment not in allowed_vertical_alignment:
+            raise ValueError(
+                f"Invalid value for top_face: {self.vertical_alignment}. Allowed values are {allowed_vertical_alignment}")
+
+    def __hash__(self):
+        return hash((self.approach_direction, self.vertical_alignment, self.rotate_gripper))
+
+    def as_list(self) -> List[Union[Grasp, Optional[Grasp], bool]]:
+        """
+        :return: A list representation of the grasp description.
+        """
+        return [self.approach_direction, self.vertical_alignment, self.rotate_gripper]

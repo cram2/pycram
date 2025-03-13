@@ -53,7 +53,7 @@ donbot_description.add_camera_description(camera)
 donbot_description.add_kinematic_chain("neck", "ur5_base_link", "ur5_base_link")
 
 ################################# Grasps ##################################
-right_gripper.generate_all_grasp_orientations([0.707, -0.707, 0.707, -0.707])
+right_gripper.update_all_grasp_orientations([0.707, -0.707, 0.707, -0.707])
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

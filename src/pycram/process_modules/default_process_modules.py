@@ -3,6 +3,7 @@ import inspect
 import numpy as np
 from typing_extensions import List, TYPE_CHECKING
 
+from ..datastructures.dataclasses import Colors
 from ..datastructures.world import World
 from ..designators.motion_designator import *
 from ..external_interfaces import giskard
@@ -17,7 +18,7 @@ from ..process_module import ProcessModule
 from ..robot_description import RobotDescription
 from ..ros import get_time
 from ..ros import logdebug, loginfo
-from ..utils import _apply_ik, map_color_names_to_rgba
+from ..utils import _apply_ik
 from ..world_concepts.world_object import Object
 from ..world_reasoning import visible, link_pose_for_joint_config
 
@@ -280,7 +281,7 @@ class DefaultDetectingReal(ProcessModule):
                     loginfo(f"No class name contains the string '{obj_type}'")
                     obj_type = Genobj
                 gen_obj_desc = GenericObjectDescription(obj_name, [0, 0, 0], hsize)
-                color = map_color_names_to_rgba(obj_color)
+                color = Colors.from_string(obj_color)
                 generic_obj = Object(name=obj_name, concept=obj_type, path=None, description=gen_obj_desc, color=color)
 
                 generic_obj.set_pose(obj_pose)

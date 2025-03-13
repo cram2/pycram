@@ -36,7 +36,7 @@ if mjcf_filename is None or urdf_filename is None:
 else:
     robot_description = create_manipulator_description(data, urdf_filename, mjcf_filename)
     ################################# Grasps ##################################
-    robot_description.get_arm_chain(Arms.RIGHT).end_effector.generate_all_grasp_orientations([0, 0, 0, 1])
+    robot_description.get_arm_chain(Arms.RIGHT).end_effector.update_all_grasp_orientations([0, 0, 0, 1])
 
     # Add to RobotDescriptionManager
     rdm = RobotDescriptionManager()

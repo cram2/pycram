@@ -5,16 +5,14 @@ from typing_extensions import List, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap, Costmap
-from ..datastructures.dataclasses import GraspDescription
 from ..datastructures.enums import JointType, Arms, Grasp
-from ..datastructures.pose import Pose
+from ..datastructures.pose import Pose, GraspDescription
 from ..datastructures.world import World, UseProspectionWorld
 from ..designator import DesignatorError, LocationDesignatorDescription
 from ..local_transformer import LocalTransformer
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
 from ..robot_description import RobotDescription
 from ..ros import logdebug
-from ..utils import calculate_grasp_descriptions
 from ..world_concepts.world_object import Object
 from ..world_reasoning import link_pose_for_joint_config, prospect_robot_contact
 
@@ -177,10 +175,9 @@ class CostmapLocation(LocationDesignatorDescription):
         # This ensures that the costmaps always get a position as their origin.
         if isinstance(self.target, ObjectDesignatorDescription.Object):
             target_pose = self.target.world_object.get_pose().copy()
-            target_object = self.target.world_object
+            self.target = self.target.world_object
         else:
             target_pose = self.target.copy()
-            target_object = None
 
         ground_pose = Pose(target_pose.position_as_list())
         ground_pose.position.z = 0
@@ -200,7 +197,7 @@ class CostmapLocation(LocationDesignatorDescription):
             min_height = RobotDescription.current_robot_description.get_default_camera().minimal_height
             max_height = RobotDescription.current_robot_description.get_default_camera().maximal_height
             visible = VisibilityCostmap(min_height, max_height, 200, 0.02,
-                                        Pose(target_pose.position_as_list()), target_object=target_object,
+                                        Pose(target_pose.position_as_list()), target_object=self.target,
                                         robot=test_robot)
             final_map += visible
 
@@ -219,7 +216,7 @@ class CostmapLocation(LocationDesignatorDescription):
 
                 if self.visible_for:
                     visible_prospection_object = World.current_world.get_prospection_object_for_object(
-                        self.target.world_object)
+                        self.target)
                     res = res and visibility_validator(maybe_pose, test_robot, visible_prospection_object,
                                                        World.current_world)
                 if self.reachable_for:
@@ -227,7 +224,7 @@ class CostmapLocation(LocationDesignatorDescription):
                     if self.grasp_descriptions:
                         grasp_descriptions = self.grasp_descriptions
                     else:
-                        grasp_descriptions = calculate_grasp_descriptions(self.target, test_robot)
+                        grasp_descriptions = self.target.calculate_grasp_descriptions(test_robot)
 
                     allowed_collision = {o: o.link_names for o in self.ignore_collision_with}
                     for grasp_description in grasp_descriptions:

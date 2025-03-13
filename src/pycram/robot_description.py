@@ -3,16 +3,19 @@ from __future__ import annotations
 
 import math
 from enum import Enum
+from itertools import product
 
 import numpy as np
 from typing_extensions import List, Dict, Union, Optional, Tuple
 
-from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, GraspDescription
+from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, Rotations
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState
+from .datastructures.pose import GraspDescription
 from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
     get_robot_description_path
 from .object_descriptors.urdf import ObjectDescription as URDFObject
 from .ros import logerr
+from .tf_transformations import quaternion_multiply
 from .utils import suppress_stdout_stderr
 
 
@@ -713,9 +716,9 @@ class EndEffectorDescription:
     """
     List of all links of the fingers of the gripper
     """
-    grasps: Dict[GraspDescription, List[float]]
+    grasps: Dict[GraspDescription, List[float]] = {}
     """
-    Dict containing grasp descriptions mapped to the correct end-effector orientation
+    Dict containing grasp descriptions mapped to the correct end-effector quaternion orientation
     """
 
     def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject,
@@ -792,94 +795,45 @@ class EndEffectorDescription:
         """
         return self.joint_names
 
-    def generate_all_grasp_orientations(self, front_orientation: List[float]):
+    def update_all_grasp_orientations(self, front_orientation: List[float]):
         """
-        Generates all grasp orientations based on a given front-facing orientation,
+        Generates all grasp quaternion orientations based on a given front-facing quaternion orientation in-place,
         covering combinations of side grasps (front, back, left, right),
         top/bottom grasps, and horizontal rotation options.
 
-        :param front_orientation: A quaternion representing the front-facing orientation as [x, y, z, w].
+        :param front_orientation: A quaternion representing the front-facing orientation as [x, y, z, w] quaternion.
         """
 
-        def mult(q1: List[float], q2: List[float]) -> List[float]:
-            """
-            Multiplies two quaternions q1 and q2 (q1 * q2).
+        grasp_descriptions = [
+            GraspDescription(side, vertical, horizontal)
+            for side, vertical, horizontal in product(
+                Rotations.side_rotations.keys(),
+                Rotations.vertical_rotations.keys(),
+                Rotations.horizontal_rotations.keys()
+            )
+        ]
 
-            :param q1: First quaternion [x, y, z, w]
-            :param q2: Second quaternion [x, y, z, w]
+        for grasp_description in grasp_descriptions:
+            rotation = Rotations.side_rotations[grasp_description.approach_direction]
+            rotation = quaternion_multiply(rotation, Rotations.vertical_rotations[grasp_description.vertical_alignment])
+            rotation = quaternion_multiply(rotation, Rotations.horizontal_rotations[grasp_description.rotate_gripper])
 
-            :return: Resulting quaternion [x, y, z, w]
-            """
+            orientation = quaternion_multiply(rotation, front_orientation)
 
-            x1, y1, z1, w1 = q1
-            x2, y2, z2, w2 = q2
-            return [
-                w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-                w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
-                w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2,
-                w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
-            ]
+            norm = math.sqrt(sum(comp ** 2 for comp in orientation))
+            orientation = [comp / norm for comp in orientation]
 
-        def normalize(q: List[float]) -> List[float]:
-            """
-            Normalizes a quaternion to unit length.
-
-            :param q: Quaternion [x, y, z, w]
-
-            :return: Normalized quaternion [x, y, z, w]
-            """
-            norm = math.sqrt(sum(comp ** 2 for comp in q))
-            return [comp / norm for comp in q]
-
-        sqrt2over2 = math.sqrt(2) / 2
-
-        relative_rotations = {
-            Grasp.FRONT: [0, 0, 0, 1],
-            Grasp.BACK: [0, 0, 1, 0],
-            Grasp.LEFT: [0, 0, -sqrt2over2, sqrt2over2],
-            Grasp.RIGHT: [0, 0, sqrt2over2, sqrt2over2],
-        }
-
-        top_rotation = [0, sqrt2over2, 0, sqrt2over2]
-        bottom_rotation = [0, -sqrt2over2, 0, sqrt2over2]
-        horizontal_rotation = [sqrt2over2, 0, 0, sqrt2over2]
-
-        all_orientations = {}
-
-        for side_grasp, relative_rotation in relative_rotations.items():
-            for top_bot_grasp, tb_rotation in [
-                (None, None),
-                (Grasp.TOP, top_rotation),
-                (Grasp.BOTTOM, bottom_rotation)
-            ]:
-                for horizontal in [False, True]:
-                    rotation = [0, 0, 0, 1]
-
-                    rotation = mult(rotation, relative_rotation)
-
-                    if tb_rotation:
-                        rotation = mult(rotation, tb_rotation)
-
-                    if horizontal:
-                        rotation = mult(rotation, horizontal_rotation)
-
-                    orientation = mult(rotation, front_orientation)
-                    orientation = normalize(orientation)
-
-                    grasp_description = GraspDescription(side_grasp, top_bot_grasp, horizontal)
-                    all_orientations[grasp_description] = orientation
-
-        self.grasps = all_orientations
+            self.grasps[grasp_description] = orientation
 
     def get_grasp(self, grasp: Grasp, top_bot_grasp: Grasp = None, horizontal: bool = False) -> List[float]:
         """
-        Retrieves the orientation of the end effector for a specific grasp.
+        Retrieves the quaternion orientation of the end effector for a specific grasp.
 
         :param grasp: Grasp from the Grasp enum
         :param top_bot_grasp: Top or bottom grasp from the Grasp enum
         :param horizontal: If True, the horizontal rotation is applied
 
-        :return: List of floats representing the orientation
+        :return: List of floats representing the quaternion orientation of the end effector
         """
         grasp_description = GraspDescription(grasp, top_bot_grasp, horizontal)
         return self.grasps[grasp_description]

@@ -2,7 +2,7 @@ import time
 import unittest
 from datetime import timedelta
 
-from pycram.datastructures.dataclasses import GraspDescription
+from pycram.datastructures.pose import GraspDescription
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \

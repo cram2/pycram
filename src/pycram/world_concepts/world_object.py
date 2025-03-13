@@ -12,8 +12,8 @@ from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList, RotatedBoundingBox, VirtualJoint)
-from ..datastructures.enums import ObjectType, JointType
-from ..datastructures.pose import Pose, Transform
+from ..datastructures.enums import ObjectType, JointType, AxisIdentifier
+from ..datastructures.pose import Pose, Transform, GraspDescription
 from ..datastructures.world import World
 from ..datastructures.world_entity import PhysicalBody
 from ..description import ObjectDescription, LinkDescription, Joint
@@ -31,7 +31,7 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from pycrap.ontologies import PhysicalObject, Joint, \
-    Robot, Floor, Location
+    Robot, Floor, Location, Bowl, Spoon, Cereal
 
 Link = ObjectDescription.Link
 
@@ -1524,3 +1524,92 @@ class Object(PhysicalBody):
         :return: The parent of this object which is the world.
         """
         return self.world
+
+    def get_preferred_grasp_alignment(self: Object) -> Tuple[AxisIdentifier, bool, bool]:
+        """
+        Determines the preferred grasp alignment for an object based on its type.
+        The AxisIdentifier specifies the side grasp axis along which the object should be grasped. Only this axis will be
+        allowed as a sidegrasp.
+        The first boolean value indicates whether the object should be grasped along the Z axis. This does not affect the
+        sidegrasp axis.
+        The second boolean value indicates whether the object should be grasped horizontally.
+
+        :return: A tuple of three values: the preferred side grasp axis, whether the object should be grasped horizontally,
+        """
+        object_type = self.obj_type
+
+        preferred_alignment_dict = {Bowl: (None, True, False),
+                                    Spoon: (AxisIdentifier.X, True, False),
+                                    Cereal: (AxisIdentifier.X, False, False), }
+
+        # sidegrasp_axis = object_type.has_preferred_alignment[0].has[0]
+        # grasp_top = object_type.has_preferred_alignment[0].has_vertical_alignment
+        # grasp_horizontal = object_type.has_preferred_alignment[0].has_rotated_gripper
+
+        sidegrasp_axis, grasp_top, grasp_horizontal = preferred_alignment_dict.get(object_type, (None, False, False))
+
+        return sidegrasp_axis, grasp_top, grasp_horizontal
+
+    # @staticmethod
+    # def calculate_object_faces(object_to_robot_vector: Tuple[float, float, float],
+    #                            specified_grasp_axis: Optional[AxisIdentifier] = None) -> Tuple[
+    #     GraspDescription, GraspDescription]:
+    #     """
+    #     Determines the faces of the object based on the input vector.
+    #
+    #     If `specified_grasp_axis` is None, it calculates the primary and secondary faces based on the vector's magnitude
+    #     determining which sides of the object are most aligned with the robot. This will either be the x, y plane for side faces
+    #     or the z axis for top/bottom faces.
+    #     If `specified_grasp_axis` is provided, it only considers the specified axis and calculates the faces aligned
+    #     with that axis.
+    #
+    #     :param object_to_robot_vector: A 3D vector representing one of the robot's axes in the object's frame, with
+    #                           irrelevant components set to np.nan.
+    #     :param specified_grasp_axis: Specifies a specific axis (e.g., X, Y, Z) to focus on.
+    #
+    #     :return: A tuple of two Grasp enums representing the primary and secondary faces.
+    #     """
+    #     all_axes = [AxisIdentifier.X, AxisIdentifier.Y, AxisIdentifier.Z]
+    #
+    #     if specified_grasp_axis:
+    #         valid_axes = [specified_grasp_axis]
+    #     else:
+    #         valid_axes = [axis for axis in all_axes if not np.isnan(object_to_robot_vector[axis.value.index(1)])]
+    #
+    #     object_to_robot_vector = np.array(object_to_robot_vector) + 1e-9
+    #     sorted_axes = sorted(valid_axes, key=lambda axis: abs(object_to_robot_vector[axis.value.index(1)]),
+    #                          reverse=True)
+    #
+    #     primary_axis = sorted_axes[0]
+    #     primary_sign = int(np.sign(object_to_robot_vector[primary_axis.value.index(1)]))
+    #     primary_face = Grasp.from_axis_direction(primary_axis, primary_sign)
+    #
+    #     if len(sorted_axes) > 1:
+    #         secondary_axis = sorted_axes[1]
+    #         secondary_sign = int(np.sign(object_to_robot_vector[secondary_axis.value.index(1)]))
+    #         secondary_face = Grasp.from_axis_direction(secondary_axis, secondary_sign)
+    #     else:
+    #         secondary_sign = -primary_sign
+    #         secondary_axis = primary_axis
+    #         secondary_face = Grasp.from_axis_direction(secondary_axis, secondary_sign)
+    #
+    #     return primary_face, secondary_face
+
+    def calculate_grasp_descriptions(self, robot: Object) -> List[GraspDescription]:
+        """
+        Calculates the grasp configurations of an object relative to the robot based on orientation and position.
+
+        This method determines the possible grasp configurations (side and top/bottom faces) of the object,
+        taking into account the object's orientation, position, and whether horizontal alignment is preferred.
+
+        :param robot: The robot for which the grasp configurations are being calculated.
+
+        :return: A sorted list of GraspDescription instances representing all grasp permutations.
+        """
+        objectTmap = self.pose
+
+        side_axis, vertical, rotated_gripper = self.get_preferred_grasp_alignment()
+
+        grasp_configs = objectTmap.calculate_grasp_descriptions(robot, (side_axis, vertical, rotated_gripper))
+
+        return grasp_configs

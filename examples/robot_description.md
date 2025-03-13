@@ -149,39 +149,7 @@ individually. The predefined grasp used is the Grasp.FRONT grasp of the robot. B
 generated.
 
 ```python
-from pycram.robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
-    RobotDescriptionManager, CameraDescription
-from pycram.datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState, StaticJointState
-from pycram.units import meter
-from pycram.ros import get_ros_package_path
-
-filename = get_ros_package_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
-pr2_description = RobotDescription("pr2_example", "base_link", "torso_lift_link", "torso_lift_joint", filename)
-################################## Right Arm ##################################
-right_arm = KinematicChainDescription("right", "torso_lift_link", "r_wrist_roll_link",
-                                      pr2_description.urdf_object, arm_type=Arms.RIGHT)
-right_arm.add_static_joint_states(StaticJointState.Park, {'r_shoulder_pan_joint': -1.712,
-                                           'r_shoulder_lift_joint': -0.256,
-                                           'r_upper_arm_roll_joint': -1.463,
-                                           'r_elbow_flex_joint': -2.12,
-                                           'r_forearm_roll_joint': 1.766,
-                                           'r_wrist_flex_joint': -0.07,
-                                           'r_wrist_roll_joint': 0.051})
-pr2_description.add_kinematic_chain_description(right_arm)
-
-################################## Right Gripper ##################################
-right_gripper = EndEffectorDescription("right_gripper", "r_gripper_palm_link", "r_gripper_tool_frame",
-                                       pr2_description.urdf_object,
-                                       fingers_link_names=['r_gripper_l_finger_tip_link', 'r_gripper_r_finger_tip_link'])
-right_gripper.add_static_joint_states(GripperState.OPEN, {'r_gripper_l_finger_joint': 0.548,
-                                                          'r_gripper_r_finger_joint': 0.548})
-right_gripper.add_static_joint_states(GripperState.CLOSE, {'r_gripper_l_finger_joint': 0.0,
-                                                           'r_gripper_r_finger_joint': 0.0})
-right_gripper.end_effector_type = GripperType.PARALLEL
-right_gripper.opening_distance = 0.086 * meter
-right_arm.end_effector = right_gripper
-
-right_gripper.generate_all_grasp_orientations([0, 0, 0, 1])
+right_gripper.update_all_grasp_orientations([0, 0, 0, 1])
 
 ```
 

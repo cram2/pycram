@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import itertools
+import math
 from abc import ABC, abstractmethod
 from copy import deepcopy, copy
 from dataclasses import dataclass, fields, field
+from enum import Enum
 
 import numpy as np
 import plotly.graph_objects as go
@@ -17,9 +19,10 @@ from random_events.variable import Continuous
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, Self, \
     deprecated
 
-from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp
+from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp, AxisIdentifier
 from .pose import Pose, Point, Transform
-from ..ros import logwarn
+from ..ros import logwarn, logwarn_once
+from ..utils import classproperty
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
 if TYPE_CHECKING:
@@ -176,36 +179,35 @@ class Color:
         """
         return [self.R, self.G, self.B]
 
-    @staticmethod
-    def get_color_from_string(color):
+
+class Colors(Color, Enum):
+    """
+    Enum class for storing the colors as an RGBA value.
+    The values are stored as floats between 0 and 1.
+    The default rgba_color is white. 'A' stands for the opacity.
+    """
+    PINK = (1, 0, 1, 1)
+    BLACK = (0, 0, 0, 1)
+    WHITE = (1, 1, 1, 1)
+    RED = (1, 0, 0, 1)
+    GREEN = (0, 1, 0, 1)
+    BLUE = (0, 0, 1, 1)
+    YELLOW = (1, 1, 0, 1)
+    CYAN = (0, 1, 1, 1)
+    MAGENTA = (1, 0, 1, 1)
+    GREY = (0.5, 0.5, 0.5, 1)
+
+    @classmethod
+    def from_string(cls, color: str) -> Color:
         """
-        Retrieve a color based on string
+        Set the rgba_color from a string. If the string is not a valid color, it will return the black color.
 
-        :param color: Name of a color
+        :param color: The string of the color
         """
-
-        converted_color = ColorRGBA()
-        value = lambda x: x / 255
-
-        if color == 'pink':
-            return ColorRGBA(r=value(255), g=value(0), b=value(255), a=1.0)
-        elif color == 'black':
-            return ColorRGBA(r=value(0), g=value(0), b=value(0), a=1.0)
-        elif color == 'white':
-            return ColorRGBA(r=value(255), g=value(255), b=value(255), a=1.0)
-        elif color == 'red':
-            return ColorRGBA(r=value(255), g=value(0), b=value(0), a=1.0)
-        elif color == 'green':
-            return ColorRGBA(r=value(0), g=value(255), b=value(0), a=1.0)
-        elif color == 'blue':
-            return ColorRGBA(r=value(0), g=value(0), b=value(255), a=1.0)
-        elif color == 'yellow':
-            return ColorRGBA(r=value(255), g=value(255), b=value(0), a=1.0)
-        elif color == 'cyan':
-            return ColorRGBA(r=value(0), g=value(255), b=value(255), a=1.0)
-
-        return converted_color
-
+        try:
+            return cls[color.upper()]
+        except KeyError:
+            return cls.BLACK
 
 
 @dataclass
@@ -216,9 +218,9 @@ class BoundingBox:
     An axis aligned bounding box is the cartesian product of the three closed intervals
     [min_x, max_x] x [min_y, max_y] x [min_z, max_z].
 
-    Depth is the distance between the min_x and max_x.
-    Width is the distance between the min_y and max_y.
-    Height is the distance between the min_z and max_z.
+    Depth is the distance between the min_x and max_x, and should always be the long side (excluding height).
+    Width is the distance between the min_y and max_y, and should always be the short side (excluding height).
+    Height is the distance between the min_z and max_z, "up" is according to how the object would stand on a table.
 
     Set-Algebraic operations are possible by converting the bounding box to a random event.
     """
@@ -586,27 +588,27 @@ class BoundingBox:
 
     @property
     def depth(self) -> float:
-        """
-        According to the IAI conventions, found at https://ai.uni-bremen.de/wiki/3dmodeling/items
-        """
         return self.max_x - self.min_x
 
     @property
     def height(self) -> float:
-        """
-        According to the IAI conventions, found at https://ai.uni-bremen.de/wiki/3dmodeling/items
-        """
         return self.max_z - self.min_z
 
     @property
     def width(self) -> float:
-        """
-        According to the IAI conventions, found at https://ai.uni-bremen.de/wiki/3dmodeling/items
-        """
         return self.max_y - self.min_y
 
     @property
     def dimensions(self) -> List[float]:
+        """
+        According to the IAI conventions, found at https://ai.uni-bremen.de/wiki/3dmodeling/items
+        1. z is height, according to how the object would stand on a table
+        2. x is depth, representing the long side of the object
+        3. y is width, representing the remaining dimension
+        """
+        if self.width > self.depth:
+            logwarn_once("The width of the bounding box is greater than the depth. This means the object's"
+                         "axis alignment is potentially going against IAI conventions.")
         return [self.depth, self.width, self.height]
 
     @staticmethod
@@ -1361,6 +1363,41 @@ class VirtualJoint:
         return hash(self.name)
 
 
+@dataclass(frozen=True)
+class Rotations:
+    """
+    Dataclass for storing commonly used rotations.
+    """
+    SQRT2_OVER_2 = math.sqrt(2) / 2
+
+    @classproperty
+    def side_rotations(self) -> Dict[Grasp, List[float]]:
+        SIDE_ROTATIONS = {
+            Grasp.FRONT: [0, 0, 0, 1],
+            Grasp.BACK: [0, 0, 1, 0],
+            Grasp.LEFT: [0, 0, -self.SQRT2_OVER_2, self.SQRT2_OVER_2],
+            Grasp.RIGHT: [0, 0, self.SQRT2_OVER_2, self.SQRT2_OVER_2],
+        }
+        return SIDE_ROTATIONS
+
+    @classproperty
+    def vertical_rotations(self) -> Dict[Optional[Grasp], List[float]]:
+        VERTICAL_ROTATIONS = {
+            None: [0, 0, 0, 1],
+            Grasp.TOP: [0, self.SQRT2_OVER_2, 0, self.SQRT2_OVER_2],
+            Grasp.BOTTOM: [0, -self.SQRT2_OVER_2, 0, self.SQRT2_OVER_2],
+        }
+        return VERTICAL_ROTATIONS
+
+    @classproperty
+    def horizontal_rotations(self) -> Dict[bool, List[float]]:
+        HORIZONTAL_ROTATIONS = {
+            False: [0, 0, 0, 1],
+            True: [self.SQRT2_OVER_2, 0, 0, self.SQRT2_OVER_2],
+        }
+        return HORIZONTAL_ROTATIONS
+
+
 @dataclass
 class VirtualMobileBaseJoints:
     """
@@ -1513,38 +1550,3 @@ class ReasoningResult:
     """
     success: bool
     reasoned_parameter: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass(frozen=True)
-class GraspDescription:
-    """
-    Represents a grasp description with a side grasp, top face, and orientation alignment.
-
-    :param side_face: The primary side grasp face.
-    :param top_face: The top or bottom face of the object, or None if not applicable.
-    :param horizontal: Indicates if the grasp is aligned horizontally.
-    """
-    side_face: Grasp
-    top_face: Optional[Grasp] = None
-    horizontal: bool = False
-
-    def __post_init__(self):
-        allowed_side_faces = {Grasp.FRONT, Grasp.BACK, Grasp.LEFT, Grasp.RIGHT}
-        if self.side_face not in allowed_side_faces:
-            raise ValueError(f"Invalid value for side_face: {self.side_face}. Allowed values are {allowed_side_faces}")
-        allowed_top_faces = {Grasp.TOP, Grasp.BOTTOM, None}
-        if self.top_face not in allowed_top_faces:
-            raise ValueError(f"Invalid value for top_face: {self.top_face}. Allowed values are {allowed_top_faces}")
-        if not isinstance(self.horizontal, bool):
-            raise ValueError(f"Invalid value for horizontal: {self.horizontal}. Must be a boolean value.")
-
-    def __hash__(self):
-        return hash((self.side_face, self.top_face, self.horizontal))
-
-    def as_list(self) -> List[Union[Grasp, Optional[Grasp], bool]]:
-        """
-        Returns the GraspConfig as a list.
-
-        :return: A list representation of the grasp description.
-        """
-        return [self.side_face, self.top_face, self.horizontal]

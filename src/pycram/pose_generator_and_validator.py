@@ -1,13 +1,11 @@
 import numpy as np
 
-from .datastructures.dataclasses import GraspDescription
-from .designator import ObjectDesignatorDescription
 from .tf_transformations import quaternion_from_euler
 from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional
 
 from .datastructures.enums import Arms
 from .costmaps import Costmap
-from .datastructures.pose import Pose, Transform
+from .datastructures.pose import Pose, Transform, GraspDescription
 from .datastructures.world import World
 from .external_interfaces.ik import request_ik
 from .failures import IKError
@@ -144,7 +142,7 @@ def reachability_validator(robot: Object,
                            target: Pose,
                            arms: List[Arms],
                            grasp_description: GraspDescription,
-                           object_in_hand: Optional[ObjectDesignatorDescription.Object] = None,
+                           object_in_hand: Optional[Object] = None,
                            prepose_distance: float = 0.03,
                            allowed_collision: Dict[Object, List] = None,
                            retract_first: bool = True,

@@ -12,7 +12,6 @@ import numpy as np
 from sqlalchemy.orm import Session
 
 from .. import utils
-from ..datastructures.dataclasses import GraspDescription
 from ..tf_transformations import quaternion_from_euler
 from typing_extensions import List, Union, Optional, Type, Dict, Any
 
@@ -24,7 +23,7 @@ from .object_designator import ObjectDesignatorDescription, BelieveObject, Objec
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
     TorsoState, StaticJointState, Frame, FindBodyInRegionMethod, ContainerManipulationType
 from ..datastructures.partial_designator import PartialDesignator
-from ..datastructures.pose import Pose
+from ..datastructures.pose import Pose, GraspDescription
 from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty
 from ..datastructures.world import World, UseProspectionWorld
 from ..description import Joint, Link

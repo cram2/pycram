@@ -123,9 +123,9 @@ class PickUpWithContextView(base):
     """
 
     __table__ = view("PickUpWithContextView", Base.metadata,
-                     (select(PickUpAction.id, PickUpAction.arm, GraspDescription.side_grasp, GraspDescription.top_grasp,
-                             GraspDescription.horizontal, RobotState.torso_height,
-                             (__robot_position.x-__object_position.x).label("relative_x"),
+                     (select(PickUpAction.id, PickUpAction.arm, GraspDescription.approach_direction,
+                             GraspDescription.vertical_alignment, GraspDescription.rotate_gripper,
+                             RobotState.torso_height, (__robot_position.x-__object_position.x).label("relative_x"),
                              (__robot_position.y-__object_position.y).label("relative_y"), Quaternion.x, Quaternion.y,
                              Quaternion.z, Quaternion.w, Object.obj_type, TaskTreeNode.status)
                       .join(TaskTreeNode.action.of_type(PickUpAction))

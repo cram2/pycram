@@ -110,6 +110,19 @@ class JointType(Enum):
     FLOATING = 7
 
 
+class AxisIdentifier(Enum):
+    """
+    Enum for translating the axis name to a vector along that axis.
+    """
+    X = (1, 0, 0)
+    Y = (0, 1, 0)
+    Z = (0, 0, 1)
+
+    @classmethod
+    def from_tuple(cls, axis_tuple):
+        return next((axis for axis in cls if axis.value == axis_tuple), None)
+
+
 class Grasp(int, Enum):
     """
     Enum for Grasp orientations.
@@ -120,6 +133,31 @@ class Grasp(int, Enum):
     TOP = 3
     BACK = 4
     BOTTOM = 5
+
+    @classmethod
+    def face_to_axis_direction(cls):
+        return {
+            cls.FRONT: (AxisIdentifier.X, -1),
+            cls.BACK: (AxisIdentifier.X, 1),
+            cls.LEFT: (AxisIdentifier.Y, 1),
+            cls.RIGHT: (AxisIdentifier.Y, -1),
+            cls.TOP: (AxisIdentifier.Z, -1),
+            cls.BOTTOM: (AxisIdentifier.Z, 1)
+        }
+
+    @classmethod
+    def axis_direction_to_face(cls):
+        """Reverse the mapping"""
+        return {v: k for k, v in cls.face_to_axis_direction().items()}
+
+    @classmethod
+    def from_axis_direction(cls, axis: AxisIdentifier, direction: int):
+        """Get the Grasp face from an axis-index tuple"""
+        return cls.axis_direction_to_face().get((axis, direction))
+
+    def to_axis_index(self):
+        """Get the axis-index tuple from a Grasp face"""
+        return self.face_to_axis_direction()[self]
 
 
 class ObjectType(int, Enum):
@@ -178,15 +216,6 @@ class WorldMode(Enum):
     """
     GUI = "GUI"
     DIRECT = "DIRECT"
-
-
-class AxisIdentifier(Enum):
-    """
-    Enum for translating the axis name to a vector along that axis.
-    """
-    X = (1, 0, 0)
-    Y = (0, 1, 0)
-    Z = (0, 0, 1)
 
 
 class GripperState(Enum):

@@ -1,9 +1,8 @@
-from pycram.datastructures.dataclasses import GraspDescription
 from pycram.testing import BulletWorldTestCase
 from knowledge_testcase import KnowledgeSourceTestCase, TestProperty, KnowledgeBulletTestCase
 from pycram.datastructures.enums import Arms, Grasp, ObjectType
 from pycram.datastructures.partial_designator import PartialDesignator
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import Pose, GraspDescription
 from pycram.designators.action_designator import PickUpAction, PickUpActionPerformable, OpenAction
 from pycram.designators.object_designator import BelieveObject, ObjectPart
 from pycram.knowledge.knowledge_engine import KnowledgeEngine

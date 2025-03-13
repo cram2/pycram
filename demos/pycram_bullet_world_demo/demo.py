@@ -21,7 +21,7 @@ viz = VizMarkerPublisher()
 robot = Object("pr2", Robot, f"pr2{extension}", pose=Pose([1, 2, 0]))
 apartment = Object("apartment", Apartment, f"apartment{extension}")
 
-milk = Object("milk", Milk, "milk.stl", pose=Pose([2.5, 2, 1.02], [0, 0, 1, 1]),
+milk = Object("milk", Milk, "milk.stl", pose=Pose([2.5, 2, 1.02], [0, 0, 0, 1]),
               color=Color(1, 0, 0, 1))
 cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
                 pose=Pose([2.45, 2.4, 1.05], [0, 0, 0, 1]), color=Color(0, 1, 0, 1))
@@ -128,4 +128,5 @@ with simulated_robot:
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
+viz._stop_publishing()
 world.exit()

@@ -1,4 +1,4 @@
-from pycram.datastructures.dataclasses import GraspDescription
+from pycram.datastructures.pose import GraspDescription
 from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, MoveTorsoAction
 from pycram.datastructures.pose import Pose

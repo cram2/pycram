@@ -88,10 +88,8 @@ tiago_description.add_kinematic_chain("neck", "torso_lift_link", "head_2_link")
 
 ################################# Grasps ##################################
 front_grasp = [-0.5, 0.5, 0.5, -0.5]
-right_gripper.generate_all_grasp_orientations(front_grasp)
-# right_gripper.set_palm_axis([0.0, 0.0, -1.0])
-left_gripper.generate_all_grasp_orientations(front_grasp)
-# left_gripper.set_palm_axis([0.0, 0.0, -1.0])
+right_gripper.update_all_grasp_orientations(front_grasp)
+left_gripper.update_all_grasp_orientations(front_grasp)
 
 
 # Add to RobotDescriptionManager

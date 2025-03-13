@@ -135,8 +135,8 @@ armar_description.add_kinematic_chain("neck", "lower_neck", "upper_neck")
 
 ################################# Grasps ##################################
 orientation = [0.707, 0.707, 0.707, 0.707]
-right_gripper.generate_all_grasp_orientations(orientation)
-left_gripper.generate_all_grasp_orientations(orientation)
+right_gripper.update_all_grasp_orientations(orientation)
+left_gripper.update_all_grasp_orientations(orientation)
 
 
 ################################# Additionals ##################################

@@ -231,9 +231,9 @@ class Pose(PositionMixin, QuaternionMixin, Base):
 class GraspDescription(Base):
     """ORM Class for Grasps."""
 
-    side_grasp: Mapped[Grasp] = mapped_column(init=True)
-    top_grasp: Mapped[Optional[Grasp]] = mapped_column(init=True)
-    horizontal: Mapped[bool] = mapped_column(init=True)
+    approach_direction: Mapped[Grasp] = mapped_column(init=True)
+    vertical_alignment: Mapped[Optional[Grasp]] = mapped_column(init=True)
+    rotate_gripper: Mapped[bool] = mapped_column(init=True)
 
 
 class Color(Base):

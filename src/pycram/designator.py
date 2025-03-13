@@ -11,9 +11,8 @@ from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, 
 from typing_extensions import get_type_hints
 
 from pycrap.ontologies import PhysicalObject, Agent
-from .datastructures.dataclasses import GraspDescription
 from .datastructures.enums import ObjectType
-from .datastructures.pose import Pose
+from .datastructures.pose import Pose, GraspDescription
 from .datastructures.property import EmptyProperty
 from .datastructures.world import World
 from .failures import PlanFailure
@@ -481,7 +480,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
                 special_knowledge = SPECIAL_KNOWLEDGE[self.obj_type]
 
             for key, value in special_knowledge:
-                if key == grasp.side_face:
+                if key == grasp.approach_direction:
                     # Adjust target pose based on special knowledge
                     pose_in_object.pose.position.x += value[0]
                     pose_in_object.pose.position.y += value[1]
