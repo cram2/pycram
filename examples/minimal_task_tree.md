@@ -68,7 +68,7 @@ def plan():
         place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(),
                                            cereal_desig.resolve()).resolve()
 
-        place_stand = CostmapLocation(place_island.pose, reachable_for=robot_desig, reachable_arms=[pickup_arm]).resolve()
+        place_stand = CostmapLocation(place_island.pose, reachable_for=robot_desig, reachable_arms=[pickup_arm],  object_in_hand=cereal_desig.resolve()).resolve()
 
         NavigateAction(target_locations=[place_stand.pose]).resolve().perform()
 

@@ -77,8 +77,9 @@ from pycram.datastructures.pose import Pose
 from pycrap.ontologies import Apartment, Robot, Milk
 
 target = apartment.get_pose()
+pr2_desig = BelieveObject(names=["pr2"]).resolve()
 
-location_description = CostmapLocation(target)
+location_description = CostmapLocation(target, reachable_for=pr2_desig)
 
 pose = location_description.resolve()
 

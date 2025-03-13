@@ -149,8 +149,7 @@ world.reset_world()
 ```
 
 ```python
-from pycram.designators.action_designator import PickUpAction, PlaceAction, ParkArmsAction, MoveTorsoAction,
-    NavigateAction
+from pycram.designators.action_designator import PickUpAction, PlaceAction, ParkArmsAction, MoveTorsoAction, NavigateAction
 from pycram.designators.object_designator import BelieveObject
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms, Grasp, TorsoState

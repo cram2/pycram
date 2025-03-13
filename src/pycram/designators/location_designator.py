@@ -173,11 +173,11 @@ class CostmapLocation(LocationDesignatorDescription):
             self.reachable_arms = [Arms.RIGHT, Arms.LEFT]
 
         # This ensures that the costmaps always get a position as their origin.
-        if isinstance(self.target, ObjectDesignatorDescription.Object):
+        if isinstance(self.target, Pose):
+            target_pose = self.target.copy()
+        else:
             target_pose = self.target.world_object.get_pose().copy()
             self.target = self.target.world_object
-        else:
-            target_pose = self.target.copy()
 
         ground_pose = Pose(target_pose.position_as_list())
         ground_pose.position.z = 0
