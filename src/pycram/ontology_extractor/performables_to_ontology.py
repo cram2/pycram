@@ -74,6 +74,7 @@ class ActionAbstractDigest:
             parameter_name=param,
             docstring_of_parameter_clazz=clazz.get_type_hints()[param].__doc__,
             docstring_of_parameter=class_param_comment[param],
+            # TODO: Default values are not correctly parsed
             parameter_default_value=parameters_inspection[param].default,
             is_enum=clazz.get_type_hints()[param].__class__ == EnumMeta,
             is_optional=is_optional_type(clazz.get_type_hints()[param])
@@ -105,30 +106,16 @@ def create_ontology_from_performables():
 
     output_ontology = get_ontology("performables")
     with output_ontology:
-        class Performable(Thing):
-            pass
-
-        class Parameter(Thing):
-            pass
-
-        class Enum(Thing):
-            pass
-
-        class has_parameter(Performable >> Parameter):
-            pass
-
+        class Performable(Thing): pass
+        class Parameter(Thing): pass
+        class Enum(Thing): pass
+        class has_parameter(Performable >> Parameter): pass
+        class has_default_value(DataProperty): pass
+        class has_possible_value(Parameter >> Enum): pass
+        class is_optional(Parameter >> bool): pass
         class has_description(DataProperty):
             range = [str]
 
-        class has_default_value(DataProperty):
-            pass
-
-        class has_possible_value(Parameter >> Enum):
-            pass
-
-        class is_optional(Parameter >> bool):
-            pass
-        
     all_param_classes_to_ontological_class = {}
     for clazz in classes:
         for param in clazz.parameters:
@@ -153,7 +140,6 @@ def create_ontology_from_performables():
             
             if param.get_default_value():
                 param_instance.has_default_value = param.get_default_value()
-            # TODO: Default values are not correctly parsed
             params.append(param_instance)
         performable.has_parameter = params
     
