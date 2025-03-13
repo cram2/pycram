@@ -70,13 +70,10 @@ which we will be extending later.
 
 ```python
 from pycram.designators.location_designator import CostmapLocation
-from pycram.designators.object_designator import BelieveObject
-
 
 target = apartment.get_pose()
-pr2_desig = BelieveObject(names=["pr2"]).resolve()
 
-location_description = CostmapLocation(target, reachable_for=pr2_desig)
+location_description = CostmapLocation(target)
 
 pose = location_description.resolve()
 
