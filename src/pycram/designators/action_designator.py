@@ -149,6 +149,22 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
 
         return action
 
+    def __str__(self):
+        # all fields that are not ORM classes
+        fields = {}
+        for key, value in vars(self).items():
+            if key.startswith("orm_"):
+                continue
+            if isinstance(value, ObjectDesignatorDescription.Object):
+                fields[key] = value.name
+            elif isinstance(value, Pose):
+                fields[key] = value.__str__()
+        fields_str = "\n".join([f"{key}: {value}" for key, value in fields.items()])
+        return f"{self.__class__.__name__.replace('Performable', '')}:\n{fields_str}"
+
+    def __repr__(self):
+        return self.__str__()
+
 
 @dataclass
 class MoveTorsoActionPerformable(ActionAbstract):
@@ -307,7 +323,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
     The grasp description that should be used for picking up the object
     """
 
-    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
+    orm_object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
     """
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
     not updated when the BulletWorld object is changed.
@@ -323,7 +339,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
     def __post_init__(self):
         super(ActionAbstract, self).__post_init__()
         # Store the object's data copy at execution
-        self.object_at_execution = self.object_designator.frozen_copy()
+        self.orm_object_at_execution = self.object_designator.frozen_copy()
 
     @with_tree
     def plan(self) -> None:
@@ -429,14 +445,14 @@ class ReachToPickUpActionPerformable(ActionAbstract):
     def arm_chain(self) -> KinematicChainDescription:
         return RobotDescription.current_robot_description.get_arm_chain(self.arm)
 
-    # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
+    # TODO find a way to use orm_object_at_execution instead of object_designator in the automatic orm mapping in
     #  ActionAbstract
     def to_sql(self) -> ORMAction:
         return ORMReachToPickUpAction(arm=self.arm, prepose_distance=self.prepose_distance)
 
     def insert(self, session: Session, **kwargs) -> ORMAction:
         action = super(ActionAbstract, self).insert(session)
-        action.object = self.object_at_execution.insert(session)
+        action.object = self.orm_object_at_execution.insert(session)
         session.add(action)
         return action
 
@@ -474,7 +490,7 @@ class PickUpActionPerformable(ActionAbstract):
     The GraspDescription that should be used for picking up the object
     """
 
-    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
+    orm_object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
     """
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
     not updated when the BulletWorld object is changed.
@@ -490,7 +506,7 @@ class PickUpActionPerformable(ActionAbstract):
     def __post_init__(self):
         super(ActionAbstract, self).__post_init__()
         # Store the object's data copy at execution
-        self.object_at_execution = self.object_designator.frozen_copy()
+        self.orm_object_at_execution = self.object_designator.frozen_copy()
 
     @with_tree
     def plan(self) -> None:
@@ -521,14 +537,14 @@ class PickUpActionPerformable(ActionAbstract):
         gripper_link = self.arm_chain.get_tool_frame()
         return World.robot.links[gripper_link].pose
 
-    # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
+    # TODO find a way to use orm_object_at_execution instead of object_designator in the automatic orm mapping in
     #  ActionAbstract
     def to_sql(self) -> ORMAction:
         return ORMPickUpAction(arm=self.arm, prepose_distance=self.prepose_distance)
 
     def insert(self, session: Session, **kwargs) -> ORMAction:
         action = super(ActionAbstract, self).insert(session)
-        action.object = self.object_at_execution.insert(session)
+        action.object = self.orm_object_at_execution.insert(session)
         session.add(action)
         return action
 
@@ -810,7 +826,7 @@ class DetectActionPerformable(ActionAbstract):
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMDetectAction)
 
-    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False)
+    orm_object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False)
 
     @with_tree
     def plan(self) -> None:
