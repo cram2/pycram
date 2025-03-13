@@ -140,9 +140,11 @@ def create_ontology_from_performables():
                 if param.is_enum:
                     #TODO: The Enum States should rather be instances of an enum class there should only be
                     #a single connection from enum class to enum values
-                    enum_state_class = types.new_class(clazzname + "_Values", (Enum,))
-                    parameter_clazz.has_possible_value = [enum_state_class(enum_member)
-                                                          for enum_member in param.clazz.__members__]
+                    enum_value_class = types.new_class(clazzname + "_Value", (Enum,))
+                    for enum_member in param.clazz.__members__:
+                        enum_value_class(enum_member)
+                    #parameter_clazz.has_possible_value = [enum_state_class(enum_member) for enum_member in param.clazz.__members__]
+                    parameter_clazz.has_possible_value = [enum_value_class]
                 all_param_classes_to_ontological_class[clazzname] = parameter_clazz
 
     for clazz_digest in classes:
