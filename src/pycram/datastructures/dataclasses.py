@@ -1525,3 +1525,7 @@ class FrozenJoint:
     """
     The name of the parent joint or None if there is no parent joint
     """
+    state: float
+    """
+    State of the joint
+    """
