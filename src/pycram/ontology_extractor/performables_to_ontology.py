@@ -74,7 +74,6 @@ class ActionAbstractDigest:
             parameter_name=param,
             docstring_of_parameter_clazz=clazz.get_type_hints()[param].__doc__,
             docstring_of_parameter=class_param_comment[param],
-            # TODO: Default values are not correctly parsed
             parameter_default_value=parameters_inspection[param].default,
             is_enum=clazz.get_type_hints()[param].__class__ == EnumMeta,
             is_optional=is_optional_type(clazz.get_type_hints()[param])
