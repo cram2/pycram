@@ -1,5 +1,6 @@
 import time
 import unittest
+from datetime import timedelta
 
 from .tasktree import task_tree
 from .datastructures.world import UseProspectionWorld
@@ -27,7 +28,6 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(mode=cls.render_mode)
-        ProcessModule.execution_delay = False
         cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):

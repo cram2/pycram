@@ -11,6 +11,7 @@ ONLY EXECUTE THIS IF YOU ARE SURE THAT YOU WANT TO DELETE THE DATABASE AND CREAT
 
 import os
 import random
+from datetime import timedelta
 
 import numpy as np
 import sqlalchemy.orm
@@ -31,7 +32,6 @@ import pycram.orm.base
 
 
 def main():
-    ProcessModule.execution_delay = False
     np.random.seed(69)
     random.seed(69)
 
