@@ -131,19 +131,14 @@ def create_ontology_from_performables():
         
     all_param_classes_to_ontological_class = {}
     for clazz in classes:
-        print(f">>>> Class: {clazz.classname}")
         for param in clazz.parameters:
             if (clazzname := unwrap_clazzname(param)) not in all_param_classes_to_ontological_class.keys():
-                print(f"\tParameter class: {clazzname}")
                 parameter_clazz = types.new_class(clazzname, (Parameter,))
                 parameter_clazz.has_description = param.docstring_of_parameter_clazz
                 if param.is_enum:
-                    #TODO: The Enum States should rather be instances of an enum class there should only be
-                    #a single connection from enum class to enum values
                     enum_value_class = types.new_class(clazzname + "_Value", (Enum,))
                     for enum_member in param.clazz.__members__:
                         enum_value_class(enum_member)
-                    #parameter_clazz.has_possible_value = [enum_state_class(enum_member) for enum_member in param.clazz.__members__]
                     parameter_clazz.has_possible_value = [enum_value_class]
                 all_param_classes_to_ontological_class[clazzname] = parameter_clazz
 
