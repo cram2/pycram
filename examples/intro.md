@@ -339,7 +339,7 @@ with simulated_robot:
 
     pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
     pickup_arm = pickup_pose.reachable_arms[0]
-    pickup_grasp = pickup_pose.grasp_description
+    grasp = pickup_pose.grasp_description
 
     NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
 
