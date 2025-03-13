@@ -70,11 +70,8 @@ which we will be extending later.
 
 ```python
 from pycram.designators.location_designator import CostmapLocation
-from pycram.worlds.bullet_world import BulletWorld
-from pycram.world_concepts.world_object import Object
-from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import Pose
-from pycrap.ontologies import Apartment, Robot, Milk
+from pycram.designators.object_designator import BelieveObject
+
 
 target = apartment.get_pose()
 pr2_desig = BelieveObject(names=["pr2"]).resolve()

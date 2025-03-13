@@ -295,7 +295,7 @@ from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
 
 robot_desig = BelieveObject(types=[Robot]).resolve()
-milk_desig = BelieveObject(names=["milk"])
+milk_desig = BelieveObject(names=["milk"]).resolve()
 location_desig = CostmapLocation(target=milk_desig, visible_for=robot_desig)
 
 print(f"Resolved: {location_desig.resolve()}")
