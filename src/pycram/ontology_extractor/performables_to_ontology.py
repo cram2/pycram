@@ -43,40 +43,54 @@ class ParameterDigest:
     If the parameter type hint is optional, this will be True. Else False.
     """
 
-    def get_default_value(self):
+    def get_default_value(self) -> Optional[List[str]]:
+        """
+        Returns the default value of the parameter if it exists. Else None.
+
+        :return: A list containing the string representation of the default value or
+            `None` if no default value exists.
+        """
         if self.parameter_default_value == inspect.Parameter.empty:
             return None
         else:
             return [str(self.parameter_default_value)]
 
 class ActionAbstractDigest:
-    def __init__(self, clazz):
+    """
+    Wraps all information about an action abstract class that are necessary for the created ontology.
+    """
+
+    def __init__(self, clazz: Type[ActionAbstract]):
         self.clazz: Type[ActionAbstract] = clazz
         self.full_name: str = get_full_class_name(clazz)
         self.classname: str = clazz.__name__
         self.docstring: str = clazz.__doc__
-        self.parameters: Optional[List[ParameterDigest]] = self.extract_dataclass_parameter_information(clazz)
+        self.parameters: Optional[List[ParameterDigest]] = self.extract_dataclass_parameter_information()
 
-    @staticmethod
-    def extract_dataclass_parameter_information(clazz) -> List[ParameterDigest]:
+
+    def extract_dataclass_parameter_information(self) -> List[ParameterDigest]:
         """
         Extracts information about dataclass parameters from a dataclass.
-        :param clazz: Class to parse
         :return: List of parameter information.
         """
 
-        def is_optional_type(t):
+        def is_optional_type(t) -> bool:
+            """
+            Determines if a type hint is an optional.
+            :param t: Type hint to check.
+            :return: True if optional, else False.
+            """
             if get_origin(t) is Union:
                 return type(None) in get_args(t)
             else:
                 return False
 
-        with open(inspect.getfile(clazz), 'r') as file:
+        with open(inspect.getfile(self.clazz), 'r') as file:
             file_content = file.read()
         tree = ast.parse(file_content)
         class_param_comment: Dict = {}
         for node in ast.walk(tree):
-            if isinstance(node, ast.ClassDef) and node.name == clazz.__name__:
+            if isinstance(node, ast.ClassDef) and node.name == self.clazz.__name__:
                 last_assign: List = []
                 for item in node.body:
                     if isinstance(item, ast.AnnAssign):
@@ -89,29 +103,53 @@ class ActionAbstractDigest:
                         class_param_comment = {**class_param_comment, **{var: item.value.s for var in last_assign}}
                         last_assign = []
 
-        parameters_inspection = inspect.signature(clazz).parameters
+        parameters_inspection = inspect.signature(self.clazz).parameters
         return [ParameterDigest(
-            clazz=clazz.get_type_hints()[param],
+            clazz=self.clazz.get_type_hints()[param],
             parameter_name=param,
-            docstring_of_parameter_clazz=clazz.get_type_hints()[param].__doc__,
+            docstring_of_parameter_clazz=self.clazz.get_type_hints()[param].__doc__,
             docstring_of_parameter=class_param_comment[param],
             parameter_default_value=parameters_inspection[param].default,
-            is_enum=clazz.get_type_hints()[param].__class__ == EnumMeta,
-            is_optional=is_optional_type(clazz.get_type_hints()[param])
+            is_enum=self.clazz.get_type_hints()[param].__class__ == EnumMeta,
+            is_optional=is_optional_type(self.clazz.get_type_hints()[param])
         ) for param in list(parameters_inspection.keys())]
 
-def create_ontology_from_performables():
+def create_ontology_from_performables(outputfile = "performables.owl"):
+    """
+    Creates an ontology from the performables.
+    """
     def unwrap_classname(parameter: ParameterDigest) -> str:
+        """
+        Unwraps the class name of the type of parameter. When it is an optional type, the class name
+        of the optional type is returned.
+        :param parameter: ParameterDigest to return the unwrapped classname from.
+        :return: Unwrapped classname of the parameter.
+        """
         def extract_content_between_quotes(text: str) -> str:
+            """
+            Returns the content between quotes in a string.
+            :param text: String with quotation marks.
+            :return: Text without quotation marks.
+            """
             if match := re.search(r"'(.*?)'", text):
                 return match.group(1)
             else:
                 return text
 
         def remove_spaces(text: str) -> str:
+            """
+            Removes all spaces from a string.
+            :param text: Text with spaces.
+            :return: Text without spaces.
+            """
             return text.replace(" ", "")
         
-        def get_optional_type(t):
+        def get_optional_type(t) -> Optional[str]:
+            """
+            If the type hint is optional, this function returns the class name of the optional type. Else None.
+            :param t: Type hint to check.
+            :return: Full class name of the optional type or None if not optional.
+            """
             optional_types = [arg for arg in get_args(t) if arg is not type(None)]
             if len(optional_types) > 1:
                 print(f"Optional type has more than one type: {optional_types} (Type: {t})")
@@ -124,6 +162,7 @@ def create_ontology_from_performables():
 
     classes = [ActionAbstractDigest(clazz) for clazz in recursive_subclasses(ActionAbstract)]
 
+    # Definition of created ontology
     output_ontology = get_ontology("performables")
     with output_ontology:
         class Performable(Thing): pass
@@ -136,6 +175,7 @@ def create_ontology_from_performables():
         class has_description(DataProperty):
             range = [str]
 
+    # Creation of ontological classes for the parameters and classes for enums
     all_param_classes_to_ontological_class = {}
     for clazz in classes:
         for param in clazz.parameters:
@@ -149,6 +189,7 @@ def create_ontology_from_performables():
                     parameter_clazz.has_possible_value = [enum_value_class]
                 all_param_classes_to_ontological_class[clazzname] = parameter_clazz
 
+    # Creating the onotology instances based on the created ActionAbstractDigests.
     for clazz_digest in classes:
         performable = Performable(clazz_digest.classname)
         performable.has_description = [clazz_digest.docstring]
@@ -163,6 +204,4 @@ def create_ontology_from_performables():
             params.append(param_instance)
         performable.has_parameter = params
     
-    output_ontology.save(file= "performables.owl", format="rdfxml")
-
-create_ontology_from_performables()
+    output_ontology.save(file= outputfile, format="rdfxml")
