@@ -120,7 +120,7 @@ with simulated_robot:
     spoon_target_pose = Pose([4.7, 3.25, 0.8], [0, 0, 1, 1])
     MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
     placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(),
-                                  reachable_arms=[pickup_arm]).resolve()
+                                  reachable_arms=[pickup_arm], object_in_hand=spoon_desig).resolve()
 
     NavigateAction([placing_loc.pose]).resolve().perform()
 

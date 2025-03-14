@@ -12,10 +12,11 @@ from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, U
 from pycrap.ontologies import PhysicalObject, Room, Location
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
     AxisAlignedBoundingBox, RotatedBoundingBox, RayResult
-from .enums import AdjacentBodyMethod
+from .enums import AdjacentBodyMethod, AxisIdentifier
 from .mixins import HasConcept
 from ..local_transformer import LocalTransformer
 from ..ros import Time, logdebug
+from .pose import GraspDescription, PreferredGraspAlignment
 
 if TYPE_CHECKING:
     from ..datastructures.world import World
@@ -537,3 +538,47 @@ class PhysicalBody(WorldEntity, ABC):
         :param color: The color as a list of floats, either rgb or rgba.
         """
         ...
+
+    def get_preferred_grasp_alignment(self) -> PreferredGraspAlignment:
+        """
+        Determines the preferred grasp alignment for an object based on its type.
+        The AxisIdentifier specifies the side grasp axis along which the object should be grasped. Only this axis will be
+        allowed as a sidegrasp.
+        The first boolean value indicates whether the object should be grasped along the Z axis. This does not affect the
+        sidegrasp axis.
+        The second boolean value indicates whether the object should be grasped horizontally.
+
+        :return: A tuple of three values: the preferred side grasp axis, whether the object should be grasped horizontally,
+        """
+        object_type = self.ontology_concept
+
+        try:
+            pref_axis = object_type.has_preferred_alignment[0].has_preferred_axis[0].value
+            sidegrasp_axis = AxisIdentifier.from_tuple(pref_axis)
+            grasp_top = object_type.has_preferred_alignment[0].has_vertical_alignment[0].value
+            grasp_horizontal = object_type.has_preferred_alignment[0].has_rotated_gripper[0].value
+        except IndexError:
+            sidegrasp_axis, grasp_top, grasp_horizontal = (None, False, False)
+
+        preferred_alignment = PreferredGraspAlignment(sidegrasp_axis, grasp_top, grasp_horizontal)
+
+        return preferred_alignment
+
+    def calculate_grasp_descriptions(self, robot) -> List[GraspDescription]:
+        """
+        Calculates the grasp configurations of an object relative to the robot based on orientation and position.
+
+        This method determines the possible grasp configurations (side and top/bottom faces) of the object,
+        taking into account the object's orientation, position, and whether horizontal alignment is preferred.
+
+        :param robot: The robot for which the grasp configurations are being calculated.
+
+        :return: A sorted list of GraspDescription instances representing all grasp permutations.
+        """
+        objectTmap = self.pose
+
+        preferred_grasp_alignment = self.get_preferred_grasp_alignment()
+
+        grasp_configs = objectTmap.calculate_grasp_descriptions(robot, preferred_grasp_alignment)
+
+        return grasp_configs

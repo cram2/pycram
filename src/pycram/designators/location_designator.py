@@ -120,7 +120,7 @@ class CostmapLocation(LocationDesignatorDescription):
                  reachable_for: Optional[ObjectDesignatorDescription.Object] = None,
                  visible_for: Optional[ObjectDesignatorDescription.Object] = None,
                  reachable_arms: Optional[List[Arms]] = None,
-                 prepose_distance: float = 0.03,
+                 prepose_distance: float = 0.05,
                  ignore_collision_with: Optional[List[Object]] = None,
                  grasp_descriptions: Optional[List[GraspDescription]] = None,
                  object_in_hand: Optional[ObjectDesignatorDescription.Object] = None):

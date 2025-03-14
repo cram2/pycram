@@ -1,3 +1,5 @@
+import numpy as np
+
 from .. import tf_transformations
 from typing_extensions import List, Union, Tuple, Dict
 
@@ -267,6 +269,7 @@ def request_pinocchio_ik(target_pose: Pose, robot: Object, target_link: str, joi
 
     wrist_tool_frame_offset = robot.get_transform_between_links(wrist_link, target_link)
     target_diff = target_pose.to_transform("target").inverse_times(wrist_tool_frame_offset).to_pose()
+    target_diff.round()
 
     res = compute_ik(target_link, target_diff, robot)
 

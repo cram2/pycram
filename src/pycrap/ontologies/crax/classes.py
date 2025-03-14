@@ -38,10 +38,12 @@ class Kitchen(Base):
     A kitchen.
     """
 
+
 class PouringTool(Base):
     """
     The Tool that is used for pouring, can be cup, bottle, etc.
     """
+
 
 class Food(Base):
     ...
@@ -61,6 +63,30 @@ class Spoon(Base):
 
 class Bowl(Base):
     ...
+
+
+class PreferredGraspAlignment(Base):
+    ...
+
+
+class XAxis(Base):
+    value = (1, 0, 0)
+
+
+class YAxis(Base):
+    value = (0, 1, 0)
+
+
+class NoAlignment(Base):
+    value = (0, 0, 0)
+
+
+class Truthy(Base):
+    value = True
+
+
+class Falsy(Base):
+    value = False
 
 
 class Cabinet(Base):

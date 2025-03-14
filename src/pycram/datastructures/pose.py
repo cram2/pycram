@@ -305,6 +305,15 @@ class Pose(PoseStamped):
         """
         self.orientation = new_orientation
 
+    def round(self, decimals: int = 4) -> None:
+        """
+        Rounds the position and orientation of this Pose to the given number of decimals.
+
+        :param decimals: The number of decimals to which the position and orientation should be rounded
+        """
+        self.position = [round(v, decimals) for v in self.position_as_list()]
+        self.orientation = [round(v, decimals) for v in self.orientation_as_list()]
+
     def to_sql(self) -> ORMPose:
         return ORMPose(datetime.datetime.utcfromtimestamp(self.header.stamp.to_sec()), self.frame)
 
@@ -406,7 +415,9 @@ class Pose(PoseStamped):
         robot_pose = robot.get_pose()
 
         if grasp_alignment:
-            side_axis, vertical, rotated_gripper = grasp_alignment
+            side_axis = grasp_alignment.preferred_axis
+            vertical = grasp_alignment.with_vertical_alignment
+            rotated_gripper = grasp_alignment.with_rotated_gripper
         else:
             side_axis, vertical, rotated_gripper = None, False, False
 
@@ -641,6 +652,15 @@ class Transform(TransformStamped):
         return Transform(list(translation), list(quaternion), self.child_frame_id, self.header.frame_id,
                          self.header.stamp)
 
+    def round(self, decimals: int = 4):
+        """
+        Rounds the translation and rotation of this Transform to the given number of decimals.
+
+        :param decimals: The number of decimals to which the translation and rotation should be rounded
+        """
+        self.translation = [round(v, decimals) for v in self.translation_as_list()]
+        self.rotation = [round(v, decimals) for v in self.rotation_as_list()]
+
     def __mul__(self, other: Transform) -> Union[Transform, None]:
         """
         Multiplies this Transform with another one. The resulting Transform points from the frame_id of this Transform
@@ -715,7 +735,7 @@ class PreferredGraspAlignment:
     """
     Description of the preferred grasp alignment for an object.
     """
-    preferred_axis: AxisIdentifier
+    preferred_axis: Optional[AxisIdentifier]
     with_vertical_alignment: bool
     with_rotated_gripper: bool
 
