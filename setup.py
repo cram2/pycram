@@ -33,7 +33,9 @@ elif os.environ.get('ROS_VERSION') == "2":
     setup(
         name=package_name,
         version='0.0.2',
-        packages=find_packages(exclude=['test']),
+        #packages=find_packages(exclude=['test'], include=['pycram', 'pycrap']),
+        package_dir={"": "src"},  # Optional
+        packages=["pycram", "pycrap"],
         data_files=[
             ('share/ament_index/resource_index/packages',
                 ['resource/' + package_name]),
