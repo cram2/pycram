@@ -7,16 +7,9 @@ from inspect import signature
 from ..language import Language
 from ..utils import is_iterable, lazy_product
 
+T = TypeVar('T')
 
-if TYPE_CHECKING:
-    from ..designator import ActionDescription
-
-    T = TypeVar('T', bound=Type[ActionDescription])
-    Supertype = Iterable[ActionDescription]
-else:
-    Supertype = Iterable
-
-class PartialDesignator(Language):
+class PartialDesignator(Language, Iterable[T]):
     """
     A partial designator_description is somewhat between a DesignatorDescription and a specified designator_description. Basically it is a
     partially initialized specified designator_description which can take a list of input arguments (like a DesignatorDescription)
@@ -49,7 +42,10 @@ class PartialDesignator(Language):
     def __init__(self, performable: T, *args, **kwargs):
         super().__init__(None, None)
         self.performable = performable
-        self.kwargs = dict(signature(self.performable).bind_partial(*args, **kwargs).arguments)
+        # We use the init of the performable class since typing for the whole class messes up the signature of the class.
+        # This is still suboptimal since then "self" is a parameter of the signature but this will hopefully be fixed with
+        # better typing upwards of 3.10
+        self.kwargs = dict(signature(self.performable.__init__).bind_partial(*args, **kwargs).arguments)
         for key in dict(signature(self.performable).parameters).keys():
             if key not in self.kwargs.keys():
                 self.kwargs[key] = None
@@ -72,7 +68,7 @@ class PartialDesignator(Language):
         self.kwargs.update(dict(signature(self.performable).bind_partial(*fargs, **fkwargs).arguments))
         return self
 
-    def __iter__(self) -> T:
+    def __iter__(self) -> Iterator[T]:
         """
         Iterates over all possible permutations of the arguments and keyword arguments and creates a new performable
         object for each permutation. In case there are conflicting parameters the args will be used over the keyword
@@ -102,7 +98,12 @@ class PartialDesignator(Language):
         missing = {k: v for k, v in self.kwargs.items() if v is None}
         return list(missing.keys())
 
-    def resolve(self):
+    def resolve(self) -> T:
+        """
+        Returns the Designator with the first set of parameters
+
+        :return: A fully parametrized Designator
+        """
         return next(iter(self))
 
 

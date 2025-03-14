@@ -169,7 +169,7 @@ class MoveTorsoAction(ActionAbstract):
             raise TorsoGoalNotReached(validator)
 
     @classmethod
-    def description(cls, torso_state: Union[List[TorsoState], TorsoState]) -> PartialDesignator[MoveTorsoAction]:
+    def description(cls, torso_state: Union[Iterable[TorsoState], TorsoState]) -> PartialDesignator[Type[MoveTorsoAction]]:
         return PartialDesignator(MoveTorsoAction, torso_state=torso_state)
 
 
@@ -205,8 +205,8 @@ class SetGripperAction(ActionAbstract):
         pass
 
     @classmethod
-    def description(cls, gripper: Union[List[Arms], Arms],
-                    motion: Union[List[GripperState], GripperState] = None) -> PartialDesignator[SetGripperAction]:
+    def description(cls, gripper: Union[Iterable[Arms], Arms],
+                    motion: Union[Iterable[GripperState], GripperState] = None) -> PartialDesignator[Type[SetGripperAction]]:
         return PartialDesignator(SetGripperAction, gripper=gripper, motion=motion)
 
 
@@ -226,7 +226,7 @@ class ReleaseAction(ActionAbstract):
 
     @classmethod
     def description(cls, object_designator: ObjectDesignatorDescription, gripper: Arms = None) -> PartialDesignator[
-        ReleaseAction]:
+        Type[ReleaseAction]]:
         return PartialDesignator(ReleaseAction, object_designator=object_designator, gripper=gripper)
 
 
@@ -246,8 +246,8 @@ class GripAction(ActionAbstract):
         raise NotImplementedError()
 
     @classmethod
-    def description(cls, object_designator: ObjectDesignatorDescription,
-                    gripper: Union[List[Arms], Arms] = None, effort: Union[List[float], float] = None, ):
+    def description(cls, object_designator: Union[Iterable[Object], Object],
+                    gripper: Union[Iterable[Arms], Arms] = None, effort: Union[Iterable[float], float] = None, ) -> PartialDesignator[Type[GripAction]]:
         return PartialDesignator(GripAction, object_designator=object_designator,
                                  gripper=gripper, effort=effort)
 
@@ -294,7 +294,7 @@ class ParkArmsAction(ActionAbstract):
             raise ConfigurationNotReached(validator, configuration_type=StaticJointState.Park)
 
     @classmethod
-    def description(cls, arm: Union[List[Arms], Arms]) -> PartialDesignator[ParkArmsAction]:
+    def description(cls, arm: Union[Iterable[Arms], Arms]) -> PartialDesignator[Type[ParkArmsAction]]:
         return PartialDesignator(ParkArmsAction, arm=arm)
 
 
@@ -497,11 +497,11 @@ class ReachToPickUpAction(ActionAbstract):
             logwarn(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
 
     @classmethod
-    def description(cls, object_designator: Object,
-                    arm: Union[List[Arms], Arms] = None,
-                    grasp: Union[List[Grasp], Grasp] = None,
-                    prepose_distance: Union[List[float], float] = ActionConfig.pick_up_prepose_distance) -> \
-    PartialDesignator[ReachToPickUpAction]:
+    def description(cls, object_designator: Union[Iterable[Object], Object],
+                    arm: Union[Iterable[Arms], Arms] = None,
+                    grasp: Union[Iterable[Grasp], Grasp] = None,
+                    prepose_distance: Union[Iterable[float], float] = ActionConfig.pick_up_prepose_distance) -> \
+    PartialDesignator[Type[ReachToPickUpAction]]:
         return PartialDesignator(ReachToPickUpAction, object_designator=object_designator,
                                  arm=arm,
                                  grasp=grasp,
@@ -606,11 +606,11 @@ class PickUpAction(ActionAbstract):
         return RobotDescription.current_robot_description.get_arm_chain(self.arm)
 
     @classmethod
-    def description(cls, object_designator: ObjectDesignatorDescription,
-                    arm: Union[List[Arms], Arms] = None,
-                    grasp: Union[List[Grasp], Grasp] = None,
-                    prepose_distance: Union[List[float], float] = ActionConfig.pick_up_prepose_distance) -> \
-            PartialDesignator[PickUpAction]:
+    def description(cls, object_designator: Union[Iterable[Object], Object],
+                    arm: Union[Iterable[Arms], Arms] = None,
+                    grasp: Union[Iterable[Grasp], Grasp] = None,
+                    prepose_distance: Union[Iterable[float], float] = ActionConfig.pick_up_prepose_distance) -> \
+            PartialDesignator[Type[PickUpAction]]:
         return PartialDesignator(PickUpAction, object_designator=object_designator, arm=arm,
                                  grasp=grasp, prepose_distance=prepose_distance)
 
@@ -721,9 +721,9 @@ class PlaceAction(ActionAbstract):
             raise ObjectNotPlacedAtTargetLocation(self.object_designator, self.target_location, World.robot, self.arm)
 
     @classmethod
-    def description(cls, object_designator: ObjectDesignatorDescription,
-                    target_location: Union[List[Pose], Pose],
-                    arm: Union[List[Arms], Arms] = None) -> PartialDesignator[PlaceAction]:
+    def description(cls, object_designator: Union[Iterable[Object], Object],
+                    target_location: Union[Iterable[Pose], Pose],
+                    arm: Union[Iterable[Arms], Arms] = None) -> PartialDesignator[Type[PlaceAction]]:
         return PartialDesignator(PlaceAction, object_designator=object_designator,
                                  target_location=target_location,
                                  arm=arm)
@@ -760,7 +760,7 @@ class NavigateAction(ActionAbstract):
     @classmethod
     def description(cls, target_location: Union[Iterable[Pose], Pose],
                     keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states) -> \
-            PartialDesignator[NavigateAction]:
+            PartialDesignator[Type[NavigateAction]]:
         return PartialDesignator(NavigateAction, target_location=target_location,
                                  keep_joint_states=keep_joint_states)
 
@@ -820,11 +820,11 @@ class TransportAction(ActionAbstract):
         pass
 
     @classmethod
-    def description(cls, object_designator: ObjectDesignatorDescription,
+    def description(cls, object_designator: Union[Iterable[Object], Object],
                     target_location: Union[Iterable[Pose], Pose],
-                    arm: Union[List[Arms], Arms] = None,
-                    pickup_prepose_distance: Union[List[float], float] = ActionConfig.pick_up_prepose_distance) -> \
-            PartialDesignator[TransportAction]:
+                    arm: Union[Iterable[Arms], Arms] = None,
+                    pickup_prepose_distance: Union[Iterable[float], float] = ActionConfig.pick_up_prepose_distance) -> \
+            PartialDesignator[Type[TransportAction]]:
         return PartialDesignator(TransportAction, object_designator=object_designator,
                                  target_location=target_location,
                                  arm=arm,
@@ -863,7 +863,7 @@ class LookAtAction(ActionAbstract):
                 raise LookAtGoalNotReached(World.robot, self.target)
 
     @classmethod
-    def description(cls, target: Union[Iterable[Pose], Pose]) -> PartialDesignator[LookAtAction]:
+    def description(cls, target: Union[Iterable[Pose], Pose]) -> PartialDesignator[Type[LookAtAction]]:
         return PartialDesignator(LookAtAction, target=target)
 
 
@@ -906,10 +906,10 @@ class DetectAction(ActionAbstract):
             raise PerceptionObjectNotFound(self.object_designator_description, self.technique, self.region)
 
     @classmethod
-    def description(cls, technique: DetectionTechnique,
-                    state: Union[List[DetectionState], DetectionState] = None,
-                    object_designator_description: ObjectDesignatorDescription = None,
-                    region: Union[List[Location], Location] = None) -> PartialDesignator[LookAtAction]:
+    def description(cls, technique: Union[Iterable[DetectionTechnique], DetectionTechnique],
+                    state: Union[Iterable[DetectionState], DetectionState] = None,
+                    object_designator_description: Union[Iterable[Object], Object] = None,
+                    region: Union[Iterable[Location], Location] = None) -> PartialDesignator[Type[DetectAction]]:
         return PartialDesignator(DetectAction, technique=technique,
                                  state=state,
                                  object_designator_description=object_designator_description,
@@ -951,11 +951,11 @@ class OpenAction(ActionAbstract):
         validate_close_open(self.object_designator, self.arm, OpenAction)
 
     @classmethod
-    def description(cls, object_designator: ObjectPart,
-                    arm: Union[List[Arms], Arms] = None,
-                    grasping_prepose_distance: Union[List[float], float] = ActionConfig.grasping_prepose_distance) -> \
-            PartialDesignator[OpenAction]:
-        return PartialDesignator(OpenAction, object_designator=object_designator,
+    def description(cls, object_designator_description: Union[Iterable[ObjectDescription.Link], ObjectDescription.Link],
+                    arm: Union[Iterable[Arms], Arms] = None,
+                    grasping_prepose_distance: Union[Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
+            PartialDesignator[Type[OpenAction]]:
+        return PartialDesignator(OpenAction, object_designator=object_designator_description,
                                  arm=arm,
                                  grasping_prepose_distance=grasping_prepose_distance)
 
@@ -994,11 +994,11 @@ class CloseAction(ActionAbstract):
         validate_close_open(self.object_designator, self.arm, CloseAction)
 
     @classmethod
-    def description(cls, object_designator: Union[Iterable[ObjectDescription.Link], ObjectDescription.Link],
-                    arm: Union[List[Arms], Arms] = None,
-                    grasping_prepose_distance: Union[List[float], float] = ActionConfig.grasping_prepose_distance) -> \
-            PartialDesignator[CloseAction]:
-        return PartialDesignator(CloseAction, object_designator=object_designator,
+    def description(cls, object_designator_description: Union[Iterable[ObjectDescription.Link], ObjectDescription.Link],
+                    arm: Union[Iterable[Arms], Arms] = None,
+                    grasping_prepose_distance: Union[Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
+            PartialDesignator[Type[CloseAction]]:
+        return PartialDesignator(CloseAction, object_designator=object_designator_description,
                                  arm=arm,
                                  grasping_prepose_distance=grasping_prepose_distance)
 
@@ -1058,10 +1058,6 @@ class GraspingAction(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        # if isinstance(self.object_desig, ObjectDescription.Link):
-        #    object_pose = self.object_desig.part_pose
-        # else:
-        #    object_pose = self.object_desig.world_object.get_pose()
         object_pose = self.object_desig.pose
         lt = LocalTransformer()
         gripper_name = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
@@ -1079,10 +1075,6 @@ class GraspingAction(ActionAbstract):
         MoveGripperMotion(GripperState.CLOSE, self.arm, allow_gripper_collision=True).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        # if isinstance(self.object_desig, ObjectPart.Object):
-        #    body = self.object_desig.world_object.links[self.object_desig.name]
-        # else:
-        #    body = self.object_desig.world_object
         body = self.object_desig
         contact_links = body.get_contact_points_with_body(World.robot).get_bodies_in_contact()
         arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.arm)
@@ -1091,10 +1083,10 @@ class GraspingAction(ActionAbstract):
             raise ObjectNotGraspedError(self.object_desig, World.robot, self.arm, None)
 
     @classmethod
-    def description(cls, object_desig: ObjectDesignatorDescription,
-                    arm: Union[List[Arms], Arms] = None,
-                    prepose_distance: Union[List[float], float] = ActionConfig.grasping_prepose_distance) -> \
-            PartialDesignator[GraspingAction]:
+    def description(cls, object_desig: Union[Iterable[Object], Object],
+                    arm: Union[Iterable[Arms], Arms] = None,
+                    prepose_distance: Union[Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
+            PartialDesignator[Type[GraspingAction]]:
         return PartialDesignator(GraspingAction, object_desig=object_desig, arm=arm, prepose_distance=prepose_distance)
 
 
@@ -1139,9 +1131,9 @@ class FaceAtAction(ActionAbstract):
         pass
 
     @classmethod
-    def description(cls, pose: Union[List[Pose], Pose],
-                    keep_joint_states: Union[List[bool], bool] = ActionConfig.face_at_keep_joint_states) -> \
-            PartialDesignator[FaceAtAction]:
+    def description(cls, pose: Union[Iterable[Pose], Pose],
+                    keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.face_at_keep_joint_states) -> \
+            PartialDesignator[Type[FaceAtAction]]:
         return PartialDesignator(FaceAtAction, pose=pose, keep_joint_states=keep_joint_states)
 
 
@@ -1193,13 +1185,13 @@ class MoveAndPickUpAction(ActionAbstract):
         pass
 
     @classmethod
-    def description(cls, standing_position: Union[List[Pose], Pose],
-                    object_designator: ObjectDesignatorDescription,
-                    arm: Union[List[Arms], Arms] = None,
-                    grasp: Union[List[Grasp], Grasp] = None,
-                    keep_joint_states: Union[List[bool], bool] = ActionConfig.navigate_keep_joint_states,
-                    pick_up_prepose_distance: Union[List[float], float] = ActionConfig.pick_up_prepose_distance) -> \
-            PartialDesignator[MoveAndPickUpAction]:
+    def description(cls, standing_position: Union[Iterable[Pose], Pose],
+                    object_designator: Union[Iterable[Pose], Pose],
+                    arm: Union[Iterable[Arms], Arms] = None,
+                    grasp: Union[Iterable[Grasp], Grasp] = None,
+                    keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states,
+                    pick_up_prepose_distance: Union[Iterable[float], float] = ActionConfig.pick_up_prepose_distance) -> \
+            PartialDesignator[Type[MoveAndPickUpAction]]:
         return PartialDesignator(MoveAndPickUpAction,
                                  standing_position=standing_position,
                                  object_designator=object_designator,
@@ -1250,12 +1242,12 @@ class MoveAndPlaceAction(ActionAbstract):
         pass
 
     @classmethod
-    def description(cls, standing_position: Union[List[Pose], Pose],
-                    object_designator: ObjectDesignatorDescription,
-                    target_location: Union[List[Pose], Pose],
-                    arm: Union[List[Arms], Arms] = None,
-                    keep_joint_states: Union[List[bool], bool] = ActionConfig.navigate_keep_joint_states, ) -> \
-            PartialDesignator[MoveAndPlaceAction]:
+    def description(cls, standing_position: Union[Iterable[Pose], Pose],
+                    object_designator: Union[Iterable[Object], Object],
+                    target_location: Union[Iterable[Pose], Pose],
+                    arm: Union[Iterable[Arms], Arms] = None,
+                    keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states, ) -> \
+            PartialDesignator[Type[MoveAndPlaceAction]]:
         return PartialDesignator(MoveAndPlaceAction,
                                  standing_position=standing_position,
                                  object_designator=object_designator,

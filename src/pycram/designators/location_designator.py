@@ -74,7 +74,8 @@ class CostmapLocation(LocationDesignatorDescription):
                                    visible_for=visible_for,
                                    reachable_arm=reachable_arm, prepose_distance=prepose_distance,
                                    check_collision_at_start=check_collision_at_start,
-                                   ignore_collision_with=ignore_collision_with if ignore_collision_with is not None else [None],
+                                   ignore_collision_with=ignore_collision_with if ignore_collision_with is not None else [
+                                       None],
                                    grasps=grasps if grasps is not None else [None])
         self.target: Union[Pose, Object] = target
         self.reachable_for: Object = reachable_for
@@ -170,9 +171,9 @@ class CostmapLocation(LocationDesignatorDescription):
                         else:
                             for chain in RobotDescription.current_robot_description.get_manipulator_chains():
                                 hand_links += chain.end_effector.links
-                        #valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
+                        # valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
                         #                                     allowed_collision={test_robot: hand_links})
-                        #if reachable_arm:
+                        # if reachable_arm:
                         #    res = res and valid and reachable_arm in arms
 
                         if not reachable_arm:
@@ -189,12 +190,12 @@ class CostmapLocation(LocationDesignatorDescription):
                                                              allowed_collision=allowed_collision,
                                                              arm=reachable_arm,
                                                              prepose_distance=prepose_distance)
-                        #if reachable_arm:
+                        # if reachable_arm:
                         #    res = res and valid and reachable_arm in arms
 
                         res = res and valid
-                        #if res:
-                            #found_grasps.append(grasp)
+                        # if res:
+                        # found_grasps.append(grasp)
                         #    yield maybe_pose
                     if res:
                         yield maybe_pose
@@ -205,8 +206,9 @@ class AccessingLocation(LocationDesignatorDescription):
     Location designator which describes poses used for opening drawers
     """
 
-    def __init__(self, handle_desig: ObjectDescription.Link,
-                 robot_desig: Object,
+    def __init__(self, handle_desig: Union[ObjectDescription.Link, Iterable[ObjectDescription.Link]],
+                 robot_desig: Union[Object, Iterable[Object]],
+                 arm: Union[List[Arms], Arms] = None,
                  prepose_distance: float = ActionConfig.grasping_prepose_distance):
         """
         Describes a position from where a drawer can be opened. For now this position should be calculated before the
@@ -218,10 +220,13 @@ class AccessingLocation(LocationDesignatorDescription):
         """
         super().__init__()
         PartialDesignator.__init__(self, AccessingLocation, handle_desig=handle_desig, robot_desig=robot_desig,
+                                   arm=arm if arm is not None else [Arms.LEFT, Arms.RIGHT],
                                    prepose_distance=prepose_distance)
         self.handle: ObjectDescription.Link = handle_desig
         self.robot: Object = robot_desig
         self.prepose_distance = prepose_distance
+        self.arm = arm if arm is not None else [Arms.LEFT, Arms.RIGHT]
+
 
     def ground(self) -> Pose:
         """
@@ -230,6 +235,7 @@ class AccessingLocation(LocationDesignatorDescription):
         :return: A location designator for a pose from which the drawer can be opened
         """
         return next(iter(self))
+
 
     @staticmethod
     def adjust_map_for_drawer_opening(cost_map: Costmap, init_pose: Pose, goal_pose: Pose,
@@ -261,6 +267,7 @@ class AccessingLocation(LocationDesignatorDescription):
                        int(map_origin_idx[1] + i * unit_motion_vector[1] - j * orthogonal_vector[1]))
                 cost_map.map[idx] = 0
 
+
     def __iter__(self) -> Iterator[Pose]:
         """
         Creates poses from which the robot can open the drawer specified by the ObjectPart designator describing the
@@ -270,7 +277,9 @@ class AccessingLocation(LocationDesignatorDescription):
         :yield: A location designator containing the pose and the arms that can be used.
         """
         for params in self.generate_permutations():
-            handle = params["handle"]
+            handle = params["handle_desig"]
+            arm = params["arm"]
+            robot = params["robot_desig"]
 
             # Find a Joint that moves with the handle in the URDF tree
             container_joint = handle.parent_entity.find_joint_above_link(handle.name)
@@ -300,7 +309,7 @@ class AccessingLocation(LocationDesignatorDescription):
             if joint_type == JointType.PRISMATIC:
                 self.adjust_map_for_drawer_opening(final_map, init_pose, goal_pose)
 
-            test_robot = World.current_world.get_prospection_object_for_object(self.robot)
+            test_robot = World.current_world.get_prospection_object_for_object(robot)
 
             with UseProspectionWorld():
                 orientation_generator = lambda p, o: PoseGenerator.generate_orientation(p, half_pose)
@@ -316,13 +325,15 @@ class AccessingLocation(LocationDesignatorDescription):
 
                     valid_init, arms_init = reachability_validator(maybe_pose, test_robot, init_pose,
                                                                    allowed_collision={test_robot: hand_links},
-                                                                   prepose_distance=self.prepose_distance)
+                                                                   prepose_distance=self.prepose_distance,
+                                                                   arm=arm)
 
                     if valid_init:
                         logdebug(f"Found a valid init pose for accessing {handle.name} with arms {arms_init}")
                         valid_goal, arms_goal = reachability_validator(maybe_pose, test_robot, goal_pose,
                                                                        allowed_collision={test_robot: hand_links},
-                                                                       prepose_distance=self.prepose_distance)
+                                                                       prepose_distance=self.prepose_distance,
+                                                                       arm=arm)
 
                         arms_list = list(set(arms_init).intersection(set(arms_goal)))
 

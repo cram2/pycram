@@ -5,7 +5,7 @@ import dataclasses
 import owlready2
 import sqlalchemy.orm
 from owlready2.triplelite import _SearchList
-from typing_extensions import TYPE_CHECKING, Iterable
+from typing_extensions import TYPE_CHECKING, Iterable, Iterator, Union
 
 from ..datastructures.enums import ObjectType
 from ..datastructures.partial_designator import PartialDesignator
@@ -13,7 +13,8 @@ from ..datastructures.world import World
 from ..external_interfaces.robokudo import *
 from ..orm.base import ProcessMetaData
 from ..orm.object_designator import (BelieveObject as ORMBelieveObject, ObjectPart as ORMObjectPart)
-from ..world_concepts.world_object import Object as WorldObject
+from ..world_concepts.world_object import Object as WorldObject, Object
+from ..description import ObjectDescription
 
 if TYPE_CHECKING:
     pass
@@ -32,7 +33,7 @@ class OntologyObjectDesignatorDescription:
     def __init__(self, search_result: _SearchList):
         self.search_result = list(search_result)
 
-    def __iter__(self) -> Iterable[ObjectDesignatorDescription.Object]:
+    def __iter__(self) -> Iterable[Object]:
         """
         :return: The objects in the current world which match the search result in the 'is_a' relation.
         """
@@ -55,13 +56,13 @@ class BelieveObject(ObjectDesignatorDescription):
     """
 
 
-class ObjectPart(ObjectDesignatorDescription):
+class ObjectPart(ObjectDesignatorDescription, Iterable[ObjectDescription.Link]):
     """
     Object Designator Descriptions for Objects that are part of some other object.
     """
 
     def __init__(self, names: List[str],
-                 part_of: WorldObject,
+                 part_of: Union[WorldObject, Iterable[WorldObject]],
                  type: Optional[ObjectType] = None):
         """
         Describing the relationship between an object and a specific part of it.
@@ -80,7 +81,7 @@ class ObjectPart(ObjectDesignatorDescription):
         self.names: Optional[List[str]] = names
         self.part_of = part_of
 
-    def ground(self) -> WorldObject:
+    def ground(self) -> ObjectDescription.Link:
         """
         Default specialized_designators, returns the first result of the iterator of this instance.
 
@@ -88,7 +89,7 @@ class ObjectPart(ObjectDesignatorDescription):
         """
         return next(iter(self))
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[ObjectDescription.Link]:
         """
         Iterates through every possible solution for the given input parameter.
 

@@ -17,7 +17,7 @@ from sqlalchemy.orm.session import Session
 from .datastructures.world import World
 from .datastructures.partial_designator import PartialDesignator
 from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable, TYPE_CHECKING, ForwardRef, \
-    Self
+    Self, Iterator
 from typing import get_type_hints
 
 from .language import Language
@@ -286,7 +286,7 @@ class ActionDescription:
 
 
 
-class LocationDesignatorDescription(DesignatorDescription, PartialDesignator):
+class LocationDesignatorDescription(DesignatorDescription, PartialDesignator, Iterable[Pose]):
     """
     Parent class of location designator_description descriptions.
     """
@@ -313,7 +313,7 @@ SPECIAL_KNOWLEDGE = {
 }
 
 
-class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
+class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator, Iterable[WorldObject]):
     """
     Class for object designator_description descriptions.
     Descriptions hold possible parameter ranges for object designators.
@@ -339,7 +339,7 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
         """
         return next(iter(self))
 
-    def __iter__(self) -> Iterable[WorldObject]:
+    def __iter__(self) -> Iterator[WorldObject]:
         """
         Iterate through all possible objects fitting this description
 
