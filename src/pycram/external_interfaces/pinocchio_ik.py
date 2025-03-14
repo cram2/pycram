@@ -13,6 +13,7 @@ from ..config.ik_conf import PinocchioConfig
 def create_joint_configuration(robot: Object, model) -> np.ndarray[float]:
     """
     Create a joint configuration vector (q) from the current joint positions of the robot.
+
     :param robot: The robot object.
     :param model: The Pinocchio model.
     :return: The joint configuration vector.
