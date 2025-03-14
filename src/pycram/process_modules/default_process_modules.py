@@ -183,7 +183,7 @@ class DefaultOpen(ProcessModule):
     """
 
     def _execute(self, desig: OpeningMotion):
-        part_of_object = desig.object_part.world_object
+        part_of_object = desig.object_part.parent_entity
 
         container_joint_name = part_of_object.find_joint_above_link(desig.object_part.name)
         lower_limit, upper_limit = part_of_object.get_joint_limits(container_joint_name)
@@ -193,7 +193,7 @@ class DefaultOpen(ProcessModule):
 
         _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.world_object.set_joint_position(container_joint_name, upper_limit)
+        part_of_object.set_joint_position(container_joint_name, upper_limit)
 
 
 class DefaultClose(ProcessModule):
@@ -202,7 +202,7 @@ class DefaultClose(ProcessModule):
     """
 
     def _execute(self, desig: ClosingMotion):
-        part_of_object = desig.object_part.world_object
+        part_of_object = desig.object_part.parent_entity
 
         container_joint_name = part_of_object.find_joint_above_link(desig.object_part.name)
         lower_joint_limit = part_of_object.get_joint_limits(container_joint_name)[0]
@@ -212,7 +212,7 @@ class DefaultClose(ProcessModule):
 
         _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.world_object.set_joint_position(container_joint_name, lower_joint_limit)
+        part_of_object.set_joint_position(container_joint_name, lower_joint_limit)
 
 
 def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:

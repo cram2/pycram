@@ -12,7 +12,6 @@ from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycrap.ontologies import Robot, Apartment, Milk, Cereal, Spoon, Bowl
 import numpy as np
 
-
 np.random.seed(420)
 extension = ObjectDescription.get_file_extension()
 
@@ -39,76 +38,82 @@ apartment_desig = BelieveObject(names=["apartment"])
 
 @with_simulated_robot
 def move_and_detect(obj_type):
-    NavigateAction(target_locations=[Pose([1.7, 2, 0])]).resolve().perform()
+    NavigateActionDescription(target_location=[Pose([1.7, 2, 0])]).resolve().perform()
 
-    LookAtAction(targets=[pick_pose]).resolve().perform()
+    LookAtActionDescription(target=[pick_pose]).resolve().perform()
 
-    object_desig = DetectAction(technique=DetectionTechnique.TYPES, object_designator_description=BelieveObject(types=[obj_type])).resolve().perform()
+    object_desig = DetectActionDescription(technique=DetectionTechnique.TYPES,
+                                           object_designator_description=BelieveObject(
+                                               types=[obj_type])).resolve().perform()
     return object_desig[0]
 
 
 with simulated_robot:
-    ParkArmsAction([Arms.BOTH]).resolve().perform()
+    ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
 
-    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
+    MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
 
     milk_desig = move_and_detect(Milk)
 
-    TransportAction(milk_desig,  [Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
+    TransportActionDescription(milk_desig, [Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
 
     cereal_desig = move_and_detect(Cereal)
 
-    TransportAction(cereal_desig,  [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])],[Arms.RIGHT]).resolve().perform()
+    TransportActionDescription(cereal_desig, [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])], [Arms.RIGHT]).resolve().perform()
 
     bowl_desig = move_and_detect(Bowl)
 
-    TransportAction(bowl_desig,  [Pose([5, 3.3, 0.8], [0, 0, 1, 1])], [Arms.LEFT]).resolve().perform()
+    TransportActionDescription(bowl_desig, [Pose([5, 3.3, 0.8], [0, 0, 1, 1])], [Arms.LEFT]).resolve().perform()
 
-    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
+    MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
     # Finding and navigating to the drawer holding the spoon
-    handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig.resolve())
-    drawer_open_loc = AccessingLocation(handle_desig=handle_desig.resolve(),
-                                        robot_desig=robot_desig.resolve()).resolve()
+    handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig)
+    drawer_open_loc = AccessingLocation(handle_desig=handle_desig,
+                                        robot_desig=robot_desig,
+                                        arm=Arms.RIGHT)
 
-    NavigateAction([drawer_open_loc.pose]).resolve().perform()
+    NavigateActionDescription(drawer_open_loc).resolve().perform()
 
-    OpenAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
+    OpenActionDescription(object_designator_description=handle_desig, arm=Arms.RIGHT).resolve().perform()
     spoon.detach(apartment)
-    ParkArmsAction([Arms.BOTH]).resolve().perform()
+    ParkArmsActionDescription(Arms.BOTH).resolve().perform()
     # Detect and pickup the spoon
-    LookAtAction([apartment.get_link_pose("handle_cab10_t")]).resolve().perform()
+    LookAtActionDescription([apartment.get_link_pose("handle_cab10_t")]).resolve().perform()
 
-    spoon_desigs = DetectAction(technique=DetectionTechnique.TYPES,
-                               object_designator_description=BelieveObject(types=[Spoon])).resolve().perform()
+    spoon_desigs = DetectActionDescription(technique=DetectionTechnique.TYPES,
+                                           object_designator_description=BelieveObject(
+                                               types=[Spoon])).resolve().perform()
     spoon_desig = spoon_desigs[0]
-    pickup_arm = Arms.LEFT if drawer_open_loc.arms[0] == Arms.RIGHT else Arms.RIGHT
+    pickup_arm = Arms.LEFT
 
-    ParkArmsAction([Arms.BOTH]).resolve().perform()
-    spoon_pick_loc = CostmapLocation(spoon_desig, reachable_for=robot_desig.resolve(), reachable_arm=pickup_arm, grasps=[Grasp.TOP]).resolve()
-    NavigateAction([spoon_pick_loc.pose]).resolve().perform()
+    ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
+    NavigateActionDescription(CostmapLocation(spoon_desig,
+                                              reachable_for=robot_desig.resolve(),
+                                              reachable_arm=pickup_arm,
+                                              grasps=[Grasp.TOP])).resolve().perform()
 
-    PickUpAction(spoon_desig, [pickup_arm], [Grasp.TOP]).resolve().perform()
+    PickUpActionDescription(spoon_desig, [pickup_arm], [Grasp.TOP]).resolve().perform()
 
-    ParkArmsAction([Arms.LEFT if pickup_arm == Arms.LEFT else Arms.RIGHT]).resolve().perform()
+    ParkArmsActionDescription([Arms.LEFT if pickup_arm == Arms.LEFT else Arms.RIGHT]).resolve().perform()
 
-    NavigateAction([drawer_open_loc.pose]).resolve().perform()
+    NavigateActionDescription(drawer_open_loc).resolve().perform()
 
-    CloseAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
+    CloseActionDescription(object_designator_description=handle_desig, arm=Arms.RIGHT).resolve().perform()
 
-    ParkArmsAction([Arms.BOTH]).resolve().perform()
+    ParkArmsActionDescription(Arms.BOTH).resolve().perform()
 
-    MoveTorsoAction([TorsoState.MID]).resolve().perform()
+    MoveTorsoActionDescription(TorsoState.MID).resolve().perform()
 
     # Find a pose to place the spoon, move and then place it
     spoon_target_pose = Pose([4.7, 3.25, 0.8], [0, 0, 1, 1])
-    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
-    placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(), reachable_arm=pickup_arm).resolve()
+    MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
+    placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(),
+                                  reachable_arm=pickup_arm).resolve()
 
-    NavigateAction([placing_loc.pose]).resolve().perform()
+    NavigateActionDescription(placing_loc).resolve().perform()
 
-    PlaceAction(spoon_desig, [spoon_target_pose], [pickup_arm]).resolve().perform()
+    PlaceActionDescription(spoon_desig, [spoon_target_pose], [pickup_arm]).resolve().perform()
 
-    ParkArmsAction([Arms.BOTH]).resolve().perform()
-
+    ParkArmsActionDescription(Arms.BOTH).resolve().perform()
 
 world.exit()
