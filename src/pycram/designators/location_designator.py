@@ -140,9 +140,6 @@ class CostmapLocation(LocationDesignatorDescription):
         """
         super().__init__()
         self.target: Union[Pose, ObjectDesignatorDescription.Object] = target
-        if not (visible_for or reachable_for):
-            raise DesignatorError("At least one of 'reachable_for' or 'visible_for' must be given")
-
         self.reachable_for: ObjectDesignatorDescription.Object = reachable_for
         self.visible_for: ObjectDesignatorDescription.Object = visible_for
         self.reachable_arms: List[Arms] = reachable_arms if reachable_arms else [Arms.LEFT, Arms.RIGHT]
@@ -198,12 +195,14 @@ class CostmapLocation(LocationDesignatorDescription):
         """
         target = self.target.copy() if isinstance(self.target, Pose) else self.target.world_object
 
-        robot_object = (self.visible_for or self.reachable_for).world_object
+        if (self.reachable_for or self.visible_for):
+            robot_object = (self.visible_for or self.reachable_for).world_object
+        else:
+            robot_object = World.robot
         test_robot = World.current_world.get_prospection_object_for_object(robot_object)
 
         ignore_collision_with = [World.current_world.get_prospection_object_for_object(obj)
-                                 for obj in self.ignore_collision_with
-                                 ]
+                                 for obj in self.ignore_collision_with]
 
         allowed_collision = {object: object.link_names for object in ignore_collision_with}
 
@@ -214,6 +213,10 @@ class CostmapLocation(LocationDesignatorDescription):
                 pose_candidate.position.z = 0
                 test_robot.set_pose(pose_candidate)
                 if prospect_robot_contact(test_robot, self.ignore_collision_with):
+                    continue
+
+                if not (self.reachable_for or self.visible_for):
+                    yield self.Location(pose_candidate, None, None)
                     continue
 
                 if self.visible_for and not visibility_validator(test_robot, target.get_pose().copy()):

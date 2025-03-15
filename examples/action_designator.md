@@ -166,7 +166,7 @@ with simulated_robot:
     NavigateAction([Pose([1.8, 2, 0.0],
                          [0.0, 0.0, 0., 1])]).resolve().perform()
 
-    grasp = GraspDescription(Grasp.RIGHT, None, False)
+    grasp = GraspDescription(Grasp.FRONT, None, False)
     PickUpAction(object_designator_description=milk_desig,
                  arms=[arm],
                  grasp_descriptions=[grasp]).resolve().perform()
