@@ -104,7 +104,7 @@ class PoseGenerator:
 
 
 def visibility_validator(robot: Object,
-                         object_or_pose: Pose) -> bool:
+                         pose: Pose) -> bool:
     """
     This method validates if the robot can see the target position from a given
     pose candidate. The target position can either be a position, in world coordinate
@@ -121,10 +121,10 @@ def visibility_validator(robot: Object,
 
     camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link())
     robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
-    ray = world.ray_test(camera_pose.position_as_list(), object_or_pose)
+    ray = world.ray_test(camera_pose.position_as_list(), pose)
 
     robot.set_pose(robot_pose)
-    return not ray.intersected
+    return ray.intersected
 
 
 def reachability_validator(robot: Object,
