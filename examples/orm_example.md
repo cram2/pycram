@@ -66,7 +66,7 @@ def plan():
         ParkArmsActionPerformable(Arms.BOTH).perform()
         MoveTorsoAction([TorsoState.MID]).resolve().perform()
         pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
-        pickup_arm = pickup_pose.reachable_arms[0]
+        pickup_arm = pickup_pose.reachable_arm
         NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
         grasp = pickup_pose.grasp_description
         PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasp_descriptions=[grasp]).resolve().perform()

@@ -67,8 +67,7 @@ def contact(
             return objects_are_in_contact
 
 
-def prospect_robot_contact(robot: Object, pose: Pose,
-                           ignore_collision_with: Optional[List[Object]] = None) -> bool:
+def prospect_robot_contact(robot: Object, ignore_collision_with: Optional[List[Object]] = None) -> bool:
     """
     Check if the robot collides with any object in the world at the given pose.
 
@@ -79,6 +78,7 @@ def prospect_robot_contact(robot: Object, pose: Pose,
     """
     with UseProspectionWorld():
         prospection_robot = World.current_world.get_prospection_object_for_object(robot)
+        pose = robot.get_pose()
         floor = prospection_robot.world.get_object_by_name("floor")
         ignore_collision_with = [] if ignore_collision_with is None else ignore_collision_with
         ignore = [o.name for o in ignore_collision_with]

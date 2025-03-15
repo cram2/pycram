@@ -406,7 +406,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         :return: The pre grasping pose of the object.
         """
         # pre-pose depending on the gripper.
-        oTg = self.transform_to_gripper_frame(obj_pose)
+        oTg = obj_pose.copy()
         oTg.pose.position.x -= self.prepose_distance  # in x since this is how the gripper is oriented
         return self.transform_pose(oTg, Frame.Map.value)
 
@@ -586,7 +586,8 @@ class PlaceActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        target_pose = self.calculate_target_pose_of_gripper()
+        target_pose = self.object_designator.world_object.attachments[
+            World.robot].get_child_link_target_pose_given_parent(self.target_location)
         MoveTCPMotion(target_pose, self.arm).perform()
 
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()
@@ -736,7 +737,7 @@ class TransportActionPerformable(ActionAbstract):
         # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = None
         for pose in pickup_loc:
-            if self.arm in pose.reachable_arms:
+            if self.arm == pose.reachable_arm:
                 pickup_pose = pose
                 break
         if not pickup_pose:
@@ -744,7 +745,7 @@ class TransportActionPerformable(ActionAbstract):
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
 
         NavigateActionPerformable(pickup_pose.pose, True).perform()
-        PickUpActionPerformable(self.object_designator, pickup_pose.reachable_arms[0],
+        PickUpActionPerformable(self.object_designator, pickup_pose.reachable_arm,
                                 pickup_pose.grasp_description,
                                 prepose_distance=self.pickup_prepose_distance).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
@@ -752,7 +753,7 @@ class TransportActionPerformable(ActionAbstract):
             place_loc = CostmapLocation(
                 target=self.target_location,
                 reachable_for=robot_desig_resolved,
-                reachable_arms=[pickup_pose.reachable_arms[0]],
+                reachable_arms=[pickup_pose.reachable_arm],
                 grasp_descriptions=[pickup_pose.grasp_description],
                 object_in_hand=self.object_designator
             ).resolve()
@@ -760,7 +761,7 @@ class TransportActionPerformable(ActionAbstract):
             raise ReachabilityFailure(
                 f"No location found from where the robot can reach the target location: {self.target_location}")
         NavigateActionPerformable(place_loc.pose, True).perform()
-        PlaceActionPerformable(self.object_designator, place_loc.reachable_arms[0], self.target_location).perform()
+        PlaceActionPerformable(self.object_designator, place_loc.reachable_arm, self.target_location).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):

@@ -56,9 +56,9 @@ with simulated_robot:
     NavigateAction([drawer_open_loc.pose]).resolve().perform()
 
     OpenAction(object_designator_description=handle_desig,
-               arms=[drawer_open_loc.arms[0]]).resolve().perform()
+               arms=[drawer_open_loc.arm]).resolve().perform()
 
-    arm_ee = RobotDescription.current_robot_description.get_arm_chain(drawer_open_loc.arms[0]).get_tool_frame()
+    arm_ee = RobotDescription.current_robot_description.get_arm_chain(drawer_open_loc.arm).get_tool_frame()
     closing_arm_pose = robot.get_link_pose(arm_ee)
 
     # Detect and pickup the spoon
@@ -70,12 +70,12 @@ with simulated_robot:
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    pickup_arm = Arms.LEFT if drawer_open_loc.arms[0] == Arms.RIGHT else Arms.RIGHT
+    pickup_arm = Arms.LEFT if drawer_open_loc.arm == Arms.RIGHT else Arms.RIGHT
     pick_up_loc = CostmapLocation(target=spoon_desig.pose, reachable_for=robot_desig.resolve(),
                                   reachable_arm=pickup_arm, grasps=[Grasp.TOP]).resolve()
 
     NavigateAction([pick_up_loc.pose]).resolve().perform()
-    MoveTCPMotion(closing_arm_pose, drawer_open_loc.arms[0]).perform()
+    MoveTCPMotion(closing_arm_pose, drawer_open_loc.arm).perform()
 
     PickUpAction(spoon_desig, [pickup_arm], [Grasp.TOP]).resolve().perform()
 
@@ -83,7 +83,7 @@ with simulated_robot:
 
     NavigateAction([drawer_open_loc.pose]).resolve().perform()
 
-    CloseAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
+    CloseAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arm]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 

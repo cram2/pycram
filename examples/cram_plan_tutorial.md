@@ -162,8 +162,8 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
         NavigateActionPerformable(pose.pose, True).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         good_torsos.append(torso)
-        picked_up_arm = pose.reachable_arms[0]
-        PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp_description=grasp,
+        picked_up_arm = pose.reachable_arm
+        PickUpActionPerformable(object_designator=obj_desig, arm=picked_up_arm, grasp_description=grasp,
                                 prepose_distance=0.03).perform()
 
         ParkArmsActionPerformable(Arms.BOTH).perform()

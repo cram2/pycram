@@ -239,6 +239,12 @@ class ManipulationGoalNotReached(ManipulationLowLevelFailure):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+class RobotInCollision(PlanFailure):
+    """Thrown when the robot is in collision with the environment."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
 
 class IKError(PlanFailure):
     """Thrown when no inverse kinematics solution could be found"""

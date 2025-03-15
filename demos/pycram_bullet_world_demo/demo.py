@@ -57,19 +57,19 @@ with simulated_robot:
 
     milk_desig = move_and_detect(Milk)
 
-    TransportAction(milk_desig, [Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
-
-    loginfo("Handling cereal")
-
-    cereal_desig = move_and_detect(Cereal)
-
-    TransportAction(cereal_desig, [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])], [Arms.RIGHT]).resolve().perform()
-
-    loginfo("Handling bowl")
-
-    bowl_desig = move_and_detect(Bowl)
-
-    TransportAction(bowl_desig, [Pose([5, 3.3, 0.8], [0, 0, 1, 1])], [Arms.LEFT]).resolve().perform()
+    # TransportAction(milk_desig, [Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
+    #
+    # loginfo("Handling cereal")
+    #
+    # cereal_desig = move_and_detect(Cereal)
+    #
+    # TransportAction(cereal_desig, [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])], [Arms.RIGHT]).resolve().perform()
+    #
+    # loginfo("Handling bowl")
+    #
+    # bowl_desig = move_and_detect(Bowl)
+    #
+    # TransportAction(bowl_desig, [Pose([5, 3.3, 0.8], [0, 0, 1, 1])], [Arms.LEFT]).resolve().perform()
 
     loginfo("Opening drawer to get spoon")
 
@@ -81,7 +81,7 @@ with simulated_robot:
 
     NavigateAction([drawer_open_loc.pose]).resolve().perform()
 
-    OpenAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
+    OpenAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arm]).resolve().perform()
     spoon.detach(apartment)
     ParkArmsAction([Arms.BOTH]).resolve().perform()
     # Detect and pickup the spoon
@@ -92,7 +92,7 @@ with simulated_robot:
     spoon_desigs = DetectAction(technique=DetectionTechnique.TYPES,
                                 object_designator_description=BelieveObject(types=[Spoon])).resolve().perform()
     spoon_desig = spoon_desigs[0]
-    pickup_arm = Arms.LEFT if drawer_open_loc.arms[0] == Arms.RIGHT else Arms.RIGHT
+    pickup_arm = Arms.LEFT if drawer_open_loc.arm == Arms.RIGHT else Arms.RIGHT
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
     top_grasp = GraspDescription(Grasp.FRONT, Grasp.TOP, False)
@@ -108,7 +108,7 @@ with simulated_robot:
 
     loginfo("Closing drawer")
 
-    CloseAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
+    CloseAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arm]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
