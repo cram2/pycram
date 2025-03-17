@@ -81,19 +81,18 @@ class World(WorldEntity, ABC):
     """
 
     def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection: bool = False, clear_cache: bool = False,
-                 id_: int = -1, set_as_main: bool = False, world_type: str = "belief"):
+                 id_: int = -1):
         """
-        Create a new simulation.
+        Create a new simulation, the mode decides if the simulation should be a rendered window or just run in the
+        background. There can only be one rendered simulation.
+        The World object also initializes the Events for attachment, detachment and for manipulating the world.
 
-        :param mode: Simulation mode (GUI/DIRECT).
-        :param is_prospection: True if this is a prospection world.
-        :param clear_cache: Whether to clear the cache.
+        :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is
+         "GUI"
+        :param is_prospection: For internal usage, decides if this World should be used as a prospection world.
+        :param clear_cache: Whether to clear the cache directory.
         :param id_: The unique id of the world.
-        :param set_as_main: If True, set this world as the main current world.
-        :param world_type: A string identifier for the world type ("belief" or "prospection").
         """
-        # Store the world type attribute for later differentiation.
-        self.world_type = world_type
         self.ontology = OntologyWrapper()
         self.is_prospection_world: bool = is_prospection
         WorldEntity.__init__(self, id_, self, concept=pycrap.ontologies.World)
@@ -105,8 +104,7 @@ class World(WorldEntity, ABC):
 
         GoalValidator.raise_error = self.conf.raise_goal_validator_error
 
-        # Set the global current_world only if this is a belief world and set_as_main is True.
-        if set_as_main and world_type.lower() == "belief":
+        if World.current_world is None:
             World.current_world = self
 
         self.object_lock: threading.Lock = threading.Lock()
