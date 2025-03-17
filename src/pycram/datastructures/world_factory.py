@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
 from pycram.datastructures.enums import WorldMode
-from pycram.world import World
+from pycram.datastructures.world import World
 
 
 class WorldFactory:
