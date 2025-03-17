@@ -49,8 +49,8 @@ from pycram.designators.action_designator import *
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import Arms
 
-navigate = NavigateAction([Pose([1, 1, 0])])
-park = ParkArmsAction([Arms.BOTH])
+navigate = NavigateActionDescription([Pose([1, 1, 0])])
+park = ParkArmsActionDescription([Arms.BOTH])
 
 plan = navigate + park
 ```
@@ -107,8 +107,8 @@ from pycram.process_module import simulated_robot
 
 world.reset_world()
 
-navigate = NavigateAction([Pose([1, 1, 0])])
-park = ParkArmsAction([Arms.BOTH])
+navigate = NavigateActionDescription([Pose([1, 1, 0])])
+park = ParkArmsActionDescription([Arms.BOTH])
 
 plan = navigate - park
 
@@ -145,8 +145,8 @@ from pycram.process_module import simulated_robot
 
 world.reset_world()
 
-navigate = NavigateAction([Pose([1, 1, 0])])
-park = ParkArmsAction([Arms.BOTH])
+navigate = NavigateActionDescription([Pose([1, 1, 0])])
+park = ParkArmsActionDescription([Arms.BOTH])
 
 plan = navigate | park
 
@@ -169,8 +169,8 @@ from pycram.process_module import simulated_robot
 
 world.reset_world()
 
-navigate = NavigateAction([Pose([1, 1, 0])])
-park = ParkArmsAction([Arms.BOTH])
+navigate = NavigateActionDescription([Pose([1, 1, 0])])
+park = ParkArmsActionDescription([Arms.BOTH])
 
 plan = navigate ^ park
 
@@ -198,9 +198,9 @@ from pycram.process_module import simulated_robot
 
 world.reset_world()
 
-navigate = NavigateAction([Pose([1, 1, 0])])
-park = ParkArmsAction([Arms.BOTH])
-move_torso = MoveTorsoAction([TorsoState.HIGH]) 
+navigate = NavigateActionDescription([Pose([1, 1, 0])])
+park = ParkArmsActionDescription([Arms.BOTH])
+move_torso = MoveTorsoActionDescription([TorsoState.HIGH]) 
 
 plan = navigate | park + move_torso
 
@@ -228,7 +228,7 @@ def code_test(param):
     print(param)
 
 
-park = ParkArmsAction([Arms.BOTH])
+park = ParkArmsActionDescription([Arms.BOTH])
 code = Code(lambda: print("This is from the code object"))
 code_func = Code(code_test, {"param": "Code function"})
 
@@ -262,7 +262,7 @@ def code_test():
     raise PlanFailure
 
 
-navigate = NavigateAction([Pose([1, 1, 0])])
+navigate = NavigateActionDescription([Pose([1, 1, 0])])
 code_func = Code(code_test)
 
 plan = navigate | code_func
@@ -288,8 +288,8 @@ from pycram.designators.action_designator import *
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import TorsoState
 
-move_torso_up = MoveTorsoAction([TorsoState.HIGH])
-move_torso_down = MoveTorsoAction([TorsoState.LOW])
+move_torso_up = MoveTorsoActionDescription([TorsoState.HIGH])
+move_torso_down = MoveTorsoActionDescription([TorsoState.LOW])
 
 plan = (move_torso_up + move_torso_down) * 5
 
@@ -314,8 +314,8 @@ from pycram.language import Monitor
 import time
 from pycram.datastructures.enums import TorsoState
 
-move_torso_up = MoveTorsoAction([TorsoState.HIGH])
-move_torso_down = MoveTorsoAction([TorsoState.LOW])
+move_torso_up = MoveTorsoActionDescription([TorsoState.HIGH])
+move_torso_down = MoveTorsoActionDescription([TorsoState.LOW])
 
 
 def monitor_func():

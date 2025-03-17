@@ -1,4 +1,4 @@
-from src.pycram.designators.motion_designator import MoveJointsMotion---
+from src.pycram.designators.action_designator import NavigateActionDescriptionfrom src.pycram.designators.motion_designator import MoveJointsMotion---
 jupyter:
   jupytext:
     text_representation:
@@ -146,25 +146,25 @@ from pycram.datastructures.enums import Grasp
 
 
 @pycram.tasktree.with_tree
-def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counter_name):
+def plan(obj_desig: Object, torso=None, place=counter_name):
     world.reset_world()
     with simulated_robot:
-        ParkArmsActionPerformable(Arms.BOTH).perform()
+        ParkArmsAction(Arms.BOTH).perform()
         if torso is None:
             torso={"torso_lift_joint": 0.2}
         MoveJointsMotion(list(torso.keys()), list(torso.values())).perform()
-        grasp = Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else Grasp.FRONT
-        location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, grasps = [grasp])
-        pose = location.resolve()
+        grasp = Grasp.TOP if issubclass(obj_desig.obj_type, Spoon) else Grasp.FRONT
+        pickup_arm = Arms.RIGHT
+        location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, grasps = [grasp], reachable_arm=pickup_arm)
         print()
-        NavigateAction(pose.pose, True).perform()
-        ParkArmsActionPerformable(Arms.BOTH).perform()
+        NavigateActionDescription(location, True).resolve().perform()
+        ParkArmsAction(Arms.BOTH).perform()
         good_torsos.append(torso)
-        picked_up_arm = pose.reachable_arms[0]
-        PickUpAction(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp=grasp,
+        #picked_up_arm = pose.reachable_arms[0]
+        PickUpAction(object_designator=obj_desig, arm=pickup_arm, grasp=grasp,
                                 prepose_distance=0.03).perform()
 
-        ParkArmsActionPerformable(Arms.BOTH).perform()
+        ParkArmsAction(Arms.BOTH).perform()
         scm = SemanticCostmapLocation(place, apartment_desig, obj_desig, horizontal_edges_only=True, edge_size_in_meters=0.08)
         scm_iter = iter(scm)
         n_retries = 0
@@ -185,14 +185,14 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
                 else:
                     z_angle = 0
                 orientation = quaternion_from_euler(0, 0, z_angle)
-                pose_island.pose = Pose(pose_island.pose.position_as_list(), orientation)
-                pose_island.pose.position.z += 0.07
-                print(pose_island.pose.position)
-                place_location = CostmapLocation(target=pose_island.pose, reachable_for=robot_desig, reachable_arm=picked_up_arm)
+                pose_island = Pose(pose_island.position_as_list(), orientation)
+                pose_island.position.z += 0.07
+                print(pose_island.position)
+                place_location = CostmapLocation(target=pose_island, reachable_for=robot_desig, reachable_arm=pickup_arm)
                 pose = place_location.resolve()
-                NavigateAction(pose.pose, True).perform()
-                PlaceActionPerformable(object_designator=obj_desig, target_location=pose_island.pose,
-                               arm=picked_up_arm).perform()
+                NavigateAction(pose, True).perform()
+                PlaceAction(object_designator=obj_desig, target_location=pose_island,
+                               arm=pickup_arm).perform()
                 found = True
             except (StopIteration, IKError) as e:
                 print("Retrying")
@@ -201,7 +201,7 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
                 if n_retries > 3:
                     raise StopIteration("No place found")
 
-        ParkArmsActionPerformable(Arms.BOTH).perform()
+        ParkArmsAction(Arms.BOTH).perform()
 
 
 good_torsos = []

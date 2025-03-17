@@ -1492,6 +1492,9 @@ class FrozenObject:
     A dictionary of all joints, with the joint name as key and the joint object as value
     """
 
+    def insert(self, session):
+        pass
+
 @dataclass(frozen=True)
 class FrozenLink:
     name: str

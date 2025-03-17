@@ -42,13 +42,13 @@ class Language(NodeMixin):
         if children:
             self.children: Language = children
 
-    # def resolve(self) -> Language:
-    #     """
-    #     Dummy method for compatability to designator_description descriptions
-    #
-    #     :return: self reference
-    #     """
-    #     return self
+    def resolve(self) -> Language:
+         """
+         Dummy method for compatability to designator_description descriptions
+
+         :return: self reference
+         """
+         return self
 
     def perform(self):
         """

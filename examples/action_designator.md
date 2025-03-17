@@ -28,7 +28,15 @@ LocationDesignator describing a pose near the table. The Action
 Designator Description will then pick one of the poses and return a performable Action Designator which contains the
 picked pose.
 
+## Preface 
+Action designator descriptions are able to handle a multitude of different inputs. In general, they are able to work with 
+the argument directly or any iterable that generates the type of the argument. Iterables include a list of the arguments 
+or another designator which generates the argument type. For example, a NavigateActionDescription takes as input a Pose 
+now the possible input arguments for a NavigateActionDescription are: 
 
+    * A Pose 
+    * A list of Poses 
+    * A Location Designator, since they are generating Poses  
 
 
 ## Navigate Action
