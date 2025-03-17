@@ -43,9 +43,11 @@ class PartialDesignator(Language, Iterable[T]):
         super().__init__(None, None)
         self.performable = performable
         # We use the init of the performable class since typing for the whole class messes up the signature of the class.
-        # This is still suboptimal since then "self" is a parameter of the signature but this will hopefully be fixed with
-        # better typing upwards of 3.10
-        self.kwargs = dict(signature(self.performable.__init__).bind_partial(*args, **kwargs).arguments)
+        # This is not optimal since "self" needs to be filtered from the parameter list but it works.
+        sig = signature(self.performable.__init__)
+        params_without_self = list(filter(None, [param if name != "self" else None for name, param in sig.parameters.items()]))
+        sig_without_self = sig.replace(parameters=params_without_self)
+        self.kwargs = dict(sig_without_self.bind_partial(*args, **kwargs).arguments)
         for key in dict(signature(self.performable).parameters).keys():
             if key not in self.kwargs.keys():
                 self.kwargs[key] = None
