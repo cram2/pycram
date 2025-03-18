@@ -100,6 +100,7 @@ class ObjectRelativeLocation(LocationDesignatorDescription):
         yield self.Location(self.relative_pose, pose, self.reference_object)
 
 
+@dataclasses.dataclass
 class CostmapLocation(LocationDesignatorDescription):
     """
     Uses Costmaps to create locations for complex constrains
@@ -117,36 +118,45 @@ class CostmapLocation(LocationDesignatorDescription):
         The grasp configuration used to reach the pose
         """
 
-    def __init__(self, target: Union[Pose, ObjectDesignatorDescription.Object],
-                 reachable_for: Optional[ObjectDesignatorDescription.Object] = None,
-                 visible_for: Optional[ObjectDesignatorDescription.Object] = None,
-                 reachable_arms: Optional[List[Arms]] = None,
-                 prepose_distance: float = 0.05,
-                 ignore_collision_with: Optional[List[Object]] = None,
-                 grasp_descriptions: Optional[List[GraspDescription]] = None,
-                 object_in_hand: Optional[ObjectDesignatorDescription.Object] = None):
-        """
-        Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
-        visible. In case of reachable the resolved location contains a list of arms with which the location is reachable.
+    target: Union[Pose, ObjectDesignatorDescription.Object]
+    """
+    Target pose or object for which the pose should be reachable
+    """
 
-        :param target: Location for which visibility or reachability should be calculated
-        :param reachable_for: Object for which the reachability should be calculated, usually a robot
-        :param visible_for: Object for which the visibility should be calculated, usually a robot
-        :param reachable_arms: An optional list of arms that should be used to reach the pose
-        :param prepose_distance: Distance to the target pose where the robot should be checked for reachability.
-        :param ignore_collision_with: List of objects that should be ignored for collision checking.
-        :param grasp_descriptions: The grasp descriptions that should be tried to reach the pose
-        :param object_in_hand: The object that should be in the hand of the robot
-        """
-        super().__init__()
-        self.target: Union[Pose, ObjectDesignatorDescription.Object] = target
-        self.reachable_for: ObjectDesignatorDescription.Object = reachable_for
-        self.visible_for: ObjectDesignatorDescription.Object = visible_for
-        self.reachable_arms: List[Arms] = reachable_arms if reachable_arms else [Arms.LEFT, Arms.RIGHT]
-        self.prepose_distance = prepose_distance
-        self.ignore_collision_with = ignore_collision_with if ignore_collision_with is not None else []
-        self.grasp_descriptions: Optional[List[GraspDescription]] = grasp_descriptions
-        self.object_in_hand: Optional[ObjectDesignatorDescription.Object] = object_in_hand
+    reachable_for: Optional[ObjectDesignatorDescription.Object] = None
+    """
+    Robot for which the pose should be reachable
+    """
+
+    visible_for: Optional[ObjectDesignatorDescription.Object] = None
+    """
+    Robot for which the pose should be visible
+    """
+
+    reachable_arms: Optional[List[Arms]] = dataclasses.field(default_factory=lambda: [Arms.LEFT, Arms.RIGHT])
+    """
+    List of arms which should be tried out
+    """
+
+    prepose_distance: float = 0.05
+    """
+    Distance of prepose distance to target pose
+    """
+
+    ignore_collision_with: Optional[List[Object]] = dataclasses.field(default_factory=list)
+    """
+    List of objects with which the robot should not collide
+    """
+    
+    grasp_descriptions: Optional[List[GraspDescription]] = None
+    """
+    List of grasp descriptions that should be tried out
+    """
+
+    object_in_hand: Optional[ObjectDesignatorDescription.Object] = None
+    """
+    Object that is currently in the hand of the robot, if 
+    """
 
     def ground(self) -> Location:
         """
@@ -193,6 +203,8 @@ class CostmapLocation(LocationDesignatorDescription):
 
         :yield: An instance of CostmapLocation.Location with a valid position that satisfies the given constraints
         """
+        reachable_arms = self.reachable_arms if self.reachable_arms else [Arms.LEFT, Arms.RIGHT]
+
         target = self.target.copy() if isinstance(self.target, Pose) else self.target.world_object
 
         if (self.reachable_for or self.visible_for):
@@ -228,13 +240,14 @@ class CostmapLocation(LocationDesignatorDescription):
 
                 grasp_descriptions = self.grasp_descriptions or target.calculate_grasp_descriptions(test_robot)
                 for grasp_description in grasp_descriptions:
-                    for arm in self.reachable_arms:
+                    for arm in reachable_arms:
                         end_effector = test_robot.robot_description.get_arm_chain(arm).end_effector
                         if self.object_in_hand:
                             current_target_pose = self.object_in_hand.world_object.attachments[
                                 World.robot].get_child_link_target_pose_given_parent(target)
                         else:
-                            current_target_pose = target.copy() if isinstance(target, Pose) else target.get_pose().copy()
+                            current_target_pose = target.copy() if isinstance(target,
+                                                                              Pose) else target.get_pose().copy()
                             current_target_pose.rotate_by_quaternion(end_effector.grasps[grasp_description])
 
                         lift_pose = current_target_pose.copy()
@@ -384,7 +397,7 @@ class AccessingLocation(LocationDesignatorDescription):
                     [pose.rotate_by_quaternion(grasp) for pose in current_target_sequence]
 
                     is_reachable = pose_sequence_reachability_validator(test_robot, current_target_sequence,
-                                                                     arm=arm_chain.arm_type)
+                                                                        arm=arm_chain.arm_type)
                     if is_reachable:
                         yield self.Location(pose_candidate, arm_chain.arm_type)
 

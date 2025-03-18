@@ -16,10 +16,12 @@ from .enums import AdjacentBodyMethod, AxisIdentifier
 from .mixins import HasConcept
 from ..local_transformer import LocalTransformer
 from ..ros import Time, logdebug
-from .pose import GraspDescription, PreferredGraspAlignment
+from .pose import GraspDescription
+from .grasp import PreferredGraspAlignment
 
 if TYPE_CHECKING:
     from ..datastructures.world import World
+    from ..world_concepts.world_object import Object
     from .pose import Pose, GeoQuaternion as Quaternion, Transform, Point
 
 
@@ -542,13 +544,10 @@ class PhysicalBody(WorldEntity, ABC):
     def get_preferred_grasp_alignment(self) -> PreferredGraspAlignment:
         """
         Determines the preferred grasp alignment for an object based on its type.
-        The AxisIdentifier specifies the side grasp axis along which the object should be grasped. Only this axis will be
-        allowed as a sidegrasp.
-        The first boolean value indicates whether the object should be grasped along the Z axis. This does not affect the
-        sidegrasp axis.
-        The second boolean value indicates whether the object should be grasped horizontally.
+        This includes the preferred axis, whether grasping from the top is preferred,
+        and whether horizontal alignment (90° rotation around X) is preferred.
 
-        :return: A tuple of three values: the preferred side grasp axis, whether the object should be grasped horizontally,
+        :return: The preferred grasp alignment for the object.
         """
         object_type = self.ontology_concept
 
@@ -564,7 +563,7 @@ class PhysicalBody(WorldEntity, ABC):
 
         return preferred_alignment
 
-    def calculate_grasp_descriptions(self, robot) -> List[GraspDescription]:
+    def calculate_grasp_descriptions(self, robot: Object) -> List[GraspDescription]:
         """
         Calculates the grasp configurations of an object relative to the robot based on orientation and position.
 

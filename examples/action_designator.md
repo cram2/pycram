@@ -149,11 +149,13 @@ world.reset_world()
 ```
 
 ```python
-from pycram.designators.action_designator import PickUpAction, PlaceAction, ParkArmsAction, MoveTorsoAction, NavigateAction
+from pycram.designators.action_designator import PickUpAction, PlaceAction, ParkArmsAction, MoveTorsoAction,
+    NavigateAction
 from pycram.designators.object_designator import BelieveObject
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms, Grasp, TorsoState
-from pycram.datastructures.pose import Pose, GraspDescription
+from pycram.datastructures.pose import Pose
+from pycram.datastructures.grasp import GraspDescription
 
 milk_desig = BelieveObject(names=["milk"])
 arm = Arms.RIGHT

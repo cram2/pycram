@@ -4,15 +4,16 @@ from __future__ import annotations
 import datetime
 import math
 from collections.abc import Sequence
-from dataclasses import dataclass
 
 import numpy as np
 import sqlalchemy.orm
+import typing_extensions
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from typing_extensions import List, Union, Optional, Self, Tuple
 
 from .enums import AxisIdentifier, Grasp
+from .grasp import PreferredGraspAlignment, GraspDescription
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
 from ..ros import Time
 from ..ros import logwarn, logerr
@@ -20,6 +21,9 @@ from ..tf_transformations import euler_from_quaternion, translation_matrix, quat
     inverse_matrix, translation_from_matrix, quaternion_from_matrix, quaternion_multiply
 from ..validation.error_checkers import calculate_pose_error
 from scipy.spatial.transform import Rotation as R
+
+if typing_extensions.TYPE_CHECKING:
+    from pycram.world_concepts.world_object import Object
 
 
 def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
@@ -401,7 +405,7 @@ class Pose(PoseStamped):
 
         return primary_face, secondary_face
 
-    def calculate_grasp_descriptions(self, robot, grasp_alignment: Optional[PreferredGraspAlignment] = None) -> List[GraspDescription]:
+    def calculate_grasp_descriptions(self, robot: Object, grasp_alignment: Optional[PreferredGraspAlignment] = None) -> List[GraspDescription]:
         """
         This method determines the possible grasp configurations (approach axis and vertical alignment) of the self,
         taking into account the self's orientation, position, and whether the gripper should be rotated by 90°.
@@ -729,52 +733,3 @@ class Transform(TransformStamped):
         :param new_rotation: The new rotation as a quaternion with xyzw
         """
         self.rotation = new_rotation
-
-@dataclass
-class PreferredGraspAlignment:
-    """
-    Description of the preferred grasp alignment for an object.
-    """
-    preferred_axis: Optional[AxisIdentifier]
-    with_vertical_alignment: bool
-    with_rotated_gripper: bool
-
-@dataclass(frozen=True)
-class GraspDescription:
-    """
-    Represents a grasp description with a side grasp, top face, and orientation alignment.
-    """
-
-    approach_direction: Grasp
-    """
-    The primary approach direction. Must be one of {Grasp.FRONT, Grasp.BACK, Grasp.LEFT, Grasp.RIGHT}.
-    """
-
-    vertical_alignment: Optional[Grasp] = None
-    """
-    The vertical alignment when grasping the pose, or None if not applicable. Must be one of {Grasp.TOP, Grasp.BOTTOM, None}.
-    """
-
-    rotate_gripper: bool = False
-    """
-    Indicates if the gripper should be rotated by 90°. Must be a boolean.
-    """
-
-    def __post_init__(self):
-        allowed_approach_direction = {Grasp.FRONT, Grasp.BACK, Grasp.LEFT, Grasp.RIGHT}
-        if self.approach_direction not in allowed_approach_direction:
-            raise ValueError(
-                f"Invalid value for side_face: {self.approach_direction}. Allowed values are {allowed_approach_direction}")
-        allowed_vertical_alignment = {Grasp.TOP, Grasp.BOTTOM, None}
-        if self.vertical_alignment not in allowed_vertical_alignment:
-            raise ValueError(
-                f"Invalid value for top_face: {self.vertical_alignment}. Allowed values are {allowed_vertical_alignment}")
-
-    def __hash__(self):
-        return hash((self.approach_direction, self.vertical_alignment, self.rotate_gripper))
-
-    def as_list(self) -> List[Union[Grasp, Optional[Grasp], bool]]:
-        """
-        :return: A list representation of the grasp description.
-        """
-        return [self.approach_direction, self.vertical_alignment, self.rotate_gripper]

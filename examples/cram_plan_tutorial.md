@@ -143,7 +143,7 @@ execute the plan.
 ```python
 from pycram.external_interfaces.ik import IKError
 from pycram.datastructures.enums import Grasp
-from pycram.datastructures.pose import GraspDescription
+from pycram.datastructures.grasp import GraspDescription
 
 
 @pycram.tasktree.with_tree

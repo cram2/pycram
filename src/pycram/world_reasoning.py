@@ -78,7 +78,7 @@ def prospect_robot_contact(robot: Object, ignore_collision_with: Optional[List[O
     """
     with UseProspectionWorld():
         prospection_robot = World.current_world.get_prospection_object_for_object(robot)
-        pose = robot.get_pose()
+        pose = prospection_robot.get_pose()
         floor = prospection_robot.world.get_object_by_name("floor")
         ignore_collision_with = [] if ignore_collision_with is None else ignore_collision_with
         ignore = [o.name for o in ignore_collision_with]

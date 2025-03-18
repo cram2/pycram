@@ -807,16 +807,16 @@ class EndEffectorDescription:
         grasp_descriptions = [
             GraspDescription(side, vertical, horizontal)
             for side, vertical, horizontal in product(
-                Rotations.side_rotations.keys(),
-                Rotations.vertical_rotations.keys(),
-                Rotations.horizontal_rotations.keys()
+                Rotations.SIDE_ROTATIONS.keys(),
+                Rotations.VERTICAL_ROTATIONS.keys(),
+                Rotations.HORIZONTAL_ROTATIONS.keys()
             )
         ]
 
         for grasp_description in grasp_descriptions:
-            rotation = Rotations.side_rotations[grasp_description.approach_direction]
-            rotation = quaternion_multiply(rotation, Rotations.vertical_rotations[grasp_description.vertical_alignment])
-            rotation = quaternion_multiply(rotation, Rotations.horizontal_rotations[grasp_description.rotate_gripper])
+            rotation = Rotations.SIDE_ROTATIONS[grasp_description.approach_direction]
+            rotation = quaternion_multiply(rotation, Rotations.VERTICAL_ROTATIONS[grasp_description.vertical_alignment])
+            rotation = quaternion_multiply(rotation, Rotations.HORIZONTAL_ROTATIONS[grasp_description.rotate_gripper])
 
             orientation = quaternion_multiply(rotation, front_orientation)
 

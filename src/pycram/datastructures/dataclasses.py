@@ -182,9 +182,7 @@ class Color:
 
 class Colors(Color, Enum):
     """
-    Enum class for storing the colors as an RGBA value.
-    The values are stored as floats between 0 and 1.
-    The default rgba_color is white. 'A' stands for the opacity.
+    Enum for easy access to some common colors.
     """
     PINK = (1, 0, 1, 1)
     BLACK = (0, 0, 0, 1)
@@ -200,14 +198,14 @@ class Colors(Color, Enum):
     @classmethod
     def from_string(cls, color: str) -> Color:
         """
-        Set the rgba_color from a string. If the string is not a valid color, it will return the black color.
+        Set the rgba_color from a string. If the string is not a valid color, it will return the color WHITE.
 
         :param color: The string of the color
         """
         try:
             return cls[color.upper()]
         except KeyError:
-            return cls.BLACK
+            return cls.WHITE
 
 
 @dataclass
@@ -1362,40 +1360,24 @@ class VirtualJoint:
     def __hash__(self):
         return hash(self.name)
 
+class Rotations(Dict[Grasp, List[float]]):
+    SIDE_ROTATIONS = {
+        Grasp.FRONT: [0, 0, 0, 1],
+        Grasp.BACK: [0, 0, 1, 0],
+        Grasp.LEFT: [0, 0, -math.sqrt(2)/2, math.sqrt(2)/2],
+        Grasp.RIGHT: [0, 0, math.sqrt(2)/2, math.sqrt(2)/2],
+    }
 
-@dataclass(frozen=True)
-class Rotations:
-    """
-    Dataclass for storing commonly used rotations.
-    """
-    SQRT2_OVER_2 = math.sqrt(2) / 2
+    VERTICAL_ROTATIONS = {
+        None: [0, 0, 0, 1],
+        Grasp.TOP: [0, math.sqrt(2)/2, 0, math.sqrt(2)/2],
+        Grasp.BOTTOM: [0, -math.sqrt(2)/2, 0, math.sqrt(2)/2],
+    }
 
-    @classproperty
-    def side_rotations(self) -> Dict[Grasp, List[float]]:
-        SIDE_ROTATIONS = {
-            Grasp.FRONT: [0, 0, 0, 1],
-            Grasp.BACK: [0, 0, 1, 0],
-            Grasp.LEFT: [0, 0, -self.SQRT2_OVER_2, self.SQRT2_OVER_2],
-            Grasp.RIGHT: [0, 0, self.SQRT2_OVER_2, self.SQRT2_OVER_2],
-        }
-        return SIDE_ROTATIONS
-
-    @classproperty
-    def vertical_rotations(self) -> Dict[Optional[Grasp], List[float]]:
-        VERTICAL_ROTATIONS = {
-            None: [0, 0, 0, 1],
-            Grasp.TOP: [0, self.SQRT2_OVER_2, 0, self.SQRT2_OVER_2],
-            Grasp.BOTTOM: [0, -self.SQRT2_OVER_2, 0, self.SQRT2_OVER_2],
-        }
-        return VERTICAL_ROTATIONS
-
-    @classproperty
-    def horizontal_rotations(self) -> Dict[bool, List[float]]:
-        HORIZONTAL_ROTATIONS = {
-            False: [0, 0, 0, 1],
-            True: [self.SQRT2_OVER_2, 0, 0, self.SQRT2_OVER_2],
-        }
-        return HORIZONTAL_ROTATIONS
+    HORIZONTAL_ROTATIONS = {
+        False: [0, 0, 0, 1],
+        True: [math.sqrt(2)/2, 0, 0, math.sqrt(2)/2],
+    }
 
 
 @dataclass

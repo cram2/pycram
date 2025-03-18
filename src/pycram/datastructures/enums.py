@@ -129,41 +129,21 @@ class AxisIdentifier(Enum):
         return next((axis for axis in cls if axis.value == axis_tuple), None)
 
 
-class Grasp(int, Enum):
+class Grasp(Enum):
     """
     Enum for Grasp orientations.
     """
-    FRONT = 0
-    LEFT = 1
-    RIGHT = 2
-    TOP = 3
-    BACK = 4
-    BOTTOM = 5
-
-    @classmethod
-    def face_to_axis_direction(cls):
-        return {
-            cls.FRONT: (AxisIdentifier.X, -1),
-            cls.BACK: (AxisIdentifier.X, 1),
-            cls.LEFT: (AxisIdentifier.Y, 1),
-            cls.RIGHT: (AxisIdentifier.Y, -1),
-            cls.TOP: (AxisIdentifier.Z, -1),
-            cls.BOTTOM: (AxisIdentifier.Z, 1)
-        }
-
-    @classmethod
-    def axis_direction_to_face(cls):
-        """Reverse the mapping"""
-        return {v: k for k, v in cls.face_to_axis_direction().items()}
+    FRONT = (AxisIdentifier.X, -1)
+    BACK = (AxisIdentifier.X, 1)
+    RIGHT = (AxisIdentifier.Y, -1)
+    LEFT = (AxisIdentifier.Y, 1)
+    TOP = (AxisIdentifier.Z, -1)
+    BOTTOM = (AxisIdentifier.Z, 1)
 
     @classmethod
     def from_axis_direction(cls, axis: AxisIdentifier, direction: int):
         """Get the Grasp face from an axis-index tuple"""
-        return cls.axis_direction_to_face().get((axis, direction))
-
-    def to_axis_index(self):
-        """Get the axis-index tuple from a Grasp face"""
-        return self.face_to_axis_direction()[self]
+        return next((grasp for grasp in cls if grasp.value == (axis, direction)), None)
 
 
 class ObjectType(int, Enum):

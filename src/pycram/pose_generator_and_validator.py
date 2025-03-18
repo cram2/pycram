@@ -124,7 +124,7 @@ def visibility_validator(robot: Object,
     ray = world.ray_test(camera_pose.position_as_list(), pose)
 
     robot.set_pose(robot_pose)
-    return ray.intersected
+    return not ray.intersected
 
 
 def reachability_validator(robot: Object,

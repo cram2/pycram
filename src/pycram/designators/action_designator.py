@@ -23,7 +23,8 @@ from .object_designator import ObjectDesignatorDescription, BelieveObject, Objec
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
     TorsoState, StaticJointState, Frame, FindBodyInRegionMethod, ContainerManipulationType
 from ..datastructures.partial_designator import PartialDesignator
-from ..datastructures.pose import Pose, GraspDescription
+from ..datastructures.pose import Pose
+from ..datastructures.grasp import GraspDescription
 from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty
 from ..datastructures.world import World, UseProspectionWorld
 from ..description import Joint, Link
