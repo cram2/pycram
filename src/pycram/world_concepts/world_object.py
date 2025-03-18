@@ -1528,9 +1528,9 @@ class Object(PhysicalBody):
         :return FrozenObject: The copied forzen object.
         """
         frozen_links = {l_name: FrozenLink(l.name, l.pose, l.geometry) for l_name, l in self.links.items()}
-        frozen_joints = {j_name: FrozenJoint(j.name, j.type, [j.child], j.parent) for j_name, j in self.joints.items()}
+        frozen_joints = {j_name: FrozenJoint(j.name, j.type, [j.child], j.parent, j.current_state.position) for j_name, j in self.joints.items()}
 
-        return FrozenObject(self.name, self.obj_type, self.path, self.description, self.pose, self.world,
+        return FrozenObject(self.name, self.obj_type, self.path, self.description, self.pose,
                             frozen_links, frozen_joints)
 
     def insert(self, session):

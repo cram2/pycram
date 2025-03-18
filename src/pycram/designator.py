@@ -247,7 +247,6 @@ class ActionDescription:
         :return:
         """
         l = localns if localns is not None else locals()
-        print(l)
         return get_type_hints(cls, localns=l)
 
     @classmethod

@@ -633,8 +633,26 @@ class PlaceAction(ActionAbstract):
     """
     Arm that is currently holding the object
     """
+    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False)
+    """
+    The object at the time this Action got created. It is used to be a static, information holding entity. It is
+    not updated when the BulletWorld object is changed.
+    """
+
+    _pre_perform_callbacks = []
+    """
+    List to save the callbacks which should be called before performing the action.
+    """
 
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMPlaceAction)
+
+    def __post_init__(self):
+        super(ActionAbstract, self).__post_init__()
+
+        # Store the object's data copy at execution
+        @PlaceAction.pre_perform
+        def pre_perform(pick_up_action: PickUpAction):
+            pick_up_action.object_at_execution = pick_up_action.object_designator.frozen_copy()
 
     @with_tree
     def plan(self) -> None:
@@ -728,6 +746,19 @@ class PlaceAction(ActionAbstract):
                                  target_location=target_location,
                                  arm=arm)
 
+    # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
+    #  ActionAbstract
+    def to_sql(self) -> ORMAction:
+        return ORMPlaceAction(arm=self.arm)
+
+    def insert(self, session: Session, **kwargs) -> ORMAction:
+        action = super(ActionAbstract, self).insert(session)
+        action.object = self.object_at_execution.insert(session)
+        pose = self.target_location.insert(session)
+        action.pose = pose
+        session.add(action)
+        return action
+
 
 @dataclass
 class NavigateAction(ActionAbstract):
@@ -818,6 +849,17 @@ class TransportAction(ActionAbstract):
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation of each atomic action is done in the action itself, so no more validation needed here.
         pass
+
+    def to_sql(self) -> ORMAction:
+        return ORMTransportAction(arm=self.arm, pickup_prepose_distance=self.pickup_prepose_distance)
+
+    def insert(self, session: Session, **kwargs) -> ORMAction:
+        action = super(ActionAbstract, self).insert(session)
+        frozen_object = self.object_designator.frozen_copy().insert(session)
+        frozen_object.name = self.object_designator.name
+        action.object = frozen_object
+        session.add(action)
+        return action
 
     @classmethod
     def description(cls, object_designator: Union[Iterable[Object], Object],
@@ -959,6 +1001,20 @@ class OpenAction(ActionAbstract):
                                  arm=arm,
                                  grasping_prepose_distance=grasping_prepose_distance)
 
+        # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
+        #  ActionAbstract
+
+    def to_sql(self) -> ORMAction:
+        return ORMOpenAction(arm=self.arm, grasping_prepose_distance=self.grasping_prepose_distance)
+
+    def insert(self, session: Session, **kwargs) -> ORMAction:
+        action = super(ActionAbstract, self).insert(session)
+        frozen_object = self.object_designator.parent_entity.frozen_copy().insert(session)
+        frozen_object.name = self.object_designator.name
+        action.object = frozen_object
+        session.add(action)
+        return action
+
 
 @dataclass
 class CloseAction(ActionAbstract):
@@ -992,6 +1048,17 @@ class CloseAction(ActionAbstract):
         real world.
         """
         validate_close_open(self.object_designator, self.arm, CloseAction)
+
+    def to_sql(self) -> ORMAction:
+        return ORMCloseAction(arm=self.arm, grasping_prepose_distance=self.grasping_prepose_distance)
+
+    def insert(self, session: Session, **kwargs) -> ORMAction:
+        action = super(ActionAbstract, self).insert(session)
+        frozen_object = self.object_designator.parent_entity.frozen_copy().insert(session)
+        frozen_object.name = self.object_designator.name
+        action.object = frozen_object
+        session.add(action)
+        return action
 
     @classmethod
     def description(cls, object_designator_description: Union[Iterable[ObjectDescription.Link], ObjectDescription.Link],
@@ -1081,6 +1148,17 @@ class GraspingAction(ActionAbstract):
         gripper_links = arm_chain.end_effector.links
         if not any([link.name in gripper_links for link in contact_links]):
             raise ObjectNotGraspedError(self.object_desig, World.robot, self.arm, None)
+
+    def to_sql(self) -> ORMAction:
+        return ORMGraspingAction(arm=self.arm, prepose_distance=self.prepose_distance)
+
+    def insert(self, session: Session, **kwargs) -> ORMAction:
+        action = super(ActionAbstract, self).insert(session)
+        frozen_object = self.object_desig.parent_entity.frozen_copy().insert(session)
+        frozen_object.name = self.object_desig.name
+        action.object = frozen_object
+        session.add(action)
+        return action
 
     @classmethod
     def description(cls, object_desig: Union[Iterable[Object], Object],

@@ -7,6 +7,7 @@ from dataclasses import dataclass, fields, field
 
 import numpy as np
 import plotly.graph_objects as go
+import sqlalchemy
 import trimesh
 from matplotlib import pyplot as plt
 from random_events.interval import closed, SimpleInterval, Bound
@@ -18,8 +19,10 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
 from pycrap.ontologies import PhysicalObject
 from .enums import JointType, Shape, VirtualMobileBaseJointName
 from .pose import Pose, Point, Transform
+from ..orm.base import ProcessMetaData
 from ..ros import logwarn
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
+from ..orm.object_designator import Object as ORMObject
 
 if TYPE_CHECKING:
     from ..description import Link, ObjectDescription
@@ -1456,7 +1459,7 @@ class ReasoningResult:
 
 
 
-@dataclass(frozen=True)
+@dataclass
 class FrozenObject:
 
     name: str
@@ -1479,10 +1482,6 @@ class FrozenObject:
     """
     The pose at which this object is placed
     """
-    world: Optional[World] = None
-    """
-    Reference to the world in which the object was spawned
-    """
     links: Optional[Dict[str, FrozenLink]] = None
     """
     A dictionary with the link name as key and the link object as value
@@ -1492,8 +1491,18 @@ class FrozenObject:
     A dictionary of all joints, with the joint name as key and the joint object as value
     """
 
-    def insert(self, session):
-        pass
+    def to_sql(self):
+        return ORMObject(obj_type=str(self.concept), name=self.name)
+
+    def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObject:
+        metadata = ProcessMetaData().insert(session)
+        obj = self.to_sql()
+        pose = self.pose.insert(session)
+        obj.pose = pose
+        obj.process_metadata = metadata
+        session.add(obj)
+
+        return obj
 
 @dataclass(frozen=True)
 class FrozenLink:
