@@ -1,4 +1,4 @@
-from src.pycram.designators.action_designator import NavigateActionDescriptionfrom src.pycram.designators.motion_designator import MoveJointsMotion---
+---
 jupyter:
   jupytext:
     text_representation:
