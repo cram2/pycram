@@ -1,5 +1,7 @@
 import numpy as np
 
+from pycrap.ontologies import PhysicalObject
+from .object_descriptors.generic import ObjectDescription
 from .tf_transformations import quaternion_from_euler
 from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional
 
@@ -104,7 +106,7 @@ class PoseGenerator:
 
 
 def visibility_validator(robot: Object,
-                         pose: Pose) -> bool:
+                         object_or_pose: Tuple[Object, Pose]) -> bool:
     """
     This method validates if the robot can see the target position from a given
     pose candidate. The target position can either be a position, in world coordinate
@@ -119,12 +121,22 @@ def visibility_validator(robot: Object,
     world = robot.world
     robot_pose = robot.get_pose()
 
+    if isinstance(object_or_pose, Pose):
+        gen_obj_desc = ObjectDescription("viz_object", [0, 0, 0], [0.02, 0.02, 0.02])
+        obj = Object("viz_object", PhysicalObject, pose=object_or_pose, description=gen_obj_desc)
+    else:
+        obj = object_or_pose
+
+    obj_id = obj.id
+
     camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link())
     robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
-    ray = world.ray_test(camera_pose.position_as_list(), pose)
-
+    ray = world.ray_test(camera_pose.position_as_list(), obj.get_pose().position_as_list())
     robot.set_pose(robot_pose)
-    return not ray.intersected
+    if isinstance(object_or_pose, Pose):
+        world.remove_object(obj)
+
+    return ray.obj_id == obj_id
 
 
 def reachability_validator(robot: Object,
@@ -168,7 +180,6 @@ def reachability_validator(robot: Object,
         return None
     finally:
         robot.set_multiple_joint_positions(joint_state_before_ik)
-
 
 
 def pose_sequence_reachability_validator(robot: Object,

@@ -147,7 +147,7 @@ class CostmapLocation(LocationDesignatorDescription):
     """
     List of objects with which the robot should not collide
     """
-    
+
     grasp_descriptions: Optional[List[GraspDescription]] = None
     """
     List of grasp descriptions that should be tried out
@@ -231,7 +231,7 @@ class CostmapLocation(LocationDesignatorDescription):
                     yield self.Location(pose_candidate, None, None)
                     continue
 
-                if self.visible_for and not visibility_validator(test_robot, target.get_pose().copy()):
+                if self.visible_for and not visibility_validator(test_robot, target):
                     continue
 
                 if not self.reachable_for:
