@@ -9,13 +9,12 @@ from ..datastructures.enums import JointType, Arms, Grasp
 from ..datastructures.pose import Pose, GraspDescription
 from ..datastructures.world import World, UseProspectionWorld
 from ..designator import DesignatorError, LocationDesignatorDescription
+from ..failures import RobotInCollision
 from ..local_transformer import LocalTransformer
-from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator, \
-    pose_sequence_reachability_validator
-from ..robot_description import RobotDescription
-from ..ros import logdebug
+from ..pose_generator_and_validator import PoseGenerator, visibility_validator, \
+    pose_sequence_reachability_validator, collision_check
 from ..world_concepts.world_object import Object
-from ..world_reasoning import link_pose_for_joint_config, prospect_robot_contact
+from ..world_reasoning import link_pose_for_joint_config
 
 
 class Location(LocationDesignatorDescription):
@@ -213,10 +212,10 @@ class CostmapLocation(LocationDesignatorDescription):
             robot_object = World.robot
         test_robot = World.current_world.get_prospection_object_for_object(robot_object)
 
-        ignore_collision_with = [World.current_world.get_prospection_object_for_object(obj)
+        ignore_collision_with = [World.current_world.get_prospection_object_for_object(obj.world_object)
                                  for obj in self.ignore_collision_with]
 
-        allowed_collision = {object: object.link_names for object in ignore_collision_with}
+        allowed_collision = {object: object.link_id_to_name[-1] for object in ignore_collision_with}
 
         final_map = self.setup_costmaps(target, test_robot)
 
@@ -224,7 +223,9 @@ class CostmapLocation(LocationDesignatorDescription):
             for pose_candidate in PoseGenerator(final_map, number_of_samples=600):
                 pose_candidate.position.z = 0
                 test_robot.set_pose(pose_candidate)
-                if prospect_robot_contact(test_robot, self.ignore_collision_with):
+                try:
+                    collision_check(test_robot, allowed_collision)
+                except RobotInCollision:
                     continue
 
                 if not (self.reachable_for or self.visible_for):
@@ -388,7 +389,9 @@ class AccessingLocation(LocationDesignatorDescription):
                                                 orientation_generator=orientation_generator):
                 pose_candidate.position.z = 0
                 test_robot.set_pose(pose_candidate)
-                if prospect_robot_contact(test_robot):
+                try:
+                    collision_check(test_robot, {})
+                except RobotInCollision:
                     continue
 
                 for arm_chain in test_robot.robot_description.get_manipulator_chains():

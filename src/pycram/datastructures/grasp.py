@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from typing_extensions import Optional, Union, List
 
-from pycram.datastructures.enums import Grasp, AxisIdentifier
+from .enums import Grasp, AxisIdentifier
 
 
 @dataclass(frozen=True)

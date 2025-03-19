@@ -756,7 +756,8 @@ class TransportActionPerformable(ActionAbstract):
                 reachable_for=robot_desig_resolved,
                 reachable_arms=[pickup_pose.reachable_arm],
                 grasp_descriptions=[pickup_pose.grasp_description],
-                object_in_hand=self.object_designator
+                object_in_hand=self.object_designator,
+                ignore_collision_with=[self.object_designator]
             ).resolve()
         except StopIteration:
             raise ReachabilityFailure(

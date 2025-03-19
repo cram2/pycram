@@ -23,7 +23,7 @@ from ..validation.error_checkers import calculate_pose_error
 from scipy.spatial.transform import Rotation as R
 
 if typing_extensions.TYPE_CHECKING:
-    from pycram.world_concepts.world_object import Object
+    from ..world_concepts.world_object import Object
 
 
 def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
