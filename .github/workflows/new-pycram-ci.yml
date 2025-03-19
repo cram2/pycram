@@ -54,7 +54,7 @@ jobs:
           cd /opt/ros/overlay_ws
           catkin build
           source /opt/ros/overlay_ws/devel/setup.bash 
-          roslaunch pycram ik_and_description.launch &
+          roscore &
 
       - name: Install python dependencies
         run: |
