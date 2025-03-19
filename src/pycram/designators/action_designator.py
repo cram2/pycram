@@ -183,7 +183,7 @@ class SetGripperAction(ActionAbstract):
     """
     The gripper that should be set 
     """
-    motion: GripperState = None
+    motion: GripperState
     """
     The motion that should be set on the gripper
     """
@@ -219,7 +219,7 @@ class ReleaseAction(ActionAbstract):
     """
     object_designator: Object
 
-    gripper: Arms = None
+    gripper: Arms
 
     def plan(self) -> None:
         raise NotImplementedError
@@ -238,7 +238,7 @@ class GripAction(ActionAbstract):
     Note: This action can not be used yet.
     """
     object_designator: Object
-    gripper: Arms = None
+    gripper: Arms
     effort: float = None
 
     @with_tree
@@ -320,12 +320,12 @@ class ReachToPickUpAction(ActionAbstract):
     Object designator_description describing the object that should be picked up
     """
 
-    arm: Arms = None
+    arm: Arms
     """
     The arm that should be used for pick up
     """
 
-    grasp: Grasp = None
+    grasp: Grasp
     """
     The grasp that should be used. For example, 'left' or 'right'
     """
@@ -358,19 +358,10 @@ class ReachToPickUpAction(ActionAbstract):
 
         self.go_to_pose(pre_pose)
 
-        self.approach_target_pose(adjusted_oTm)
+        self.go_to_pose(adjusted_oTm, MovementType.STRAIGHT_CARTESIAN, add_vis_axis=True)
 
         # Remove the vis axis from the world if it was added
         World.current_world.remove_vis_axis()
-
-    def approach_target_pose(self, pose: Pose, add_vis_axis: bool = True):
-        """
-        Go to the target pose by moving in a straight line motion.
-
-        :param pose: The pose to go to.
-        :param add_vis_axis: If a visual axis should be added to the world.
-        """
-        self.go_to_pose(pose, MovementType.STRAIGHT_CARTESIAN, add_vis_axis)
 
     def go_to_pose(self, pose: Pose, movement_type: MovementType = MovementType.CARTESIAN,
                    add_vis_axis: bool = True):
@@ -381,7 +372,7 @@ class ReachToPickUpAction(ActionAbstract):
         :param movement_type: The type of movement that should be performed.
         :param add_vis_axis: If a visual axis should be added to the world.
         """
-        pose = self.transform_pose(pose, Frame.Map.value)
+        pose = self.local_transformer.transform_pose(pose, Frame.Map.value)
         if add_vis_axis:
             World.current_world.add_vis_axis(pose)
         MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
@@ -401,7 +392,7 @@ class ReachToPickUpAction(ActionAbstract):
         # Adjust the pose according to the special knowledge of the object designator_description
         adjusted_pose = self.special_knowledge_adjustment_pose(self.grasp, mTo)
         # Transform the adjusted pose to the map frame
-        adjusted_oTm = self.transform_pose(adjusted_pose, Frame.Map.value)
+        adjusted_oTm = self.local_transformer.transform_pose(adjusted_pose, Frame.Map.value)
         # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
         adjusted_oTm.multiply_quaternion(grasp)
         return adjusted_oTm
@@ -438,32 +429,13 @@ class ReachToPickUpAction(ActionAbstract):
         :return: The pre grasping pose of the object.
         """
         # pre-pose depending on the gripper.
-        oTg = self.transform_to_gripper_frame(obj_pose)
+        oTg = self.local_transformer.transform_pose(obj_pose, self.gripper_frame)
         oTg.pose.position.x -= self.prepose_distance  # in x since this is how the gripper is oriented
-        return self.transform_pose(oTg, Frame.Map.value)
-
-    def transform_to_gripper_frame(self, pose: Pose) -> Pose:
-        """
-        Transform a pose to the gripper frame.
-
-        :param pose: The pose to transform.
-        :return: The transformed pose.
-        """
-        return self.transform_pose(pose, self.gripper_frame)
-
-    def transform_pose(self, pose: Pose, frame: str) -> Pose:
-        """
-        Transform a pose to a different frame.
-
-        :param pose: The pose to transform.
-        :param frame: The frame to transform the pose to.
-        :return: The transformed pose.
-        """
-        return self.local_transformer.transform_pose(pose, frame)
+        return self.local_transformer.transform_pose(oTg, Frame.Map.value)
 
     @cached_property
     def local_transformer(self) -> LocalTransformer:
-        return self.object_designator.local_transformer
+        return LocalTransformer()
 
     @cached_property
     def gripper_frame(self) -> str:
@@ -473,8 +445,6 @@ class ReachToPickUpAction(ActionAbstract):
     def arm_chain(self) -> KinematicChainDescription:
         return RobotDescription.current_robot_description.get_arm_chain(self.arm)
 
-    # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
-    #  ActionAbstract
     def to_sql(self) -> ORMAction:
         return ORMReachToPickUpAction(arm=self.arm, grasp=self.grasp, prepose_distance=self.prepose_distance)
 
@@ -519,12 +489,12 @@ class PickUpAction(ActionAbstract):
     Object designator_description describing the object that should be picked up
     """
 
-    arm: Arms = None
+    arm: Arms
     """
     The arm that should be used for pick up
     """
 
-    grasp: Grasp = None
+    grasp: Grasp
     """
     The grasp that should be used. For example, 'left' or 'right'
     """
@@ -583,8 +553,6 @@ class PickUpAction(ActionAbstract):
         gripper_link = self.arm_chain.get_tool_frame()
         return World.robot.links[gripper_link].pose
 
-    # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
-    #  ActionAbstract
     def to_sql(self) -> ORMAction:
         return ORMPickUpAction(arm=self.arm, grasp=self.grasp, prepose_distance=self.prepose_distance)
 
@@ -629,7 +597,7 @@ class PlaceAction(ActionAbstract):
     """
     Pose in the world at which the object should be placed
     """
-    arm: Arms = None
+    arm: Arms
     """
     Arm that is currently holding the object
     """
@@ -671,7 +639,7 @@ class PlaceAction(ActionAbstract):
         wTg (world to gripper) = wTo (world to object target) * oTg (object to gripper, this is constant since object
         is attached to the gripper)
         """
-        gripper_pose_in_object = self.local_transformer.transform_pose(self.gripper_pose,
+        gripper_pose_in_object = self.local_transformer.transform_pose(self.gripper_link.pose,
                                                                        self.object_designator.tf_frame)
         object_to_gripper = gripper_pose_in_object.to_transform("object")
         world_to_object_target = self.target_location.to_transform("target")
@@ -685,22 +653,9 @@ class PlaceAction(ActionAbstract):
         :param target_pose: The target pose of the gripper.
         :param distance: The distance the gripper should be retracted.
         """
-        retract_pose = self.local_transformer.transform_pose(target_pose, self.gripper_tool_frame)
+        retract_pose = self.local_transformer.transform_pose(target_pose, self.gripper_link.tf_frame)
         retract_pose.position.x -= distance
         return retract_pose
-
-    @property
-    def gripper_pose(self) -> Pose:
-        """
-        Get the pose of the gripper.
-
-        :return: The pose of the gripper.
-        """
-        return self.gripper_link.pose
-
-    @cached_property
-    def gripper_tool_frame(self) -> str:
-        return self.gripper_link.tf_frame
 
     @cached_property
     def gripper_link(self) -> Link:
@@ -746,8 +701,6 @@ class PlaceAction(ActionAbstract):
                                  target_location=target_location,
                                  arm=arm)
 
-    # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
-    #  ActionAbstract
     def to_sql(self) -> ORMAction:
         return ORMPlaceAction(arm=self.arm)
 
@@ -810,7 +763,7 @@ class TransportAction(ActionAbstract):
     """
     Target Location to which the object should be transported
     """
-    arm: Arms = None
+    arm: Arms
     """
     Arm that should be used
     """
@@ -968,7 +921,7 @@ class OpenAction(ActionAbstract):
     """
     Object designator_description describing the object that should be opened
     """
-    arm: Arms = None
+    arm: Arms
     """
     Arm that should be used for opening the container
     """
@@ -1001,9 +954,6 @@ class OpenAction(ActionAbstract):
                                  arm=arm,
                                  grasping_prepose_distance=grasping_prepose_distance)
 
-        # TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in
-        #  ActionAbstract
-
     def to_sql(self) -> ORMAction:
         return ORMOpenAction(arm=self.arm, grasping_prepose_distance=self.grasping_prepose_distance)
 
@@ -1026,7 +976,7 @@ class CloseAction(ActionAbstract):
     """
     Object designator_description describing the object that should be closed
     """
-    arm: Arms = None
+    arm: Arms
     """
     Arm that should be used for closing
     """
@@ -1113,7 +1063,7 @@ class GraspingAction(ActionAbstract):
     """
     Object Designator for the object that should be grasped
     """
-    arm: Arms = None
+    arm: Arms
     """
     The arm that should be used to grasp
     """
@@ -1231,12 +1181,12 @@ class MoveAndPickUpAction(ActionAbstract):
     The object to pick up
     """
 
-    arm: Arms = None
+    arm: Arms
     """
     The arm to use
     """
 
-    grasp: Grasp = None
+    grasp: Grasp
     """
     The grasp to use
     """
@@ -1299,7 +1249,7 @@ class MoveAndPlaceAction(ActionAbstract):
     The location to place the object.
     """
 
-    arm: Arms = None
+    arm: Arms
     """
     The arm to use
     """

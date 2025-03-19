@@ -124,7 +124,6 @@ class CostmapLocation(LocationDesignatorDescription):
                 target_pose = target.copy()
                 target_object = None
 
-            # ground_pose = [[target_pose[0][0], target_pose[0][1], 0], target_pose[1]]
             ground_pose = Pose(target_pose.position_as_list())
             ground_pose.position.z = 0
 
@@ -171,11 +170,6 @@ class CostmapLocation(LocationDesignatorDescription):
                         else:
                             for chain in RobotDescription.current_robot_description.get_manipulator_chains():
                                 hand_links += chain.end_effector.links
-                        # valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
-                        #                                     allowed_collision={test_robot: hand_links})
-                        # if reachable_arm:
-                        #    res = res and valid and reachable_arm in arms
-
                         if not reachable_arm:
                             for description in RobotDescription.current_robot_description.get_manipulator_chains():
                                 hand_links += description.end_effector.links
@@ -190,13 +184,7 @@ class CostmapLocation(LocationDesignatorDescription):
                                                              allowed_collision=allowed_collision,
                                                              arm=reachable_arm,
                                                              prepose_distance=prepose_distance)
-                        # if reachable_arm:
-                        #    res = res and valid and reachable_arm in arms
-
                         res = res and valid
-                        # if res:
-                        # found_grasps.append(grasp)
-                        #    yield maybe_pose
                     if res:
                         yield maybe_pose
 

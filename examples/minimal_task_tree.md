@@ -1,4 +1,4 @@
-from src.pycram.designators.action_designator import ParkArmsActionDescriptionfrom src.pycram.designators.action_designator import PlaceActionDescriptionfrom src.pycram.designators.action_designator import NavigateActionDescriptionfrom src.pycram.designators.action_designator import ParkArmsActionDescriptionfrom src.pycram.designators.action_designator import PickUpActionDescriptionfrom src.pycram.designators.action_designator import NavigateActionDescriptionfrom src.pycram.designators.action_designator import MoveTorsoActionDescription---
+---
 jupyter:
   jupytext:
     text_representation:

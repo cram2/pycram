@@ -125,8 +125,7 @@ class DefaultDetecting(ProcessModule):
 
             for obj in query_result:
                 object_dict.append(obj)
-                #object_dict.append(ObjectDesignatorDescription.Object(obj.name, obj.obj_type,
-                #                                   obj))
+
 
             return object_dict
 
