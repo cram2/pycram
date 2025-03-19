@@ -309,7 +309,7 @@ class Pose(PoseStamped):
         """
         self.orientation = new_orientation
 
-    def round(self, decimals: int = 4) -> None:
+    def round(self, decimals: int = 6) -> None:
         """
         Rounds the position and orientation of this Pose to the given number of decimals.
 
