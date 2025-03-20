@@ -271,6 +271,6 @@ def request_pinocchio_ik(target_pose: Pose, robot: Object, target_link: str, joi
     target_diff = target_pose.to_transform("target").inverse_times(wrist_tool_frame_offset).to_pose()
     target_diff.round()
 
-    res = compute_ik(target_link, target_diff, robot)
+    res = compute_ik(wrist_link, target_diff, robot)
 
     return res
