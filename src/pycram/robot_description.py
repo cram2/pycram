@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import field
 from enum import Enum
 from itertools import product
 
@@ -716,7 +717,7 @@ class EndEffectorDescription:
     """
     List of all links of the fingers of the gripper
     """
-    grasps: Dict[GraspDescription, List[float]] = {}
+    grasps: Dict[GraspDescription, List[float]] = field(default_factory=dict)
     """
     Dict containing grasp descriptions mapped to the correct end-effector quaternion orientation
     """
