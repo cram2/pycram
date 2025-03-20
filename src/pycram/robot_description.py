@@ -1,6 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import dataclasses
 import math
 from dataclasses import field
 from enum import Enum
@@ -717,10 +718,6 @@ class EndEffectorDescription:
     """
     List of all links of the fingers of the gripper
     """
-    grasps: Dict[GraspDescription, List[float]] = field(default_factory=dict)
-    """
-    Dict containing grasp descriptions mapped to the correct end-effector quaternion orientation
-    """
 
     def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject,
                  gripper_object_name: Optional[str] = None, opening_distance: Optional[float] = None,
@@ -747,6 +744,7 @@ class EndEffectorDescription:
         self.gripper_object_name = gripper_object_name
         self.opening_distance: Optional[float] = opening_distance
         self.fingers_link_names: Optional[List[str]] = fingers_link_names
+        self.grasps = {}
 
     def _init_links_joints(self):
         """
