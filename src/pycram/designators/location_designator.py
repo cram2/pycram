@@ -216,6 +216,9 @@ class CostmapLocation(LocationDesignatorDescription):
                                  for obj in self.ignore_collision_with]
 
         allowed_collision = {object: object.link_id_to_name[-1] for object in ignore_collision_with}
+        if self.object_in_hand:
+            prospection_object = World.current_world.get_prospection_object_for_object(self.object_in_hand.world_object)
+            allowed_collision.update({prospection_object: prospection_object.link_id_to_name[-1]})
 
         final_map = self.setup_costmaps(target, test_robot)
 
