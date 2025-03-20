@@ -4,4 +4,4 @@ try:
     import demo
 except Exception as e:
     World.current_world.exit()
-    raise e
+    exit(1)
