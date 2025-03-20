@@ -58,6 +58,26 @@ class is_contained_in(BaseProperty):
     The inverse of the contains relation. See the contains relation for details.
     """
 
+class has_preferred_alignment(BaseProperty):
+    """
+    A relation between an object and an alignment that is preferred for that object.
+    """
+
+class has_preferred_axis(BaseProperty):
+    """
+    A relation between an object and an axis identifier.
+    """
+
+class has_vertical_alignment(BaseProperty):
+    """
+    A relation between an object and a point on the object that is suitable for grasping the object from the top.
+    """
+
+class has_rotated_gripper(BaseProperty):
+    """
+    A relation between an object and a point on the object that is suitable for grasping the object horizontally.
+    """
+
 
 class is_physically_contained_in(BaseProperty):
     """

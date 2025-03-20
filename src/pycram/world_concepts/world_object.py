@@ -31,7 +31,7 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from pycrap.ontologies import PhysicalObject, Joint, \
-    Robot, Floor, Location
+    Robot, Floor, Location, Bowl, Spoon, Cereal
 
 Link = ObjectDescription.Link
 

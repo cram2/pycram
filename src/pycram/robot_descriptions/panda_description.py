@@ -1,5 +1,5 @@
 from ..datastructures.dataclasses import ManipulatorData
-from ..datastructures.enums import Grasp
+from ..datastructures.enums import Grasp, Arms
 from ..helper import get_robot_urdf_and_mjcf_file_paths, find_multiverse_resources_path
 from ..robot_description import RobotDescriptionManager, create_manipulator_description
 from ..ros import logwarn
@@ -35,13 +35,8 @@ if mjcf_filename is None or urdf_filename is None:
     logwarn(f"Could not initialize {data.name} description as Multiverse resources path not found.")
 else:
     robot_description = create_manipulator_description(data, urdf_filename, mjcf_filename)
-
-    robot_description.add_grasp_orientations({Grasp.FRONT: [0.0, 0.0, 0.0, 1.0],
-                                              Grasp.BACK: [0.0, 0.0, 1.0, 0.0],
-                                              Grasp.LEFT: [0.0, 0.0, -0.7071067811865475, 0.7071067811865476],
-                                              Grasp.RIGHT: [0.0, 0.0, 0.7071067811865475, 0.7071067811865476],
-                                              Grasp.TOP: [0.0, 0.7071067811865475, 0.0, 0.7071067811865476],
-                                              Grasp.BOTTOM: [0.0, -0.7071067811865475, 0.0, 0.7071067811865476]})
+    ################################# Grasps ##################################
+    robot_description.get_arm_chain(Arms.RIGHT).end_effector.update_all_grasp_orientations([0, 0, 0, 1])
 
     # Add to RobotDescriptionManager
     rdm = RobotDescriptionManager()

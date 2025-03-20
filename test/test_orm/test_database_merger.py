@@ -44,7 +44,7 @@ class ExamplePlans:
             ParkArmsActionPerformable(Arms.BOTH).perform()
             MoveTorsoAction([0.3]).resolve().perform()
             pickup_pose = CostmapLocation(target=self.cereal_desig.resolve(), reachable_for=self.robot_desig).resolve()
-            pickup_arm = pickup_pose.reachable_arms[0]
+            pickup_arm = pickup_pose.reachable_arm
             NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
             PickUpAction(object_designator_description=self.cereal_desig, arms=[pickup_arm],
                          grasps=["front"]).resolve().perform()

@@ -90,10 +90,10 @@ tiago_description.add_camera_description(camera)
 tiago_description.add_kinematic_chain("neck", "torso_lift_link", "head_2_link")
 
 ################################# Grasps ##################################
-tiago_description.add_grasp_orientations({Grasp.FRONT: [0, 0, 0, 1],
-                                          Grasp.LEFT: [0, 0, -1, 1],
-                                          Grasp.RIGHT: [0, 0, 1, 1],
-                                          Grasp.TOP: [0, 1, 0, 1]})
+front_grasp = [-0.5, 0.5, 0.5, -0.5]
+right_gripper.update_all_grasp_orientations(front_grasp)
+left_gripper.update_all_grasp_orientations(front_grasp)
+
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

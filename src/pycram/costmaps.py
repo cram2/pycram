@@ -561,7 +561,7 @@ class VisibilityCostmap(Costmap):
 
     @target_object.setter
     def target_object(self, target_object: Optional[Object]) -> None:
-        if target_object is not None:
+        if target_object is not None and not isinstance(target_object, Pose):
             self._target_object = World.current_world.get_prospection_object_for_object(target_object)
             self.target_original_pose = self._target_object.pose
         else:

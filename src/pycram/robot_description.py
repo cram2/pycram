@@ -1,16 +1,23 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import dataclasses
+import math
+from dataclasses import field
 from enum import Enum
+from itertools import product
 
-from typing_extensions import List, Dict, Union, Optional
+import numpy as np
+from typing_extensions import List, Dict, Union, Optional, Tuple
 
-from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData
+from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, Rotations
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState
+from .datastructures.pose import GraspDescription
 from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
     get_robot_description_path
 from .object_descriptors.urdf import ObjectDescription as URDFObject
-from .ros import  logerr
+from .ros import logerr
+from .tf_transformations import quaternion_multiply
 from .utils import suppress_stdout_stderr
 
 
@@ -51,7 +58,6 @@ class RobotDescriptionManager:
                 self.descriptions[key].load()
                 return self.descriptions[key]
         logerr(f"Robot description {name} not found")
-
 
     def register_description(self, description: RobotDescription):
         """
@@ -102,10 +108,6 @@ class RobotDescription:
     """
     All cameras defined for this robot
     """
-    grasps: Dict[Grasp, List[float]]
-    """
-    The orientations of the end effector for different grasps
-    """
     links: List[str]
     """
     All links defined in the URDF
@@ -155,7 +157,6 @@ class RobotDescription:
         self.joint_actuators: Optional[Dict] = parse_mjcf_actuators(mjcf_path) if mjcf_path is not None else None
         self.kinematic_chains: Dict[str, KinematicChainDescription] = {}
         self.cameras: Dict[str, CameraDescription] = {}
-        self.grasps: Dict[Grasp, List[float]] = {}
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
         self.virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = virtual_mobile_base_joints
@@ -254,25 +255,6 @@ class RobotDescription:
         """
         camera_desc = CameraDescription(name, camera_link, minimal_height, maximal_height)
         self.cameras[name] = camera_desc
-
-    def add_grasp_orientation(self, grasp: Grasp, orientation: List[float]):
-        """
-        Adds a grasp orientation to the robot description. This is used to define the orientation of the end effector
-        when grasping an object.
-
-        :param grasp: Gasp from the Grasp enum which should be added
-        :param orientation: List of floats representing the orientation
-        """
-        self.grasps[grasp] = orientation
-
-    def add_grasp_orientations(self, orientations: Dict[Grasp, List[float]]):
-        """
-        Adds multiple grasp orientations to the robot description. This is used to define the orientation of the end effector
-        when grasping an object.
-
-        :param orientations: Dictionary of grasp orientations
-        """
-        self.grasps.update(orientations)
 
     def get_manipulator_chains(self) -> List[KinematicChainDescription]:
         """
@@ -762,6 +744,7 @@ class EndEffectorDescription:
         self.gripper_object_name = gripper_object_name
         self.opening_distance: Optional[float] = opening_distance
         self.fingers_link_names: Optional[List[str]] = fingers_link_names
+        self.grasps = {}
 
     def _init_links_joints(self):
         """
@@ -811,6 +794,48 @@ class EndEffectorDescription:
         """
         return self.joint_names
 
+    def update_all_grasp_orientations(self, front_orientation: List[float]):
+        """
+        Generates all grasp quaternion orientations based on a given front-facing quaternion orientation in-place,
+        covering combinations of side grasps (front, back, left, right),
+        top/bottom grasps, and horizontal rotation options.
+
+        :param front_orientation: A quaternion representing the front-facing orientation as [x, y, z, w] quaternion.
+        """
+
+        grasp_descriptions = [
+            GraspDescription(side, vertical, horizontal)
+            for side, vertical, horizontal in product(
+                Rotations.SIDE_ROTATIONS.keys(),
+                Rotations.VERTICAL_ROTATIONS.keys(),
+                Rotations.HORIZONTAL_ROTATIONS.keys()
+            )
+        ]
+
+        for grasp_description in grasp_descriptions:
+            rotation = Rotations.SIDE_ROTATIONS[grasp_description.approach_direction]
+            rotation = quaternion_multiply(rotation, Rotations.VERTICAL_ROTATIONS[grasp_description.vertical_alignment])
+            rotation = quaternion_multiply(rotation, Rotations.HORIZONTAL_ROTATIONS[grasp_description.rotate_gripper])
+
+            orientation = quaternion_multiply(rotation, front_orientation)
+
+            norm = math.sqrt(sum(comp ** 2 for comp in orientation))
+            orientation = [comp / norm for comp in orientation]
+
+            self.grasps[grasp_description] = orientation
+
+    def get_grasp(self, grasp: Grasp, top_bot_grasp: Grasp = None, horizontal: bool = False) -> List[float]:
+        """
+        Retrieves the quaternion orientation of the end effector for a specific grasp.
+
+        :param grasp: Grasp from the Grasp enum
+        :param top_bot_grasp: Top or bottom grasp from the Grasp enum
+        :param horizontal: If True, the horizontal rotation is applied
+
+        :return: List of floats representing the quaternion orientation of the end effector
+        """
+        grasp_description = GraspDescription(grasp, top_bot_grasp, horizontal)
+        return self.grasps[grasp_description]
 
 def create_manipulator_description(data: ManipulatorData,
                                    urdf_filename: str,

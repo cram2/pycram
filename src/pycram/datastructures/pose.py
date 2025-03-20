@@ -7,16 +7,23 @@ from collections.abc import Sequence
 
 import numpy as np
 import sqlalchemy.orm
+import typing_extensions
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
-from typing_extensions import List, Union, Optional, Self
+from typing_extensions import List, Union, Optional, Self, Tuple
 
+from .enums import AxisIdentifier, Grasp
+from .grasp import PreferredGraspAlignment, GraspDescription
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
 from ..ros import Time
 from ..ros import logwarn, logerr
 from ..tf_transformations import euler_from_quaternion, translation_matrix, quaternion_matrix, concatenate_matrices, \
-    inverse_matrix, translation_from_matrix, quaternion_from_matrix
+    inverse_matrix, translation_from_matrix, quaternion_from_matrix, quaternion_multiply
 from ..validation.error_checkers import calculate_pose_error
+from scipy.spatial.transform import Rotation as R
+
+if typing_extensions.TYPE_CHECKING:
+    from ..world_concepts.world_object import Object
 
 
 def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
@@ -302,6 +309,15 @@ class Pose(PoseStamped):
         """
         self.orientation = new_orientation
 
+    def round(self, decimals: int = 4) -> None:
+        """
+        Rounds the position and orientation of this Pose to the given number of decimals.
+
+        :param decimals: The number of decimals to which the position and orientation should be rounded
+        """
+        self.position = [round(v, decimals) for v in self.position_as_list()]
+        self.orientation = [round(v, decimals) for v in self.orientation_as_list()]
+
     def to_sql(self) -> ORMPose:
         return ORMPose(datetime.datetime.utcfromtimestamp(self.header.stamp.to_sec()), self.frame)
 
@@ -324,22 +340,113 @@ class Pose(PoseStamped):
 
         return pose
 
-    def multiply_quaternion(self, quaternion: List) -> None:
+    def rotate_by_quaternion(self, quaternion: Tuple[float, float, float, float]) -> None:
         """
-        Multiply the quaternion of this Pose with the given quaternion, the result will be the new orientation of this
-        Pose.
+        Rotates this Pose by the given quaternion. The orientation of this Pose is multiplied by the given quaternion,
+        according to the hamilton product. The quaternion has to be given as a tuple with xyzw.
+        The orientation is normalized after the rotation.
 
-        :param quaternion: The quaternion by which the orientation of this Pose should be multiplied
+        :param quaternion: The quaternion by which this Pose should be rotated
         """
-        x1, y1, z1, w1 = quaternion
-        x2, y2, z2, w2 = self.orientation_as_list()
+        self.orientation = quaternion_multiply(self.orientation_as_list(), quaternion)
 
-        w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
-        x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
-        y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
-        z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
+    def get_vector_to_pose(self, other_pose: Pose) -> np.ndarray:
+        """
+        Get the vector between two poses, by computing position of other_pose - position of self.
 
-        self.orientation = (x, y, z, w)
+        :param other_pose: The other pose.
+
+        :return: The vector between the two poses.
+        """
+        return np.array(other_pose.position_as_list()) - np.array(self.position_as_list())
+
+    @staticmethod
+    def calculate_closest_faces(pose_to_robot_vector: Tuple[float, float, float],
+                                specified_grasp_axis: Optional[AxisIdentifier] = None) -> Tuple[
+        GraspDescription, GraspDescription]:
+        """
+        Determines the faces of the object based on the input vector.
+
+        If `specified_grasp_axis` is None, it calculates the primary and secondary faces based on the vector's magnitude
+        determining which sides of the object are most aligned with the robot. This will either be the x, y plane for side faces
+        or the z axis for top/bottom faces.
+        If `specified_grasp_axis` is provided, it only considers the specified axis and calculates the faces aligned
+        with that axis.
+
+        :param pose_to_robot_vector: A 3D vector representing one of the robot's axes in the pose's frame, with
+                              irrelevant components set to np.nan.
+        :param specified_grasp_axis: Specifies a specific axis (e.g., X, Y, Z) to focus on.
+
+        :return: A tuple of two Grasp enums representing the primary and secondary faces.
+        """
+        all_axes = [AxisIdentifier.X, AxisIdentifier.Y, AxisIdentifier.Z]
+
+        if specified_grasp_axis:
+            valid_axes = [specified_grasp_axis]
+        else:
+            valid_axes = [axis for axis in all_axes if not np.isnan(pose_to_robot_vector[axis.value.index(1)])]
+
+        object_to_robot_vector = np.array(pose_to_robot_vector) + 1e-9
+        sorted_axes = sorted(valid_axes, key=lambda axis: abs(object_to_robot_vector[axis.value.index(1)]),
+                             reverse=True)
+
+        primary_axis = sorted_axes[0]
+        primary_sign = int(np.sign(object_to_robot_vector[primary_axis.value.index(1)]))
+        primary_face = Grasp.from_axis_direction(primary_axis, primary_sign)
+
+        if len(sorted_axes) > 1:
+            secondary_axis = sorted_axes[1]
+            secondary_sign = int(np.sign(object_to_robot_vector[secondary_axis.value.index(1)]))
+            secondary_face = Grasp.from_axis_direction(secondary_axis, secondary_sign)
+        else:
+            secondary_sign = -primary_sign
+            secondary_axis = primary_axis
+            secondary_face = Grasp.from_axis_direction(secondary_axis, secondary_sign)
+
+        return primary_face, secondary_face
+
+    def calculate_grasp_descriptions(self, robot: Object, grasp_alignment: Optional[PreferredGraspAlignment] = None) -> List[GraspDescription]:
+        """
+        This method determines the possible grasp configurations (approach axis and vertical alignment) of the self,
+        taking into account the self's orientation, position, and whether the gripper should be rotated by 90°.
+
+        :param robot: The robot for which the grasp configurations are being calculated.
+
+        :return: A sorted list of GraspDescription instances representing all grasp permutations.
+        """
+        objectTmap = self
+
+        robot_pose = robot.get_pose()
+
+        if grasp_alignment:
+            side_axis = grasp_alignment.preferred_axis
+            vertical = grasp_alignment.with_vertical_alignment
+            rotated_gripper = grasp_alignment.with_rotated_gripper
+        else:
+            side_axis, vertical, rotated_gripper = None, False, False
+
+        object_to_robot_vector_world = objectTmap.get_vector_to_pose(robot_pose)
+        orientation = objectTmap.orientation_as_list()
+
+        mapRobject = R.from_quat(orientation).as_matrix()
+        objectRmap = mapRobject.T
+
+        object_to_robot_vector_local = objectRmap.dot(object_to_robot_vector_world)
+        vector_x, vector_y, vector_z = object_to_robot_vector_local
+
+        vector_side = np.array([vector_x, vector_y, np.nan], dtype=float)
+        side_faces = self.calculate_closest_faces(vector_side, side_axis)
+
+        vector_vertical = np.array([np.nan, np.nan, vector_z], dtype=float)
+        vertical_faces = self.calculate_closest_faces(vector_vertical) if vertical else [None]
+
+        grasp_configs = [
+            GraspDescription(approach_direction=side, vertical_alignment=top_face, rotate_gripper=rotated_gripper)
+            for top_face in vertical_faces
+            for side in side_faces
+        ]
+
+        return grasp_configs
 
     def __str__(self):
         return (f"Pose: {[round(v, 3) for v in self.position_as_list()]}, {[round(v, 3) for v in self.orientation_as_list()]}"
@@ -548,6 +655,15 @@ class Transform(TransformStamped):
         quaternion = quaternion_from_matrix(inverse_transform)
         return Transform(list(translation), list(quaternion), self.child_frame_id, self.header.frame_id,
                          self.header.stamp)
+
+    def round(self, decimals: int = 4):
+        """
+        Rounds the translation and rotation of this Transform to the given number of decimals.
+
+        :param decimals: The number of decimals to which the translation and rotation should be rounded
+        """
+        self.translation = [round(v, decimals) for v in self.translation_as_list()]
+        self.rotation = [round(v, decimals) for v in self.rotation_as_list()]
 
     def __mul__(self, other: Transform) -> Union[Transform, None]:
         """

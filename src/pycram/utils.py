@@ -14,10 +14,10 @@ import math
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
-from .tf_transformations import quaternion_about_axis, quaternion_multiply
-from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence
 
-from .datastructures.dataclasses import Color
+from .tf_transformations import quaternion_about_axis, quaternion_multiply
+from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence, Optional
+
 from .datastructures.pose import Pose
 from .local_transformer import LocalTransformer
 
@@ -261,24 +261,13 @@ def get_quaternion_between_camera_and_target(cam_pose: Pose, target_pose: Pose,
     front_facing_axis = front_facing_axis - np.array(cam_pose.position_as_list())
 
     # Get the vector from the camera to the target
-    camera_to_target = get_vector_between_poses(cam_pose, target_pose)
+    camera_to_target = cam_pose.get_vector_to_pose(target_pose)
 
     # Get the quaternion between the camera and target
     return get_quaternion_between_two_vectors(front_facing_axis, camera_to_target)
 
 
-def get_vector_between_poses(pose1: Pose, pose2: Pose) -> np.ndarray:
-    """
-    Get the vector between two poses.
-
-    :param pose1: The first pose.
-    :param pose2: The second pose.
-    :return: The vector between the two poses.
-    """
-    return np.array(pose2.position_as_list()) - np.array(pose1.position_as_list())
-
-
-def transform_vector_using_pose(vector: Sequence, pose: Pose) -> np.ndarray:
+def transform_vector_using_pose(vector: Sequence, pose) -> np.ndarray:
     """
     Transform a vector using a pose.
 
@@ -612,28 +601,6 @@ def xyzw_to_wxyz_arr(xyzw: np.ndarray) -> np.ndarray:
     wxyz[1:] = xyzw[:3]
     return wxyz
 
-
-def map_color_names_to_rgba(name: str) -> Color:
-    """
-    Maps a color name to its corresponding RGBA value.
-
-    :param name: The name of the color (e.g., "red", "blue").
-    :return: A list of RGBA values [R, G, B, A] where each component ranges from 0 to 1.
-             Returns [0, 0, 0, 1] (black) for unknown colors.
-    """
-    colors = {
-        "red": Color(1, 0, 0, 1),
-        "yellow": Color(1, 1, 0, 1),
-        "green": Color(0, 1, 0, 1),
-        "cyan": Color(0, 1, 1, 1),
-        "blue": Color(0, 0, 1, 1),
-        "magenta": Color(1, 0, 1, 1),
-        "white": Color(1, 1, 1, 1),
-        "black": Color(0, 0, 0, 1),
-        "grey": Color(0.5, 0.5, 0.5, 1),
-    }
-
-    return colors.get(name.lower(), Color(0, 0, 0, 1)).to_list()  # Fallback to black
 
 
 class ClassPropertyDescriptor:

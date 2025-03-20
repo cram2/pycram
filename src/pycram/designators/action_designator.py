@@ -24,6 +24,7 @@ from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique
     TorsoState, StaticJointState, Frame, FindBodyInRegionMethod, ContainerManipulationType
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.pose import Pose
+from ..datastructures.grasp import GraspDescription
 from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty
 from ..datastructures.world import World, UseProspectionWorld
 from ..description import Joint, Link
@@ -38,7 +39,7 @@ from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
     ObjectNotGraspedError
 from ..robot_description import RobotDescription
-from ..ros import  sleep
+from ..ros import sleep
 from ..tasktree import with_tree
 from ..world_reasoning import contact
 
@@ -318,9 +319,9 @@ class ReachToPickUpActionPerformable(ActionAbstract):
     The arm that should be used for pick up
     """
 
-    grasp: Grasp
+    grasp_description: GraspDescription
     """
-    The grasp that should be used. For example, 'left' or 'right'
+    The grasp description that should be used for picking up the object
     """
 
     orm_object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
@@ -386,17 +387,17 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         :return: The adjusted target pose.
         """
         # Get grasp orientation and target pose
-        grasp = RobotDescription.current_robot_description.grasps[self.grasp]
-        # oTm = Object Pose in Frame map
+        grasp = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.grasps[
+            self.grasp_description]
         oTm = self.world_object.get_pose()
         # Transform the object pose to the object frame, basically the origin of the object frame
         mTo = self.local_transformer.transform_to_object_frame(oTm, self.world_object)
         # Adjust the pose according to the special knowledge of the object designator_description
-        adjusted_pose = self.object_designator.special_knowledge_adjustment_pose(self.grasp, mTo)
+        adjusted_pose = self.object_designator.special_knowledge_adjustment_pose(grasp, mTo)
         # Transform the adjusted pose to the map frame
         adjusted_oTm = self.transform_pose(adjusted_pose, Frame.Map.value)
         # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
-        adjusted_oTm.multiply_quaternion(grasp)
+        adjusted_oTm.rotate_by_quaternion(grasp)
         return adjusted_oTm
 
     def calculate_pre_grasping_pose(self, obj_pose: Pose) -> Pose:
@@ -406,7 +407,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         :return: The pre grasping pose of the object.
         """
         # pre-pose depending on the gripper.
-        oTg = self.transform_to_gripper_frame(obj_pose)
+        oTg = obj_pose.copy()
         oTg.pose.position.x -= self.prepose_distance  # in x since this is how the gripper is oriented
         return self.transform_pose(oTg, Frame.Map.value)
 
@@ -448,7 +449,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
     # TODO find a way to use orm_object_at_execution instead of object_designator in the automatic orm mapping in
     #  ActionAbstract
     def to_sql(self) -> ORMAction:
-        return ORMReachToPickUpAction(arm=self.arm, grasp=self.grasp, prepose_distance=self.prepose_distance)
+        return ORMReachToPickUpAction(arm=self.arm, prepose_distance=self.prepose_distance)
 
     def insert(self, session: Session, **kwargs) -> ORMAction:
         action = super(ActionAbstract, self).insert(session)
@@ -464,7 +465,7 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         if fingers_link_names:
             if not is_body_between_fingers(self.world_object, fingers_link_names,
                                            method=FindBodyInRegionMethod.MultiRay):
-                raise ObjectNotInGraspingArea(self.world_object, World.robot, self.arm, self.grasp)
+                raise ObjectNotInGraspingArea(self.world_object, World.robot, self.arm, self.grasp_description)
         else:
             logwarn(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
 
@@ -485,9 +486,9 @@ class PickUpActionPerformable(ActionAbstract):
     The arm that should be used for pick up
     """
 
-    grasp: Grasp
+    grasp_description: GraspDescription
     """
-    The grasp that should be used. For example, 'left' or 'right'
+    The GraspDescription that should be used for picking up the object
     """
 
     orm_object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
@@ -510,7 +511,8 @@ class PickUpActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        ReachToPickUpActionPerformable(self.object_designator, self.arm, self.grasp, self.prepose_distance).perform()
+        ReachToPickUpActionPerformable(self.object_designator, self.arm, self.grasp_description,
+                                       self.prepose_distance).perform()
 
         MoveGripperMotion(motion=GripperState.CLOSE, gripper=self.arm).perform()
 
@@ -539,7 +541,7 @@ class PickUpActionPerformable(ActionAbstract):
     # TODO find a way to use orm_object_at_execution instead of object_designator in the automatic orm mapping in
     #  ActionAbstract
     def to_sql(self) -> ORMAction:
-        return ORMPickUpAction(arm=self.arm, grasp=self.grasp, prepose_distance=self.prepose_distance)
+        return ORMPickUpAction(arm=self.arm, prepose_distance=self.prepose_distance)
 
     def insert(self, session: Session, **kwargs) -> ORMAction:
         action = super(ActionAbstract, self).insert(session)
@@ -552,7 +554,7 @@ class PickUpActionPerformable(ActionAbstract):
         Check if picked up object is in contact with the gripper.
         """
         if not has_gripper_grasped_body(self.arm, self.world_object):
-            raise ObjectNotGraspedError(self.world_object, World.robot, self.arm, self.grasp)
+            raise ObjectNotGraspedError(self.world_object, World.robot, self.arm, self.grasp_description)
 
     @cached_property
     def arm_chain(self) -> KinematicChainDescription:
@@ -585,7 +587,8 @@ class PlaceActionPerformable(ActionAbstract):
 
     @with_tree
     def plan(self) -> None:
-        target_pose = self.calculate_target_pose_of_gripper()
+        target_pose = self.object_designator.world_object.attachments[
+            World.robot].get_child_link_target_pose_given_parent(self.target_location)
         MoveTCPMotion(target_pose, self.arm).perform()
 
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()
@@ -728,12 +731,14 @@ class TransportActionPerformable(ActionAbstract):
     def plan(self) -> None:
         robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
         ParkArmsActionPerformable(Arms.BOTH).perform()
-        pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig_resolved,
-                                     reachable_arm=self.arm, prepose_distance=self.pickup_prepose_distance)
+        pickup_loc = CostmapLocation(target=self.object_designator,
+                                     reachable_for=robot_desig_resolved,
+                                     reachable_arms=[self.arm],
+                                     prepose_distance=self.pickup_prepose_distance)
         # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = None
         for pose in pickup_loc:
-            if self.arm in pose.reachable_arms:
+            if self.arm == pose.reachable_arm:
                 pickup_pose = pose
                 break
         if not pickup_pose:
@@ -741,17 +746,23 @@ class TransportActionPerformable(ActionAbstract):
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
 
         NavigateActionPerformable(pickup_pose.pose, True).perform()
-        PickUpActionPerformable(self.object_designator, self.arm, Grasp.FRONT,
+        PickUpActionPerformable(self.object_designator, pickup_pose.reachable_arm,
+                                pickup_pose.grasp_description,
                                 prepose_distance=self.pickup_prepose_distance).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         try:
-            place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig_resolved,
-                                        reachable_arm=self.arm).resolve()
+            place_loc = CostmapLocation(
+                target=self.target_location,
+                reachable_for=robot_desig_resolved,
+                reachable_arms=[pickup_pose.reachable_arm],
+                grasp_descriptions=[pickup_pose.grasp_description],
+                object_in_hand=self.object_designator
+            ).resolve()
         except StopIteration:
             raise ReachabilityFailure(
                 f"No location found from where the robot can reach the target location: {self.target_location}")
         NavigateActionPerformable(place_loc.pose, True).perform()
-        PlaceActionPerformable(self.object_designator, self.arm, self.target_location).perform()
+        PlaceActionPerformable(self.object_designator, place_loc.reachable_arm, self.target_location).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
@@ -1063,9 +1074,13 @@ class MoveAndPickUpPerformable(ActionAbstract):
 
     # @with_tree
     def plan(self):
+        if self.grasp == Grasp.TOP:
+            grasp = GraspDescription(Grasp.FRONT, self.grasp, False)
+        else:
+            grasp = GraspDescription(self.grasp, None, False)
         NavigateActionPerformable(self.standing_position, self.keep_joint_states).perform()
         FaceAtPerformable(self.object_designator.pose, self.keep_joint_states).perform()
-        PickUpActionPerformable(self.object_designator, self.arm, self.grasp,
+        PickUpActionPerformable(self.object_designator, self.arm, grasp,
                                 self.pick_up_prepose_distance).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
@@ -1151,7 +1166,8 @@ class PouringPerformable(ActionAbstract):
         lt = LocalTransformer()
         movement_type: MovementType = MovementType.CARTESIAN
         oTm = self.object_.pose
-        grasp_rotation = RobotDescription.current_robot_description.grasps[Grasp.FRONT]
+        grasp_rotation = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.get_grasp(
+            Grasp.FRONT, None, False)
         oTbs = lt.transform_pose(oTm, World.robot.get_link_tf_frame("base_link"))
         oTbs.pose.position.x += 0.009
         oTbs.pose.position.z += 0.17
@@ -1173,13 +1189,12 @@ class PouringPerformable(ActionAbstract):
         new_y = new_q[1]
         new_z = new_q[2]
         new_w = new_q[3]
-        adjusted_oTgm.multiply_quaternion([new_x, new_y, new_z, new_w])
+        adjusted_oTgm.rotate_by_quaternion([new_x, new_y, new_z, new_w])
 
         World.current_world.add_vis_axis(adjusted_oTgm)
         MoveTCPMotion(adjusted_oTgm, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
         sleep(3)
         MoveTCPMotion(oTgm, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
-
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
@@ -1362,7 +1377,7 @@ class PickUpAction(ActionDesignatorDescription):
 
     def __init__(self,
                  object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
-                 arms: List[Arms] = None, grasps: List[Grasp] = None, prepose_distance: float = 0.03):
+                 arms: List[Arms] = None, grasp_descriptions: List[GraspDescription] = None, prepose_distance: float = 0.03):
         """
         Lets the robot pick up an object. The description needs an object designator_description describing the object that should be
         picked up, an arm that should be used as well as the grasp from which side the object should be picked up.
@@ -1377,7 +1392,7 @@ class PickUpAction(ActionDesignatorDescription):
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.arms: List[Arms] = arms
-        self.grasps: List[Grasp] = grasps
+        self.grasp_descriptions: List[GraspDescription] = grasp_descriptions
         object_desig = self.object_designator_description if isinstance(self.object_designator_description,
                                                                         ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
         self.prepose_distance: float = prepose_distance
@@ -1385,12 +1400,11 @@ class PickUpAction(ActionDesignatorDescription):
             object_desig.pose)
 
     def __iter__(self) -> PickUpActionPerformable:
-        ri = ReasoningInstance(self,
-                               PartialDesignator(PickUpActionPerformable, self.object_designator_description, self.arms,
-                                                 self.grasps, self.prepose_distance))
-        # Here is where the magic happens
-        for desig in ri:
-            yield desig
+        grasp = self.grasp_descriptions[0] if self.grasp_descriptions else None
+        object_desig = self.object_designator_description if isinstance(self.object_designator_description,
+                                                                        ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
+
+        yield PickUpActionPerformable(object_desig, self.arms[0], grasp, self.prepose_distance)
 
 
 class PlaceAction(ActionDesignatorDescription):
@@ -1432,11 +1446,9 @@ class PlaceAction(ActionDesignatorDescription):
         return PlaceActionPerformable(obj_desig, self.arms[0], self.target_locations[0])
 
     def __iter__(self) -> PlaceActionPerformable:
-        ri = ReasoningInstance(self,
-                               PartialDesignator(PlaceActionPerformable, self.object_designator_description, self.arms,
-                                                 self.target_locations))
-        for desig in ri:
-            yield desig
+        obj_desig = self.object_designator_description if isinstance(self.object_designator_description,
+                                                                     ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
+        yield PlaceActionPerformable(obj_desig, self.arms[0], self.target_locations[0])
 
 
 class NavigateAction(ActionDesignatorDescription):
@@ -1784,4 +1796,3 @@ class PouringAction(ActionDesignatorDescription):
         :return: A performable action designator_description
         """
         yield PouringPerformable(self.object_, self.tool, self.arms[0], self.technique, self.angle)
-

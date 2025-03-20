@@ -2,7 +2,7 @@ from owlready2 import Imp
 
 from .dependencies import *
 from .classes import *
-# from .individuals import *
+from .individuals import *
 from .object_properties import *
 
 Floor.is_a = [PhysicalObject]
@@ -28,6 +28,18 @@ Room.is_a = [Location, Container]
 Cup.is_a = [Container]
 
 Bowl.is_a = [Container]
+
+DefaultPreferredGraspAlignment.is_a = [PreferredGraspAlignment, has_preferred_axis.some(NoAlignment),
+                                       has_vertical_alignment.value(Falsy), has_rotated_gripper.value(Falsy)]
+
+BowlPreferredGraspAlignment.is_a = [PreferredGraspAlignment, has_preferred_axis.value(NoAlignment),
+                                    has_vertical_alignment.value(Truthy), has_rotated_gripper.value(Falsy)]
+
+SpoonPreferredGraspAlignment.is_a = [PreferredGraspAlignment, has_preferred_axis.value(XAxis),
+                                     has_vertical_alignment.value(Truthy), has_rotated_gripper.value(Falsy)]
+
+CerealPreferredGraspAlignment.is_a = [PreferredGraspAlignment, has_preferred_axis.value(XAxis),
+                                      has_vertical_alignment.value(Falsy), has_rotated_gripper.value(Falsy)]
 
 Cabinet.is_a = [Container]
 
@@ -105,3 +117,10 @@ supports.inverse_property = is_supported_by
 is_supported_by.is_a = [ObjectProperty, TransitiveProperty]
 is_supported_by.domain = [SupportedObject]
 is_supported_by.range = [Supporter]
+
+for c in ontology.classes():
+    c.has_preferred_alignment.append(DefaultPreferredGraspAlignment)
+
+Bowl.has_preferred_alignment = [BowlPreferredGraspAlignment]
+Spoon.has_preferred_alignment = [SpoonPreferredGraspAlignment]
+Cereal.has_preferred_alignment = [CerealPreferredGraspAlignment]
