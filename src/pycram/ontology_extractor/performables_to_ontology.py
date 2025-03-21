@@ -30,7 +30,7 @@ class ParameterDigest:
     """
     Docstring of the parameter itself (individual to each performable).
     """
-    parameter_default_value: Any
+    parameter_default_value: Optional[Any]
     """
     Holds the default value of the parameter if set.
     """
