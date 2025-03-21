@@ -1,5 +1,5 @@
 from enum import EnumMeta
-from pycram.designators.action_designator import ActionAbstract
+from ..designators.action_designator import ActionAbstract
 from random_events.utils import recursive_subclasses
 from owlready2 import *
 from random_events.utils import get_full_class_name
