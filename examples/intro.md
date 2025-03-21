@@ -327,6 +327,7 @@ a cereal box from the kitchen counter and place it on the kitchen island. This i
 
 ```python
 from pycram.datastructures.enums import Grasp, TorsoState, Arms
+from pycram.datastructures.pose import GraspDescription
 
 cereal_desig = ObjectDesignatorDescription(names=["cereal"])
 kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
@@ -348,7 +349,7 @@ with simulated_robot:
     place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(),
                                            cereal_desig.resolve())
 
-    place_stand = CostmapLocation(place_island, reachable_for=robot_desig, reachable_arm=pickup_arm)
+    place_stand = CostmapLocation(place_island, reachable_for=robot_desig, reachable_arms=[pickup_arm], object_in_hand=cereal_desig.resolve())
 
     NavigateActionDescription(target_location=place_stand).resolve().perform()
 

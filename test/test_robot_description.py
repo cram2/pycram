@@ -1,8 +1,10 @@
 import pathlib
 import unittest
+
+from pycram.datastructures.pose import GraspDescription
 from pycram.robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     CameraDescription, RobotDescriptionManager
-from pycram.datastructures.enums import Arms, GripperState, StaticJointState
+from pycram.datastructures.enums import Arms, GripperState, StaticJointState, Grasp
 from pycram.object_descriptors.urdf import ObjectDescription as URDF
 
 
@@ -199,3 +201,22 @@ class TestRobotDescription(unittest.TestCase):
         self.assertTrue(type(robot_description.urdf_object) is URDF)
         self.assertEqual(len(robot_description.links), 11)
         self.assertEqual(len(robot_description.joints), 10)
+
+    def test_grasp_descriptions(self):
+        grasp1 = GraspDescription(Grasp.LEFT, Grasp.TOP, True)
+        grasp2 = GraspDescription(Grasp.BACK, Grasp.BOTTOM, False)
+        grasp3 = GraspDescription(Grasp.RIGHT, None, True)
+
+        grasp1_quat = [0.7071067811865476, 0.0, -0.7071067811865476, 0.0]
+        grasp2_quat = [0.7071067811865476, 0.0, 0.7071067811865476, 0.0]
+        grasp3_quat = [0.5, 0.5, 0.5, 0.5]
+
+        end_effector = EndEffectorDescription("left_gripper", "l_gripper_palm_link", "l_gripper_tool_frame",
+                                              self.urdf_obj)
+
+        end_effector.update_all_grasp_orientations([0, 0, 0, 1])
+
+        self.assertEqual(grasp1_quat, end_effector.grasps[grasp1])
+        self.assertEqual(grasp2_quat, end_effector.grasps[grasp2])
+        self.assertEqual(grasp3_quat, end_effector.grasps[grasp3])
+

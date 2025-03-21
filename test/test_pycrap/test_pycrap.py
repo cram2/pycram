@@ -1,4 +1,6 @@
 import unittest
+from unittest import skip
+
 import pycrap
 import inspect
 
@@ -19,6 +21,7 @@ class CrapTestCase(unittest.TestCase):
     def setUp(self):
         self.ontology = OntologyWrapper()
 
+    @skip("Not working anymore as now we use one ontology")
     def test_multiple_worlds(self):
         second_ontology = OntologyWrapper()
         cup1 = Cup(namespace=self.ontology.ontology)

@@ -32,6 +32,7 @@ from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import ObjectType, WorldMode, TorsoState
 import anytree
 import pycram.failures
+from pycram.datastructures.pose import GraspDescription
 ```
 
 Next we will create a bullet world with a PR2 in a kitchen containing milk and cereal.
@@ -60,13 +61,14 @@ def plan():
         pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig)
         pickup_arm = Arms.RIGHT
         NavigateActionDescription(target_location=pickup_pose).resolve().perform()
-        PickUpActionDescription(object_designator=cereal_desig, arm=[pickup_arm], grasp=Grasp.FRONT).resolve().perform()
+        grasp = pickup_pose.grasp_description
+        PickUpActionDescription(object_designator=cereal_desig, arm=[pickup_arm], grasp_descriptions=grasp).resolve().perform()
         ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
 
         place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(),
                                            cereal_desig.resolve()).resolve()
 
-        place_stand = CostmapLocation(place_island, reachable_for=robot_desig, reachable_arm=pickup_arm)
+        place_stand = CostmapLocation(place_island, reachable_for=robot_desig, reachable_arms=[pickup_arm],  object_in_hand=cereal_desig.resolve())
 
         NavigateActionDescription(target_location=place_stand).resolve().perform()
 

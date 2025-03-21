@@ -100,7 +100,7 @@ class PartialDesignator(Language, Iterable[T]):
         missing = {k: v for k, v in self.kwargs.items() if v is None}
         return list(missing.keys())
 
-    def resolve(self) -> T:
+    def resolve(self) -> T():
         """
         Returns the Designator with the first set of parameters
 

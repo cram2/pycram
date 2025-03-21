@@ -1,8 +1,8 @@
 from typing_extensions import Optional, Dict
 
-from .base import RobotState, Designator, MapperArgsMixin, PoseMixin
+from .base import RobotState, Designator, MapperArgsMixin, PoseMixin, GraspMixin
 from .object_designator import ObjectMixin
-from ..datastructures.enums import Arms, GripperState, Grasp, DetectionTechnique, DetectionState, TorsoState
+from ..datastructures.enums import Arms, GripperState, DetectionTechnique, DetectionState, TorsoState
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, JSON
 
@@ -64,21 +64,19 @@ class GripAction(ObjectMixin, Action):
     # TODO grasped_object
 
 
-class ReachToPickUpAction(ObjectMixin, Action):
+class ReachToPickUpAction(ObjectMixin, GraspMixin, Action):
     """ORM Class of pycram.designators.action_designator.ReachToPickUpAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[Arms]
-    grasp: Mapped[Grasp]
     prepose_distance: Mapped[float]
 
 
-class PickUpAction(ObjectMixin, Action):
+class PickUpAction(ObjectMixin, GraspMixin, Action):
     """ORM Class of pycram.designators.action_designator.PickUpAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[Arms]
-    grasp: Mapped[Grasp]
     prepose_distance: Mapped[float]
 
 

@@ -1,3 +1,5 @@
+from owlready2 import Imp
+
 from .dependencies import *
 
 
@@ -37,6 +39,12 @@ class Kitchen(Base):
     """
 
 
+class PouringTool(Base):
+    """
+    The Tool that is used for pouring, can be cup, bottle, etc.
+    """
+
+
 class Food(Base):
     ...
 
@@ -55,6 +63,30 @@ class Spoon(Base):
 
 class Bowl(Base):
     ...
+
+
+class PreferredGraspAlignment(Base):
+    ...
+
+
+class XAxis(Base):
+    value = (1, 0, 0)
+
+
+class YAxis(Base):
+    value = (0, 1, 0)
+
+
+class NoAlignment(Base):
+    value = (0, 0, 0)
+
+
+class Truthy(Base):
+    value = True
+
+
+class Falsy(Base):
+    value = False
 
 
 class Cabinet(Base):
@@ -102,6 +134,10 @@ class PhysicalObject(Base):
 
 
 class Agent(Base):
+    ...
+
+
+class Human(Base):
     ...
 
 
@@ -248,4 +284,18 @@ class Task(Base):
 
 
 class RootLink(Base):
+    ...
+
+
+class Supporter(Base):
+    """
+    A physical object that supports another object.
+    """
+    ...
+
+
+class SupportedObject(Base):
+    """
+    A physical object that is supported by another object.
+    """
     ...

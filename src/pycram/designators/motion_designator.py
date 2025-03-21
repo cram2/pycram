@@ -97,6 +97,16 @@ class MoveTCPMotion(BaseMotion):
 
         return motion
 
+    def __str__(self):
+        return (f"MoveTCPMotion:\n"
+                f"Target: {self.target}\n"
+                f"Arm: {self.arm}\n"
+                f"AllowGripperCollision: {self.allow_gripper_collision}\n"
+                f"MovementType: {self.movement_type}")
+
+    def __repr__(self):
+        return self.__str__()
+
 
 @dataclass
 class LookingMotion(BaseMotion):
@@ -154,6 +164,15 @@ class MoveGripperMotion(BaseMotion):
         session.add(motion)
 
         return motion
+
+    def __str__(self):
+        return (f"MoveGripperMotion:\n"
+                f"Motion: {self.motion}\n"
+                f"Gripper: {self.gripper}\n"
+                f"AllowGripperCollision: {self.allow_gripper_collision}")
+
+    def __repr__(self):
+        return self.__str__()
 
 
 @dataclass

@@ -1,10 +1,11 @@
 from ..ros import  get_ros_package_path
 
 from ..datastructures.dataclasses import VirtualMobileBaseJoints
-from ..datastructures.enums import GripperState, Arms, Grasp, TorsoState, StaticJointState
+from ..datastructures.enums import GripperState, Arms, Grasp, TorsoState, GripperType, StaticJointState
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
 from ..helper import get_robot_description_path
+from ..units import meter
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "tiago_dual" + '.urdf'
 
@@ -38,7 +39,8 @@ left_gripper.add_static_joint_states(GripperState.OPEN, {'gripper_left_left_fing
 
 left_gripper.add_static_joint_states(GripperState.CLOSE, {'gripper_left_left_finger_joint': 0.0,
                                                           'gripper_left_right_finger_joint': 0.0})
-
+left_gripper.end_effector_type = GripperType.PARALLEL
+left_gripper.opening_distance = 0.09 * meter  # measured
 left_arm.end_effector = left_gripper
 
 ################################## Right Arm ##################################
@@ -64,7 +66,8 @@ right_gripper.add_static_joint_states(GripperState.OPEN, {'gripper_right_left_fi
 
 right_gripper.add_static_joint_states(GripperState.CLOSE, {'gripper_right_left_finger_joint': 0.0,
                                                            'gripper_right_right_finger_joint': 0.0})
-
+right_gripper.end_effector_type = GripperType.PARALLEL
+right_gripper.opening_distance = 0.09 * meter  # measured
 right_arm.end_effector = right_gripper
 
 ################################## Torso ##################################
@@ -87,10 +90,10 @@ tiago_description.add_camera_description(camera)
 tiago_description.add_kinematic_chain("neck", "torso_lift_link", "head_2_link")
 
 ################################# Grasps ##################################
-tiago_description.add_grasp_orientations({Grasp.FRONT: [0, 0, 0, 1],
-                                          Grasp.LEFT: [0, 0, -1, 1],
-                                          Grasp.RIGHT: [0, 0, 1, 1],
-                                          Grasp.TOP: [0, 1, 0, 1]})
+front_grasp = [-0.5, 0.5, 0.5, -0.5]
+right_gripper.update_all_grasp_orientations(front_grasp)
+left_gripper.update_all_grasp_orientations(front_grasp)
+
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

@@ -3,9 +3,9 @@
 source /opt/ros/$ROS_DISTRO/setup.bash
 echo "Cloning pycram and dependencies"
 if [ "$ROS_VERSION" = "1" ]; then
-  vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram.rosinstall --recursive
+  vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram.rosinstall
 else
-  vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram-ros2.rosinstall --recursive
+  vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram-ros2.rosinstall
 fi
 
 echo "Setting up virtual environment"

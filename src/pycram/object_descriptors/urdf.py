@@ -24,7 +24,6 @@ from ..failures import MultiplePossibleTipLinks
 from ..ros import  logerr
 from ..ros import  create_ros_pack, ResourceNotFound, get_parameter
 from ..utils import suppress_stdout_stderr
-from ..datastructures.mixins import HasConcept
 
 
 class LinkDescription(AbstractLinkDescription):

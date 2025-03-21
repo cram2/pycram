@@ -4,20 +4,25 @@ import os
 import pickle
 from abc import ABC, abstractmethod
 from copy import copy
+from threading import RLock
 
 from trimesh.parent import Geometry3D
-from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union, Type
+from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union, Type, Tuple
 
-from pycrap.ontologies import PhysicalObject
+from pycrap.ontologies import PhysicalObject, Room, Location
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
-    AxisAlignedBoundingBox, RotatedBoundingBox
+    AxisAlignedBoundingBox, RotatedBoundingBox, RayResult
+from .enums import AdjacentBodyMethod, AxisIdentifier
 from .mixins import HasConcept
 from ..local_transformer import LocalTransformer
-from ..ros import  Time
+from ..ros import Time, logdebug
+from .pose import GraspDescription
+from .grasp import PreferredGraspAlignment
 
 if TYPE_CHECKING:
     from ..datastructures.world import World
-    from .pose import Pose, Point, GeoQuaternion as Quaternion, Transform
+    from ..world_concepts.world_object import Object
+    from .pose import Pose, GeoQuaternion as Quaternion, Transform, Point
 
 
 class StateEntity:
@@ -129,6 +134,13 @@ class WorldEntity(StateEntity, HasConcept, ABC):
         self.world: World = world
         HasConcept.__init__(self, name=self.name, world=self.world, concept=concept, parse_name=parse_name)
 
+    def reset_concepts(self):
+        """
+        Reset the concepts of this entity.
+        """
+        if not self.world.is_prospection_world and hasattr(self.ontology_individual, 'reload'):
+            self.ontology_individual.reload()
+
     @property
     @abstractmethod
     def name(self) -> str:
@@ -162,11 +174,6 @@ class PhysicalBody(WorldEntity, ABC):
     A class that represents a physical body in the world that has some related physical properties.
     """
 
-    ontology_concept: Type[PhysicalObject] = PhysicalObject
-    """
-    The ontology concept of this entity.
-    """
-
     def __init__(self, body_id: int, world: World, concept: Type[PhysicalObject] = PhysicalObject,
                  parse_name: bool = True):
         WorldEntity.__init__(self, body_id, world, concept, parse_name)
@@ -175,6 +182,145 @@ class PhysicalBody(WorldEntity, ABC):
         self._is_translating: Optional[bool] = None
         self._is_rotating: Optional[bool] = None
         self._velocity: Optional[List[float]] = None
+        self.ontology_lock: RLock = RLock()
+        self.updated_containment_of_parts: bool = False
+        self.latest_known_parts: Dict[str, PhysicalBody] = {}
+
+    def reset_concepts(self):
+        super().reset_concepts()
+        self.contained_bodies = []
+        for part in self.parts.values():
+            part.reset_concepts()
+
+    @property
+    @abstractmethod
+    def parts(self) -> Dict[str, PhysicalBody]:
+        """
+        :return: The parts of this body as a dictionary mapping the part name to the part.
+        """
+        ...
+
+    def update_containment(self, excluded_bodies: Optional[List[PhysicalBody]] = None,
+                           candidate_selection_method: AdjacentBodyMethod = AdjacentBodyMethod.ClosestPoints,
+                           max_distance: float = 0.5) -> None:
+        """
+        Update the containment of the object by checking if it is contained in other bodies,
+         excluding the given excluded bodies.
+
+        :param excluded_bodies: The bodies that should be excluded from the containment check.
+        :param candidate_selection_method: The method to select the candidates for the containment check.
+        :param max_distance: The maximum distance from this body to other bodies to consider a body as a candidate.
+        """
+        excluded_bodies = [] if excluded_bodies is None else excluded_bodies
+        excluded_bodies.append(self)
+        if candidate_selection_method == AdjacentBodyMethod.ClosestPoints:
+            bodies = self.get_adjacent_bodies_using_closest_points(max_distance)
+        else:
+            bodies = self.get_adjacent_bodies_using_rays(max_distance)
+        for body in bodies:
+            if body in excluded_bodies:
+                continue
+            if body.get_axis_aligned_bounding_box().contains_box(self.get_axis_aligned_bounding_box()):
+                logdebug(f"{body.name} contains {self.name}")
+                body.contained_bodies = [self]
+
+    def get_adjacent_bodies_using_closest_points(self, max_distance: float = 0.5) -> List[PhysicalBody]:
+        """
+        Get the adjacent bodies of the body using the closest points between the bodies.
+
+        :param max_distance: The maximum distance to consider a body as adjacent.
+        :return: The bodies that are adjacent to this body if any.
+        """
+        closest_points = self.closest_points(max_distance)
+        return closest_points.get_all_bodies(excluded=[self])
+
+    def get_adjacent_bodies_using_rays(self, max_distance: float = 0.5) -> List[PhysicalBody]:
+        """
+        Cast rays in the 6 rays in all directions (+x, -x, +y, -y, +z,  and -z directions) to find the adjacent bodies
+         of the body.
+
+        :param max_distance: The max distance that the rays can travel.
+        :return: The bodies that are adjacent to this body if any.
+        """
+        if max_distance <= 0:
+            raise ValueError("The distance should be greater than zero.")
+
+        rays_start, rays_end = self.cast_rays_in_all_directions(max_distance)
+        rays_results = self.world.ray_test_batch(rays_start, rays_end)
+
+        bodies_ids = set([(rr.obj_id, rr.link_id) for rr in rays_results if rr.intersected])
+
+        bodies = [self.world.get_object_by_id(obj_id).get_link_by_id(link_id) for obj_id, link_id in bodies_ids]
+
+        return bodies
+
+    def cast_rays_in_all_directions(self, max_distance: float = 0.5) -> List[RayResult]:
+        """
+        Get the rays in all 6 directions (+x, -x, +y, -y, +z,  and -z directions).
+
+        :param max_distance: The maximum distance the rays can travel.
+        :return: The rays in all 6 directions.
+        """
+        bb = self.get_axis_aligned_bounding_box()
+        origin = bb.origin
+        min_, max_ = bb.get_min_max()
+
+        rays_start, rays_end = [], []
+        for i in range(3):
+            i_rays_start, i_rays_end = self.get_axis_rays(origin, min_[i], max_[i], i, max_distance)
+            rays_start.extend(i_rays_start)
+            rays_end.extend(i_rays_end)
+
+        return self.world.ray_test_batch(rays_start, rays_end)
+
+    @staticmethod
+    def get_axis_rays(origin: List[float], min_val: float, max_val: float, idx: int, max_distance: float = 0.5)\
+            -> Tuple[List[List[float]], List[List[float]]]:
+        """
+        Get the rays in the given axis.
+
+        :param origin: The origin of the rays.
+        :param min_val: The start in the -ve direction of the axis.
+        :param max_val: The start in the +ve direction of the axis.
+        :param idx: The index of the direction/axis.
+        :param max_distance: The maximum distance the rays can travel.
+        """
+        ray_left_start = [min_val if i == idx else origin[i] for i in range(3)]
+        ray_left_end = [min_val - max_distance if i == idx else origin[i] for i in range(3)]
+        ray_right_start = [max_val if i == idx else origin[i] for i in range(3)]
+        ray_right_end = [max_val + max_distance if i == idx else origin[i] for i in range(3)]
+        return [ray_left_start, ray_right_start], [ray_left_end, ray_right_end]
+
+    def contains_body(self, body: PhysicalBody) -> bool:
+        """
+        Check if this body contains another body.
+
+        :param body: The physical body to check if it is contained by this body.
+        :return: True if the body contains the other body, otherwise False.
+        """
+        with self.ontology_lock:
+            contained_bodies = self.contained_bodies
+            return body in contained_bodies or (body.parent_entity and body.parent_entity in contained_bodies)
+
+    @property
+    def contained_bodies(self) -> List[PhysicalBody]:
+        """
+        :return: True if the object contains the other object, otherwise False.
+        """
+        with self.ontology_lock:
+            self.world.ontology.reason()
+            return [self.world.ontology.python_objects[phys_obj]
+                    for phys_obj in self.ontology_individual.contains_object]
+
+    @contained_bodies.setter
+    def contained_bodies(self, bodies: List[PhysicalBody]) -> None:
+        """
+        Set the bodies that are contained by this body.
+
+        :param bodies: The bodies that are contained in this body.
+        """
+        with self.ontology_lock:
+            self.ontology_individual.contains_object = [body.ontology_individual for body in bodies]
 
     @abstractmethod
     def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
@@ -394,3 +540,44 @@ class PhysicalBody(WorldEntity, ABC):
         :param color: The color as a list of floats, either rgb or rgba.
         """
         ...
+
+    def get_preferred_grasp_alignment(self) -> PreferredGraspAlignment:
+        """
+        Determines the preferred grasp alignment for an object based on its type.
+        This includes the preferred axis, whether grasping from the top is preferred,
+        and whether horizontal alignment (90° rotation around X) is preferred.
+
+        :return: The preferred grasp alignment for the object.
+        """
+        object_type = self.ontology_concept
+
+        try:
+            pref_axis = object_type.has_preferred_alignment[0].has_preferred_axis[0].value
+            sidegrasp_axis = AxisIdentifier.from_tuple(pref_axis)
+            grasp_top = object_type.has_preferred_alignment[0].has_vertical_alignment[0].value
+            grasp_horizontal = object_type.has_preferred_alignment[0].has_rotated_gripper[0].value
+        except IndexError:
+            sidegrasp_axis, grasp_top, grasp_horizontal = (None, False, False)
+
+        preferred_alignment = PreferredGraspAlignment(sidegrasp_axis, grasp_top, grasp_horizontal)
+
+        return preferred_alignment
+
+    def calculate_grasp_descriptions(self, robot: Object) -> List[GraspDescription]:
+        """
+        Calculates the grasp configurations of an object relative to the robot based on orientation and position.
+
+        This method determines the possible grasp configurations (side and top/bottom faces) of the object,
+        taking into account the object's orientation, position, and whether horizontal alignment is preferred.
+
+        :param robot: The robot for which the grasp configurations are being calculated.
+
+        :return: A sorted list of GraspDescription instances representing all grasp permutations.
+        """
+        objectTmap = self.pose
+
+        preferred_grasp_alignment = self.get_preferred_grasp_alignment()
+
+        grasp_configs = objectTmap.calculate_grasp_descriptions(robot, preferred_grasp_alignment)
+
+        return grasp_configs

@@ -1,6 +1,6 @@
 import unittest
 
-from owlready2 import destroy_entity
+from owlready2 import destroy_entity, get_ontology, Thing, FunctionalProperty, Imp, sync_reasoner_pellet
 from pycram.testing import EmptyBulletWorldTestCase
 from pycram.world_concepts.world_object import Object
 from pycrap.ontologies import (DesignedFurniture, Surface, PhysicalObject, ontology, Bowl,
@@ -16,6 +16,19 @@ class TableConceptTestCase(unittest.TestCase):
 
     def setUp(self):
         self.ontology = OntologyWrapper()
+
+    def test_rules(self):
+        with self.ontology.ontology:
+
+            kitchen = Kitchen()
+            drawer = Drawer()
+            milk = Milk()
+            drawer.is_part_of = [kitchen]
+            drawer.contains_object = [milk]
+            rule = Imp()
+            rule.set_as_rule("""is_part_of(?part, ?parent), contains_object(?part, ?object) -> contains_object(?parent, ?object)""")
+            sync_reasoner_pellet(infer_property_values=True, infer_data_property_values=True)
+            self.assertTrue(milk in kitchen.contains_object)
 
     def test_table_creation(self):
         table_without_parts = DesignedFurniture()
@@ -44,8 +57,43 @@ class AnnotationTestCase(EmptyBulletWorldTestCase):
         self.world.ontology.reason()
         result = drawer.is_part_of
 
+        print(result)
         #Drawer should be part of itself, cabinet and kitchen (reasoned)
         self.assertEqual(len(result), 3)
+
+    def test_contains_object(self):
+        cabinet = Cabinet("cabinet")
+        drawer = Drawer("drawer")
+        kitchen = Location("kitchen")
+
+        kitchen.contains_object = [cabinet]
+        cabinet.contains_object = [drawer]
+
+        self.world.ontology.reason()
+        result = kitchen.contains_object
+
+        # Kitchen should contain cabinet and drawer (reasoned)
+        self.assertEqual(len(result), 2)
+        self.assertTrue(cabinet in result)
+        self.assertTrue(drawer in result)
+        self.assertTrue(kitchen not in result)
+
+    def test_inverse_property(self):
+        cabinet = Cabinet("cabinet")
+        drawer = Drawer("drawer")
+        kitchen = Location("kitchen")
+
+        kitchen.contains_object = [cabinet]
+        cabinet.contains_object = [drawer]
+
+        self.world.ontology.reason()
+        result = drawer.is_physically_contained_in
+
+        # Drawer should be contained in cabinet and kitchen (reasoned)
+        self.assertEqual(len(result), 2)
+        self.assertTrue(cabinet in result)
+        self.assertTrue(kitchen in result)
+        self.assertTrue(drawer not in result)
 
 
 

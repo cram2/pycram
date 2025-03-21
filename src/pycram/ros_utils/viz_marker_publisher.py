@@ -53,7 +53,7 @@ class VizMarkerPublisher:
             self.lock.acquire()
             marker_array = self._make_marker_array()
             self.lock.release()
-            # self.pub.publish(marker_array)
+            self.pub.publish(marker_array)
             time.sleep(self.interval)
 
     def _make_marker_array(self) -> MarkerArray:
@@ -97,7 +97,7 @@ class VizMarkerPublisher:
                     if hasattr(geom, "scale") and geom.scale is not None:
                         msg.scale = Vector3(**dict(zip(["x", "y", "z"], geom.scale)))
                     else:
-                        msg.scale = Vector3(x=1, y=1, z=1)
+                        msg.scale = Vector3(x=1.0, y=1.0, z=1.0)
                     msg.mesh_use_embedded_materials = True
                 elif isinstance(geom, CylinderVisualShape):
                     msg.type = Marker.CYLINDER
@@ -105,7 +105,7 @@ class VizMarkerPublisher:
                 elif isinstance(geom, BoxVisualShape):
                     msg.type = Marker.CUBE
                     size = np.array(geom.size) * 2
-                    msg.scale = Vector3(x=size[0], y=size[1], z=size[2])
+                    msg.scale = Vector3(x=float(size[0]), y=float(size[1]), z=float(size[2]))
                 elif isinstance(geom, SphereVisualShape):
                     msg.type = Marker.SPHERE
                     msg.scale = Vector3(x=geom.radius * 2, y=geom.radius * 2, z=geom.radius * 2)

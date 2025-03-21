@@ -1,4 +1,5 @@
 import unittest
+from datetime import timedelta
 
 from pycram.worlds.bullet_world import BulletWorld, Object
 from pycram.designator import ActionDescription
@@ -33,7 +34,7 @@ class FailureHandlingTest(unittest.TestCase):
         cls.world = BulletWorld(WorldMode.DIRECT)
         cls.robot = Object(RobotDescription.current_robot_description.name, Robot,
                            RobotDescription.current_robot_description.name + extension)
-        ProcessModule.execution_delay = True
+        ProcessModule.execution_delay = timedelta(seconds=0.5)
 
     def setUp(self):
         self.world.reset_world()

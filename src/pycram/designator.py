@@ -8,8 +8,8 @@ from datetime import timedelta
 
 from sqlalchemy.orm.session import Session
 from pycrap.ontologies import PhysicalObject, Agent
-from .datastructures.enums import ObjectType, Grasp
-from .datastructures.pose import Pose
+from .datastructures.enums import ObjectType
+from .datastructures.pose import Pose, GraspDescription
 from .datastructures.property import EmptyProperty
 from .failures import PlanFailure
 from sqlalchemy.orm.session import Session

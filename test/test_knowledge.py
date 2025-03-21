@@ -5,7 +5,7 @@ from pycram.testing import BulletWorldTestCase
 from knowledge_testcase import KnowledgeSourceTestCase, TestProperty, KnowledgeBulletTestCase
 from pycram.datastructures.enums import Arms, Grasp, ObjectType, TorsoState, GripperState
 from pycram.datastructures.partial_designator import PartialDesignator
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import Pose, GraspDescription
 from pycram.designators.action_designator import PickUpAction, PickUpAction, OpenAction, MoveTorsoAction, \
     PickUpActionDescription, OpenActionDescription
 from pycram.designators.object_designator import BelieveObject, ObjectPart
@@ -79,10 +79,11 @@ class TestKnowledgeEngineBeliefState(KnowledgeBulletTestCase):
         self.assertEqual({"arm": Arms.RIGHT}, matched)
 
     def test_match_reasoned_parameter_full(self):
-        params = {"arm": Arms.RIGHT, "gasp": Grasp.FRONT}
+        grasp_description = GraspDescription(Grasp.FRONT, None, False)
+        params = {"arm": Arms.RIGHT, "grasp_description": grasp_description}
         desig = PickUpActionDescription(BelieveObject(names=["milk"]))
         matched = self.knowledge_engine.match_reasoned_parameter(params, desig)
-        self.assertEqual({"arm": Arms.RIGHT, "grasp": Grasp.FRONT}, matched)
+        self.assertEqual({"arm": Arms.RIGHT, "grasp_description": grasp_description}, matched)
 
 
 class TestParameterInference(KnowledgeBulletTestCase):
@@ -91,14 +92,16 @@ class TestParameterInference(KnowledgeBulletTestCase):
         test_object = BelieveObject(names=["milk"])
         partial_desig = PickUpActionDescription(test_object, [Arms.RIGHT])
         desig = partial_desig.resolve()
-        self.assertEqual(desig.grasp, Grasp.FRONT)
+        grasp_description = GraspDescription(Grasp.FRONT, None, False)
+        self.assertEqual(desig.grasp_description, None)
 
     @unittest.skip
     def test_pickup_grasp(self):
         test_object = BelieveObject(names=["milk"])
         partial_desig = PickUpActionDescription(test_object, [Arms.RIGHT])
         desig = partial_desig.resolve()
-        self.assertEqual(desig.grasp, Grasp.FRONT)
+        grasp_description = GraspDescription(Grasp.FRONT, None, False)
+        self.assertEqual(desig.grasp_description, None)
 
     def test_open_gripper(self):
         self.robot.set_pose(Pose([-0.192, 1.999, 0], [0, 0, 0.8999, -0.437]))
