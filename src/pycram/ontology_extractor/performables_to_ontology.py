@@ -50,10 +50,7 @@ class ParameterDigest:
         :return: A list containing the string representation of the default value or
             `None` if no default value exists.
         """
-        if self.parameter_default_value == inspect.Parameter.empty:
-            return None
-        else:
-            return [str(self.parameter_default_value)]
+        return None if self.parameter_default_value == inspect.Parameter.empty else [str(self.parameter_default_value)]
 
 class ActionAbstractDigest:
     """
