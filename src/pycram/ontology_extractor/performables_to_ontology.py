@@ -119,8 +119,8 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
 
     def unwrap_classname(parameter: ParameterDigest) -> str:
         """
-        Unwraps the class name of the type of parameter. When it is an optional type, the class name
-        of the optional type is returned.
+        Unwraps the class name of the type of parameter.
+        When it is an optional type, the class name of the optional type is returned.
 
         :param parameter: ParameterDigest to return the unwrapped classname from.
         :return: Unwrapped classname of the parameter.
