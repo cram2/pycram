@@ -112,7 +112,7 @@ class ActionAbstractDigest:
         ) for param in list(parameters_inspection.keys())]
 
 
-def create_ontology_from_performables(outputfile="performables.owl"):
+def create_ontology_from_performables(outputfile: str = "performables.owl") -> None:
     """
     Creates an ontology from the performables.
     """
