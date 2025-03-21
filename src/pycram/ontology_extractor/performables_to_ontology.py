@@ -9,6 +9,7 @@ import inspect
 import ast
 import re
 
+
 @dataclass
 class ParameterDigest:
     """
@@ -52,6 +53,7 @@ class ParameterDigest:
         """
         return None if self.parameter_default_value == inspect.Parameter.empty else [str(self.parameter_default_value)]
 
+
 class ActionAbstractDigest:
     """
     Wraps all information about an action abstract class that are necessary for the created ontology.
@@ -63,7 +65,6 @@ class ActionAbstractDigest:
         self.classname: str = clazz.__name__
         self.docstring: str = clazz.__doc__
         self.parameters: Optional[List[ParameterDigest]] = self.extract_dataclass_parameter_information()
-
 
     def extract_dataclass_parameter_information(self) -> List[ParameterDigest]:
         """
@@ -111,10 +112,12 @@ class ActionAbstractDigest:
             is_optional=is_optional_type(self.clazz.get_type_hints()[param])
         ) for param in list(parameters_inspection.keys())]
 
-def create_ontology_from_performables(outputfile = "performables.owl"):
+
+def create_ontology_from_performables(outputfile="performables.owl"):
     """
     Creates an ontology from the performables.
     """
+
     def unwrap_classname(parameter: ParameterDigest) -> str:
         """
         Unwraps the class name of the type of parameter. When it is an optional type, the class name
@@ -122,6 +125,7 @@ def create_ontology_from_performables(outputfile = "performables.owl"):
         :param parameter: ParameterDigest to return the unwrapped classname from.
         :return: Unwrapped classname of the parameter.
         """
+
         def extract_content_between_quotes(text: str) -> str:
             """
             Returns the content between quotes in a string.
@@ -140,7 +144,7 @@ def create_ontology_from_performables(outputfile = "performables.owl"):
             :return: Text without spaces.
             """
             return text.replace(" ", "")
-        
+
         def get_optional_type(t) -> Optional[str]:
             """
             If the type hint is optional, this function returns the class name of the optional type. Else None.
@@ -163,12 +167,19 @@ def create_ontology_from_performables(outputfile = "performables.owl"):
     output_ontology = get_ontology("performables")
     with output_ontology:
         class Performable(Thing): pass
+
         class Parameter(Thing): pass
+
         class Enum(Thing): pass
+
         class has_parameter(Performable >> Parameter): pass
+
         class has_default_value(DataProperty): pass
+
         class has_possible_value(Parameter >> Enum): pass
+
         class is_optional(Parameter >> bool): pass
+
         class has_description(DataProperty):
             range = [str]
 
@@ -195,10 +206,10 @@ def create_ontology_from_performables(outputfile = "performables.owl"):
             param_instance = all_param_classes_to_ontological_class[unwrap_classname(param)](param.parameter_name)
             param_instance.has_description = [param.docstring_of_parameter]
             param_instance.is_optional = [True] if param.is_optional else [False]
-            
+
             if param.get_default_value():
                 param_instance.has_default_value = param.get_default_value()
             params.append(param_instance)
         performable.has_parameter = params
-    
-    output_ontology.save(file= outputfile, format="rdfxml")
+
+    output_ontology.save(file=outputfile, format="rdfxml")
