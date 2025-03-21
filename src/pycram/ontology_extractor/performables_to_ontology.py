@@ -3,7 +3,7 @@ from ..designators.action_designator import ActionAbstract
 from random_events.utils import recursive_subclasses
 from owlready2 import *
 from random_events.utils import get_full_class_name
-from typing import Dict, List, Type, Optional, Any, get_origin, Union, get_args
+from typing_extensions import Dict, List, Type, Optional, Any, get_origin, Union, get_args
 from dataclasses import dataclass
 import inspect
 import ast
