@@ -80,10 +80,7 @@ class ActionAbstractDigest:
             :param t: Type hint to check.
             :return: True if optional, else False.
             """
-            if get_origin(t) is Union:
-                return type(None) in get_args(t)
-            else:
-                return False
+            return (type(None) in get_args(t)) if get_origin(t) is Union else False
 
         with open(inspect.getfile(self.clazz), 'r') as file:
             file_content = file.read()
