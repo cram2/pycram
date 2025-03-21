@@ -174,7 +174,15 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
             range = [str]
 
     def create_parameter_onto_class(param: ParameterDigest) -> Parameter:
-        def create_enum_onto_class() -> None:
+        """
+        Create the ontology classes for the parameter classes.
+
+        :param param: ParameterDigest to create the ontology classes for.
+        """
+        def create_enum_onto_class_and_instances() -> None:
+            """
+            Creates ontology classes for enums and instances for possible values of enums.
+            """
             enum_value_class = types.new_class(classname + "_Value", (Enum,))
             parameter_clazz.has_possible_value = [enum_value_class]
             # Create the possible values of the enum as instances of the Enum class
@@ -183,11 +191,18 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
         parameter_clazz = types.new_class(classname, (Parameter,))
         parameter_clazz.has_description = param.docstring_of_parameter_clazz
         if param.is_enum:
-            create_enum_onto_class()
+            create_enum_onto_class_and_instances()
         return parameter_clazz
 
     def create_performable_onto_class() -> None:
-        def create_param_onto_instances():
+        """
+        Create an instance of the ontology class Performable for each ActionAbstract and all the relations to its
+        ontological parameter classes.
+        """
+        def create_param_onto_instances() -> List[Parameter]:
+            """
+            Creates ontology instances for the parameters of the Performable.
+            """
             params = []
             for param_digest in clazz_digest.parameters:
                 param_instance = all_param_classes_to_ontological_class[unwrap_classname(param_digest)](param_digest.parameter_name)
