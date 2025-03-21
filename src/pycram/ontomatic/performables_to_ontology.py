@@ -153,8 +153,11 @@ def create_ontology_from_performables(
         return extract_content_between_quotes(str(clazz)).replace(" ", "")
 
     # If parameter is not set, all subclasses of ActionAbstract will be parsed.
+
     if abstract_actions_to_parse:
-        if type(abstract_actions_to_parse) == ActionAbstract:
+        try:
+            iter(abstract_actions_to_parse)
+        except TypeError:
             abstract_actions_to_parse = [abstract_actions_to_parse]
     else:
         abstract_actions_to_parse = recursive_subclasses(ActionAbstract)
