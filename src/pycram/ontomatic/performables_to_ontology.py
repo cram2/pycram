@@ -109,7 +109,7 @@ class ActionAbstractDigest:
 
 def create_ontology_from_performables(
         outputfile: str = "performables.owl",
-        abstract_actions_to_parse: Union[List[ActionAbstract],ActionAbstract] = None) -> None:
+        abstract_actions_to_parse: Union[List[Type[ActionAbstract]],Type[ActionAbstract]] = None) -> None:
     """
     Create an ontology from the performables.
 
