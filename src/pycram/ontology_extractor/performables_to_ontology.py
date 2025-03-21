@@ -138,15 +138,6 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
             else:
                 return text
 
-        def remove_spaces(text: str) -> str:
-            """
-            Removes all spaces from a string.
-
-            :param text: Text with spaces.
-            :return: Text without spaces.
-            """
-            return text.replace(" ", "")
-
         def get_optional_type(t) -> Optional[str]:
             """
             If the type hint is optional, this function returns the class name of the optional type. Else None.
@@ -162,7 +153,7 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
         clazz = parameter.clazz
         if parameter.is_optional:
             clazz = get_optional_type(parameter.clazz)
-        return remove_spaces(extract_content_between_quotes(str(clazz)))
+        return extract_content_between_quotes(str(clazz)).replace(" ", "")
 
     classes = [ActionAbstractDigest(clazz) for clazz in recursive_subclasses(ActionAbstract)]
 
