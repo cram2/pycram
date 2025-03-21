@@ -47,8 +47,6 @@ class ParameterDigest:
 
     def get_default_value(self) -> Optional[List[str]]:
         """
-        Returns the default value of the parameter if it exists. Else None.
-
         :return: A list containing the string representation of the default value or
             `None` if no default value exists.
         """
@@ -125,7 +123,7 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
 
         def extract_content_between_quotes(text: str) -> str:
             """
-            Returns the content between quotes in a string.
+            Returns the content between the quotes in a given string.
 
             :param text: String with quotation marks.
             :return: Text without quotation marks.
