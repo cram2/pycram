@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import inspect
 import ast
 import re
+
 from ..designators.action_designator import ActionAbstract
 
 
@@ -179,6 +180,7 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
 
         :param param: ParameterDigest to create the ontology classes for.
         """
+
         def create_enum_onto_class_and_instances() -> None:
             """
             Creates ontology classes for enums and instances for possible values of enums.
@@ -188,6 +190,7 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
             # Create the possible values of the enum as instances of the Enum class
             for enum_member in param.clazz.__members__:
                 enum_value_class(enum_member)
+
         parameter_clazz = types.new_class(classname, (Parameter,))
         parameter_clazz.has_description = param.docstring_of_parameter_clazz
         if param.is_enum:
@@ -199,13 +202,15 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
         Create an instance of the ontology class Performable for each ActionAbstract and all the relations to its
         ontological parameter classes.
         """
+
         def create_param_onto_instances() -> List[Parameter]:
             """
             Creates ontology instances for the parameters of the Performable.
             """
             params = []
             for param_digest in clazz_digest.parameters:
-                param_instance = all_param_classes_to_ontological_class[unwrap_classname(param_digest)](param_digest.parameter_name)
+                param_instance = all_param_classes_to_ontological_class[unwrap_classname(param_digest)](
+                    param_digest.parameter_name)
                 param_instance.has_description = [param_digest.docstring_of_parameter]
                 param_instance.is_optional = [True] if param_digest.is_optional else [False]
                 if param_digest.get_default_value():
@@ -227,6 +232,5 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
     # Creating the ontology instances based on the created ActionAbstractDigests.
     for clazz_digest in classes:
         create_performable_onto_class()
-
 
     output_ontology.save(file=outputfile, format="rdfxml")
