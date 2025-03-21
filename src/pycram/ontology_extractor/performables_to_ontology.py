@@ -69,12 +69,14 @@ class ActionAbstractDigest:
     def extract_dataclass_parameter_information(self) -> List[ParameterDigest]:
         """
         Extracts information about dataclass parameters from a dataclass.
+
         :return: List of parameter information.
         """
 
         def is_optional_type(t) -> bool:
             """
             Determines if a type hint is an optional.
+
             :param t: Type hint to check.
             :return: True if optional, else False.
             """
@@ -122,6 +124,7 @@ def create_ontology_from_performables(outputfile="performables.owl"):
         """
         Unwraps the class name of the type of parameter. When it is an optional type, the class name
         of the optional type is returned.
+
         :param parameter: ParameterDigest to return the unwrapped classname from.
         :return: Unwrapped classname of the parameter.
         """
@@ -129,6 +132,7 @@ def create_ontology_from_performables(outputfile="performables.owl"):
         def extract_content_between_quotes(text: str) -> str:
             """
             Returns the content between quotes in a string.
+
             :param text: String with quotation marks.
             :return: Text without quotation marks.
             """
@@ -140,6 +144,7 @@ def create_ontology_from_performables(outputfile="performables.owl"):
         def remove_spaces(text: str) -> str:
             """
             Removes all spaces from a string.
+
             :param text: Text with spaces.
             :return: Text without spaces.
             """
@@ -148,6 +153,7 @@ def create_ontology_from_performables(outputfile="performables.owl"):
         def get_optional_type(t) -> Optional[str]:
             """
             If the type hint is optional, this function returns the class name of the optional type. Else None.
+
             :param t: Type hint to check.
             :return: Full class name of the optional type or None if not optional.
             """
