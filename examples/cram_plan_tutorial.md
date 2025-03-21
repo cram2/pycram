@@ -143,6 +143,7 @@ execute the plan.
 ```python
 from pycram.external_interfaces.ik import IKError
 from pycram.datastructures.enums import Grasp
+from pycram.datastructures.grasp import GraspDescription
 
 
 @pycram.tasktree.with_tree
@@ -151,21 +152,23 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
     with simulated_robot:
         ParkArmsActionPerformable(Arms.BOTH).perform()
         if torso is None:
-            torso={"torso_lift_joint": 0.2}
+            torso = {"torso_lift_joint": 0.2}
         MoveTorsoActionPerformable(torso).perform()
-        grasp = Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else Grasp.FRONT
-        location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, grasps = [grasp])
+        grasp = GraspDescription(Grasp.FRONT, Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else None,
+                                 False)
+        location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, grasp_descriptions=[grasp])
         pose = location.resolve()
         print()
         NavigateActionPerformable(pose.pose, True).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         good_torsos.append(torso)
-        picked_up_arm = pose.reachable_arms[0]
-        PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp=grasp,
+        picked_up_arm = pose.reachable_arm
+        PickUpActionPerformable(object_designator=obj_desig, arm=picked_up_arm, grasp_description=grasp,
                                 prepose_distance=0.03).perform()
 
         ParkArmsActionPerformable(Arms.BOTH).perform()
-        scm = SemanticCostmapLocation(place, apartment_desig, obj_desig, horizontal_edges_only=True, edge_size_in_meters=0.08)
+        scm = SemanticCostmapLocation(place, apartment_desig, obj_desig, horizontal_edges_only=True,
+                                      edge_size_in_meters=0.08)
         scm_iter = iter(scm)
         n_retries = 0
         found = False
@@ -188,11 +191,12 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
                 pose_island.pose = Pose(pose_island.pose.position_as_list(), orientation)
                 pose_island.pose.position.z += 0.07
                 print(pose_island.pose.position)
-                place_location = CostmapLocation(target=pose_island.pose, reachable_for=robot_desig, reachable_arm=picked_up_arm)
+                place_location = CostmapLocation(target=pose_island.pose, reachable_for=robot_desig,
+                                                 reachable_arms=[picked_up_arm])
                 pose = place_location.resolve()
                 NavigateActionPerformable(pose.pose, True).perform()
                 PlaceActionPerformable(object_designator=obj_desig, target_location=pose_island.pose,
-                               arm=picked_up_arm).perform()
+                                       arm=picked_up_arm).perform()
                 found = True
             except (StopIteration, IKError) as e:
                 print("Retrying")
@@ -207,7 +211,7 @@ def plan(obj_desig: ObjectDesignatorDescription.Object, torso=None, place=counte
 good_torsos = []
 for obj_name in object_names:
     done = False
-    torso = {"torso_lift_joint": 0.25}if len(good_torsos) == 0 else good_torsos[-1]
+    torso = {"torso_lift_joint": 0.25} if len(good_torsos) == 0 else good_torsos[-1]
     while not done:
         try:
             plan(object_desig[obj_name], torso=torso, place=counter_name)

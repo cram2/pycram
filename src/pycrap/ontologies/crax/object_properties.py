@@ -20,12 +20,78 @@ class has_part(BaseProperty):
     Subproperties and restrictions can be used to specialize hasPart for objects, events, etc.
     """
 
+
 class has_parent_link(BaseProperty):
     """
     Relates a joint to the link it connects which is closer to the root of the kinematic chain.
     """
 
+
 class has_child_link(BaseProperty):
     """
     Relates a joint to the link it connects which is closer to the end of the kinematic chain.
+    """
+
+
+class contains(BaseProperty):
+    """
+    A schematic relation asserting containment, understood in a very broad sense, by one Entity of another.
+    The relation is defined with domain and range of maximum generality, as it is possible to construe containment to
+    apply between Events, between Objects, between Qualities and so on. Care should be taken when using it that the
+    construal of containment makes sense and is useful. If a clearer relation expresses the connection between two
+    Entities, use that relation instead. For example, rather than saying an Event contains an Object, it is probably
+    better to say the Event has that Object as a participant. More specific versions of this relation exist,
+    e.g. containsEvent, so it is likely that there will be few situations where it should be used itself.
+    However, by acting as a superproperty to several relations, it captures a core similarity between these and enables
+    taxonomy-based similarity metrics.
+    """
+
+
+class contains_object(BaseProperty):
+    """
+    A spatial relation holding between a container, and objects it contains.
+    """
+
+
+class is_contained_in(BaseProperty):
+    """
+    The inverse of the contains relation. See the contains relation for details.
+    """
+
+class has_preferred_alignment(BaseProperty):
+    """
+    A relation between an object and an alignment that is preferred for that object.
+    """
+
+class has_preferred_axis(BaseProperty):
+    """
+    A relation between an object and an axis identifier.
+    """
+
+class has_vertical_alignment(BaseProperty):
+    """
+    A relation between an object and a point on the object that is suitable for grasping the object from the top.
+    """
+
+class has_rotated_gripper(BaseProperty):
+    """
+    A relation between an object and a point on the object that is suitable for grasping the object horizontally.
+    """
+
+
+class is_physically_contained_in(BaseProperty):
+    """
+    A spatial relation holding between an object (the container), and objects it contains.
+    """
+
+class supports(BaseProperty):
+    """
+    A relation between an object (the supporter) and another object (the supportee) where the supporter cancels the
+     effect of gravity on the supportee.
+    """
+
+class is_supported_by(BaseProperty):
+    """
+    A relation between an object (the supporter) and another object (the supportee) where the supporter cancels the
+     effect of gravity on the supportee. The inverse of the supports relation.
     """

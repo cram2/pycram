@@ -5,6 +5,18 @@ from enum import Enum, auto
 from ..failures import UnsupportedJointType
 
 
+class AdjacentBodyMethod(Enum):
+    ClosestPoints = auto()
+    """
+    The ClosestPoints method is used to find the closest points in other bodies to the body.
+    """
+    RayCasting = auto()
+    """
+    The RayCasting method is used to find the points in other bodies that are intersected by rays cast
+     from the body bounding box to 6 directions (up, down, left, right, front, back).
+    """
+
+
 class ContainerManipulationType(Enum):
     """
     Enum for the different types of container manipulation.
@@ -73,6 +85,12 @@ class Arms(int, Enum):
     RIGHT = 1
     BOTH = 2
 
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
 
 class TaskStatus(int, Enum):
     """
@@ -98,16 +116,34 @@ class JointType(Enum):
     FLOATING = 7
 
 
-class Grasp(int, Enum):
+class AxisIdentifier(Enum):
+    """
+    Enum for translating the axis name to a vector along that axis.
+    """
+    X = (1, 0, 0)
+    Y = (0, 1, 0)
+    Z = (0, 0, 1)
+
+    @classmethod
+    def from_tuple(cls, axis_tuple):
+        return next((axis for axis in cls if axis.value == axis_tuple), None)
+
+
+class Grasp(Enum):
     """
     Enum for Grasp orientations.
     """
-    FRONT = 0
-    LEFT = 1
-    RIGHT = 2
-    TOP = 3
-    BACK = 4
-    BOTTOM = 5
+    FRONT = (AxisIdentifier.X, -1)
+    BACK = (AxisIdentifier.X, 1)
+    RIGHT = (AxisIdentifier.Y, -1)
+    LEFT = (AxisIdentifier.Y, 1)
+    TOP = (AxisIdentifier.Z, -1)
+    BOTTOM = (AxisIdentifier.Z, 1)
+
+    @classmethod
+    def from_axis_direction(cls, axis: AxisIdentifier, direction: int):
+        """Get the Grasp face from an axis-index tuple"""
+        return next((grasp for grasp in cls if grasp.value == (axis, direction)), None)
 
 
 class ObjectType(int, Enum):
@@ -168,21 +204,18 @@ class WorldMode(Enum):
     DIRECT = "DIRECT"
 
 
-class AxisIdentifier(Enum):
-    """
-    Enum for translating the axis name to a vector along that axis.
-    """
-    X = (1, 0, 0)
-    Y = (0, 1, 0)
-    Z = (0, 0, 1)
-
-
 class GripperState(Enum):
     """
     Enum for the different motions of the gripper.
     """
     OPEN = auto()
     CLOSE = auto()
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
 
 
 class GripperType(Enum):

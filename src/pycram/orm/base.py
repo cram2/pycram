@@ -11,7 +11,7 @@ from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, Session, relationship, \
     declared_attr
 
-from ..datastructures.enums import ObjectType
+from ..datastructures.enums import ObjectType, Grasp
 
 
 def get_pycram_version_from_git() -> Optional[str]:
@@ -127,6 +127,24 @@ class PoseMixin(MappedAsDataclass):
         return relationship(Pose.__tablename__, init=False)
 
 
+class GraspMixin(MappedAsDataclass):
+    """
+    GraspMixin holds a foreign key column and its relationship to the referenced table.
+    For information about Mixins, see https://docs.sqlalchemy.org/en/20/orm/declarative_mixins.html
+    """
+
+    __abstract__ = True
+    grasp_to_init: bool = field(default=False, init=False)
+
+    @declared_attr
+    def grasp_id(self) -> Mapped[int]:
+        return mapped_column(ForeignKey(f'{GraspDescription.__tablename__}.id'), init=self.grasp_to_init, nullable=True)
+
+    @declared_attr
+    def grasp(self):
+        return relationship(GraspDescription.__tablename__, init=False)
+
+
 class ProcessMetaData(_Base):
     """
     ProcessMetaData stores information about the context of this experiment.
@@ -208,6 +226,14 @@ class Pose(PositionMixin, QuaternionMixin, Base):
 
     time: Mapped[datetime.datetime] = mapped_column(init=True)
     frame: Mapped[str] = mapped_column(init=True)
+
+
+class GraspDescription(Base):
+    """ORM Class for Grasps."""
+
+    approach_direction: Mapped[Grasp] = mapped_column(init=True)
+    vertical_alignment: Mapped[Optional[Grasp]] = mapped_column(init=True)
+    rotate_gripper: Mapped[bool] = mapped_column(init=True)
 
 
 class Color(Base):

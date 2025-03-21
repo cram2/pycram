@@ -69,10 +69,7 @@ stretch_description.add_camera_description(realsense_infra1)
 stretch_description.add_camera_description(realsense_infra2)
 
 ################################## Grasps ##################################
-stretch_description.add_grasp_orientations({Grasp.FRONT: [0, 0, 0, 1],
-                                            Grasp.LEFT: [0, 0, -1, 1],
-                                            Grasp.RIGHT: [0, 0, 1, 1],
-                                            Grasp.TOP: [0, 1, 0, 1]})
+gripper_description.update_all_grasp_orientations([0, 0, 0, 1])
 
 ################################### Custom Orientation Generator ##############
 def stretch_orientation_generator(position, origin):

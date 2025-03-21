@@ -46,7 +46,7 @@ class TestCaseBulletWorldReasoning(BulletWorldTestCase):
         self.robot.set_pose(Pose())
         time.sleep(2)
         blocking = btr.blocking(Pose([0.5, -0.5, 0.7]), self.robot,
-                                RobotDescription.current_robot_description.kinematic_chains["right"].get_tool_frame())
+                                RobotDescription.current_robot_description.kinematic_chains["right"])
         self.assertTrue(blocking != [])
 
     def test_supporting(self):

@@ -144,35 +144,6 @@ right_arm.end_effector = right_gripper
 torso = KinematicChainDescription("torso", "torso1", "torso4",
                                   justin_description.urdf_object)
 
-# torso.add_static_joint_states(TorsoState.HIGH, {"torso2_joint": 0,
-#                                                 "torso3_joint": 0.174533,
-#                                                 "torso4_joint": 0})
-#
-# torso.add_static_joint_states(TorsoState.MID, {"torso2_joint": -0.8,
-#                                                "torso3_joint": 1.57,
-#                                                "torso4_joint": -0.77})
-#
-# torso.add_static_joint_states(TorsoState.LOW, {"torso2_joint": -0.9,
-#                                                "torso3_joint": 2.33874,
-#                                                "torso4_joint": -1.57})
-
-justin_description.add_kinematic_chain_description(torso)
-
-################################## Camera ##################################
-# real camera unknown at the moment of writing (also missing in urdf), so using dummy camera for now
-camera = CameraDescription("dummy_camera", "head2", 1.27,
-                           1.85, 0.99483, 0.75049,
-                           [1, 0, 0])
-justin_description.add_camera_description(camera)
-
-################################## Neck ##################################
-justin_description.add_kinematic_chain("neck", "torso4", "head2")
-# justin_description.set_neck("head1_joint", "head2_joint")
-
-################################## Torso ##################################
-torso = KinematicChainDescription("torso", "torso1", "torso4",
-                                  justin_description.urdf_object)
-
 torso.add_static_joint_states(TorsoState.HIGH, {"torso2_joint": 0,
                                                 "torso3_joint": 0.174533,
                                                 "torso4_joint": 0})
@@ -187,13 +158,23 @@ torso.add_static_joint_states(TorsoState.LOW, {"torso2_joint": -0.9,
 
 justin_description.add_kinematic_chain_description(torso)
 
+################################## Camera ##################################
+# real camera unknown at the moment of writing (also missing in urdf), so using dummy camera for now
+camera = CameraDescription("dummy_camera", "head2", 1.27,
+                           1.85, 0.99483, 0.75049,
+                           [1, 0, 0])
+justin_description.add_camera_description(camera)
+
+################################## Neck ##################################
+justin_description.add_kinematic_chain("neck", "torso4", "head2")
+# justin_description.set_neck("head1_joint", "head2_joint")
 
 ################################# Grasps ##################################
 orientation = [0.707, -0.707, 0.707, -0.707]
-# left_gripper.generate_all_grasp_orientations(orientation)
+left_gripper.update_all_grasp_orientations(orientation)
 
 orientation = [0.707, 0.707, 0.707, 0.707]
-# right_gripper.generate_all_grasp_orientations(orientation)
+right_gripper.update_all_grasp_orientations(orientation)
 
 
 ################################# Additionals ##################################

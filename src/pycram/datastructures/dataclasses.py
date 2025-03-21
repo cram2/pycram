@@ -1,23 +1,28 @@
 from __future__ import annotations
 
 import itertools
+import math
 from abc import ABC, abstractmethod
 from copy import deepcopy, copy
 from dataclasses import dataclass, fields, field
+from enum import Enum
 
 import numpy as np
 import plotly.graph_objects as go
 import trimesh
 from matplotlib import pyplot as plt
+from std_msgs.msg import ColorRGBA
+
 from random_events.interval import closed, SimpleInterval, Bound
 from random_events.product_algebra import SimpleEvent, Event
 from random_events.variable import Continuous
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, Self, \
     deprecated
 
-from .enums import JointType, Shape, VirtualMobileBaseJointName
+from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp, AxisIdentifier
 from .pose import Pose, Point, Transform
-from ..ros import logwarn
+from ..ros import logwarn, logwarn_once
+from ..utils import classproperty
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
 if TYPE_CHECKING:
@@ -175,6 +180,34 @@ class Color:
         return [self.R, self.G, self.B]
 
 
+class Colors(Color, Enum):
+    """
+    Enum for easy access to some common colors.
+    """
+    PINK = (1, 0, 1, 1)
+    BLACK = (0, 0, 0, 1)
+    WHITE = (1, 1, 1, 1)
+    RED = (1, 0, 0, 1)
+    GREEN = (0, 1, 0, 1)
+    BLUE = (0, 0, 1, 1)
+    YELLOW = (1, 1, 0, 1)
+    CYAN = (0, 1, 1, 1)
+    MAGENTA = (1, 0, 1, 1)
+    GREY = (0.5, 0.5, 0.5, 1)
+
+    @classmethod
+    def from_string(cls, color: str) -> Color:
+        """
+        Set the rgba_color from a string. If the string is not a valid color, it will return the color WHITE.
+
+        :param color: The string of the color
+        """
+        try:
+            return cls[color.upper()]
+        except KeyError:
+            return cls.WHITE
+
+
 @dataclass
 class BoundingBox:
     """
@@ -182,6 +215,10 @@ class BoundingBox:
 
     An axis aligned bounding box is the cartesian product of the three closed intervals
     [min_x, max_x] x [min_y, max_y] x [min_z, max_z].
+
+    Depth is the distance between the min_x and max_x, and should always be the long side (excluding height).
+    Width is the distance between the min_y and max_y, and should always be the short side (excluding height).
+    Height is the distance between the min_z and max_z, "up" is according to how the object would stand on a table.
 
     Set-Algebraic operations are possible by converting the bounding box to a random event.
     """
@@ -313,6 +350,15 @@ class BoundingBox:
         """
         return self.simple_event.contains((x, y, z))
 
+    def contains_box(self, other: BoundingBox):
+        """
+        Check if the bounding box contains another bounding box.
+
+        :param other: The other bounding box.
+        :return: True if the bounding box contains the other bounding box, False otherwise.
+        """
+        return (other.simple_event.as_composite_set() - self.simple_event.as_composite_set()).is_empty()
+
     @classmethod
     def merge_multiple_bounding_boxes_into_mesh(cls, bounding_boxes: List[BoundingBox],
                                                 save_mesh_to: Optional[str] = None,
@@ -373,7 +419,7 @@ class BoundingBox:
         """
         :return: The size of the bounding box in each dimension.
         """
-        return np.array([self.width, self.depth, self.height])
+        return np.array([self.depth, self.width, self.height])
 
     @staticmethod
     def get_mesh_from_boxes(boxes: List[BoundingBox]) -> trimesh.Trimesh:
@@ -539,7 +585,7 @@ class BoundingBox:
                      amount, amount, amount)
 
     @property
-    def width(self) -> float:
+    def depth(self) -> float:
         return self.max_x - self.min_x
 
     @property
@@ -547,8 +593,21 @@ class BoundingBox:
         return self.max_z - self.min_z
 
     @property
-    def depth(self) -> float:
+    def width(self) -> float:
         return self.max_y - self.min_y
+
+    @property
+    def dimensions(self) -> List[float]:
+        """
+        According to the IAI conventions, found at https://ai.uni-bremen.de/wiki/3dmodeling/items
+        1. z is height, according to how the object would stand on a table
+        2. x is depth, representing the long side of the object
+        3. y is width, representing the remaining dimension
+        """
+        if self.width > self.depth:
+            logwarn_once("The width of the bounding box is greater than the depth. This means the object's"
+                         "axis alignment is potentially going against IAI conventions.")
+        return [self.depth, self.width, self.height]
 
     @staticmethod
     def plot_3d_points(list_of_points: List[np.ndarray]):
@@ -1092,6 +1151,10 @@ class ContactPoint:
     def normal(self) -> List[float]:
         return self.normal_on_body_b
 
+    @property
+    def bodies(self) -> Tuple[PhysicalBody, PhysicalBody]:
+        return self.body_a, self.body_b
+
     def __str__(self):
         return f"ContactPoint: {self.body_a.name} - {self.body_b.name}"
 
@@ -1117,17 +1180,16 @@ class ContactPointsList(list):
         :param previous_points: The initial points list.
         :return: A list of bodies that got removed.
         """
-        initial_bodies_in_contact = previous_points.get_bodies_in_contact()
-        current_bodies_in_contact = self.get_bodies_in_contact()
+        initial_bodies_in_contact = previous_points.get_all_bodies()
+        current_bodies_in_contact = self.get_all_bodies()
         return [body for body in initial_bodies_in_contact if body not in current_bodies_in_contact]
 
-    def get_bodies_in_contact(self) -> List[PhysicalBody]:
+    def get_all_bodies(self, excluded: List[PhysicalBody] = None) -> List[PhysicalBody]:
         """
-        Get the bodies in contact.
-
-        :return: A list of bodies that are in contact.
+        :return: A list of all involved bodies in the points.
         """
-        return [point.body_b for point in self]
+        excluded = excluded if excluded is not None else []
+        return list(set([body for point in self for body in point.bodies if body not in excluded]))
 
     def check_if_two_objects_are_in_contact(self, obj_a: Object, obj_b: Object) -> bool:
         """
@@ -1297,6 +1359,36 @@ class VirtualJoint:
 
     def __hash__(self):
         return hash(self.name)
+
+
+class Rotations(Dict[Optional[Union[Grasp, bool]], List[float]]):
+    """
+    A dictionary that defines standard quaternions for different grasps and orientations. This is mainly used
+    to automatically calculate all grasp descriptions of a robot gripper for the robot description.
+
+    SIDE_ROTATIONS: The quaternions for the different approach directions (front, back, left, right)
+    VERTICAL_ROTATIONS: The quaternions for the different vertical alignments, in case the object requires for
+    example a top grasp
+    HORIZONTAL_ROTATIONS: The quaternions for the different horizontal alignments, in case the gripper needs to roll
+    90°
+    """
+    SIDE_ROTATIONS = {
+        Grasp.FRONT: [0, 0, 0, 1],
+        Grasp.BACK: [0, 0, 1, 0],
+        Grasp.LEFT: [0, 0, -math.sqrt(2) / 2, math.sqrt(2) / 2],
+        Grasp.RIGHT: [0, 0, math.sqrt(2) / 2, math.sqrt(2) / 2],
+    }
+
+    VERTICAL_ROTATIONS = {
+        None: [0, 0, 0, 1],
+        Grasp.TOP: [0, math.sqrt(2) / 2, 0, math.sqrt(2) / 2],
+        Grasp.BOTTOM: [0, -math.sqrt(2) / 2, 0, math.sqrt(2) / 2],
+    }
+
+    HORIZONTAL_ROTATIONS = {
+        False: [0, 0, 0, 1],
+        True: [math.sqrt(2) / 2, 0, 0, math.sqrt(2) / 2],
+    }
 
 
 @dataclass

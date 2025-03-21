@@ -4,7 +4,7 @@ import sqlalchemy.orm
 from sqlalchemy import table, inspect, event, select, engine, MetaData, Select, TableClause, ExecutableDDLElement
 from sqlalchemy.ext.compiler import compiles
 from .action_designator import PickUpAction, PlaceAction
-from .base import Position, RobotState, Pose, Base, Quaternion
+from .base import Position, RobotState, Pose, Base, Quaternion, GraspDescription
 from .object_designator import Object
 from .tasktree import TaskTreeNode
 
@@ -123,8 +123,9 @@ class PickUpWithContextView(base):
     """
 
     __table__ = view("PickUpWithContextView", Base.metadata,
-                     (select(PickUpAction.id, PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height,
-                             (__robot_position.x-__object_position.x).label("relative_x"),
+                     (select(PickUpAction.id, PickUpAction.arm, GraspDescription.approach_direction,
+                             GraspDescription.vertical_alignment, GraspDescription.rotate_gripper,
+                             RobotState.torso_height, (__robot_position.x-__object_position.x).label("relative_x"),
                              (__robot_position.y-__object_position.y).label("relative_y"), Quaternion.x, Quaternion.y,
                              Quaternion.z, Quaternion.w, Object.obj_type, TaskTreeNode.status)
                       .join(TaskTreeNode.action.of_type(PickUpAction))
@@ -138,7 +139,6 @@ class PickUpWithContextView(base):
 
     id: Mapped[int] = __table__.c.id
     arm: Mapped[str] = __table__.c.arm
-    grasp: Mapped[str] = __table__.c.grasp
     torso_height: Mapped[float] = __table__.c.torso_height
     relative_x: Mapped[float] = column_property(__table__.c.relative_x)
     relative_y: Mapped[float] = column_property(__table__.c.relative_y)

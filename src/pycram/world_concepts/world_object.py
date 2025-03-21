@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import logging
 import os
-from functools import cached_property
 from pathlib import Path
 
 import numpy as np
-import owlready2
 from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
 from trimesh.parent import Geometry3D
-from typing_extensions import Type, Optional, Dict, Tuple, List, Union, Self
+from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
@@ -18,15 +15,14 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
-from ..datastructures.world_entity import PhysicalBody, WorldEntity
+from ..datastructures.world_entity import PhysicalBody
 from ..description import ObjectDescription, LinkDescription, Joint
 from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenAttachedObjects, UnsupportedFileExtension, \
     ObjectDescriptionUndefined
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
-from ..ros import  Time
-from ..ros import  logwarn, logerr
+from ..ros import logwarn, logerr, Time
 
 try:
     from ..object_descriptors.mjcf import ObjectDescription as MJCF
@@ -34,11 +30,8 @@ except ImportError:
     MJCF = None
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
-from ..datastructures.mixins import HasConcept
-from pycrap.ontologies import PhysicalObject, ontology, Base, Agent, Joint, \
-    has_child_link, has_parent_link, is_part_of, Robot, Link as CraxLink, Floor, Location, RootLink
-
-from pycrap.urdf_parser import parse_furniture, parse_joint_types
+from pycrap.ontologies import PhysicalObject, Joint, \
+    Robot, Floor, Location, Bowl, Spoon, Cereal
 
 Link = ObjectDescription.Link
 
@@ -89,12 +82,10 @@ class Object(PhysicalBody):
 
         self.world = world if world is not None else World.current_world
         self.name: str = name
-        super().__init__(-1, self.world, concept)
+        super().__init__(-1, self.world, concept=concept)
 
         pose = Pose() if pose is None else pose
 
-        # set ontology related information
-        self.ontology_concept = concept
         self.path: Optional[str] = path
 
         self._resolve_description(path, description)
@@ -133,6 +124,10 @@ class Object(PhysicalBody):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.add_object(self)
+
+    @property
+    def parts(self) -> Dict[str, PhysicalBody]:
+        return self.links
 
     @property
     def tf_frame(self) -> str:
@@ -181,11 +176,11 @@ class Object(PhysicalBody):
                 for link_name, color in rgba_color.items():
                     self.links[link_name].color = color
 
-    def get_mesh_path(self) -> str:
+    def get_mesh_path(self) -> List[str]:
         """
         Get the path to the mesh file of the object.
 
-        :return: The path to the mesh file.
+        :return: The path(s) to the mesh file(s).
         """
         if self.has_one_link:
             return self.root_link.get_mesh_path()
@@ -442,19 +437,9 @@ class Object(PhysicalBody):
         for link_name, link_id in self.link_name_to_id.items():
             link_description = self.description.get_link_by_name(link_name)
             if link_name == self.description.get_root():
-                ontology_concept = RootLink
                 self.links[link_name] = self.description.RootLink(self)
-
             else:
                 self.links[link_name] = self.description.Link(link_id, link_description, self)
-                # If the link can be matched to a concept, assign it, else assign PhysicalObject as class.
-                if parse_furniture(link_name):
-                    ontology_concept = parse_furniture(link_name)
-                else:
-                    ontology_concept = PhysicalObject
-                if not self.world.is_prospection_world:
-                    # n_same_link = len(self.world.ontology.search(iri = f"{self.world.ontology.ontology.base_iri}{link_name}$*"))
-                    self.ontology_individual.is_a = [CraxLink]
 
         self.update_link_transforms()
 
@@ -575,7 +560,8 @@ class Object(PhysicalBody):
         """
         return self.links[link_name].tf_frame
 
-    def get_link_axis_aligned_bounding_box(self, link_name: str, transform_to_link_pose: bool = True) -> AxisAlignedBoundingBox:
+    def get_link_axis_aligned_bounding_box(self, link_name: str,
+                                           transform_to_link_pose: bool = True) -> AxisAlignedBoundingBox:
         """
         Return the axis aligned bounding box of the link with the given name.
 
@@ -678,11 +664,28 @@ class Object(PhysicalBody):
 
         :param remove_saved_states: If True the saved states will be removed.
         """
+        self.reset_concepts()
         self.detach_all()
-        self.reset_all_joints_positions()
+        self.reset_all_links()
+        self.reset_all_joints()
         self.set_pose(self.original_pose)
         if remove_saved_states:
             self.remove_saved_states()
+
+    def reset_all_joints(self) -> None:
+        """
+        Reset all joints of the object.
+        """
+        for joint in self.joints.values():
+            joint.reset_concepts()
+        self.reset_all_joints_positions()
+
+    def reset_all_links(self) -> None:
+        """
+        Reset all links of the object.
+        """
+        for link in self.links.values():
+            link.reset()
 
     @property
     def is_an_environment(self) -> bool:
@@ -719,9 +722,11 @@ class Object(PhysicalBody):
         description = self.description.merge_description(other.description, child_pose_wrt_parent=child_pose,
                                                          new_description_file=new_description_file)
         name = self.name if name is None else name
+        color = self.color if isinstance(self.color, Color) else self.color[self.root_link.name]
         other.remove()
         self.remove()
-        return Object(name, self.obj_type, description.xml_path, description=description, pose=pose, world=self.world)
+        return Object(name, self.obj_type, description.xml_path, description=description, pose=pose, world=self.world,
+                      color=color)
 
     def attach(self,
                child_object: Object,
@@ -1242,7 +1247,7 @@ class Object(PhysicalBody):
         """
         return {joint_name: np.clip(joint_position, self.joints[joint_name].lower_limit,
                                     self.joints[joint_name].upper_limit)
-                if self.joints[joint_name].has_limits else joint_position
+        if self.joints[joint_name].has_limits else joint_position
                 for joint_name, joint_position in joint_positions.items()}
 
     def get_joint_position(self, joint_name: str) -> float:
@@ -1519,4 +1524,3 @@ class Object(PhysicalBody):
         :return: The parent of this object which is the world.
         """
         return self.world
-

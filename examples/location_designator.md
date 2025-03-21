@@ -77,6 +77,8 @@ location_description = CostmapLocation(target)
 
 pose = location_description.resolve()
 
+if viz_marker_publisher is not None:
+    viz_marker_publisher._stop_publishing()
 print(pose)
 ```
 
