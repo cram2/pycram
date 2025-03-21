@@ -107,9 +107,15 @@ class ActionAbstractDigest:
         return parameter_digests
 
 
-def create_ontology_from_performables(outputfile: str = "performables.owl") -> None:
+def create_ontology_from_performables(
+        outputfile: str = "performables.owl",
+        abstract_actions_to_parse: Union[List[ActionAbstract],ActionAbstract] = None) -> None:
     """
     Create an ontology from the performables.
+
+    :param outputfile: Name of the output file.
+    :param abstract_actions_to_parse: ActionAbstract classes to parse.
+    If not set, all subclasses of ActionAbstract will be parsed.
     """
 
     def unwrap_classname(parameter: ParameterDigest) -> str:
@@ -146,7 +152,14 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
             clazz = get_optional_type(parameter.clazz)
         return extract_content_between_quotes(str(clazz)).replace(" ", "")
 
-    classes = [ActionAbstractDigest(clazz) for clazz in recursive_subclasses(ActionAbstract)]
+    # If parameter is not set, all subclasses of ActionAbstract will be parsed.
+    if abstract_actions_to_parse:
+        if type(abstract_actions_to_parse) == ActionAbstract:
+            abstract_actions_to_parse = [abstract_actions_to_parse]
+    else:
+        abstract_actions_to_parse = recursive_subclasses(ActionAbstract)
+
+    classes = [ActionAbstractDigest(clazz) for clazz in abstract_actions_to_parse]
 
     # Definition of created ontology
     output_ontology = get_ontology("performables")
