@@ -73,15 +73,6 @@ class ActionAbstractDigest:
         :return: List of parameter information.
         """
 
-        def is_optional_type(t) -> bool:
-            """
-            Determines if a type hint is an optional.
-
-            :param t: Type hint to check.
-            :return: True if optional, else False.
-            """
-            return (type(None) in get_args(t)) if get_origin(t) is Union else False
-
         with open(inspect.getfile(self.clazz), 'r') as file:
             file_content = file.read()
         tree = ast.parse(file_content)
@@ -101,15 +92,20 @@ class ActionAbstractDigest:
                         last_assign = []
 
         parameters_inspection = inspect.signature(self.clazz).parameters
-        return [ParameterDigest(
-            clazz=self.clazz.get_type_hints()[param],
-            parameter_name=param,
-            docstring_of_parameter_clazz=self.clazz.get_type_hints()[param].__doc__,
-            docstring_of_parameter=class_param_comment[param],
-            parameter_default_value=parameters_inspection[param].default,
-            is_enum=self.clazz.get_type_hints()[param].__class__ == EnumMeta,
-            is_optional=is_optional_type(self.clazz.get_type_hints()[param])
-        ) for param in list(parameters_inspection.keys())]
+        parameter_digests = []
+        for param in list(parameters_inspection.keys()):
+            param_clazz = self.clazz.get_type_hints()[param]
+            parameter_digests.append(
+                ParameterDigest(
+                    clazz=param_clazz,
+                    parameter_name=param,
+                    docstring_of_parameter_clazz=param_clazz.__doc__,
+                    docstring_of_parameter=class_param_comment[param],
+                    parameter_default_value=parameters_inspection[param].default,
+                    is_enum=param_clazz.__class__ == EnumMeta,
+                    is_optional=(type(None) in get_args(param_clazz)) if get_origin(param_clazz) is Union else False
+                ))
+        return parameter_digests
 
 
 def create_ontology_from_performables(outputfile: str = "performables.owl") -> None:
