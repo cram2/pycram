@@ -55,7 +55,7 @@ class ParameterDigest:
 
 class ActionAbstractDigest:
     """
-    Wraps all information about an action abstract class that are necessary for the created ontology.
+    Wrap all information about an action abstract class that are necessary for the created ontology.
     """
 
     def __init__(self, clazz: Type[ActionAbstract]):
@@ -67,7 +67,7 @@ class ActionAbstractDigest:
 
     def extract_dataclass_parameter_information(self) -> List[ParameterDigest]:
         """
-        Extracts information about dataclass parameters from a dataclass.
+        Extract information about dataclass parameters from a dataclass.
 
         :return: List of parameter information.
         """
@@ -109,12 +109,12 @@ class ActionAbstractDigest:
 
 def create_ontology_from_performables(outputfile: str = "performables.owl") -> None:
     """
-    Creates an ontology from the performables.
+    Create an ontology from the performables.
     """
 
     def unwrap_classname(parameter: ParameterDigest) -> str:
         """
-        Unwraps the class name of the type of parameter.
+        Unwrap the class name of the type of parameter.
         When it is an optional type, the class name of the optional type is returned.
 
         :param parameter: ParameterDigest to return the unwrapped classname from.
@@ -123,8 +123,6 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
 
         def extract_content_between_quotes(text: str) -> str:
             """
-            Returns the content between the quotes in a given string.
-
             :param text: String with quotation marks.
             :return: Text without quotation marks.
             """
@@ -135,8 +133,6 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
 
         def get_optional_type(t) -> Optional[str]:
             """
-            If the type hint is optional, this function returns the class name of the optional type. Else None.
-
             :param t: Type hint to check.
             :return: Full class name of the optional type or None if not optional.
             """
@@ -181,7 +177,7 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
 
         def create_enum_onto_class_and_instances() -> None:
             """
-            Creates ontology classes for enums and instances for possible values of enums.
+            Create ontology classes for enums and instances for possible values of enums.
             """
             enum_value_class = types.new_class(classname + "_Value", (Enum,))
             parameter_clazz.has_possible_value = [enum_value_class]
@@ -203,7 +199,7 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
 
         def create_param_onto_instances() -> List[Parameter]:
             """
-            Creates ontology instances for the parameters of the Performable.
+            Create ontology instances for the parameters of the Performable.
             """
             params = []
             for param_digest in clazz_digest.parameters:
