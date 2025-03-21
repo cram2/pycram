@@ -4,10 +4,10 @@ from random_events.utils import recursive_subclasses
 from random_events.utils import get_full_class_name
 from typing_extensions import Dict, List, Type, Optional, Any, get_origin, Union, get_args
 from dataclasses import dataclass
-from ..designators.action_designator import ActionAbstract
 import inspect
 import ast
 import re
+from ..designators.action_designator import ActionAbstract
 
 
 @dataclass
@@ -173,33 +173,45 @@ def create_ontology_from_performables(outputfile: str = "performables.owl") -> N
         class has_description(DataProperty):
             range = [str]
 
-    # Creation of ontological classes for the parameters and classes for enums
-    all_param_classes_to_ontological_class = {}
-    for clazz in classes:
-        for param in clazz.parameters:
-            if (clazzname := unwrap_classname(param)) not in all_param_classes_to_ontological_class.keys():
-                parameter_clazz = types.new_class(clazzname, (Parameter,))
-                parameter_clazz.has_description = param.docstring_of_parameter_clazz
-                if param.is_enum:
-                    enum_value_class = types.new_class(clazzname + "_Value", (Enum,))
-                    for enum_member in param.clazz.__members__:
-                        enum_value_class(enum_member)
-                    parameter_clazz.has_possible_value = [enum_value_class]
-                all_param_classes_to_ontological_class[clazzname] = parameter_clazz
+    def create_parameter_onto_class(param: ParameterDigest) -> Parameter:
+        def create_enum_onto_class() -> None:
+            enum_value_class = types.new_class(classname + "_Value", (Enum,))
+            parameter_clazz.has_possible_value = [enum_value_class]
+            # Create the possible values of the enum as instances of the Enum class
+            for enum_member in param.clazz.__members__:
+                enum_value_class(enum_member)
+        parameter_clazz = types.new_class(classname, (Parameter,))
+        parameter_clazz.has_description = param.docstring_of_parameter_clazz
+        if param.is_enum:
+            create_enum_onto_class()
+        return parameter_clazz
 
-    # Creating the onotology instances based on the created ActionAbstractDigests.
-    for clazz_digest in classes:
+    def create_performable_onto_class() -> None:
+        def create_param_onto_instances():
+            params = []
+            for param_digest in clazz_digest.parameters:
+                param_instance = all_param_classes_to_ontological_class[unwrap_classname(param_digest)](param_digest.parameter_name)
+                param_instance.has_description = [param_digest.docstring_of_parameter]
+                param_instance.is_optional = [True] if param_digest.is_optional else [False]
+                if param_digest.get_default_value():
+                    param_instance.has_default_value = param_digest.get_default_value()
+                params.append(param_instance)
+            return params
+
         performable = Performable(clazz_digest.classname)
         performable.has_description = [clazz_digest.docstring]
-        params = []
-        for param in clazz_digest.parameters:
-            param_instance = all_param_classes_to_ontological_class[unwrap_classname(param)](param.parameter_name)
-            param_instance.has_description = [param.docstring_of_parameter]
-            param_instance.is_optional = [True] if param.is_optional else [False]
+        performable.has_parameter = create_param_onto_instances()
 
-            if param.get_default_value():
-                param_instance.has_default_value = param.get_default_value()
-            params.append(param_instance)
-        performable.has_parameter = params
+    # Creation of ontological classes/instances for the parsed Python classes.
+    all_param_classes_to_ontological_class = {}
+    for clazz_digest in classes:
+        for param in clazz_digest.parameters:
+            if (classname := unwrap_classname(param)) not in all_param_classes_to_ontological_class.keys():
+                all_param_classes_to_ontological_class[classname] = create_parameter_onto_class(param)
+
+    # Creating the ontology instances based on the created ActionAbstractDigests.
+    for clazz_digest in classes:
+        create_performable_onto_class()
+
 
     output_ontology.save(file=outputfile, format="rdfxml")
