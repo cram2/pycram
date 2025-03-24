@@ -21,6 +21,7 @@ from ..robot_description import RobotDescription
 from ..failures import IKError
 from ..external_interfaces.giskard import projection_cartesian_goal, allow_gripper_collision
 from .pinocchio_ik import compute_ik
+from ..datastructures.enums import Arms
 
 
 def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_object: Object,
@@ -222,7 +223,7 @@ def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[
     local_transformer = LocalTransformer()
     target_map = local_transformer.transform_pose(target_pose, "map")
 
-    allow_gripper_collision("all")
+    allow_gripper_collision(Arms.BOTH)
     result = projection_cartesian_goal(target_map, gripper, "map")
     last_point = result.trajectory.points[-1]
     joint_names = result.trajectory.joint_names

@@ -286,6 +286,7 @@ class ProcessModuleManager(ABC):
         self._move_gripper_lock = Lock()
         self._open_lock = Lock()
         self._close_lock = Lock()
+        self._move_tcp_waypoints_lock = Lock()
 
     @staticmethod
     def get_manager() -> Union[ProcessModuleManager, None]:
@@ -438,6 +439,16 @@ class ProcessModuleManager(ABC):
          the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for closing drawers
+        """
+        raise NotImplementedError(
+            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+
+    def move_tcp_waypoints(self) -> ProcessModule:
+        """
+        Get the Process Module for moving the Tool Center Point along a list of waypoints with respect to
+         the :py:attr:`~ProcessModuleManager.execution_type`
+
+        :return: The Process Module for moving the TCP along a list of waypoints
         """
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
