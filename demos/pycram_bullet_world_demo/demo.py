@@ -27,7 +27,7 @@ cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
                 pose=Pose([2.45, 2.4, 1.05], [0, 0, 0, 1]), color=Color(0, 1, 0, 1))
 spoon = Object("spoon", Spoon, "spoon.stl", pose=Pose([2.4, 2.24, 0.85]),
                color=Color(0, 0, 1, 1))
-bowl = Object("bowl", Bowl, "bowl.stl", pose=Pose([2.4, 2.2, 0.98]),
+bowl = Object("bowl", Bowl, "bowl.stl", pose=Pose([2.35, 2.2, 0.98]),
               color=Color(1, 1, 0, 1))
 apartment.attach(spoon, 'cabinet10_drawer_top')
 
@@ -79,7 +79,7 @@ with simulated_robot:
     handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig)
     drawer_open_loc = AccessingLocation(handle_desig=handle_desig,
                                         robot_desig=robot_desig,
-                                        arm=Arms.RIGHT)
+                                        arm=Arms.RIGHT).resolve()
 
     NavigateActionDescription(drawer_open_loc).resolve().perform()
 
@@ -98,12 +98,12 @@ with simulated_robot:
     pickup_arm = Arms.LEFT
 
     ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
+    top_grasp = GraspDescription(Grasp.FRONT, Grasp.TOP, False)
     NavigateActionDescription(CostmapLocation(spoon_desig,
                                               reachable_for=robot_desig.resolve(),
                                               reachable_arm=pickup_arm,
-                                              grasps=[Grasp.TOP])).resolve().perform()
+                                              grasp_descriptions=top_grasp)).resolve().perform()
 
-    top_grasp = GraspDescription(Grasp.FRONT, Grasp.TOP, False)
     PickUpActionDescription(spoon_desig, [pickup_arm], top_grasp).resolve().perform()
 
     ParkArmsActionDescription([Arms.LEFT if pickup_arm == Arms.LEFT else Arms.RIGHT]).resolve().perform()
@@ -124,7 +124,7 @@ with simulated_robot:
     spoon_target_pose = Pose([4.7, 3.25, 0.8], [0, 0, 1, 1])
     MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
     placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(),
-                                  reachable_arms=[pickup_arm], object_in_hand=spoon_desig).resolve()
+                                  reachable_arm=[pickup_arm], object_in_hand=spoon_desig).resolve()
 
     NavigateActionDescription(placing_loc).resolve().perform()
 

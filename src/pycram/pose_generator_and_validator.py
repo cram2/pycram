@@ -207,7 +207,7 @@ def pose_sequence_reachability_validator(robot: Object,
         if joint_states is None:
             robot.set_multiple_joint_positions(joint_state_before_ik)
             return False
-        robot.set_joint_positions(joint_states)
+        robot.set_multiple_joint_positions(joint_states)
 
     robot.set_multiple_joint_positions(joint_state_before_ik)
     return True

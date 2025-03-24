@@ -817,8 +817,8 @@ class TransportAction(ActionAbstract):
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
 
         NavigateAction(pickup_pose, True).perform()
-        PickUpAction(self.object_designator, self.arm,
-                                pickup_pose.grasp_description,
+        PickUpAction(self.object_designator, pickup_pose.arm,
+                     grasp_description=pickup_pose.grasp_description,
                      prepose_distance=self.pickup_prepose_distance).perform()
         ParkArmsAction(Arms.BOTH).perform()
         try:

@@ -13,7 +13,8 @@ from ..designator import DesignatorError, LocationDesignatorDescription, ObjectD
 from ..failures import RobotInCollision
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription
-from ..pose_generator_and_validator import PoseGenerator, visibility_validator, pose_sequence_reachability_validator, collision_check
+from ..pose_generator_and_validator import PoseGenerator, visibility_validator, pose_sequence_reachability_validator, \
+    collision_check
 from ..robot_description import RobotDescription
 from ..ros import logdebug
 from ..world_concepts.world_object import Object, Link
@@ -54,7 +55,7 @@ class CostmapLocation(LocationDesignatorDescription):
                  reachable_for: Optional[Union[Iterable[Object], Object]] = None,
                  visible_for: Optional[Union[Iterable[Object], Object]] = None,
                  reachable_arm: Optional[Union[Iterable[Arms], Arms]] = None,
-                 prepose_distance: Union[Union[Iterable[float], float]]= ActionConfig.pick_up_prepose_distance,
+                 prepose_distance: Union[Union[Iterable[float], float]] = ActionConfig.pick_up_prepose_distance,
                  ignore_collision_with: Optional[Union[Iterable[Object], Object]] = None,
                  grasp_descriptions: Optional[Union[Iterable[GraspDescription], GraspDescription]] = None,
                  object_in_hand: Optional[Union[Iterable[Object], Object]] = None):
@@ -74,8 +75,8 @@ class CostmapLocation(LocationDesignatorDescription):
         super().__init__()
         PartialDesignator.__init__(self, CostmapLocation, target=target, reachable_for=reachable_for,
                                    visible_for=visible_for,
-                                   reachable_arm=reachable_arm  if reachable_arm is not None else [
-                                   Arms.LEFT, Arms.RIGHT],
+                                   reachable_arm=reachable_arm if reachable_arm is not None else [
+                                       Arms.LEFT, Arms.RIGHT],
                                    prepose_distance=prepose_distance,
                                    ignore_collision_with=ignore_collision_with if ignore_collision_with is not None else [
                                        []],
@@ -183,7 +184,8 @@ class CostmapLocation(LocationDesignatorDescription):
                         yield pose_candidate
                         continue
 
-                    grasp_descriptions = [grasp_description] if grasp_description else target.calculate_grasp_descriptions(test_robot)
+                    grasp_descriptions = [
+                        grasp_description] if grasp_description else target.calculate_grasp_descriptions(test_robot)
                     for grasp_desc in grasp_descriptions:
                         end_effector = test_robot.robot_description.get_arm_chain(reachable_arm).end_effector
                         if object_in_hand:
@@ -238,7 +240,6 @@ class AccessingLocation(LocationDesignatorDescription):
         self.prepose_distance = prepose_distance
         self.arm = arm if arm is not None else [Arms.LEFT, Arms.RIGHT]
 
-
     def ground(self) -> Pose:
         """
         Default specialized_designators for this location designator, just returns the first element from the iteration
@@ -246,7 +247,6 @@ class AccessingLocation(LocationDesignatorDescription):
         :return: A location designator for a pose from which the drawer can be opened
         """
         return next(iter(self))
-
 
     @staticmethod
     def adjust_map_for_drawer_opening(cost_map: Costmap, init_pose: Pose, goal_pose: Pose,
@@ -278,21 +278,20 @@ class AccessingLocation(LocationDesignatorDescription):
                        int(map_origin_idx[1] + i * unit_motion_vector[1] - j * orthogonal_vector[1]))
                 cost_map.map[idx] = 0
 
+    def setup_costmaps(self, handle: Link) -> Costmap:
+        """
+        Sets up the costmaps for the given handle and robot. The costmaps are merged and stored in the final_map.
+        """
+        ground_pose = Pose(handle.pose.position_as_list())
+        ground_pose.position.z = 0
+        occupancy = OccupancyCostmap(distance_to_obstacle=0.25, from_ros=False, size=200, resolution=0.02,
+                                     origin=ground_pose)
+        final_map = occupancy
 
-    def setup_costmaps(self) -> Costmap:
-            """
-            Sets up the costmaps for the given handle and robot. The costmaps are merged and stored in the final_map.
-            """
-            ground_pose = Pose(self.handle.pose.position_as_list())
-            ground_pose.position.z = 0
-            occupancy = OccupancyCostmap(distance_to_obstacle=0.25, from_ros=False, size=200, resolution=0.02,
-                                         origin=ground_pose)
-            final_map = occupancy
+        gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
+        final_map += gaussian
 
-            gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
-            final_map += gaussian
-
-            return final_map
+        return final_map
 
     def __iter__(self) -> Iterator[Pose]:
         """
@@ -324,7 +323,7 @@ class AccessingLocation(LocationDesignatorDescription):
                                                    handle.name)
 
             joint_type = handle.parent_entity.joints[container_joint].type
-            final_map = self.setup_costmaps()
+            final_map = self.setup_costmaps(handle)
             if joint_type == JointType.PRISMATIC:
                 self.adjust_map_for_drawer_opening(final_map, init_pose, goal_pose)
 
@@ -351,7 +350,6 @@ class AccessingLocation(LocationDesignatorDescription):
                                                                             arm=arm_chain.arm_type)
                         if is_reachable:
                             yield pose_candidate
-                            # yield self.Location(pose_candidate, arm_chain.arm_type)
 
 
 class SemanticCostmapLocation(LocationDesignatorDescription):
