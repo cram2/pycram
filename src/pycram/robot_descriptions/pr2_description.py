@@ -90,7 +90,9 @@ pr2_description.add_kinematic_chain("neck", "head_pan_link", "head_tilt_link")
 
 ################################# Grasps ##################################
 left_gripper.update_all_grasp_orientations([0, 0, 0, 1])
+left_gripper.set_approach_axis([1, 0, 0])
 right_gripper.update_all_grasp_orientations([0, 0, 0, 1])
+right_gripper.set_approach_axis([1, 0, 0])
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()
