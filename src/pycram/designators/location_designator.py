@@ -7,7 +7,7 @@ from .object_designator import ObjectPart
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap, Costmap
 from ..datastructures.enums import JointType, Arms, Grasp
 from ..datastructures.partial_designator import PartialDesignator
-from ..datastructures.pose import Pose, GraspDescription
+from ..datastructures.pose import Pose, GraspDescription, GraspPose
 from ..datastructures.world import World, UseProspectionWorld
 from ..designator import DesignatorError, LocationDesignatorDescription, ObjectDesignatorDescription
 from ..failures import RobotInCollision
@@ -141,7 +141,7 @@ class CostmapLocation(LocationDesignatorDescription):
             reachable_arm = params["reachable_arm"]
             prepose_distance = params["prepose_distance"]
             ignore_collision_with = params["ignore_collision_with"]
-            grasp_descriptions = params["grasp_descriptions"]
+            grasp_description = params["grasp_descriptions"]
             object_in_hand = params["object_in_hand"]
             # This ensures that the costmaps always get a position as their origin.
             target = target.copy() if isinstance(target, Pose) else target
@@ -156,7 +156,7 @@ class CostmapLocation(LocationDesignatorDescription):
 
             allowed_collision = {object: object.link_id_to_name[-1] for object in ignore_collision_with}
             if object_in_hand:
-                prospection_object = World.current_world.get_prospection_object_for_object(object_in_hand.world_object)
+                prospection_object = World.current_world.get_prospection_object_for_object(object_in_hand)
                 allowed_collision.update({prospection_object: prospection_object.link_id_to_name[-1]})
 
             final_map = self.setup_costmaps(target, test_robot)
@@ -172,7 +172,6 @@ class CostmapLocation(LocationDesignatorDescription):
 
                     if not (reachable_for or visible_for):
                         yield pose_candidate
-                        # yield self.Location(pose_candidate, None, None)
                         continue
 
                     if visible_for and not visibility_validator(test_robot, target):
@@ -180,20 +179,18 @@ class CostmapLocation(LocationDesignatorDescription):
 
                     if not reachable_for:
                         yield pose_candidate
-                        # yield self.Location(pose_candidate, None, None)
                         continue
 
-                    grasp_descriptions = grasp_descriptions or target.calculate_grasp_descriptions(test_robot)
-                    for grasp_description in grasp_descriptions:
-                        # for arm in reachable_arm:
+                    grasp_descriptions = [grasp_description] if grasp_description else target.calculate_grasp_descriptions(test_robot)
+                    for grasp_desc in grasp_descriptions:
                         end_effector = test_robot.robot_description.get_arm_chain(reachable_arm).end_effector
                         if object_in_hand:
-                            current_target_pose = object_in_hand.world_object.attachments[
+                            current_target_pose = object_in_hand.attachments[
                                 World.robot].get_child_link_target_pose_given_parent(target)
                         else:
                             current_target_pose = target.copy() if isinstance(target,
                                                                               Pose) else target.get_pose().copy()
-                            current_target_pose.rotate_by_quaternion(end_effector.grasps[grasp_description])
+                            current_target_pose.rotate_by_quaternion(end_effector.grasps[grasp_desc])
 
                         lift_pose = current_target_pose.copy()
                         lift_pose.position.z += 0.1
@@ -209,7 +206,8 @@ class CostmapLocation(LocationDesignatorDescription):
                                                                             arm=reachable_arm,
                                                                             allowed_collision=allowed_collision)
                         if is_reachable:
-                            yield pose_candidate
+                            yield GraspPose(pose_candidate.position_as_list(), pose_candidate.orientation_as_list(),
+                                            arm=reachable_arm, grasp_description=grasp_desc)
                             # yield self.Location(pose_candidate, arm, grasp_description)
 
 

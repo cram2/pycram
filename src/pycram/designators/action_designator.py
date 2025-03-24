@@ -825,7 +825,7 @@ class TransportAction(ActionAbstract):
             place_loc = CostmapLocation(
                 target=self.target_location,
                 reachable_for=robot_desig_resolved,
-                reachable_arm=[pickup_pose.reachable_arm],
+                reachable_arm=[pickup_pose.arm],
                 grasp_descriptions=[pickup_pose.grasp_description],
                 object_in_hand=self.object_designator
             ).resolve()
