@@ -441,14 +441,14 @@ class DefaultMoveTCPWaypointsReal(ProcessModule):
         tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
         root_link = "map"
 
+        giskard.avoid_all_collisions()
         if designator.allow_gripper_collision:
-            giskard.allow_gripper_collision(designator.arm.name.lower())
+            giskard.allow_gripper_collision(designator.arm)
 
-        if designator.movement_type == WaypointsMovementType.ENFORCE_ORIENTATION_FINAL_POINT:
-            giskard.achieve_cartesian_waypoints_goal(waypoints=[x.position_as_list() for x in waypoints],
-                                                     orientations=[x.orientation_as_list() for x in waypoints],
-                                                     tip_link=tip_link, root_link=root_link,
-                                                     enforce_final_orientation=True)
+        giskard.achieve_cartesian_waypoints_goal(waypoints=[x.position_as_list() for x in waypoints],
+                                                 orientations=[x.orientation_as_list() for x in waypoints],
+                                                 tip_link=tip_link, root_link=root_link,
+                                                 enforce_final_orientation=True if designator.movement_type == WaypointsMovementType.ENFORCE_ORIENTATION_FINAL_POINT else False)
 
 
 

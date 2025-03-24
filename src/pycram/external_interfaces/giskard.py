@@ -626,7 +626,6 @@ def achieve_cartesian_waypoints_goal(waypoints: List[List[float]], orientations:
     else:
         giskard_wrapper.monitors.add_end_motion(start_condition=f'{old_m} and {old_m_o}')
     giskard_wrapper.monitors.add_max_trajectory_length(30)
-    giskard_wrapper.motion_goals.avoid_all_collisions()
     giskard_wrapper.execute(add_default=False)
 
 
