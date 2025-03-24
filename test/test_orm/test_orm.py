@@ -86,7 +86,7 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
             grasp = GraspDescription(Grasp.FRONT, None, False)
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp, 0.03).perform()
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp).perform()
             description.resolve().perform()
 
     def test_node(self):
@@ -163,7 +163,7 @@ class MixinTestCase(DatabaseTestCaseMixin):
             MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
             ParkArmsActionPerformable(Arms.BOTH).perform()
             grasp = GraspDescription(Grasp.FRONT, None, False)
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp, 0.03).perform()
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp).perform()
             description.resolve().perform()
 
     def test_pose(self):
@@ -193,7 +193,7 @@ class ORMObjectDesignatorTestCase(DatabaseTestCaseMixin):
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
             grasp = GraspDescription(Grasp.FRONT, None, False)
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp, 0.03).perform()
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp).perform()
             description.resolve().perform()
         pycram.orm.base.ProcessMetaData().description = "Unittest"
         tt = pycram.tasktree.task_tree.root
@@ -230,7 +230,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
     def test_transportAction(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         action = TransportActionPerformable(object_description.resolve(),
-                                            Pose([1.3, 0.9, 0.9], [0, 0, 0, 1]), Arms.LEFT, 0.03)
+                                            Pose([1.3, 0.9, 0.9], [0, 0, 0, 1]), Arms.LEFT)
         with simulated_robot:
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "transportAction_test"
@@ -246,7 +246,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             ParkArmsActionPerformable(Arms.BOTH).perform()
             grasp = GraspDescription(Grasp.FRONT, None, False)
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp, 0.03).perform()
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp).perform()
             NavigateActionPerformable(Pose([1.3, 1, 0.9], [0, 0, 0, 1]), True).perform()
             PlaceActionPerformable(object_description.resolve(), Arms.LEFT, Pose([2.0, 1.6, 1.8], [0, 0, 0, 1])).perform()
         pycram.orm.base.ProcessMetaData().description = "pickUpAction_test"

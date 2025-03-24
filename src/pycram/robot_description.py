@@ -8,6 +8,7 @@ from enum import Enum
 from itertools import product
 
 import numpy as np
+from scipy.spatial.transform import Rotation as R
 from typing_extensions import List, Dict, Union, Optional, Tuple
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, Rotations
@@ -718,6 +719,14 @@ class EndEffectorDescription:
     """
     List of all links of the fingers of the gripper
     """
+    grasps: Dict[GraspDescription, List[float]]
+    """
+    Dictionary of all grasp orientations of the end effector
+    """
+    approach_axis: List[float]
+    """
+    Relative axis along which the end effector is approaching an object
+    """
 
     def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject,
                  gripper_object_name: Optional[str] = None, opening_distance: Optional[float] = None,
@@ -744,7 +753,8 @@ class EndEffectorDescription:
         self.gripper_object_name = gripper_object_name
         self.opening_distance: Optional[float] = opening_distance
         self.fingers_link_names: Optional[List[str]] = fingers_link_names
-        self.grasps = {}
+        self.grasps: Dict[GraspDescription, List[float]] = {}
+        self.approach_axis = None
 
     def _init_links_joints(self):
         """
@@ -824,18 +834,38 @@ class EndEffectorDescription:
 
             self.grasps[grasp_description] = orientation
 
-    def get_grasp(self, grasp: Grasp, top_bot_grasp: Grasp = None, horizontal: bool = False) -> List[float]:
+    def get_grasp(self, approach_direction: Grasp, vertical_alignment: Grasp = None, rotate_gripper: bool = False) -> List[float]:
         """
         Retrieves the quaternion orientation of the end effector for a specific grasp.
 
-        :param grasp: Grasp from the Grasp enum
-        :param top_bot_grasp: Top or bottom grasp from the Grasp enum
-        :param horizontal: If True, the horizontal rotation is applied
+        :param approach_direction: The approach direction of the end effector.
+        :param vertical_alignment: The vertical alignment of the end effector.
+        :param rotate_gripper: True, the gripper should be rotated 90°.
 
         :return: List of floats representing the quaternion orientation of the end effector
         """
-        grasp_description = GraspDescription(grasp, top_bot_grasp, horizontal)
+        grasp_description = GraspDescription(approach_direction, vertical_alignment, rotate_gripper)
         return self.grasps[grasp_description]
+
+    def set_approach_axis(self, axis: List[float]):
+        """
+        Sets the approach axis for the robot's palm.
+
+        :param axis: A list representing the approach axis.
+        """
+        self.approach_axis = axis
+
+    def get_approach_axis(self) -> List[float]:
+        """
+        Retrieves the approach axis.
+
+        :return: A list representing the approach axis.
+        """
+        if self.approach_axis is None:
+            front_grasp = self.get_grasp(Grasp.FRONT, None, False)
+            self.approach_axis = R.from_quat(front_grasp).as_matrix()[0]
+        return self.approach_axis
+
 
 def create_manipulator_description(data: ManipulatorData,
                                    urdf_filename: str,

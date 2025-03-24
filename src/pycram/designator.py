@@ -464,31 +464,6 @@ class ObjectDesignatorDescription(DesignatorDescription):
                 [f"{f.name}={self.__getattribute__(f.name)}" for f in fields(self)] + [
                     f"pose={self.pose}"]) + ')'
 
-        def special_knowledge_adjustment_pose(self, grasp: GraspDescription, pose: Pose) -> Pose:
-            """
-            Get the adjusted target pose based on special knowledge for "grasp front".
-
-            :param grasp: From which side the object should be grasped
-            :param pose: Pose at which the object should be grasped, before adjustment
-            :return: The adjusted grasp pose
-            """
-            lt = LocalTransformer()
-            pose_in_object = lt.transform_pose(pose, self.world_object.tf_frame)
-
-            special_knowledge = []  # Initialize as an empty list
-            if self.obj_type in SPECIAL_KNOWLEDGE:
-                special_knowledge = SPECIAL_KNOWLEDGE[self.obj_type]
-
-            for key, value in special_knowledge:
-                if key == grasp.approach_direction:
-                    # Adjust target pose based on special knowledge
-                    pose_in_object.pose.position.x += value[0]
-                    pose_in_object.pose.position.y += value[1]
-                    pose_in_object.pose.position.z += value[2]
-                    loginfo("Adjusted target pose based on special knowledge for grasp: %s", grasp)
-                    return pose_in_object
-            return pose
-
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None):
         """
         Base of all object designator_description descriptions. Every object designator_description has the name and type of the object.

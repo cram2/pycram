@@ -137,11 +137,6 @@ class CostmapLocation(LocationDesignatorDescription):
     List of arms which should be tried out
     """
 
-    prepose_distance: float = 0.05
-    """
-    Distance of prepose distance to target pose
-    """
-
     ignore_collision_with: Optional[List[Object]] = dataclasses.field(default_factory=list)
     """
     List of objects with which the robot should not collide
@@ -222,7 +217,7 @@ class CostmapLocation(LocationDesignatorDescription):
 
         final_map = self.setup_costmaps(target, test_robot)
 
-        with UseProspectionWorld():
+        with (UseProspectionWorld()):
             for pose_candidate in PoseGenerator(final_map, number_of_samples=600):
                 pose_candidate.position.z = 0
                 test_robot.set_pose(pose_candidate)
@@ -246,20 +241,22 @@ class CostmapLocation(LocationDesignatorDescription):
                 for grasp_description in grasp_descriptions:
                     for arm in reachable_arms:
                         end_effector = test_robot.robot_description.get_arm_chain(arm).end_effector
+                        grasp_quaternion = end_effector.grasps[grasp_description]
+                        approach_axis = end_effector.get_approach_axis()
                         if self.object_in_hand:
                             current_target_pose = self.object_in_hand.world_object.attachments[
                                 World.robot].get_child_link_target_pose_given_parent(target)
+                            approach_offset_cm = self.object_in_hand.world_object.get_approach_offset()
                         else:
-                            current_target_pose = target.copy() if isinstance(target,
-                                                                              Pose) else target.get_pose().copy()
-                            current_target_pose.rotate_by_quaternion(end_effector.grasps[grasp_description])
+                            current_target_pose = target.copy() if isinstance(target, Pose) else \
+                                target.get_grasp_pose(end_effector, grasp_description)
+                            current_target_pose.rotate_by_quaternion(grasp_quaternion)
+                            approach_offset_cm = 0.1 if isinstance(target, Pose) else target.get_approach_offset()
 
                         lift_pose = current_target_pose.copy()
                         lift_pose.position.z += 0.1
 
-                        retract_pose = current_target_pose.copy()
-                        retract_pose.position.x -= self.prepose_distance
-                        retract_pose = LocalTransformer().transform_pose(retract_pose, "map")
+                        retract_pose = current_target_pose.translate_along_axis(approach_axis, -approach_offset_cm)
 
                         target_sequence = ([lift_pose, current_target_pose, retract_pose] if self.object_in_hand
                                            else [retract_pose, current_target_pose, lift_pose])
@@ -284,20 +281,17 @@ class AccessingLocation(LocationDesignatorDescription):
         """
 
     def __init__(self, handle_desig: ObjectPart.Object,
-                 robot_desig: ObjectDesignatorDescription.Object,
-                 prepose_distance: float = 0.03):
+                 robot_desig: ObjectDesignatorDescription.Object):
         """
         Describes a position from where a drawer can be opened. For now this position should be calculated before the
         drawer will be opened. Calculating the pose while the drawer is open could lead to problems.
 
         :param handle_desig: ObjectPart designator for handle of the drawer
         :param robot_desig: Object designator for the robot which should open the drawer
-        :param prepose_distance: Distance to the target pose where the robot should be checked for reachability.
         """
         super().__init__()
         self.handle: ObjectPart.Object = handle_desig
         self.robot: ObjectDesignatorDescription.Object = robot_desig.world_object
-        self.prepose_distance = prepose_distance
 
     def ground(self) -> Location:
         """
