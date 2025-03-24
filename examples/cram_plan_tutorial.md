@@ -154,8 +154,9 @@ def plan(obj_desig: Object, torso=None, place=counter_name):
         if torso is None:
             torso={"torso_lift_joint": 0.2}
         MoveJointsMotion(list(torso.keys()), list(torso.values())).perform()
-        grasp = GraspDescription(Grasp.FRONT, Grasp.TOP if issubclass(obj_desig.world_object.obj_type, Spoon) else None,
-                                 False)        pickup_arm = Arms.RIGHT
+        grasp = GraspDescription(Grasp.FRONT, Grasp.TOP if issubclass(obj_desig.obj_type, Spoon) else None,
+                                 False)        
+        pickup_arm = Arms.RIGHT
         location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, grasp_descriptions=[grasp], reachable_arm=pickup_arm)
         print()
         NavigateActionDescription(location, True).resolve().perform()
@@ -189,7 +190,7 @@ def plan(obj_desig: Object, torso=None, place=counter_name):
                 pose_island = Pose(pose_island.position_as_list(), orientation)
                 pose_island.position.z += 0.07
                 print(pose_island.position)
-                place_location = CostmapLocation(target=pose_island, reachable_for=robot_desig,  reachable_arms=[pickup_arm])
+                place_location = CostmapLocation(target=pose_island, reachable_for=robot_desig,  reachable_arm=[pickup_arm])
                 pose = place_location.resolve()
                 NavigateAction(pose, True).perform()
                 PlaceAction(object_designator=obj_desig, target_location=pose_island,

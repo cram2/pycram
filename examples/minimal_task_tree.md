@@ -58,17 +58,17 @@ def plan():
     with simulated_robot:
         ParkArmsAction(Arms.BOTH).perform()
         MoveTorsoActionDescription([TorsoState.MID]).resolve().perform()
-        pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig)
-        pickup_arm = Arms.RIGHT
+        pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
+        pickup_arm = pickup_pose.arm
         NavigateActionDescription(target_location=pickup_pose).resolve().perform()
         grasp = pickup_pose.grasp_description
-        PickUpActionDescription(object_designator=cereal_desig, arm=[pickup_arm], grasp_descriptions=grasp).resolve().perform()
+        PickUpActionDescription(object_designator=cereal_desig, arm=[pickup_arm], grasp_description=grasp).resolve().perform()
         ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
 
         place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(),
                                            cereal_desig.resolve()).resolve()
 
-        place_stand = CostmapLocation(place_island, reachable_for=robot_desig, reachable_arms=[pickup_arm],  object_in_hand=cereal_desig.resolve())
+        place_stand = CostmapLocation(place_island, reachable_for=robot_desig, reachable_arm=[pickup_arm],  object_in_hand=cereal_desig.resolve())
 
         NavigateActionDescription(target_location=place_stand).resolve().perform()
 

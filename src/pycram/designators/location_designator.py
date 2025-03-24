@@ -150,6 +150,8 @@ class CostmapLocation(LocationDesignatorDescription):
             if visible_for or reachable_for:
                 robot_object = visible_for if visible_for else reachable_for
                 test_robot = World.current_world.get_prospection_object_for_object(robot_object)
+            else:
+                test_robot = World.current_world.robot
 
             ignore_collision_with = [World.current_world.get_prospection_object_for_object(obj)
                                      for obj in ignore_collision_with]
@@ -208,7 +210,6 @@ class CostmapLocation(LocationDesignatorDescription):
                         if is_reachable:
                             yield GraspPose(pose_candidate.position_as_list(), pose_candidate.orientation_as_list(),
                                             arm=reachable_arm, grasp_description=grasp_desc)
-                            # yield self.Location(pose_candidate, arm, grasp_description)
 
 
 class AccessingLocation(LocationDesignatorDescription):
@@ -282,7 +283,7 @@ class AccessingLocation(LocationDesignatorDescription):
             """
             Sets up the costmaps for the given handle and robot. The costmaps are merged and stored in the final_map.
             """
-            ground_pose = Pose(self.handle.part_pose.position_as_list())
+            ground_pose = Pose(self.handle.pose.position_as_list())
             ground_pose.position.z = 0
             occupancy = OccupancyCostmap(distance_to_obstacle=0.25, from_ros=False, size=200, resolution=0.02,
                                          origin=ground_pose)
@@ -322,7 +323,7 @@ class AccessingLocation(LocationDesignatorDescription):
                 container_joint: handle.parent_entity.get_joint_limits(container_joint)[1] / 1.5},
                                                    handle.name)
 
-            joint_type = handle.parent_entity[container_joint].type
+            joint_type = handle.parent_entity.joints[container_joint].type
             final_map = self.setup_costmaps()
             if joint_type == JointType.PRISMATIC:
                 self.adjust_map_for_drawer_opening(final_map, init_pose, goal_pose)

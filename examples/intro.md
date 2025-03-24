@@ -341,15 +341,16 @@ with simulated_robot:
     pickup_pose = CostmapLocation(target=cereal_desig, reachable_for=robot_desig, reachable_arm=pickup_arm)
     
     NavigateActionDescription(target_location=pickup_pose).resolve().perform()
-
-    PickUpActionDescription(object_designator=cereal_desig, arm=[pickup_arm], grasp=[Grasp.FRONT]).resolve().perform()
+    
+    grasp_description = GraspDescription(Grasp.FRONT, None, False)
+    PickUpActionDescription(object_designator=cereal_desig, arm=[pickup_arm], grasp_description=grasp_description).resolve().perform()
 
     ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
 
     place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(),
                                            cereal_desig.resolve())
 
-    place_stand = CostmapLocation(place_island, reachable_for=robot_desig, reachable_arms=[pickup_arm], object_in_hand=cereal_desig.resolve())
+    place_stand = CostmapLocation(place_island, reachable_for=robot_desig, reachable_arm=[pickup_arm], object_in_hand=cereal_desig.resolve())
 
     NavigateActionDescription(target_location=place_stand).resolve().perform()
 

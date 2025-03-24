@@ -58,7 +58,7 @@ else:
     viz_marker_publisher = VizMarkerPublisher()
     
 apartment = Object("apartment", Apartment, "apartment.urdf")
-pr2 = Object("pr2", Robot, "pr2.urdf")
+pr2 = Object("pr2", Robot, "pr2.urdf", pose=Pose([1, 2, 0]))
 ```
 
 Next up we will create the location designator description, the {meth}`~pycram.designators.location_designator.CostmapLocation` that we will be using needs a
@@ -179,7 +179,7 @@ robot_desig = BelieveObject(names=["pr2"]).resolve()
 location_description = CostmapLocation(target=target, visible_for=robot_desig)
 
 for pose in location_description:
-    print(pose.pose)
+    print(pose)
 ```
 
 ## Accessing Locations
@@ -201,7 +201,7 @@ robot_desig = BelieveObject(types=[Robot])
 
 access_location = AccessingLocation(handle_desig.resolve(), robot_desig.resolve(),
                                     prepose_distance=0.03).resolve()
-print(access_location.pose)
+print(access_location)
 ```
 
 ## Giskard Location
@@ -222,7 +222,7 @@ if "/giskard" in get_node_names():
     robot_desig = BelieveObject(names=["pr2"]).resolve()
     
     loc = GiskardLocation(target=Pose([1, 1, 1]), reachable_for=robot_desig).resolve()
-    print(loc.pose)
+    print(loc)
 ```
 
 If you are finished with this example you can close the world with the following cell:

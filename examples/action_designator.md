@@ -179,7 +179,7 @@ with simulated_robot:
     grasp = GraspDescription(Grasp.FRONT, None, False)
     PickUpActionDescription(object_designator=milk_desig,
                  arm=[arm],
-                 grasp=grasp).resolve().perform()
+                 grasp_description=grasp).resolve().perform()
 
     PlaceActionDescription(object_designator=milk_desig,
                 target_location=[Pose([2.4, 1.8, 1], 
