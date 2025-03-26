@@ -22,19 +22,19 @@ class ParameterDigest:
     """
     Class of the parameter.
     """
-    parameter_name: str
+    name: str
     """
     Name of the parameter.
     """
-    docstring_of_parameter_clazz: str
+    docstring_of_clazz: str
     """
     Docstring of the parameter's class.
     """
-    docstring_of_parameter: str
+    docstring: str
     """
     Docstring of the parameter itself (individual to each performable).
     """
-    parameter_default_value: Optional[Any]
+    default_value: Optional[Any]
     """
     Holds the default value of the parameter if set.
     """
@@ -52,7 +52,7 @@ class ParameterDigest:
         :return: A list containing the string representation of the default value or
             `None` if no default value exists.
         """
-        return None if self.parameter_default_value == inspect.Parameter.empty else [str(self.parameter_default_value)]
+        return None if self.default_value == inspect.Parameter.empty else [str(self.default_value)]
 
 
 class ActionAbstractDigest:
@@ -99,10 +99,10 @@ class ActionAbstractDigest:
             parameter_digests.append(
                 ParameterDigest(
                     clazz=param_clazz,
-                    parameter_name=param,
-                    docstring_of_parameter_clazz=param_clazz.__doc__,
-                    docstring_of_parameter=class_param_comment[param],
-                    parameter_default_value=parameters_inspection[param].default,
+                    name=param,
+                    docstring_of_clazz=param_clazz.__doc__,
+                    docstring=class_param_comment[param],
+                    default_value=parameters_inspection[param].default,
                     is_enum=param_clazz.__class__ == EnumMeta,
                     is_optional=(type(None) in get_args(param_clazz)) if get_origin(param_clazz) is Union else False
                 ))
@@ -204,7 +204,7 @@ def create_ontology_from_performables(
                 enum_value_class(enum_member)
 
         parameter_clazz = types.new_class(classname, (Parameter,))
-        parameter_clazz.has_description = param.docstring_of_parameter_clazz
+        parameter_clazz.has_description = param.docstring_of_clazz
         if param.is_enum:
             create_enum_onto_class_and_instances()
         return parameter_clazz
@@ -222,8 +222,8 @@ def create_ontology_from_performables(
             params = []
             for param_digest in clazz_digest.parameters:
                 param_instance = all_param_classes_to_ontological_class[unwrap_classname(param_digest)](
-                    param_digest.parameter_name)
-                param_instance.has_description = [param_digest.docstring_of_parameter]
+                    param_digest.name)
+                param_instance.has_description = [param_digest.docstring]
                 param_instance.is_optional = [True] if param_digest.is_optional else [False]
                 if param_digest.get_default_value():
                     param_instance.has_default_value = param_digest.get_default_value()
