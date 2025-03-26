@@ -4,8 +4,10 @@ from random_events.utils import recursive_subclasses
 from random_events.utils import get_full_class_name
 from typing_extensions import Dict, List, Type, Optional, Any, get_origin, Union, get_args
 from dataclasses import dataclass
+from pathlib import Path
 import inspect
 import ast
+import os
 import re
 
 from ..designators.action_designator import ActionAbstract
@@ -108,12 +110,12 @@ class ActionAbstractDigest:
 
 
 def create_ontology_from_performables(
-        outputfile: str = "performables.owl",
+        output_path: Path = "./performables.owl",
         abstract_actions_to_parse: Union[List[Type[ActionAbstract]],Type[ActionAbstract]] = None) -> None:
     """
     Create an ontology from the performables.
 
-    :param outputfile: Name of the output file.
+    :param output_path: Path of the output ontology file..
     :param abstract_actions_to_parse: ActionAbstract classes to parse.
     If not set, all subclasses of ActionAbstract will be parsed.
     """
@@ -243,4 +245,6 @@ def create_ontology_from_performables(
     for clazz_digest in classes:
         create_performable_onto_class()
 
-    output_ontology.save(file=outputfile, format="rdfxml")
+    (dirname, filename) = os.path.split(output_path)
+    os.makedirs(dirname, exist_ok=True)
+    output_ontology.save(file=output_path, format="rdfxml")
