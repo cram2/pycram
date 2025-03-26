@@ -1,4 +1,4 @@
-from ontomatic.TestOntomaticPerformable import TestOntomaticPerformable
+from ontomatic.ontomatic_performable_test_dummy import TestOntomaticPerformable
 from pycram.ontomatic.performables_to_ontology import create_ontology_from_performables
 from tempfile import NamedTemporaryFile
 import owlready2
