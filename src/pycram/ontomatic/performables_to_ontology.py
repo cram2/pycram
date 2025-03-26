@@ -26,10 +26,6 @@ class ParameterDigest:
     """
     Name of the parameter.
     """
-    docstring_of_clazz: str
-    """
-    Docstring of the parameter's class.
-    """
     docstring: str
     """
     Docstring of the parameter itself (individual to each performable).
@@ -38,14 +34,16 @@ class ParameterDigest:
     """
     Holds the default value of the parameter if set.
     """
-    is_enum: bool
-    """
-    True if the parameter is an enum. Else False.
-    """
-    is_optional: bool
-    """
-    If the parameter type hint is optional, this will be True. Else False.
-    """
+
+    @property
+    def docstring_of_clazz(self) -> str: return self.clazz.__doc__
+
+    @property
+    def is_enum(self) -> bool: return self.clazz.__class__ == EnumMeta
+
+    @property
+    def is_optional(self) -> bool: return (type(None) in get_args(self.clazz)) if get_origin(
+        self.clazz) is Union else False
 
     def get_default_value(self) -> Optional[List[str]]:
         """
@@ -100,18 +98,15 @@ class ActionAbstractDigest:
                 ParameterDigest(
                     clazz=param_clazz,
                     name=param,
-                    docstring_of_clazz=param_clazz.__doc__,
                     docstring=class_param_comment[param],
                     default_value=parameters_inspection[param].default,
-                    is_enum=param_clazz.__class__ == EnumMeta,
-                    is_optional=(type(None) in get_args(param_clazz)) if get_origin(param_clazz) is Union else False
                 ))
         return parameter_digests
 
 
 def create_ontology_from_performables(
         output_path: Path = "./performables.owl",
-        abstract_actions_to_parse: Union[List[Type[ActionAbstract]],Type[ActionAbstract]] = None) -> None:
+        abstract_actions_to_parse: Union[List[Type[ActionAbstract]], Type[ActionAbstract]] = None) -> None:
     """
     Create an ontology from the performables.
 
