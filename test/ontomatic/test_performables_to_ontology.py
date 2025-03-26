@@ -9,21 +9,21 @@ import unittest
 class TestOntologyCreation(unittest.TestCase):
     def test_Performables_parsed(self):
         tmp_file = NamedTemporaryFile(mode="w+", suffix=".owl")
-        create_ontology_from_performables(outputfile=tmp_file.name)
+        create_ontology_from_performables(output_path=tmp_file.name)
         ontology = owlready2.get_ontology(tmp_file.name).load()
         performable_class = next(filter(lambda c: c._name == 'Performable', ontology.classes()))
         self.assertTrue(len(performable_class.instances()) > 0)
 
     def test_Parameters_parsed(self):
         tmp_file = NamedTemporaryFile(mode="w+", suffix=".owl")
-        create_ontology_from_performables(outputfile=tmp_file.name)
+        create_ontology_from_performables(output_path=tmp_file.name)
         ontology = owlready2.get_ontology(tmp_file.name).load()
         parameter_class = next(filter(lambda c: c._name == 'Parameter', ontology.classes()))
         self.assertTrue(len(parameter_class.instances()) > 0)
 
     def test_Enums_parsed(self):
         tmp_file = NamedTemporaryFile(mode="w+", suffix=".owl")
-        create_ontology_from_performables(outputfile=tmp_file.name)
+        create_ontology_from_performables(output_path=tmp_file.name)
         ontology = owlready2.get_ontology(tmp_file.name).load()
         enum_class = next(filter(lambda c: c._name == 'Enum', ontology.ontology.classes()))
         self.assertTrue(len(enum_class.instances()) > 0)
@@ -44,7 +44,7 @@ class TestOntologyCreation(unittest.TestCase):
         expected_bool_param_description = "The true meaning"
 
         tmp_file = NamedTemporaryFile(mode="w+", suffix=".owl")
-        create_ontology_from_performables(outputfile=tmp_file.name, abstract_actions_to_parse=TestOntomaticPerformable)
+        create_ontology_from_performables(output_path=tmp_file.name, abstract_actions_to_parse=TestOntomaticPerformable)
         ontology = owlready2.get_ontology(tmp_file.name).load()
 
         clazz_GripperState = next(filter(lambda c: c._name == 'GripperState', ontology.classes()))
