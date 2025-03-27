@@ -10,6 +10,7 @@ from time import sleep
 
 import numpy as np
 from sqlalchemy.orm import Session
+from ..plan import with_plan
 
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.dataclasses import FrozenObject
@@ -770,7 +771,9 @@ class NavigateAction(ActionAbstract):
         if not pose_validator.is_error_acceptable(World.robot.pose, self.target_location):
             raise NavigationGoalNotReachedError(World.robot.pose, self.target_location)
 
+
     @classmethod
+    @with_plan
     def description(cls, target_location: Union[Iterable[Pose], Pose],
                     keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states) -> \
             PartialDesignator[Type[NavigateAction]]:
@@ -852,6 +855,7 @@ class TransportAction(ActionAbstract):
         return action
 
     @classmethod
+    @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     target_location: Union[Iterable[Pose], Pose],
                     arm: Union[Iterable[Arms], Arms] = None,
@@ -895,6 +899,7 @@ class LookAtAction(ActionAbstract):
                 raise LookAtGoalNotReached(World.robot, self.target)
 
     @classmethod
+    @with_plan
     def description(cls, target: Union[Iterable[Pose], Pose]) -> PartialDesignator[Type[LookAtAction]]:
         return PartialDesignator(LookAtAction, target=target)
 
@@ -938,6 +943,7 @@ class DetectAction(ActionAbstract):
             raise PerceptionObjectNotFound(self.object_designator_description, self.technique, self.region)
 
     @classmethod
+    @with_plan
     def description(cls, technique: Union[Iterable[DetectionTechnique], DetectionTechnique],
                     state: Union[Iterable[DetectionState], DetectionState] = None,
                     object_designator_description: Union[Iterable[Object], Object] = None,
@@ -983,6 +989,7 @@ class OpenAction(ActionAbstract):
         validate_close_open(self.object_designator, self.arm, OpenAction)
 
     @classmethod
+    @with_plan
     def description(cls, object_designator_description: Union[Iterable[ObjectDescription.Link], ObjectDescription.Link],
                     arm: Union[Iterable[Arms], Arms] = None,
                     grasping_prepose_distance: Union[Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
@@ -1048,6 +1055,7 @@ class CloseAction(ActionAbstract):
         return action
 
     @classmethod
+    @with_plan
     def description(cls, object_designator_description: Union[Iterable[ObjectDescription.Link], ObjectDescription.Link],
                     arm: Union[Iterable[Arms], Arms] = None,
                     grasping_prepose_distance: Union[Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
@@ -1148,6 +1156,7 @@ class GraspingAction(ActionAbstract):
         return action
 
     @classmethod
+    @with_plan
     def description(cls, object_desig: Union[Iterable[Object], Object],
                     arm: Union[Iterable[Arms], Arms] = None,
                     prepose_distance: Union[Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
@@ -1196,6 +1205,7 @@ class FaceAtAction(ActionAbstract):
         pass
 
     @classmethod
+    @with_plan
     def description(cls, pose: Union[Iterable[Pose], Pose],
                     keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.face_at_keep_joint_states) -> \
             PartialDesignator[Type[FaceAtAction]]:
@@ -1254,6 +1264,7 @@ class MoveAndPickUpAction(ActionAbstract):
         pass
 
     @classmethod
+    @with_plan
     def description(cls, standing_position: Union[Iterable[Pose], Pose],
                     object_designator: Union[Iterable[Pose], Pose],
                     arm: Union[Iterable[Arms], Arms] = None,
@@ -1311,6 +1322,7 @@ class MoveAndPlaceAction(ActionAbstract):
         pass
 
     @classmethod
+    @with_plan
     def description(cls, standing_position: Union[Iterable[Pose], Pose],
                     object_designator: Union[Iterable[Object], Object],
                     target_location: Union[Iterable[Pose], Pose],
@@ -1395,6 +1407,7 @@ class PouringAction(ActionAbstract):
         pass
 
     @classmethod
+    @with_plan
     def description(cls, object: Union[Iterable[Object], Object],
                     tool: Union[Iterable[Object], Object],
                     arm: Optional[Union[Iterable[Arms], Arms]] = None,
