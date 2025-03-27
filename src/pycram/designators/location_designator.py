@@ -448,20 +448,15 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         :yield: An instance of SemanticCostmapLocation.Location with the found valid position of the Costmap.
         """
         for params in self.generate_permutations():
-            part_of = params["part_of"]
-            link_name = params["link_name"]
-            edges_only = params["edges_only"]
-            horizontal_edges_only = params["horizontal_edges_only"]
-            edge_size_in_meters = params["edge_size_in_meters"]
-            for_object = params["for_object"]
+            params_box = Box(params)
 
-            self.sem_costmap = SemanticCostmap(part_of, link_name)
-            if edges_only or horizontal_edges_only:
-                self.sem_costmap = self.sem_costmap.get_edges_map(edge_size_in_meters,
-                                                                  horizontal_only=horizontal_edges_only)
+            self.sem_costmap = SemanticCostmap(params_box.part_of, params_box.link_name)
+            if params_box.edges_only or params_box.horizontal_edges_only:
+                self.sem_costmap = self.sem_costmap.get_edges_map(params_box.edge_size_in_meters,
+                                                                  horizontal_only=params_box.horizontal_edges_only)
             height_offset = 0
-            if for_object:
-                min_p, max_p = for_object.get_axis_aligned_bounding_box().get_min_max_points()
+            if params_box.for_object:
+                min_p, max_p = params_box.for_object.get_axis_aligned_bounding_box().get_min_max_points()
                 height_offset = (max_p.z - min_p.z) / 2
             for maybe_pose in PoseGenerator(self.sem_costmap):
                 maybe_pose.position.z += height_offset
