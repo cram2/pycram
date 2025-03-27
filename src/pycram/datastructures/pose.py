@@ -738,8 +738,13 @@ class Transform(TransformStamped):
 class GraspPose(Pose):
 
     arm: Arms = None
-
+    """
+    The arm with which the grasp pose is attached to.
+    """
     grasp_description: GraspDescription
+    """
+    The grasp description of the grasp.
+    """
 
     def __init__(self, position: Optional[Sequence[float]] = None, orientation: Optional[Sequence[float]] = None,
                  frame: str = "map", time: Time = None, arm: Arms = None, grasp_description: GraspDescription = None):

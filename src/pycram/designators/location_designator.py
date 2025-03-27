@@ -1,7 +1,8 @@
 import dataclasses
 
 import numpy as np
-from typing_extensions import List, Union, Iterable, Optional, Callable, Iterator
+from box import Box
+from typing_extensions import List, Union, Iterable, Optional, Callable, Iterator, Sequence, Dict
 
 from .object_designator import ObjectPart
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap, Costmap
@@ -98,9 +99,12 @@ class CostmapLocation(LocationDesignatorDescription):
         """
         return next(iter(self))
 
-    def setup_costmaps(self, target: Pose, robot: Object) -> Costmap:
+    @staticmethod
+    def setup_costmaps(target: Pose, robot: Object, visible_for, reachable_for) -> Costmap:
         """
         Sets up the costmaps for the given target and robot. The costmaps are merged and stored in the final_map
+
+
         """
         target_pose = Pose([target.position.x, target.position.y, target.position.z],
                            [target.orientation.x, target.orientation.y, target.orientation.z, target.orientation.w])
@@ -110,17 +114,71 @@ class CostmapLocation(LocationDesignatorDescription):
         occupancy = OccupancyCostmap(0.32, False, 200, 0.02, ground_pose)
         final_map = occupancy
 
-        if self.visible_for:
+        if visible_for:
             camera = robot.robot_description.get_default_camera()
             visible = VisibilityCostmap(camera.minimal_height, camera.maximal_height, 200, 0.02,
                                         Pose(target_pose.position_as_list()), target_object=target, robot=robot)
             final_map += visible
 
-        if self.reachable_for:
+        if reachable_for:
             gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
             final_map += gaussian
 
         return final_map
+
+    @staticmethod
+    def create_target_sequence(grasp_description: GraspDescription, target: Union[Pose, Object], robot: Object,
+                               prepose_distance: float, object_in_hand: Object, reachable_arm: Arms) -> \
+            List[Pose]:
+        """
+        Creates a sequence of poses which need to be reachable in this order
+
+        :param grasp_description: Grasp description to be used for grasping
+        :param target: The target of reachability, either a pose or an object
+        :param robot: The robot that should be checked for reachability
+        :param prepose_distance: Distance between the first pose in the sequence and the second
+        :param object_in_hand: An object that is held if any
+        :param reachable_arm: The arm which should be checked for reachability
+        :return: A list of poses that need to be reachable in this order
+        """
+        end_effector = robot.robot_description.get_arm_chain(reachable_arm).end_effector
+        if object_in_hand:
+            current_target_pose = object_in_hand.attachments[
+                World.robot].get_child_link_target_pose_given_parent(target)
+        else:
+            current_target_pose = target.copy() if isinstance(target,
+                                                              Pose) else target.get_pose().copy()
+            current_target_pose.rotate_by_quaternion(end_effector.grasps[grasp_description])
+
+        lift_pose = current_target_pose.copy()
+        lift_pose.position.z += 0.1
+
+        retract_pose = current_target_pose.copy()
+        retract_pose.position.x -= prepose_distance
+        retract_pose = LocalTransformer().transform_pose(retract_pose, "map")
+
+        target_sequence = ([lift_pose, current_target_pose, retract_pose] if object_in_hand
+                           else [retract_pose, current_target_pose, lift_pose])
+
+        return target_sequence
+
+    @staticmethod
+    def create_allowed_collisions(ignore_collision_with: List[Object], object_in_hand: Object) -> Dict[Object, str]:
+        """
+        Creates a dict of object which are allowed to collide with the robot without impacting reachability
+
+        :param ignore_collision_with: List of objects for which collision should be ignored
+        :param object_in_hand: An object that the robot might hold
+        :return: A dict of objects that link to their names
+        """
+        ignore_collision_with = [World.current_world.get_prospection_object_for_object(obj)
+                                 for obj in ignore_collision_with]
+
+        allowed_collision = {object: object.link_id_to_name[-1] for object in ignore_collision_with}
+        if object_in_hand:
+            prospection_object = World.current_world.get_prospection_object_for_object(object_in_hand)
+            allowed_collision.update({prospection_object: prospection_object.link_id_to_name[-1]})
+        return allowed_collision
 
     def __iter__(self) -> Iterator[Pose]:
         """
@@ -136,33 +194,20 @@ class CostmapLocation(LocationDesignatorDescription):
            :yield: An instance of CostmapLocation.Location with a valid position that satisfies the given constraints
            """
         for params in self.generate_permutations():
-            target = params["target"]
-            reachable_for = params["reachable_for"]
-            visible_for = params["visible_for"]
-            reachable_arm = params["reachable_arm"]
-            prepose_distance = params["prepose_distance"]
-            ignore_collision_with = params["ignore_collision_with"]
-            grasp_description = params["grasp_descriptions"]
-            object_in_hand = params["object_in_hand"]
-            # This ensures that the costmaps always get a position as their origin.
-            target = target.copy() if isinstance(target, Pose) else target
+            params_box = Box(params)
+            # Target is either a pose or an object since the object is later needed for the visibility validator
+            target = params_box.target.copy() if isinstance(params_box.target, Pose) else params_box.target
 
-            test_robot = None
-            if visible_for or reachable_for:
-                robot_object = visible_for if visible_for else reachable_for
+            if params_box.visible_for or params_box.reachable_for:
+                robot_object = params_box.visible_for if params_box.visible_for else params_box.reachable_for
                 test_robot = World.current_world.get_prospection_object_for_object(robot_object)
             else:
                 test_robot = World.current_world.robot
 
-            ignore_collision_with = [World.current_world.get_prospection_object_for_object(obj)
-                                     for obj in ignore_collision_with]
+            allowed_collision = self.create_allowed_collisions(params_box.ignore_collision_with,
+                                                               params_box.object_in_hand)
 
-            allowed_collision = {object: object.link_id_to_name[-1] for object in ignore_collision_with}
-            if object_in_hand:
-                prospection_object = World.current_world.get_prospection_object_for_object(object_in_hand)
-                allowed_collision.update({prospection_object: prospection_object.link_id_to_name[-1]})
-
-            final_map = self.setup_costmaps(target, test_robot)
+            final_map = self.setup_costmaps(target, test_robot, params_box.visible_for, params_box.reachable_for)
 
             with UseProspectionWorld():
                 for pose_candidate in PoseGenerator(final_map, number_of_samples=600):
@@ -173,45 +218,34 @@ class CostmapLocation(LocationDesignatorDescription):
                     except RobotInCollision:
                         continue
 
-                    if not (reachable_for or visible_for):
+                    if not (params_box.reachable_for or params_box.visible_for):
                         yield pose_candidate
                         continue
 
-                    if visible_for and not visibility_validator(test_robot, target):
+                    if params_box.visible_for and not visibility_validator(test_robot, target):
                         continue
 
-                    if not reachable_for:
+                    if not params_box.reachable_for:
                         yield pose_candidate
                         continue
 
                     grasp_descriptions = [
-                        grasp_description] if grasp_description else target.calculate_grasp_descriptions(test_robot)
+                        params_box.grasp_descriptions] if params_box.grasp_descriptions else target.calculate_grasp_descriptions(
+                        test_robot)
+
                     for grasp_desc in grasp_descriptions:
-                        end_effector = test_robot.robot_description.get_arm_chain(reachable_arm).end_effector
-                        if object_in_hand:
-                            current_target_pose = object_in_hand.attachments[
-                                World.robot].get_child_link_target_pose_given_parent(target)
-                        else:
-                            current_target_pose = target.copy() if isinstance(target,
-                                                                              Pose) else target.get_pose().copy()
-                            current_target_pose.rotate_by_quaternion(end_effector.grasps[grasp_desc])
 
-                        lift_pose = current_target_pose.copy()
-                        lift_pose.position.z += 0.1
-
-                        retract_pose = current_target_pose.copy()
-                        retract_pose.position.x -= prepose_distance
-                        retract_pose = LocalTransformer().transform_pose(retract_pose, "map")
-
-                        target_sequence = ([lift_pose, current_target_pose, retract_pose] if object_in_hand
-                                           else [retract_pose, current_target_pose, lift_pose])
+                        target_sequence = self.create_target_sequence(grasp_desc, target, test_robot,
+                                                                      params_box.prepose_distance,
+                                                                      params_box.object_in_hand,
+                                                                      params_box.reachable_arm)
 
                         is_reachable = pose_sequence_reachability_validator(test_robot, target_sequence,
-                                                                            arm=reachable_arm,
+                                                                            arm=params_box.reachable_arm,
                                                                             allowed_collision=allowed_collision)
                         if is_reachable:
                             yield GraspPose(pose_candidate.position_as_list(), pose_candidate.orientation_as_list(),
-                                            arm=reachable_arm, grasp_description=grasp_desc)
+                                            arm=params_box.reachable_arm, grasp_description=grasp_desc)
 
 
 class AccessingLocation(LocationDesignatorDescription):
@@ -293,6 +327,39 @@ class AccessingLocation(LocationDesignatorDescription):
 
         return final_map
 
+    def create_target_sequence(self, params_box: Box, final_map: Costmap) -> List[Pose]:
+        """
+        Creates the sequence of target poses
+
+        :param params_box:
+        :param final_map:
+        :return:
+        """
+        # Find a Joint that moves with the handle in the URDF tree
+        container_joint = params_box.handle.parent_entity.find_joint_above_link(params_box.handle.name)
+
+        init_pose = link_pose_for_joint_config(params_box.handle.parent_entity, {
+            container_joint: params_box.handle.parent_entity.get_joint_limits(container_joint)[0]},
+                                               params_box.handle.name)
+
+        # Calculate the pose the handle would be in if the drawer was to be fully opened
+        goal_pose = link_pose_for_joint_config(params_box.handle.parent_entity, {
+            container_joint: params_box.handle.parent_entity.get_joint_limits(container_joint)[1] - 0.05},
+                                               params_box.handle.name)
+
+        # Handle position for calculating rotation of the final pose
+        half_pose = link_pose_for_joint_config(params_box.handle.parent_entity, {
+            container_joint: params_box.handle.parent_entity.get_joint_limits(container_joint)[1] / 1.5},
+                                               params_box.handle.name)
+
+        joint_type = params_box.handle.parent_entity.joints[container_joint].type
+
+        if joint_type == JointType.PRISMATIC:
+            self.adjust_map_for_drawer_opening(final_map, init_pose, goal_pose)
+
+        target_sequence = [init_pose, half_pose, goal_pose]
+        return target_sequence
+
     def __iter__(self) -> Iterator[Pose]:
         """
         Creates poses from which the robot can open the drawer specified by the ObjectPart designator describing the
@@ -302,33 +369,14 @@ class AccessingLocation(LocationDesignatorDescription):
         :yield: A location designator containing the pose and the arms that can be used.
         """
         for params in self.generate_permutations():
-            handle = params["handle_desig"]
-            robot = params["robot_desig"]
+            params_box = Box(params)
 
-            # Find a Joint that moves with the handle in the URDF tree
-            container_joint = handle.parent_entity.find_joint_above_link(handle.name)
+            final_map = self.setup_costmaps(params_box.handle)
 
-            init_pose = link_pose_for_joint_config(handle.parent_entity, {
-                container_joint: handle.parent_entity.get_joint_limits(container_joint)[0]},
-                                                   handle.name)
+            target_sequence = self.create_target_sequence(params_box, final_map)
+            half_pose = target_sequence[1]
 
-            # Calculate the pose the handle would be in if the drawer was to be fully opened
-            goal_pose = link_pose_for_joint_config(handle.parent_entity, {
-                container_joint: handle.parent_entity.get_joint_limits(container_joint)[1] - 0.05},
-                                                   handle.name)
-
-            # Handle position for calculating rotation of the final pose
-            half_pose = link_pose_for_joint_config(handle.parent_entity, {
-                container_joint: handle.parent_entity.get_joint_limits(container_joint)[1] / 1.5},
-                                                   handle.name)
-
-            joint_type = handle.parent_entity.joints[container_joint].type
-            final_map = self.setup_costmaps(handle)
-            if joint_type == JointType.PRISMATIC:
-                self.adjust_map_for_drawer_opening(final_map, init_pose, goal_pose)
-
-            target_sequence = [init_pose, half_pose, goal_pose]
-            test_robot = World.current_world.get_prospection_object_for_object(robot)
+            test_robot = World.current_world.get_prospection_object_for_object(params_box.robot)
 
             with UseProspectionWorld():
                 orientation_generator = lambda p, o: PoseGenerator.generate_orientation(p, half_pose)

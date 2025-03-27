@@ -106,7 +106,7 @@ class PoseGenerator(Iterable[Pose]):
 
 
 def visibility_validator(robot: Object,
-                         object_or_pose: Tuple[Object, Pose]) -> bool:
+                         object_or_pose: Union[Object, Pose]) -> bool:
     """
     This method validates if the robot can see the target position from a given
     pose candidate. The target position can either be a position, in world coordinate

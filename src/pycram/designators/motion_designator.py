@@ -316,8 +316,6 @@ class OpeningMotion(BaseMotion):
 
     def insert(self, session: Session, *args, **kwargs) -> ORMOpeningMotion:
         motion = super().insert(session)
-        # op = self.object_part.insert(session)
-        # motion.object = op
         session.add(motion)
 
         return motion
@@ -348,8 +346,6 @@ class ClosingMotion(BaseMotion):
 
     def insert(self, session: Session, *args, **kwargs) -> ORMClosingMotion:
         motion = super().insert(session)
-        # op = self.object_part.insert(session)
-        # motion.object = op
         session.add(motion)
 
         return motion
