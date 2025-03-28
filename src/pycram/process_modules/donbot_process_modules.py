@@ -4,7 +4,6 @@ from ..process_module import ProcessModuleManager
 from ..robot_description import RobotDescription
 from ..datastructures.enums import Arms, ExecutionType, Grasp, StaticJointState
 from .default_process_modules import _move_arm_tcp
-from ..ros_utils.viz_marker_publisher import AxisMarkerPublisher
 
 
 class DonbotMoveHead(DefaultMoveHead):
