@@ -212,7 +212,7 @@ class DefaultClose(ProcessModule):
         part_of_object.set_joint_position(container_joint_name, lower_joint_limit)
 
 
-def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
+def _move_arm_tcp(target: PoseStamped, robot: Object, arm: Arms) -> None:
     gripper = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
 
     joints = RobotDescription.current_robot_description.get_arm_chain(arm).joints
@@ -250,9 +250,9 @@ class DefaultDetectingReal(ProcessModule):
             perceived_objects = []
             for i in range(0, len(query_result.res)):
                 try:
-                    obj_pose = Pose.from_pose_stamped(query_result.res[i].pose[0])
+                    obj_pose = PoseStamped.from_pose_stamped(query_result.res[i].pose[0])
                 except IndexError:
-                    obj_pose = Pose.from_pose_stamped(query_result.res[i].pose)
+                    obj_pose = PoseStamped.from_pose_stamped(query_result.res[i].pose)
                     pass
                 obj_type = query_result.res[i].type
                 obj_size = None
@@ -352,11 +352,11 @@ class DefaultMoveTCPReal(ProcessModule):
             giskard.allow_gripper_collision(designator.arm.name.lower())
 
         if designator.movement_type == MovementType.STRAIGHT_TRANSLATION:
-            giskard.achieve_straight_translation_goal(pose_in_map.position_as_list(), tip_link, root_link)
+            giskard.achieve_straight_translation_goal(pose_in_map.position.to_list(), tip_link, root_link)
         elif designator.movement_type == MovementType.STRAIGHT_CARTESIAN:
             giskard.achieve_straight_cartesian_goal(pose_in_map, tip_link, root_link)
         elif designator.movement_type == MovementType.TRANSLATION:
-            giskard.achieve_translation_goal(pose_in_map.position_as_list(), tip_link, root_link)
+            giskard.achieve_translation_goal(pose_in_map.position.to_list(), tip_link, root_link)
         elif designator.movement_type == MovementType.CARTESIAN:
             giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
                                            grippers_that_can_collide=gripper_that_can_collide,

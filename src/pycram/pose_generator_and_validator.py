@@ -7,7 +7,7 @@ from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional, Iter
 
 from .datastructures.enums import Arms
 from .costmaps import Costmap
-from .datastructures.pose import Pose, Transform, GraspDescription
+from .datastructures.pose import PoseStamped, TransformStamped, GraspDescription
 from .datastructures.world import World
 from .external_interfaces.ik import request_ik
 from .failures import IKError, RobotInCollision
@@ -18,7 +18,7 @@ from .world_concepts.world_object import Object
 from .world_reasoning import contact
 
 
-class PoseGenerator(Iterable[Pose]):
+class PoseGenerator(Iterable[PoseStamped]):
     """
     Creates pose candidates from a given costmap.
     The generator selects the highest values, amount is given by number_of_sample, and returns the corresponding
@@ -51,7 +51,7 @@ class PoseGenerator(Iterable[Pose]):
         if PoseGenerator.override_orientation_generator:
             self.orientation_generator = PoseGenerator.override_orientation_generator
 
-    def __iter__(self) -> Iterator[Pose]:
+    def __iter__(self) -> Iterator[PoseStamped]:
         """
         A generator that crates pose candidates from a given costmap. The generator
         selects the highest 100 values and returns the corresponding positions.
@@ -76,20 +76,20 @@ class PoseGenerator(Iterable[Pose]):
             # and the center of the costmap (since this is the origin). This vector is then turned into a transformation
             # and muiltiplied with the transformation of the origin.
             vector_to_origin = (center - ind) * self.costmap.resolution
-            point_to_origin = Transform([*vector_to_origin, 0], frame="point", child_frame="origin")
+            point_to_origin = TransformStamped([*vector_to_origin, 0], frame_id="point", child_frame="origin")
             origin_to_map = self.costmap.origin.to_transform("origin").invert()
             point_to_map = point_to_origin * origin_to_map
             map_to_point = point_to_map.invert()
 
-            orientation = self.orientation_generator(map_to_point.translation_as_list(), self.costmap.origin)
-            yield Pose(map_to_point.translation_as_list(), orientation)
+            orientation = self.orientation_generator(map_to_point.translation.to_list(), self.costmap.origin)
+            yield PoseStamped(map_to_point.translation.to_list(), orientation)
 
     @staticmethod
     def height_generator() -> float:
         pass
 
     @staticmethod
-    def generate_orientation(position: List[float], origin: Pose) -> List[float]:
+    def generate_orientation(position: List[float], origin: PoseStamped) -> List[float]:
         """
         This method generates the orientation for a given position in a costmap. The
         orientation is calculated such that the robot faces the origin of the costmap.
@@ -106,7 +106,7 @@ class PoseGenerator(Iterable[Pose]):
 
 
 def visibility_validator(robot: Object,
-                         object_or_pose: Union[Object, Pose]) -> bool:
+                         object_or_pose: Union[Object, PoseStamped]) -> bool:
     """
     This method validates if the robot can see the target position from a given
     pose candidate. The target position can either be a position, in world coordinate
@@ -121,7 +121,7 @@ def visibility_validator(robot: Object,
     world = robot.world
     robot_pose = robot.get_pose()
 
-    if isinstance(object_or_pose, Pose):
+    if isinstance(object_or_pose, PoseStamped):
         gen_obj_desc = ObjectDescription("viz_object", [0, 0, 0], [0.02, 0.02, 0.02])
         obj = Object("viz_object", PhysicalObject, pose=object_or_pose, description=gen_obj_desc)
     else:
@@ -130,17 +130,17 @@ def visibility_validator(robot: Object,
     obj_id = obj.id
 
     camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link())
-    robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
-    ray = world.ray_test(camera_pose.position_as_list(), obj.get_pose().position_as_list())
+    robot.set_pose(PoseSteamped.from_list([100, 100, 0], [0, 0, 0, 1]))
+    ray = world.ray_test(camera_pose.position.to_list(), obj.get_pose().position.to_list()())
     robot.set_pose(robot_pose)
-    if isinstance(object_or_pose, Pose):
+    if isinstance(object_or_pose, PoseStamped):
         world.remove_object(obj)
 
     return ray.obj_id == obj_id
 
 
 def reachability_validator(robot: Object,
-                           target_pose: Pose,
+                           target_pose: PoseStamped,
                            arm: Arms,
                            allowed_collision: Dict[Object, List] = None
                            ) -> Optional[Dict[str, float]]:
@@ -183,7 +183,7 @@ def reachability_validator(robot: Object,
 
 
 def pose_sequence_reachability_validator(robot: Object,
-                                         target_sequence: List[Pose],
+                                         target_sequence: List[PoseStamped],
                                          arm: Arms,
                                          allowed_collision: Dict[Object, List] = None
                                          ) -> bool:

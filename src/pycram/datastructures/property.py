@@ -7,7 +7,7 @@ from functools import reduce
 
 from .enums import Arms
 from .dataclasses import ReasoningResult
-from .pose import Pose
+from .pose import PoseStamped
 from typing_extensions import List, Iterable, Dict, Any, Callable, Type, TYPE_CHECKING
 from anytree import NodeMixin, PreOrderIter, Node
 from ..failures import ObjectNotVisible, ManipulationPoseUnreachable, NavigationGoalInCollision, ObjectUnfetchable, \
@@ -346,12 +346,12 @@ class EmptyProperty(Property):
 class ReachableProperty(Property):
     property_exception = ManipulationPoseUnreachable
 
-    def __init__(self, pose: Pose):
+    def __init__(self, pose: PoseStamped):
         super().__init__(None, None)
         self.pose = pose
 
     @abstractmethod
-    def reachable(self, pose: Pose) -> ReasoningResult:
+    def reachable(self, pose: PoseStamped) -> ReasoningResult:
         raise NotImplementedError
 
 
@@ -370,12 +370,12 @@ class GraspableProperty(Property):
 class SpaceIsFreeProperty(Property):
     property_exception = NavigationGoalInCollision
 
-    def __init__(self, pose: Pose):
+    def __init__(self, pose: PoseStamped):
         super().__init__(None, None)
         self.pose = pose
 
     @abstractmethod
-    def space_is_free(self, pose: Pose) -> ReasoningResult:
+    def space_is_free(self, pose: PoseStamped) -> ReasoningResult:
         raise NotImplementedError
 
 

@@ -5,7 +5,7 @@ from typing_extensions import List, Tuple, Optional, Union, Dict
 from pycrap.ontologies import PhysicalObject
 from .datastructures.dataclasses import ContactPointsList, RayResult
 from .datastructures.enums import Frame, Arms, FindBodyInRegionMethod, Grasp
-from .datastructures.pose import Pose, Transform
+from .datastructures.pose import PoseStamped, TransformStamped
 from .datastructures.world import World, UseProspectionWorld
 from .datastructures.world_entity import PhysicalBody
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
@@ -88,10 +88,10 @@ def prospect_robot_contact(robot: Object, ignore_collision_with: Optional[List[O
             in_contact, contact_links = contact(prospection_robot, obj, return_links=True)
             if in_contact and not is_held_object(prospection_robot, obj, [links[0] for links in contact_links]):
                 logdebug(f"Robot is in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
-                         f"at position {pose.position_as_list()} and z_angle {pose.z_angle}")
+                         f"at position {pose.position.to_list()} and z_angle {pose.z_angle}")
                 return True
             logdebug(f"Robot is not in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
-                     f"at position {pose.position_as_list()} and z_angle {pose.z_angle}")
+                     f"at position {pose.position.to_list()} and z_angle {pose.z_angle}")
     return False
 
 
@@ -118,9 +118,9 @@ def is_held_object(robot: Object, obj: Object, robot_contact_links: List[Link]) 
 
 
 def get_visible_objects(
-        camera_pose: Pose,
+        camera_pose: PoseStamped,
         front_facing_axis: Optional[List[float]] = None,
-        plot_segmentation_mask: bool = False) -> Tuple[np.ndarray, Pose]:
+        plot_segmentation_mask: bool = False) -> Tuple[np.ndarray, PoseStamped]:
     """
     Return a segmentation mask of the objects that are visible from the given camera pose and the front facing axis.
 
@@ -135,7 +135,7 @@ def get_visible_objects(
     camera_frame = RobotDescription.current_robot_description.get_camera_frame(World.robot.name)
     world_to_cam = camera_pose.to_transform(camera_frame)
 
-    cam_to_point = Transform(list(np.multiply(front_facing_axis, 2)), [0, 0, 0, 1], camera_frame,
+    cam_to_point = TransformStamped(list(np.multiply(front_facing_axis, 2)), [0, 0, 0, 1], camera_frame,
                              "point")
     target_point = (world_to_cam * cam_to_point).to_pose()
 
@@ -149,7 +149,7 @@ def get_visible_objects(
 
 def visible(
         obj: Object,
-        camera_pose: Pose,
+        camera_pose: PoseStamped,
         front_facing_axis: Optional[List[float]] = None,
         threshold: float = 0.8,
         plot_segmentation_mask: bool = False) -> bool:
@@ -175,7 +175,7 @@ def visible(
             if obj == prospection_obj or (World.robot and obj == prospection_robot):
                 continue
             else:
-                obj.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]), set_attachments=False)
+                obj.set_pose(PoseSteamped.from_list([100, 100, 0], [0, 0, 0, 1]), set_attachments=False)
 
         seg_mask, target_point = get_visible_objects(camera_pose, front_facing_axis, plot_segmentation_mask)
         max_pixel = np.array(seg_mask == prospection_obj.id).sum()
@@ -194,7 +194,7 @@ def visible(
 
 def occluding(
         obj: Object,
-        camera_pose: Pose,
+        camera_pose: PoseStamped,
         front_facing_axis: Optional[List[float]] = None,
         plot_segmentation_mask: bool = False) -> List[Object]:
     """
@@ -218,7 +218,7 @@ def occluding(
             elif obj.get_pose() == other_obj.get_pose():
                 obj = other_obj
             else:
-                other_obj.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
+                other_obj.set_pose(PoseSteamped.from_list([100, 100, 0], [0, 0, 0, 1]))
 
         seg_mask, target_point = get_visible_objects(camera_pose, front_facing_axis, plot_segmentation_mask)
 
@@ -241,7 +241,7 @@ def occluding(
 
 
 def reachable(
-        pose_or_object: Union[Object, Pose],
+        pose_or_object: Union[Object, PoseStamped],
         robot: Object,
         gripper_name: str,
         threshold: float = 0.01) -> bool:
@@ -271,7 +271,7 @@ def reachable(
 
 
 def blocking(
-        pose_or_object: Union[Object, Pose],
+        pose_or_object: Union[Object, PoseStamped],
         robot: Object,
         gripper_chain: KinematicChainDescription,
         grasp: Grasp = None) -> Union[List[Object], None]:
@@ -318,7 +318,7 @@ def supporting(
 def link_pose_for_joint_config(
         obj: Object,
         joint_config: Dict[str, float],
-        link_name: str) -> Pose:
+        link_name: str) -> PoseStamped:
     """
     Get the pose a link would be in if the given joint configuration would be applied to the object.
     This is done by using the respective object in the prospection world and applying the joint configuration
@@ -360,7 +360,7 @@ def generate_object_at_target(target_location: List[float], size: Tuple[float] =
     """
     gen_obj_desc = GenericObjectDescription(name, [0, 0, 0], [s / 2 for s in size])
     gen_obj = Object(name, PhysicalObject, None, gen_obj_desc)
-    gen_obj.set_pose(Pose(target_location))
+    gen_obj.set_pose(PoseStamped(target_location))
     return gen_obj
 
 
@@ -375,10 +375,10 @@ def cast_a_ray_from_camera(max_distance: float = 10):
     camera_pose = camera_link.pose
     camera_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
     target = np.array(camera_axis) * max_distance
-    target_pose = Pose(target, frame=camera_link.tf_frame)
+    target_pose = PoseStamped(target, frame_id=camera_link.tf_frame)
     target_pose = World.robot.local_transformer.transform_pose(target_pose, Frame.Map.value)
-    ray_result: RayResult = World.current_world.ray_test(camera_pose.position_as_list(),
-                                                         target_pose.position_as_list())
+    ray_result: RayResult = World.current_world.ray_test(camera_pose.position.to_list(),
+                                                         target_pose.position.to_list()())
     return ray_result
 
 
@@ -430,7 +430,7 @@ def is_body_between_fingers(body: PhysicalBody, fingers_link_names: List[str],
         centroid = intersection.centroid
         for finger_name in fingers_link_names:
             finger = World.robot.links[finger_name]
-            result = World.current_world.ray_test(finger.position_as_list, centroid)
+            result = World.current_world.ray_test(finger.position.to_list(), centroid)
             if not (result.intersected and result.obj_id == body.id):
                 return False
         return True

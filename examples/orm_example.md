@@ -45,7 +45,7 @@ import pycram.tasktree
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.designators.object_designator import *
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.orm.base import ProcessMetaData
 import anytree
 from pycrap.ontologies import Robot, Kitchen, Milk, Cereal
@@ -53,12 +53,13 @@ from pycrap.ontologies import Robot, Kitchen, Milk, Cereal
 world = BulletWorld(WorldMode.DIRECT)
 pr2 = Object("pr2", Robot, "pr2.urdf")
 kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
-milk = Object("milk", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=Pose([1.3, 0.7, 0.95]))
+milk = Object("milk", Milk, "milk.stl", pose=PoseSteamped.from_list([1.3, 1, 0.9]))
+cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=PoseSteamped.from_list([1.3, 0.7, 0.95]))
 milk_desig = ObjectDesignatorDescription(names=["milk"])
 cereal_desig = ObjectDesignatorDescription(names=["cereal"])
 robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
 kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
+
 
 @with_tree
 def plan():
@@ -69,19 +70,22 @@ def plan():
         pickup_arm = Arms.RIGHT
         NavigateActionDescription(target_location=[pickup_pose]).resolve().perform()
         grasp = pickup_pose.grasp_description
-        PickUpActionDescription(object_designator=cereal_desig, arm=pickup_arm, grasp_description=[grasp]).resolve().perform()
+        PickUpActionDescription(object_designator=cereal_desig, arm=pickup_arm,
+                                grasp_description=[grasp]).resolve().perform()
         ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
 
         place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(),
-                                           cereal_desig.resolve()).resolve()
+                                               cereal_desig.resolve()).resolve()
 
-        place_stand = CostmapLocation(place_island, reachable_for=robot_desig, reachable_arm=[pickup_arm],  object_in_hand=cereal_desig.resolve()).resolve()
+        place_stand = CostmapLocation(place_island, reachable_for=robot_desig, reachable_arm=[pickup_arm],
+                                      object_in_hand=cereal_desig.resolve()).resolve()
 
         NavigateActionDescription(target_location=place_stand).resolve().perform()
 
         PlaceActionDescription(cereal_desig, target_location=place_island, arm=pickup_arm).resolve().perform()
 
         ParkArmsAction(Arms.BOTH).perform()
+
 
 plan()
 
@@ -123,9 +127,9 @@ print(*actions, sep="\n")
 Of course all relational algebra operators, such as filtering and joining also work in pycram.orm queries. Let's say we need all the poses of objects, that were picked up by a robot. Since we defined a relationship between the PickUpAction table and the Object table and between the Object table and the Pose table in the ORM class schema, we can just use the join operator without any further specification:
 
 ```python
-object_actions = (session.scalars(select(pycram.orm.base.Pose)
-                  .join(pycram.orm.action_designator.PickUpAction.object)
-                  .join(pycram.orm.object_designator.Object.pose))
+object_actions = (session.scalars(select(pycram.orm.base.PoseStamped)
+                                  .join(pycram.orm.action_designator.PickUpAction.object)
+                                  .join(pycram.orm.object_designator.Object.pose))
                   .all())
 print(*object_actions, sep="\n")
 

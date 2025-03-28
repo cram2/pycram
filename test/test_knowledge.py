@@ -5,7 +5,7 @@ from pycram.testing import BulletWorldTestCase
 from knowledge_testcase import KnowledgeSourceTestCase, TestProperty, KnowledgeBulletTestCase
 from pycram.datastructures.enums import Arms, Grasp, ObjectType, TorsoState, GripperState
 from pycram.datastructures.partial_designator import PartialDesignator
-from pycram.datastructures.pose import Pose, GraspDescription
+from pycram.datastructures.pose import PoseStamped, GraspDescription
 from pycram.designators.action_designator import PickUpAction, PickUpAction, OpenAction, MoveTorsoAction, \
     PickUpActionDescription, OpenActionDescription
 from pycram.designators.object_designator import BelieveObject, ObjectPart
@@ -43,7 +43,7 @@ class TestKnowledgeEngine(KnowledgeSourceTestCase):
         self.assertTrue(self.knowledge_source.is_connected)
 
     def test_find_source(self):
-        prop = TestProperty(Pose([1, 2, 3]))
+        prop = TestProperty(PoseSteamped.from_list([1, 2, 3]))
         self.assertEqual(self.knowledge_engine.find_source_for_property(prop), self.knowledge_source)
 
 @unittest.skip
@@ -104,7 +104,7 @@ class TestParameterInference(KnowledgeBulletTestCase):
         self.assertEqual(desig.grasp_description, None)
 
     def test_open_gripper(self):
-        self.robot.set_pose(Pose([-0.192, 1.999, 0], [0, 0, 0.8999, -0.437]))
+        self.robot.set_pose(PoseSteamped.from_list([-0.192, 1.999, 0], [0, 0, 0.8999, -0.437]))
         self.robot.set_joint_position("torso_lift_joint", 0.3)
         env_object = BelieveObject(names=["kitchen"]).resolve()
         handle_desig = ObjectPart(["kitchen_island_middle_upper_drawer_handle"], env_object)

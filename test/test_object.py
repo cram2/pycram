@@ -5,7 +5,7 @@ from pycram.tf_transformations import quaternion_from_euler
 from pycram.testing import BulletWorldTestCase
 
 from pycram.datastructures.enums import JointType, ObjectType
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.dataclasses import Color, BoundingBox as BB
 from pycram.failures import UnsupportedFileExtension
 from pycram.world_concepts.world_object import Object
@@ -90,7 +90,7 @@ class TestObject(BulletWorldTestCase):
             self.milk.set_orientation(1)
 
     def test_set_position_as_pose(self):
-        self.milk.set_position(Pose([1, 2, 3]))
+        self.milk.set_position(PoseSteamped.from_list([1, 2, 3]))
         self.assertEqual(self.milk.get_position_as_list(), [1, 2, 3])
 
     def test_set_position_as_list(self):
@@ -203,7 +203,7 @@ class GenericObjectTestCase(BulletWorldTestCase):
         gen_obj_desc = GenericObjectDescription("robokudo_object", [0,0,0], [0.1, 0.1, 0.1])
         obj = Object("robokudo_object", Milk, None, gen_obj_desc)
         pose = obj.get_pose()
-        self.assertTrue(isinstance(pose, Pose))
+        self.assertTrue(isinstance(pose, PoseStamped))
 
 
 class OntologyIntegrationTestCase(BulletWorldTestCase):

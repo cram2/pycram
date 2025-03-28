@@ -2,7 +2,7 @@ import time
 import threading
 import atexit
 
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..datastructures.world import World
 from ..datastructures.enums import ExecutionType
 from tf2_msgs.msg import TFMessage
@@ -67,9 +67,9 @@ class TFBroadcaster:
         Publishes a static odom frame to the tf_static topic.
         """
         self._publish_pose(self.odom_frame,
-                           Pose([0, 0, 0], [0, 0, 0, 1]), static=True)
+                           PoseSteamped.from_list([0, 0, 0], [0, 0, 0, 1]), static=True)
 
-    def _publish_pose(self, child_frame_id: str, pose: Pose, static=False) -> None:
+    def _publish_pose(self, child_frame_id: str, pose: PoseStamped, static=False) -> None:
         """
         Publishes the given pose to the ROS TF topic. First the pose is converted to a Transform between pose.frame and
         the given child_frame_id. Afterward, the frames of the Transform are prefixed with the projection namespace.
@@ -78,10 +78,10 @@ class TFBroadcaster:
         :param pose: Pose that should be published
         :param static: If the pose should be published to the tf_static topic
         """
-        frame_id = pose.frame
+        frame_id = pose.frame_id
         if frame_id != child_frame_id:
             tf_stamped = pose.to_transform(child_frame_id)
-            tf_stamped.frame = self.projection_namespace.name + "/" + tf_stamped.frame
+            tf_stamped.frame_id = self.projection_namespace.name + "/" + tf_stamped.frame_id
             tf_stamped.child_frame_id = self.projection_namespace.name + "/" + tf_stamped.child_frame_id
             tf2_msg = TFMessage()
             tf2_msg.transforms.append(tf_stamped)

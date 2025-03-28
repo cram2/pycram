@@ -9,7 +9,7 @@ from ..config.world_conf import WorldConfig
 from ..datastructures.dataclasses import VisualShape, BoxVisualShape, Color, AxisAlignedBoundingBox, RotatedBoundingBox, \
     BoundingBox
 from ..datastructures.enums import JointType
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..description import JointDescription as AbstractJointDescription, LinkDescription as AbstractLinkDescription, \
     ObjectDescription as AbstractObjectDescription, ObjectDescription
 
@@ -38,8 +38,8 @@ class LinkDescription(AbstractLinkDescription):
         return self.parsed_description
 
     @property
-    def origin(self) -> Pose:
-        return Pose(self.parsed_description.visual_frame_position)
+    def origin(self) -> PoseStamped:
+        return PoseStamped(self.parsed_description.visual_frame_position)
 
     @property
     def name(self) -> str:
@@ -89,7 +89,7 @@ class JointDescription(AbstractJointDescription):
         raise NotImplementedError
 
     @property
-    def origin(self) -> Pose:
+    def origin(self) -> PoseStamped:
         raise NotImplementedError
 
     @property
@@ -121,12 +121,12 @@ class ObjectDescription(AbstractObjectDescription):
                           joint_type: JointType = JointType.FIXED,
                           axis: Optional[Point] = None,
                           lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
-                          child_pose_wrt_parent: Optional[Pose] = None,
+                          child_pose_wrt_parent: Optional[PoseStamped] = None,
                           in_place: bool = False,
                           new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
         return self.merge_using_bounding_boxes(other, child_pose_wrt_parent, new_description_file)
 
-    def merge_using_bounding_boxes(self, other: ObjectDescription, child_pose_wrt_parent: Optional[Pose] = None,
+    def merge_using_bounding_boxes(self, other: ObjectDescription, child_pose_wrt_parent: Optional[PoseStamped] = None,
                                    new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
         """
         Merge the current object description with another object description by merging their bounding boxes and
@@ -145,7 +145,7 @@ class ObjectDescription(AbstractObjectDescription):
                                                                        use_random_events=False)
         return self.create_urdf_from_mesh(new_mesh, path=new_description_file)
 
-    def merge_using_urdf(self, other: ObjectDescription, child_pose_wrt_parent: Optional[Pose] = None,
+    def merge_using_urdf(self, other: ObjectDescription, child_pose_wrt_parent: Optional[PoseStamped] = None,
                          new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
         """
         Merge the current object description with another object description by creating a URDF description for both
@@ -220,7 +220,7 @@ class ObjectDescription(AbstractObjectDescription):
         return {}
 
     def add_joint(self, name: str, child: str, joint_type: JointType,
-                  axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
+                  axis: Point, parent: Optional[str] = None, origin: Optional[PoseStamped] = None,
                   lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
                   is_virtual: Optional[bool] = False) -> None:
         ...
@@ -260,7 +260,7 @@ class ObjectDescription(AbstractObjectDescription):
         raise NotImplementedError("Do Not Do This on generic objects as they have no extensions")
 
     @property
-    def origin(self) -> Pose:
+    def origin(self) -> PoseStamped:
         return self._links[0].origin
 
     @property

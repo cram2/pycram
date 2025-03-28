@@ -16,13 +16,13 @@ from .enums import AdjacentBodyMethod, AxisIdentifier
 from .mixins import HasConcept
 from ..local_transformer import LocalTransformer
 from ..ros import Time, logdebug
-from .pose import GraspDescription
+from .pose import GraspDescription, Vector3
 from .grasp import PreferredGraspAlignment
 
 if TYPE_CHECKING:
     from ..datastructures.world import World
     from ..world_concepts.world_object import Object
-    from .pose import Pose, GeoQuaternion as Quaternion, Transform, Point
+    from .pose import PoseStamped, GeoQuaternion as Quaternion, TransformStamped, Point
 
 
 class StateEntity:
@@ -393,12 +393,6 @@ class PhysicalBody(WorldEntity, ABC):
         """
         return self.pose.position
 
-    @property
-    def position_as_list(self) -> List[float]:
-        """
-        :return: A list containing the position of the link relative to the world frame.
-        """
-        return self.pose.position_as_list()
 
     @property
     def orientation(self) -> Quaternion:
@@ -408,13 +402,6 @@ class PhysicalBody(WorldEntity, ABC):
         return self.pose.orientation
 
     @property
-    def orientation_as_list(self) -> List[float]:
-        """
-        :return: A list containing the orientation of the link relative to the world frame.
-        """
-        return self.pose.orientation_as_list()
-
-    @property
     def pose_as_list(self) -> List[List[float]]:
         """
         :return: A list containing the position and orientation of the link relative to the world frame.
@@ -422,13 +409,13 @@ class PhysicalBody(WorldEntity, ABC):
         return self.pose.to_list()
 
     @property
-    def transform(self) -> Transform:
+    def transform(self) -> TransformStamped:
         """
         The transform of this entity.
 
         :return: The transform of this entity.
         """
-        return self.pose.to_transform(self.tf_frame)
+        return self.pose.to_transform_stamped(self.tf_frame)
 
     def update_transform(self, transform_time: Optional[Time] = None) -> None:
         """
@@ -440,7 +427,7 @@ class PhysicalBody(WorldEntity, ABC):
 
     @property
     @abstractmethod
-    def pose(self) -> Pose:
+    def pose(self) -> PoseStamped:
         """
         :return: A Pose object containing the pose of the link relative to the world frame.
         """
@@ -448,7 +435,7 @@ class PhysicalBody(WorldEntity, ABC):
 
     @pose.setter
     @abstractmethod
-    def pose(self, pose: Pose) -> None:
+    def pose(self, pose: PoseStamped) -> None:
         """
         Set the pose of this body.
 

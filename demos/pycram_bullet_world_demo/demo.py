@@ -3,7 +3,7 @@ from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
 from pycram.datastructures.enums import WorldMode
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.process_module import simulated_robot, with_simulated_robot, ProcessModule
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
@@ -18,20 +18,20 @@ extension = ObjectDescription.get_file_extension()
 world = BulletWorld(WorldMode.DIRECT)
 viz = VizMarkerPublisher()
 
-robot = Object("pr2", Robot, f"pr2{extension}", pose=Pose([1, 2, 0]))
+robot = Object("pr2", Robot, f"pr2{extension}", pose=PoseSteamped.from_list([1, 2, 0]))
 apartment = Object("apartment", Apartment, f"apartment{extension}")
 
-milk = Object("milk", Milk, "milk.stl", pose=Pose([2.5, 2, 1.02], [0, 0, 0, 1]),
+milk = Object("milk", Milk, "milk.stl", pose=PoseSteamped.from_list([2.5, 2, 1.02], [0, 0, 0, 1]),
               color=Color(1, 0, 0, 1))
 cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
-                pose=Pose([2.45, 2.4, 1.05], [0, 0, 0, 1]), color=Color(0, 1, 0, 1))
-spoon = Object("spoon", Spoon, "spoon.stl", pose=Pose([2.4, 2.24, 0.85]),
+                pose=PoseSteamped.from_list([2.45, 2.4, 1.05], [0, 0, 0, 1]), color=Color(0, 1, 0, 1))
+spoon = Object("spoon", Spoon, "spoon.stl", pose=PoseSteamped.from_list([2.4, 2.24, 0.85]),
                color=Color(0, 0, 1, 1))
-bowl = Object("bowl", Bowl, "bowl.stl", pose=Pose([2.35, 2.2, 0.98]),
+bowl = Object("bowl", Bowl, "bowl.stl", pose=PoseSteamped.from_list([2.35, 2.2, 0.98]),
               color=Color(1, 1, 0, 1))
 apartment.attach(spoon, 'cabinet10_drawer_top')
 
-pick_pose = Pose([2.7, 2.15, 1])
+pick_pose = PoseSteamped.from_list([2.7, 2.15, 1])
 
 robot_desig = BelieveObject(names=["pr2"])
 apartment_desig = BelieveObject(names=["apartment"])
@@ -39,7 +39,7 @@ apartment_desig = BelieveObject(names=["apartment"])
 
 @with_simulated_robot
 def move_and_detect(obj_type):
-    NavigateActionDescription(target_location=[Pose([1.7, 2, 0])]).resolve().perform()
+    NavigateActionDescription(target_location=[PoseSteamped.from_list([1.7, 2, 0])]).resolve().perform()
 
     LookAtActionDescription(target=[pick_pose]).resolve().perform()
 
@@ -58,19 +58,19 @@ with simulated_robot:
 
     milk_desig = move_and_detect(Milk)
 
-    TransportActionDescription(milk_desig, [Pose([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
+    TransportActionDescription(milk_desig, [PoseSteamped.from_list([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
 
     loginfo("Handling cereal")
 
     cereal_desig = move_and_detect(Cereal)
 
-    TransportActionDescription(cereal_desig, [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])], [Arms.RIGHT]).resolve().perform()
+    TransportActionDescription(cereal_desig, [PoseSteamped.from_list([5.2, 3.4, 0.8], [0, 0, 1, 1])], [Arms.RIGHT]).resolve().perform()
 
     loginfo("Handling bowl")
 
     bowl_desig = move_and_detect(Bowl)
 
-    TransportActionDescription(bowl_desig, [Pose([5, 3.3, 0.8], [0, 0, 1, 1])], [Arms.LEFT]).resolve().perform()
+    TransportActionDescription(bowl_desig, [PoseSteamped.from_list([5, 3.3, 0.8], [0, 0, 1, 1])], [Arms.LEFT]).resolve().perform()
 
     loginfo("Opening drawer to get spoon")
 
@@ -121,7 +121,7 @@ with simulated_robot:
     loginfo("Placing spoon")
 
     # Find a pose to place the spoon, move and then place it
-    spoon_target_pose = Pose([4.7, 3.25, 0.8], [0, 0, 1, 1])
+    spoon_target_pose = PoseSteamped.from_list([4.7, 3.25, 0.8], [0, 0, 1, 1])
     MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
     placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(),
                                   reachable_arm=[pickup_arm], object_in_hand=spoon_desig).resolve()

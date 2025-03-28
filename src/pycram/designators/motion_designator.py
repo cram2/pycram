@@ -17,7 +17,7 @@ from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
 from ..datastructures.enums import ObjectType, Arms, GripperState, ExecutionType, DetectionTechnique, DetectionState
 
 from typing_extensions import Dict, Optional, Type
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..tasktree import with_tree
 from ..designator import BaseMotion
 from ..world_concepts.world_object import Object
@@ -30,7 +30,7 @@ class MoveMotion(BaseMotion):
     Moves the robot to a designated location
     """
 
-    target: Pose
+    target: PoseStamped
     """
     Location to which the robot should be moved
     """
@@ -64,7 +64,7 @@ class MoveTCPMotion(BaseMotion):
     Moves the Tool center point (TCP) of the robot
     """
 
-    target: Pose
+    target: PoseStamped
     """
     Target pose to which the TCP should be moved
     """
@@ -113,7 +113,7 @@ class LookingMotion(BaseMotion):
     """
     Lets the robot look at a point
     """
-    target: Pose
+    target: PoseStamped
 
     @with_tree
     def perform(self):

@@ -178,7 +178,7 @@ class BoxyWorldStateDetecting(ProcessModule):
         return list(filter(lambda obj: obj.type == obj_type, World.current_world.objects))[0]
 
 
-def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
+def _move_arm_tcp(target: PoseStamped, robot: Object, arm: Arms) -> None:
     gripper = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
 
     joints = RobotDescription.current_robot_description.get_arm_chain(arm).joints

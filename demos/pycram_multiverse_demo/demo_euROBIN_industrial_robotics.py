@@ -2,7 +2,7 @@ import pycrap
 from pycram.datastructures.enums import GripperState
 from pycram.process_module import real_robot
 from pycram.world_concepts.world_object import Object
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.worlds.multiverse import Multiverse
 from pycram.designators.action_designator import SetGripperAction
 from pycram.ros_utils.robot_state_updater import WorldStateUpdater
@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     # Attach the gripper to the robot at the wrist_3_link with the correct pose
     wrist_3_tf_frame = robot.get_link_tf_frame("wrist_3_link")
-    gripper.set_pose(Pose([0, 0.1, 0], [1.0, 0.0, 0.0, -1.0], frame=wrist_3_tf_frame))
+    gripper.set_pose(PoseSteamped.from_list([0, 0.1, 0], [1.0, 0.0, 0.0, -1.0], frame_id=wrist_3_tf_frame))
     robot.attach(gripper, parent_link="wrist_3_link")
 
     # Get the robot arms

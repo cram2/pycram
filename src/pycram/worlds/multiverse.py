@@ -16,7 +16,7 @@ from ..config.multiverse_conf import MultiverseConfig
 from ..datastructures.dataclasses import Color, ContactPointsList, ContactPoint, RayResult
 from ..datastructures.enums import WorldMode, JointType, MultiverseBodyProperty, MultiverseJointPosition, \
     MultiverseJointCMD
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..datastructures.world import World
 from ..datastructures.world_entity import PhysicalBody
 from ..description import Link, Joint
@@ -162,15 +162,15 @@ class Multiverse(World):
         self.is_paused = False
 
     def load_generic_object_and_get_id(self, description: GenericObjectDescription,
-                                       pose: Optional[Pose] = None) -> int:
+                                       pose: Optional[PoseStamped] = None) -> int:
         save_path = os.path.join(self.cache_manager.cache_dir, description.name + ".xml")
         object_factory = PrimitiveObjectFactory(description.name, description.links[0].geometry, save_path)
         object_factory.build_shape()
         object_factory.export_to_mjcf(save_path)
         return self.load_object_and_get_id(description.name, pose, pycrap.PhysicalObject)
 
-    def get_images_for_target(self, target_pose: Pose,
-                              cam_pose: Pose,
+    def get_images_for_target(self, target_pose: PoseStamped,
+                              cam_pose: PoseStamped,
                               size: int = 256,
                               camera_min_distance: float = 0.1,
                               camera_max_distance: int = 3,
@@ -193,7 +193,7 @@ class Multiverse(World):
         """
         return MultiverseJointPosition.from_pycram_joint_type(joint.type)
 
-    def spawn_robot_with_controller(self, name: str, pose: Pose) -> None:
+    def spawn_robot_with_controller(self, name: str, pose: PoseStamped) -> None:
         """
         Spawn the robot in the simulator.
 
@@ -206,12 +206,12 @@ class Multiverse(World):
         }
         self.joint_controller.init_controller(actuator_joint_commands)
         self.writer.spawn_robot_with_actuators(name, actuator_joint_commands)
-        if not pose.almost_equal(Pose()):
+        if not pose.almost_equal(PoseStamped()):
             goal = self.robot.get_mobile_base_joint_goal(pose)
             self.set_multiple_joint_positions(goal)
 
     def load_object_and_get_id(self, name: Optional[str] = None,
-                               pose: Optional[Pose] = None,
+                               pose: Optional[PoseStamped] = None,
                                obj_type: Optional[Type[PhysicalObject]] = None) -> int:
         """
         Spawn the object in the simulator and return the object id. Object name has to be unique and has to be same as
@@ -222,7 +222,7 @@ class Multiverse(World):
         :param obj_type: The type of the object.
         """
         if pose is None:
-            pose = Pose()
+            pose = PoseStamped()
 
         # Do not spawn objects with type environment as they should be already present in the simulator through the
         # multiverse description file (.muv file).
@@ -232,7 +232,7 @@ class Multiverse(World):
 
         return self._update_object_id_name_maps_and_get_latest_id(name)
 
-    def spawn_object(self, name: str, object_type: Type[PhysicalObject], pose: Pose) -> None:
+    def spawn_object(self, name: str, object_type: Type[PhysicalObject], pose: PoseStamped) -> None:
         """
         Spawn the object in the simulator.
 
@@ -248,14 +248,14 @@ class Multiverse(World):
         else:
             self._set_body_pose(name, pose)
 
-    def spawn_robot(self, name: str, pose: Pose) -> None:
+    def spawn_robot(self, name: str, pose: PoseStamped) -> None:
         """
         Spawn the robot in the simulator.
 
         :param name: The name of the robot.
         :param pose: The pose of the robot.
         """
-        self._set_body_pose(name, Pose())
+        self._set_body_pose(name, PoseStamped())
         self.robot.set_mobile_robot_pose(pose)
 
     def _update_object_id_name_maps_and_get_latest_id(self, name: str) -> int:
@@ -386,18 +386,18 @@ class Multiverse(World):
         """
         return MultiverseJointCMD.from_pycram_joint_type(joint_type)
 
-    def get_link_pose(self, link: Link) -> Optional[Pose]:
+    def get_link_pose(self, link: Link) -> Optional[PoseStamped]:
         return self._get_body_pose(link.name)
 
-    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, Pose]:
+    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, PoseStamped]:
         return self._get_multiple_body_poses([link.name for link in links])
 
-    def get_object_pose(self, obj: Object) -> Pose:
+    def get_object_pose(self, obj: Object) -> PoseStamped:
         if obj.is_an_environment:
-            return Pose()
+            return PoseStamped()
         return self._get_body_pose(obj.name)
 
-    def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:
+    def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, PoseStamped]:
         """
         Set the poses of multiple objects in the simulator. If the object is of type environment, the pose will be
         the default pose.
@@ -407,11 +407,11 @@ class Multiverse(World):
         """
         non_env_objects = [obj for obj in objects if not obj.is_an_environment]
         all_poses = self._get_multiple_body_poses([obj.name for obj in non_env_objects])
-        all_poses.update({obj.name: Pose() for obj in objects if obj.is_an_environment})
+        all_poses.update({obj.name: PoseStamped() for obj in objects if obj.is_an_environment})
         return all_poses
 
     @validate_object_pose
-    def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
+    def reset_object_base_pose(self, obj: Object, pose: PoseStamped) -> bool:
         if obj.is_an_environment:
             return False
 
@@ -424,7 +424,7 @@ class Multiverse(World):
         return True
 
     @validate_multiple_object_poses
-    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
+    def reset_multiple_objects_base_poses(self, objects: Dict[Object, PoseStamped]) -> None:
         """
         Reset the poses of multiple objects in the simulator.
 
@@ -439,7 +439,7 @@ class Multiverse(World):
         if len(objects) > 0:
             self._set_multiple_body_poses({obj.name: pose for obj, pose in objects.items()})
 
-    def _set_body_pose(self, body_name: str, pose: Pose) -> None:
+    def _set_body_pose(self, body_name: str, pose: PoseStamped) -> None:
         """
         Reset the pose of a body (object, link, or joint) in the simulator.
 
@@ -448,19 +448,19 @@ class Multiverse(World):
         """
         self._set_multiple_body_poses({body_name: pose})
 
-    def _set_multiple_body_poses(self, body_poses: Dict[str, Pose]) -> None:
+    def _set_multiple_body_poses(self, body_poses: Dict[str, PoseStamped]) -> None:
         """
         Reset the poses of multiple bodies in the simulator.
 
         :param body_poses: The dictionary of body names and poses.
         """
-        self.writer.set_multiple_body_poses({name: {MultiverseBodyProperty.POSITION: pose.position_as_list(),
+        self.writer.set_multiple_body_poses({name: {MultiverseBodyProperty.POSITION: pose.position.to_list(),
                                                     MultiverseBodyProperty.ORIENTATION:
-                                                        xyzw_to_wxyz(pose.orientation_as_list()),
+                                                        xyzw_to_wxyz(pose.orientation.to_list()()),
                                                     MultiverseBodyProperty.RELATIVE_VELOCITY: [0.0] * 6}
                                              for name, pose in body_poses.items()})
 
-    def _get_body_pose(self, body_name: str, wait: Optional[bool] = True) -> Optional[Pose]:
+    def _get_body_pose(self, body_name: str, wait: Optional[bool] = True) -> Optional[PoseStamped]:
         """
         Get the pose of a body in the simulator.
 
@@ -469,10 +469,10 @@ class Multiverse(World):
         :return: The pose of the body.
         """
         data = self.reader.get_body_pose(body_name, wait)
-        return Pose(data[MultiverseBodyProperty.POSITION.value],
-                    wxyz_to_xyzw(data[MultiverseBodyProperty.ORIENTATION.value]))
+        return PoseStamped(data[MultiverseBodyProperty.POSITION.value],
+                           wxyz_to_xyzw(data[MultiverseBodyProperty.ORIENTATION.value]))
 
-    def _get_multiple_body_poses(self, body_names: List[str]) -> Dict[str, Pose]:
+    def _get_multiple_body_poses(self, body_names: List[str]) -> Dict[str, PoseStamped]:
         """
         Get the poses of multiple bodies in the simulator.
 

@@ -50,13 +50,13 @@ For example, when you spawn a milk or a cereal box.
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.datastructures.enums import WorldMode
 from pycram.world_concepts.world_object import Object
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycrap.ontologies import Milk, Cereal, Food
 
 world = BulletWorld(mode=WorldMode.DIRECT)
 
 milk = Object("milk", Milk, "milk.stl")
-cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
+cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=PoseSteamped.from_list([1.4, 1, 0.95]))
 ```
 
 You can query the ontology using [owlready2](https://owlready2.readthedocs.io/en/v0.41/index.html). 

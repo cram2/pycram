@@ -7,7 +7,7 @@ from typing_extensions import List, Tuple, Dict
 
 from ..failures import IKError
 from ..world_concepts.world_object import Object
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..config.ik_conf import PinocchioConfig
 
 def create_joint_configuration(robot: Object, model) -> np.ndarray[float]:
@@ -34,7 +34,7 @@ def create_joint_configuration(robot: Object, model) -> np.ndarray[float]:
 
 
 
-def compute_ik(target_link: str, target_pose: Pose, robot: Object) -> Dict[str, float]:
+def compute_ik(target_link: str, target_pose: PoseStamped, robot: Object) -> Dict[str, float]:
     """
     Compute the inverse kinematics for a given target link and pose.
 
@@ -50,7 +50,7 @@ def compute_ik(target_link: str, target_pose: Pose, robot: Object) -> Dict[str, 
 
     JOINT_ID = model.frames[model.getFrameId(target_link)].parent
     # Object to destination transformation
-    oMdes = pinocchio.XYZQUATToSE3(np.array(target_pose.position_as_list() + target_pose.orientation_as_list()))
+    oMdes = pinocchio.XYZQUATToSE3(np.array(target_pose.position.to_list() + target_pose.orientation.to_list()()))
 
     # Initial joint configuration
     # q = pinocchio.neutral(model)

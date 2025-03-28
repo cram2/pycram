@@ -4,7 +4,7 @@ from typing_extensions import Optional, List
 
 from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.enums import JointType
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.robot_description import RobotDescription
 from pycram.validation.error_checkers import PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, RevoluteJointPositionErrorChecker, PrismaticJointPositionErrorChecker, \
@@ -25,7 +25,7 @@ class TestGoalValidator(BulletWorldTestCase):
         self.validate_pose_goal(pose_goal_validators)
 
     def validate_pose_goal(self, goal_validator):
-        milk_goal_pose = Pose([1.3, 1.5, 0.9])
+        milk_goal_pose = PoseSteamped.from_list([1.3, 1.5, 0.9])
         goal_validator.register_goal(milk_goal_pose)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
@@ -190,8 +190,8 @@ class TestGoalValidator(BulletWorldTestCase):
     def validate_list_of_poses_goal(self, goal_validator):
         position_goal = [0.0, 1.0, 0.0]
         orientation_goal = np.array([0, 0, np.pi / 2])
-        poses_goal = [Pose(position_goal, quaternion_from_euler(*orientation_goal.tolist())),
-                      Pose(position_goal, quaternion_from_euler(*orientation_goal.tolist()))]
+        poses_goal = [PoseStamped(position_goal, quaternion_from_euler(*orientation_goal.tolist())),
+                      PoseStamped(position_goal, quaternion_from_euler(*orientation_goal.tolist()))]
         goal_validator.register_goal(poses_goal)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
@@ -200,12 +200,12 @@ class TestGoalValidator(BulletWorldTestCase):
 
         for percent in [0.5, 1]:
             current_orientation_goal = orientation_goal * percent
-            current_pose_goal = Pose([0.0, 1.0 * percent, 0.0],
-                                     quaternion_from_euler(*current_orientation_goal.tolist()))
+            current_pose_goal = PoseSteamped.from_list([0.0, 1.0 * percent, 0.0],
+                                            quaternion_from_euler(*current_orientation_goal.tolist()))
             self.robot.set_pose(current_pose_goal)
-            self.assertTrue(np.allclose(self.robot.get_position_as_list(), current_pose_goal.position_as_list(),
+            self.assertTrue(np.allclose(self.robot.get_position_as_list(), current_pose_goal.position.to_list(),
                                         atol=0.001))
-            self.assertTrue(np.allclose(self.robot.get_orientation_as_list(), current_pose_goal.orientation_as_list(),
+            self.assertTrue(np.allclose(self.robot.get_orientation_as_list(), current_pose_goal.orientation.to_list(),
                                         atol=0.001))
             if percent == 1:
                 self.assertTrue(goal_validator.goal_achieved)

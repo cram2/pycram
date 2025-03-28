@@ -29,9 +29,9 @@ message so if you are familiar with that this should be easy.
   reference to which the position and orientation are relative.
 
 ```python
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 
-example_pose = Pose([1, 2, 3], [0, 0, 0, 1], "map")
+example_pose = PoseSteamped.from_list([1, 2, 3], [0, 0, 0, 1], "map")
 print(example_pose)
 ```
 
@@ -40,9 +40,9 @@ of ```[0, 0, 0, 1]``` in the frame ```map```. But we don't need to provide all t
 there is no parameter the Pose will use default parameter.
 
 ```python
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 
-default_pose = Pose()
+default_pose = PoseStamped()
 print(default_pose)
 ```
 
@@ -55,9 +55,9 @@ In case no parameter is provided the defualt parameter are:
 The following example will show how to access the data stored in a pose.
 
 ```python
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 
-example_pose = Pose([1, 2, 3], [0, 0, 0, 1], "map")
+example_pose = PoseSteamped.from_list([1, 2, 3], [0, 0, 0, 1], "map")
 
 print(f"Access to a component of the position: {example_pose.position.y}")
 
@@ -65,11 +65,11 @@ print(f"Access to a component of the rotation: {example_pose.orientation.x}")
 
 print(f"Get the whole position as geometry_msgs/Pose:\n{example_pose.position}")
 
-print(f"You can also get position or orientation as a list: {example_pose.position_as_list()}")
+print(f"You can also get position or orientation as a list: {example_pose.position.to_list()}")
 
 print(f"Same with the whole pose: {example_pose.to_list()}")
 
-print(f"Access the reference frame: {example_pose.frame}")
+print(f"Access the reference frame: {example_pose.frame_id}")
 ```
 
 ## Editing a pose
@@ -77,9 +77,9 @@ print(f"Access the reference frame: {example_pose.frame}")
 You can also edit the data saved in a Pose, similar to how you access it.
 
 ```python
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 
-example_pose = Pose([1, 2, 3], [0, 0, 0, 1], "map")
+example_pose = PoseSteamped.from_list([1, 2, 3], [0, 0, 0, 1], "map")
 
 # Edit a single component of the position 
 example_pose.position.x = 3
@@ -89,8 +89,8 @@ print(f"Edit only one component:\n{example_pose.position}", "\n")
 example_pose.position = [0, 0, 1]
 print(f"Edit the whole position:\n{example_pose.position}", "\n")
 
-example_pose.frame = "new_frame"
-print(f"Set a new frame:\n{example_pose.frame}", "\n")
+example_pose.frame_id = "new_frame"
+print(f"Set a new frame:\n{example_pose.frame_id}", "\n")
 
 example_pose.set_position([3, 2, 1])
 print(f"Set the position via method:\n{example_pose.position}", "\n")
@@ -103,9 +103,9 @@ need to alter the Pose, since poses are passed by reference to a method every ch
 would affect the instanced passed to the method.
 
 ```python
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 
-example_pose = Pose([1, 2, 3], [0, 0, 0, 1], "map")
+example_pose = PoseSteamped.from_list([1, 2, 3], [0, 0, 0, 1], "map")
 
 copy_pose = example_pose.copy()
 
@@ -122,9 +122,9 @@ For this example we will take a Pose which represents the current pose of a milk
 which represents the transformation from the ```map``` frame to the ```milk``` frame.
 
 ```python
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 
-milk_pose = Pose([3, 4, 1], [1, 0, 0, 1], "map")
+milk_pose = PoseSteamped.from_list([3, 4, 1], [1, 0, 0, 1], "map")
 
 milk_transform = milk_pose.to_transform("milk")
 
@@ -146,9 +146,9 @@ as of TransformStamped which.
 * **Transform:** The combination of translation and rotation
 
 ```python
-from pycram.datastructures.pose import Transform
+from pycram.datastructures.pose import TransformStamped
 
-example_transform = Transform([1, 2, 2], [0, 0, 0, 1], "map", "object")
+example_transform = TransformStamped([1, 2, 2], [0, 0, 0, 1], "map", "object")
 
 print(example_transform)
 ```
@@ -157,9 +157,9 @@ Transforms have the same methods to get and set values as Poses have, therefore 
 more details please look at the Pose example or the API documentation.
 
 ```python
-from pycram.datastructures.pose import Transform
+from pycram.datastructures.pose import TransformStamped
 
-example_transform = Transform([2, 5, 1], [0, 0, 1, 1], "map", "object")
+example_transform = TransformStamped([2, 5, 1], [0, 0, 1, 1], "map", "object")
 
 print(f"Access the rotation:\n{example_transform.rotation}", "\n")
 
@@ -179,15 +179,15 @@ will be lost.
 Also like in Poses Transforms have a ```copy``` method which creates an exact copy of this Transform.
 
 ```python
-from pycram.datastructures.pose import Transform
+from pycram.datastructures.pose import TransformStamped
 
-milk_transform = Transform([1, 1, 1], [0, 0, 0, 1], "map", "milk")
+milk_transform = TransformStamped([1, 1, 1], [0, 0, 0, 1], "map", "milk")
 
 milk_pose = milk_transform.to_pose()
 
 print(f"The converted pose:\n{milk_pose}", "\n")
 
-example_transform = Transform([1, 1, 1], [0, 0, 0, 1], "map", "milk")
+example_transform = TransformStamped([1, 1, 1], [0, 0, 0, 1], "map", "milk")
 
 copy_transform = example_transform.copy()
 
@@ -209,11 +209,11 @@ first from ```map``` to a ```hand``` frame and the second from the ```hand``` to
 these two we get the Transform from ```map``` to ```milk``` frame.
 
 ```python
-from pycram.datastructures.pose import Transform
+from pycram.datastructures.pose import TransformStamped
 
-map_to_hand = Transform([1, 1, 1], [0, 0, 0, 1], "map", "hand")
+map_to_hand = TransformStamped([1, 1, 1], [0, 0, 0, 1], "map", "hand")
 
-hand_to_milk = Transform([0.1, 0.05, 0], [0, 0, 0, 1], "hand", "milk")
+hand_to_milk = TransformStamped([0.1, 0.05, 0], [0, 0, 0, 1], "hand", "milk")
 
 map_to_milk = map_to_hand * hand_to_milk
 
@@ -226,9 +226,9 @@ This inverts a Transform, so in we have a transform from ```map``` to ```milk```
 Transform from ```milk``` to ```map``` .
 
 ```python
-from pycram.datastructures.pose import Transform
+from pycram.datastructures.pose import TransformStamped
 
-map_to_milk = Transform([1, 1, 0.5], [0, 0, 0, 1], "map", "milk")
+map_to_milk = TransformStamped([1, 1, 0.5], [0, 0, 0, 1], "map", "milk")
 
 milk_to_map = map_to_milk.invert()
 
@@ -242,11 +242,11 @@ again use the example of a hand holding a milk, but this time we have the Transf
 and ```hand``` to ```milk```.
 
 ```python
-from pycram.datastructures.pose import Transform
+from pycram.datastructures.pose import TransformStamped
 
-map_to_milk = Transform([1.1, 1.05, 1], [0, 0, 0, 1], "map", "milk")
+map_to_milk = TransformStamped([1.1, 1.05, 1], [0, 0, 0, 1], "map", "milk")
 
-hand_to_milk = Transform([0.1, 0.05, 0], [0, 0, 0, 1], "hand", "milk")
+hand_to_milk = TransformStamped([0.1, 0.05, 0], [0, 0, 0, 1], "hand", "milk")
 
 map_to_milk = map_to_milk.inverse_times(hand_to_milk)
 

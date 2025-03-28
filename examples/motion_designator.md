@@ -26,12 +26,12 @@ BulletWorld as well as a PR2 robot.
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycrap.ontologies import Robot, Milk
 
 world = BulletWorld(WorldMode.DIRECT)
 pr2 = Object("pr2", Robot, "pr2.urdf")
-milk = Object("milk", Milk, "milk.stl", pose=Pose([1.5, 0, 1]))
+milk = Object("milk", Milk, "milk.stl", pose=PoseSteamped.from_list([1.5, 0, 1]))
 ```
 
 ## Move
@@ -41,12 +41,12 @@ designator, first create a description then resolve it to the actual designator 
 designator.
 
 ```python
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.designators.motion_designator import MoveMotion
 from pycram.process_module import simulated_robot
 
 with simulated_robot:
-    motion_description = MoveMotion(target=Pose([1, 0, 0], [0, 0, 0, 1]))
+    motion_description = MoveMotion(target=PoseSteamped.from_list([1, 0, 0], [0, 0, 0, 1]))
 
     motion_description.perform()
 ```
@@ -114,18 +114,17 @@ Since we need an object that we can detect, we will spawn a milk for this.
 ```python
 from pycram.designators.motion_designator import DetectingMotion, LookingMotion
 from pycram.process_module import simulated_robot
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import DetectionTechnique, DetectionState
 from pycram.designators.object_designator import BelieveObject
 
-
 with simulated_robot:
-    LookingMotion(target=Pose([1.5, 0, 1], [0, 0, 0, 1])).perform()
+    LookingMotion(target=PoseSteamped.from_list([1.5, 0, 1], [0, 0, 0, 1])).perform()
 
     motion_description = DetectingMotion(technique=DetectionTechnique.TYPES,
-                                         state=DetectionState.START, 
+                                         state=DetectionState.START,
                                          object_designator_description=BelieveObject(types=[Milk]).resolve(),
-                               region=None)
+                                         region=None)
 
     obj = motion_description.perform()
 

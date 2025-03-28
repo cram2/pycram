@@ -3,7 +3,7 @@ import rospy
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.world_concepts.world_object import Object
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 
 from pycram.datastructures.dataclasses import Color
 from demos.pycram_procthor_demo.code_example import generic_plan
@@ -48,11 +48,11 @@ def runWorld():
     known_environments = procThorInterface.get_all_environments_stored_below_directory(procThorInterface.source_folder)
     world = BulletWorld(WorldMode.GUI)
     apartment = None
-    milk_pos = Pose([1, -1.78, 0.55], [1, 0, 0, 0])
-    milk = Object("milk", pycrap.Milk, "milk.stl", pose=Pose([1, -1.78, 0.55], [1, 0, 0, 0]),
+    milk_pos = PoseSteamped.from_list([1, -1.78, 0.55], [1, 0, 0, 0])
+    milk = Object("milk", pycrap.Milk, "milk.stl", pose=PoseSteamped.from_list([1, -1.78, 0.55], [1, 0, 0, 0]),
                   color=Color(1, 0, 0, 1))
     for robot in robots:
-        robot_obj = Object("pr2", pycrap.Robot, robot, pose=Pose([1, 2, 0]))
+        robot_obj = Object("pr2", pycrap.Robot, robot, pose=PoseSteamped.from_list([1, 2, 0]))
         for environment in known_environments:
             counter += 1
             print("Trying plan: {} with robot: {} in: {}".format("param_plan", robot, environment["name"]))

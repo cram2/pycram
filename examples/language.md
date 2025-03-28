@@ -46,10 +46,10 @@ We will start with a simple example that uses an action designator for moving th
 import time
 
 from pycram.designators.action_designator import *
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 
-navigate = NavigateActionDescription([Pose([1, 1, 0])])
+navigate = NavigateActionDescription([PoseSteamped.from_list([1, 1, 0])])
 park = ParkArmsActionDescription([Arms.BOTH])
 
 plan = navigate + park
@@ -101,13 +101,13 @@ Besides the described difference in behaviour this language expression can be us
 
 ```python
 from pycram.designators.action_designator import *
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 
 world.reset_world()
 
-navigate = NavigateActionDescription([Pose([1, 1, 0])])
+navigate = NavigateActionDescription([PoseSteamped.from_list([1, 1, 0])])
 park = ParkArmsActionDescription([Arms.BOTH])
 
 plan = navigate - park
@@ -139,13 +139,13 @@ Using the parallel expressions works like Sequential and TryInOrder.
 
 ```python
 from pycram.designators.action_designator import *
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 
 world.reset_world()
 
-navigate = NavigateActionDescription([Pose([1, 1, 0])])
+navigate = NavigateActionDescription([PoseSteamped.from_list([1, 1, 0])])
 park = ParkArmsActionDescription([Arms.BOTH])
 
 plan = navigate | park
@@ -163,13 +163,13 @@ TryAll can be used like any other language expression.
 
 ```python
 from pycram.designators.action_designator import *
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 
 world.reset_world()
 
-navigate = NavigateActionDescription([Pose([1, 1, 0])])
+navigate = NavigateActionDescription([PoseSteamped.from_list([1, 1, 0])])
 park = ParkArmsActionDescription([Arms.BOTH])
 
 plan = navigate ^ park
@@ -192,15 +192,15 @@ with Sequential. You can try this yourself in the following cell.
 
 ```python
 from pycram.designators.action_designator import *
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 
 world.reset_world()
 
-navigate = NavigateActionDescription([Pose([1, 1, 0])])
+navigate = NavigateActionDescription([PoseSteamped.from_list([1, 1, 0])])
 park = ParkArmsActionDescription([Arms.BOTH])
-move_torso = MoveTorsoActionDescription([TorsoState.HIGH]) 
+move_torso = MoveTorsoActionDescription([TorsoState.HIGH])
 
 plan = navigate | park + move_torso
 
@@ -262,7 +262,7 @@ def code_test():
     raise PlanFailure
 
 
-navigate = NavigateActionDescription([Pose([1, 1, 0])])
+navigate = NavigateActionDescription([PoseSteamped.from_list([1, 1, 0])])
 code_func = Code(code_test)
 
 plan = navigate | code_func

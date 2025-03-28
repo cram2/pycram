@@ -15,7 +15,7 @@ from pycrap.ontologies import Floor
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
     ClosestPoint, LateralFriction, ContactPoint, ContactPointsList, ClosestPointsList, RayResult
 from ..datastructures.enums import ObjectType, WorldMode, JointType
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..datastructures.world import World
 from ..datastructures.world_entity import PhysicalBody
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
@@ -87,7 +87,7 @@ class BulletWorld(World):
         time.sleep(0.1)
 
     def load_generic_object_and_get_id(self, description: GenericObjectDescription,
-                                       pose: Optional[Pose] = None) -> int:
+                                       pose: Optional[PoseStamped] = None) -> int:
         """
         Creates a visual and collision box in the simulation.
         """
@@ -100,26 +100,26 @@ class BulletWorld(World):
 
         # Create MultiBody with both visual and collision shapes
         obj_id = p.createMultiBody(baseMass=1.0, baseCollisionShapeIndex=col_shape, baseVisualShapeIndex=vis_shape,
-                                   basePosition=description.origin.position_as_list(),
-                                   baseOrientation=description.origin.orientation_as_list(), physicsClientId=self.id)
+                                   basePosition=description.origin.position.to_list(),
+                                   baseOrientation=description.origin.orientation.to_list(), physicsClientId=self.id)
 
         if pose is not None:
             self._set_object_pose_by_id(obj_id, pose)
         # Assuming you have a list to keep track of created objects
         return obj_id
 
-    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None,
+    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[PoseStamped] = None,
                                obj_type: Optional[ObjectType] = None) -> int:
         if pose is None:
-            pose = Pose()
+            pose = PoseStamped()
         return self._load_object_and_get_id(path, pose)
 
-    def _load_object_and_get_id(self, path: str, pose: Pose) -> int:
+    def _load_object_and_get_id(self, path: str, pose: PoseStamped) -> int:
         if path is None:
             raise ValueError("Path to the object file is required.")
         return p.loadURDF(path,
-                          basePosition=pose.position_as_list(),
-                          baseOrientation=pose.orientation_as_list(), physicsClientId=self.id)
+                          basePosition=pose.position.to_list(),
+                          baseOrientation=pose.orientation.to_list(), physicsClientId=self.id)
 
     def _remove_visual_object(self, obj_id: int) -> bool:
         self._remove_body(obj_id)
@@ -162,7 +162,7 @@ class BulletWorld(World):
         return [p.getJointInfo(obj.id, i, physicsClientId=self.id)[1].decode('utf-8')
                 for i in range(self.get_object_number_of_joints(obj))]
 
-    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, Pose]:
+    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, PoseStamped]:
         return {link.name: self.get_link_pose(link) for link in links}
 
     def get_multiple_link_positions(self, links: List[Link]) -> Dict[str, List[float]]:
@@ -172,14 +172,14 @@ class BulletWorld(World):
         return {link.name: self.get_link_orientation(link) for link in links}
 
     def get_link_position(self, link: Link) -> List[float]:
-        return self.get_link_pose(link).position_as_list()
+        return self.get_link_pose(link).position.to_list()
 
     def get_link_orientation(self, link: Link) -> List[float]:
-        return self.get_link_pose(link).orientation_as_list()
+        return self.get_link_pose(link).orientation.to_list()
 
-    def get_link_pose(self, link: ObjectDescription.Link) -> Pose:
+    def get_link_pose(self, link: ObjectDescription.Link) -> PoseStamped:
         bullet_link_state = p.getLinkState(link.object_id, link.id, physicsClientId=self.id)
-        return Pose(*bullet_link_state[4:6])
+        return PoseStamped.from_list(*bullet_link_state[4:6])
 
     def get_object_link_names(self, obj: Object) -> List[str]:
         num_links = self.get_object_number_of_links(obj)
@@ -262,17 +262,17 @@ class BulletWorld(World):
         return {joint.name: self.get_joint_position(joint) for joint in joints}
 
     @validate_multiple_object_poses
-    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> bool:
+    def reset_multiple_objects_base_poses(self, objects: Dict[Object, PoseStamped]) -> bool:
         for obj, pose in objects.items():
             self.reset_object_base_pose(obj, pose)
         return True
 
     @validate_object_pose
-    def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
+    def reset_object_base_pose(self, obj: Object, pose: PoseStamped) -> bool:
         return self._set_object_pose_by_id(obj.id, pose)
 
-    def _set_object_pose_by_id(self, obj_id: int, pose: Pose) -> bool:
-        p.resetBasePositionAndOrientation(obj_id, pose.position_as_list(), pose.orientation_as_list(),
+    def _set_object_pose_by_id(self, obj_id: int, pose: PoseStamped) -> bool:
+        p.resetBasePositionAndOrientation(obj_id, pose.position.to_list(), pose.orientation.to_list(),
                                           physicsClientId=self.id)
         return True
 
@@ -283,23 +283,23 @@ class BulletWorld(World):
             logwarn("The BulletWorld step function does not support a step_seconds argument.")
         p.stepSimulation(physicsClientId=self.id)
 
-    def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:
+    def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, PoseStamped]:
         return {obj.name: self.get_object_pose(obj) for obj in objects}
 
     def get_multiple_object_positions(self, objects: List[Object]) -> Dict[str, List[float]]:
-        return {obj.name: self.get_object_pose(obj).position_as_list() for obj in objects}
+        return {obj.name: self.get_object_pose(obj).position.to_list() for obj in objects}
 
     def get_multiple_object_orientations(self, objects: List[Object]) -> Dict[str, List[float]]:
-        return {obj.name: self.get_object_pose(obj).orientation_as_list() for obj in objects}
+        return {obj.name: self.get_object_pose(obj).orientation.to_list() for obj in objects}
 
     def get_object_position(self, obj: Object) -> List[float]:
-        return self.get_object_pose(obj).position_as_list()
+        return self.get_object_pose(obj).position.to_list()
 
     def get_object_orientation(self, obj: Object) -> List[float]:
-        return self.get_object_pose(obj).orientation_as_list()
+        return self.get_object_pose(obj).orientation.to_list()
 
-    def get_object_pose(self, obj: Object) -> Pose:
-        return Pose(*p.getBasePositionAndOrientation(obj.id, physicsClientId=self.id))
+    def get_object_pose(self, obj: Object) -> PoseStamped:
+        return PoseStamped(*p.getBasePositionAndOrientation(obj.id, physicsClientId=self.id))
 
     def set_link_color(self, link: ObjectDescription.Link, rgba_color: Color):
         p.changeVisualShape(link.object_id, link.id, rgbaColor=rgba_color.get_rgba(), physicsClientId=self.id)
@@ -349,7 +349,7 @@ class BulletWorld(World):
     def remove_physics_simulator_state(self, state_id: int):
         p.removeState(state_id, physicsClientId=self.id)
 
-    def _add_vis_axis(self, pose: Pose,
+    def _add_vis_axis(self, pose: PoseStamped,
                       length: Optional[float] = 0.2) -> int:
         """
         Creates a Visual object which represents the coordinate frame at the given
@@ -373,8 +373,8 @@ class BulletWorld(World):
 
         multibody = MultiBody(base_visual_shape_index=-1, base_pose=pose_in_map,
                               link_visual_shape_indices=[vis_x, vis_y, vis_z],
-                              link_poses=[Pose(), Pose(), Pose()], link_masses=[1.0, 1.0, 1.0],
-                              link_inertial_frame_poses=[Pose(), Pose(), Pose()], link_parent_indices=[0, 0, 0],
+                              link_poses=[PoseStamped(), PoseStamped(), PoseStamped()], link_masses=[1.0, 1.0, 1.0],
+                              link_inertial_frame_poses=[PoseStamped(), PoseStamped(), PoseStamped()], link_parent_indices=[0, 0, 0],
                               link_joint_types=[JointType.FIXED.value, JointType.FIXED.value, JointType.FIXED.value],
                               link_joint_axis=[Point(x=1, y=0, z=0), Point(x=0, y=1, z=0), Point(x=0, y=0, z=1)],
                               link_collision_shape_indices=[-1, -1, -1])
@@ -410,14 +410,14 @@ class BulletWorld(World):
     def _create_multi_body(self, multi_body: MultiBody) -> int:
         return p.createMultiBody(baseVisualShapeIndex=-multi_body.base_visual_shape_index,
                                  linkVisualShapeIndices=multi_body.link_visual_shape_indices,
-                                 basePosition=multi_body.base_pose.position_as_list(),
-                                 baseOrientation=multi_body.base_pose.orientation_as_list(),
-                                 linkPositions=[pose.position_as_list() for pose in multi_body.link_poses],
+                                 basePosition=multi_body.base_pose.position.to_list(),
+                                 baseOrientation=multi_body.base_pose.orientation.to_list(),
+                                 linkPositions=[pose.position.to_list() for pose in multi_body.link_poses],
                                  linkMasses=multi_body.link_masses,
-                                 linkOrientations=[pose.orientation_as_list() for pose in multi_body.link_poses],
-                                 linkInertialFramePositions=[pose.position_as_list()
+                                 linkOrientations=[pose.orientation.to_list() for pose in multi_body.link_poses],
+                                 linkInertialFramePositions=[pose.position.to_list()
                                                              for pose in multi_body.link_inertial_frame_poses],
-                                 linkInertialFrameOrientations=[pose.orientation_as_list()
+                                 linkInertialFrameOrientations=[pose.orientation.to_list()
                                                                 for pose in multi_body.link_inertial_frame_poses],
                                  linkParentIndices=multi_body.link_parent_indices,
                                  linkJointTypes=multi_body.link_joint_types,
@@ -425,8 +425,8 @@ class BulletWorld(World):
                                  linkCollisionShapeIndices=multi_body.link_collision_shape_indices)
 
     def get_images_for_target(self,
-                              target_pose: Pose,
-                              cam_pose: Pose,
+                              target_pose: PoseStamped,
+                              cam_pose: PoseStamped,
                               size: Optional[int] = 256) -> List[np.ndarray]:
         # TODO: Might depend on robot cameras, if so please add these camera parameters to RobotDescription object
         # TODO: of your robot with a CameraDescription object.
@@ -435,7 +435,7 @@ class BulletWorld(World):
         near = 0.2
         far = 100
 
-        view_matrix = p.computeViewMatrix(cam_pose.position_as_list(), target_pose.position_as_list(), [0, 0, 1])
+        view_matrix = p.computeViewMatrix(cam_pose.position.to_list(), target_pose.position.to_list(), [0, 0, 1])
         projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
         return list(p.getCameraImage(size, size, view_matrix, projection_matrix,
                                      physicsClientId=self.id))[2:5]

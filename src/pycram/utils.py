@@ -18,7 +18,7 @@ import matplotlib.colors as mcolors
 from .tf_transformations import quaternion_about_axis, quaternion_multiply
 from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence, Any, Iterable, Optional
 
-from .datastructures.pose import Pose
+from .datastructures.pose import PoseStamped
 from .local_transformer import LocalTransformer
 
 if TYPE_CHECKING:
@@ -116,7 +116,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-def _apply_ik(robot: 'Object', pose_and_joint_poses: Tuple[Pose, Dict[str, float]]) -> None:
+def _apply_ik(robot: 'Object', pose_and_joint_poses: Tuple[PoseStamped, Dict[str, float]]) -> None:
     """
     Apllies a list of joint poses calculated by an inverse kinematics solver to a robot
 
@@ -230,8 +230,8 @@ class suppress_stdout_stderr(object):
             os.close(fd)
 
 
-def adjust_camera_pose_based_on_target(cam_pose: Pose, target_pose: Pose,
-                                       camera_description: CameraDescription) -> Pose:
+def adjust_camera_pose_based_on_target(cam_pose: PoseStamped, target_pose: PoseStamped,
+                                       camera_description: CameraDescription) -> PoseStamped:
     """
     Adjust the given cam_pose orientation such that it is facing the target_pose, which partly depends on the
      front_facing_axis of the that is defined in the camera_description.
@@ -246,7 +246,7 @@ def adjust_camera_pose_based_on_target(cam_pose: Pose, target_pose: Pose,
     return apply_quaternion_to_pose(cam_pose, quaternion)
 
 
-def get_quaternion_between_camera_and_target(cam_pose: Pose, target_pose: Pose,
+def get_quaternion_between_camera_and_target(cam_pose: PoseStamped, target_pose: PoseStamped,
                                              camera_description: 'CameraDescription') -> np.ndarray:
     """
     Get the quaternion between the camera and the target.
@@ -258,7 +258,7 @@ def get_quaternion_between_camera_and_target(cam_pose: Pose, target_pose: Pose,
     """
     # Get the front facing axis of the camera in the world frame
     front_facing_axis = transform_vector_using_pose(camera_description.front_facing_axis, cam_pose)
-    front_facing_axis = front_facing_axis - np.array(cam_pose.position_as_list())
+    front_facing_axis = front_facing_axis - np.array(cam_pose.position.to_list()())
 
     # Get the vector from the camera to the target
     camera_to_target = cam_pose.get_vector_to_pose(target_pose)
@@ -279,7 +279,7 @@ def transform_vector_using_pose(vector: Sequence, pose) -> np.ndarray:
     return pose.to_transform("pose").apply_transform_to_array_of_points(vector).flatten()
 
 
-def apply_quaternion_to_pose(pose: Pose, quaternion: np.ndarray) -> Pose:
+def apply_quaternion_to_pose(pose: PoseStamped, quaternion: np.ndarray) -> PoseStamped:
     """
     Apply a quaternion to a pose.
 
@@ -287,9 +287,9 @@ def apply_quaternion_to_pose(pose: Pose, quaternion: np.ndarray) -> Pose:
     :param quaternion: The quaternion.
     :return: The new pose.
     """
-    pose_quaternion = np.array(pose.orientation_as_list())
+    pose_quaternion = np.array(pose.orientation.to_list()())
     new_quaternion = quaternion_multiply(quaternion, pose_quaternion)
-    return Pose(pose.position_as_list(), new_quaternion.tolist())
+    return PoseStamped(pose.position.to_list(), new_quaternion.tolist())
 
 
 def get_quaternion_between_two_vectors(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
@@ -329,7 +329,7 @@ class RayTestUtils:
         self.ray_test_batch = ray_test_batch
         self.object_id_to_name = object_id_to_name
 
-    def get_images_for_target(self, cam_pose: Pose,
+    def get_images_for_target(self, cam_pose: PoseStamped,
                               camera_description: 'CameraDescription',
                               camera_frame: str,
                               size: int = 256,
@@ -400,17 +400,17 @@ class RayTestUtils:
         return np.repeat(normalized_depth_image[:, :, np.newaxis], 3, axis=2).astype(np.uint8)
 
     def get_camera_rays_start_positions(self, camera_description: 'CameraDescription', camera_frame: str,
-                                        camera_pose: Pose, size: int,
+                                        camera_pose: PoseStamped, size: int,
                                         camera_min_distance: float) -> np.ndarray:
 
         # get the start pose of the rays from the camera pose and minimum distance.
         start_pose = self.get_camera_rays_start_pose(camera_description, camera_frame, camera_pose, camera_min_distance)
 
         # get the list of start positions of the rays.
-        return np.repeat(np.array([start_pose.position_as_list()]), size * size, axis=0)
+        return np.repeat(np.array([start_pose.position.to_list()]), size * size, axis=0)
 
-    def get_camera_rays_start_pose(self, camera_description: 'CameraDescription', camera_frame: str, camera_pose: Pose,
-                                   camera_min_distance: float) -> Pose:
+    def get_camera_rays_start_pose(self, camera_description: 'CameraDescription', camera_frame: str, camera_pose: PoseStamped,
+                                   camera_min_distance: float) -> PoseStamped:
         """
         Get the start position of the camera rays, which is the camera pose shifted by the minimum distance of the
         camera.
@@ -422,15 +422,15 @@ class RayTestUtils:
         """
         camera_transform = camera_pose.to_transform("camera_pose")
         self.local_transformer.update_transforms([camera_transform])
-        camera_pose_in_camera_frame = Pose(frame="camera_pose")
+        camera_pose_in_camera_frame = PoseStamped(frame_id="camera_pose")
         # camera_pose_in_camera_frame = self.local_transformer.transform_pose(camera_pose, camera_frame)
         start_position = (np.array(camera_description.front_facing_axis) * camera_min_distance
-                          + np.array(camera_pose_in_camera_frame.position_as_list()))
-        start_pose = Pose(start_position.tolist(), camera_pose_in_camera_frame.orientation_as_list(), "camera_pose")
+                          + np.array(camera_pose_in_camera_frame.position.to_list()()))
+        start_pose = PoseStamped(start_position.tolist(), camera_pose_in_camera_frame.orientation.to_list(), "camera_pose")
         return self.local_transformer.transform_pose(start_pose, "map")
 
     def get_camera_rays_end_positions(self, camera_description: 'CameraDescription', camera_frame: str,
-                                      camera_pose: Pose, size: int, camera_max_distance: float = 3.0) -> np.ndarray:
+                                      camera_pose: PoseStamped, size: int, camera_max_distance: float = 3.0) -> np.ndarray:
         """
         Get the end positions of the camera rays.
 
@@ -449,7 +449,7 @@ class RayTestUtils:
         return self.transform_points_from_camera_frame_to_world_frame(camera_pose, camera_frame, rays_end_positions)
 
     @staticmethod
-    def transform_points_from_camera_frame_to_world_frame(camera_pose: Pose, camera_frame: str,
+    def transform_points_from_camera_frame_to_world_frame(camera_pose: PoseStamped, camera_frame: str,
                                                           points: np.ndarray) -> np.ndarray:
         """
         Transform points from the camera frame to the world frame.

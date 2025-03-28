@@ -10,7 +10,7 @@ from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
 from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape
-from ..datastructures.pose import Pose, Transform
+from ..datastructures.pose import PoseStamped, TransformStamped
 from ..datastructures.world import World
 from ..designator import ObjectDesignatorDescription
 from ..ros import  Duration, Time
@@ -82,7 +82,7 @@ class VizMarkerPublisher:
                 if obj.get_link_origin(link) is not None:
                     link_origin = obj.get_link_origin_transform(link)
                 else:
-                    link_origin = Transform()
+                    link_origin = TransformStamped()
                 link_pose_with_origin = link_pose * link_origin
                 msg.pose = link_pose_with_origin.to_pose().pose
 
@@ -144,7 +144,7 @@ class ManualMarkerPublisher:
         self.interval = interval
         self.log_message = None
 
-    def publish(self, pose: Pose, color: Optional[List] = None, bw_object: Optional[ObjectDesignatorDescription] = None,
+    def publish(self, pose: PoseStamped, color: Optional[List] = None, bw_object: Optional[ObjectDesignatorDescription] = None,
                 name: Optional[str] = None):
         """
         Publish a pose or an object into the MarkerArray.
@@ -165,7 +165,7 @@ class ManualMarkerPublisher:
         loginfo(self.log_message)
         thread.join()
 
-    def _publish(self, pose: Pose, bw_object: Optional[ObjectDesignatorDescription] = None, name: Optional[str] = None,
+    def _publish(self, pose: PoseStamped, bw_object: Optional[ObjectDesignatorDescription] = None, name: Optional[str] = None,
                  color: Optional[List] = None):
         """
         Publish the marker into the MarkerArray
@@ -183,7 +183,7 @@ class ManualMarkerPublisher:
 
             sleep(self.interval)
 
-    def _publish_pose(self, name: str, pose: Pose, color: Optional[List] = None):
+    def _publish_pose(self, name: str, pose: PoseStamped, color: Optional[List] = None):
         """
         Publish a Pose as a marker
 
@@ -205,7 +205,7 @@ class ManualMarkerPublisher:
         self.marker_array_pub.publish(self.marker_array)
         self.log_message = f"Pose '{name}' published"
 
-    def _publish_object(self, name: Optional[str], pose: Pose, bw_object: ObjectDesignatorDescription):
+    def _publish_object(self, name: Optional[str], pose: PoseStamped, bw_object: ObjectDesignatorDescription):
         """
         Publish an Object as a marker
 
@@ -231,7 +231,7 @@ class ManualMarkerPublisher:
         self.marker_array_pub.publish(self.marker_array)
         self.log_message = f"Object '{name}' published"
 
-    def _make_marker_array(self, name, marker_type: int, marker_pose: Pose, marker_scales: Tuple = (1.0, 1.0, 1.0),
+    def _make_marker_array(self, name, marker_type: int, marker_pose: PoseStamped, marker_scales: Tuple = (1.0, 1.0, 1.0),
                            color_rgba: ColorRGBA = ColorRGBA(**dict(zip(["r", "g", "b","a"], [1.0, 1.0, 1.0, 1.0]))),
                            path_to_resource: Optional[str] = None):
         """
@@ -269,7 +269,7 @@ class ManualMarkerPublisher:
         self.marker_overview[name] = new_marker.id
         self.current_id += 1
 
-    def _update_marker(self, marker_id: int, new_pose: Pose) -> bool:
+    def _update_marker(self, marker_id: int, new_pose: PoseStamped) -> bool:
         """
         Update an existing marker to a new pose
 
@@ -344,7 +344,7 @@ class TrajectoryPublisher:
         time.sleep(0.5) # this is needed to synchronize the publisher creation thread
         return pub
 
-    def visualize_trajectory(self, trajectory: List[Pose]):
+    def visualize_trajectory(self, trajectory: List[PoseStamped]):
         """
         Visualize a trajectory in rviz as a series of arrows.
 
@@ -355,7 +355,7 @@ class TrajectoryPublisher:
         for index, (p1, p2) in enumerate(zip(trajectory, trajectory[1:])):
 
             marker = Marker()
-            marker.header.frame_id = p1.frame
+            marker.header.frame_id = p1.frame_id
             marker.id = index
             marker.ns = "trajectory_arrows"
             marker.action = Marker.ADD

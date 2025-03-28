@@ -16,7 +16,7 @@ from pycrap.ontologies import Base, has_child_link, has_parent_link
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
     MeshVisualShape, RotatedBoundingBox
 from .datastructures.enums import JointType
-from .datastructures.pose import Pose, Transform
+from .datastructures.pose import PoseStamped, TransformStamped
 from .datastructures.world_entity import WorldEntity, PhysicalBody
 from .failures import ObjectDescriptionNotFound, LinkHasNoGeometry, LinkGeometryHasNoMesh
 from .local_transformer import LocalTransformer
@@ -39,7 +39,7 @@ class EntityDescription(ABC):
 
     @property
     @abstractmethod
-    def origin(self) -> Pose:
+    def origin(self) -> PoseStamped:
         """
         :return: the origin of this entity.
         """
@@ -313,7 +313,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         else:
             raise LinkGeometryHasNoMesh(self.name, type(geometry).__name__)
 
-    def set_object_pose_given_link_pose(self, pose: Pose) -> None:
+    def set_object_pose_given_link_pose(self, pose: PoseStamped) -> None:
         """
         Set the pose of this link to the given pose.
         NOTE: This will move the entire object such that the link is at the given pose, it will not consider any joints
@@ -341,13 +341,13 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         """
         return (pose.to_transform(self.object.tf_frame) * self.get_transform_from_root_link()).to_pose()
 
-    def get_transform_from_root_link(self) -> Transform:
+    def get_transform_from_root_link(self) -> TransformStamped:
         """
         Return the transformation from the root link of the object to this link.
         """
         return self.get_transform_from_link(self.object.root_link)
 
-    def get_transform_to_root_link(self) -> Transform:
+    def get_transform_to_root_link(self) -> TransformStamped:
         """
         Return the transformation from this link to the root link of the object.
         """
@@ -377,7 +377,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
                                                                                other.constraint_ids.keys())])
 
     def add_fixed_constraint_with_link(self, child_link: Link,
-                                       child_to_parent_transform: Optional[Transform] = None) -> int:
+                                       child_to_parent_transform: Optional[TransformStamped] = None) -> int:
         """
         Add a fixed constraint between this link and the given link, to create attachments for example.
 
@@ -417,42 +417,42 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         """
         return self.object.get_root_link_id() == self.id
 
-    def get_transform_to_link(self, link: 'Link') -> Transform:
+    def get_transform_to_link(self, link: 'Link') -> TransformStamped:
         """
         :param link: The link to which the transformation should be returned.
         :return: A Transform object with the transformation from this link to the given link.
         """
         return link.get_transform_from_link(self)
 
-    def get_transform_from_link(self, link: 'Link') -> Transform:
+    def get_transform_from_link(self, link: 'Link') -> TransformStamped:
         """
         :param link: The link from which the transformation should be returned.
         :return: A Transform object with the transformation from the given link to this link.
         """
         return self.get_pose_wrt_link(link).to_transform(self.tf_frame)
 
-    def get_pose_wrt_link(self, link: 'Link') -> Pose:
+    def get_pose_wrt_link(self, link: 'Link') -> PoseStamped:
         """
         :param link: The link with respect to which the pose should be returned.
         :return: A Pose object with the pose of this link with respect to the given link.
         """
         return self.local_transformer.transform_pose(self.pose, link.tf_frame)
 
-    def get_origin_transform(self) -> Transform:
+    def get_origin_transform(self) -> TransformStamped:
         """
         :return: the transformation between the link frame and the origin frame of this link.
         """
         return self.origin.to_transform(self.tf_frame)
 
     @property
-    def pose(self) -> Pose:
+    def pose(self) -> PoseStamped:
         """
         :return: The pose of this link.
         """
         return self.world.get_link_pose(self)
 
     @pose.setter
-    def pose(self, pose: Pose) -> None:
+    def pose(self, pose: PoseStamped) -> None:
         logwarn_once("Setting the pose of a link is not allowed,"
                      " change object pose and/or joint position to affect the link pose.")
 
@@ -480,7 +480,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         return f"{self.object.tf_frame}/{self.name}"
 
     @property
-    def origin_transform(self) -> Transform:
+    def origin_transform(self) -> TransformStamped:
         """
         The transformation between the link frame and the origin frame of this link.
         """
@@ -511,14 +511,14 @@ class RootLink(Link, ABC):
         return self.object.tf_frame
 
     @property
-    def pose(self) -> Pose:
+    def pose(self) -> PoseStamped:
         """
         :return: The pose of the root link, which is the same as the pose of the object.
         """
         return self.object.pose
 
     @pose.setter
-    def pose(self, pose: Pose) -> None:
+    def pose(self, pose: PoseStamped) -> None:
         """
         Set the pose of the root link to the given pose by setting the pose of the object.
         """
@@ -580,7 +580,7 @@ class Joint(WorldEntity, ObjectEntity, JointDescription, ABC):
         return self.child_link.tf_frame
 
     @property
-    def pose(self) -> Pose:
+    def pose(self) -> PoseStamped:
         """
         :return: The pose of this joint. The pose is the pose of the child link of this joint.
         """
@@ -751,7 +751,7 @@ class ObjectDescription(EntityDescription):
 
     @abstractmethod
     def add_joint(self, name: str, child: str, joint_type: JointType,
-                  axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
+                  axis: Point, parent: Optional[str] = None, origin: Optional[PoseStamped] = None,
                   lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
                   is_virtual: Optional[bool] = False) -> None:
         """
@@ -775,7 +775,7 @@ class ObjectDescription(EntityDescription):
                           joint_type: JointType = JointType.FIXED,
                           axis: Optional[Point] = None,
                           lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
-                          child_pose_wrt_parent: Optional[Pose] = None,
+                          child_pose_wrt_parent: Optional[PoseStamped] = None,
                           in_place: bool = False,
                           new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
         """
@@ -847,7 +847,7 @@ class ObjectDescription(EntityDescription):
 
     def generate_description_from_file(self, path: str, name: str, extension: str, save_path: str,
                                        scale_mesh: Optional[float] = None,
-                                       mesh_transform: Optional[Transform] = None,
+                                       mesh_transform: Optional[TransformStamped] = None,
                                        color: Optional[Color] = None) -> None:
         """
         Generate and preprocess the description from the file at the given path and save the preprocessed
