@@ -266,8 +266,10 @@ class LocalTransformer(Buffer):
         self.update_transforms_for_objects([obj for obj in objects if obj is not None])
 
         tf_time = time if time else self.get_latest_common_time(source_frame, target_frame)
-        translation, rotation = self.lookup_transform(source_frame, target_frame, tf_time)
-        return Transform(translation, rotation, source_frame, target_frame)
+        transform_stamped = self.lookup_transform(source_frame, target_frame, tf_time)
+        return Transform(transform_stamped.transform.translation,
+                         transform_stamped.transform.rotation,
+                         source_frame, target_frame)
 
     def update_transforms(self, transforms: Iterable[Transform], time: Time = None) -> None:
         """

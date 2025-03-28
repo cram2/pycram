@@ -88,6 +88,7 @@ tiago_description.add_camera_description(camera)
 
 ################################## Neck ##################################
 tiago_description.add_kinematic_chain("neck", "torso_lift_link", "head_2_link")
+tiago_description.set_neck(yaw_joint="head_1_joint", pitch_joint="head_2_joint")
 
 ################################# Grasps ##################################
 front_grasp = [-0.5, 0.5, 0.5, -0.5]

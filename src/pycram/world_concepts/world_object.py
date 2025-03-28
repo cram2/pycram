@@ -600,12 +600,21 @@ class Object(PhysicalBody):
 
     def get_link_geometry(self, link_name: str) -> Union[VisualShape, None]:
         """
-        Return the geometry of the link with the given name.
+        Return the collision geometry of the link with the given name.
 
         :param link_name: The name of the link.
-        :return: The geometry of the link.
+        :return: The collision geometry of the link.
         """
         return self.links[link_name].geometry
+
+    def get_link_visual_geometry(self, link_name: str) -> Union[VisualShape, None]:
+        """
+        Return the visual geometry of the link with the given name.
+
+        :param link_name: The name of the link.
+        :return: The visual geometry of the link.
+        """
+        return self.links[link_name].visual_geometry
 
     def get_link_transform(self, link_name: str) -> Transform:
         """

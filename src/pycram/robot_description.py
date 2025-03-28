@@ -127,6 +127,10 @@ class RobotDescription:
     Name of the gripper of the robot if it has one, this is used when the gripper is a different Object with its own
     description file outside the robot description file.
     """
+    neck: Dict[str, List[str]]
+    """
+    Dictionary of neck links and joints. Keys are yaw, pitch and roll, values are [link, joint]
+    """
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
                  virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None,
@@ -162,6 +166,7 @@ class RobotDescription:
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
         self.virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = virtual_mobile_base_joints
         self.gripper_name = gripper_name
+        self.neck = {}
 
     def add_arm(self, end_link: str,
                 arm_type: Arms = Arms.RIGHT,
@@ -269,12 +274,14 @@ class RobotDescription:
                 result.append(chain)
         return result
 
-    def get_camera_frame(self, robot_object_name: str) -> str:
+    def get_camera_frame(self, robot_object_name: str = None) -> str:
         """
         Quick method to get the name of a link of a camera. Uses the first camera in the list of cameras.
 
         :return: A name of the link of a camera
         """
+        if robot_object_name is None:
+            return self.name
         return f"{robot_object_name}/{self.get_camera_link()}"
 
     def get_camera_link(self) -> str:
@@ -312,6 +319,19 @@ class RobotDescription:
         else:
             raise ValueError(f"There is no KinematicChain with name {kinematic_chain_name} for robot {self.name}. "
                              f"The following chains are available: {list(self.kinematic_chains.keys())}")
+
+    def get_offset(self, name):
+        """
+        Returns the offset of a Joint in the URDF.
+        :param name: The name of the Joint for which the offset will be returned.
+        :return: The offset of the Joint
+        """
+        if name not in self.urdf_object.joint_map.keys():
+            logerr(f"The name: {name} is not part of this robot URDF")
+            return None
+
+        offset = self.urdf_object.joint_map[name].origin
+        return offset if offset else None
 
     def get_parent(self, name: str) -> str:
         """
@@ -385,6 +405,34 @@ class RobotDescription:
             if chain.arm_type == arm:
                 return chain
         raise ValueError(f"There is no Kinematic Chain for the Arm {arm}")
+
+    def set_neck(self, yaw_joint: Optional[str] = None, pitch_joint: Optional[str] = None,
+                 roll_joint: Optional[str] = None):
+        """
+        Defines the neck configuration of the robot by setting the yaw, pitch, and roll
+        joints along with their corresponding links.
+
+        :param yaw_joint: The joint name for the yaw movement of the neck.
+        :param pitch_joint: The joint name for the pitch movement of the neck.
+        :param roll_joint: The joint name for the roll movement of the neck.
+        """
+        yaw_link = self.get_child(yaw_joint) if yaw_joint else None
+        pitch_link = self.get_child(pitch_joint) if pitch_joint else None
+        roll_link = self.get_child(roll_joint) if roll_joint else None
+        self.neck = {
+            "yaw": [yaw_link, yaw_joint],
+            "pitch": [pitch_link, pitch_joint],
+            "roll": [roll_link, roll_joint]
+        }
+
+    def get_neck(self) -> Dict[str, List[Optional[str]]]:
+        """
+        Retrieves the neck configuration of the robot, including links and joints for yaw,
+        pitch, and roll.
+
+        :return: A dictionary containing the neck configuration. Keys are yaw, pitch, and roll. Values are [link, joint].
+        """
+        return self.neck
 
     def load(self):
         """

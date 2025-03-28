@@ -1,4 +1,5 @@
 import numpy as np
+from types import MethodType
 from ..tf_transformations import quaternion_from_euler
 
 from ..pose_generator_and_validator import PoseGenerator
@@ -45,6 +46,8 @@ neck = KinematicChainDescription("neck", "link_head", "link_head_tilt", stretch_
 
 stretch_description.add_kinematic_chain_description(neck)
 
+stretch_description.set_neck(yaw_joint="joint_head_pan", pitch_joint="joint_head_tilt")
+
 ################################## Torso ##################################
 torso = KinematicChainDescription("torso", "link_mast", "link_lift",
                                   stretch_description.urdf_object)
@@ -79,15 +82,15 @@ def stretch_orientation_generator(position, origin):
 
 ################################ Load Function #################################
 def load(description):
-    RobotDescriptionManager.current_robot_description = description
+    RobotDescription.current_robot_description = description
     PoseGenerator.override_orientation_generator = stretch_orientation_generator
 
 def unload(description):
-    RobotDescriptionManager.current_robot_description = None
+    RobotDescription.current_robot_description = None
     PoseGenerator.override_orientation_generator = None
 
-stretch_description.load = load
-stretch_description.unload = unload
+stretch_description.load = MethodType(load, stretch_description)
+stretch_description.unload = MethodType(unload, stretch_description)
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

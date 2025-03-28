@@ -160,7 +160,7 @@ icub_description.add_camera_description(camera)
 
 ################################## Neck ##################################
 icub_description.add_kinematic_chain("neck", "chest", "head")
-# icub_description.set_neck("neck_yaw", "neck_pitch", "neck_roll")
+icub_description.set_neck(yaw_joint="neck_yaw", pitch_joint="neck_pitch", roll_joint="neck_roll")
 
 ################################# Grasps ##################################
 left_orientation = [0.5, 0.5, 0.5, 0.5]
