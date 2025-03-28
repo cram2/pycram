@@ -1340,7 +1340,7 @@ class Object(PhysicalBody):
         """
         return self.joints[joint_name].parent_link
 
-    def find_joint_above_link(self, link_name: str, joint_type: JointType = None) -> str | None:
+    def find_joint_above_link(self, link_name: str, joint_type: Optional[JointType] = None) -> Optional[str]:
         """
         Traverses the chain from 'link' to the URDF origin and returns the first joint that is of type 'joint_type'.
         If no joint type is given, the first joint that is not FIXED is returned.
