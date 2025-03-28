@@ -343,8 +343,9 @@ class ReachToPickUpActionPerformable(ActionAbstract):
         target_pose = self.world_object.get_grasp_pose(self.end_effector, self.grasp_description)
         target_pose.rotate_by_quaternion(self.end_effector.grasps[self.grasp_description])
 
-        target_pre_pose = target_pose.translate_along_axis(self.end_effector.get_approach_axis(),
-                                                           -self.world_object.get_approach_offset())
+        target_pre_pose = LocalTransformer().translate_pose_along_local_axis(target_pose,
+                                                                             self.end_effector.get_approach_axis(),
+                                                                             -self.world_object.get_approach_offset())
 
         MoveGripperMotion(motion=GripperState.OPEN, gripper=self.arm).perform()
 
@@ -528,8 +529,9 @@ class PlaceActionPerformable(ActionAbstract):
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()
         World.robot.detach(self.object_designator.world_object)
 
-        retract_pose = target_pose.translate_along_axis(self.end_effector.get_approach_axis(),
-                                                        -self.world_object.get_approach_offset())
+        retract_pose = LocalTransformer().translate_pose_along_local_axis(target_pose,
+                                                                          self.end_effector.get_approach_axis(),
+                                                                          -self.world_object.get_approach_offset())
         MoveTCPMotion(retract_pose, self.arm).perform()
 
     @cached_property

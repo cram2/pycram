@@ -584,8 +584,9 @@ class PhysicalBody(WorldEntity, ABC):
 
     def get_grasp_pose(self, end_effector, grasp: GraspDescription) -> Pose:
         """
-        Returns the translated grasp pose of the object given the desired grasp description, and applied object knowledge.
-        This does not change the orientation. Any grasp quaternion needs to be applied separately.
+        Translates the grasp pose of the object using the desired grasp description and object knowledge.
+        Leaves the orientation untouched.
+        Returns the translated grasp pose.
 
         :param end_effector: The end effector that will be used to grasp the object.
         :param grasp: The desired grasp description.
@@ -601,7 +602,7 @@ class PhysicalBody(WorldEntity, ABC):
             rim_direction_index = approach_direction.value[0].value.index(1)
             rim_offset = self.get_rotated_bounding_box().dimensions[rim_direction_index] / 2
             grasp_pose.rotate_by_quaternion(end_effector.grasps[rim_direction])
-            grasp_pose = grasp_pose.translate_along_axis(approach_axis, -rim_offset)
+            grasp_pose = LocalTransformer().translate_pose_along_local_axis(grasp_pose, approach_axis, -rim_offset)
             grasp_pose = Pose(grasp_pose.position_as_list(), self.orientation_as_list)
 
         return grasp_pose

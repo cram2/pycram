@@ -231,6 +231,24 @@ class LocalTransformer(Buffer):
         found_objects = [obj for obj in world.objects if frame == obj.tf_frame]
         return found_objects[0] if len(found_objects) > 0 else self.get_object_from_link_frame(frame)
 
+    def translate_pose_along_local_axis(self, pose: Pose, axis: List, distance: float) -> Pose:
+        """
+        Translate a pose along a given 3d vector (axis) by a given distance. The axis is given in the local coordinate
+        frame of the pose. The axis is normalized and then scaled by the distance.
+
+        :param pose: The pose that should be translated
+        :param axis: The local axis along which the translation should be performed
+        :param distance: The distance by which the pose should be translated
+
+        :return: The translated pose
+        """
+        transform = pose.to_transform("self")
+        normalized_translation_vector = np.array(axis) / np.linalg.norm(axis)
+        scaled_translation_vector = (normalized_translation_vector * distance).tolist()
+        translation = Transform(scaled_translation_vector, [0, 0, 0, 1], "self", "translation",
+                                pose.header.stamp)
+        return (transform * translation).to_pose()
+
     def get_object_from_link_frame(self, link_frame: str) -> Optional[Object]:
         """
         Get the name of the object that is associated with the given link frame.

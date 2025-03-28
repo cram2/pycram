@@ -37,7 +37,7 @@ class LinkDescription(AbstractLinkDescription):
 
 
     @property
-    def geometry(self) -> Union[List[VisualShape], VisualShape, None]:
+    def geometry(self) -> List[VisualShape]:
         """
         :return: The geometry type of the URDF collision element of this link.
         """
@@ -46,19 +46,15 @@ class LinkDescription(AbstractLinkDescription):
         if isinstance(self.collision, List):
             return [self._get_visual_shape(coll.geometry) for coll in self.collision]
         urdf_geometry = self.collision.geometry
-        return self._get_visual_shape(urdf_geometry)
+        return [self._get_visual_shape(urdf_geometry)]
 
     @property
-    def visual_geometry(self) -> Union[List[VisualShape], VisualShape, None]:
+    def visual_geometry(self) -> List[VisualShape]:
         """
         :return: The geometry type of the URDF visual element of this link.
         """
-        if self.visual is None:
-            return None
-        if isinstance(self.visual, List):
-            return [self._get_visual_shape(vis.geometry) for vis in self.visual]
-        urdf_geometry = self.visual.geometry
-        return self._get_visual_shape(urdf_geometry)
+        visuals = self.parsed_description.visuals
+        return [self._get_visual_shape(vis.geometry) for vis in visuals]
 
     @staticmethod
     def _get_visual_shape(urdf_geometry) -> Union[VisualShape, None]:
@@ -102,18 +98,6 @@ class LinkDescription(AbstractLinkDescription):
     @property
     def all_collisions(self) -> List[Collision]:
         return self.parsed_description.collisions
-
-    @property
-    def visual(self) -> Union[Collision, List[Collision], None]:
-        if self.parsed_description.visuals:
-            if len(self.parsed_description.visuals) == 1:
-                return self.parsed_description.visuals[0]
-            else:
-                return self.parsed_description.visuals
-
-    @property
-    def all_visuals(self) -> List[Collision]:
-        return self.parsed_description.visuals
 
 
 class JointDescription(AbstractJointDescription):

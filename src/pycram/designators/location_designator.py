@@ -256,7 +256,9 @@ class CostmapLocation(LocationDesignatorDescription):
                         lift_pose = current_target_pose.copy()
                         lift_pose.position.z += 0.1
 
-                        retract_pose = current_target_pose.translate_along_axis(approach_axis, -approach_offset_cm)
+                        retract_pose = LocalTransformer().translate_pose_along_local_axis(current_target_pose,
+                                                                                          approach_axis,
+                                                                                          -approach_offset_cm)
 
                         target_sequence = ([lift_pose, current_target_pose, retract_pose] if self.object_in_hand
                                            else [retract_pose, current_target_pose, lift_pose])

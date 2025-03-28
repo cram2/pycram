@@ -448,29 +448,6 @@ class Pose(PoseStamped):
 
         return grasp_configs
 
-    def translate_along_axis(self, translation_axis: List[float], translation_value_cm) -> Pose:
-        """
-        Applies the translation directly along the palm axis returned by get_palm_axis().
-
-        :param translation_axis: The axis [x, y, z] along which the translation should be applied.
-        :param translation_value_cm: The value by which the translation should be applied in cm.
-        """
-        object_pose = self.copy()
-        local_translation = np.array([translation_axis[0] * translation_value_cm,
-                                     translation_axis[1] * translation_value_cm,
-                                     translation_axis[2] * translation_value_cm])
-
-        quat = object_pose.orientation_as_list()
-
-        rotation_matrix = R.from_quat(quat)
-        retraction_world = rotation_matrix.apply(local_translation)
-
-        object_pose.pose.position.x += retraction_world[0]
-        object_pose.pose.position.y += retraction_world[1]
-        object_pose.pose.position.z += retraction_world[2]
-
-        return object_pose
-
     def __str__(self):
         return (f"Pose: {[round(v, 3) for v in self.position_as_list()]}, {[round(v, 3) for v in self.orientation_as_list()]}"
                 f" in frame {self.frame}")
