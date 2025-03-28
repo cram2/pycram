@@ -582,7 +582,16 @@ class PhysicalBody(WorldEntity, ABC):
 
         return grasp_configs
 
-    def get_grasp_pose(self, end_effector, grasp: GraspDescription):
+    def get_grasp_pose(self, end_effector, grasp: GraspDescription) -> Pose:
+        """
+        Returns the translated grasp pose of the object given the desired grasp description, and applied object knowledge.
+        This does not change the orientation. Any grasp quaternion needs to be applied separately.
+
+        :param end_effector: The end effector that will be used to grasp the object.
+        :param grasp: The desired grasp description.
+
+        :return: The grasp pose of the object.
+        """
         grasp_pose = self.pose.copy()
 
         if self.ontology_concept.has_preferred_alignment[0].has_rim_grasp[0].value:
@@ -599,8 +608,7 @@ class PhysicalBody(WorldEntity, ABC):
 
     def get_approach_offset(self) -> float:
         """
-        Get the pre-grasp offset of the object.
-        It is the largest dimension of the object divided by 2.
+        :return: The pre-grasp offset of the object. It is the largest dimension of the object divided by 2.
         """
         max_object_dimension = max(self.get_rotated_bounding_box().dimensions)
         return max_object_dimension / 2
