@@ -598,7 +598,7 @@ class Object(PhysicalBody):
         """
         self.links[link_name].color = Color.from_list(color)
 
-    def get_link_geometry(self, link_name: str) -> Union[VisualShape, None]:
+    def get_link_geometry(self, link_name: str) -> List[VisualShape]:
         """
         Return the collision geometry of the link with the given name.
 
