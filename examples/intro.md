@@ -38,7 +38,7 @@ world = BulletWorld(mode=WorldMode.DIRECT)
 
 milk = Object("milk", Milk, "milk.stl")
 pr2 = Object("pr2", Robot, "pr2.urdf")
-cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=PoseSteamped.from_list([1.4, 1, 0.95]))
+cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=PoseStamped.from_list([1.4, 1, 0.95]))
 ```
 
 The BulletWorld allows to render images from arbitrary positions. In the following example we render images with the
@@ -233,7 +233,7 @@ function contains a "with" scope which executes something on the simulated robot
 from pycram.designators.motion_designator import *
 from pycram.process_module import simulated_robot, with_simulated_robot
 
-description = MoveMotion(target=PoseSteamped.from_list([1, 0, 0], [0, 0, 0, 1]))
+description = MoveMotion(target=PoseStamped.from_list([1, 0, 0], [0, 0, 0, 1]))
 
 with simulated_robot:
     description.perform()

@@ -19,13 +19,13 @@ fix_missing_inertial = ObjectDescription.fix_missing_inertial
 class BulletWorldTest(BulletWorldTestCase):
 
     def test_object_movement(self):
-        self.milk.set_position(PoseSteamped.from_list([0, 1, 1]))
+        self.milk.set_position(PoseStamped.from_list([0, 1, 1]))
         self.assertEqual(self.milk.get_position_as_list(), [0, 1, 1])
 
     def test_robot_orientation(self):
-        self.robot.set_pose(PoseSteamped.from_list([0, 1, 1]))
+        self.robot.set_pose(PoseStamped.from_list([0, 1, 1]))
         head_position = self.robot.get_link_position('head_pan_link').z
-        self.robot.set_orientation(PoseStamped(orientation=[0, 0, 1, 1]))
+        self.robot.set_orientation(PoseStamped.from_list(orientation=[0, 0, 1, 1]))
         self.assertEqual(self.robot.get_link_position('head_pan_link').z, head_position)
 
     def test_save_and_restore_state(self):
@@ -53,7 +53,7 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue(milk_id in [obj.id for obj in self.world.objects])
         self.world.remove_object(self.milk)
         self.assertTrue(milk_id not in [obj.id for obj in self.world.objects])
-        BulletWorldTest.milk = Object("milk", Milk, "milk.stl", pose=PoseSteamped.from_list([1.3, 1, 0.9]))
+        BulletWorldTest.milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
 
     def test_remove_robot(self):
         robot_id = self.robot.id
@@ -91,13 +91,13 @@ class BulletWorldTest(BulletWorldTestCase):
     def test_step_simulation(self):
         # TODO: kitchen explodes when stepping simulation, fix this
         self.kitchen.set_position([100, 100, 0])
-        self.milk.set_position(PoseSteamped.from_list([0, 0, 2]))
+        self.milk.set_position(PoseStamped.from_list([0, 0, 2]))
         self.world.simulate(1)
         self.assertTrue(self.milk.get_position().z < 2)
 
     @unittest.skip
     def test_set_real_time_simulation(self):
-        self.milk.set_position(PoseSteamped.from_list([100, 0, 2]))
+        self.milk.set_position(PoseStamped.from_list([100, 0, 2]))
         curr_time = time.time()
         self.world.simulate(0.5, real_time=True)
         time_elapsed = time.time() - curr_time
@@ -133,7 +133,7 @@ class BulletWorldTest(BulletWorldTestCase):
 
     def test_equal_world_states(self):
         time.sleep(2.5)
-        self.robot.set_pose(PoseSteamped.from_list([1, 0, 0], [0, 0, 0, 1]))
+        self.robot.set_pose(PoseStamped.from_list([1, 0, 0], [0, 0, 0, 1]))
         self.assertFalse(self.world.world_sync.check_for_equal())
         with UseProspectionWorld():
             self.assertTrue(self.world.world_sync.check_for_equal())
@@ -143,7 +143,7 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue("test" in self.world.get_data_directories())
 
     def test_no_prospection_object_found_for_given_object(self):
-        milk_2 = Object("milk_2", Milk, "milk.stl", pose=PoseSteamped.from_list([1.3, 1, 0.9]))
+        milk_2 = Object("milk_2", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
         try:
             prospection_milk_2 = self.world.get_prospection_object_for_object(milk_2)
             self.world.remove_object(milk_2)
@@ -154,7 +154,7 @@ class BulletWorldTest(BulletWorldTestCase):
 
     def test_real_object_position_does_not_change_with_prospection_object(self):
         milk_2_pos = [1.3, 1, 0.9]
-        milk_2 = Object("milk_3", Milk, "milk.stl", pose=PoseStamped(milk_2_pos))
+        milk_2 = Object("milk_3", Milk, "milk.stl", pose=PoseStamped.from_list(milk_2_pos))
         time.sleep(0.05)
         milk_2_pos = milk_2.get_position()
 
@@ -170,7 +170,7 @@ class BulletWorldTest(BulletWorldTestCase):
 
     def test_prospection_object_position_does_not_change_with_real_object(self):
         milk_2_pos = [1.3, 1, 0.9]
-        milk_2 = Object("milk_4", Milk, "milk.stl", pose=PoseStamped(milk_2_pos))
+        milk_2 = Object("milk_4", Milk, "milk.stl", pose=PoseStamped.from_list(milk_2_pos))
         time.sleep(0.05)
         milk_2_pos = milk_2.get_position()
 

@@ -272,8 +272,8 @@ def calculate_pose_error(pose_1: 'PoseStamped', pose_2: 'PoseStamped') -> List[f
     :param pose_2: The second pose.
     :return: The error between the two poses.
     """
-    return [calculate_position_error(pose_1.position.to_list(), pose_2.position.to_list()()),
-            calculate_orientation_error(pose_1.orientation.to_list(), pose_2.orientation.to_list()())]
+    return [calculate_position_error(pose_1.position.to_list(), pose_2.position.to_list()),
+            calculate_orientation_error(pose_1.orientation.to_list(), pose_2.orientation.to_list())]
 
 
 def calculate_position_error(position_1: List[float], position_2: List[float]) -> float:

@@ -122,8 +122,8 @@ class GraphOfConvexSets(nx.Graph):
         """
 
         # get poses from params
-        start_node = self.node_of_pose(*start.position.to_list()())
-        goal_node = self.node_of_pose(*goal.position.to_list()())
+        start_node = self.node_of_pose(*start.position.to_list())
+        goal_node = self.node_of_pose(*goal.position.to_list())
 
         # validate if the poses are part of the graph
         if start_node is None:
@@ -149,7 +149,7 @@ class GraphOfConvexSets(nx.Graph):
             x_target = intersection.x_interval.center()
             y_target = intersection.y_interval.center()
             z_target = intersection.z_interval.center()
-            result.append(PoseSteamped.from_list([x_target, y_target, z_target], [0, 0, 0, 1]))
+            result.append(PoseStamped.from_list([x_target, y_target, z_target], [0, 0, 0, 1]))
 
         result.append(goal)
         return result

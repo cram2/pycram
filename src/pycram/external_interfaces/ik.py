@@ -200,7 +200,7 @@ def request_kdl_ik(target_pose: PoseStamped, robot: Object, joints: List[str], g
     target_torso = local_transformer.transform_pose(target_pose, robot.get_link_tf_frame(base_link))
 
     wrist_tool_frame_offset = robot.get_transform_between_links(end_effector, gripper)
-    target_diff = target_torso.to_transform("target").inverse_times(wrist_tool_frame_offset).to_pose()
+    target_diff = target_torso.to_transform_stamped("target").inverse_times(wrist_tool_frame_offset).to_pose_stamped()
 
     inv = call_ik(base_link, end_effector, target_diff, robot, joints)
 
@@ -231,7 +231,7 @@ def request_giskard_ik(target_pose: PoseStamped, robot: Object, gripper: str) ->
     prospection_robot = World.current_world.get_prospection_object_for_object(robot)
 
     orientation = list(tf_transformations.quaternion_from_euler(0, 0, joint_states["brumbrum_yaw"], axes="sxyz"))
-    pose = PoseSteamped.from_list([joint_states["brumbrum_x"], joint_states["brumbrum_y"], 0], orientation)
+    pose = PoseStamped.from_list([joint_states["brumbrum_x"], joint_states["brumbrum_y"], 0], orientation)
 
     robot_joint_states = {}
     for joint_name, state in joint_states.items():
@@ -243,7 +243,7 @@ def request_giskard_ik(target_pose: PoseStamped, robot: Object, gripper: str) ->
         prospection_robot.set_pose(pose)
 
         tip_pose = prospection_robot.get_link_pose(gripper)
-        dist = tip_pose.dist(target_map)
+        dist = tip_pose.position.euclidean_distance(target_map.position)
 
         if dist > 0.01:
             raise IKError(target_pose, "map", gripper)
@@ -268,7 +268,7 @@ def request_pinocchio_ik(target_pose: PoseStamped, robot: Object, target_link: s
     # target_torso = lt.transform_pose(target_pose, robot.get_link_tf_frame(base_link))
 
     wrist_tool_frame_offset = robot.get_transform_between_links(wrist_link, target_link)
-    target_diff = target_pose.to_transform("target").inverse_times(wrist_tool_frame_offset).to_pose()
+    target_diff = target_pose.to_transform_stamped("target").inverse_times(wrist_tool_frame_offset).to_pose_stamped()
     target_diff.round()
 
     res = compute_ik(wrist_link, target_diff, robot)

@@ -52,7 +52,7 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
         :param pose: Pose which should be checked
         :return: A ReasoningResult with the result of the check and possible arms
         """
-        # ground_pose = Pose(pose.position.to_list()())
+        # ground_pose = Pose(pose.position.to_list())
         # ground_pose.position.z = 0
         # occupancy = OccupancyCostmap(0.32, False, 200, 0.02, ground_pose)
         # gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)

@@ -74,8 +74,8 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
         self.assertGreater(len(gcs.nodes), 0)
         self.assertGreater(len(gcs.edges), 0)
 
-        start = PoseSteamped.from_list([-0.9, -0.9, 0.4])
-        target = PoseSteamped.from_list([-0.9, 0.9, 0.9])
+        start = PoseStamped.from_list([-0.9, -0.9, 0.4])
+        target = PoseStamped.from_list([-0.9, 0.9, 0.9])
 
         path = gcs.path_from_to(start, target)
 
@@ -86,8 +86,8 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
         self.assertGreater(len(path), 1)
 
         with self.assertRaises(PoseOccupiedError):
-            start = PoseSteamped.from_list([-10, -10, -10])
-            target = PoseSteamped.from_list([10, 10, 10])
+            start = PoseStamped.from_list([-10, -10, -10])
+            target = PoseStamped.from_list([10, 10, 10])
             gcs.path_from_to(start, target)
 
     def test_navigation_map_from_world(self):

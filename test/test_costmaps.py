@@ -19,15 +19,15 @@ class CostmapTestCase(BulletWorldTestCase):
     def test_raytest_bug(self):
         for i in range(30):
             o = OccupancyCostmap(distance_to_obstacle=0.2, from_ros=False, size=200, resolution=0.02,
-                                 origin=PoseSteamped.from_list([0, 0, 0], [0, 0, 0, 1]))
+                                 origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
 
     def test_attachment_exclusion(self):
-        self.kitchen.set_pose(PoseSteamped.from_list([50, 50, 0]))
-        self.robot.set_pose(PoseSteamped.from_list([0, 0, 0]))
-        self.milk.set_pose(PoseSteamped.from_list([0.5, 0, 1]))
-        self.cereal.set_pose(PoseSteamped.from_list([50, 50, 0]))
+        self.kitchen.set_pose(PoseStamped.from_list([50, 50, 0]))
+        self.robot.set_pose(PoseStamped.from_list([0, 0, 0]))
+        self.milk.set_pose(PoseStamped.from_list([0.5, 0, 1]))
+        self.cereal.set_pose(PoseStamped.from_list([50, 50, 0]))
         o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
-                             origin=PoseSteamped.from_list([0, 0, 0], [0, 0, 0, 1]))
+                             origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
         self.assertEqual(np.sum(o.map[115:135, 90:110]), 0)
 
         self.robot.attach(self.milk)
@@ -35,7 +35,7 @@ class CostmapTestCase(BulletWorldTestCase):
 
     def test_partition_into_rectangles(self):
         ocm = OccupancyCostmap(distance_to_obstacle=0.2, from_ros=False, size=200, resolution=0.02,
-                               origin=PoseSteamped.from_list([0, 0, 0], [0, 0, 0, 1]))
+                               origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
         rectangles = ocm.partitioning_rectangles()
         ocm.visualize()
 
@@ -58,14 +58,14 @@ class CostmapTestCase(BulletWorldTestCase):
 
     def test_visualize(self):
         o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
-                             origin=PoseSteamped.from_list([0, 0, 0], [0, 0, 0, 1]))
+                             origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
         o.visualize()
 
     def test_merge_costmap(self):
         o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
-                             origin=PoseSteamped.from_list([0, 0, 0], [0, 0, 0, 1]))
+                             origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
         o2 = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
-                              origin=PoseSteamped.from_list([0, 0, 0], [0, 0, 0, 1]))
+                              origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
         o3 = o + o2
         self.assertTrue(np.all(o.map == o3.map))
         o2.map[100:120, 100:120] = 0
@@ -108,7 +108,7 @@ class SemanticCostmapTestCase(BulletWorldTestCase):
 @unittest.skip("Wait for PM Upgrade to go live")
 class ProbabilisticCostmapTestCase(BulletWorldTestCase):
 
-    origin = PoseSteamped.from_list([1.5, 1, 0], [0, 0, 0, 1])
+    origin = PoseStamped.from_list([1.5, 1, 0], [0, 0, 0, 1])
 
     def setUp(self):
         super().setUp()

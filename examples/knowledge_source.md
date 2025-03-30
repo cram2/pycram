@@ -147,7 +147,7 @@ from pycrap.ontologies import Robot
 world = BulletWorld(WorldMode.GUI)
 pr2 = Object("pr2", Robot, "pr2.urdf")
 
-target_pose = PoseSteamped.from_list([0.3, 0, 0.2])
+target_pose = PoseStamped.from_list([0.3, 0, 0.2])
 property = ReachableProperty(target_pose) & SpaceIsFreeProperty(target_pose)
 
 ke = KnowledgeEngine()

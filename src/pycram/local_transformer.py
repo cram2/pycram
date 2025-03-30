@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import datetime
 import sys
 import logging
 import numpy as np
@@ -14,7 +15,7 @@ if 'world' in sys.modules:
 class TransformerROS:
     pass
 
-from .datastructures.pose import PoseStamped, TransformStamped, Pose
+from .datastructures.pose import PoseStamped, TransformStamped, Pose, GraspPose
 from typing_extensions import List, Optional, Union, Iterable, TYPE_CHECKING, Tuple
 
 if TYPE_CHECKING:
@@ -166,6 +167,7 @@ class LocalTransformer(Buffer):
         self._initialized = True
         self.registration.add(PoseStamped, do_transform_pose_stamped)
         self.registration.add(PoseStamped, do_transform_pose_stamped)
+        self.registration.add(GraspPose, do_transform_pose_stamped)
 
     def transform_to_object_frame(self, pose: PoseStamped,
                                   world_object: Object, link_name: str = None) -> Union[
@@ -271,17 +273,17 @@ class LocalTransformer(Buffer):
         tf_time = time if time else self.get_latest_common_time(source_frame, target_frame)
         transform_stamped = self.lookup_transform(source_frame, target_frame, tf_time)
         return transform_stamped
-        # return TransformStamped(translation, rotation, source_frame, target_frame)
+        # return TransformStamped.from_list(translation, rotation, source_frame, target_frame)
 
     def update_transforms(self, transforms: Iterable[TransformStamped], time: Time = None) -> None:
         """
         Updates transforms by updating the time stamps of the header of each transform. If no time is given the current
         time is used.
         """
-        time = time if time else Time().now()
+        time = time if time else datetime.datetime.now()
         for transform in transforms:
             transform.header.stamp = time
-            self.set_transform(transform, "pycram/local_transformer")
+            self.set_transform(transform.ros_message(), "pycram/local_transformer")
 
     def get_all_frames(self) -> List[str]:
         """

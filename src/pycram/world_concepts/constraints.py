@@ -57,7 +57,7 @@ class AbstractConstraint:
         """
         :return: The target pose of the child object. (The pose of the child object in the parent object frame)
         """
-        return self.parent_to_child_transform.to_pose()
+        return self.parent_to_child_transform.to_pose_stamped()
 
     def get_child_link_target_pose_given_parent(self, parent_pose: PoseStamped) -> PoseStamped:
         """
@@ -66,7 +66,7 @@ class AbstractConstraint:
         :param parent_pose: The parent link pose.
         :return: The target pose of the child object link.
         """
-        return (parent_pose.to_transform(self.parent_link.tf_frame) * self.parent_to_child_transform).to_pose()
+        return (parent_pose.to_transform_stamped(self.parent_link.tf_frame) * self.parent_to_child_transform).to_pose_stamped()
 
     @property
     def parent_to_child_transform(self) -> Union[TransformStamped, None]:
@@ -126,7 +126,7 @@ class AbstractConstraint:
         """
         :return: The joint frame pose with respect to the parent origin
         """
-        return self.parent_to_constraint.to_pose()
+        return self.parent_to_constraint.to_pose_stamped()
 
     @property
     def position_wrt_child_as_list(self) -> List[float]:
@@ -147,7 +147,7 @@ class AbstractConstraint:
         """
         :return: The joint frame pose with respect to the child origin
         """
-        return self.child_to_constraint.to_pose()
+        return self.child_to_constraint.to_pose_stamped()
 
 
 class Constraint(AbstractConstraint):
@@ -193,7 +193,7 @@ class Attachment(AbstractConstraint):
         :param constraint_id: The id of the constraint in the simulator.
         """
         super().__init__(parent_link, child_link, JointType.FIXED, parent_to_child_transform,
-                         TransformStamped(frame_id=child_link.tf_frame))
+                         TransformStamped.from_list(frame=child_link.tf_frame))
         self.id = constraint_id
         self.bidirectional: bool = bidirectional
         self._loose: bool = False

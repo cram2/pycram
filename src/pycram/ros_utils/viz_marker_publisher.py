@@ -82,9 +82,9 @@ class VizMarkerPublisher:
                 if obj.get_link_origin(link) is not None:
                     link_origin = obj.get_link_origin_transform(link)
                 else:
-                    link_origin = TransformStamped()
+                    link_origin = TransformStamped.from_list()
                 link_pose_with_origin = link_pose * link_origin
-                msg.pose = link_pose_with_origin.to_pose().pose
+                msg.pose = link_pose_with_origin.to_pose_stamped().pose
 
                 color = obj.get_link_color(link).get_rgba()
 

@@ -31,9 +31,9 @@ class PyCRAMGym(gym.Env):
         super().__init__()
         if World.current_world is not None:
             if inRobot.endswith('.urdf'):
-                self.robot = Object(inRobot.split('.urdf')[0], pycrap.Robot, inRobot, pose=PoseSteamped.from_list([1, 2, 0]))
+                self.robot = Object(inRobot.split('.urdf')[0], pycrap.Robot, inRobot, pose=PoseStamped.from_list([1, 2, 0]))
             else:
-                self.robot = Object(inRobot, pycrap.Robot, inRobot +".urdf", pose=PoseSteamped.from_list([1, 2, 0]))
+                self.robot = Object(inRobot, pycrap.Robot, inRobot +".urdf", pose=PoseStamped.from_list([1, 2, 0]))
             self.world = Object(inWorld, pycrap.Apartment, inWorld + ".urdf")
             self.plan = inPlan
 

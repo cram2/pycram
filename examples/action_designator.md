@@ -53,9 +53,9 @@ from pycram.datastructures.pose import PoseStamped
 from pycrap.ontologies import Robot, Milk, Apartment
 
 world = BulletWorld(WorldMode.DIRECT)
-pr2 = Object("pr2", Robot, "pr2.urdf", pose=PoseSteamped.from_list([1, 2, 0]))
+pr2 = Object("pr2", Robot, "pr2.urdf", pose=PoseStamped.from_list([1, 2, 0]))
 apartmet = Object("apartment", Apartment, "apartment.urdf")
-milk = Object("milk", Milk, "milk.stl", pose=PoseSteamped.from_list([2.3, 2, 1.1]))
+milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([2.3, 2, 1.1]))
 ```
 
 To move the robot we need to create a description and resolve it to an actual Designator. The description of navigation
@@ -65,7 +65,7 @@ only needs a list of possible poses.
 from pycram.designators.action_designator import NavigateActionDescription
 from pycram.datastructures.pose import PoseStamped
 
-pose = PoseSteamped.from_list([1.3, 2, 0], [0, 0, 0, 1])
+pose = PoseStamped.from_list([1.3, 2, 0], [0, 0, 0, 1])
 
 # This is the Designator Description
 navigate_description = NavigateActionDescription(target_location=[pose])
@@ -174,7 +174,7 @@ with simulated_robot:
 
     MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
 
-    NavigateActionDescription([PoseSteamped.from_list([1.8, 2, 0.0],
+    NavigateActionDescription([PoseStamped.from_list([1.8, 2, 0.0],
                                            [0.0, 0.0, 0., 1])]).resolve().perform()
 
     grasp = GraspDescription(Grasp.FRONT, None, False)
@@ -183,7 +183,7 @@ with simulated_robot:
                             grasp_description=grasp).resolve().perform()
 
     PlaceActionDescription(object_designator=milk_desig,
-                           target_location=[PoseSteamped.from_list([2.4, 1.8, 1],
+                           target_location=[PoseStamped.from_list([2.4, 1.8, 1],
                                                         [0, 0, 0, 1])],
                            arm=arm).resolve().perform()
 ```
@@ -201,7 +201,7 @@ from pycram.designators.action_designator import LookAtActionDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import PoseStamped
 
-target_location = PoseSteamped.from_list([3, 2, 1], [0, 0, 0, 1])
+target_location = PoseStamped.from_list([3, 2, 1], [0, 0, 0, 1])
 with simulated_robot:
     LookAtActionDescription(target=[target_location]).resolve().perform()
 ```
@@ -230,7 +230,7 @@ milk_desig = BelieveObject(names=["milk"])
 with simulated_robot:
     ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
 
-    NavigateActionDescription([PoseSteamped.from_list([1.7, 2, 0], [0, 0, 0, 1])]).resolve().perform()
+    NavigateActionDescription([PoseStamped.from_list([1.7, 2, 0], [0, 0, 0, 1])]).resolve().perform()
 
     LookAtActionDescription(target=[milk_desig.resolve().pose]).resolve().perform()
 
@@ -260,7 +260,7 @@ from pycram.datastructures.enums import Arms, TorsoState
 milk_desig = BelieveObject(names=["milk"])
 
 description = TransportActionDescription(milk_desig,
-                                         [PoseSteamped.from_list([2.4, 1.8, 1],
+                                         [PoseStamped.from_list([2.4, 1.8, 1],
                                                       [0, 0, 0, 1])],
                                          [Arms.LEFT])
 with simulated_robot:
@@ -293,7 +293,7 @@ handle_deisg = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig)
 with simulated_robot:
     MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
     ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
-    NavigateActionDescription([PoseSteamped.from_list([1.7474915981292725, 2.6873629093170166, 0.0],
+    NavigateActionDescription([PoseStamped.from_list([1.7474915981292725, 2.6873629093170166, 0.0],
                                            [-0.0, 0.0, 0.5253598267689507, -0.850880163370435])]).resolve().perform()
     OpenActionDescription(handle_deisg, [Arms.RIGHT]).resolve().perform()
 ```
@@ -319,7 +319,7 @@ handle_deisg = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig)
 with simulated_robot:
     MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
     ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
-    NavigateActionDescription([PoseSteamped.from_list([1.7474915981292725, 2.6873629093170166, 0.0],
+    NavigateActionDescription([PoseStamped.from_list([1.7474915981292725, 2.6873629093170166, 0.0],
                                            [-0.0, 0.0, 0.5253598267689507, -0.850880163370435])]).resolve().perform()
     CloseActionDescription(handle_deisg, [Arms.RIGHT]).resolve().perform()
 ```

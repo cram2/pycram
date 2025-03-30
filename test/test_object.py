@@ -5,13 +5,13 @@ from pycram.tf_transformations import quaternion_from_euler
 from pycram.testing import BulletWorldTestCase
 
 from pycram.datastructures.enums import JointType, ObjectType
-from pycram.datastructures.pose import PoseStamped
+from pycram.datastructures.pose import PoseStamped, Point, Quaternion
 from pycram.datastructures.dataclasses import Color, BoundingBox as BB
 from pycram.failures import UnsupportedFileExtension
 from pycram.world_concepts.world_object import Object
 from pycram.object_descriptors.generic import ObjectDescription as GenericObjectDescription
 
-from geometry_msgs.msg import Point, Quaternion
+# from geometry_msgs.msg import Point, Quaternion
 import pathlib
 
 from pycrap.ontologies import Milk, Food
@@ -70,7 +70,7 @@ class TestObject(BulletWorldTestCase):
         with self.assertRaises(TypeError):
             self.milk.set_position(1)
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(AssertionError):
             self.milk.get_pose().position = 1
 
     def test_set_orientation_as_list(self):
@@ -90,7 +90,7 @@ class TestObject(BulletWorldTestCase):
             self.milk.set_orientation(1)
 
     def test_set_position_as_pose(self):
-        self.milk.set_position(PoseSteamped.from_list([1, 2, 3]))
+        self.milk.set_position(PoseStamped.from_list([1, 2, 3]))
         self.assertEqual(self.milk.get_position_as_list(), [1, 2, 3])
 
     def test_set_position_as_list(self):

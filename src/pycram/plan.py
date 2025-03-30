@@ -66,6 +66,9 @@ class Plan(nx.DiGraph):
     def perform(self):
         pass
 
+    def resolve(self):
+        return self.root.children[0].designator_ref.resolve()
+
     def __enter__(self):
         self.prev_plan = Plan.current_plan
         Plan.current_plan = self

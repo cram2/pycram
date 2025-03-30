@@ -49,7 +49,7 @@ from pycram.designators.action_designator import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 
-navigate = NavigateActionDescription([PoseSteamped.from_list([1, 1, 0])])
+navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
 park = ParkArmsActionDescription([Arms.BOTH])
 
 plan = navigate + park
@@ -107,7 +107,7 @@ from pycram.process_module import simulated_robot
 
 world.reset_world()
 
-navigate = NavigateActionDescription([PoseSteamped.from_list([1, 1, 0])])
+navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
 park = ParkArmsActionDescription([Arms.BOTH])
 
 plan = navigate - park
@@ -145,7 +145,7 @@ from pycram.process_module import simulated_robot
 
 world.reset_world()
 
-navigate = NavigateActionDescription([PoseSteamped.from_list([1, 1, 0])])
+navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
 park = ParkArmsActionDescription([Arms.BOTH])
 
 plan = navigate | park
@@ -169,7 +169,7 @@ from pycram.process_module import simulated_robot
 
 world.reset_world()
 
-navigate = NavigateActionDescription([PoseSteamped.from_list([1, 1, 0])])
+navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
 park = ParkArmsActionDescription([Arms.BOTH])
 
 plan = navigate ^ park
@@ -198,7 +198,7 @@ from pycram.process_module import simulated_robot
 
 world.reset_world()
 
-navigate = NavigateActionDescription([PoseSteamped.from_list([1, 1, 0])])
+navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
 park = ParkArmsActionDescription([Arms.BOTH])
 move_torso = MoveTorsoActionDescription([TorsoState.HIGH])
 
@@ -262,7 +262,7 @@ def code_test():
     raise PlanFailure
 
 
-navigate = NavigateActionDescription([PoseSteamped.from_list([1, 1, 0])])
+navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
 code_func = Code(code_test)
 
 plan = navigate | code_func

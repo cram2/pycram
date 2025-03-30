@@ -406,13 +406,6 @@ class BoundingBox:
         return mesh
 
     @property
-    def transform_as_array(self) -> np.ndarray:
-        """
-        :return: The transformation of the bounding box as a numpy array.
-        """
-        return self.transform.get_homogeneous_matrix()
-
-    @property
     @abstractmethod
     def transform(self) -> TransformStamped:
         """
@@ -445,7 +438,7 @@ class BoundingBox:
         """
         :return: The mesh of the bounding box.
         """
-        return trimesh.primitives.Box(self.extents(), self.transform_as_array)
+        return trimesh.primitives.Box(self.extents(), self.transform.transform.to_matrix())
 
     @staticmethod
     def get_mesh_from_event(event: Event) -> trimesh.Trimesh:
@@ -638,7 +631,7 @@ class AxisAlignedBoundingBox(BoundingBox):
 
     @property
     def transform(self) -> TransformStamped:
-        return TransformStamped(self.origin)
+        return TransformStamped.from_list(self.origin)
 
     def get_rotated_box(self, transform: TransformStamped) -> RotatedBoundingBox:
         """

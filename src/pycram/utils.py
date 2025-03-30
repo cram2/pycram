@@ -258,7 +258,7 @@ def get_quaternion_between_camera_and_target(cam_pose: PoseStamped, target_pose:
     """
     # Get the front facing axis of the camera in the world frame
     front_facing_axis = transform_vector_using_pose(camera_description.front_facing_axis, cam_pose)
-    front_facing_axis = front_facing_axis - np.array(cam_pose.position.to_list()())
+    front_facing_axis = front_facing_axis - np.array(cam_pose.position.to_list())
 
     # Get the vector from the camera to the target
     camera_to_target = cam_pose.get_vector_to_pose(target_pose)
@@ -276,7 +276,7 @@ def transform_vector_using_pose(vector: Sequence, pose) -> np.ndarray:
     :return: The transformed vector.
     """
     vector = np.array(vector).reshape(1, 3)
-    return pose.to_transform("pose").apply_transform_to_array_of_points(vector).flatten()
+    return pose.to_transform_stamped("pose").apply_transform_to_array_of_points(vector).flatten()
 
 
 def apply_quaternion_to_pose(pose: PoseStamped, quaternion: np.ndarray) -> PoseStamped:
@@ -287,7 +287,7 @@ def apply_quaternion_to_pose(pose: PoseStamped, quaternion: np.ndarray) -> PoseS
     :param quaternion: The quaternion.
     :return: The new pose.
     """
-    pose_quaternion = np.array(pose.orientation.to_list()())
+    pose_quaternion = np.array(pose.orientation.to_list())
     new_quaternion = quaternion_multiply(quaternion, pose_quaternion)
     return PoseStamped(pose.position.to_list(), new_quaternion.tolist())
 
@@ -420,12 +420,12 @@ class RayTestUtils:
         :param camera_pose: The camera pose.
         :param camera_min_distance: The minimum distance from which the camera can see.
         """
-        camera_transform = camera_pose.to_transform("camera_pose")
+        camera_transform = camera_pose.to_transform_stamped("camera_pose")
         self.local_transformer.update_transforms([camera_transform])
         camera_pose_in_camera_frame = PoseStamped(frame_id="camera_pose")
         # camera_pose_in_camera_frame = self.local_transformer.transform_pose(camera_pose, camera_frame)
         start_position = (np.array(camera_description.front_facing_axis) * camera_min_distance
-                          + np.array(camera_pose_in_camera_frame.position.to_list()()))
+                          + np.array(camera_pose_in_camera_frame.position.to_list()))
         start_pose = PoseStamped(start_position.tolist(), camera_pose_in_camera_frame.orientation.to_list(), "camera_pose")
         return self.local_transformer.transform_pose(start_pose, "map")
 
@@ -459,7 +459,7 @@ class RayTestUtils:
         :param points: The points to transform.
         :return: The transformed points.
         """
-        cam_to_world_transform = camera_pose.to_transform("camera_pose")
+        cam_to_world_transform = camera_pose.to_transform_stamped("camera_pose")
         return cam_to_world_transform.apply_transform_to_array_of_points(points)
 
     @staticmethod

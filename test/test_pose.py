@@ -75,3 +75,11 @@ class TestPose(unittest.TestCase):
         t_copy = t.copy()
         self.assertEqual(t, t_copy)
         self.assertFalse(t is t_copy)
+
+    def test_transform_multiplication(self):
+        t = TransformStamped.from_list([1, 2, 3], [0, 0, 0, 1], "map", "test_frame")
+        t2 = TransformStamped.from_list([3, 2, 1], [0, 0, 0, 1], "test_frame", "final_frame")
+
+        mul_t = t * t2
+
+        self.assertEqual(mul_t.translation.to_list(), [4, 4, 4])

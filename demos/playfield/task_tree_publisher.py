@@ -18,14 +18,14 @@ from pycram.worlds.bullet_world import BulletWorld
 rdm = RobotDescriptionManager()
 rdm.load_description("pr2")
 world = BulletWorld(WorldMode.GUI)
-robot_obj = Object(RobotDescription.current_robot_description.name, ObjectType.ROBOT, RobotDescription.current_robot_description.name +".urdf", pose=PoseSteamped.from_list([1, 2, 0]))
-milk_obj = Object("milk", ObjectType.MILK,"milk.stl", pose=PoseSteamped.from_list([1.3, 1, 0.9]))
+robot_obj = Object(RobotDescription.current_robot_description.name, ObjectType.ROBOT, RobotDescription.current_robot_description.name +".urdf", pose=PoseStamped.from_list([1, 2, 0]))
+milk_obj = Object("milk", ObjectType.MILK,"milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
 @with_tree
 def plan():
     object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-    description = action_designator.PlaceAction(object_description, [PoseSteamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
+    description = action_designator.PlaceAction(object_description, [PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
     with simulated_robot:
-        NavigateAction(PoseSteamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+        NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
         MoveTorsoActionPerformable(0.3).perform()
         PickUpAction(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
         description.resolve().perform()

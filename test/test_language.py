@@ -214,14 +214,14 @@ class LanguageTestCase(BulletWorldTestCase):
         self.assertRaises(AttributeError, lambda: (act + act2) * park)
 
     def test_perform_desig(self):
-        act = NavigateActionDescription([PoseSteamped.from_list([0.3, 0.3, 0])])
+        act = NavigateActionDescription([PoseStamped.from_list([0.3, 0.3, 0])])
         act2 = MoveTorsoActionDescription([TorsoState.HIGH])
         act3 = ParkArmsActionDescription([Arms.BOTH])
 
         plan = act + act2 + act3
         with simulated_robot:
             plan.perform()
-        self.assertEqual(self.robot.get_pose(), PoseSteamped.from_list([0.3, 0.3, 0]))
+        self.assertEqual(self.robot.get_pose(), PoseStamped.from_list([0.3, 0.3, 0]))
         self.assertEqual(self.robot.get_joint_position("torso_lift_joint"), 0.3)
         for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right", StaticJointState.Park).items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
@@ -232,14 +232,14 @@ class LanguageTestCase(BulletWorldTestCase):
         def test_set(param):
             self.assertTrue(param)
 
-        act = NavigateActionDescription([PoseSteamped.from_list([0.3, 0.3, 0])])
+        act = NavigateActionDescription([PoseStamped.from_list([0.3, 0.3, 0])])
         act2 = Code(test_set, {"param": True})
         act3 = Code(test_set, {"param": True})
 
         plan = act + act2 + act3
         with simulated_robot:
             plan.perform()
-        self.assertEqual(self.robot.get_pose(), PoseSteamped.from_list([0.3, 0.3, 0]))
+        self.assertEqual(self.robot.get_pose(), PoseStamped.from_list([0.3, 0.3, 0]))
 
     def test_perform_parallel(self):
 

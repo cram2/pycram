@@ -456,7 +456,7 @@ class Multiverse(World):
         """
         self.writer.set_multiple_body_poses({name: {MultiverseBodyProperty.POSITION: pose.position.to_list(),
                                                     MultiverseBodyProperty.ORIENTATION:
-                                                        xyzw_to_wxyz(pose.orientation.to_list()()),
+                                                        xyzw_to_wxyz(pose.orientation.to_list()),
                                                     MultiverseBodyProperty.RELATIVE_VELOCITY: [0.0] * 6}
                                              for name, pose in body_poses.items()})
 

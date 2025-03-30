@@ -11,15 +11,16 @@ from typing_extensions import Self, Tuple, Optional, List, TYPE_CHECKING, Union,
 from .enums import AxisIdentifier, Arms, Grasp
 from .grasp import GraspDescription, PreferredGraspAlignment
 from ..tf_transformations import quaternion_multiply, translation_matrix, quaternion_matrix, inverse_matrix, \
-    translation_from_matrix, rotation_from_matrix
+    translation_from_matrix, rotation_from_matrix, quaternion_from_matrix
 from scipy.spatial.transform import Rotation as R
 from ..ros import Time as ROSTime
+from geometry_msgs.msg import (Vector3 as ROSVector3, Quaternion as ROSQuaternion, Point as ROSPoint, Pose as ROSPose,
+                                   PoseStamped as ROSPoseStamped, Transform as ROSTransform, TransformStamped as ROSTransformStamped)
+from std_msgs.msg import Header as ROSHeader
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
-    from geometry_msgs.msg import (Vector3 as ROSVector3, Quaternion as ROSQuaternion, Point as ROSPoint, Pose as ROSPose,
-                                   PoseStamped as ROSPoseStamped)
-    from std_msgs.msg import Header as ROSHeader
+
 
 
 
@@ -68,6 +69,10 @@ class Vector3:
     def __rmul__(self, other: float) -> Vector3:
         return Vector3(self.x * other, self.y * other, self.z * other)
 
+    @classmethod
+    def from_list(cls, vector: List[float]) -> Self:
+        return cls(*vector)
+
 
 @dataclass
 class Quaternion:
@@ -114,6 +119,10 @@ class Quaternion:
     def __mul__(self, other: Self) -> Quaternion:
         return quaternion_multiply(self.to_list(), other)
 
+    @classmethod
+    def from_list(cls, quaternion: List[float]) -> Self:
+        return cls(*quaternion)
+
     # def __setattr__(self, key, value, normalize=True):
     #     if normalize:
     #         self.__setattr__(key, value, normalize=False)
@@ -153,11 +162,11 @@ class Pose:
         self.position.round(decimals)
         self.orientation.round(decimals)
 
-    def almost_equal(self, other: Pose, tolerance: float = 1e-6) -> bool:
-        return self.position.almost_equal(other.position, tolerance) and self.orientation.almost_equal(other.orientation, tolerance)
+    def almost_equal(self, other: Pose, position_tolerance: float = 1e-6, orientation_tolerance: float = 1e-5) -> bool:
+        return self.position.almost_equal(other.position, position_tolerance) and self.orientation.almost_equal(other.orientation, orientation_tolerance)
 
     def __eq__(self, other) -> bool:
-        return self.almost_equal(other, tolerance=1e-4)
+        return self.almost_equal(other, position_tolerance=1e-4, orientation_tolerance=1e-4)
 
     @classmethod
     def from_list(cls, position: List[float], orientation: List[float]) -> Self:
@@ -165,7 +174,7 @@ class Pose:
                    Quaternion(orientation[0], orientation[1], orientation[2], orientation[3]))
 
     def __setattr__(self, name: str, value: Any):
-        # check if the settet tzpe is correct
+        # check if the settet type is correct
         field_of_name = [f for f in fields(self.__class__) if f.name == name][0]
         field_type = globals()[field_of_name.type]
         assert isinstance(value, field_type)
@@ -179,11 +188,11 @@ class Header:
     A header with a timestamp.
     """
     frame_id: str = "map"
-    timestamp: datetime.datetime = field(default_factory=datetime.datetime.now, compare=False)
+    stamp: datetime.datetime = field(default_factory=datetime.datetime.now, compare=False)
     sequence: int = field(default=0, compare=False)
 
     def ros_message(self) -> ROSHeader:
-        stamp = ROSTime().from_sec(self.timestamp.timestamp())
+        stamp = ROSTime(int(self.stamp.timestamp()))
         return ROSHeader(frame_id=self.frame_id, stamp=stamp, seq=self.sequence)
 
 
@@ -229,14 +238,16 @@ class PoseStamped:
 
     @classmethod
     def from_ros_message(cls, message: ROSPoseStamped):
-        header = Header(frame_id=message.header.frame_id, timestamp=message.header.stamp)
+        header = Header(frame_id=message.header.frame_id, stamp=message.header.stamp)
         position = Vector3(x=message.pose.position.x, y=message.pose.position.y, z=message.pose.position.z)
         orientation = Quaternion(x=message.pose.orientation.x, y=message.pose.orientation.y, z=message.pose.orientation.z, w=message.pose.orientation.w)
         return cls(pose=Pose(position=position, orientation=orientation), header=header)
 
     @classmethod
-    def from_list(cls, position: List[float], orientation: List[float], frame: str) -> Self:
-        return cls(pose=Pose.from_list(position, orientation), header=Header(frame_id=frame, timestamp=datetime.datetime.now()))
+    def from_list(cls, position: Optional[List[float]] = None, orientation: Optional[List[float]] = None, frame: Optional[str] = "map") -> Self:
+        position = position or [0.0, 0.0, 0.0]
+        orientation = orientation or [0.0, 0.0, 0.0, 1.0]
+        return cls(pose=Pose.from_list(position, orientation), header=Header(frame_id=frame, stamp=datetime.datetime.now()))
 
     def to_transform_stamped(self, child_link_id: str) -> TransformStamped:
         return TransformStamped(header=self.header, pose=Transform.from_pose(self.pose), child_frame_id=child_link_id)
@@ -247,6 +258,9 @@ class PoseStamped:
 
     def copy(self) -> Self:
         return copy.copy(self)
+
+    def to_list(self):
+        return self.pose.to_list()
 
     @staticmethod
     def calculate_closest_faces(pose_to_robot_vector: Vector3,
@@ -274,7 +288,7 @@ class PoseStamped:
         else:
             valid_axes = [axis for axis in all_axes if not np.isnan(pose_to_robot_vector.to_list()[axis.value.index(1)])]
 
-        object_to_robot_vector = np.array(pose_to_robot_vector) + 1e-9
+        object_to_robot_vector = np.array(pose_to_robot_vector.to_list()) + 1e-9
         sorted_axes = sorted(valid_axes, key=lambda axis: abs(object_to_robot_vector[axis.value.index(1)]),
                              reverse=True)
 
@@ -336,6 +350,12 @@ class PoseStamped:
 
         return grasp_configs
 
+    def almost_equal(self, other: PoseStamped, position_tolerance: float = 1e-6, orientation_tolerance: float = 1e-5) -> bool:
+        return self.position.almost_equal(other.position, position_tolerance) and self.orientation.almost_equal(other.orientation, orientation_tolerance) and self.frame_id == other.frame_id
+
+    def rotate_by_quaternion(self, quaternion: List[float]):
+        self.orientation = Quaternion.from_list(self.orientation.to_list())
+
 @dataclass
 class Transform(Pose):
     @property
@@ -353,14 +373,14 @@ class Transform(Pose):
 
     @classmethod
     def from_matrix(cls, matrix: np.ndarray):
-        translation = translation_matrix(matrix.tolist())
-        rotation = quaternion_matrix(matrix.tolist())
-        return Transform(translation, rotation)
+        translation = translation_from_matrix(matrix)
+        rotation = quaternion_from_matrix(matrix)
+        return Transform.from_list(translation, rotation)
 
     def __invert__(self):
         inv = inverse_matrix(self.to_matrix())
         translation = translation_from_matrix(inv)
-        rotation = rotation_from_matrix(inv)
+        rotation = quaternion_from_matrix(inv)
         return Transform.from_list(translation, rotation)
 
     def __mul__(self, other: Transform):
@@ -373,6 +393,8 @@ class Transform(Pose):
     def from_pose(cls, pose: Pose):
         return cls(pose.position, pose.orientation)
 
+    def ros_message(self) -> ROSTransform:
+        return ROSTransform(translation=self.translation.ros_message(), rotation=self.rotation.ros_message())
 
 
 @dataclass
@@ -420,10 +442,24 @@ class TransformStamped(PoseStamped):
         return result
 
     @classmethod
-    def from_list(cls, position: List[float], orientation: List[float], frame: str, child_frame_id) -> Self:
+    def from_list(cls, position: List[float] = None, orientation: List[float] = None, frame: str = "map", child_frame_id = "") -> Self:
+        position = position or [0.0, 0.0, 0.0]
+        orientation = orientation or [0.0, 0.0, 0.0, 1.0]
         return cls(pose=Transform.from_list(position, orientation),
-                   header=Header(frame_id=frame, timestamp=datetime.datetime.now()),
+                   header=Header(frame_id=frame, stamp=datetime.datetime.now()),
                    child_frame_id=child_frame_id)
+
+    def ros_message(self) -> ROSTransformStamped:
+        return ROSTransformStamped(transform=self.transform.ros_message(), header=self.header.ros_message(), child_frame_id=self.child_frame_id)
+
+    def invert(self):
+        return ~self
+
+    def to_pose_stamped(self) -> PoseStamped:
+        return PoseStamped(self.pose, self.header)
+
+    def inverse_times(self, other: TransformStamped):
+        return self * ~other
 
 
 @dataclass
@@ -570,7 +606,7 @@ Point = Vector3
 #         """
 #         The z angle of the orientation of this Pose in radians.
 #         """
-#         return euler_from_quaternion(self.orientation.to_list()())[2]
+#         return euler_from_quaternion(self.orientation.to_list())[2]
 #
 #     @property
 #     def frame(self) -> str:
@@ -763,9 +799,9 @@ Point = Vector3
 #
 #         metadata = ProcessMetaData().insert(session)
 #
-#         position = Position(*self.position.to_list()())
+#         position = Position(*self.position.to_list())
 #         position.process_metadata = metadata
-#         orientation = Quaternion(**dict(zip(["x", "y", "z", "w"], self.orientation.to_list()())))
+#         orientation = Quaternion(**dict(zip(["x", "y", "z", "w"], self.orientation.to_list())))
 #         orientation.process_metadata = metadata
 #         session.add(position)
 #         session.add(orientation)
@@ -796,7 +832,7 @@ Point = Vector3
 #
 #         :return: The vector between the two poses.
 #         """
-#         return np.array(other_pose.position.to_list()()) - np.array(self.position.to_list()())
+#         return np.array(other_pose.position.to_list()) - np.array(self.position.to_list())
 #
 #     @staticmethod
 #     def calculate_closest_faces(pose_to_robot_vector: Tuple[float, float, float],
@@ -894,7 +930,7 @@ Point = Vector3
 #         return self.__str__()
 #
 #
-# class TransformStamped(TransformStamped):
+# class TransformStamped.from_list(TransformStamped):
 #     """
 #     Represents a Transformation from one TF frame to another in PyCRAM. Like with Poses this class inherits from the ROS
 #     message TransformStamped form geometry_msgs and is therefore compatible with ROS services and messages that require
@@ -971,7 +1007,7 @@ Point = Vector3
 #         :param transform_stamped: The transform stamped message that should be converted
 #         :return: An Transform with the same information as the transform stamped message
 #         """
-#         t = TransformStamped()
+#         t = TransformStamped.from_list()
 #         t.header = transform_stamped.header
 #         t.child_frame_id = transform_stamped.child_frame_id
 #         t.transform = transform_stamped.transform
@@ -1053,7 +1089,7 @@ Point = Vector3
 #
 #         :return: A copy of this pose
 #         """
-#         t = TransformStamped(self.translation.to_list(), self.rotation.to_list(), self.frame, self.child_frame_id,
+#         t = TransformStamped.from_list(self.translation.to_list(), self.rotation.to_list(), self.frame, self.child_frame_id,
 #                              self.header.stamp)
 #         t.header.frame_id = self.header.frame_id
 #         # t.header.stamp = self.header.stamp
@@ -1091,7 +1127,7 @@ Point = Vector3
 #         inverse_transform = inverse_matrix(transform)
 #         translation = translation_from_matrix(inverse_transform)
 #         quaternion = quaternion_from_matrix(inverse_transform)
-#         return TransformStamped(list(translation), list(quaternion), self.child_frame_id, self.header.frame_id,
+#         return TransformStamped.from_list(list(translation), list(quaternion), self.child_frame_id, self.header.frame_id,
 #                                 self.header.stamp)
 #
 #     def round(self, decimals: int = 4):
@@ -1125,7 +1161,7 @@ Point = Vector3
 #         new_mat = np.dot(self_mat, other_mat)
 #         new_trans = translation_from_matrix(new_mat)
 #         new_rot = quaternion_from_matrix(new_mat)
-#         return TransformStamped(list(new_trans), list(new_rot), self.frame, other.child_frame_id)
+#         return TransformStamped.from_list(list(new_trans), list(new_rot), self.frame, other.child_frame_id)
 #
 #     def inverse_times(self, other_transform: TransformStamped) -> TransformStamped:
 #         """

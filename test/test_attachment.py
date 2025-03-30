@@ -61,9 +61,9 @@ class TestAttachment(BulletWorldTestCase):
         self.assertEqual(new_milk_pos.x, milk_pos.x)
 
     def test_prospection_object_attachments_not_changed_with_real_object(self):
-        milk_2 = Object("milk_2", Milk, "milk.stl", pose=PoseSteamped.from_list([1.3, 1, 0.9]))
+        milk_2 = Object("milk_2", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
         cereal_2 = Object("cereal_2", Cereal, "breakfast_cereal.stl",
-                          pose=PoseSteamped.from_list([1.3, 0.7, 0.95]))
+                          pose=PoseStamped.from_list([1.3, 0.7, 0.95]))
         time.sleep(0.05)
         milk_2.attach(cereal_2)
         time.sleep(0.05)

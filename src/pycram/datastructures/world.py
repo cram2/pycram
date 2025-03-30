@@ -514,7 +514,7 @@ class World(WorldEntity, ABC):
                                 _type=JointType.FIXED,
                                 axis_in_child_frame=Point(x=0, y=0, z=0),
                                 constraint_to_parent=child_to_parent_transform,
-                                child_to_constraint=TransformStamped(frame_id=child_link.tf_frame)
+                                child_to_constraint=TransformStamped.from_list(frame=child_link.tf_frame)
                                 )
         constraint_id = self.add_constraint(constraint)
         return constraint_id
@@ -1929,6 +1929,6 @@ class WorldSync(threading.Thread):
         if not eql:
             return False
         for obj, prospection_obj in self.object_to_prospection_object_map.items():
-            eql = eql and obj.get_pose().dist(prospection_obj.get_pose()) < 0.001
+            eql = eql and obj.get_pose().position.euclidean_distance(prospection_obj.get_pose().position) < 0.001
         self.equal_states = eql
         return eql

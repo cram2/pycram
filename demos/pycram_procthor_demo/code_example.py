@@ -9,14 +9,14 @@ from pycram.process_module import simulated_robot, with_simulated_robot
 
 def generic_plan(inWorld):
     world = inWorld
-    pick_pose = PoseSteamped.from_list([1, -1.78, 0.55])
+    pick_pose = PoseStamped.from_list([1, -1.78, 0.55])
 
     robot_desig = BelieveObject(names=["pr2"])
     apartment_desig = BelieveObject(names=["apartment"])
 
     @with_simulated_robot
     def move_and_detect(obj_type):
-        NavigateAction(target_locations=[PoseSteamped.from_list([2, -1.89, 0])]).resolve().perform()
+        NavigateAction(target_locations=[PoseStamped.from_list([2, -1.89, 0])]).resolve().perform()
 
         LookAtAction(targets=[pick_pose]).resolve().perform()
 
@@ -34,7 +34,7 @@ def generic_plan(inWorld):
 
         milk_desig = move_and_detect(pycrap.Milk)
 
-        TransportAction(milk_desig, [PoseSteamped.from_list([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
+        TransportAction(milk_desig, [PoseStamped.from_list([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
 
         ParkArmsAction([Arms.BOTH]).resolve().perform()
 

@@ -96,7 +96,7 @@ class ExampleKnowledge(KnowledgeSource, ExampleProperty):
         self.parameter = {}
 
     def example(self, pose: PoseStamped) -> ReasoningResult:
-        null_pose = PoseSteamped.from_list([1, 1, 1])
+        null_pose = PoseStamped.from_list([1, 1, 1])
         distance = null_pose.dist(pose)
         return ReasoningResult(distance == 0.0)
 

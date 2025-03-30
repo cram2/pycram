@@ -16,8 +16,8 @@ PYCRAM_DIR = os.path.join(SCRIPT_DIR, os.pardir, os.pardir)
 RESOURCE_DIR = os.path.join(PYCRAM_DIR, "resources")
 
 SPAWNING_POSES = {
-    "robot": PoseSteamped.from_list([0, 0, 0], [0.0, 0.0, 0.0, 1.0]),   # x,y,z,qx,qy,qz,qw
-    "cereal": PoseSteamped.from_list([0.5, 0.5, 2.0], [0.0, 0.0, 0.0, 1.0])
+    "robot": PoseStamped.from_list([0, 0, 0], [0.0, 0.0, 0.0, 1.0]),   # x,y,z,qx,qy,qz,qw
+    "cereal": PoseStamped.from_list([0.5, 0.5, 2.0], [0.0, 0.0, 0.0, 1.0])
 }
 
 

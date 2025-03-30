@@ -39,7 +39,7 @@ class LinkDescription(AbstractLinkDescription):
 
     @property
     def origin(self) -> PoseStamped:
-        return PoseStamped(self.parsed_description.visual_frame_position)
+        return PoseStamped.from_list(self.parsed_description.visual_frame_position)
 
     @property
     def name(self) -> str:
@@ -139,7 +139,7 @@ class ObjectDescription(AbstractObjectDescription):
         """
         my_bounding_box: AxisAlignedBoundingBox = self._links[0].geometry.get_axis_aligned_bounding_box()
         other_bounding_box: AxisAlignedBoundingBox = other._links[0].geometry.get_axis_aligned_bounding_box()
-        transform = child_pose_wrt_parent.to_transform(self.name)
+        transform = child_pose_wrt_parent.to_transform_stamped(self.name)
         other_bounding_box: RotatedBoundingBox = other_bounding_box.get_rotated_box(transform)
         new_mesh = BoundingBox.merge_multiple_bounding_boxes_into_mesh([my_bounding_box, other_bounding_box],
                                                                        use_random_events=False)

@@ -104,7 +104,7 @@ Transform.
 ```python
 from pycram.datastructures.pose import TransformStamped
 
-l.set_transform(TransformStamped([1, 1, 1], [0, 0, 0, 1], "map", "test_frame"), "example")
+l.set_transform(TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], "map", "test_frame"), "example")
 p = Pose()
 
 transformed_pose = l.transform_pose(p, "test_frame")

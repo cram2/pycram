@@ -680,7 +680,7 @@ class MultiverseAPI(MultiverseClient):
         :param constraint: The constraint.
         :return: The attachment pose as a string.
         """
-        pose = constraint.parent_to_child_transform.to_pose()
+        pose = constraint.parent_to_child_transform.to_pose_stamped()
         return self._pose_to_string(pose)
 
     @staticmethod

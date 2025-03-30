@@ -46,7 +46,7 @@ class TestKnowledge(KnowledgeSource, TestProperty):
         self.parameter = {}
 
     def test(self, pose: PoseStamped) -> ReasoningResult:
-        return ReasoningResult(PoseSteamped.from_list([1, 2, 3]).dist(pose) < 0.1, {pose.frame_id: pose})
+        return ReasoningResult(PoseStamped.from_list([1, 2, 3]).dist(pose) < 0.1, {pose.frame_id: pose})
 
 
 class KnowledgeSourceTestCase(unittest.TestCase):

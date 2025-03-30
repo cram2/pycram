@@ -83,11 +83,11 @@ class TestPartialActions(BulletWorldTestCase):
 
     def test_partial_navigate_action_perform(self):
         with simulated_robot:
-            move1 = NavigateActionDescription(PoseSteamped.from_list([1, 0, 0])).resolve().perform()
+            move1 = NavigateActionDescription(PoseStamped.from_list([1, 0, 0])).resolve().perform()
             self.assertEqual(self.robot.pose.position.to_list(), [1, 0, 0])
 
     def test_partial_navigate_action_multiple(self):
-        nav = NavigateActionDescription([PoseSteamped.from_list([1, 0, 0]), PoseSteamped.from_list([2, 0, 0]), PoseSteamped.from_list([3, 0, 0])])
+        nav = NavigateActionDescription([PoseStamped.from_list([1, 0, 0]), PoseStamped.from_list([2, 0, 0]), PoseStamped.from_list([3, 0, 0])])
         nav_goals = [[1, 0, 0], [2, 0, 0], [3, 0, 0]]
         for i, action in enumerate(nav):
             with simulated_robot:

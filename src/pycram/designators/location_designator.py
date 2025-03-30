@@ -106,9 +106,9 @@ class CostmapLocation(LocationDesignatorDescription):
 
 
         """
-        target_pose = PoseSteamped.from_list([target.position.x, target.position.y, target.position.z],
+        target_pose = PoseStamped.from_list([target.position.x, target.position.y, target.position.z],
                                   [target.orientation.x, target.orientation.y, target.orientation.z, target.orientation.w])
-        ground_pose = PoseStamped(target_pose.position.to_list()())
+        ground_pose = PoseStamped.from_list(target_pose.position.to_list())
         ground_pose.position.z = 0
 
         occupancy = OccupancyCostmap(0.32, False, 200, 0.02, ground_pose)
@@ -117,7 +117,7 @@ class CostmapLocation(LocationDesignatorDescription):
         if visible_for:
             camera = robot.robot_description.get_default_camera()
             visible = VisibilityCostmap(camera.minimal_height, camera.maximal_height, 200, 0.02,
-                                        PoseStamped(target_pose.position.to_list()()), target_object=target, robot=robot)
+                                        PoseStamped.from_list(target_pose.position.to_list()), target_object=target, robot=robot)
             final_map += visible
 
         if reachable_for:
@@ -244,7 +244,7 @@ class CostmapLocation(LocationDesignatorDescription):
                                                                             arm=params_box.reachable_arm,
                                                                             allowed_collision=allowed_collision)
                         if is_reachable:
-                            yield GraspPose(pose_candidate.position.to_list(), pose_candidate.orientation.to_list(),
+                            yield GraspPose(pose_candidate.pose, pose_candidate.header,
                                             arm=params_box.reachable_arm, grasp_description=grasp_desc)
 
 
@@ -316,7 +316,7 @@ class AccessingLocation(LocationDesignatorDescription):
         """
         Sets up the costmaps for the given handle and robot. The costmaps are merged and stored in the final_map.
         """
-        ground_pose = PoseStamped(handle.pose.position.to_list()())
+        ground_pose = PoseStamped(handle.pose.position.to_list())
         ground_pose.position.z = 0
         occupancy = OccupancyCostmap(distance_to_obstacle=0.25, from_ros=False, size=200, resolution=0.02,
                                      origin=ground_pose)

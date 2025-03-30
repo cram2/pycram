@@ -67,7 +67,7 @@ class TFBroadcaster:
         Publishes a static odom frame to the tf_static topic.
         """
         self._publish_pose(self.odom_frame,
-                           PoseSteamped.from_list([0, 0, 0], [0, 0, 0, 1]), static=True)
+                           PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]), static=True)
 
     def _publish_pose(self, child_frame_id: str, pose: PoseStamped, static=False) -> None:
         """
@@ -80,7 +80,7 @@ class TFBroadcaster:
         """
         frame_id = pose.frame_id
         if frame_id != child_frame_id:
-            tf_stamped = pose.to_transform(child_frame_id)
+            tf_stamped = pose.to_transform_stamped(child_frame_id)
             tf_stamped.frame_id = self.projection_namespace.name + "/" + tf_stamped.frame_id
             tf_stamped.child_frame_id = self.projection_namespace.name + "/" + tf_stamped.child_frame_id
             tf2_msg = TFMessage()

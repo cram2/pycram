@@ -6,7 +6,6 @@ import pathlib
 import xml.etree.ElementTree as ET
 
 import numpy as np
-from geometry_msgs.msg import Point
 from ..tf_transformations import quaternion_from_euler, euler_from_quaternion
 from typing_extensions import Union, List, Optional, Dict, Tuple, Type, Self
 from urdf_parser_py import urdf
@@ -17,7 +16,7 @@ from ..ros import get_ros_package_path
 from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
     SphereVisualShape, MeshVisualShape
 from ..datastructures.enums import JointType
-from ..datastructures.pose import PoseStamped
+from ..datastructures.pose import PoseStamped, Point
 from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
 from ..failures import MultiplePossibleTipLinks
@@ -248,7 +247,7 @@ class ObjectDescription(AbstractObjectDescription):
         else:
             limit = None
         if origin is not None:
-            origin = urdf.Pose(origin.position.to_list(), euler_from_quaternion(origin.orientation.to_list()()))
+            origin = urdf.Pose(origin.position.to_list(), euler_from_quaternion(origin.orientation.to_list()))
         if axis is not None:
             axis = [axis.x, axis.y, axis.z]
         if parent is None:

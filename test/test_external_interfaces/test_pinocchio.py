@@ -46,12 +46,12 @@ class PinocchioTest(BulletWorldTestCase):
 
     def test_ik_computation(self):
         target_link = "r_gripper_tool_frame"
-        target_pose = PoseSteamped.from_list([0.5, 0.2, 0.6])
+        target_pose = PoseStamped.from_list([0.5, 0.2, 0.6])
         result_configuration = compute_ik(target_link, target_pose, self.robot)
 
         self.assertTrue(np.any(result_configuration))
 
     def test_ik_computation_error(self):
         target_link = "r_gripper_tool_frame"
-        target_pose = PoseSteamped.from_list([5, 0.2, 0.6])
+        target_pose = PoseStamped.from_list([5, 0.2, 0.6])
         self.assertRaises(IKError, compute_ik, target_link, target_pose, self.robot)

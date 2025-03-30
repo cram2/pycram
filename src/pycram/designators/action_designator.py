@@ -671,10 +671,10 @@ class PlaceAction(ActionAbstract):
         """
         gripper_pose_in_object = self.local_transformer.transform_pose(self.gripper_link.pose,
                                                                        self.object_designator.tf_frame)
-        object_to_gripper = gripper_pose_in_object.to_transform("object")
-        world_to_object_target = self.target_location.to_transform("target")
+        object_to_gripper = gripper_pose_in_object.to_transform_stamped("object")
+        world_to_object_target = self.target_location.to_transform_stamped("target")
         world_to_gripper_target = world_to_object_target * object_to_gripper
-        return world_to_gripper_target.to_pose()
+        return world_to_gripper_target.to_pose_stamped()
 
     def calculate_retract_pose(self, target_pose: PoseStamped, distance: float) -> PoseStamped:
         """
@@ -1192,7 +1192,7 @@ class FaceAtAction(ActionAbstract):
         orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
 
         # create new robot pose
-        new_robot_pose = PoseStamped(robot_position.position.to_list(), orientation)
+        new_robot_pose = PoseStamped.from_list(robot_position.position.to_list(), orientation)
 
         # turn robot
         NavigateAction(new_robot_pose, self.keep_joint_states).perform()

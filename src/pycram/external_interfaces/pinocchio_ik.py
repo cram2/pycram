@@ -50,7 +50,7 @@ def compute_ik(target_link: str, target_pose: PoseStamped, robot: Object) -> Dic
 
     JOINT_ID = model.frames[model.getFrameId(target_link)].parent
     # Object to destination transformation
-    oMdes = pinocchio.XYZQUATToSE3(np.array(target_pose.position.to_list() + target_pose.orientation.to_list()()))
+    oMdes = pinocchio.XYZQUATToSE3(np.array(target_pose.position.to_list() + target_pose.orientation.to_list()))
 
     # Initial joint configuration
     # q = pinocchio.neutral(model)

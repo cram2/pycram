@@ -133,11 +133,11 @@ def get_visible_objects(
         front_facing_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
 
     camera_frame = RobotDescription.current_robot_description.get_camera_frame(World.robot.name)
-    world_to_cam = camera_pose.to_transform(camera_frame)
+    world_to_cam = camera_pose.to_transform_stamped(camera_frame)
 
-    cam_to_point = TransformStamped(list(np.multiply(front_facing_axis, 2)), [0, 0, 0, 1], camera_frame,
+    cam_to_point = TransformStamped.from_list(list(np.multiply(front_facing_axis, 2)), [0, 0, 0, 1], camera_frame,
                              "point")
-    target_point = (world_to_cam * cam_to_point).to_pose()
+    target_point = (world_to_cam * cam_to_point).to_pose_stamped()
 
     seg_mask = World.current_world.get_images_for_target(target_point, camera_pose)[2]
 
@@ -175,7 +175,7 @@ def visible(
             if obj == prospection_obj or (World.robot and obj == prospection_robot):
                 continue
             else:
-                obj.set_pose(PoseSteamped.from_list([100, 100, 0], [0, 0, 0, 1]), set_attachments=False)
+                obj.set_pose(PoseStamped.from_list([100, 100, 0], [0, 0, 0, 1]), set_attachments=False)
 
         seg_mask, target_point = get_visible_objects(camera_pose, front_facing_axis, plot_segmentation_mask)
         max_pixel = np.array(seg_mask == prospection_obj.id).sum()
@@ -218,7 +218,7 @@ def occluding(
             elif obj.get_pose() == other_obj.get_pose():
                 obj = other_obj
             else:
-                other_obj.set_pose(PoseSteamped.from_list([100, 100, 0], [0, 0, 0, 1]))
+                other_obj.set_pose(PoseStamped.from_list([100, 100, 0], [0, 0, 0, 1]))
 
         seg_mask, target_point = get_visible_objects(camera_pose, front_facing_axis, plot_segmentation_mask)
 
@@ -265,7 +265,7 @@ def reachable(
             return False
 
         gripper_pose = prospection_robot.get_link_pose(gripper_name)
-        diff = target_pose.dist(gripper_pose)
+        diff = target_pose.position.euclidean_distance(gripper_pose.position)
 
     return diff < threshold
 
@@ -360,7 +360,7 @@ def generate_object_at_target(target_location: List[float], size: Tuple[float] =
     """
     gen_obj_desc = GenericObjectDescription(name, [0, 0, 0], [s / 2 for s in size])
     gen_obj = Object(name, PhysicalObject, None, gen_obj_desc)
-    gen_obj.set_pose(PoseStamped(target_location))
+    gen_obj.set_pose(PoseStamped.from_list(target_location))
     return gen_obj
 
 
@@ -375,10 +375,10 @@ def cast_a_ray_from_camera(max_distance: float = 10):
     camera_pose = camera_link.pose
     camera_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
     target = np.array(camera_axis) * max_distance
-    target_pose = PoseStamped(target, frame_id=camera_link.tf_frame)
+    target_pose = PoseStamped.from_list(list(target), frame=camera_link.tf_frame)
     target_pose = World.robot.local_transformer.transform_pose(target_pose, Frame.Map.value)
     ray_result: RayResult = World.current_world.ray_test(camera_pose.position.to_list(),
-                                                         target_pose.position.to_list()())
+                                                         target_pose.position.to_list())
     return ray_result
 
 

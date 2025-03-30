@@ -63,7 +63,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertTrue(obj in self.multiverse.objects)
         obj.set_position([1, 1, 0.1])
         pose = obj.get_pose()
-        self.assert_poses_are_equal(pose, PoseSteamped.from_list([1, 1, 0.1], [0, 0, 0, 1]))
+        self.assert_poses_are_equal(pose, PoseStamped.from_list([1, 1, 0.1], [0, 0, 0, 1]))
 
     def test_save_and_restore_state(self):
         milk = self.spawn_milk([1, 1, 0.1])
@@ -90,8 +90,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertTrue(apartment.get_joint_position("cabinet10_drawer1_joint") == 0.1)
 
     def test_spawn_xml_object(self):
-        bread = Object("bread_1", pycrap.Bread, "bread_1.xml", pose=PoseSteamped.from_list([1, 1, 0.1]))
-        self.assert_poses_are_equal(bread.get_pose(), PoseSteamped.from_list([1, 1, 0.1]))
+        bread = Object("bread_1", pycrap.Bread, "bread_1.xml", pose=PoseStamped.from_list([1, 1, 0.1]))
+        self.assert_poses_are_equal(bread.get_pose(), PoseStamped.from_list([1, 1, 0.1]))
 
     def test_get_axis_aligned_bounding_box_for_one_link_object(self):
         position = [1, 1, 0.1]
@@ -121,8 +121,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.assertAlmostEqual(max_p_1[0] + position_shift, max_p_2[0], delta=0.001)
 
     def test_spawn_mesh_object(self):
-        milk = Object("milk", pycrap.Milk, "milk.stl", pose=PoseSteamped.from_list([1, 1, 0.1]))
-        self.assert_poses_are_equal(milk.get_pose(), PoseSteamped.from_list([1, 1, 0.1]))
+        milk = Object("milk", pycrap.Milk, "milk.stl", pose=PoseStamped.from_list([1, 1, 0.1]))
+        self.assert_poses_are_equal(milk.get_pose(), PoseStamped.from_list([1, 1, 0.1]))
         self.multiverse.simulate(0.2)
         contact_points = milk.contact_points
         self.assertTrue(len(contact_points) > 0)
@@ -151,7 +151,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         camera_frame = self.multiverse.robot_description.get_camera_frame(robot.name)
         camera_front_facing_axis = camera_description.front_facing_axis
         milk_spawn_position = np.array(camera_front_facing_axis) * 0.5
-        orientation = camera_pose.to_transform(camera_frame).invert().rotation.to_list()
+        orientation = camera_pose.to_transform_stamped(camera_frame).invert().rotation.to_list()
         milk = self.spawn_milk(milk_spawn_position.tolist(), orientation, frame=camera_frame)
         _, depth, segmentation_mask = self.multiverse.get_images_for_target(milk.pose, camera_pose, plot=False)
         self.assertIsInstance(depth, np.ndarray)
@@ -422,7 +422,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     @staticmethod
     def spawn_big_bowl() -> Object:
         big_bowl = Object("big_bowl", pycrap.Bowl, "BigBowl.obj",
-                          pose=PoseSteamped.from_list([2, 2, 0.1], [0, 0, 0, 1]))
+                          pose=PoseStamped.from_list([2, 2, 0.1], [0, 0, 0, 1]))
         return big_bowl
 
     @staticmethod

@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 from deprecated import deprecated
-from geometry_msgs.msg import Point, Quaternion
 from trimesh.parent import Geometry3D
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
@@ -13,7 +12,7 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList, RotatedBoundingBox, VirtualJoint, FrozenObject, FrozenLink, FrozenJoint)
 from ..datastructures.enums import ObjectType, JointType
-from ..datastructures.pose import PoseStamped, TransformStamped
+from ..datastructures.pose import PoseStamped, TransformStamped, Point, Quaternion, Vector3
 from ..datastructures.world import World
 from ..datastructures.world_entity import PhysicalBody
 from ..description import ObjectDescription, LinkDescription, Joint
@@ -355,7 +354,7 @@ class Object(PhysicalBody):
         """
         The current transform of the object.
         """
-        return self.get_pose().to_transform(self.tf_frame)
+        return self.get_pose().to_transform_stamped(self.tf_frame)
 
     @property
     def obj_type(self) -> Type[PhysicalObject]:
@@ -756,7 +755,7 @@ class Object(PhysicalBody):
         child_link = child_object.links[child_link] if child_link else child_object.root_link
 
         if coincide_the_objects and parent_to_child_transform is None:
-            parent_to_child_transform = TransformStamped()
+            parent_to_child_transform = TransformStamped.from_list()
         attachment = Attachment(parent_link, child_link, bidirectional, parent_to_child_transform)
 
         self.attachments[child_object] = attachment
@@ -847,7 +846,7 @@ class Object(PhysicalBody):
         """
         pose_in_map = self.local_transformer.transform_pose(pose, "map")
         if base:
-            pose_in_map.position = (np.array(pose_in_map.position.to_list()()) + self.base_origin_shift).tolist()
+            pose_in_map.position = Vector3.from_list(np.array(pose_in_map.position.to_list()) + self.base_origin_shift)
 
         self.reset_base_pose(pose_in_map)
 
@@ -1480,7 +1479,7 @@ class Object(PhysicalBody):
         aabb = self.get_axis_aligned_bounding_box()
         base_width = np.absolute(aabb.min_x - aabb.max_x)
         base_length = np.absolute(aabb.min_y - aabb.max_y)
-        return PoseSteamped.from_list([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
+        return PoseStamped.from_list([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
                            self.get_orientation_as_list())
 
     def get_joint_by_id(self, joint_id: int) -> Joint:

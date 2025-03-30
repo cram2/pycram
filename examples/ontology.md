@@ -56,7 +56,7 @@ from pycrap.ontologies import Milk, Cereal, Food
 world = BulletWorld(mode=WorldMode.DIRECT)
 
 milk = Object("milk", Milk, "milk.stl")
-cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=PoseSteamped.from_list([1.4, 1, 0.95]))
+cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=PoseStamped.from_list([1.4, 1, 0.95]))
 ```
 
 You can query the ontology using [owlready2](https://owlready2.readthedocs.io/en/v0.41/index.html). 

@@ -60,7 +60,7 @@ else:
     viz_marker_publisher = VizMarkerPublisher()
 
 apartment = Object("apartment", Apartment, "apartment.urdf")
-pr2 = Object("pr2", Robot, "pr2.urdf", pose=PoseSteamped.from_list([1, 2, 0]))
+pr2 = Object("pr2", Robot, "pr2.urdf", pose=PoseStamped.from_list([1, 2, 0]))
 ```
 
 Next up we will create the location designator description, the {meth}`~pycram.designators.location_designator.CostmapLocation` that we will be using needs a

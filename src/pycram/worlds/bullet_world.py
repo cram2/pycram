@@ -299,7 +299,7 @@ class BulletWorld(World):
         return self.get_object_pose(obj).orientation.to_list()
 
     def get_object_pose(self, obj: Object) -> PoseStamped:
-        return PoseStamped(*p.getBasePositionAndOrientation(obj.id, physicsClientId=self.id))
+        return PoseStamped.from_list(*p.getBasePositionAndOrientation(obj.id, physicsClientId=self.id), frame="map")
 
     def set_link_color(self, link: ObjectDescription.Link, rgba_color: Color):
         p.changeVisualShape(link.object_id, link.id, rgbaColor=rgba_color.get_rgba(), physicsClientId=self.id)

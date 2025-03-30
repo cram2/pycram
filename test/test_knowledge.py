@@ -43,7 +43,7 @@ class TestKnowledgeEngine(KnowledgeSourceTestCase):
         self.assertTrue(self.knowledge_source.is_connected)
 
     def test_find_source(self):
-        prop = TestProperty(PoseSteamped.from_list([1, 2, 3]))
+        prop = TestProperty(PoseStamped.from_list([1, 2, 3]))
         self.assertEqual(self.knowledge_engine.find_source_for_property(prop), self.knowledge_source)
 
 @unittest.skip
@@ -104,7 +104,7 @@ class TestParameterInference(KnowledgeBulletTestCase):
         self.assertEqual(desig.grasp_description, None)
 
     def test_open_gripper(self):
-        self.robot.set_pose(PoseSteamped.from_list([-0.192, 1.999, 0], [0, 0, 0.8999, -0.437]))
+        self.robot.set_pose(PoseStamped.from_list([-0.192, 1.999, 0], [0, 0, 0.8999, -0.437]))
         self.robot.set_joint_position("torso_lift_joint", 0.3)
         env_object = BelieveObject(names=["kitchen"]).resolve()
         handle_desig = ObjectPart(["kitchen_island_middle_upper_drawer_handle"], env_object)

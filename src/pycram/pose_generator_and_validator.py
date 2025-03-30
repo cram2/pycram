@@ -76,13 +76,13 @@ class PoseGenerator(Iterable[PoseStamped]):
             # and the center of the costmap (since this is the origin). This vector is then turned into a transformation
             # and muiltiplied with the transformation of the origin.
             vector_to_origin = (center - ind) * self.costmap.resolution
-            point_to_origin = TransformStamped([*vector_to_origin, 0], frame_id="point", child_frame="origin")
-            origin_to_map = self.costmap.origin.to_transform("origin").invert()
+            point_to_origin = TransformStamped.from_list([*vector_to_origin, 0], frame="point", child_frame_id="origin")
+            origin_to_map = self.costmap.origin.to_transform_stamped("origin").invert()
             point_to_map = point_to_origin * origin_to_map
             map_to_point = point_to_map.invert()
 
             orientation = self.orientation_generator(map_to_point.translation.to_list(), self.costmap.origin)
-            yield PoseStamped(map_to_point.translation.to_list(), orientation)
+            yield PoseStamped.from_list(map_to_point.translation.to_list(), orientation)
 
     @staticmethod
     def height_generator() -> float:
@@ -130,8 +130,8 @@ def visibility_validator(robot: Object,
     obj_id = obj.id
 
     camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link())
-    robot.set_pose(PoseSteamped.from_list([100, 100, 0], [0, 0, 0, 1]))
-    ray = world.ray_test(camera_pose.position.to_list(), obj.get_pose().position.to_list()())
+    robot.set_pose(PoseStamped.from_list([100, 100, 0], [0, 0, 0, 1]))
+    ray = world.ray_test(camera_pose.position.to_list(), obj.get_pose().position.to_list())
     robot.set_pose(robot_pose)
     if isinstance(object_or_pose, PoseStamped):
         world.remove_object(obj)

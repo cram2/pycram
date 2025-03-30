@@ -44,7 +44,7 @@ class GiskardLocation(CostmapLocation):
                 last_joint_states = dict(zip(last_point_names, last_point_positions))
                 orientation = list(
                     quaternion_from_euler(0, 0, last_joint_states["brumbrum_yaw"], axes="sxyz"))
-                pose = PoseSteamped.from_list([last_joint_states["brumbrum_x"], last_joint_states["brumbrum_y"], 0], orientation)
+                pose = PoseStamped.from_list([last_joint_states["brumbrum_x"], last_joint_states["brumbrum_y"], 0], orientation)
 
                 robot_joint_states = {}
                 for joint_name, state in last_joint_states.items():
@@ -58,7 +58,7 @@ class GiskardLocation(CostmapLocation):
                     prospection_robot.set_pose(pose)
                     gripper_pose = prospection_robot.get_link_pose(chain.get_tool_frame())
 
-                    if gripper_pose.dist(target_map) <= 0.02:
+                    if gripper_pose.position.euclidean_distance(target_map.position) <= 0.02:
                         yield CostmapLocation.Location(pose, [chain.arm_type])
 
 

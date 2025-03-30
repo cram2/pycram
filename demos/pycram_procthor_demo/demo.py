@@ -48,11 +48,11 @@ def runWorld():
     known_environments = procThorInterface.get_all_environments_stored_below_directory(procThorInterface.source_folder)
     world = BulletWorld(WorldMode.GUI)
     apartment = None
-    milk_pos = PoseSteamped.from_list([1, -1.78, 0.55], [1, 0, 0, 0])
-    milk = Object("milk", pycrap.Milk, "milk.stl", pose=PoseSteamped.from_list([1, -1.78, 0.55], [1, 0, 0, 0]),
+    milk_pos = PoseStamped.from_list([1, -1.78, 0.55], [1, 0, 0, 0])
+    milk = Object("milk", pycrap.Milk, "milk.stl", pose=PoseStamped.from_list([1, -1.78, 0.55], [1, 0, 0, 0]),
                   color=Color(1, 0, 0, 1))
     for robot in robots:
-        robot_obj = Object("pr2", pycrap.Robot, robot, pose=PoseSteamped.from_list([1, 2, 0]))
+        robot_obj = Object("pr2", pycrap.Robot, robot, pose=PoseStamped.from_list([1, 2, 0]))
         for environment in known_environments:
             counter += 1
             print("Trying plan: {} with robot: {} in: {}".format("param_plan", robot, environment["name"]))

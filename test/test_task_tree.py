@@ -19,10 +19,10 @@ class TaskTreeTestCase(BulletWorldTestCase):
     @with_tree
     def plan(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.PlaceActionDescription(object_description, [PoseSteamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
+        description = action_designator.PlaceActionDescription(object_description, [PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.resolve().object_designator.name, "milk")
         with simulated_robot:
-            NavigateAction(PoseSteamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
+            NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
             grasp_description = GraspDescription(Grasp.FRONT, None, False)
             PickUpAction(object_description.resolve(), Arms.LEFT, grasp_description, 0.03).perform()

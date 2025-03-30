@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import logging
 import os
+
+import numpy as np
 import pathlib
 from abc import ABC, abstractmethod
 
 import trimesh
-from geometry_msgs.msg import Point
+from .tf_transformations import translation_matrix, quaternion_matrix
 from trimesh import Trimesh
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, Type
 
@@ -16,7 +18,7 @@ from pycrap.ontologies import Base, has_child_link, has_parent_link
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
     MeshVisualShape, RotatedBoundingBox
 from .datastructures.enums import JointType
-from .datastructures.pose import PoseStamped, TransformStamped
+from .datastructures.pose import PoseStamped, TransformStamped, Point
 from .datastructures.world_entity import WorldEntity, PhysicalBody
 from .failures import ObjectDescriptionNotFound, LinkHasNoGeometry, LinkGeometryHasNoMesh
 from .local_transformer import LocalTransformer
@@ -278,7 +280,10 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
                 mesh_paths = self.get_mesh_path(self.geometry)
                 meshes = [trimesh.load_mesh(mesh_path) for mesh_path in mesh_paths]
                 mesh = meshes[0].union(meshes[1:]) if len(meshes) > 1 else meshes[0]
-                return mesh.convex_hull.apply_transform(self.transform.get_homogeneous_matrix())
+                translation = translation_matrix(self.transform.translation.to_list())
+                rotation = quaternion_matrix(self.transform.rotation.to_list())
+                matrix = np.dot(translation, rotation)
+                return mesh.convex_hull.apply_transform(matrix)
             else:
                 raise LinkGeometryHasNoMesh(self.name, type(self.geometry).__name__)
 
@@ -330,7 +335,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
 
         :param pose: The link pose.
         """
-        return (pose.to_transform(self.tf_frame) * self.get_transform_to_root_link()).to_pose()
+        return (pose.to_transform_stamped(self.tf_frame) * self.get_transform_to_root_link()).to_pose_stamped()
 
     def get_pose_given_object_pose(self, pose):
         """
@@ -339,7 +344,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
 
         :param pose: The object pose.
         """
-        return (pose.to_transform(self.object.tf_frame) * self.get_transform_from_root_link()).to_pose()
+        return (pose.to_transform_stamped(self.object.tf_frame) * self.get_transform_from_root_link()).to_pose_stamped()
 
     def get_transform_from_root_link(self) -> TransformStamped:
         """
@@ -429,7 +434,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         :param link: The link from which the transformation should be returned.
         :return: A Transform object with the transformation from the given link to this link.
         """
-        return self.get_pose_wrt_link(link).to_transform(self.tf_frame)
+        return self.get_pose_wrt_link(link).to_transform_stamped(self.tf_frame)
 
     def get_pose_wrt_link(self, link: 'Link') -> PoseStamped:
         """
@@ -442,7 +447,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         """
         :return: the transformation between the link frame and the origin frame of this link.
         """
-        return self.origin.to_transform(self.tf_frame)
+        return self.origin.to_transform_stamped(self.tf_frame)
 
     @property
     def pose(self) -> PoseStamped:
@@ -484,7 +489,7 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         """
         The transformation between the link frame and the origin frame of this link.
         """
-        return self.origin.to_transform(self.tf_frame)
+        return self.origin.to_transform_stamped(self.tf_frame)
 
     def __copy__(self):
         return Link(self.id, self.description, self.object)
