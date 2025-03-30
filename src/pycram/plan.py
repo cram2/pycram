@@ -5,14 +5,16 @@ from datetime import datetime
 
 
 import networkx as nx
+from jedi.inference.value.iterable import Sequence
 
-
-from typing_extensions import Optional, Callable, Any, Dict, List, Self
+from typing_extensions import Optional, Callable, Any, Dict, List, Self, Iterable, TYPE_CHECKING
 
 from .datastructures.enums import TaskStatus
 from pycrap.ontologies import Action
-from .datastructures.partial_designator import PartialDesignator
 from .failures import PlanFailure
+
+if TYPE_CHECKING:
+    from .datastructures.partial_designator import PartialDesignator
 
 
 class Plan(nx.DiGraph):
@@ -22,9 +24,9 @@ class Plan(nx.DiGraph):
     """
     current_plan: Plan = None
 
-    def __init__(self):
+    def __init__(self, root_node: PlanNode = None):
         super().__init__()
-        self.root: PlanNode = PlanNode(plan=self)
+        self.root: PlanNode = root_node or PlanNode(plan=self)
         self.add_node(self.root)
         self.current_node: PlanNode = self.root
 
@@ -40,12 +42,25 @@ class Plan(nx.DiGraph):
         for node in node2.children:
             self.add_edge(node1, node)
         self.remove_node(node2)
+        
+    def add_node(self, node_for_adding: PlanNode, **attr):
+        super().add_node(node_for_adding, **attr)
+        node_for_adding.plan = self
 
-    def insert_node(self, node: PlanNode, path: str = None):
-        if path:
-            pass
-        else:
-            self.add_edge(self.root, node)
+    def add_edge(self, u_of_edge, v_of_edge, **attr):
+        super().add_edge(u_of_edge, v_of_edge, **attr)
+        u_of_edge.plan = self
+        v_of_edge.plan = self
+
+    def add_edges_from(self, ebunch_to_add: Iterable[Tuple[PlanNode, PlanNode]], **attr):
+        super().add_edges_from(ebunch_to_add, **attr)
+        for u_edge, v_edge in ebunch_to_add:
+            u_edge.plan = self
+            v_edge.plan = self
+
+    def add_nodes_from(self, nodes_for_adding: Iterable[PlanNode], **attr):
+        super().add_nodes_from(nodes_for_adding, **attr)
+        for node in nodes_for_adding:
             node.plan = self
 
     def insert_below(self, insert_node: PlanNode, insert_below: PlanNode):
@@ -150,7 +165,7 @@ def with_plan(func: Callable) -> Callable:
         # TODO Maybe use bind_partial instead
         node = ActionNode(designator_ref=action, action="Action", kwargs=action.kwargs)
         plan = Plan()
-        plan.insert_node(node)
+        plan.add_edge(plan.root, node)
         if Plan.current_plan:
             Plan.current_plan.mount(plan)
         return plan

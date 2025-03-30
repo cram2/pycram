@@ -20,7 +20,7 @@ from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, 
     Self, Iterator
 from typing import get_type_hints
 
-from .language import Language
+from .language import LanguageMixin
 from .local_transformer import LocalTransformer
 from .orm.action_designator import (Action as ORMAction)
 from .orm.base import RobotState, ProcessMetaData

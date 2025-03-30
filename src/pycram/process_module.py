@@ -12,7 +12,7 @@ import time
 from abc import ABC
 from typing_extensions import Callable, Type, Any, Union, Optional
 
-from .language import Language
+from .language import LanguageMixin
 from .robot_description import RobotDescription
 from .datastructures.world import World
 from typing_extensions import TYPE_CHECKING
@@ -58,7 +58,7 @@ class ProcessModule:
         :param designator: The designator_description to execute.
         :return: Return of the Process Module if there is any
         """
-        if get_ident() in Language.block_list:
+        if get_ident() in LanguageMixin.block_list:
             return None
         with self._lock:
             ret = self._execute(designator)

@@ -192,6 +192,7 @@ class MoveTorsoAction(ActionAbstract):
             raise TorsoGoalNotReached(validator)
 
     @classmethod
+    @with_plan
     def description(cls, torso_state: Union[Iterable[TorsoState], TorsoState]) -> PartialDesignator[Type[MoveTorsoAction]]:
         return PartialDesignator(MoveTorsoAction, torso_state=torso_state)
 
@@ -228,6 +229,7 @@ class SetGripperAction(ActionAbstract):
         pass
 
     @classmethod
+    @with_plan
     def description(cls, gripper: Union[Iterable[Arms], Arms],
                     motion: Union[Iterable[GripperState], GripperState] = None) -> PartialDesignator[Type[SetGripperAction]]:
         return PartialDesignator(SetGripperAction, gripper=gripper, motion=motion)
@@ -270,6 +272,7 @@ class GripAction(ActionAbstract):
         raise NotImplementedError()
 
     @classmethod
+    @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     gripper: Union[Iterable[Arms], Arms] = None, effort: Union[Iterable[float], float] = None, ) -> PartialDesignator[Type[GripAction]]:
         return PartialDesignator(GripAction, object_designator=object_designator,
@@ -318,6 +321,7 @@ class ParkArmsAction(ActionAbstract):
             raise ConfigurationNotReached(validator, configuration_type=StaticJointState.Park)
 
     @classmethod
+    @with_plan
     def description(cls, arm: Union[Iterable[Arms], Arms]) -> PartialDesignator[Type[ParkArmsAction]]:
         return PartialDesignator(ParkArmsAction, arm=arm)
 
@@ -493,6 +497,7 @@ class ReachToPickUpAction(ActionAbstract):
             logwarn(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
 
     @classmethod
+    @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     arm: Union[Iterable[Arms], Arms] = None,
                     grasp: Union[Iterable[Grasp], Grasp] = None,
@@ -603,6 +608,7 @@ class PickUpAction(ActionAbstract):
         return RobotDescription.current_robot_description.get_arm_chain(self.arm)
 
     @classmethod
+    @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     arm: Union[Iterable[Arms], Arms] = None,
                     grasp_description: Union[Iterable[GraspDescription], GraspDescription] = None,
@@ -724,6 +730,7 @@ class PlaceAction(ActionAbstract):
             raise ObjectNotPlacedAtTargetLocation(self.object_designator, self.target_location, World.robot, self.arm)
 
     @classmethod
+    @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None) -> PartialDesignator[Type[PlaceAction]]:

@@ -1,9 +1,9 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+from dataclasses import dataclass
 from queue import Queue
-from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple
-from anytree import NodeMixin, Node, PreOrderIter
+from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence
 
 from .datastructures.enums import State
 import threading
@@ -12,9 +12,38 @@ from .fluent import Fluent
 from .failures import PlanFailure, NotALanguageExpression
 from .external_interfaces import giskard
 from .ros import  sleep
+from .plan import PlanNode, Plan
 
 
-class Language(NodeMixin):
+def add_language_plan(child_plans: Iterable[Plan], root_node: LanguageNode) -> Plan:
+    lang_plan = Plan()
+    lang_plan.add_edge(lang_plan.root, root_node)
+    for plan in child_plans:
+        lang_plan.mount(plan)
+
+    plan = Plan.current_plan
+    plan.mount(lang_plan, plan.current_node)
+    return lang_plan
+
+
+def sequential(*plans: Sequence[Plan]) -> Plan:
+    return add_language_plan(plans, Sequential())
+
+def parallel(*plans: Sequence[Plan]) -> Plan:
+    return add_language_plan(plans, Parallel())
+
+def try_in_order(*plans: Sequence[Plan]) -> Plan:
+    return add_language_plan(plans, TryInOrder())
+
+def try_all(*plans: Sequence[Plan]) -> Plan:
+    return add_language_plan(plans, TryAll())
+
+def repeat(*plans: Sequence[Plan], repeat=1) -> Plan:
+    return add_language_plan(plans, Repeat(repeat=repeat))
+
+
+
+class LanguageMixin:
     """
     Parent class for language expressions. Implements the operators as well as methods to reduce the resulting language
     tree.
@@ -24,95 +53,46 @@ class Language(NodeMixin):
     block_list: List[int] = []
     """List of thread ids which should be blocked from execution."""
 
-    def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None):
-        """
-        Default constructor for anytree nodes. If the parent is none this is the root node.
-
-        :param parent: The parent node of this node
-        :param children: All children of this node as a tuple oder iterable
-        """
-        self.parent = parent
-        self.exceptions = {}
-        self.state = None
-        self.executing_thread = {}
-        self.threads: List[threading.Thread] = []
-        self.interrupted = False
-        self.name = self.__class__.__name__
-        self.performable = self.__class__ # To be overwritten by Partial Designators
-        if children:
-            self.children: Language = children
-
-    def resolve(self) -> Language:
-         """
-         Dummy method for compatability to designator_description descriptions
-
-         :return: self reference
-         """
-         return self
-
-    def perform(self):
-        """
-        This method should be overwritten in subclasses and implement the behaviour of the language expression regarding
-        each child.
-        """
-        raise NotImplementedError
-
-    def __add__(self, other: Language) -> Sequential:
+    def __add__(self, other: Plan) -> Plan:
         """
         Language expression for sequential execution.
 
         :param other: Another Language expression, either a designator_description or language expression
         :return: A :func:`~Sequential` object which is the new root node of the language tree
         """
-        if not issubclass(other.__class__, Language):
-            raise NotALanguageExpression(
-                f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
-        return Sequential(parent=None, children=(self, other)).simplify()
+        return sequential((self, other))
 
-    def __sub__(self, other: Language) -> TryInOrder:
+
+    def __sub__(self, other: LanguageMixin) -> Plan:
         """
         Language expression for try in order.
 
         :param other: Another Language expression, either a designator_description or language expression
         :return: A :func:`~TryInOrder` object which is the new root node of the language tree
         """
-        if not issubclass(other.__class__, Language):
-            raise NotALanguageExpression(
-                f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
-        return TryInOrder(parent=None, children=(self, other)).simplify()
+        return try_in_order((self, other))
 
-    def __or__(self, other: Language) -> Parallel:
+    def __or__(self, other: LanguageMixin) -> Plan:
         """
         Language expression for parallel execution.
 
         :param other: Another Language expression, either a designator_description or language expression
         :return: A :func:`~Parallel` object which is the new root node of the language tree
         """
-        if not issubclass(other.__class__, Language):
-            raise NotALanguageExpression(
-                f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
-        if self.performable.__name__ in self.parallel_blocklist or other.performable.__name__ in self.parallel_blocklist:
-            raise AttributeError(
-                f"You can not execute the Designator {self if self.performable.__name__ in self.parallel_blocklist else other} in a parallel language expression.")
+        return parallel((self, other))
 
-        return Parallel(parent=None, children=(self, other)).simplify()
 
-    def __xor__(self, other: Language) -> TryAll:
+    def __xor__(self, other: LanguageMixin) -> Plan:
         """
         Language expression for try all execution.
 
         :param other: Another Language expression, either a designator_description or language expression
         :return: A :func:`~TryAll` object which is the new root node of the language tree
         """
-        if not issubclass(other.__class__, Language):
-            raise NotALanguageExpression(
-                f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
-        if self.performable.__name__ in self.parallel_blocklist or other.performable.__name__ in self.parallel_blocklist:
-            raise AttributeError(
-                f"You can not execute the Designator {self if self.performable.__name__ in self.parallel_blocklist else other} in a try all language expression.")
-        return TryAll(parent=None, children=(self, other)).simplify()
+        return try_all((self, other))
 
-    def __rshift__(self, other: Language):
+
+    def __rshift__(self, other: LanguageMixin):
         """
         Operator for Monitors, this always makes the Monitor the parent of the other expression.
         
@@ -135,9 +115,8 @@ class Language(NodeMixin):
         :param other: An integer which states how often the Language expression should be repeated
         :return: A :func:`~Repeat` object which is the new root node of the language tree
         """
-        if not isinstance(other, int):
-            raise AttributeError("Repeat can only be used in combination with integers")
-        return Repeat(parent=None, children=[self], repeat=other)
+        return repeat((self, other), repeat=other)
+
 
     def __rmul__(self, other: int):
         """
@@ -151,11 +130,9 @@ class Language(NodeMixin):
         :param other: An integer which states how often the Language expression should be repeated
         :return: A :func:`~Repeat` object which is the new root node of the language tree
         """
-        if not isinstance(other, int):
-            raise AttributeError("Repeat can only be used in combination with integers")
-        return Repeat(parent=None, children=[self], repeat=other)
+        return repeat((self, other), repeat=other)
 
-    def simplify(self) -> Language:
+    def simplify(self) -> LanguageMixin:
         """
         Simplifies the language tree by merging which have a parent-child relation and are of the same type.
 
@@ -202,7 +179,15 @@ class Language(NodeMixin):
         raise NotImplementedError
 
 
-class Repeat(Language):
+
+@dataclass(unsafe_hash=True)
+class LanguageNode(PlanNode):
+    ...
+
+@dataclass(unsafe_hash=True)
+class Repeat(LanguageNode):
+    repeat: int = 1
+
     """
     Executes all children a given number of times.
     """
@@ -223,18 +208,6 @@ class Repeat(Language):
                     self.root.exceptions[self] = e
         return State.SUCCEEDED, results
 
-    def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None, repeat: int = 1):
-        """
-        Initializes the Repeat expression with a parent and children for the language tree construction and a number
-        which states how often the children should be executed.
-
-        :param parent: Parent node of this node, if None this will be the root node
-        :param children: A list of children of this node
-        :param repeat: An integer of how often the children should be executed.
-        """
-        super().__init__(parent, children)
-        self.repeat: int = repeat
-
     def interrupt(self) -> None:
         """
         Stops the execution of this language expression by setting the ``interrupted`` variable to True, adding this
@@ -245,8 +218,8 @@ class Repeat(Language):
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
-
-class Monitor(Language):
+@dataclass(unsafe_hash=True)
+class Monitor(LanguageNode):
     """
     Monitors a Language Expression and interrupts it when the given condition is evaluated to True.
 
@@ -317,8 +290,8 @@ class Monitor(Language):
         for child in self.children:
             child.interrupt()
 
-
-class Sequential(Language):
+@dataclass(unsafe_hash=True)
+class Sequential(LanguageNode):
     """
     Executes all children sequentially, an exception while executing a child does not terminate the whole process.
     Instead, the exception is saved to a list of all exceptions thrown during execution and returned.
@@ -364,8 +337,8 @@ class Sequential(Language):
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
-
-class TryInOrder(Language):
+@dataclass(unsafe_hash=True)
+class TryInOrder(LanguageNode):
     """
     Executes all children sequentially, an exception while executing a child does not terminate the whole process.
     Instead, the exception is saved to a list of all exceptions thrown during execution and returned.
@@ -416,8 +389,8 @@ class TryInOrder(Language):
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
-
-class Parallel(Language):
+@dataclass(unsafe_hash=True)
+class Parallel(LanguageNode):
     """
     Executes all children in parallel by creating a thread per children and executing them in the respective thread. All
     exceptions during execution will be caught, saved to a list and returned upon end.
@@ -497,8 +470,8 @@ class Parallel(Language):
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
-
-class TryAll(Language):
+@dataclass(unsafe_hash=True)
+class TryAll(LanguageNode):
     """
     Executes all children in parallel by creating a thread per children and executing them in the respective thread. All
     exceptions during execution will be caught, saved to a list and returned upon end.
@@ -571,8 +544,8 @@ class TryAll(Language):
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
-
-class Code(Language):
+@dataclass(unsafe_hash=True)
+class Code(LanguageNode):
     """
     Executable code block in a plan.
 
@@ -611,7 +584,7 @@ class Code(Language):
 
         return child_state, child_result
 
-    def resolve(self) -> Language:
+    def resolve(self) -> Self:
         return self
 
     def interrupt(self) -> None:
