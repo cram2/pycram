@@ -42,7 +42,7 @@ class LinkDescription(AbstractLinkDescription):
         :return: The geometry type of the URDF collision element of this link.
         """
         if self.collision is None:
-            return []
+            return None
         if isinstance(self.collision, List):
             return [self._get_visual_shape(coll.geometry) for coll in self.collision]
         urdf_geometry = self.collision.geometry

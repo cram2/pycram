@@ -9,7 +9,8 @@ from geometry_msgs.msg import Vector3, Point
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
-from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape
+from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape, Colors
+from ..datastructures.enums import AxisIdentifier
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
 from ..designator import ObjectDesignatorDescription
@@ -80,12 +81,13 @@ class VizMarkerPublisher:
             if obj.name == "floor":
                 continue
             for link in obj.link_name_to_id.keys():
+                geom = None
                 if self.publish_visuals:
                     geoms = obj.get_link_visual_geometry(link)
                 else:
                     geoms = obj.get_link_geometry(link)
-
-                geom = geoms[0] if len(geoms) > 0 else None
+                if geoms is not None:
+                    geom = geoms[0] if len(geoms) > 0 else None
                 if not geom:
                     continue
                 msg = Marker()
