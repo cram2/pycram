@@ -81,13 +81,13 @@ class VizMarkerPublisher:
             if obj.name == "floor":
                 continue
             for link in obj.link_name_to_id.keys():
-                geom = None
                 if self.publish_visuals:
                     geoms = obj.get_link_visual_geometry(link)
                 else:
                     geoms = obj.get_link_geometry(link)
-                if geoms is not None:
-                    geom = geoms[0] if len(geoms) > 0 else None
+                if not isinstance(geoms, list):
+                    geoms = [geoms]
+                geom = geoms[0] if len(geoms) > 0 else None
                 if not geom:
                     continue
                 msg = Marker()
