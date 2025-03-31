@@ -56,7 +56,6 @@ class CostmapLocation(LocationDesignatorDescription):
                  reachable_for: Optional[Union[Iterable[Object], Object]] = None,
                  visible_for: Optional[Union[Iterable[Object], Object]] = None,
                  reachable_arm: Optional[Union[Iterable[Arms], Arms]] = None,
-                 prepose_distance: Union[Union[Iterable[float], float]] = ActionConfig.pick_up_prepose_distance,
                  ignore_collision_with: Optional[Union[Iterable[Object], Object]] = None,
                  grasp_descriptions: Optional[Union[Iterable[GraspDescription], GraspDescription]] = None,
                  object_in_hand: Optional[Union[Iterable[Object], Object]] = None):
@@ -68,7 +67,6 @@ class CostmapLocation(LocationDesignatorDescription):
         :param reachable_for: Object for which the reachability should be calculated, usually a robot
         :param visible_for: Object for which the visibility should be calculated, usually a robot
         :param reachable_arm: An optional arm with which the target should be reached
-        :param prepose_distance: Distance to the target pose where the robot should be checked for reachability.
         :param ignore_collision_with: List of objects that should be ignored for collision checking.
         :param grasp_descriptions: List of grasps that should be tried to reach the target pose
         :param object_in_hand: Object that is currently in the hand of the robot
@@ -78,7 +76,6 @@ class CostmapLocation(LocationDesignatorDescription):
                                    visible_for=visible_for,
                                    reachable_arm=reachable_arm if reachable_arm is not None else [
                                        Arms.LEFT, Arms.RIGHT],
-                                   prepose_distance=prepose_distance,
                                    ignore_collision_with=ignore_collision_with if ignore_collision_with is not None else [
                                        []],
                                    grasp_descriptions=grasp_descriptions if grasp_descriptions is not None else [None],
@@ -87,7 +84,6 @@ class CostmapLocation(LocationDesignatorDescription):
         self.reachable_for: Object = reachable_for
         self.visible_for: Object = visible_for
         self.reachable_arm: Optional[Arms] = reachable_arm
-        self.prepose_distance = prepose_distance
         self.ignore_collision_with = ignore_collision_with if ignore_collision_with is not None else [[]]
         self.grasps: List[Optional[Grasp]] = grasp_descriptions if grasp_descriptions is not None else [None]
 
@@ -128,34 +124,36 @@ class CostmapLocation(LocationDesignatorDescription):
 
     @staticmethod
     def create_target_sequence(grasp_description: GraspDescription, target: Union[Pose, Object], robot: Object,
-                               prepose_distance: float, object_in_hand: Object, reachable_arm: Arms) -> \
-            List[Pose]:
+                               object_in_hand: Object, reachable_arm: Arms) -> List[Pose]:
         """
         Creates a sequence of poses which need to be reachable in this order
 
         :param grasp_description: Grasp description to be used for grasping
         :param target: The target of reachability, either a pose or an object
         :param robot: The robot that should be checked for reachability
-        :param prepose_distance: Distance between the first pose in the sequence and the second
         :param object_in_hand: An object that is held if any
         :param reachable_arm: The arm which should be checked for reachability
         :return: A list of poses that need to be reachable in this order
         """
         end_effector = robot.robot_description.get_arm_chain(reachable_arm).end_effector
+        grasp_quaternion = end_effector.grasps[grasp_description]
+        approach_axis = end_effector.get_approach_axis()
         if object_in_hand:
             current_target_pose = object_in_hand.attachments[
                 World.robot].get_child_link_target_pose_given_parent(target)
+            approach_offset_cm = object_in_hand.get_approach_offset()
         else:
-            current_target_pose = target.copy() if isinstance(target,
-                                                              Pose) else target.get_pose().copy()
-            current_target_pose.rotate_by_quaternion(end_effector.grasps[grasp_description])
+            current_target_pose = target.copy() if isinstance(target, Pose) else \
+                target.get_grasp_pose(end_effector, grasp_description)
+            current_target_pose.rotate_by_quaternion(grasp_quaternion)
+            approach_offset_cm = 0.1 if isinstance(target, Pose) else target.get_approach_offset()
 
         lift_pose = current_target_pose.copy()
         lift_pose.position.z += 0.1
 
-        retract_pose = current_target_pose.copy()
-        retract_pose.position.x -= prepose_distance
-        retract_pose = LocalTransformer().transform_pose(retract_pose, "map")
+        retract_pose = LocalTransformer().translate_pose_along_local_axis(current_target_pose,
+                                                                          approach_axis,
+                                                                          -approach_offset_cm)
 
         target_sequence = ([lift_pose, current_target_pose, retract_pose] if object_in_hand
                            else [retract_pose, current_target_pose, lift_pose])
@@ -236,7 +234,6 @@ class CostmapLocation(LocationDesignatorDescription):
                     for grasp_desc in grasp_descriptions:
 
                         target_sequence = self.create_target_sequence(grasp_desc, target, test_robot,
-                                                                      params_box.prepose_distance,
                                                                       params_box.object_in_hand,
                                                                       params_box.reachable_arm)
 

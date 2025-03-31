@@ -419,14 +419,12 @@ class RobotDescription:
         :param pitch_joint: The joint name for the pitch movement of the neck.
         :param roll_joint: The joint name for the roll movement of the neck.
         """
-        yaw_link = self.get_child(yaw_joint) if yaw_joint else None
-        pitch_link = self.get_child(pitch_joint) if pitch_joint else None
-        roll_link = self.get_child(roll_joint) if roll_joint else None
-        self.neck = {
-            "yaw": [yaw_link, yaw_joint],
-            "pitch": [pitch_link, pitch_joint],
-            "roll": [roll_link, roll_joint]
-        }
+        if yaw_joint:
+            self.neck["yaw"] = [self.get_child(yaw_joint), yaw_joint]
+        if pitch_joint:
+            self.neck["pitch"] = [self.get_child(pitch_joint), pitch_joint]
+        if roll_joint:
+            self.neck["roll"] = [self.get_child(roll_joint), roll_joint]
 
     def get_neck(self) -> Dict[str, List[Optional[str]]]:
         """
