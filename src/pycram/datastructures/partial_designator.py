@@ -1,18 +1,15 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from collections.abc import Iterable
-
-from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING
-from itertools import product
+from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING, TypeVar, Generic, Iterator, Iterable, AnyStr
 from inspect import signature
 
+from ..language import Language
+from ..utils import is_iterable, lazy_product
 
-if TYPE_CHECKING:
-    from ..designator import ActionDesignatorDescription
+T = TypeVar('T')
 
-
-class PartialDesignator:
+class PartialDesignator(Language, Iterable[T]):
     """
     A partial designator_description is somewhat between a DesignatorDescription and a specified designator_description. Basically it is a
     partially initialized specified designator_description which can take a list of input arguments (like a DesignatorDescription)
@@ -25,31 +22,35 @@ class PartialDesignator:
     .. code-block:: python
 
             # Example usage
-            partial_designator = PartialDesignator(PickUpActionPerformable, milk_object_designator, arm=[Arms.RIGHT, Arms.LEFT])
+            partial_designator = PartialDesignator(PickUpAction, milk_object_designator, arm=[Arms.RIGHT, Arms.LEFT])
             for performable in partial_designator(Grasp.FRONT):
                 performable.perform()
     """
-    performable: Type[ActionDesignatorDescription.Action]
+    performable: T = None
     """
     Reference to the performable class that should be initialized
     """
-    args: Tuple[Any, ...]
+    args: Tuple[Any, ...] = None
     """
     Arguments that are passed to the performable
     """
-    kwargs: Dict[str, Any]
+    kwargs: Dict[str, Any] = None
     """
     Keyword arguments that are passed to the performable
     """
 
-    def __init__(self, performable: Type[ActionDesignatorDescription.Action], *args, **kwargs):
+    def __init__(self, performable: T, *args, **kwargs):
+        super().__init__(None, None)
         self.performable = performable
-        # Remove None values fom the given arguments and keyword arguments
-        self.kwargs = dict(signature(self.performable).bind_partial(*args, **kwargs).arguments)
+        # We use the init of the performable class since typing for the whole class messes up the signature of the class.
+        # This is not optimal since "self" needs to be filtered from the parameter list but it works.
+        sig = signature(self.performable.__init__)
+        params_without_self = list(filter(None, [param if name != "self" else None for name, param in sig.parameters.items()]))
+        sig_without_self = sig.replace(parameters=params_without_self)
+        self.kwargs = dict(sig_without_self.bind_partial(*args, **kwargs).arguments)
         for key in dict(signature(self.performable).parameters).keys():
             if key not in self.kwargs.keys():
                 self.kwargs[key] = None
-
 
     def __call__(self, *fargs, **fkwargs):
         """
@@ -66,9 +67,10 @@ class PartialDesignator:
                 newkeywors[key] = value
             elif key not in newkeywors.keys():
                 newkeywors[key] = value
-        return PartialDesignator(self.performable, *fargs, **newkeywors)
+        self.kwargs.update(dict(signature(self.performable).bind_partial(*fargs, **fkwargs).arguments))
+        return self
 
-    def __iter__(self) -> Type[ActionDesignatorDescription.Action]:
+    def __iter__(self) -> Iterator[T]:
         """
         Iterates over all possible permutations of the arguments and keyword arguments and creates a new performable
         object for each permutation. In case there are conflicting parameters the args will be used over the keyword
@@ -76,34 +78,18 @@ class PartialDesignator:
 
         :return: A new performable object for each permutation of arguments and keyword arguments
         """
-        for kwargs_combination in PartialDesignator.generate_permutations(self.kwargs.values()):
-            yield self.performable(**dict(zip(self.kwargs.keys(), kwargs_combination)))
+        for kwargs_combination in self.generate_permutations():
+            yield self.performable(**kwargs_combination)
 
-    @staticmethod
-    def generate_permutations(args: Iterable) -> List:
+    def generate_permutations(self) -> Iterator[Dict[str, Any]]:
         """
         Generates the cartesian product of the given arguments. Arguments can also be a list of lists of arguments.
 
-        :param args: An iterable with arguments
         :yields: A list with a possible permutation of the given arguments
         """
-        iter_list = [x if PartialDesignator._is_iterable(x) else [x] for x in args]
-        for combination in product(*iter_list):
-            yield combination
-
-    @staticmethod
-    def _is_iterable(obj: Any) -> bool:
-        """
-        Checks if the given object is iterable.
-
-        :param obj: The object that should be checked
-        :return: True if the object is iterable, False otherwise
-        """
-        try:
-            iter(obj)
-        except TypeError:
-            return False
-        return True
+        iter_list = [x if is_iterable(x) and not type(x) == str else [x] for x in self.kwargs.values()]
+        for combination in lazy_product(*iter_list):
+            yield dict(zip(self.kwargs.keys(), combination))
 
     def missing_parameter(self) -> List[str]:
         """
@@ -113,6 +99,14 @@ class PartialDesignator:
         """
         missing = {k: v for k, v in self.kwargs.items() if v is None}
         return list(missing.keys())
+
+    def resolve(self) -> T():
+        """
+        Returns the Designator with the first set of parameters
+
+        :return: A fully parametrized Designator
+        """
+        return next(iter(self))
 
 
 

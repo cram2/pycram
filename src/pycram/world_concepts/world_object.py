@@ -11,7 +11,7 @@ from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
-                                          ContactPointsList, RotatedBoundingBox, VirtualJoint)
+                                          ContactPointsList, RotatedBoundingBox, VirtualJoint, FrozenObject, FrozenLink, FrozenJoint)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
@@ -1524,3 +1524,20 @@ class Object(PhysicalBody):
         :return: The parent of this object which is the world.
         """
         return self.world
+
+    def frozen_copy(self) -> FrozenObject:
+        """
+        Creates a copied version of this object which contains the information of this object but can not be interacted
+        with.
+
+        :return FrozenObject: The copied forzen object.
+        """
+        frozen_links = {l_name: FrozenLink(l.name, l.pose, l.geometry) for l_name, l in self.links.items()}
+        frozen_joints = {j_name: FrozenJoint(j.name, j.type, [j.child], j.parent, j.current_state.position) for j_name, j in self.joints.items()}
+
+        return FrozenObject(self.name, self.obj_type, self.path, self.description, self.pose,
+                            frozen_links, frozen_joints)
+
+    def insert(self, session):
+        pass
+

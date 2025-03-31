@@ -1,7 +1,7 @@
 import logging
 
 from .datastructures.enums import State
-from .designator import DesignatorDescription, ActionDesignatorDescription, BaseMotion
+from .designator import DesignatorDescription, BaseMotion
 from .failures import PlanFailure
 from threading import Lock
 from typing_extensions import Union, Tuple, Any, List, Optional, Type, Callable

@@ -16,7 +16,7 @@ from ..failures import KnowledgeNotAvailable, ReasoningError
 from ..ros import logwarn
 
 if TYPE_CHECKING:
-    from ..designator import ActionDesignatorDescription
+    from ..designator import ActionDescription
 
 
 class KnowledgeEngine:
@@ -79,7 +79,7 @@ class KnowledgeEngine:
             elif not source.is_connected and source.is_available:
                 source.connect()
 
-    def query(self, designator: Type['ActionDesignatorDescription']) -> bool:
+    def query(self, designator: ActionDescription) -> bool:
         """
         Query to fill parameters of a designator_description from the knowledge sources
 
@@ -130,7 +130,7 @@ class KnowledgeEngine:
             logwarn("Knowledge engine is disabled")
             return True
 
-    def ground_solution(self, designator: Type['DesignatorDescription']) -> bool:
+    def ground_solution(self, designator: ActionDescription) -> bool:
         """
         Try to ground a solution from the knowledge sources in the belief state
 
@@ -153,7 +153,7 @@ class KnowledgeEngine:
                 return source
 
     def match_reasoned_parameter(self, reasoned_parameter: Dict[str, any],
-                                 designator: ActionDesignatorDescription) -> Dict[str, any]:
+                                 designator: ActionDescription) -> Dict[str, any]:
         """
         Match the reasoned parameters, in the root node of the property expression, to the corresponding parameter in
         the designator_description
@@ -164,25 +164,25 @@ class KnowledgeEngine:
         return matched_parameter
 
     @staticmethod
-    def _match_by_name(parameter: Dict[str, any], designator: ActionDesignatorDescription) -> Dict[str, any]:
+    def _match_by_name(parameter: Dict[str, any], designator: ActionDescription) -> Dict[str, any]:
         """
         Match the reasoned parameters to the corresponding parameter in the designator_description by name
         """
         result_dict = {}
         for key, value in parameter.items():
             # if key in designator_description.get_optional_parameter() and designator_description.__getattribute__(key) is None:
-            if key in designator.performable_class.get_type_hints().keys():
+            if key in designator.get_type_hints(localns=locals()).keys():
                 result_dict[key] = value
         return result_dict
 
     @staticmethod
-    def _match_by_type(parameter: Dict[str, any], designator: ActionDesignatorDescription) -> Dict[str, any]:
+    def _match_by_type(parameter: Dict[str, any], designator: ActionDescription) -> Dict[str, any]:
         """
         Match the reasoned parameters to the corresponding parameter in the designator_description by type
         """
         result_dict = {}
         for key, value in parameter.items():
-            for parameter_name, type_hint in designator.performable_class.get_type_hints().items():
+            for parameter_name, type_hint in designator.get_type_hints(localns=locals()).items():
                 try:
                     # Distinction between Enum and other types, since check_type would check Enums and floats as an Enum
                     # is technically just a number. Also excludes type hints, since they do not work with issubclass
@@ -205,7 +205,7 @@ class ReasoningInstance:
     full designator at a later time.
     """
 
-    def __init__(self, designator_description: ActionDesignatorDescription, partial_designator: PartialDesignator):
+    def __init__(self, designator_description: ActionDescription, partial_designator: PartialDesignator):
         """
         Initialize the reasoning instance with the designator_description and the partial designator
 
@@ -219,7 +219,7 @@ class ReasoningInstance:
                                          self.designator_description.__getattribute__(param_name) is None]
         self.partial_designator = partial_designator
 
-    def __iter__(self) -> ActionDesignatorDescription.Action:
+    def __iter__(self) -> ActionDescription:
         """
         Executes property structure, matches the reasoned and missing parameter and generates a completes designator.
 

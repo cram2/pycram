@@ -93,14 +93,15 @@ class DefaultDetecting(ProcessModule):
         front_facing_axis = camera_description.front_facing_axis
         query_result = []
         world_objects = []
-        try:
-            object_types = designator.object_designator_description.types
-        except AttributeError:
-            object_types = None
+
         if designator.technique == DetectionTechnique.TYPES:
-            for obj_type in object_types:
-                list1 = World.current_world.get_object_by_type(obj_type)
-                world_objects = world_objects + list1
+            try:
+                object_types = designator.object_designator_description.obj_type
+            except AttributeError:
+                raise AttributeError("The object designator does not contain a type attribute")
+
+            list1 = World.current_world.get_object_by_type(object_types)
+            world_objects = world_objects + list1
         elif designator.technique == DetectionTechnique.ALL:
             world_objects = World.current_world.get_scene_objects()
         elif designator.technique == DetectionTechnique.HUMAN:
@@ -121,8 +122,8 @@ class DefaultDetecting(ProcessModule):
             object_dict = []
 
             for obj in query_result:
-                object_dict.append(ObjectDesignatorDescription.Object(obj.name, obj.obj_type,
-                                                                      obj))
+                object_dict.append(obj)
+
 
             return object_dict
 
@@ -179,7 +180,7 @@ class DefaultOpen(ProcessModule):
     """
 
     def _execute(self, desig: OpeningMotion):
-        part_of_object = desig.object_part.world_object
+        part_of_object = desig.object_part.parent_entity
 
         container_joint_name = part_of_object.find_joint_above_link(desig.object_part.name)
         lower_limit, upper_limit = part_of_object.get_joint_limits(container_joint_name)
@@ -189,7 +190,7 @@ class DefaultOpen(ProcessModule):
 
         _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.world_object.set_joint_position(container_joint_name, upper_limit)
+        part_of_object.set_joint_position(container_joint_name, upper_limit)
 
 
 class DefaultClose(ProcessModule):
@@ -198,7 +199,7 @@ class DefaultClose(ProcessModule):
     """
 
     def _execute(self, desig: ClosingMotion):
-        part_of_object = desig.object_part.world_object
+        part_of_object = desig.object_part.parent_entity
 
         container_joint_name = part_of_object.find_joint_above_link(desig.object_part.name)
         lower_joint_limit = part_of_object.get_joint_limits(container_joint_name)[0]
@@ -208,7 +209,7 @@ class DefaultClose(ProcessModule):
 
         _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.world_object.set_joint_position(container_joint_name, lower_joint_limit)
+        part_of_object.set_joint_position(container_joint_name, lower_joint_limit)
 
 
 def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:

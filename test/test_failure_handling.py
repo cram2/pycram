@@ -2,8 +2,8 @@ import unittest
 from datetime import timedelta
 
 from pycram.worlds.bullet_world import BulletWorld, Object
-from pycram.designator import ActionDesignatorDescription
-from pycram.designators.action_designator import ParkArmsAction
+from pycram.designator import ActionDescription
+from pycram.designators.action_designator import ParkArmsAction, ParkArmsActionDescription
 from pycram.datastructures.enums import ObjectType, Arms, WorldMode
 from pycram.failure_handling import Retry
 from pycram.failures import PlanFailure
@@ -16,8 +16,8 @@ extension = ObjectDescription.get_file_extension()
 
 
 # start ik_and_description.launch
-class DummyActionDesignator(ActionDesignatorDescription):
-    class Action(ActionDesignatorDescription.Action):
+class DummyActionDesignator(ActionDescription):
+    class Action(ActionDescription):
         def perform(self):
             raise PlanFailure("Dummy action failed")
 
@@ -41,7 +41,7 @@ class FailureHandlingTest(unittest.TestCase):
 
     def test_retry_with_success(self):
         with simulated_robot:
-            Retry(ParkArmsAction([Arms.LEFT]), max_tries=5).perform()
+            Retry(ParkArmsActionDescription([Arms.LEFT]), max_tries=5).perform()
 
     def test_retry_with_failure(self):
         with simulated_robot:
