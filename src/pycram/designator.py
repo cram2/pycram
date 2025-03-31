@@ -7,15 +7,19 @@ from dataclasses import dataclass, field, fields
 from datetime import timedelta
 
 from sqlalchemy.orm.session import Session
-from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable
-from typing_extensions import get_type_hints
-
 from pycrap.ontologies import PhysicalObject, Agent
 from .datastructures.enums import ObjectType
 from .datastructures.pose import Pose, GraspDescription
 from .datastructures.property import EmptyProperty
-from .datastructures.world import World
 from .failures import PlanFailure
+from sqlalchemy.orm.session import Session
+
+from .datastructures.world import World
+from .datastructures.partial_designator import PartialDesignator
+from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable, TYPE_CHECKING, ForwardRef, \
+    Self, Iterator
+from typing import get_type_hints
+
 from .language import Language
 from .local_transformer import LocalTransformer
 from .orm.action_designator import (Action as ORMAction)
@@ -27,7 +31,6 @@ from .ros import loginfo
 from .tasktree import with_tree
 from .utils import bcolors
 from .world_concepts.world_object import Object as WorldObject
-
 
 class DesignatorError(Exception):
     """Implementation of designator_description errors."""
@@ -116,342 +119,192 @@ class DesignatorDescription(ABC):
         Returns a list of all parameter names of this designator_description description.
         """
         return [param_name for param_name, param in inspect.signature(self.__init__).parameters.items()]
-
-    def get_type_hints(self) -> Dict[str, Any]:
+    @classmethod
+    def get_type_hints(cls) -> Dict[str, Any]:
         """
         Returns the type hints of the __init__ method of this designator_description description.
 
         :return:
         """
-        return get_type_hints(self.__init__)
+        return get_type_hints(cls.__init__)
 
-
-class ActionDesignatorDescription(DesignatorDescription, Language):
+@dataclass
+class ActionDescription:
     """
-    Abstract class for action designator_description descriptions.
-    Descriptions hold possible parameter ranges for action designators.
+    The performable designator_description with a single element for each list of possible parameter.
     """
-
-    knowledge_condition = None
+    robot_position: Pose = field(init=False)
     """
-    Knowledge condition that have to be fulfilled before executing the action.
+    The position of the robot at the start of the action.
     """
-
-    performable_class: Type[ActionDesignatorDescription.Action]
+    robot_torso_height: float = field(init=False)
     """
-    Reference to the performable class that is used to execute the action.
+    The torso height of the robot at the start of the action.
     """
 
-    @dataclass
-    class Action:
+    robot_type: Type[Agent] = field(init=False)
+    """
+    The type of the robot at the start of the action.
+    """
+    _pre_perform_callbacks = []
+    """
+    List of callback functions that will be called before the action is performed.
+    """
+
+    _post_perform_callbacks = []
+    """
+    List of callback functions that will be called after the action is performed.
+    """
+
+    def __post_init__(self):
+        self.robot_position = World.robot.get_pose()
+        if RobotDescription.current_robot_description.torso_joint != "":
+            self.robot_torso_height = World.robot.get_joint_position(
+                RobotDescription.current_robot_description.torso_joint)
+        else:
+            self.robot_torso_height = 0.0
+        self.robot_type = World.robot.obj_type
+
+    def perform(self) -> Any:
         """
-        The performable designator_description with a single element for each list of possible parameter.
+        Executes the action with the single parameters from the description.
+
+        :return: The result of the action in the plan
         """
-        robot_position: Pose = field(init=False)
+        result: Optional[Any] = None
+        for pre_perform in self._pre_perform_callbacks:
+            pre_perform(self)
+        try:
+            result = self.plan()
+        except PlanFailure as e:
+            raise e
+        finally:
+            for post_perform in self._post_perform_callbacks:
+                post_perform(self)
+            self.validate(result)
+        return result
+
+    @with_tree
+    def plan(self) -> Any:
         """
-        The position of the robot at the start of the action.
+        Plan of the action. To be overridden by subclasses.
+
+        :return: The result of the action, if there is any
         """
-        robot_torso_height: float = field(init=False)
+        raise NotImplementedError()
+
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """
-        The torso height of the robot at the start of the action.
+        Validate the action after performing it, by checking if the action effects are as expected.
+
+        :param result: The result of the action if there is any
+        :param max_wait_time: The maximum time to wait for the action to be validated, before raising an error.
+        """
+        raise NotImplementedError()
+
+    def to_sql(self) -> ORMAction:
+        """
+        Create an ORM object that corresponds to this description.
+
+        :return: The created ORM object.
+        """
+        raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
+
+    def insert(self, session: Session, *args, **kwargs) -> ORMAction:
+        """
+        Add and commit this and all related objects to the session.
+        Auto-Incrementing primary keys and foreign keys have to be filled by this method.
+
+        :param session: Session with a database that is used to add and commit the objects
+        :param args: Possible extra arguments
+        :param kwargs: Possible extra keyword arguments
+        :return: The completely instanced ORM object
         """
 
-        robot_type: Type[Agent] = field(init=False)
+        pose = self.robot_position.insert(session)
+
+        # get or create metadata
+        metadata = ProcessMetaData().insert(session)
+
+        # create robot-state object
+        robot_state = RobotState(self.robot_torso_height, str(self.robot_type))
+        robot_state.pose = pose
+        robot_state.process_metadata = metadata
+        session.add(robot_state)
+
+        # create action
+        action = self.to_sql()
+        action.process_metadata = metadata
+        action.robot_state = robot_state
+
+        return action
+
+    @classmethod
+    def get_type_hints(cls, localns=None) -> Dict[str, Any]:
         """
-        The type of the robot at the start of the action.
+        Returns the type hints of the __init__ method of this designator_description description.
+
+        :return:
         """
-        _pre_perform_callbacks = []
+        l = localns if localns is not None else locals()
+        return get_type_hints(cls, localns=l)
+
+    @classmethod
+    def pre_perform(cls, func) -> Callable:
         """
-        List of callback functions that will be called before the action is performed.
+        Decorator to execute the decorated function before performing the action.
+
+        :param func: The function to be decorated.
+        :return: The decorated function.
         """
+        cls._pre_perform_callbacks.append(func)
 
-        _post_perform_callbacks = []
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    @classmethod
+    def post_perform(cls, func) -> Callable:
         """
-        List of callback functions that will be called after the action is performed.
+        Decorator to execute the decorated function after performing the action.
+
+        :param func: The function to be decorated.
+        :return: The decorated function.
         """
+        cls._post_perform_callbacks.append(func)
 
-        def __post_init__(self):
-            self.robot_position = World.robot.get_pose()
-            if RobotDescription.current_robot_description.torso_joint != "":
-                self.robot_torso_height = World.robot.get_joint_position(
-                    RobotDescription.current_robot_description.torso_joint)
-            else:
-                self.robot_torso_height = 0.0
-            self.robot_type = World.robot.obj_type
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
 
-        def perform(self) -> Any:
-            """
-            Executes the action with the single parameters from the description.
+        return wrapper
 
-            :return: The result of the action in the plan
-            """
-            result: Optional[Any] = None
-            for pre_perform in self._pre_perform_callbacks:
-                pre_perform(self)
-            try:
-                result = self.plan()
-            except PlanFailure as e:
-                raise e
-            finally:
-                for post_perform in self._post_perform_callbacks:
-                    post_perform(self)
-                self.validate(result)
-            return result
-
-        @with_tree
-        def plan(self) -> Any:
-            """
-            Plan of the action. To be overridden by subclasses.
-
-            :return: The result of the action, if there is any
-            """
-            raise NotImplementedError()
-
-        def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-            """
-            Validate the action after performing it, by checking if the action effects are as expected.
-
-            :param result: The result of the action if there is any
-            :param max_wait_time: The maximum time to wait for the action to be validated, before raising an error.
-            """
-            raise NotImplementedError()
-
-        def to_sql(self) -> ORMAction:
-            """
-            Create an ORM object that corresponds to this description.
-
-            :return: The created ORM object.
-            """
-            raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
-
-        def insert(self, session: Session, *args, **kwargs) -> ORMAction:
-            """
-            Add and commit this and all related objects to the session.
-            Auto-Incrementing primary keys and foreign keys have to be filled by this method.
-
-            :param session: Session with a database that is used to add and commit the objects
-            :param args: Possible extra arguments
-            :param kwargs: Possible extra keyword arguments
-            :return: The completely instanced ORM object
-            """
-
-            pose = self.robot_position.insert(session)
-
-            # get or create metadata
-            metadata = ProcessMetaData().insert(session)
-
-            # create robot-state object
-            robot_state = RobotState(self.robot_torso_height, str(self.robot_type))
-            robot_state.pose = pose
-            robot_state.process_metadata = metadata
-            session.add(robot_state)
-
-            # create action
-            action = self.to_sql()
-            action.process_metadata = metadata
-            action.robot_state = robot_state
-
-            return action
-
-        @classmethod
-        def get_type_hints(cls) -> Dict[str, Any]:
-            """
-            Returns the type hints of the __init__ method of this designator_description description.
-
-            :return:
-            """
-            return get_type_hints(cls)
-
-        @classmethod
-        def pre_perform(cls, func) -> Callable:
-            """
-            Decorator to execute the decorated function before performing the action.
-
-            :param func: The function to be decorated.
-            :return: The decorated function.
-            """
-            cls._pre_perform_callbacks.append(func)
-
-            def wrapper(*args, **kwargs):
-                return func(*args, **kwargs)
-
-            return wrapper
-
-        @classmethod
-        def post_perform(cls, func) -> Callable:
-            """
-            Decorator to execute the decorated function after performing the action.
-
-            :param func: The function to be decorated.
-            :return: The decorated function.
-            """
-            cls._post_perform_callbacks.append(func)
-
-            def wrapper(*args, **kwargs):
-                return func(*args, **kwargs)
-
-            return wrapper
-
-    def __init__(self):
-        """
-        Base of all action designator_description descriptions.
-        """
-        super().__init__()
-        Language.__init__(self)
-        self.knowledge_condition = EmptyProperty()
-        self.ground = self.resolve
-
-    def resolve(self) -> Type[ActionDesignatorDescription.Action]:
-        """
-        Resolves this designator_description to a performable designtor by using the reasoning of the knowledge engine.
-        This method will simply take the first result from iterating over the designator_description.
-
-        :return: A fully specified Action Designator
-        """
-        if getattr(self, "__iter__", None):
-            return next(iter(self))
-        raise NotImplementedError(f"{type(self)} has no __iter__ method.")
-
-    def ground(self) -> Action:
-        """Fill all missing parameters and chose plan to execute. """
-        raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
-
-    def __iter__(self):
-        """
-        Iterate through all possible performables fitting this description
-
-        :yield: A resolved action designator
-        """
-        yield self.ground()
+    @classmethod
+    def description(cls, *args, **kwargs) -> PartialDesignator[Self]:
+        raise NotImplementedError()
 
 
-class LocationDesignatorDescription(DesignatorDescription):
+
+class LocationDesignatorDescription(DesignatorDescription, PartialDesignator, Iterable[Pose]):
     """
     Parent class of location designator_description descriptions.
     """
 
-    @dataclass
-    class Location:
-        """
-        Resolved location that represents a specific point in the world which satisfies the constraints of the location
-        designator_description description.
-        """
-        pose: Pose
-        """
-        The executed pose of the location designator_description. Pose is inherited by all location designator_description.
-        """
-
     def __init__(self):
         super().__init__()
 
-    def ground(self) -> Location:
+    def ground(self) -> Pose:
         """
         Find a location that satisfies all constrains.
         """
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
 
 
-class ObjectDesignatorDescription(DesignatorDescription):
+class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator, Iterable[WorldObject]):
     """
     Class for object designator_description descriptions.
     Descriptions hold possible parameter ranges for object designators.
     """
-
-    @dataclass
-    class Object:
-        """
-        A single element that fits the description.
-        """
-
-        name: str
-        """
-        Name of the object
-        """
-
-        obj_type: ObjectType
-        """
-        Type of the object
-        """
-
-        world_object: Optional[WorldObject]
-        """
-        Reference to the World object
-        """
-
-        _pose: Optional[Callable] = field(init=False)
-        """
-        A callable returning the pose of this object. The _pose member is used overwritten for data copies
-        which will not update when the original world_object is moved.
-        """
-
-        def __post_init__(self):
-            if self.world_object:
-                self._pose = self.world_object.get_pose
-
-        def to_sql(self) -> ORMObjectDesignator:
-            """
-            Create an ORM object that corresponds to this description.
-
-            :return: The created ORM object.
-            """
-            print(str(self.obj_type))
-            return ORMObjectDesignator(name=self.name, obj_type=str(self.obj_type))
-
-        def insert(self, session: Session) -> ORMObjectDesignator:
-            """
-            Add and commit this and all related objects to the session.
-            Auto-Incrementing primary keys and foreign keys have to be filled by this method.
-
-            :param session: Session with a database that is used to add and commit the objects
-            :return: The completely instanced ORM object
-            """
-            metadata = ProcessMetaData().insert(session)
-            pose = self.pose.insert(session)
-
-            # create object orm designator_description
-            obj = self.to_sql()
-            obj.process_metadata = metadata
-            obj.pose = pose
-            session.add(obj)
-            return obj
-
-        def frozen_copy(self) -> 'ObjectDesignatorDescription.Object':
-            """
-            :return: A copy containing only the fields of this class.
-                The WorldObject attached to this pycram object is not copied.
-                The _pose gets set to a method
-                that statically returns the pose of the object when this method was called.
-            """
-            result = ObjectDesignatorDescription.Object(self.name, self.obj_type, None)
-            # get current object pose and set resulting pose to always be that
-            pose = self.pose
-            result.pose = lambda: pose
-            return result
-
-        @property
-        def pose(self):
-            """
-            Property of the current position and orientation of the object.
-            Evaluate the _pose function.
-
-            :return: Position and orientation
-            """
-            return self._pose()
-
-        @pose.setter
-        def pose(self, value: Callable):
-            """
-            Set the pose to a new method that returns the current pose.
-
-            :param value: A callable that returns a pose.
-            """
-            self._pose = value
-
-        def __repr__(self):
-            return self.__class__.__qualname__ + f"(" + ', '.join(
-                [f"{f.name}={self.__getattribute__(f.name)}" for f in fields(self)] + [
-                    f"pose={self.pose}"]) + ')'
-
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None):
         """
         Base of all object designator_description descriptions. Every object designator_description has the name and type of the object.
@@ -460,10 +313,11 @@ class ObjectDesignatorDescription(DesignatorDescription):
         :param types: A list of types that could represent the object
         """
         super().__init__()
+        PartialDesignator.__init__(self, ObjectDesignatorDescription, names=names, types=types)
         self.types: Optional[List[ObjectType]] = types
         self.names: Optional[List[str]] = names
 
-    def ground(self) -> Union[Object, bool]:
+    def ground(self) -> WorldObject:
         """
         Return the first object from the world that fits the description.
 
@@ -471,25 +325,27 @@ class ObjectDesignatorDescription(DesignatorDescription):
         """
         return next(iter(self))
 
-    def __iter__(self) -> Iterable[Object]:
+    def __iter__(self) -> Iterator[WorldObject]:
         """
         Iterate through all possible objects fitting this description
 
         :yield: A executed object designator_description
         """
-        # for every world object
-        for obj in World.current_world.objects:
+        for params in self.generate_permutations():
 
-            # skip if name does not match specification
-            if self.names and obj.name not in self.names:
-                continue
+            # for every world object
+            for obj in World.current_world.objects:
 
-            # skip if type does not match specification
-            if self.types and obj.obj_type not in self.types:
-                continue
+                # skip if name does not match specification
+                if self.names and obj.name not in params.values():
+                    continue
 
-            yield self.Object(obj.name, obj.obj_type, obj)
+                # skip if type does not match specification
+                if self.types and obj.obj_type not in params.values():
+                    continue
 
+                # yield self.Object(obj.name, obj.obj_type, obj)
+                yield obj
 
 @dataclass
 class BaseMotion(ABC):

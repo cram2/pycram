@@ -395,7 +395,7 @@ class World(WorldEntity, ABC):
         matching_objects = list(filter(lambda obj: obj.name == name, self.objects))
         return matching_objects[0] if len(matching_objects) > 0 else None
 
-    def get_object_by_type(self, obj_type: Type[PhysicalObject]) -> List[Object]:
+    def get_object_by_type(self, obj_type: PhysicalObject) -> List[Object]:
         """
         Return a list of all Objects which have the type 'obj_type'.
 

@@ -63,25 +63,25 @@ kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
 @with_tree
 def plan():
     with simulated_robot:
-        ParkArmsActionPerformable(Arms.BOTH).perform()
-        MoveTorsoAction([TorsoState.MID]).resolve().perform()
+        ParkArmsAction(Arms.BOTH).perform()
+        MoveTorsoActionDescription([TorsoState.MID]).resolve().perform()
         pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
-        pickup_arm = pickup_pose.reachable_arm
-        NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
+        pickup_arm = Arms.RIGHT
+        NavigateActionDescription(target_location=[pickup_pose]).resolve().perform()
         grasp = pickup_pose.grasp_description
-        PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasp_descriptions=[grasp]).resolve().perform()
-        ParkArmsAction([Arms.BOTH]).resolve().perform()
+        PickUpActionDescription(object_designator=cereal_desig, arm=pickup_arm, grasp_description=[grasp]).resolve().perform()
+        ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
 
         place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(),
                                            cereal_desig.resolve()).resolve()
 
-        place_stand = CostmapLocation(place_island.pose, reachable_for=robot_desig, reachable_arms=[pickup_arm],  object_in_hand=cereal_desig.resolve()).resolve()
+        place_stand = CostmapLocation(place_island, reachable_for=robot_desig, reachable_arm=[pickup_arm],  object_in_hand=cereal_desig.resolve()).resolve()
 
-        NavigateAction(target_locations=[place_stand.pose]).resolve().perform()
+        NavigateActionDescription(target_location=place_stand).resolve().perform()
 
-        PlaceAction(cereal_desig, target_locations=[place_island.pose], arms=[pickup_arm]).resolve().perform()
+        PlaceActionDescription(cereal_desig, target_location=place_island, arm=pickup_arm).resolve().perform()
 
-        ParkArmsActionPerformable(Arms.BOTH).perform()
+        ParkArmsAction(Arms.BOTH).perform()
 
 plan()
 
@@ -113,7 +113,7 @@ navigations = session.scalars(select(pycram.orm.action_designator.NavigateAction
 print(*navigations, sep="\n")
 ```
 
-Due to the inheritance mapped in the ORM package, we can also obtain all executed actions with just one query. 
+Due to the inheritance mapped in the ORM package, we can also obtain all executed actions with just one query.
 
 ```python
 actions = session.scalars(select(pycram.orm.action_designator.Action)).all()

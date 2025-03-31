@@ -15,15 +15,16 @@ from sortedcontainers import SortedSet
 from sqlalchemy import select
 from typing_extensions import Optional, List, Iterator
 
-from ...action_designator import MoveAndPickUpPerformable, ActionAbstract, MoveAndPlacePerformable
+from ...action_designator import MoveAndPickUpAction, ActionAbstract, MoveAndPlaceAction
 from ....costmaps import OccupancyCostmap, VisibilityCostmap
 from ....datastructures.enums import Arms as EArms, Grasp as EGrasp, TaskStatus
 from ....datastructures.pose import Pose
 from ....datastructures.world import World
-from ....designator import ActionDesignatorDescription, ObjectDesignatorDescription
+from ....designator import ObjectDesignatorDescription, ActionDescription
 from ....failures import ObjectUnreachable, PlanFailure
 from ....local_transformer import LocalTransformer
 from ....orm.views import PickUpWithContextView, PlaceWithContextView
+from ....world_concepts.world_object import Object
 
 
 class Grasp(IntEnum):
@@ -104,7 +105,7 @@ class ProbabilisticAction:
         raise NotImplementedError
 
 
-class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
+class MoveAndPickUp(ActionDescription, ProbabilisticAction):
 
     @dataclass
     class Variables:
@@ -120,7 +121,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
     The amount of samples that should be drawn from the policy when iterating over it.
     """
 
-    object_designator: ObjectDesignatorDescription.Object
+    object_designator: Object
     """
     The object designator that should be picked up.
     """
@@ -135,22 +136,21 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
     The grasps that can be used for the pick up.
     """
 
-    def __init__(self, object_designator: ObjectDesignatorDescription.Object, arms: List[Arms], grasps: List[Grasp],
+    def __init__(self, object_designator: Object, arms: List[Arms], grasps: List[Grasp],
                  policy: Optional[ProbabilisticCircuit] = None):
-        ActionDesignatorDescription.__init__(self)
         ProbabilisticAction.__init__(self, policy)
         self.object_designator = object_designator
         self.arms = arms
         self.grasps = grasps
 
-    def sample_to_action(self, sample: List) -> MoveAndPickUpPerformable:
+    def sample_to_action(self, sample: List) -> MoveAndPickUpAction:
         arm, grasp, relative_x, relative_y = sample
         position = [relative_x, relative_y, 0.]
-        pose = Pose(position, frame=self.object_designator.world_object.tf_frame)
+        pose = Pose(position, frame=self.object_designator.tf_frame)
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
-        action = MoveAndPickUpPerformable(standing_position, self.object_designator, EArms[Arms(int(arm)).name],
-                                          EGrasp(int(grasp)), True, 0.03)
+        action = MoveAndPickUpAction(standing_position, self.object_designator, EArms[Arms(int(arm)).name],
+                                     EGrasp(int(grasp)), True, 0.03)
         return action
 
     def events_from_occupancy_and_visibility_costmap(self) -> Event:
@@ -197,7 +197,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
 
         return result
 
-    def iter_with_mode(self) -> Iterator[MoveAndPickUpPerformable]:
+    def iter_with_mode(self) -> Iterator[MoveAndPickUpAction]:
         """
         Generate performables by sampling from the mode of the policy conditioned on visibility and occupancy.
         """
@@ -211,7 +211,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
             action = self.sample_to_action(sample)
             yield action
 
-    def __iter__(self) -> Iterator[MoveAndPickUpPerformable]:
+    def __iter__(self) -> Iterator[MoveAndPickUpAction]:
         """
         Generate performables by sampling from the policy conditioned on visibility and occupancy.
         """
@@ -226,7 +226,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
             action = self.sample_to_action(sample)
             yield action
 
-    def iterate_without_occupancy_costmap(self) -> Iterator[MoveAndPickUpPerformable]:
+    def iterate_without_occupancy_costmap(self) -> Iterator[MoveAndPickUpAction]:
         """
         Generate performables by sampling from the policy without conditioning on visibility and occupancy.
         """
@@ -269,7 +269,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
             World.current_world.reset_world()
 
 
-class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
+class MoveAndPlace(ActionDescription, ProbabilisticAction):
 
     @dataclass
     class Variables:
@@ -283,7 +283,7 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
     The amount of samples that should be drawn from the policy when iterating over it.
     """
 
-    object_designator: ObjectDesignatorDescription.Object
+    object_designator: Object
     """
     The object designator that should be picked up.
     """
@@ -298,21 +298,20 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
     The arms that can be used for the pick up.
     """
 
-    def __init__(self, object_designator: ObjectDesignatorDescription.Object,
+    def __init__(self, object_designator: Object,
                  target_location: Pose, policy: Optional[ProbabilisticCircuit] = None):
-        ActionDesignatorDescription.__init__(self)
         ProbabilisticAction.__init__(self, policy)
         self.object_designator = object_designator
         self.target_location = target_location
 
-    def sample_to_action(self, sample: List) -> MoveAndPlacePerformable:
+    def sample_to_action(self, sample: List) -> MoveAndPlaceAction:
         relative_x, relative_y = sample
         position = [relative_x + self.target_location.position.x, relative_y + self.target_location.position.y, 0.]
         pose = Pose(position, frame=self.target_location.frame)
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
-        action = MoveAndPlacePerformable(standing_position, self.object_designator,
-                                         self.target_location, EArms.LEFT, True)
+        action = MoveAndPlaceAction(standing_position, self.object_designator,
+                                    self.target_location, EArms.LEFT, True)
         return action
 
     def events_from_occupancy_and_visibility_costmap(self) -> Event:
@@ -359,7 +358,7 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
 
         return result
 
-    def iter_with_mode(self) -> Iterator[MoveAndPlacePerformable]:
+    def iter_with_mode(self) -> Iterator[MoveAndPlaceAction]:
         """
         Generate performables by sampling from the mode of the policy conditioned on visibility and occupancy.
         """
@@ -372,7 +371,7 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
             action = self.sample_to_action(sample)
             yield action
 
-    def __iter__(self) -> Iterator[MoveAndPickUpPerformable]:
+    def __iter__(self) -> Iterator[MoveAndPickUpAction]:
         """
         Generate performables by sampling from the policy conditioned on visibility and occupancy.
         """
@@ -387,7 +386,7 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
             action = self.sample_to_action(sample)
             yield action
 
-    def iterate_without_occupancy_costmap(self) -> Iterator[MoveAndPickUpPerformable]:
+    def iterate_without_occupancy_costmap(self) -> Iterator[MoveAndPickUpAction]:
         """
         Generate performables by sampling from the policy without conditioning on visibility and occupancy.
         """

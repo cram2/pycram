@@ -1,8 +1,7 @@
 from pycram.datastructures.pose import GraspDescription
-from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
-    NavigateActionPerformable, MoveTorsoAction
+from pycram.designators.action_designator import PickUpAction, NavigateAction
 from pycram.datastructures.pose import Pose
-from pycram.datastructures.enums import Arms, Grasp, GripperState, TorsoState
+from pycram.datastructures.enums import Arms, Grasp, TorsoState
 from pycram.process_module import simulated_robot
 import pycram.tasktree
 from pycram.tasktree import with_tree
@@ -11,6 +10,7 @@ import anytree
 from pycram.testing import BulletWorldTestCase
 import pycram.failures
 from pycram.designators import object_designator, action_designator
+from pycram.designators.action_designator import MoveTorsoActionDescription
 
 
 class TaskTreeTestCase(BulletWorldTestCase):
@@ -18,13 +18,13 @@ class TaskTreeTestCase(BulletWorldTestCase):
     @with_tree
     def plan(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
-        self.assertEqual(description.ground().object_designator.name, "milk")
+        description = action_designator.PlaceActionDescription(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
+        self.assertEqual(description.resolve().object_designator.name, "milk")
         with simulated_robot:
-            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
+            NavigateAction(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
+            MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
             grasp_description = GraspDescription(Grasp.FRONT, None, False)
-            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, grasp_description).perform()
+            PickUpAction(object_description.resolve(), Arms.LEFT, grasp_description).perform()
             description.resolve().perform()
 
     def test_tree_creation(self):

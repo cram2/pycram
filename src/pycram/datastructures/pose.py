@@ -12,7 +12,7 @@ from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from typing_extensions import List, Union, Optional, Self, Tuple
 
-from .enums import AxisIdentifier, Grasp
+from .enums import AxisIdentifier, Grasp, Arms
 from .grasp import PreferredGraspAlignment, GraspDescription
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
 from ..ros import Time
@@ -733,3 +733,47 @@ class Transform(TransformStamped):
         :param new_rotation: The new rotation as a quaternion with xyzw
         """
         self.rotation = new_rotation
+
+
+class GraspPose(Pose):
+
+    arm: Arms = None
+    """
+    The arm with which the grasp pose is attached to.
+    """
+    grasp_description: GraspDescription
+    """
+    The grasp description of the grasp.
+    """
+
+    def __init__(self, position: Optional[Sequence[float]] = None, orientation: Optional[Sequence[float]] = None,
+                 frame: str = "map", time: Time = None, arm: Arms = None, grasp_description: GraspDescription = None):
+        """
+        Poses can be initialized by a position and orientation given as lists, this is optional. By default, Poses are
+        initialized with the position being [0, 0, 0], the orientation being [0, 0, 0, 1] and the frame being 'map'.
+
+        :param position: An optional position of this Pose
+        :param orientation: An optional orientation of this Pose
+        :param frame: An optional frame in which this pose is
+        :param time: The time at which this Pose is valid, as ROS time
+        :param arm: The arm with which the grasp from this pose can be achieved
+        :param grasp_description: The grasp description which needs to be used
+        """
+        super().__init__()
+        if position is not None:
+            self.position = position
+
+        if orientation is not None:
+            self.orientation = orientation
+        else:
+            self.pose.orientation.w = 1.0
+
+        self.header.frame_id = frame
+
+        self.header.stamp = time if time else Time().now()
+
+        self.frame = frame
+
+        self.arm = arm
+
+        self.grasp_description = grasp_description

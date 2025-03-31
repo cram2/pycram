@@ -44,7 +44,7 @@ from probabilistic_model.learning.jpt.variables import infer_variables_from_data
 from random_events.product_algebra import Event, SimpleEvent
 
 import pycram.orm.base
-from pycram.designators.action_designator import MoveTorsoActionPerformable
+from pycram.designators.action_designator import MoveTorsoAction
 from pycram.failures import PlanFailure
 from pycram.designators.object_designator import ObjectDesignatorDescription
 from pycram.worlds.bullet_world import BulletWorld
@@ -200,16 +200,16 @@ fig.show()
 Finally, we observe our improved plan in action.
 
 ```python
-from pycram.designators.action_designator import ParkArmsActionPerformable
+from pycram.designators.action_designator import ParkArmsAction
 
 world.reset_world()
 milk.set_pose(Pose([0.5, 3.15, 1.04]))
 torso_joint = RobotDescription.current_robot_description.torso_joint
 with simulated_robot:
-    MoveTorsoActionPerformable({torso_joint: 0.3}).perform()
+    MoveTorsoAction({torso_joint: 0.3}).perform()
     for sample in fpa:
         try:
-            ParkArmsActionPerformable(Arms.RIGHT).perform()
+            ParkArmsAction(Arms.RIGHT).perform()
             sample.perform()
             break
         except PlanFailure as e:
