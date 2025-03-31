@@ -1,5 +1,11 @@
 #!/bin/bash
 
+mkdir -p ~/workspace/ros/src
+cd ~/workspace/ros
+catkin build
+source install/setup.bash
+cd ~/workspace/ros/src
+
 source /opt/ros/$ROS_DISTRO/setup.bash
 echo "Cloning pycram and dependencies"
 if [ "$ROS_VERSION" = "1" ]; then
@@ -12,9 +18,10 @@ echo "Setting up virtual environment"
 python -m venv pycram/pycram-venv --system-site-packages
 source pycram/pycram-venv/bin/activate
 echo "Installing python dependencies"
+pip install -U pip
 pip install -U setuptools
 pip install -r pycram/requirements.txt
-echo "Cheking for dependencies of other ros packages"
+echo "Checking for dependencies of other ros packages"
 rosdep update && rosdep install --from-paths . -i -y
 cd ..
 echo "Building workspace"
