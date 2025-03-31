@@ -1,9 +1,13 @@
+import unittest
+
 from pycram.designators import action_designator
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.robot_description import RobotDescription
 from pycram.datastructures.pose import Pose
 from pycram.testing import BulletWorldTestCase
+
+from pycrap.ontologies import Apartment
 
 
 class TestActionDesignatorGrounding(BulletWorldTestCase):
@@ -122,3 +126,15 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         location = location_desig.resolve()
         self.assertTrue(len(location.position_as_list()) == 3)
         self.assertTrue(len(location.orientation_as_list()) == 4)
+
+    def test_accessing_location(self):
+        self.kitchen.set_pose(Pose([100, 100, 0]))
+        apartment = Object("apartment", Apartment, "apartment.urdf")
+
+        location_desig = AccessingLocation(apartment.links["handle_cab10_t"], robot_desig=self.robot, arm=Arms.RIGHT)
+        access_pose = location_desig.resolve()
+
+        self.assertTrue(len(access_pose.position_as_list()) == 3)
+        self.assertTrue(len(access_pose.orientation_as_list()) == 4)
+
+        apartment.remove()

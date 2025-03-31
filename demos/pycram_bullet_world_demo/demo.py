@@ -15,7 +15,7 @@ import numpy as np
 np.random.seed(420)
 extension = ObjectDescription.get_file_extension()
 
-world = BulletWorld(WorldMode.DIRECT)
+world = BulletWorld(WorldMode.GUI)
 viz = VizMarkerPublisher()
 
 robot = Object("pr2", Robot, f"pr2{extension}", pose=Pose([1, 2, 0]))
@@ -77,7 +77,7 @@ with simulated_robot:
     MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
     # Finding and navigating to the drawer holding the spoon
     handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig)
-    drawer_open_loc = AccessingLocation(handle_desig=handle_desig,
+    drawer_open_loc = AccessingLocation(handle=handle_desig,
                                         robot_desig=robot_desig,
                                         arm=Arms.RIGHT).resolve()
 

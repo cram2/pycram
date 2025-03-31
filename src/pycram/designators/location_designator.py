@@ -253,7 +253,7 @@ class AccessingLocation(LocationDesignatorDescription):
     Location designator which describes poses used for opening drawers
     """
 
-    def __init__(self, handle_desig: Union[ObjectDescription.Link, Iterable[ObjectDescription.Link]],
+    def __init__(self, handle: Union[ObjectDescription.Link, Iterable[ObjectDescription.Link]],
                  robot_desig: Union[Object, Iterable[Object]],
                  arm: Union[List[Arms], Arms] = None,
                  prepose_distance: float = ActionConfig.grasping_prepose_distance):
@@ -261,15 +261,15 @@ class AccessingLocation(LocationDesignatorDescription):
         Describes a position from where a drawer can be opened. For now this position should be calculated before the
         drawer will be opened. Calculating the pose while the drawer is open could lead to problems.
 
-        :param handle_desig: ObjectPart designator for handle of the drawer
+        :param handle: ObjectPart designator for handle of the drawer
         :param robot_desig: Object designator for the robot which should open the drawer
         :param prepose_distance: Distance to the target pose where the robot should be checked for reachability.
         """
         super().__init__()
-        PartialDesignator.__init__(self, AccessingLocation, handle_desig=handle_desig, robot_desig=robot_desig,
+        PartialDesignator.__init__(self, AccessingLocation, handle=handle, robot_desig=robot_desig,
                                    arm=arm if arm is not None else [Arms.LEFT, Arms.RIGHT],
                                    prepose_distance=prepose_distance)
-        self.handle: ObjectDescription.Link = handle_desig
+        self.handle: ObjectDescription.Link = handle
         self.robot: Object = robot_desig
         self.prepose_distance = prepose_distance
         self.arm = arm if arm is not None else [Arms.LEFT, Arms.RIGHT]
@@ -376,7 +376,7 @@ class AccessingLocation(LocationDesignatorDescription):
             target_sequence = self.create_target_sequence(params_box, final_map)
             half_pose = target_sequence[1]
 
-            test_robot = World.current_world.get_prospection_object_for_object(params_box.robot)
+            test_robot = World.current_world.get_prospection_object_for_object(params_box.robot_desig)
 
             with UseProspectionWorld():
                 orientation_generator = lambda p, o: PoseGenerator.generate_orientation(p, half_pose)
