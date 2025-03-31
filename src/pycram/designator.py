@@ -116,14 +116,14 @@ class DesignatorDescription(ABC):
         Returns a list of all parameter names of this designator_description description.
         """
         return [param_name for param_name, param in inspect.signature(self.__init__).parameters.items()]
-
-    def get_type_hints(self) -> Dict[str, Any]:
+    @classmethod
+    def get_type_hints(cls) -> Dict[str, Any]:
         """
         Returns the type hints of the __init__ method of this designator_description description.
 
         :return:
         """
-        return get_type_hints(self.__init__)
+        return get_type_hints(cls.__init__)
 
 
 class ActionDesignatorDescription(DesignatorDescription, Language):

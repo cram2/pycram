@@ -952,7 +952,7 @@ class GraspingActionPerformable(ActionAbstract):
     """
     The arm that should be used to grasp
     """
-    object_desig: Union[ObjectDesignatorDescription.Object, ObjectPart.Object]
+    object_desig: ObjectDesignatorDescription.Object
     """
     Object Designator for the object that should be grasped
     """
