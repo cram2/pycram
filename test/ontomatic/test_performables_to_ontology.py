@@ -3,8 +3,9 @@ from pycram.ontomatic.performables_to_ontology import create_ontology_from_perfo
 from tempfile import NamedTemporaryFile
 import owlready2
 import unittest
+import os
 
-
+pycram_ci_env = os.environ.get("PYCRAM_CI_ENV") if "PYCRAM_CI_ENV" in os.environ else "False"
 
 class TestOntologyCreation(unittest.TestCase):
     def test_Performables_parsed(self):
@@ -28,6 +29,7 @@ class TestOntologyCreation(unittest.TestCase):
         enum_class = next(filter(lambda c: c._name == 'Enum', ontology.ontology.classes()))
         self.assertTrue(len(enum_class.instances()) > 0)
 
+    @unittest.skipIf(pycram_ci_env == "True", reason="Skipping test since it consumes to much memory")
     def test_information_correctly_parsed(self):
         expected_Enum_subclasses = ["GripperState_Value", "Arms_Value"]
         expected_classes = ['Parameter', 'Enum', 'Arms', 'Arms_Value', 'GripperState', 'GripperState_Value', 'bool', 'Performable']

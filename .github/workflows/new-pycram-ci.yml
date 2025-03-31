@@ -25,6 +25,8 @@ jobs:
     runs-on: ubuntu-20.04
     container:
       image: "pycram/pycram:dev"
+    env:
+      PYCRAM_CI_ENV: True
     steps:
       - name: Checkout PyCRAM
         uses: actions/checkout@v3
