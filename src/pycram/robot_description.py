@@ -9,7 +9,7 @@ from itertools import product
 
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-from typing_extensions import List, Dict, Union, Optional, Tuple
+from typing_extensions import List, Dict, Union, Optional, Tuple, TYPE_CHECKING
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, Rotations
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState
@@ -21,6 +21,8 @@ from .ros import logerr
 from .tf_transformations import quaternion_multiply
 from .utils import suppress_stdout_stderr
 
+if TYPE_CHECKING:
+    from .datastructures.pose import Pose
 
 class RobotDescriptionManager:
     """
@@ -281,7 +283,7 @@ class RobotDescription:
         :return: A name of the link of a camera
         """
         if robot_object_name is None:
-            return self.name
+            return f"{self.name}/{self.get_camera_link()}"
         return f"{robot_object_name}/{self.get_camera_link()}"
 
     def get_camera_link(self) -> str:
@@ -320,18 +322,19 @@ class RobotDescription:
             raise ValueError(f"There is no KinematicChain with name {kinematic_chain_name} for robot {self.name}. "
                              f"The following chains are available: {list(self.kinematic_chains.keys())}")
 
-    def get_offset(self, name):
+    def get_offset(self, name) -> Optional[Pose]:
         """
         Returns the offset of a Joint in the URDF.
+
         :param name: The name of the Joint for which the offset will be returned.
         :return: The offset of the Joint
         """
         if name not in self.urdf_object.joint_map.keys():
             logerr(f"The name: {name} is not part of this robot URDF")
-            return None
+            return Pose()
 
         offset = self.urdf_object.joint_map[name].origin
-        return offset if offset else None
+        return offset if offset else Pose()
 
     def get_parent(self, name: str) -> str:
         """

@@ -6,6 +6,8 @@ from .ros import Time, Duration, logerr
 from geometry_msgs.msg import TransformStamped, PoseStamped
 from transforms3d.quaternions import quat2mat, mat2quat
 
+from .tf_transformations import quaternion_matrix
+
 if 'world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.world.")
 
@@ -242,12 +244,13 @@ class LocalTransformer(Buffer):
 
         :return: The translated pose
         """
-        transform = pose.to_transform("self")
         normalized_translation_vector = np.array(axis) / np.linalg.norm(axis)
-        scaled_translation_vector = (normalized_translation_vector * distance).tolist()
-        translation = Transform(scaled_translation_vector, [0, 0, 0, 1], "self", "translation",
-                                pose.header.stamp)
-        return (transform * translation).to_pose()
+
+        rot_matrix = quaternion_matrix(pose.orientation_as_list())[:3, :3]
+        translation_in_world = rot_matrix @ normalized_translation_vector
+        scaled_translation_vector = np.array(pose.position_as_list()) + translation_in_world * distance
+
+        return Pose(scaled_translation_vector, pose.orientation_as_list(), pose.frame, pose.header.stamp)
 
     def get_object_from_link_frame(self, link_frame: str) -> Optional[Object]:
         """

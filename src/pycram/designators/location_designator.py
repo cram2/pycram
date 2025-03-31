@@ -217,7 +217,7 @@ class CostmapLocation(LocationDesignatorDescription):
 
         final_map = self.setup_costmaps(target, test_robot)
 
-        with (UseProspectionWorld()):
+        with UseProspectionWorld():
             for pose_candidate in PoseGenerator(final_map, number_of_samples=600):
                 pose_candidate.position.z = 0
                 test_robot.set_pose(pose_candidate)
