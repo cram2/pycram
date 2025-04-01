@@ -1,3 +1,8 @@
+==================
+Installation Guide
+==================
+
+
 =============
 Compatability
 =============
@@ -19,19 +24,22 @@ The setup of PyCRAM can be divided in four steps:
  * Cloning the PyCRAM repo
  * Building your ROS workspace
 
+1. Step: Add a GitHub SSH key
+=============================
+
 This guide expects you to have a GitHub account with an SSH key (you can read about adding a new ssh key
 `here <https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account>`_).
 
-Installing ROS
-==============
+2. Step: Install ROS
+====================
 
 PyCRAM uses ROS for a variety of functionality, for this reason you need a working ROS installation on your machine.
 For information on how to install ROS please refer to the official
 documentation `here <http://wiki.ros.org/noetic/Installation/Ubuntu>`_ for ROS1 Noetic
 or `here <https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html>`_ for ROS2 Jazzy.
 
-Installing Dependencies
-=======================
+3. Step: Install General Dependencies
+=====================================
 
 The dependencies you will need are:
     * vcstool
@@ -45,9 +53,23 @@ These are available via the Ubuntu apt-repos and can be installed via the termin
     sudo apt-get install python3-vcstool curl
 
 
-Using the install script
-=========================
-.. _install-script:
+4. Step: Choose Installation Method
+===================================
+
+You can install PyCRAM in two ways:
+    * Using the install script
+    * Manually
+
+When using the install script, continue with the section  :ref:`install script <install_script>`.
+Manually installing PyCRAM depends on the version of Ubuntu you are using.
+
+* For Ubuntu 20.04 (ROS Noetic) follow the instructions in the section :ref:`manual 20.04 <install_pycram_24>`.
+* For Ubuntu 24.04 (ROS Jazzy) follow the instructions in the section :ref:`manual 24.04 <install_pycram_20>`.
+
+
+5. Step: Installation with the install script
+=============================================
+.. _install_script:
 
 The easiest way to install PyCRAM is to use the install script. This script will install all necessary dependencies and
 clone the PyCRAM repository into your ROS workspace. Furthermore, will it setup the Python environment for PyCRAM and
@@ -72,10 +94,11 @@ Now you can run the install script, *The scripts excepts that it is executed fro
 
     curl -s https://raw.githubusercontent.com/cram2/pycram/dev/scripts/install.sh | bash
 
+Afterwards continue with the steps under `Step 6: Python Dependencies`_.
 
-PyCRAM on Ubuntu24.04 (ROS Jazzy)
-===================================
-.. _install-pycram-24:
+5. Step: Manual Install on Ubuntu24.04 (ROS Jazzy)
+==================================================
+.. _install_pycram_24:
 
 Before installing PyCRAM you need to setup a ROS workspace into which PyCRAM can be cloned.
 
@@ -104,11 +127,11 @@ Now you can install PyCRAM into your ROS workspace.
     source install/setup.bash
     echo "source ~/workspace/ros/install/setup.bash" >> ~/.bashrc
 
-Afterwards continue with the steps under `Python Dependencies`_.
+Afterwards continue with the steps under `Step 6: Python Dependencies`_.
 
-PyCRAM on Ubuntu 20.04 (ROS Noetic)
-===================================
-.. _install-pycram:
+5. Step: Manual Install on Ubuntu 20.04 (ROS Noetic)
+====================================================
+.. _install_pycram_20:
 
 At first you need to install the catkin tools so we can use the ´´´colcon build´´´ command:
 
@@ -150,8 +173,8 @@ in your ROS workspace.
 
 The cloned repository contains the source code for PyCRAM as well as two short demos which demonstrate how to use it.
 
-Building your ROS workspace
---------------------------
+Step 5.1: Building your ROS workspace
+-------------------------------------
 
 .. _build-ws:
 
@@ -169,13 +192,11 @@ You can build your ROS workspace with the following commands:
     catkin build
     source devel/setup.bash
 
-
-What the launch file does is start a ROS master, upload the robot URDF to the parameter server as well as starting the
-IK solver.
+Afterwards continue with the steps under `Step 6: Python Dependencies`_.
 
 
-Python Dependencies
-===================
+Step 6: Python Dependencies
+===========================
 
 To install the Python dependencies we first need to setup a python-venv, we use the standard Python ``venv`` package
 for this. To start you need to install the respective venv version of the package.
@@ -201,10 +222,39 @@ and setuptools version.
     pip install -U setuptools
     pip install -r requirements.txt
 
-=======================
-Verify the Installation
-=======================
 
+Step 7. Verify the Installation
+===============================
+
+To verify that the installation was successful, you can run the following command:
+
+.. code-block:: shell
+
+    cd ~/workspace/ros/src/pycram
+    source pycram-venv/bin/activate
+    python -c "import pycram"
+
+To further test the installation you can run the tests for action designator with the following command:
+
+.. code-block:: shell
+
+    cd ~/workspace/ros/src/pycram
+    source pycram-venv/bin/activate
+    pip install pytest
+    pytest -v test/action_designator/test_action_designator.py
+
+========
+Appendix
+========
+
+The instructions here are not needed to work with PyCRAM and are just additional info.
+
+
+Setup your Development Environment
+==================================
+
+If you installed PyCRAM and checked that the installation works you can continue with the next step of setting up
+your development environment by following the link :ref:`here <setup_env>`.
 
 
 Building the documentation
@@ -249,9 +299,3 @@ Show the index.
     firefox _build/html/index.html
 
 
-==================================
-Setup your Development Environment
-==================================
-
-If you installed PyCRAM and checked that the installation works you can continue with the next step of setting up
-your development environment by following the link :ref:`here <setup env>`.

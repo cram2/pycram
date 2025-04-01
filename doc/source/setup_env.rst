@@ -1,10 +1,11 @@
-
-
+=============================
+Setup Development Environment
+=============================
 
 Setting up PyCRAM with PyCharm
 ==============================
 
-.. _setup env
+.. _setup_env:
 
 Setting up PyCharm with packages that rely on rospy is non trivial. Follow this guide to get correct syntax highlighting for the PyCRAM project.
 
