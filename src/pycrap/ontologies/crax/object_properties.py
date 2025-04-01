@@ -70,12 +70,17 @@ class has_preferred_axis(BaseProperty):
 
 class has_vertical_alignment(BaseProperty):
     """
-    A relation between an object and a point on the object that is suitable for grasping the object from the top.
+    A relation between an object and boolean value indicating if the object should be grasped with a vertical alignment.
     """
 
 class has_rotated_gripper(BaseProperty):
     """
-    A relation between an object and a point on the object that is suitable for grasping the object horizontally.
+    A relation between an object and boolean value indicating if the gripper should be rotated by 90°.
+    """
+
+class has_rim_grasp(BaseProperty):
+    """
+    A relation between an object and a boolean value indicating if the object should be grasped by the rim.
     """
 
 

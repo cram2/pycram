@@ -83,7 +83,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         grasp_description = GraspDescription(Grasp.FRONT, None, False)
         performable = action_designator.ReachToPickUpAction(object_description.resolve(),
-                                                                  Arms.LEFT, grasp_description, 0.03)
+                                                                  Arms.LEFT, grasp_description)
         self.assertEqual(performable.object_designator.name, "milk")
         with simulated_robot:
             NavigateAction(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
@@ -115,7 +115,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             NavigateAction(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
             grasp_description = GraspDescription(Grasp.FRONT, None, False)
-            PickUpAction(object_description.resolve(), Arms.LEFT, grasp_description, 0.03).perform()
+            PickUpAction(object_description.resolve(), Arms.LEFT, grasp_description).perform()
             self._test_validate_action_pre_perform(description, ObjectStillInContact)
             description.resolve().perform()
         self.assertFalse(object_description.resolve() in self.robot.attachments.keys())

@@ -162,9 +162,8 @@ def plan(obj_desig: Object, torso=None, place=counter_name):
         NavigateActionDescription(location, True).resolve().perform()
         ParkArmsAction(Arms.BOTH).perform()
         good_torsos.append(torso)
-        PickUpAction(object_designator=obj_desig, arm=pickup_arm,  grasp_description=grasp,
-                                prepose_distance=0.03).perform()
 
+        PickUpAction(object_designator=obj_desig, arm=pickup_arm,  grasp_description=grasp).perform()
         ParkArmsAction(Arms.BOTH).perform()
         scm = SemanticCostmapLocation(place, apartment_desig, obj_desig, horizontal_edges_only=True,
                                       edge_size_in_meters=0.08)

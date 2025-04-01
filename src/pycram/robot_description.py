@@ -8,7 +8,8 @@ from enum import Enum
 from itertools import product
 
 import numpy as np
-from typing_extensions import List, Dict, Union, Optional, Tuple
+from scipy.spatial.transform import Rotation as R
+from typing_extensions import List, Dict, Union, Optional, Tuple, TYPE_CHECKING
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, Rotations
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState
@@ -20,6 +21,8 @@ from .ros import logerr
 from .tf_transformations import quaternion_multiply
 from .utils import suppress_stdout_stderr
 
+if TYPE_CHECKING:
+    from .datastructures.pose import Pose
 
 class RobotDescriptionManager:
     """
@@ -126,6 +129,10 @@ class RobotDescription:
     Name of the gripper of the robot if it has one, this is used when the gripper is a different Object with its own
     description file outside the robot description file.
     """
+    neck: Dict[str, List[str]]
+    """
+    Dictionary of neck links and joints. Keys are yaw, pitch and roll, values are [link, joint]
+    """
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
                  virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None,
@@ -161,6 +168,7 @@ class RobotDescription:
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
         self.virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = virtual_mobile_base_joints
         self.gripper_name = gripper_name
+        self.neck = {}
 
     def add_arm(self, end_link: str,
                 arm_type: Arms = Arms.RIGHT,
@@ -268,12 +276,14 @@ class RobotDescription:
                 result.append(chain)
         return result
 
-    def get_camera_frame(self, robot_object_name: str) -> str:
+    def get_camera_frame(self, robot_object_name: str = None) -> str:
         """
         Quick method to get the name of a link of a camera. Uses the first camera in the list of cameras.
 
         :return: A name of the link of a camera
         """
+        if robot_object_name is None:
+            return f"{self.name}/{self.get_camera_link()}"
         return f"{robot_object_name}/{self.get_camera_link()}"
 
     def get_camera_link(self) -> str:
@@ -311,6 +321,20 @@ class RobotDescription:
         else:
             raise ValueError(f"There is no KinematicChain with name {kinematic_chain_name} for robot {self.name}. "
                              f"The following chains are available: {list(self.kinematic_chains.keys())}")
+
+    def get_offset(self, name) -> Optional[Pose]:
+        """
+        Returns the offset of a Joint in the URDF.
+
+        :param name: The name of the Joint for which the offset will be returned.
+        :return: The offset of the Joint
+        """
+        if name not in self.urdf_object.joint_map.keys():
+            logerr(f"The name: {name} is not part of this robot URDF")
+            return Pose()
+
+        offset = self.urdf_object.joint_map[name].origin
+        return offset if offset else Pose()
 
     def get_parent(self, name: str) -> str:
         """
@@ -384,6 +408,32 @@ class RobotDescription:
             if chain.arm_type == arm:
                 return chain
         raise ValueError(f"There is no Kinematic Chain for the Arm {arm}")
+
+    def set_neck(self, yaw_joint: Optional[str] = None, pitch_joint: Optional[str] = None,
+                 roll_joint: Optional[str] = None):
+        """
+        Defines the neck configuration of the robot by setting the yaw, pitch, and roll
+        joints along with their corresponding links.
+
+        :param yaw_joint: The joint name for the yaw movement of the neck.
+        :param pitch_joint: The joint name for the pitch movement of the neck.
+        :param roll_joint: The joint name for the roll movement of the neck.
+        """
+        if yaw_joint:
+            self.neck["yaw"] = [self.get_child(yaw_joint), yaw_joint]
+        if pitch_joint:
+            self.neck["pitch"] = [self.get_child(pitch_joint), pitch_joint]
+        if roll_joint:
+            self.neck["roll"] = [self.get_child(roll_joint), roll_joint]
+
+    def get_neck(self) -> Dict[str, List[Optional[str]]]:
+        """
+        Retrieves the neck configuration of the robot, including links and joints for yaw,
+        pitch, and roll.
+
+        :return: A dictionary containing the neck configuration. Keys are yaw, pitch, and roll. Values are [link, joint].
+        """
+        return self.neck
 
     def load(self):
         """
@@ -718,6 +768,14 @@ class EndEffectorDescription:
     """
     List of all links of the fingers of the gripper
     """
+    grasps: Dict[GraspDescription, List[float]]
+    """
+    Dictionary of all grasp orientations of the end effector
+    """
+    approach_axis: List[float]
+    """
+    Relative axis along which the end effector is approaching an object
+    """
 
     def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject,
                  gripper_object_name: Optional[str] = None, opening_distance: Optional[float] = None,
@@ -744,7 +802,8 @@ class EndEffectorDescription:
         self.gripper_object_name = gripper_object_name
         self.opening_distance: Optional[float] = opening_distance
         self.fingers_link_names: Optional[List[str]] = fingers_link_names
-        self.grasps = {}
+        self.grasps: Dict[GraspDescription, List[float]] = {}
+        self.approach_axis = None
 
     def _init_links_joints(self):
         """
@@ -824,18 +883,38 @@ class EndEffectorDescription:
 
             self.grasps[grasp_description] = orientation
 
-    def get_grasp(self, grasp: Grasp, top_bot_grasp: Grasp = None, horizontal: bool = False) -> List[float]:
+    def get_grasp(self, approach_direction: Grasp, vertical_alignment: Grasp = None, rotate_gripper: bool = False) -> List[float]:
         """
         Retrieves the quaternion orientation of the end effector for a specific grasp.
 
-        :param grasp: Grasp from the Grasp enum
-        :param top_bot_grasp: Top or bottom grasp from the Grasp enum
-        :param horizontal: If True, the horizontal rotation is applied
+        :param approach_direction: The approach direction of the end effector.
+        :param vertical_alignment: The vertical alignment of the end effector.
+        :param rotate_gripper: True, the gripper should be rotated 90°.
 
         :return: List of floats representing the quaternion orientation of the end effector
         """
-        grasp_description = GraspDescription(grasp, top_bot_grasp, horizontal)
+        grasp_description = GraspDescription(approach_direction, vertical_alignment, rotate_gripper)
         return self.grasps[grasp_description]
+
+    def set_approach_axis(self, axis: List[float]):
+        """
+        Sets the approach axis for the robot's palm.
+
+        :param axis: A list representing the approach axis.
+        """
+        self.approach_axis = axis
+
+    def get_approach_axis(self) -> List[float]:
+        """
+        Retrieves the approach axis.
+
+        :return: A list representing the approach axis.
+        """
+        if self.approach_axis is None:
+            front_grasp = self.get_grasp(Grasp.FRONT, None, False)
+            self.approach_axis = R.from_quat(front_grasp).as_matrix()[0]
+        return self.approach_axis
+
 
 def create_manipulator_description(data: ManipulatorData,
                                    urdf_filename: str,

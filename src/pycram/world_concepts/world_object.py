@@ -598,14 +598,23 @@ class Object(PhysicalBody):
         """
         self.links[link_name].color = Color.from_list(color)
 
-    def get_link_geometry(self, link_name: str) -> Union[VisualShape, None]:
+    def get_link_geometry(self, link_name: str) -> List[VisualShape]:
         """
-        Return the geometry of the link with the given name.
+        Return the collision geometry of the link with the given name.
 
         :param link_name: The name of the link.
-        :return: The geometry of the link.
+        :return: List of the collision geometry of the link.
         """
         return self.links[link_name].geometry
+
+    def get_link_visual_geometry(self, link_name: str) -> List[VisualShape]:
+        """
+        Return the visual geometry of the link with the given name.
+
+        :param link_name: The name of the link.
+        :return: The visual geometry of the link.
+        """
+        return self.links[link_name].visual_geometry
 
     def get_link_transform(self, link_name: str) -> Transform:
         """
@@ -1331,23 +1340,30 @@ class Object(PhysicalBody):
         """
         return self.joints[joint_name].parent_link
 
-    def find_joint_above_link(self, link_name: str) -> str:
+    def find_joint_above_link(self, link_name: str, joint_type: Optional[JointType] = None) -> Optional[str]:
         """
-        Traverse the chain from 'link' to the URDF origin and return the first joint that is not FIXED.
+        Traverses the chain from 'link' to the URDF origin and returns the first joint that is of type 'joint_type'.
+        If no joint type is given, the first joint that is not FIXED is returned.
 
         :param link_name: AbstractLink name above which the joint should be found
-        :return: Name of the first non-fixed joint, None if no joint is found
+        :param joint_type: Joint type that should be searched for
+        :return: Name of the first joint which has the given type
         """
         chain = self.description.get_chain(self.description.get_root(), link_name)
         reversed_chain = reversed(chain)
-        container_joint = None
         for element in reversed_chain:
-            if element in self.joint_name_to_id and self.get_joint_type(element) != JointType.FIXED:
-                container_joint = element
-                break
-        if not container_joint:
-            logwarn(f"No movable parent joint found above link {link_name}")
-        return container_joint
+            if element not in self.joint_name_to_id:
+                continue
+
+            element_joint_type = self.get_joint_type(element)
+            if joint_type is not None and element_joint_type == joint_type:
+                return element
+
+            if joint_type is None and element_joint_type != JointType.FIXED:
+                return element
+
+        logwarn(f"No joint of type {joint_type} found above link {link_name}")
+        return None
 
     def get_multiple_joint_positions(self, joint_names: List[str]) -> Dict[str, float]:
         """

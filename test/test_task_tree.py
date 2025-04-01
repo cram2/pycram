@@ -1,8 +1,7 @@
 from pycram.datastructures.pose import GraspDescription
-from pycram.designators.action_designator import MoveTorsoAction, PickUpAction, \
-    NavigateAction
+from pycram.designators.action_designator import PickUpAction, NavigateAction
 from pycram.datastructures.pose import Pose
-from pycram.datastructures.enums import Arms, Grasp, GripperState, TorsoState
+from pycram.datastructures.enums import Arms, Grasp, TorsoState
 from pycram.process_module import simulated_robot
 import pycram.tasktree
 from pycram.tasktree import with_tree
@@ -25,7 +24,7 @@ class TaskTreeTestCase(BulletWorldTestCase):
             NavigateAction(Pose([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
             grasp_description = GraspDescription(Grasp.FRONT, None, False)
-            PickUpAction(object_description.resolve(), Arms.LEFT, grasp_description, 0.03).perform()
+            PickUpAction(object_description.resolve(), Arms.LEFT, grasp_description).perform()
             description.resolve().perform()
 
     def test_tree_creation(self):

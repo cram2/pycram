@@ -18,21 +18,20 @@ class TestPartialDesignator(BulletWorldTestCase):
         partial_desig = PartialDesignator(PickUpAction, test_object, arm=Arms.RIGHT)
         self.assertEqual(partial_desig.performable, PickUpAction)
         self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": test_object,
-                                                "grasp_description": None, 'prepose_distance': None})
+                                                "grasp_description": None})
 
     def test_partial_desig_construction_none(self):
         partial_desig =  PartialDesignator(PickUpAction,None, arm=Arms.RIGHT)
         self.assertEqual(partial_desig.performable, PickUpAction)
         self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": None,
-                                                "grasp_description": None, 'prepose_distance': None})
+                                                "grasp_description": None})
 
     def test_partial_desig_call(self):
         partial_desig =  PartialDesignator(PickUpAction, None, arm=Arms.RIGHT)
         grasp_description = GraspDescription(Grasp.FRONT, None, False)
         new_partial_desig = partial_desig(grasp_description=grasp_description)
         self.assertEqual(new_partial_desig.performable, PickUpAction)
-        self.assertEqual({"arm": Arms.RIGHT, "grasp_description": grasp_description, "object_designator": None,
-                          'prepose_distance': None}, new_partial_desig.kwargs)
+        self.assertEqual({"arm": Arms.RIGHT, "grasp_description": grasp_description, "object_designator": None}, new_partial_desig.kwargs)
 
     def test_partial_desig_missing_params(self):
         partial_desig =  PartialDesignator(PickUpAction, None, arm=Arms.RIGHT)
@@ -42,7 +41,7 @@ class TestPartialDesignator(BulletWorldTestCase):
         grasp_description = GraspDescription(Grasp.FRONT, None, False)
         new_partial = partial_desig(grasp_description=grasp_description)
         missing_params = new_partial.missing_parameter()
-        self.assertEqual(['object_designator', "prepose_distance"], missing_params)
+        self.assertEqual(['object_designator'], missing_params)
 
     def test_is_iterable(self):
         self.assertTrue(is_iterable([1, 2, 3]))

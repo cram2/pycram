@@ -300,24 +300,11 @@ class LocationDesignatorDescription(DesignatorDescription, PartialDesignator, It
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
 
 
-# this knowledge should be somewhere else i guess
-SPECIAL_KNOWLEDGE = {
-    'bigknife':
-        [("top", [-0.08, 0, 0])],
-    'whisk':
-        [("top", [-0.08, 0, 0])],
-    'bowl':
-        [("front", [1.0, 2.0, 3.0]),
-         ("key2", [4.0, 5.0, 6.0])]
-}
-
-
 class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator, Iterable[WorldObject]):
     """
     Class for object designator_description descriptions.
     Descriptions hold possible parameter ranges for object designators.
     """
-
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None):
         """
         Base of all object designator_description descriptions. Every object designator_description has the name and type of the object.

@@ -2,6 +2,7 @@ import inspect
 
 import numpy as np
 from typing_extensions import List, TYPE_CHECKING
+from scipy.spatial.transform import Rotation as R
 
 from ..datastructures.dataclasses import Colors
 from ..datastructures.world import World
@@ -18,6 +19,7 @@ from ..process_module import ProcessModule
 from ..robot_description import RobotDescription
 from ..ros import get_time
 from ..ros import logdebug, loginfo
+from ..tf_transformations import euler_from_quaternion
 from ..utils import _apply_ik
 from ..world_concepts.world_object import Object
 from ..world_reasoning import visible, link_pose_for_joint_config
@@ -38,27 +40,47 @@ class DefaultNavigation(ProcessModule):
 
 class DefaultMoveHead(ProcessModule):
     """
-    This process module moves the head to look at a specific point in the world coordinate frame.
-    This point can either be a position or an object.
+    Moves the robot's head to look at a specified target point in the world coordinate frame.
+    The target can be either a position or an object.
     """
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
         robot = World.robot
-
         local_transformer = LocalTransformer()
-        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_pan_link"))
-        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_tilt_link"))
 
-        new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
-        new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
+        neck = RobotDescription.current_robot_description.get_neck()
+        pan_link = neck["yaw"][0]
+        tilt_link = neck["pitch"][0]
 
-        current_pan = robot.get_joint_position("head_pan_joint")
-        current_tilt = robot.get_joint_position("head_tilt_joint")
+        pan_joint = neck["yaw"][1]
+        tilt_joint = neck["pitch"][1]
 
-        robot.set_joint_position("head_pan_joint", new_pan + current_pan)
-        robot.set_joint_position("head_tilt_joint", new_tilt + current_tilt)
+        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link)).position_as_list()
+        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link)).position_as_list()
 
+        new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
+
+        tilt_offset = RobotDescription.current_robot_description.get_offset(tilt_joint)
+        if tilt_offset:
+            tilt_offset_rotation = tilt_offset.pose.orientation
+            quaternion_list = [tilt_offset_rotation.x, tilt_offset_rotation.y, tilt_offset_rotation.z, tilt_offset_rotation.w]
+        else:
+            quaternion_list = [0, 0, 0, 1]
+
+        tilt_offset_rotation = euler_from_quaternion(quaternion_list, axes='sxyz')
+        adjusted_pose_in_tilt = R.from_euler('xyz', tilt_offset_rotation).apply(pose_in_tilt)
+
+        new_tilt = -np.arctan2(adjusted_pose_in_tilt[2],
+                               np.sqrt(adjusted_pose_in_tilt[0] ** 2 + adjusted_pose_in_tilt[1] ** 2))
+
+        if RobotDescription.current_robot_description.name in {"iCub", "tiago_dual"}:
+            new_tilt = -new_tilt
+
+        current_pan = robot.get_joint_position(pan_joint)
+        current_tilt = robot.get_joint_position(tilt_joint)
+        robot.set_joint_position(pan_joint, new_pan + current_pan)
+        robot.set_joint_position(tilt_joint, new_tilt + current_tilt)
 
 class DefaultMoveGripper(ProcessModule):
     """
@@ -212,12 +234,13 @@ class DefaultClose(ProcessModule):
         part_of_object.set_joint_position(container_joint_name, lower_joint_limit)
 
 
-def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
-    gripper = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
+def _move_arm_tcp(target: Pose, robot: Object, arm: Arms, tip_link:str=None) -> None:
+    if tip_link is None:
+        tip_link = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
 
     joints = RobotDescription.current_robot_description.get_arm_chain(arm).joints
 
-    inv = request_ik(target, robot, joints, gripper)
+    inv = request_ik(target, robot, joints, tip_link)
     _apply_ik(robot, inv)
 
 
@@ -321,19 +344,40 @@ class DefaultMoveHeadReal(ProcessModule):
         robot = World.robot
 
         local_transformer = LocalTransformer()
-        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_pan_link"))
-        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_tilt_link"))
+        neck = RobotDescription.current_robot_description.get_neck()
+        pan_link = neck["yaw"][0]
+        tilt_link = neck["pitch"][0]
 
-        new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
-        new_tilt = np.arctan2(pose_in_tilt.position.z,
-                              np.sqrt(pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2)) * -1
+        pan_joint = neck["yaw"][1]
+        tilt_joint = neck["pitch"][1]
 
-        current_pan = robot.get_joint_position("head_pan_joint")
-        current_tilt = robot.get_joint_position("head_tilt_joint")
+        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link)).position_as_list()
+        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link)).position_as_list()
+
+        new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
+
+        tilt_offset = RobotDescription.current_robot_description.get_offset(tilt_joint)
+        if tilt_offset:
+            tilt_offset_rotation = tilt_offset.pose.orientation
+            quaternion_list = [tilt_offset_rotation.x, tilt_offset_rotation.y, tilt_offset_rotation.z, tilt_offset_rotation.w]
+        else:
+            quaternion_list = [0, 0, 0, 1]
+
+        tilt_offset_rotation = euler_from_quaternion(quaternion_list, axes='sxyz')
+        adjusted_pose_in_tilt = R.from_euler('xyz', tilt_offset_rotation).apply(pose_in_tilt)
+
+        new_tilt = -np.arctan2(adjusted_pose_in_tilt[2],
+                               np.sqrt(adjusted_pose_in_tilt[0] ** 2 + adjusted_pose_in_tilt[1] ** 2))
+
+        if RobotDescription.current_robot_description.name in {"iCub", "tiago_dual"}:
+            new_tilt = -new_tilt
+
+        current_pan = robot.get_joint_position(pan_joint)
+        current_tilt = robot.get_joint_position(tilt_joint)
 
         giskard.avoid_all_collisions()
-        giskard.achieve_joint_goal({"head_pan_joint": new_pan + current_pan,
-                                    "head_tilt_joint": new_tilt + current_tilt})
+        giskard.achieve_joint_goal({pan_joint: new_pan + current_pan,
+                                    tilt_joint: new_tilt + current_tilt})
 
 
 class DefaultMoveTCPReal(ProcessModule):

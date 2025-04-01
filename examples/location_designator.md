@@ -199,8 +199,7 @@ handle_name = "cabinet10_drawer1_handle" if use_multiverse else "handle_cab10_t"
 handle_desig = ObjectPart(names=[handle_name], part_of=apartment_desig.resolve())
 robot_desig = BelieveObject(types=[Robot])
 
-access_location = AccessingLocation(handle_desig.resolve(), robot_desig.resolve(),
-                                    prepose_distance=0.03).resolve()
+access_location = AccessingLocation(handle_desig.resolve(), robot_desig.resolve()).resolve()
 print(access_location)
 ```
 
