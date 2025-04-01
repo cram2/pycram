@@ -181,7 +181,6 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             action_designator.MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
             description.resolve().perform()
-            description.resolve().perform()
         self.assertEqual(description.resolve().object_designator.name, "milk")
         milk_position = np.array(self.milk.get_pose().position_as_list())
         dist = np.linalg.norm(milk_position - np.array([-1.35, 0.78, 0.95]))
