@@ -9,6 +9,7 @@ from enum import Enum
 
 import numpy as np
 import plotly.graph_objects as go
+import sqlalchemy
 import trimesh
 from matplotlib import pyplot as plt
 from std_msgs.msg import ColorRGBA
@@ -17,19 +18,23 @@ from random_events.interval import closed, SimpleInterval, Bound
 from random_events.product_algebra import SimpleEvent, Event
 from random_events.variable import Continuous
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, Self, \
-    deprecated
+    deprecated, Type
 
+from pycrap.ontologies import PhysicalObject
 from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp, AxisIdentifier
 from .pose import Pose, Point, Transform
+from ..orm.base import ProcessMetaData
 from ..ros import logwarn, logwarn_once
 from ..utils import classproperty
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
+from ..orm.object_designator import Object as ORMObject
 
 if TYPE_CHECKING:
-    from ..description import Link
+    from ..description import Link, ObjectDescription
     from ..world_concepts.world_object import Object
     from ..world_concepts.constraints import Attachment
     from .world_entity import PhysicalBody
+    from .world import World
 
 
 @dataclass
@@ -1543,3 +1548,88 @@ class ReasoningResult:
     """
     success: bool
     reasoned_parameter: Dict[str, Any] = field(default_factory=dict)
+
+
+
+@dataclass
+class FrozenObject:
+
+    name: str
+    """
+    Name of this Object
+    """
+    concept: Type[PhysicalObject]
+    """
+    The Concept of the Object as the PyCRAP concept
+    """
+    path: Optional[str] = None
+    """
+    The path to the source file
+    """
+    description: Optional[ObjectDescription] = None
+    """
+    The description of the object, this is a combination of links and joints
+    """
+    pose: Optional[Pose] = field(default_factory=Pose)
+    """
+    The pose at which this object is placed
+    """
+    links: Optional[Dict[str, FrozenLink]] = None
+    """
+    A dictionary with the link name as key and the link object as value
+    """
+    joints: Optional[Dict[str, FrozenJoint]] = None
+    """
+    A dictionary of all joints, with the joint name as key and the joint object as value
+    """
+
+    def to_sql(self):
+        return ORMObject(obj_type=str(self.concept), name=self.name)
+
+    def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObject:
+        metadata = ProcessMetaData().insert(session)
+        obj = self.to_sql()
+        pose = self.pose.insert(session)
+        obj.pose = pose
+        obj.process_metadata = metadata
+        session.add(obj)
+
+        return obj
+
+@dataclass(frozen=True)
+class FrozenLink:
+    name: str
+    """
+    Name of this FrozenLink
+    """
+    pose: Pose
+    """
+    Pose of this Link in the world frame
+    """
+    geometry: Union[VisualShape, List[VisualShape]]
+    """
+    The geometry of this link
+    """
+
+@dataclass(frozen=True)
+class FrozenJoint:
+    name: str
+    """
+    Name of this FrozenJoints
+    """
+    type: JointType
+    """
+    The type of this joint
+    """
+    children: Sequence[str]
+    """
+    A sequence of the names of all children
+    """
+    parent: Optional[str]
+    """
+    The name of the parent joint or None if there is no parent joint
+    """
+    state: float
+    """
+    State of the joint
+    """

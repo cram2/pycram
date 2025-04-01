@@ -1,43 +1,7 @@
 from threading import Lock
 
-# from ..external_interfaces.robokudo import query
 from .default_process_modules import *
 from ..designators.motion_designator import *
-
-
-class KevinNavigate(DefaultNavigation):
-    """
-    Process module for the simulated Kevin that sends a cartesian goal to the robot to move the robot base
-    """
-    pass
-
-
-class KevinMoveHead(DefaultMoveHead):
-    """
-    Process module for the simulated Kevin that moves the head such that it looks at the given position
-    """
-    pass
-
-
-class KevinMoveGripper(DefaultMoveGripper):
-    """
-    Process module for the simulated Kevin that opens or closes the gripper
-    """
-    pass
-
-
-class KevinDetecting(DefaultDetecting):
-    """
-    Process Module for the simulated Kevin that tries to detect an object fitting the given object description
-    """
-    pass
-
-
-class KevinMoveTCP(DefaultMoveTCP):
-    """
-    Process module for the simulated Kevin that moves the tool center point of the robot
-    """
-    pass
 
 
 class KevinMoveArmJoints(DefaultMoveArmJoints):
@@ -50,35 +14,6 @@ class KevinMoveArmJoints(DefaultMoveArmJoints):
         # for now
         giskard.allow_gripper_collision("gripper")
         DefaultMoveArmJoints._execute(desig)
-
-
-class KevinMoveJoints(DefaultMoveJoints):
-    """
-    Process module for the simulated Kevin that moves any joint of the robot
-    """
-    pass
-
-
-class KevinWorldStateDetecting(DefaultWorldStateDetecting):
-    """
-    Process Module for the simulated Kevin that tries to detect an object using the world state
-    """
-    pass
-
-
-class KevinOpen(DefaultOpen):
-    """
-    Process module for the simulated Kevin that opens an already grasped container
-    """
-    pass
-
-
-class KevinClose(DefaultClose):
-    """
-    Process module for the simulated Kevin that closes an already grasped container
-    """
-    pass
-
 
 ###########################################################
 ########## Process Modules for the Real Kevin ###########
@@ -99,13 +34,6 @@ class KevinManager(DefaultManager):
         elif ProcessModuleManager.execution_type == "real":
             raise NotImplemented
             # return KevinNavigationReal(self._navigate_lock)
-
-    def looking(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return KevinMoveHead(self._looking_lock)
-        elif ProcessModuleManager.execution_type == "real":
-            raise NotImplemented
-            # return KevinMoveHeadReal(self._looking_lock)
 
     def detecting(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
@@ -144,17 +72,3 @@ class KevinManager(DefaultManager):
         elif ProcessModuleManager.execution_type == "real":
             raise NotImplemented
             # return KevinMoveGripperReal(self._move_gripper_lock)
-
-    def open(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return KevinOpen(self._open_lock)
-        elif ProcessModuleManager.execution_type == "real":
-            raise NotImplemented
-            # return KevinOpenReal(self._open_lock)
-
-    def close(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return KevinClose(self._close_lock)
-        elif ProcessModuleManager.execution_type == "real":
-            raise NotImplemented
-            # return KevinCloseReal(self._close_lock)

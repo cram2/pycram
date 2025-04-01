@@ -6,6 +6,8 @@ from .ros import Time, Duration, logerr
 from geometry_msgs.msg import TransformStamped, PoseStamped
 from transforms3d.quaternions import quat2mat, mat2quat
 
+from .tf_transformations import quaternion_matrix
+
 if 'world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.world.")
 
@@ -231,6 +233,25 @@ class LocalTransformer(Buffer):
         found_objects = [obj for obj in world.objects if frame == obj.tf_frame]
         return found_objects[0] if len(found_objects) > 0 else self.get_object_from_link_frame(frame)
 
+    def translate_pose_along_local_axis(self, pose: Pose, axis: List, distance: float) -> Pose:
+        """
+        Translate a pose along a given 3d vector (axis) by a given distance. The axis is given in the local coordinate
+        frame of the pose. The axis is normalized and then scaled by the distance.
+
+        :param pose: The pose that should be translated
+        :param axis: The local axis along which the translation should be performed
+        :param distance: The distance by which the pose should be translated
+
+        :return: The translated pose
+        """
+        normalized_translation_vector = np.array(axis) / np.linalg.norm(axis)
+
+        rot_matrix = quaternion_matrix(pose.orientation_as_list())[:3, :3]
+        translation_in_world = rot_matrix @ normalized_translation_vector
+        scaled_translation_vector = np.array(pose.position_as_list()) + translation_in_world * distance
+
+        return Pose(scaled_translation_vector, pose.orientation_as_list(), pose.frame, pose.header.stamp)
+
     def get_object_from_link_frame(self, link_frame: str) -> Optional[Object]:
         """
         Get the name of the object that is associated with the given link frame.
@@ -266,8 +287,10 @@ class LocalTransformer(Buffer):
         self.update_transforms_for_objects([obj for obj in objects if obj is not None])
 
         tf_time = time if time else self.get_latest_common_time(source_frame, target_frame)
-        translation, rotation = self.lookup_transform(source_frame, target_frame, tf_time)
-        return Transform(translation, rotation, source_frame, target_frame)
+        transform_stamped = self.lookup_transform(source_frame, target_frame, tf_time)
+        return Transform(transform_stamped.transform.translation,
+                         transform_stamped.transform.rotation,
+                         source_frame, target_frame)
 
     def update_transforms(self, transforms: Iterable[Transform], time: Time = None) -> None:
         """

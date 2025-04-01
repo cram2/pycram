@@ -194,6 +194,16 @@ You can build your ROS workspace with the following commands:
 
 Afterwards continue with the steps under `Step 6: Python Dependencies`_.
 
+Step 5.2: Using PyCRAM in ROS1
+------------------------------
+
+If you want to use PyCRAM on a system running ROS1 you need to start a roscore beforehand, you can do this by running
+the following command in a terminal:
+
+.. code-block:: shell
+
+    roscore
+
 
 Step 6: Python Dependencies
 ===========================
