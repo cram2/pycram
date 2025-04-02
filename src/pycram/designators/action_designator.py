@@ -26,7 +26,7 @@ from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveTCPMotio
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
     TorsoState, StaticJointState, Frame, FindBodyInRegionMethod, ContainerManipulationType, Frame, FindBodyInRegionMethod, ContainerManipulationType
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..datastructures.grasp import GraspDescription
 from ..datastructures.world import World, UseProspectionWorld
 from ..description import Joint, Link, ObjectDescription
@@ -43,7 +43,7 @@ from ..config.action_conf import ActionConfig
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
     TorsoState, StaticJointState
 
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..datastructures.world import World
 
 from ..orm.action_designator import Action as ORMAction
@@ -74,7 +74,7 @@ from ..world_reasoning import move_away_all_objects_to_create_empty_space, gener
 @dataclass
 class ActionAbstract(ActionDescription, abc.ABC):
     """Base class for performable performables."""
-    orm_class: Type[ORMAction] = field(init=False, default=None, repr=False)
+    _orm_class: Type[ORMAction] = field(init=False, default=None, repr=False)
     """
     The ORM class that is used to insert this action into the database. Must be overwritten by every action in order to
     be able to insert the action into the database.
@@ -102,14 +102,14 @@ class ActionAbstract(ActionDescription, abc.ABC):
                            if key in inspect.getfullargspec(self.__init__).args}
 
         # get all orm class parameters
-        orm_class_variables = inspect.getfullargspec(self.orm_class.__init__).args
+        orm_class_variables = inspect.getfullargspec(self._orm_class.__init__).args
 
         # list of parameters that will be passed to the ORM class. If the name does not match the orm_class equivalent
         # or if it is a type that needs to be inserted into the session manually, it will not be added to the list
         parameters = [value for key, value in class_variables.items() if key in orm_class_variables
-                      and not isinstance(value, (Object, Pose))]
+                      and not isinstance(value, (Object, PoseStamped))]
 
-        return self.orm_class(*parameters)
+        return self._orm_class(*parameters)
 
     def insert(self, session: Session, **kwargs) -> ORMAction:
         """
@@ -130,7 +130,7 @@ class ActionAbstract(ActionDescription, abc.ABC):
                            if key in inspect.getfullargspec(self.__init__).args}
 
         # get all orm class parameters
-        orm_class_variables = inspect.getfullargspec(self.orm_class.__init__).args
+        orm_class_variables = inspect.getfullargspec(self._orm_class.__init__).args
 
         # loop through all class parameters and insert them into the session unless they are already added by the ORM
         for key, value in class_variables.items():
@@ -152,7 +152,7 @@ class ActionAbstract(ActionDescription, abc.ABC):
                 continue
             if isinstance(value, Object):
                 fields[key] = value.name
-            elif isinstance(value, Pose):
+            elif isinstance(value, PoseStamped):
                 fields[key] = value.__str__()
         fields_str = "\n".join([f"{key}: {value}" for key, value in fields.items()])
         return f"{self.__class__.__name__.replace('Performable', '')}:\n{fields_str}"
@@ -192,6 +192,7 @@ class MoveTorsoAction(ActionAbstract):
             raise TorsoGoalNotReached(validator)
 
     @classmethod
+    @with_plan
     def description(cls, torso_state: Union[Iterable[TorsoState], TorsoState]) -> PartialDesignator[Type[MoveTorsoAction]]:
         return PartialDesignator(MoveTorsoAction, torso_state=torso_state)
 
@@ -228,6 +229,7 @@ class SetGripperAction(ActionAbstract):
         pass
 
     @classmethod
+    @with_plan
     def description(cls, gripper: Union[Iterable[Arms], Arms],
                     motion: Union[Iterable[GripperState], GripperState] = None) -> PartialDesignator[Type[SetGripperAction]]:
         return PartialDesignator(SetGripperAction, gripper=gripper, motion=motion)
@@ -270,6 +272,7 @@ class GripAction(ActionAbstract):
         raise NotImplementedError()
 
     @classmethod
+    @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     gripper: Union[Iterable[Arms], Arms] = None, effort: Union[Iterable[float], float] = None, ) -> PartialDesignator[Type[GripAction]]:
         return PartialDesignator(GripAction, object_designator=object_designator,
@@ -318,6 +321,7 @@ class ParkArmsAction(ActionAbstract):
             raise ConfigurationNotReached(validator, configuration_type=StaticJointState.Park)
 
     @classmethod
+    @with_plan
     def description(cls, arm: Union[Iterable[Arms], Arms]) -> PartialDesignator[Type[ParkArmsAction]]:
         return PartialDesignator(ParkArmsAction, arm=arm)
 
@@ -387,7 +391,7 @@ class ReachToPickUpAction(ActionAbstract):
         # Remove the vis axis from the world if it was added
         World.current_world.remove_vis_axis()
 
-    def go_to_pose(self, pose: Pose, movement_type: MovementType = MovementType.CARTESIAN,
+    def go_to_pose(self, pose: PoseStamped, movement_type: MovementType = MovementType.CARTESIAN,
                    add_vis_axis: bool = True):
         """
         Go to a specific pose.
@@ -401,7 +405,7 @@ class ReachToPickUpAction(ActionAbstract):
             World.current_world.add_vis_axis(pose)
         MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
 
-    def adjust_target_pose_to_grasp_type(self) -> Pose:
+    def adjust_target_pose_to_grasp_type(self) -> PoseStamped:
         """
         Adjust the target pose according to the grasp type by adjusting the orientation of the gripper.
 
@@ -421,7 +425,7 @@ class ReachToPickUpAction(ActionAbstract):
         adjusted_oTm.rotate_by_quaternion(grasp)
         return adjusted_oTm
 
-    def special_knowledge_adjustment_pose(self, grasp: Grasp, pose: Pose) -> Pose:
+    def special_knowledge_adjustment_pose(self, grasp: Grasp, pose: PoseStamped) -> PoseStamped:
         """
         Get the adjusted target pose based on special knowledge for "grasp front".
 
@@ -446,7 +450,7 @@ class ReachToPickUpAction(ActionAbstract):
                 return pose_in_object
         return pose
 
-    def calculate_pre_grasping_pose(self, obj_pose: Pose) -> Pose:
+    def calculate_pre_grasping_pose(self, obj_pose: PoseStamped) -> PoseStamped:
         """
         Calculate the pre grasping pose of the object depending on the gripper and the pre-pose distance.
 
@@ -493,6 +497,7 @@ class ReachToPickUpAction(ActionAbstract):
             logwarn(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
 
     @classmethod
+    @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     arm: Union[Iterable[Arms], Arms] = None,
                     grasp: Union[Iterable[Grasp], Grasp] = None,
@@ -571,7 +576,7 @@ class PickUpAction(ActionAbstract):
         lift_to_pose.pose.position.z += distance
         MoveTCPMotion(lift_to_pose, self.arm, allow_gripper_collision=True).perform()
 
-    def gripper_pose(self) -> Pose:
+    def gripper_pose(self) -> PoseStamped:
         """
         Get the pose of the gripper.
 
@@ -603,6 +608,7 @@ class PickUpAction(ActionAbstract):
         return RobotDescription.current_robot_description.get_arm_chain(self.arm)
 
     @classmethod
+    @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     arm: Union[Iterable[Arms], Arms] = None,
                     grasp_description: Union[Iterable[GraspDescription], GraspDescription] = None,
@@ -622,7 +628,7 @@ class PlaceAction(ActionAbstract):
     """
     Object designator_description describing the object that should be place
     """
-    target_location: Pose
+    target_location: PoseStamped
     """
     Pose in the world at which the object should be placed
     """
@@ -671,12 +677,12 @@ class PlaceAction(ActionAbstract):
         """
         gripper_pose_in_object = self.local_transformer.transform_pose(self.gripper_link.pose,
                                                                        self.object_designator.tf_frame)
-        object_to_gripper = gripper_pose_in_object.to_transform("object")
-        world_to_object_target = self.target_location.to_transform("target")
+        object_to_gripper = gripper_pose_in_object.to_transform_stamped("object")
+        world_to_object_target = self.target_location.to_transform_stamped("target")
         world_to_gripper_target = world_to_object_target * object_to_gripper
-        return world_to_gripper_target.to_pose()
+        return world_to_gripper_target.to_pose_stamped()
 
-    def calculate_retract_pose(self, target_pose: Pose, distance: float) -> Pose:
+    def calculate_retract_pose(self, target_pose: PoseStamped, distance: float) -> PoseStamped:
         """
         Calculate the retract pose of the gripper.
 
@@ -724,8 +730,9 @@ class PlaceAction(ActionAbstract):
             raise ObjectNotPlacedAtTargetLocation(self.object_designator, self.target_location, World.robot, self.arm)
 
     @classmethod
+    @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
-                    target_location: Union[Iterable[Pose], Pose],
+                    target_location: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None) -> PartialDesignator[Type[PlaceAction]]:
         return PartialDesignator(PlaceAction, object_designator=object_designator,
                                  target_location=target_location,
@@ -749,7 +756,7 @@ class NavigateAction(ActionAbstract):
     Navigates the Robot to a position.
     """
 
-    target_location: Pose
+    target_location: PoseStamped
     """
     Location to which the robot should be navigated
     """
@@ -759,7 +766,7 @@ class NavigateAction(ActionAbstract):
     Keep the joint states of the robot the same during the navigation.
     """
 
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMNavigateAction)
+    _orm_class: Type[ActionAbstract] = field(init=False, default=ORMNavigateAction)
 
     @with_tree
     def plan(self) -> None:
@@ -774,7 +781,7 @@ class NavigateAction(ActionAbstract):
 
     @classmethod
     @with_plan
-    def description(cls, target_location: Union[Iterable[Pose], Pose],
+    def description(cls, target_location: Union[Iterable[PoseStamped], PoseStamped],
                     keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states) -> \
             PartialDesignator[Type[NavigateAction]]:
         return PartialDesignator(NavigateAction, target_location=target_location,
@@ -791,7 +798,7 @@ class TransportAction(ActionAbstract):
     """
     Object designator_description describing the object that should be transported.
     """
-    target_location: Pose
+    target_location: PoseStamped
     """
     Target Location to which the object should be transported
     """
@@ -857,7 +864,7 @@ class TransportAction(ActionAbstract):
     @classmethod
     @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
-                    target_location: Union[Iterable[Pose], Pose],
+                    target_location: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None,
                     pickup_prepose_distance: Union[Iterable[float], float] = ActionConfig.pick_up_prepose_distance) -> \
             PartialDesignator[Type[TransportAction]]:
@@ -873,7 +880,7 @@ class LookAtAction(ActionAbstract):
     Lets the robot look at a position.
     """
 
-    target: Pose
+    target: PoseStamped
     """
     Position at which the robot should look, given as 6D pose
     """
@@ -892,7 +899,7 @@ class LookAtAction(ActionAbstract):
             move_away_all_objects_to_create_empty_space(exclude_objects=[World.robot.name, "floor"])
             # Create a virtual object at the target location, the current size is 40x40x40 cm which is very big in
             # my opinion, maybe this indicates that the looking at action is not accurate # TODO check this
-            gen_obj = generate_object_at_target(self.target.position_as_list(), size=(0.4, 0.4, 0.4))
+            gen_obj = generate_object_at_target(self.target.position.to_list(), size=(0.4, 0.4, 0.4))
             ray_result = cast_a_ray_from_camera()
             gen_obj.remove()
             if not ray_result.intersected or ray_result.obj_id != gen_obj.id:
@@ -900,7 +907,7 @@ class LookAtAction(ActionAbstract):
 
     @classmethod
     @with_plan
-    def description(cls, target: Union[Iterable[Pose], Pose]) -> PartialDesignator[Type[LookAtAction]]:
+    def description(cls, target: Union[Iterable[PoseStamped], PoseStamped]) -> PartialDesignator[Type[LookAtAction]]:
         return PartialDesignator(LookAtAction, target=target)
 
 
@@ -1170,7 +1177,7 @@ class FaceAtAction(ActionAbstract):
     Turn the robot chassis such that is faces the ``pose`` and after that perform a look at action.
     """
 
-    pose: Pose
+    pose: PoseStamped
     """
     The pose to face 
     """
@@ -1192,7 +1199,7 @@ class FaceAtAction(ActionAbstract):
         orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
 
         # create new robot pose
-        new_robot_pose = Pose(robot_position.position_as_list(), orientation)
+        new_robot_pose = PoseStamped.from_list(robot_position.position.to_list(), orientation)
 
         # turn robot
         NavigateAction(new_robot_pose, self.keep_joint_states).perform()
@@ -1206,7 +1213,7 @@ class FaceAtAction(ActionAbstract):
 
     @classmethod
     @with_plan
-    def description(cls, pose: Union[Iterable[Pose], Pose],
+    def description(cls, pose: Union[Iterable[PoseStamped], PoseStamped],
                     keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.face_at_keep_joint_states) -> \
             PartialDesignator[Type[FaceAtAction]]:
         return PartialDesignator(FaceAtAction, pose=pose, keep_joint_states=keep_joint_states)
@@ -1218,7 +1225,7 @@ class MoveAndPickUpAction(ActionAbstract):
     Navigate to `standing_position`, then turn towards the object and pick it up.
     """
 
-    standing_position: Pose
+    standing_position: PoseStamped
     """
     The pose to stand before trying to pick up the object
     """
@@ -1265,8 +1272,8 @@ class MoveAndPickUpAction(ActionAbstract):
 
     @classmethod
     @with_plan
-    def description(cls, standing_position: Union[Iterable[Pose], Pose],
-                    object_designator: Union[Iterable[Pose], Pose],
+    def description(cls, standing_position: Union[Iterable[PoseStamped], PoseStamped],
+                    object_designator: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None,
                     grasp: Union[Iterable[Grasp], Grasp] = None,
                     keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states,
@@ -1286,7 +1293,7 @@ class MoveAndPlaceAction(ActionAbstract):
     Navigate to `standing_position`, then turn towards the object and pick it up.
     """
 
-    standing_position: Pose
+    standing_position: PoseStamped
     """
     The pose to stand before trying to pick up the object
     """
@@ -1296,7 +1303,7 @@ class MoveAndPlaceAction(ActionAbstract):
     The object to pick up
     """
 
-    target_location: Pose
+    target_location: PoseStamped
     """
     The location to place the object.
     """
@@ -1323,9 +1330,9 @@ class MoveAndPlaceAction(ActionAbstract):
 
     @classmethod
     @with_plan
-    def description(cls, standing_position: Union[Iterable[Pose], Pose],
+    def description(cls, standing_position: Union[Iterable[PoseStamped], PoseStamped],
                     object_designator: Union[Iterable[Object], Object],
-                    target_location: Union[Iterable[Pose], Pose],
+                    target_location: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None,
                     keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states, ) -> \
             PartialDesignator[Type[MoveAndPlaceAction]]:

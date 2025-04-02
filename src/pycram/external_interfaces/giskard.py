@@ -8,7 +8,7 @@ from ..ros import  logwarn, loginfo_once
 from ..ros import  get_node_names
 
 from ..datastructures.enums import JointType, ObjectType, Arms
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..datastructures.world import World
 from ..datastructures.dataclasses import MeshVisualShape
 from ..ros import  get_service_proxy
@@ -192,7 +192,7 @@ def remove_object(object: Object) -> 'UpdateWorldResponse':
 
 
 @init_giskard_interface
-def spawn_urdf(name: str, urdf_path: str, pose: Pose) -> 'UpdateWorldResponse':
+def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> 'UpdateWorldResponse':
     """
     Spawns an URDF in giskard's belief state.
 
@@ -209,7 +209,7 @@ def spawn_urdf(name: str, urdf_path: str, pose: Pose) -> 'UpdateWorldResponse':
 
 
 @init_giskard_interface
-def spawn_mesh(name: str, path: str, pose: Pose) -> 'UpdateWorldResponse':
+def spawn_mesh(name: str, path: str, pose: PoseStamped) -> 'UpdateWorldResponse':
     """
     Spawns a mesh into giskard's belief state
 
@@ -333,7 +333,7 @@ def set_joint_goal(goal_poses: Dict[str, float]) -> None:
 
 @init_giskard_interface
 @thread_safe
-def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str,
+def achieve_cartesian_goal(goal_pose: PoseStamped, tip_link: str, root_link: str,
                            position_threshold: float = 0.02,
                            orientation_threshold: float = 0.02,
                            use_monitor: bool = True,
@@ -381,7 +381,7 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str,
 
 @init_giskard_interface
 @thread_safe
-def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
+def achieve_straight_cartesian_goal(goal_pose: PoseStamped, tip_link: str,
                                     root_link: str,
                                     grippers_that_can_collide: Optional[Arms] = None) -> 'MoveResult':
     """
@@ -550,7 +550,7 @@ def achieve_close_container_goal(tip_link: str, environment_link: str) -> 'MoveR
 
 
 @init_giskard_interface
-def projection_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str) -> 'MoveResult':
+def projection_cartesian_goal(goal_pose: PoseStamped, tip_link: str, root_link: str) -> 'MoveResult':
     """
     Tries to move the tip_link to the position defined by goal_pose using the chain defined by tip_link and root_link.
     The goal_pose is projected to the closest point on the robot's workspace.
@@ -566,7 +566,7 @@ def projection_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str) ->
 
 
 @init_giskard_interface
-def projection_cartesian_goal_with_approach(approach_pose: Pose, goal_pose: Pose, tip_link: str, root_link: str,
+def projection_cartesian_goal_with_approach(approach_pose: PoseStamped, goal_pose: PoseStamped, tip_link: str, root_link: str,
                                             robot_base_link: str) -> 'MoveResult':
     """
     Tries to achieve the goal_pose using the chain defined by tip_link and root_link. The approach_pose is used to drive
@@ -751,7 +751,7 @@ def make_vector_stamped(vector: List[float]) -> Vector3Stamped:
     return msg
 
 
-def _pose_to_pose_stamped(pose: Pose) -> PoseStamped:
+def _pose_to_pose_stamped(pose: PoseStamped) -> PoseStamped:
     """
     Transforms a PyCRAM pose to a PoseStamped message, this is necessary since Giskard NEEDS a PoseStamped message
     otherwise it will crash.

@@ -13,7 +13,7 @@ from ..ros import logerr, logwarn
 if TYPE_CHECKING:
     from ..datastructures.world import World
     from ..world_concepts.world_object import Object
-    from ..datastructures.pose import Pose
+    from ..datastructures.pose import PoseStamped
     from ..description import ObjectDescription
 
     Joint = ObjectDescription.Joint
@@ -488,7 +488,7 @@ def validate_object_pose(pose_setter_func):
     :param pose_setter_func: The function to set the pose of the object.
     """
 
-    def wrapper(world: World, obj: Object, pose: Pose):
+    def wrapper(world: World, obj: Object, pose: PoseStamped):
 
         if not world.current_world.conf.validate_goals:
             return pose_setter_func(world, obj, pose)
@@ -516,7 +516,7 @@ def validate_multiple_object_poses(pose_setter_func):
     :param pose_setter_func: The function to set multiple poses of the objects.
     """
 
-    def wrapper(world: World, object_poses: Dict[Object, Pose]):
+    def wrapper(world: World, object_poses: Dict[Object, PoseStamped]):
 
         if not world.current_world.conf.validate_goals:
             return pose_setter_func(world, object_poses)

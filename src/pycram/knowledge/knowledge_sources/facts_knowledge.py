@@ -10,7 +10,7 @@ from ...datastructures.enums import Arms, ObjectType, Grasp
 from ..knowledge_source import KnowledgeSource
 from ...datastructures.property import ReachableProperty, GraspableProperty, GripperIsFreeProperty, VisibleProperty, \
     SpaceIsFreeProperty, EmptyProperty
-from ...datastructures.pose import Pose
+from ...datastructures.pose import PoseStamped
 from ...datastructures.world import World, UseProspectionWorld
 from ...pose_generator_and_validator import PoseGenerator, reachability_validator
 from ...robot_description import RobotDescription
@@ -44,7 +44,7 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
     def clear_state(self) -> None:
         pass
 
-    def reachable(self, pose: Pose) -> ReasoningResult:
+    def reachable(self, pose: PoseStamped) -> ReasoningResult:
         """
         Check if a given pose is reachable by the robot. Simplified version of the CostmapLocation which can't be used
         here due to cyclic imports.
@@ -52,7 +52,7 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
         :param pose: Pose which should be checked
         :return: A ReasoningResult with the result of the check and possible arms
         """
-        # ground_pose = Pose(pose.position_as_list())
+        # ground_pose = Pose(pose.position.to_list())
         # ground_pose.position.z = 0
         # occupancy = OccupancyCostmap(0.32, False, 200, 0.02, ground_pose)
         # gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
@@ -98,7 +98,7 @@ class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, Sp
 
             return ReasoningResult(False)
 
-    def space_is_free(self, pose: Pose) -> ReasoningResult:
+    def space_is_free(self, pose: PoseStamped) -> ReasoningResult:
         om = OccupancyCostmap(0.35, False, 200, 0.02, pose)
         origin_map = om.map[200 // 2 - 10: 200 // 2 + 10, 200 // 2 - 10: 200 // 2 + 10]
         return ReasoningResult(np.sum(origin_map) > 400 * 0.9)

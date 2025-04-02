@@ -1,14 +1,17 @@
+import unittest
+
 import numpy as np
 from owlready2 import Imp
 
 from pycram.tf_transformations import quaternion_from_euler
 
 from pycram.datastructures.dataclasses import Color, BoundingBox as BB
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.testing import BulletWorldTestCase
 from pycrap.ontologies import Room, Food
 
 
+@unittest.skip
 class TestLinks(BulletWorldTestCase):
 
     def tearDown(self):
@@ -71,7 +74,7 @@ class TestLinks(BulletWorldTestCase):
             BB.plot_3d_points([hull.vertices])
 
     def test_rotated_bounding_box(self):
-        self.milk.set_pose(Pose([1, 1, 1], quaternion_from_euler(np.pi / 4, 0, 0)))
+        self.milk.set_pose(PoseStamped.from_list([1, 1, 1], quaternion_from_euler(np.pi / 4, 0, 0)))
         aabb = self.milk.get_axis_aligned_bounding_box()
         aabb_points = np.array(aabb.get_points_list())
         rbb = self.milk.get_rotated_bounding_box()

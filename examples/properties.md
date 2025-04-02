@@ -25,25 +25,25 @@ In this example we will define an example property and use this as a running exa
 in creating a new property. 
 
 ## Creating a new Property
-To create a new property in PyCRAM we simply need to create a new class which inherits from the ```Property``` class. 
+To create a new property in PyCRAM we simply need to create a new class which inherits from the ```Property``` class.
 
 ```python
 from pycram.datastructures.property import Property
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.dataclasses import ReasoningResult
 from pycram.failures import ReasoningError
 from abc import abstractmethod
 
+
 class ExampleProperty(Property):
-    
     property_exception = ReasoningError
-    
-    def __init__(self, pose: Pose):
+
+    def __init__(self, pose: PoseStamped):
         super().__init__()
         self.pose = pose
-    
+
     @abstractmethod
-    def example(self, pose: Pose) -> ReasoningResult:
+    def example(self, pose: PoseStamped) -> ReasoningResult:
         raise NotImplementedError
 ```
 
@@ -73,29 +73,30 @@ information how a Knowledge Source is created pleas refere to the respective exa
 
 ```python
 from pycram.knowledge.knowledge_source import KnowledgeSource
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.dataclasses import ReasoningResult
 
+
 class ExampleKnowledge(KnowledgeSource, ExampleProperty):
-    
+
     def __init__(self):
         super().__init__(name="example", priority=0)
         self.parameter = {}
-        
+
     def is_available(self) -> bool:
         return True
-    
+
     def is_connected(self) -> bool:
         return True
-    
+
     def connect(self):
         pass
-    
+
     def clear_state(self):
         self.parameter = {}
-        
-    def example(self, pose: Pose) -> ReasoningResult:
-        null_pose = Pose([1, 1, 1])
+
+    def example(self, pose: PoseStamped) -> ReasoningResult:
+        null_pose = PoseStamped.from_list([1, 1, 1])
         distance = null_pose.dist(pose)
         return ReasoningResult(distance == 0.0)
 

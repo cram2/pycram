@@ -6,7 +6,7 @@ from .tasktree import task_tree
 from .datastructures.world import UseProspectionWorld
 from .worlds.bullet_world import BulletWorld
 from .world_concepts.world_object import Object
-from .datastructures.pose import Pose
+from .datastructures.pose import PoseStamped
 from .robot_description import RobotDescription, RobotDescriptionManager
 from .process_module import ProcessModule
 from .datastructures.enums import WorldMode
@@ -28,7 +28,7 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(mode=cls.render_mode)
-        cls.viz_marker_publisher = VizMarkerPublisher()
+        # cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):
         task_tree.reset_tree()
@@ -46,7 +46,7 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.viz_marker_publisher._stop_publishing()
+        # cls.viz_marker_publisher._stop_publishing()
         cls.world.exit()
 
 
@@ -64,12 +64,12 @@ class BulletWorldTestCase(EmptyBulletWorldTestCase):
         super().setUpClass()
         rdm = RobotDescriptionManager()
         rdm.load_description("pr2")
-        cls.milk = Object("milk", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        cls.milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
         cls.robot = Object(RobotDescription.current_robot_description.name, Robot,
                            RobotDescription.current_robot_description.name + cls.extension)
         cls.kitchen = Object("kitchen", Kitchen, "kitchen" + cls.extension)
         cls.cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
-                            pose=Pose([1.3, 0.7, 0.95]))
+                            pose=PoseStamped.from_list([1.3, 0.7, 0.95]))
 
 class BulletWorldGUITestCase(BulletWorldTestCase):
     render_mode = WorldMode.GUI

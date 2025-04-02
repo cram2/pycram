@@ -5,11 +5,11 @@ from .designator import DesignatorDescription, BaseMotion
 from .failures import PlanFailure
 from threading import Lock
 from typing_extensions import Union, Tuple, Any, List, Optional, Type, Callable
-from .language import Language, Monitor
+from .language import LanguageMixin, Monitor
 from .process_module import ProcessModule
 
 
-class FailureHandling(Language):
+class FailureHandling(LanguageMixin):
     """
     Base class for failure handling mechanisms in automated systems or workflows.
 
@@ -117,7 +117,7 @@ class RetryMonitor(FailureHandling):
             for key, value in recovery.items():
                 if not issubclass(key, BaseException):
                     raise TypeError("Keys in the recovery dictionary must be exception types.")
-                if not isinstance(value, Language):
+                if not isinstance(value, LanguageMixin):
                     raise TypeError("Values in the recovery dictionary must be instances of the Language class.")
             self.recovery = recovery
 

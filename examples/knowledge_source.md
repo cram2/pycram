@@ -73,43 +73,44 @@ parameter of action designator. The second is to specify which properties or kno
 answer. 
 
 To define which properties a Knowledge Source can handle we simply use the respective properties as mix-in for the class 
-definition. With this let's take another look at our Knowledge Source with the handling of two properties. 
+definition. With this let's take another look at our Knowledge Source with the handling of two properties.
 
 ```python
 from pycram.knowledge.knowledge_source import KnowledgeSource
 from pycram.datastructures.property import ReachableProperty, SpaceIsFreeProperty
 from pycram.datastructures.world import World
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.dataclasses import ReasoningResult
 from pycram.costmaps import OccupancyCostmap
 from pycram.ros import loginfo
 import numpy as np
 
+
 class ExampleKnowledge(KnowledgeSource, ReachableProperty, SpaceIsFreeProperty):
-    
+
     def __init__(self):
         super().__init__(name="example", priority=0)
         self.parameter = {}
-        
+
     def is_available(self) -> bool:
         return True
-    
+
     def is_connected(self) -> bool:
         return True
-    
+
     def connect(self):
         pass
-    
+
     def clear_state(self):
         self.parameter = {}
-        
-    def reachable(self, pose: Pose) -> ReasoningResult:
+
+    def reachable(self, pose: PoseStamped) -> ReasoningResult:
         loginfo(f"Checking reachability for pose {pose}")
         robot_pose = World.robot.pose
         distance = pose.dist(robot_pose)
         return ReasoningResult(distance < 0.6)
-    
-    def space_is_free(self, pose: Pose) -> ReasoningResult:
+
+    def space_is_free(self, pose: PoseStamped) -> ReasoningResult:
         loginfo(f"Checking if the space is free around {pose}")
         om = OccupancyCostmap(0.2, False, 100, 0.02, pose)
         return ReasoningResult(np.sum(om.map) == 6561)
@@ -139,14 +140,14 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import WorldMode, ObjectType
 from pycram.knowledge.knowledge_engine import KnowledgeEngine
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.property import ReachableProperty, SpaceIsFreeProperty
 from pycrap.ontologies import Robot
 
 world = BulletWorld(WorldMode.GUI)
 pr2 = Object("pr2", Robot, "pr2.urdf")
 
-target_pose = Pose([0.3, 0, 0.2])
+target_pose = PoseStamped.from_list([0.3, 0, 0.2])
 property = ReachableProperty(target_pose) & SpaceIsFreeProperty(target_pose)
 
 ke = KnowledgeEngine()

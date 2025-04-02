@@ -6,7 +6,7 @@ import pybullet as pb
 
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.datastructures.world import Object
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.ros_utils.force_torque_sensor import ForceTorqueSensor
 from pycram.ros_utils.joint_state_publisher import JointStatePublisher
 from pycram.ros_utils.tf_broadcaster import TFBroadcaster
@@ -16,8 +16,8 @@ PYCRAM_DIR = os.path.join(SCRIPT_DIR, os.pardir, os.pardir)
 RESOURCE_DIR = os.path.join(PYCRAM_DIR, "resources")
 
 SPAWNING_POSES = {
-    "robot": Pose([0, 0, 0], [0.0, 0.0, 0.0, 1.0]),   # x,y,z,qx,qy,qz,qw
-    "cereal": Pose([0.5, 0.5, 2.0], [0.0, 0.0, 0.0, 1.0])
+    "robot": PoseStamped.from_list([0, 0, 0], [0.0, 0.0, 0.0, 1.0]),   # x,y,z,qx,qy,qz,qw
+    "cereal": PoseStamped.from_list([0.5, 0.5, 2.0], [0.0, 0.0, 0.0, 1.0])
 }
 
 

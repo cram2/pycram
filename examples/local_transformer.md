@@ -25,7 +25,7 @@ This step involves importing the required modules and initializing key component
 ```python
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
-from pycram.datastructures.pose import Transform, Pose
+from pycram.datastructures.pose import TransformStamped, PoseStamped
 from pycram.local_transformer import LocalTransformer
 from pycram.datastructures.enums import WorldMode
 ```
@@ -102,9 +102,9 @@ You can also transform poses relative to other poses. by using the transform_pos
 Transform.
 
 ```python
-from pycram.datastructures.pose import Transform
+from pycram.datastructures.pose import TransformStamped
 
-l.set_transform(Transform([1, 1, 1], [0, 0, 0, 1], "map", "test_frame"), "example")
+l.set_transform(TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], "map", "test_frame"), "example")
 p = Pose()
 
 transformed_pose = l.transform_pose(p, "test_frame")

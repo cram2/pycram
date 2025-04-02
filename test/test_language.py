@@ -7,7 +7,7 @@ from pycram.datastructures.enums import ObjectType, State
 from pycram.failure_handling import RetryMonitor
 from pycram.fluent import Fluent
 from pycram.failures import PlanFailure, NotALanguageExpression
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.language import Sequential, Language, Parallel, TryAll, TryInOrder, Monitor, Code
 from pycram.process_module import simulated_robot
 from pycram.testing import BulletWorldTestCase
@@ -17,11 +17,11 @@ from pycram.robot_description import RobotDescription
 class LanguageTestCase(BulletWorldTestCase):
 
     def test_inheritance(self):
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         self.assertTrue(issubclass(act.__class__, Language))
 
     def test_simplify_tree(self):
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         act2 = MoveTorsoActionDescription([TorsoState.HIGH])
         act3 = DetectActionDescription([ObjectType.JEROEN_CUP])
 
@@ -30,7 +30,7 @@ class LanguageTestCase(BulletWorldTestCase):
         self.assertEqual(plan.height, 1)
 
     def test_sequential_construction(self):
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         act2 = MoveTorsoActionDescription([TorsoState.HIGH])
         act3 = DetectActionDescription([ObjectType.JEROEN_CUP])
 
@@ -39,7 +39,7 @@ class LanguageTestCase(BulletWorldTestCase):
         self.assertEqual(len(plan.children), 3)
 
     def test_parallel_construction(self):
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         act2 = MoveTorsoActionDescription([TorsoState.HIGH])
         act3 = DetectActionDescription([ObjectType.JEROEN_CUP])
 
@@ -48,7 +48,7 @@ class LanguageTestCase(BulletWorldTestCase):
         self.assertEqual(len(plan.children), 3)
 
     def test_try_in_order_construction(self):
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         act2 = MoveTorsoActionDescription([TorsoState.HIGH])
         act3 = DetectActionDescription([ObjectType.JEROEN_CUP])
 
@@ -57,7 +57,7 @@ class LanguageTestCase(BulletWorldTestCase):
         self.assertEqual(len(plan.children), 3)
 
     def test_try_all_construction(self):
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         act2 = MoveTorsoActionDescription([TorsoState.HIGH])
         act3 = DetectActionDescription([ObjectType.JEROEN_CUP])
 
@@ -66,7 +66,7 @@ class LanguageTestCase(BulletWorldTestCase):
         self.assertEqual(len(plan.children), 3)
 
     def test_combination_construction(self):
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         act2 = MoveTorsoActionDescription([TorsoState.HIGH])
         act3 = DetectActionDescription([ObjectType.JEROEN_CUP])
 
@@ -76,7 +76,7 @@ class LanguageTestCase(BulletWorldTestCase):
         self.assertEqual(plan.height, 2)
 
     def test_code_construction(self):
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         act2 = MoveTorsoActionDescription([TorsoState.HIGH])
         code = Code(lambda: True)
 
@@ -85,13 +85,13 @@ class LanguageTestCase(BulletWorldTestCase):
         self.assertEqual(plan.height, 1)
 
     def test_pickup_par_construction(self):
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         act2 = PickUpActionDescription(BelieveObject(names=["milk"]), ["left"], ["front"])
 
         self.assertRaises(AttributeError, lambda: act | act2)
 
     def test_pickup_try_all_construction(self):
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         act2 = PickUpActionDescription(BelieveObject(names=["milk"]), ["left"], ["front"])
 
         self.assertRaises(AttributeError, lambda: act ^ act2)
@@ -214,14 +214,14 @@ class LanguageTestCase(BulletWorldTestCase):
         self.assertRaises(AttributeError, lambda: (act + act2) * park)
 
     def test_perform_desig(self):
-        act = NavigateActionDescription([Pose([0.3, 0.3, 0])])
+        act = NavigateActionDescription([PoseStamped.from_list([0.3, 0.3, 0])])
         act2 = MoveTorsoActionDescription([TorsoState.HIGH])
         act3 = ParkArmsActionDescription([Arms.BOTH])
 
         plan = act + act2 + act3
         with simulated_robot:
             plan.perform()
-        self.assertEqual(self.robot.get_pose(), Pose([0.3, 0.3, 0]))
+        self.assertEqual(self.robot.get_pose(), PoseStamped.from_list([0.3, 0.3, 0]))
         self.assertEqual(self.robot.get_joint_position("torso_lift_joint"), 0.3)
         for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right", StaticJointState.Park).items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
@@ -232,14 +232,14 @@ class LanguageTestCase(BulletWorldTestCase):
         def test_set(param):
             self.assertTrue(param)
 
-        act = NavigateActionDescription([Pose([0.3, 0.3, 0])])
+        act = NavigateActionDescription([PoseStamped.from_list([0.3, 0.3, 0])])
         act2 = Code(test_set, {"param": True})
         act3 = Code(test_set, {"param": True})
 
         plan = act + act2 + act3
         with simulated_robot:
             plan.perform()
-        self.assertEqual(self.robot.get_pose(), Pose([0.3, 0.3, 0]))
+        self.assertEqual(self.robot.get_pose(), PoseStamped.from_list([0.3, 0.3, 0]))
 
     def test_perform_parallel(self):
 
@@ -266,7 +266,7 @@ class LanguageTestCase(BulletWorldTestCase):
     def test_exception_sequential(self):
         def raise_except():
             raise PlanFailure
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         code = Code(raise_except)
 
         plan = act + code
@@ -279,7 +279,7 @@ class LanguageTestCase(BulletWorldTestCase):
     def test_exception_try_in_order(self):
         def raise_except():
             raise PlanFailure
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         code = Code(raise_except)
 
         plan = act - code
@@ -293,7 +293,7 @@ class LanguageTestCase(BulletWorldTestCase):
     def test_exception_parallel(self):
         def raise_except():
             raise PlanFailure
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         code = Code(raise_except)
 
         plan = act | code
@@ -307,7 +307,7 @@ class LanguageTestCase(BulletWorldTestCase):
     def test_exception_try_all(self):
         def raise_except():
             raise PlanFailure
-        act = NavigateActionDescription([Pose()])
+        act = NavigateActionDescription([PoseStamped()])
         code = Code(raise_except)
 
         plan = act ^ code

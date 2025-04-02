@@ -1,7 +1,7 @@
-from ..language import Language
+from ..language import LanguageMixin
 from ..world_concepts.world_object import Object, World
 from ..datastructures.enums import ObjectType
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 import gymnasium as gym
 import pycrap
 
@@ -22,18 +22,18 @@ class PyCRAMGym(gym.Env):
     The robot should be a real Robot Object, but in order to stay in line with the world it is just the name of the 
     urdf that will be loaded as a robot.
     """
-    plan: Language # plan language object that can performed
+    plan: LanguageMixin # plan language object that can performed
     """
     Plan langauge object that can get executed. 
     """
 
-    def __init__(self, inWorld: str, inRobot: str, inPlan: Language):
+    def __init__(self, inWorld: str, inRobot: str, inPlan: LanguageMixin):
         super().__init__()
         if World.current_world is not None:
             if inRobot.endswith('.urdf'):
-                self.robot = Object(inRobot.split('.urdf')[0], pycrap.Robot, inRobot, pose=Pose([1, 2, 0]))
+                self.robot = Object(inRobot.split('.urdf')[0], pycrap.Robot, inRobot, pose=PoseStamped.from_list([1, 2, 0]))
             else:
-                self.robot = Object(inRobot, pycrap.Robot, inRobot+".urdf", pose=Pose([1, 2, 0]))
+                self.robot = Object(inRobot, pycrap.Robot, inRobot +".urdf", pose=PoseStamped.from_list([1, 2, 0]))
             self.world = Object(inWorld, pycrap.Apartment, inWorld + ".urdf")
             self.plan = inPlan
 

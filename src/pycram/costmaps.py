@@ -18,10 +18,10 @@ from .tf_transformations import quaternion_from_matrix, quaternion_from_euler
 from typing_extensions import Tuple, List, Optional, Iterator
 
 from .datastructures.dataclasses import BoxVisualShape, Color
-from .datastructures.pose import Transform
+from .datastructures.pose import TransformStamped
 from .ros import logwarn
 from .datastructures.dataclasses import AxisAlignedBoundingBox
-from .datastructures.pose import Pose
+from .datastructures.pose import PoseStamped
 from .datastructures.world import UseProspectionWorld
 from .datastructures.world import World
 from .description import Link
@@ -65,7 +65,7 @@ class Costmap:
     def __init__(self, resolution: float,
                  height: int,
                  width: int,
-                 origin: Pose,
+                 origin: PoseStamped,
                  map: np.ndarray,
                  world: Optional[World] = None):
         """
@@ -86,7 +86,7 @@ class Costmap:
         self.height: int = height
         self.width: int = width
         local_transformer = LocalTransformer()
-        self.origin: Pose = local_transformer.transform_pose(origin, 'map')
+        self.origin: PoseStamped = local_transformer.transform_pose(origin, 'map')
         self.map: np.ndarray = map
         self.vis_ids: List[int] = []
 
@@ -128,11 +128,13 @@ class Costmap:
         # Set to 127 for since this is the maximal amount of links in a multibody
         for cell_parts in self._chunks(cells, 127):
             offset = [[-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05], [0, 0, 0, 1]]
-            origin_transform = (Transform(self.origin.position_as_list(), self.origin.orientation_as_list())
-                                .get_homogeneous_matrix())
-            offset_transform = (Transform(offset[0], offset[1]).get_homogeneous_matrix())
-            new_pose_transform = np.dot(origin_transform, offset_transform)
-            new_pose = Pose(new_pose_transform[:3, 3].tolist(), quaternion_from_matrix(new_pose_transform))
+            origin_transform = TransformStamped.from_list(self.origin.position.to_list(), self.origin.orientation.to_list())
+            #                    .get_homogeneous_matrix())
+            offset_transform = TransformStamped.from_list(offset[0], offset[1])
+            #offset_transform = (TransformStamped.from_list(offset[0], offset[1]).get_homogeneous_matrix())
+            #new_pose_transform = np.dot(origin_transform, offset_transform)
+            new_pose_transform = origin_transform * offset_transform
+            new_pose = PoseStamped.from_list(new_pose_transform.translation.to_list(), new_pose_transform.rotation.to_list())
             map_obj = self.world.create_multi_body_from_visual_shapes(cell_parts, new_pose)
             self.vis_ids.append(map_obj)
 
@@ -290,7 +292,7 @@ class OccupancyCostmap(Costmap):
                  from_ros: Optional[bool] = False,
                  size: Optional[int] = 100,
                  resolution: Optional[float] = 0.02,
-                 origin: Optional[Pose] = None,
+                 origin: Optional[PoseStamped] = None,
                  world: Optional[World] = None):
         """
         Constructor for the Occupancy costmap, the actual costmap is received
@@ -328,7 +330,7 @@ class OccupancyCostmap(Costmap):
                              np.rot90(np.flip(self._convert_map(self.original_map), 0)))
         else:
             self.size = size
-            self.origin = Pose() if not origin else origin
+            self.origin = PoseStamped.from_list() if not origin else origin
             lt = LocalTransformer()
             self.origin = lt.transform_pose(self.origin, "map")
             self.resolution = resolution
@@ -336,7 +338,7 @@ class OccupancyCostmap(Costmap):
             self.map = self._create_from_world(size, resolution)
             Costmap.__init__(self, resolution, size, size, self.origin, self.map)
 
-    def _calculate_diff_origin(self, height: int, width: int) -> Pose:
+    def _calculate_diff_origin(self, height: int, width: int) -> PoseStamped:
         """
         Calculates the difference between the origin of the costmap
         as stated by the meta-data and the actual middle of the costmap which
@@ -350,7 +352,7 @@ class OccupancyCostmap(Costmap):
         """
         actual_origin = [int(height / 2) * self.resolution, int(width / 2) * self.resolution, 0]
         origin = np.array(self.meta_origin) + np.array(actual_origin)
-        return Pose(origin.tolist())
+        return PoseStamped.from_list(origin.tolist())
 
     @staticmethod
     def _get_map() -> np.ndarray:
@@ -399,7 +401,7 @@ class OccupancyCostmap(Costmap):
         sum = np.sum(sub_matrices, axis=2)
         return (sum == 0).astype('int16')
 
-    def create_sub_map(self, sub_origin: Pose, size: int) -> Costmap:
+    def create_sub_map(self, sub_origin: PoseStamped, size: int) -> Costmap:
         """
         Creates a smaller map from the overall occupancy map, the new map is centered
         around the point specified by "sub_origin" and has the size "size". The
@@ -410,7 +412,7 @@ class OccupancyCostmap(Costmap):
         :return: The sub costmap, represented as 2d numpy array.
         """
         # To ensure this is a numpy array
-        sub_origin = np.array(sub_origin.position_as_list())
+        sub_origin = np.array(sub_origin.position.to_list())
         # Since origin obtained from the meta data uses bottom left corner as reference.
         sub_origin *= -1
         # Calculates origin of sub costmap as vector between origin and given sub_origin
@@ -426,7 +428,7 @@ class OccupancyCostmap(Costmap):
                   new_origin[0]: new_origin[0] + size]
         # Convert map to fit with the other costmaps
         sub_map = np.rot90(np.flip(self._convert_map(sub_map), 0))
-        return Costmap(self.resolution, size, size, Pose(list(sub_origin * -1)), sub_map)
+        return Costmap(self.resolution, size, size, PoseStamped.from_list(list(sub_origin * -1)), sub_map)
 
     def _create_from_world(self, size: int, resolution: float) -> np.ndarray:
         """
@@ -437,7 +439,7 @@ class OccupancyCostmap(Costmap):
         :param size: The size of this costmap. The size specifies the length of one side of the costmap. The costmap is created as a square.
         :param resolution: The resolution of this costmap. This determines how much meter a pixel in the costmap represents.
         """
-        origin_position = self.origin.position_as_list()
+        origin_position = self.origin.position.to_list()
         # Generate 2d grid with indices
         indices = np.concatenate(np.dstack(np.mgrid[int(-size / 2):int(size / 2), int(-size / 2):int(size / 2)]),
                                  axis=0) * resolution + np.array(origin_position[:2])
@@ -502,7 +504,7 @@ class VisibilityCostmap(Costmap):
                  max_height: float,
                  size: Optional[int] = 100,
                  resolution: Optional[float] = 0.02,
-                 origin: Optional[Pose] = None,
+                 origin: Optional[PoseStamped] = None,
                  world: Optional[World] = None,
                  target_object: Optional[Object] = None,
                  robot: Optional[Object] = None):
@@ -536,7 +538,7 @@ class VisibilityCostmap(Costmap):
         self.max_height: float = max_height
         # for pr2 = 1.6
         self.min_height: float = min_height
-        self.origin: Pose = Pose() if not origin else origin
+        self.origin: PoseStamped = PoseStamped.from_list() if not origin else origin
         self.target_object: Optional[Object] = target_object
         self.robot: Optional[Object] = robot
         self._generate_map()
@@ -561,7 +563,7 @@ class VisibilityCostmap(Costmap):
 
     @target_object.setter
     def target_object(self, target_object: Optional[Object]) -> None:
-        if target_object is not None and not isinstance(target_object, Pose):
+        if target_object is not None and not isinstance(target_object, PoseStamped):
             self._target_object = World.current_world.get_prospection_object_for_object(target_object)
             self.target_original_pose = self._target_object.pose
         else:
@@ -570,13 +572,13 @@ class VisibilityCostmap(Costmap):
 
     def move_target_and_robot_far_away(self):
         if self.target_object is not None:
-            self.target_object.set_pose(Pose([self.origin.position.x + self.size * self.resolution * 2,
-                                              self.origin.position.y + self.size * self.resolution * 2,
-                                              self.target_original_pose.position.z]))
+            self.target_object.set_pose(PoseStamped.from_list([self.origin.position.x + self.size * self.resolution * 2,
+                                                     self.origin.position.y + self.size * self.resolution * 2,
+                                                     self.target_original_pose.position.z]))
         if self.robot is not None:
-            self.robot.set_pose(Pose([self.origin.position.x + self.size * self.resolution * 3,
-                                      self.origin.position.y + self.size * self.resolution * 3,
-                                      self.robot_original_pose.position.z]))
+            self.robot.set_pose(PoseStamped.from_list([self.origin.position.x + self.size * self.resolution * 3,
+                                             self.origin.position.y + self.size * self.resolution * 3,
+                                             self.robot_original_pose.position.z]))
 
     def return_target_and_robot_to_their_original_position(self):
         if self.target_original_pose is not None:
@@ -752,7 +754,7 @@ class GaussianCostmap(Costmap):
     """
 
     def __init__(self, mean: int, sigma: float, resolution: Optional[float] = 0.02,
-                 origin: Optional[Pose] = None):
+                 origin: Optional[PoseStamped] = None):
         """
         This Costmap creates a 2D gaussian distribution around the origin with
         the specified size.
@@ -768,7 +770,7 @@ class GaussianCostmap(Costmap):
         self.gau: np.ndarray = self._gaussian_window(mean, sigma)
         self.map: np.ndarray = np.outer(self.gau, self.gau)
         self.size: float = mean
-        self.origin: Pose = Pose() if not origin else origin
+        self.origin: PoseStamped = PoseStamped.from_list() if not origin else origin
         Costmap.__init__(self, resolution, mean, mean, self.origin, self.map)
 
     def _gaussian_window(self, mean: int, std: float) -> np.ndarray:
@@ -803,7 +805,7 @@ class SemanticCostmap(Costmap):
         self.object: Object = obj
         self.link: Link = obj.get_link(link_name)
         self.resolution: float = resolution
-        self.origin: Pose = obj.get_link_pose(link_name)
+        self.origin: PoseStamped = obj.get_link_pose(link_name)
         self.height: int = 0
         self.width: int = 0
         self.map: np.ndarray = []
@@ -979,7 +981,7 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
         model = uniform_measure_of_event(self.valid_area)
         return model
 
-    def sample_to_pose(self, sample: np.ndarray) -> Pose:
+    def sample_to_pose(self, sample: np.ndarray) -> PoseStamped:
         """
         Convert a sample from the costmap to a pose.
 
@@ -991,9 +993,9 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
         position = [x, y, self.origin.position.z]
         angle = np.arctan2(position[1] - self.origin.position.y, position[0] - self.origin.position.x) + np.pi
         orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
-        return Pose(position, orientation, self.origin.frame)
+        return PoseStamped.from_list(position, orientation, self.origin.frame_id)
 
-    def __iter__(self) -> Iterator[Pose]:
+    def __iter__(self) -> Iterator[PoseStamped]:
         model = self.as_distribution()
         samples = model.sample(self.number_of_samples)
         for sample in samples:

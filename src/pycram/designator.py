@@ -9,7 +9,7 @@ from datetime import timedelta
 from sqlalchemy.orm.session import Session
 from pycrap.ontologies import PhysicalObject, Agent
 from .datastructures.enums import ObjectType
-from .datastructures.pose import Pose, GraspDescription
+from .datastructures.pose import PoseStamped, GraspDescription
 from .datastructures.property import EmptyProperty
 from .failures import PlanFailure
 from sqlalchemy.orm.session import Session
@@ -20,7 +20,7 @@ from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, 
     Self, Iterator
 from typing import get_type_hints
 
-from .language import Language
+from .language import LanguageMixin
 from .local_transformer import LocalTransformer
 from .orm.action_designator import (Action as ORMAction)
 from .orm.base import RobotState, ProcessMetaData
@@ -133,7 +133,7 @@ class ActionDescription:
     """
     The performable designator_description with a single element for each list of possible parameter.
     """
-    robot_position: Pose = field(init=False)
+    robot_position: PoseStamped = field(init=False)
     """
     The position of the robot at the start of the action.
     """
@@ -142,7 +142,7 @@ class ActionDescription:
     The torso height of the robot at the start of the action.
     """
 
-    robot_type: Type[Agent] = field(init=False)
+    _robot_type: Type[Agent] = field(init=False)
     """
     The type of the robot at the start of the action.
     """
@@ -163,7 +163,7 @@ class ActionDescription:
                 RobotDescription.current_robot_description.torso_joint)
         else:
             self.robot_torso_height = 0.0
-        self.robot_type = World.robot.obj_type
+        self._robot_type = World.robot.obj_type
 
     def perform(self) -> Any:
         """
@@ -227,7 +227,7 @@ class ActionDescription:
         metadata = ProcessMetaData().insert(session)
 
         # create robot-state object
-        robot_state = RobotState(self.robot_torso_height, str(self.robot_type))
+        robot_state = RobotState(self.robot_torso_height, str(self._robot_type))
         robot_state.pose = pose
         robot_state.process_metadata = metadata
         session.add(robot_state)
@@ -285,7 +285,7 @@ class ActionDescription:
 
 
 
-class LocationDesignatorDescription(DesignatorDescription, PartialDesignator, Iterable[Pose]):
+class LocationDesignatorDescription(DesignatorDescription, PartialDesignator, Iterable[PoseStamped]):
     """
     Parent class of location designator_description descriptions.
     """
@@ -293,7 +293,7 @@ class LocationDesignatorDescription(DesignatorDescription, PartialDesignator, It
     def __init__(self):
         super().__init__()
 
-    def ground(self) -> Pose:
+    def ground(self) -> PoseStamped:
         """
         Find a location that satisfies all constrains.
         """

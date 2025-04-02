@@ -71,7 +71,7 @@ class StretchClose(ProcessModule):
                                                            container_joint)[0])
 
 
-def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
+def _move_arm_tcp(target: PoseStamped, robot: Object, arm: Arms) -> None:
     gripper = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
 
     # inv = request_ik(target, robot, joints, gripper)

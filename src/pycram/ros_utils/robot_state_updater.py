@@ -8,7 +8,7 @@ from typing_extensions import Optional
 
 from ..datastructures.world import World
 from ..robot_description import RobotDescription
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..ros import  Time, Duration
 from ..ros import  wait_for_message, create_timer
 
@@ -60,7 +60,7 @@ class WorldStateUpdater:
             else:
                 tf_frame = obj.tf_frame
             trans, rot = self.tf_listener.lookupTransform("/map", tf_frame, Time(0))
-            obj.set_pose(Pose(trans, rot))
+            obj.set_pose(PoseStamped(trans, rot))
 
     def _subscribe_joint_state(self, msg: JointState) -> None:
         """

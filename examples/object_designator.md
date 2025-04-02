@@ -35,7 +35,8 @@ For all following examples we need a BulletWorld, so let's create one.
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
+
 world = BulletWorld(WorldMode.DIRECT)
 ```
 

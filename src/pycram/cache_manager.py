@@ -12,7 +12,7 @@ from .ros import  loginfo
 if TYPE_CHECKING:
     from .description import ObjectDescription
     from .datastructures.dataclasses import Color
-    from .datastructures.pose import Transform
+    from .datastructures.pose import TransformStamped
 
 
 class CacheManager:
@@ -57,7 +57,7 @@ class CacheManager:
     def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
                                      object_description: ObjectDescription, object_name: str,
                                      scale_mesh: Optional[float] = None,
-                                     mesh_transform: Optional[Transform] = None,
+                                     mesh_transform: Optional[TransformStamped] = None,
                                      color: Optional[Color] = None) -> str:
         """
         Check if the file is already in the cache directory, if not preprocess and save in the cache.

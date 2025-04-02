@@ -3,7 +3,7 @@ from abc import abstractmethod
 
 from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.dataclasses import ReasoningResult
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.property import Property
 from pycram.failures import ReasoningError
 from pycram.knowledge.knowledge_source import KnowledgeSource
@@ -16,12 +16,12 @@ class TestProperty(Property):
     """
     property_exception = ReasoningError
 
-    def __init__(self, pose: Pose):
+    def __init__(self, pose: PoseStamped):
         super().__init__(None, None)
         self.pose = pose
 
     @abstractmethod
-    def test(self, pose: Pose) -> ReasoningResult:
+    def test(self, pose: PoseStamped) -> ReasoningResult:
         raise NotImplementedError
 
 
@@ -45,8 +45,8 @@ class TestKnowledge(KnowledgeSource, TestProperty):
     def clear_state(self):
         self.parameter = {}
 
-    def test(self, pose: Pose) -> ReasoningResult:
-        return ReasoningResult(Pose([1, 2, 3]).dist(pose) < 0.1, {pose.frame: pose})
+    def test(self, pose: PoseStamped) -> ReasoningResult:
+        return ReasoningResult(PoseStamped.from_list([1, 2, 3]).dist(pose) < 0.1, {pose.frame_id: pose})
 
 
 class KnowledgeSourceTestCase(unittest.TestCase):

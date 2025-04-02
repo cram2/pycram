@@ -6,7 +6,6 @@ import pathlib
 import xml.etree.ElementTree as ET
 
 import numpy as np
-from geometry_msgs.msg import Point
 from ..tf_transformations import quaternion_from_euler, euler_from_quaternion
 from typing_extensions import Union, List, Optional, Dict, Tuple, Type, Self
 from urdf_parser_py import urdf
@@ -17,7 +16,7 @@ from ..ros import get_ros_package_path
 from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
     SphereVisualShape, MeshVisualShape
 from ..datastructures.enums import JointType
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped, Point
 from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
 from ..failures import MultiplePossibleTipLinks
@@ -66,14 +65,14 @@ class LinkDescription(AbstractLinkDescription):
         return None
 
     @property
-    def origin(self) -> Union[Pose, None]:
+    def origin(self) -> Union[PoseStamped, None]:
         if self.collision is None:
             return None
         coll = self.collision[0] if isinstance(self.collision, List) else self.collision
         if coll.origin is None:
             return None
-        return Pose(coll.origin.xyz,
-                    quaternion_from_euler(*coll.origin.rpy))
+        return PoseStamped(coll.origin.xyz,
+                           quaternion_from_euler(*coll.origin.rpy))
 
     @property
     def name(self) -> str:
@@ -107,9 +106,9 @@ class JointDescription(AbstractJointDescription):
         super().__init__(urdf_description, is_virtual=is_virtual)
 
     @property
-    def origin(self) -> Pose:
-        return Pose(self.parsed_description.origin.xyz,
-                    quaternion_from_euler(*self.parsed_description.origin.rpy))
+    def origin(self) -> PoseStamped:
+        return PoseStamped(self.parsed_description.origin.xyz,
+                           quaternion_from_euler(*self.parsed_description.origin.rpy))
 
     @property
     def name(self) -> str:
@@ -236,7 +235,7 @@ class ObjectDescription(AbstractObjectDescription):
         self._link_map = {link.name: link for link in self.links}
 
     def add_joint(self, name: str, child: str, joint_type: JointType,
-                  axis: Optional[Point] = None, parent: Optional[str] = None, origin: Optional[Pose] = None,
+                  axis: Optional[Point] = None, parent: Optional[str] = None, origin: Optional[PoseStamped] = None,
                   lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
                   is_virtual: Optional[bool] = False) -> None:
         """
@@ -248,7 +247,7 @@ class ObjectDescription(AbstractObjectDescription):
         else:
             limit = None
         if origin is not None:
-            origin = urdf.Pose(origin.position_as_list(), euler_from_quaternion(origin.orientation_as_list()))
+            origin = urdf.Pose(origin.position.to_list(), euler_from_quaternion(origin.orientation.to_list()))
         if axis is not None:
             axis = [axis.x, axis.y, axis.z]
         if parent is None:
@@ -290,12 +289,12 @@ class ObjectDescription(AbstractObjectDescription):
                           joint_type: JointType = JointType.FIXED,
                           axis: Optional[Point] = None,
                           lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
-                          child_pose_wrt_parent: Optional[Pose] = None,
+                          child_pose_wrt_parent: Optional[PoseStamped] = None,
                           in_place: bool = False,
                           new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
         other_description = other.parsed_description
         if child_pose_wrt_parent is None:
-            child_pose_wrt_parent = Pose()
+            child_pose_wrt_parent = PoseStamped()
 
         original_child_link = child_link if child_link is not None else other.get_root()
         child_link = f"{other_description.name}_" + original_child_link
@@ -579,9 +578,9 @@ class ObjectDescription(AbstractObjectDescription):
         return '.urdf'
 
     @property
-    def origin(self) -> Pose:
-        return Pose(self.parsed_description.origin.xyz,
-                    quaternion_from_euler(*self.parsed_description.origin.rpy))
+    def origin(self) -> PoseStamped:
+        return PoseStamped(self.parsed_description.origin.xyz,
+                           quaternion_from_euler(*self.parsed_description.origin.rpy))
 
     @property
     def name(self) -> str:

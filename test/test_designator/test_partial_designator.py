@@ -2,7 +2,7 @@ import unittest
 
 from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.partial_designator import PartialDesignator
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.testing import BulletWorldTestCase
 from pycram.designators.action_designator import PickUpAction, PickUpAction, SetGripperAction, \
     MoveTorsoAction, NavigateAction, MoveTorsoActionDescription, NavigateActionDescription, PickUpActionDescription
@@ -83,16 +83,16 @@ class TestPartialActions(BulletWorldTestCase):
 
     def test_partial_navigate_action_perform(self):
         with simulated_robot:
-            move1 = NavigateActionDescription(Pose([1, 0, 0])).resolve().perform()
-            self.assertEqual(self.robot.pose.position_as_list(), [1, 0, 0])
+            move1 = NavigateActionDescription(PoseStamped.from_list([1, 0, 0])).resolve().perform()
+            self.assertEqual(self.robot.pose.position.to_list(), [1, 0, 0])
 
     def test_partial_navigate_action_multiple(self):
-        nav = NavigateActionDescription([Pose([1, 0, 0]), Pose([2, 0, 0]), Pose([3, 0, 0])])
+        nav = NavigateActionDescription([PoseStamped.from_list([1, 0, 0]), PoseStamped.from_list([2, 0, 0]), PoseStamped.from_list([3, 0, 0])])
         nav_goals = [[1, 0, 0], [2, 0, 0], [3, 0, 0]]
         for i, action in enumerate(nav):
             with simulated_robot:
                 action.perform()
-                self.assertEqual(self.robot.pose.position_as_list(), nav_goals[i])
+                self.assertEqual(self.robot.pose.position.to_list(), nav_goals[i])
 
     def test_partial_pickup_action(self):
         milk_desig = BelieveObject(names=["milk"])
