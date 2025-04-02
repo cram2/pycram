@@ -5,7 +5,7 @@ from .designator import DesignatorDescription, BaseMotion
 from .failures import PlanFailure
 from threading import Lock
 from typing_extensions import Union, Tuple, Any, List, Optional, Type, Callable
-from .language import LanguageMixin, Monitor
+from .language import LanguageMixin, MonitorNode
 from .process_module import ProcessModule
 
 
@@ -18,11 +18,11 @@ class FailureHandling(LanguageMixin):
     to be extended by subclasses that implement specific failure handling behaviors.
     """
 
-    def __init__(self, designator_description: Optional[Union[DesignatorDescription, Monitor]] = None):
+    def __init__(self, designator_description: Optional[Union[DesignatorDescription, MonitorNode]] = None):
         """
         Initializes a new instance of the FailureHandling class.
 
-        :param Union[DesignatorDescription, Monitor] designator_description: The description or context of the task
+        :param Union[DesignatorDescription, MonitorNode] designator_description: The description or context of the task
         or process for which the failure handling is being set up.
         """
         self.designator_description = designator_description
@@ -98,10 +98,10 @@ class RetryMonitor(FailureHandling):
     A dictionary that maps exception types to recovery actions
     """
 
-    def __init__(self, designator_description: Monitor, max_tries: int = 3, recovery: dict = None):
+    def __init__(self, designator_description: MonitorNode, max_tries: int = 3, recovery: dict = None):
         """
         Initializes a new instance of the RetryMonitor class.
-        :param Monitor designator_description: The Monitor instance to be used.
+        :param MonitorNode designator_description: The Monitor instance to be used.
         :param int max_tries: The maximum number of attempts to retry. Defaults to 3.
         :param dict recovery: A dictionary that maps exception types to recovery actions. Defaults to None.
         """

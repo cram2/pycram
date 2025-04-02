@@ -5,7 +5,6 @@ from datetime import datetime
 
 
 import networkx as nx
-from jedi.inference.value.iterable import Sequence
 
 from typing_extensions import Optional, Callable, Any, Dict, List, Self, Iterable, TYPE_CHECKING
 
@@ -84,12 +83,11 @@ class Plan(nx.DiGraph):
     def resolve(self):
         return self.root.children[0].designator_ref.resolve()
 
-    def __enter__(self):
-        self.prev_plan = Plan.current_plan
-        Plan.current_plan = self
+    def simplify_language_nodes(self):
+        for source, target in self.edges:
+            if isinstance(source, LanguageNode) and isinstance(target, LanguageNode):
+                self.merge_nodes(source, target)
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        Plan.current_plan = self.prev_plan
 
 
 @dataclass
@@ -167,7 +165,7 @@ def with_plan(func: Callable) -> Callable:
         plan = Plan()
         plan.add_edge(plan.root, node)
         if Plan.current_plan:
-            Plan.current_plan.mount(plan)
+            Plan.current_plan.mount(plan, Plan.current_plan.current_node)
         return plan
 
     return wrapper

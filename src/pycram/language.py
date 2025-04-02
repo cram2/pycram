@@ -27,19 +27,19 @@ def add_language_plan(child_plans: Iterable[Plan], root_node: LanguageNode) -> P
 
 
 def sequential(*plans: Sequence[Plan]) -> Plan:
-    return add_language_plan(plans, Sequential())
+    return add_language_plan(plans, SequentialNode())
 
 def parallel(*plans: Sequence[Plan]) -> Plan:
-    return add_language_plan(plans, Parallel())
+    return add_language_plan(plans, ParallelNode())
 
 def try_in_order(*plans: Sequence[Plan]) -> Plan:
-    return add_language_plan(plans, TryInOrder())
+    return add_language_plan(plans, TryInOrderNode())
 
 def try_all(*plans: Sequence[Plan]) -> Plan:
-    return add_language_plan(plans, TryAll())
+    return add_language_plan(plans, TryAllNode())
 
 def repeat(*plans: Sequence[Plan], repeat=1) -> Plan:
-    return add_language_plan(plans, Repeat(repeat=repeat))
+    return add_language_plan(plans, RepeatNode(repeat=repeat))
 
 
 
@@ -99,12 +99,12 @@ class LanguageMixin:
         :param other: Another Language expression
         :return: The Monitor which is now the new root node.
         """
-        if isinstance(self, Monitor) and isinstance(other, Monitor):
+        if isinstance(self, MonitorNode) and isinstance(other, MonitorNode):
             raise AttributeError("You can't attach a Monitor to another Monitor.")
-        if isinstance(self, Monitor):
+        if isinstance(self, MonitorNode):
             self.children = [other]
             return self
-        elif isinstance(other, Monitor):
+        elif isinstance(other, MonitorNode):
             other.children = [self]
             return other
 
@@ -154,7 +154,7 @@ class LanguageMixin:
         """
         for node in PreOrderIter(self.root):
             for child in node.children:
-                if isinstance(child, Monitor):
+                if isinstance(child, MonitorNode):
                     continue
                 if type(node) is type(child):
                     self.merge_nodes(node, child)
@@ -179,13 +179,74 @@ class LanguageMixin:
         raise NotImplementedError
 
 
+class LanguagePlanMixins:
+    def __enter__(self):
+        self.prev_plan = Plan.current_plan
+        Plan.current_plan = self
 
-@dataclass(unsafe_hash=True)
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        Plan.current_plan = self.prev_plan
+        if Plan.current_plan:
+            Plan.current_plan.mount(self, Plan.current_plan.current_node)
+
+
+class SequentialPlan(Plan, LanguagePlanMixins):
+
+    def __init__(self) -> None:
+        super().__init__()
+        seq = SequentialNode()
+        self.add_edge(self.root, seq)
+        self.current_node = seq
+
+
+class ParallelPlan(Plan, LanguagePlanMixins):
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__()
+        par = ParallelNode()
+        self.add_edge(self.root, par)
+        self.current_node = par
+
+class TryInOrderPlan(Plan, LanguagePlanMixins):
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__()
+        try_in_order = TryInOrderNode()
+        self.add_edge(self.root, try_in_order)
+        self.current_node = try_in_order
+
+class TryAllPLan(Plan, LanguagePlanMixins):
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__()
+        try_all = TryAllNode()
+        self.add_edge(self.root, try_all)
+        self.current_node = try_all
+
+class RepeatPlan(Plan, LanguagePlanMixins):
+
+    def __init__(self, repeat=1):
+        super().__init__(repeat=repeat)
+        repeat = RepeatNode()
+        self.add_edge(self.root, repeat)
+        self.current_node = repeat
+
+class MonitorPlan(Plan, LanguagePlanMixins):
+
+    def __init__(self, condition) -> None:
+        monitor = MonitorNode()
+        self.add_edge(self.root, monitor)
+        self.current_node = monitor
+
+
+@dataclass
 class LanguageNode(PlanNode):
     ...
 
-@dataclass(unsafe_hash=True)
-class Repeat(LanguageNode):
+
+
+@dataclass
+class RepeatNode(LanguageNode):
     repeat: int = 1
 
     """
@@ -218,8 +279,11 @@ class Repeat(LanguageNode):
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
-@dataclass(unsafe_hash=True)
-class Monitor(LanguageNode):
+    def __hash__(self):
+        return id(self)
+
+@dataclass
+class MonitorNode(LanguageNode):
     """
     Monitors a Language Expression and interrupts it when the given condition is evaluated to True.
 
@@ -290,8 +354,11 @@ class Monitor(LanguageNode):
         for child in self.children:
             child.interrupt()
 
-@dataclass(unsafe_hash=True)
-class Sequential(LanguageNode):
+    def __hash__(self):
+        return id(self)
+
+@dataclass
+class SequentialNode(LanguageNode):
     """
     Executes all children sequentially, an exception while executing a child does not terminate the whole process.
     Instead, the exception is saved to a list of all exceptions thrown during execution and returned.
@@ -337,8 +404,11 @@ class Sequential(LanguageNode):
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
-@dataclass(unsafe_hash=True)
-class TryInOrder(LanguageNode):
+    def __hash__(self):
+        return id(self)
+
+@dataclass
+class TryInOrderNode(LanguageNode):
     """
     Executes all children sequentially, an exception while executing a child does not terminate the whole process.
     Instead, the exception is saved to a list of all exceptions thrown during execution and returned.
@@ -389,8 +459,11 @@ class TryInOrder(LanguageNode):
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
-@dataclass(unsafe_hash=True)
-class Parallel(LanguageNode):
+    def __hash__(self):
+        return id(self)
+
+@dataclass
+class ParallelNode(LanguageNode):
     """
     Executes all children in parallel by creating a thread per children and executing them in the respective thread. All
     exceptions during execution will be caught, saved to a list and returned upon end.
@@ -470,8 +543,11 @@ class Parallel(LanguageNode):
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
-@dataclass(unsafe_hash=True)
-class TryAll(LanguageNode):
+    def __hash__(self):
+        return id(self)
+
+@dataclass
+class TryAllNode(LanguageNode):
     """
     Executes all children in parallel by creating a thread per children and executing them in the respective thread. All
     exceptions during execution will be caught, saved to a list and returned upon end.
@@ -544,8 +620,11 @@ class TryAll(LanguageNode):
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
-@dataclass(unsafe_hash=True)
-class Code(LanguageNode):
+    def __hash__(self):
+        return id(self)
+
+@dataclass
+class CodeNode(LanguageNode):
     """
     Executable code block in a plan.
 
@@ -589,5 +668,8 @@ class Code(LanguageNode):
 
     def interrupt(self) -> None:
         raise NotImplementedError
+
+    def __hash__(self):
+        return id(self)
 
 
