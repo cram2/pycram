@@ -31,7 +31,7 @@ left_arm.add_static_joint_states(StaticJointState.Park, {'arm_left_1_joint': 0.2
 tiago_description.add_kinematic_chain_description(left_arm)
 
 ################################## Left Gripper ##################################
-left_gripper = EndEffectorDescription("left_gripper", "gripper_left_link", "gripper_left_tool_link",
+left_gripper = EndEffectorDescription("left_gripper", "gripper_left_link", "gripper_left_grasping_frame",
                                       tiago_description.urdf_object)
 
 left_gripper.add_static_joint_states(GripperState.OPEN, {'gripper_left_left_finger_joint': 0.048,
@@ -58,7 +58,7 @@ right_arm.add_static_joint_states(StaticJointState.Park, {'arm_right_1_joint': 0
 tiago_description.add_kinematic_chain_description(right_arm)
 
 ################################## Right Gripper ##################################
-right_gripper = EndEffectorDescription("right_gripper", "gripper_right_link", "gripper_right_tool_link",
+right_gripper = EndEffectorDescription("right_gripper", "gripper_right_link", "gripper_right_grasping_frame",
                                        tiago_description.urdf_object)
 
 right_gripper.add_static_joint_states(GripperState.OPEN, {'gripper_right_left_finger_joint': 0.048,
@@ -91,7 +91,7 @@ tiago_description.add_kinematic_chain("neck", "torso_lift_link", "head_2_link")
 tiago_description.set_neck(yaw_joint="head_1_joint", pitch_joint="head_2_joint")
 
 ################################# Grasps ##################################
-front_grasp = [-0.5, 0.5, 0.5, -0.5]
+front_grasp = [0, 0, 0, 1]
 right_gripper.update_all_grasp_orientations(front_grasp)
 left_gripper.update_all_grasp_orientations(front_grasp)
 
