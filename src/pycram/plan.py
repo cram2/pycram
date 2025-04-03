@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 from dataclasses import field, dataclass
 from datetime import datetime
 
@@ -23,9 +24,9 @@ class Plan(nx.DiGraph):
     """
     current_plan: Plan = None
 
-    def __init__(self, root_node: PlanNode = None):
+    def __init__(self, root: PlanNode):
         super().__init__()
-        self.root: PlanNode = root_node or PlanNode(plan=self)
+        self.root = root
         self.add_node(self.root)
         self.current_node: PlanNode = self.root
 
@@ -33,7 +34,7 @@ class Plan(nx.DiGraph):
         mount_node = mount_node or self.root
         self.add_nodes_from(other.nodes)
         self.add_edges_from(other.edges)
-        self.merge_nodes(mount_node, other.root)
+        self.add_edge(mount_node, other.root)
         for node in self.nodes:
             node.plan = self
 
@@ -81,14 +82,15 @@ class Plan(nx.DiGraph):
         pass
 
     def resolve(self):
-        return self.root.children[0].designator_ref.resolve()
+        if isinstance(self.root, ActionNode):
+            return self.root.designator_ref.resolve()
 
-    def simplify_language_nodes(self):
-        for source, target in self.edges:
-            if isinstance(source, LanguageNode) and isinstance(target, LanguageNode):
-                self.merge_nodes(source, target)
-
-
+    def flattened_parameters(self):
+        result = {}
+        for node in self.nodes:
+            if isinstance(node, ActionNode):
+                result.update(node.flattened_parameters())
+        return result
 
 @dataclass
 class PlanNode:
@@ -119,11 +121,11 @@ class PlanNode:
 
     @property
     def parent(self):
-        return list(filter(None, [edge[0] if edge[1] == self else None for edge in  self.plan.edges]))
+        return list(self.plan.predecessors(self))[0]
 
     @property
     def children(self):
-        return list(filter(None, [edge[1] if edge[0] == self else None for edge in  self.plan.edges]))
+        return list(self.plan.successors(self))
 
     def __hash__(self):
         return id(self)
@@ -152,6 +154,11 @@ class ActionNode(PlanNode):
     def __repr__(self, *args, **kwargs):
         return f"<{self.designator_ref.performable.__name__}_{id(self)}>"
 
+    def flattened_parameters(self):
+        flattener = ClassFlattener(self.designator_ref.performable, )
+        flattened = flattener.flattened_fields
+        result = {str(hash(self)) + f".{key}": value for key, value in flattened.items()}
+        return result
 
 def with_tree(func: Callable) -> Callable:
     pass
@@ -162,8 +169,7 @@ def with_plan(func: Callable) -> Callable:
         action = func(*args, **kwargs)
         # TODO Maybe use bind_partial instead
         node = ActionNode(designator_ref=action, action="Action", kwargs=action.kwargs)
-        plan = Plan()
-        plan.add_edge(plan.root, node)
+        plan = Plan(root=node)
         if Plan.current_plan:
             Plan.current_plan.mount(plan, Plan.current_plan.current_node)
         return plan
@@ -179,7 +185,7 @@ from functools import cached_property
 import typing_extensions
 from typing_extensions import Type, List, Dict, Any, Union, Tuple
 
-atomic_types = (int, float, str, bool)
+atomic_types = (int, float, str, bool, enum.Enum)
 
 @dataclass
 class ClassFlattener:
@@ -203,9 +209,9 @@ class ClassFlattener:
     def __post_init__(self):
         # calculate the field
         for field_name, field_type in typing_extensions.get_type_hints(self.clazz.__init__).items():
-            if field_name.startswith("_"):
+            if field_name.startswith("_") or field_name == "return":
                 continue
-            if field_type in atomic_types:
+            if issubclass(field_type, atomic_types):
                 self.fields[field_name] = field_type
             else:
                 self.fields[field_name] = ClassFlattener(field_type)

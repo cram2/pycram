@@ -180,63 +180,65 @@ class LanguageMixin:
 
 
 class LanguagePlanMixins:
-    def __enter__(self):
+    def __enter__(self: Plan):
         self.prev_plan = Plan.current_plan
         Plan.current_plan = self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self: Plan, exc_type, exc_val, exc_tb):
         Plan.current_plan = self.prev_plan
         if Plan.current_plan:
             Plan.current_plan.mount(self, Plan.current_plan.current_node)
 
 
-class SequentialPlan(Plan, LanguagePlanMixins):
+class LanguagePlan(Plan):
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, root: LanguageNode, *children: Plan):
+        super().__init__(root=root)
+        for child in children:
+            self.mount(child)
+
+    def simplify_language_nodes(self):
+        for source, target in self.edges:
+            if isinstance(source, LanguageNode) and isinstance(target, LanguageNode):
+                self.merge_nodes(source, target)
+
+class SequentialPlan(LanguagePlan, LanguagePlanMixins):
+
+    def __init__(self, *children: Plan) -> None:
         seq = SequentialNode()
-        self.add_edge(self.root, seq)
-        self.current_node = seq
+        super().__init__(root=seq, *children)
 
 
-class ParallelPlan(Plan, LanguagePlanMixins):
+class ParallelPlan(LanguagePlan, LanguagePlanMixins):
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__()
+    def __init__(self, *children: Plan) -> None:
         par = ParallelNode()
-        self.add_edge(self.root, par)
-        self.current_node = par
+        super().__init__(root=par, *children)
 
-class TryInOrderPlan(Plan, LanguagePlanMixins):
+class TryInOrderPlan(LanguagePlan, LanguagePlanMixins):
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__()
-        try_in_order = TryInOrderNode()
-        self.add_edge(self.root, try_in_order)
-        self.current_node = try_in_order
+    def __init__(self,  *children: Plan) -> None:
+        try_in_order =TryInOrderNode()
+        super().__init__(root=try_in_order, *children)
 
-class TryAllPLan(Plan, LanguagePlanMixins):
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__()
+class TryAllPLan(LanguagePlan, LanguagePlanMixins):
+
+    def __init__(self,  *children: Plan) -> None:
         try_all = TryAllNode()
-        self.add_edge(self.root, try_all)
-        self.current_node = try_all
+        super().__init__(root=try_all, *children)
 
-class RepeatPlan(Plan, LanguagePlanMixins):
+class RepeatPlan(LanguagePlan, LanguagePlanMixins):
 
-    def __init__(self, repeat=1):
-        super().__init__(repeat=repeat)
-        repeat = RepeatNode()
-        self.add_edge(self.root, repeat)
-        self.current_node = repeat
+    def __init__(self, repeat=1,  *children: Plan):
+        repeat = RepeatNode(repeat=repeat)
+        super().__init__(root=repeat, *children)
 
-class MonitorPlan(Plan, LanguagePlanMixins):
+class MonitorPlan(LanguagePlan, LanguagePlanMixins):
 
-    def __init__(self, condition) -> None:
-        monitor = MonitorNode()
-        self.add_edge(self.root, monitor)
-        self.current_node = monitor
+    def __init__(self, condition,  *children: Plan) -> None:
+        monitor = MonitorNode(condition=condition)
+        super().__init__(root=monitor, *children)
 
 
 @dataclass
