@@ -10,6 +10,7 @@ from typing_extensions import Self, Tuple, Optional, List, TYPE_CHECKING, Union,
 
 from .enums import AxisIdentifier, Arms, Grasp
 from .grasp import GraspDescription, PreferredGraspAlignment
+from ..has_parameters import has_parameters, HasParameters
 from ..tf_transformations import quaternion_multiply, translation_matrix, quaternion_matrix, inverse_matrix, \
     translation_from_matrix, rotation_from_matrix, quaternion_from_matrix
 from scipy.spatial.transform import Rotation as R
@@ -23,9 +24,9 @@ if TYPE_CHECKING:
 
 
 
-
+@has_parameters
 @dataclass
-class Vector3:
+class Vector3(HasParameters):
     """
     A 3D vector with x, y and z coordinates.
     """
@@ -73,9 +74,9 @@ class Vector3:
     def from_list(cls, vector: List[float]) -> Self:
         return cls(*vector)
 
-
+@has_parameters
 @dataclass
-class Quaternion:
+class Quaternion(HasParameters):
     """
     A quaternion with x, y, z and w components.
     """
@@ -130,8 +131,9 @@ class Quaternion:
     #     self.__setattr__(key, value, normalize=False)
     #     # self.normalize()
 
+@has_parameters
 @dataclass
-class Pose:
+class Pose(HasParameters):
     """
     A pose in 3D space.
     """
@@ -195,9 +197,9 @@ class Header:
         stamp = ROSTime(int(self.stamp.timestamp()))
         return ROSHeader(frame_id=self.frame_id, stamp=stamp, seq=self.sequence)
 
-
+@has_parameters
 @dataclass
-class PoseStamped:
+class PoseStamped(HasParameters):
     """
     A pose in 3D space with a timestamp.
     """
@@ -396,7 +398,7 @@ class Transform(Pose):
     def ros_message(self) -> ROSTransform:
         return ROSTransform(translation=self.translation.ros_message(), rotation=self.rotation.ros_message())
 
-
+@has_parameters
 @dataclass
 class TransformStamped(PoseStamped):
     child_frame_id: str = field(default_factory=str)
@@ -461,7 +463,7 @@ class TransformStamped(PoseStamped):
     def inverse_times(self, other: TransformStamped):
         return self * ~other
 
-
+@has_parameters
 @dataclass
 class GraspPose(PoseStamped):
     arm: Arms = None

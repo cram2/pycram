@@ -156,8 +156,9 @@ class HasParameters(metaclass=HasParametersMeta):
         """
         raise NotImplementedError
 
+T = typing_extensions.TypeVar("T")
 
-def has_parameters(target_class: HasParameters) -> HasParameters:
+def has_parameters(target_class: T) -> T :
     """
     Insert parameters of a class post construction.
     Use this when dataclasses should be combined with HasParameters.
