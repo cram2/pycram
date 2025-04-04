@@ -4,7 +4,7 @@ import enum
 from functools import lru_cache
 
 import typing_extensions
-from typing_extensions import List, Dict, Union, Tuple, TYPE_CHECKING
+from typing_extensions import List, Dict, Union, Tuple, TYPE_CHECKING, get_origin, get_args
 
 # Forward declaration of the class
 HasParameters = object
@@ -51,6 +51,12 @@ class HasParametersMeta(type):
 
         for field_name, field_type in typing_extensions.get_type_hints(target_class.__init__).items():
             if field_name.startswith("_") or field_name == "return":
+                continue
+            # in case there are optional arguments
+            if get_origin(field_type) is Union:
+                type_a, type_b = get_args(field_type)
+                field_type = type_a or type_b
+                target_class._parameters[field_name] = field_type
                 continue
             if issubclass(field_type, leaf_types) or issubclass(field_type, HasParameters):
                 target_class._parameters[field_name] = field_type
