@@ -1,6 +1,6 @@
 from pycram.ros import ros_tools
-from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
-    NavigateActionPerformable
+from pycram.designators.action_designator MoveTorsoAction, PickUpAction, \
+    NavigateAction
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import Arms, Grasp, GripperState, WorldMode, ObjectType
 from pycram.world_concepts.world_object import Object
@@ -25,9 +25,9 @@ def plan():
     object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
     description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
     with simulated_robot:
-        NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+        NavigateAction(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
         MoveTorsoActionPerformable(0.3).perform()
-        PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
+        PickUpAction(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
         description.resolve().perform()
 
 

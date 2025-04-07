@@ -38,16 +38,17 @@ class Language(NodeMixin):
         self.threads: List[threading.Thread] = []
         self.interrupted = False
         self.name = self.__class__.__name__
+        self.performable = self.__class__ # To be overwritten by Partial Designators
         if children:
             self.children: Language = children
 
     def resolve(self) -> Language:
-        """
-        Dummy method for compatability to designator_description descriptions
+         """
+         Dummy method for compatability to designator_description descriptions
 
-        :return: self reference
-        """
-        return self
+         :return: self reference
+         """
+         return self
 
     def perform(self):
         """
@@ -90,9 +91,9 @@ class Language(NodeMixin):
         if not issubclass(other.__class__, Language):
             raise NotALanguageExpression(
                 f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
-        if self.__class__.__name__ in self.parallel_blocklist or other.__class__.__name__ in self.parallel_blocklist:
+        if self.performable.__name__ in self.parallel_blocklist or other.performable.__name__ in self.parallel_blocklist:
             raise AttributeError(
-                f"You can not execute the Designator {self if self.__class__.__name__ in self.parallel_blocklist else other} in a parallel language expression.")
+                f"You can not execute the Designator {self if self.performable.__name__ in self.parallel_blocklist else other} in a parallel language expression.")
 
         return Parallel(parent=None, children=(self, other)).simplify()
 
@@ -106,9 +107,9 @@ class Language(NodeMixin):
         if not issubclass(other.__class__, Language):
             raise NotALanguageExpression(
                 f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
-        if self.__class__.__name__ in self.parallel_blocklist or other.__class__.__name__ in self.parallel_blocklist:
+        if self.performable.__name__ in self.parallel_blocklist or other.performable.__name__ in self.parallel_blocklist:
             raise AttributeError(
-                f"You can not execute the Designator {self if self.__class__.__name__ in self.parallel_blocklist else other} in a try all language expression.")
+                f"You can not execute the Designator {self if self.performable.__name__ in self.parallel_blocklist else other} in a try all language expression.")
         return TryAll(parent=None, children=(self, other)).simplify()
 
     def __rshift__(self, other: Language):
@@ -341,7 +342,7 @@ class Sequential(Language):
                     if threading.get_ident() in self.block_list:
                         self.block_list.remove(threading.get_ident())
                     return State.FAILED, children_return_values
-                self.root.executing_thread[child] = threading.get_ident()
+                self.root.executing_thread[id(child)] = threading.get_ident()
                 ret_val = child.resolve().perform()
                 if isinstance(ret_val, tuple):
                     child_state, child_result = ret_val
@@ -450,7 +451,7 @@ class Parallel(Language):
                 else:
                     giskard.par_threads[self].append(threading.get_ident())
             try:
-                self.root.executing_thread[child] = threading.get_ident()
+                self.root.executing_thread[id(child)] = threading.get_ident()
                 result = child_node.resolve().perform()
                 if isinstance(result, tuple):
                     child_state, child_result = result
@@ -593,6 +594,7 @@ class Code(Language):
             kwargs = dict()
         self.kwargs: Dict[str, Any] = kwargs
         self.perform = self.execute
+        self.performable = self.__class__
 
     def execute(self) -> Any:
         """
@@ -608,6 +610,9 @@ class Code(Language):
             child_result = ret_val
 
         return child_state, child_result
+
+    def resolve(self) -> Language:
+        return self
 
     def interrupt(self) -> None:
         raise NotImplementedError

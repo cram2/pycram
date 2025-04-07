@@ -167,7 +167,7 @@ justin_description.add_camera_description(camera)
 
 ################################## Neck ##################################
 justin_description.add_kinematic_chain("neck", "torso4", "head2")
-# justin_description.set_neck("head1_joint", "head2_joint")
+justin_description.set_neck("head1_joint", "head2_joint")
 
 ################################# Grasps ##################################
 orientation = [0.707, -0.707, 0.707, -0.707]

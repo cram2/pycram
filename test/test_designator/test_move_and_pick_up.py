@@ -8,7 +8,7 @@ from sortedcontainers import SortedSet
 from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.enums import ObjectType, Arms, Grasp, TorsoState
 from pycram.designator import ObjectDesignatorDescription
-from pycram.designators.action_designator import MoveTorsoActionPerformable, MoveTorsoAction
+from pycram.designators.action_designator import MoveTorsoAction
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import (MoveAndPickUp,
                                                                                            Arms as PMArms,
                                                                                            Grasp as PMGrasp)

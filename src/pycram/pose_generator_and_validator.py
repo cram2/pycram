@@ -3,7 +3,7 @@ import numpy as np
 from pycrap.ontologies import PhysicalObject
 from .object_descriptors.generic import ObjectDescription
 from .tf_transformations import quaternion_from_euler
-from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional
+from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional, Iterator
 
 from .datastructures.enums import Arms
 from .costmaps import Costmap
@@ -18,7 +18,7 @@ from .world_concepts.world_object import Object
 from .world_reasoning import contact
 
 
-class PoseGenerator:
+class PoseGenerator(Iterable[Pose]):
     """
     Creates pose candidates from a given costmap.
     The generator selects the highest values, amount is given by number_of_sample, and returns the corresponding
@@ -51,7 +51,7 @@ class PoseGenerator:
         if PoseGenerator.override_orientation_generator:
             self.orientation_generator = PoseGenerator.override_orientation_generator
 
-    def __iter__(self) -> Iterable:
+    def __iter__(self) -> Iterator[Pose]:
         """
         A generator that crates pose candidates from a given costmap. The generator
         selects the highest 100 values and returns the corresponding positions.
@@ -106,7 +106,7 @@ class PoseGenerator:
 
 
 def visibility_validator(robot: Object,
-                         object_or_pose: Tuple[Object, Pose]) -> bool:
+                         object_or_pose: Union[Object, Pose]) -> bool:
     """
     This method validates if the robot can see the target position from a given
     pose candidate. The target position can either be a position, in world coordinate
@@ -207,7 +207,7 @@ def pose_sequence_reachability_validator(robot: Object,
         if joint_states is None:
             robot.set_multiple_joint_positions(joint_state_before_ik)
             return False
-        robot.set_joint_positions(joint_states)
+        robot.set_multiple_joint_positions(joint_states)
 
     robot.set_multiple_joint_positions(joint_state_before_ik)
     return True

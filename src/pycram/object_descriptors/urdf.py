@@ -37,16 +37,24 @@ class LinkDescription(AbstractLinkDescription):
 
 
     @property
-    def geometry(self) -> Union[List[VisualShape], VisualShape, None]:
+    def geometry(self) -> List[VisualShape]:
         """
         :return: The geometry type of the URDF collision element of this link.
         """
         if self.collision is None:
-            return None
+            return []
         if isinstance(self.collision, List):
             return [self._get_visual_shape(coll.geometry) for coll in self.collision]
         urdf_geometry = self.collision.geometry
-        return self._get_visual_shape(urdf_geometry)
+        return [self._get_visual_shape(urdf_geometry)]
+
+    @property
+    def visual_geometry(self) -> List[VisualShape]:
+        """
+        :return: The geometry type of the URDF visual element of this link.
+        """
+        visuals = self.parsed_description.visuals
+        return [self._get_visual_shape(vis.geometry) for vis in visuals]
 
     @staticmethod
     def _get_visual_shape(urdf_geometry) -> Union[VisualShape, None]:

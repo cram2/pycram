@@ -24,15 +24,22 @@ class VizMarkerPublisher:
     Publishes an Array of visualization marker which represent the situation in the World
     """
 
-    def __init__(self, topic_name="/pycram/viz_marker", interval=0.1, reference_frame="map"):
+    def __init__(self, topic_name="/pycram/viz_marker", interval=0.1, reference_frame="map", use_prospection_world=False, publish_visuals=False):
         """
         The Publisher creates an Array of Visualization marker with a Marker for each link of each Object in the
         World. This Array is published with a rate of interval.
 
         :param topic_name: The name of the topic to which the Visualization Marker should be published.
         :param interval: The interval at which the visualization marker should be published, in seconds.
+        :param reference_frame: The reference frame of the visualization marker.
+        :param use_prospection_world: If True, the visualization marker will be published for the prospection world.
+        :param publish_visuals: If True, the visualization marker will be published.
         """
-        self.topic_name = topic_name
+        self.use_prospection_world = use_prospection_world
+        if self.use_prospection_world:
+            self.topic_name = "/pycram/prospection_viz_marker"
+        else:
+            self.topic_name = topic_name
         self.interval = interval
         self.reference_frame = reference_frame
 
@@ -40,7 +47,11 @@ class VizMarkerPublisher:
 
         self.thread = threading.Thread(target=self._publish)
         self.kill_event = threading.Event()
-        self.main_world = World.current_world if not World.current_world.is_prospection_world else World.current_world.world_sync.world
+        self.publish_visuals = publish_visuals
+        if self.use_prospection_world:
+            self.main_world = World.current_world.prospection_world
+        else:
+            self.main_world = World.current_world if not World.current_world.is_prospection_world else World.current_world.world_sync.world
         self.lock = self.main_world.object_lock
         self.thread.start()
         atexit.register(self._stop_publishing)
@@ -69,7 +80,13 @@ class VizMarkerPublisher:
             if obj.name == "floor":
                 continue
             for link in obj.link_name_to_id.keys():
-                geom = obj.get_link_geometry(link)
+                if self.publish_visuals:
+                    geoms = obj.get_link_visual_geometry(link)
+                else:
+                    geoms = obj.get_link_geometry(link)
+                if not isinstance(geoms, list):
+                    geoms = [geoms]
+                geom = geoms[0] if len(geoms) > 0 else None
                 if not geom:
                     continue
                 msg = Marker()
@@ -89,6 +106,8 @@ class VizMarkerPublisher:
                 color = obj.get_link_color(link).get_rgba()
 
                 msg.color = ColorRGBA(**dict(zip(["r", "g", "b","a"], color)))
+                if self.use_prospection_world:
+                    msg.color.a = 0.5
                 msg.lifetime = Duration(1)
 
                 if isinstance(geom, MeshVisualShape):

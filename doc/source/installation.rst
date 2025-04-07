@@ -196,18 +196,17 @@ You can build your ROS workspace with the following commands:
 Using PyCRAM
 ============
 
-To start using PyCRAM you first need to launch the ROS launch file. This launchfile is located in the directory "launch"
-and is named "ik_and_description.launch".
-
-The launchfile can be started with the following command:
+To start using PyCRAM under ROS Noetic you need a running ROS master. This can be started with the following command:
 
 .. code-block:: shell
 
-    roslaunch pycram ik_and_description.launch
+    roscore
 
+Afterwards you can start using PyCRAM by importing it in your Python scripts. For example:
 
-What the launch file does is start a ROS master, upload the robot URDF to the parameter server as well as starting the
-IK solver.
+.. code-block:: python
+    import pycram
+
 
 Building the documentation
 ==========================
