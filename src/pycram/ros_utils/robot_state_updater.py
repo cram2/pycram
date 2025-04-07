@@ -1,7 +1,6 @@
 import atexit
 from datetime import timedelta
 import time
-import tf
 
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
