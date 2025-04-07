@@ -76,7 +76,7 @@ cg = GraphOfConvexSets.free_space_from_world(world, search_space=search_space)
 ```
 
 Given the connectivity graph a start pose and a goal pose for the path search is needed.
-The start pose is defined as the current pose of the left gripper of the robot.
+The start pose is defined as the current pose of the right gripper of the robot.
 For the goal pose two possible positions at different levels in the drawer are predefined. These can be (un)commented to search for paths from one level of the drawer to another.
 For the orientation of the goal pose, an orientation is chosen that makes sense when reaching into the drawer from the right side.
 As the found path consist of poses with identity orientation we copy our goal orientation directly into the last pose in the path.
@@ -84,7 +84,7 @@ Here we only care about the orientation for the last pose in the path, because w
 
 ```python
 print('reading current pose of the gripper...')
-start_pose = robot.links['l_gripper_tool_frame'].pose
+start_pose = robot.links['r_gripper_tool_frame'].pose
 print('searching for path to goal pose...')
 start = Pose([start_pose.position.x, start_pose.position.y, start_pose.position.z])
 # goal_position = Pose([1, 1.49, 1.0])
