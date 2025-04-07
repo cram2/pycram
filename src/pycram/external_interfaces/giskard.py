@@ -561,7 +561,6 @@ def achieve_cartesian_waypoints_goal(waypoints: List[Pose], tip_link: str,
         """
     old_position_monitor = None
     old_orientation_monitor = None
-    # final_orientation = make_quaternion_stamped(waypoints[-1].orientation_as_list())
 
     for i, waypoint in enumerate(waypoints):
         point = make_point_stamped(waypoint.position_as_list())
