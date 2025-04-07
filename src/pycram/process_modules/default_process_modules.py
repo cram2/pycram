@@ -490,8 +490,7 @@ class DefaultMoveTCPWaypointsReal(ProcessModule):
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm)
 
-        giskard.achieve_cartesian_waypoints_goal(waypoints=[x.position_as_list() for x in waypoints],
-                                                 orientations=[x.orientation_as_list() for x in waypoints],
+        giskard.achieve_cartesian_waypoints_goal(waypoints=waypoints,
                                                  tip_link=tip_link, root_link=root_link,
                                                  enforce_final_orientation=True if designator.movement_type == WaypointsMovementType.ENFORCE_ORIENTATION_FINAL_POINT else False)
 

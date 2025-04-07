@@ -392,7 +392,7 @@ class MoveTCPWaypointsMotion(BaseMotion):
     """
     If the gripper can collide with something
     """
-    movement_type: Optional[WaypointsMovementType] = WaypointsMovementType.ENFORCE_ORIENTATION_FINAL_POINT
+    movement_type: WaypointsMovementType = WaypointsMovementType.ENFORCE_ORIENTATION_FINAL_POINT
     """
     The type of movement that should be performed.
     """
