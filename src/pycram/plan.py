@@ -1,17 +1,19 @@
 from __future__ import annotations
 
+import enum
+import inspect
 from dataclasses import field, dataclass
 from datetime import datetime
 
 
 import networkx as nx
-from jedi.inference.value.iterable import Sequence
 
 from typing_extensions import Optional, Callable, Any, Dict, List, Self, Iterable, TYPE_CHECKING
 
 from .datastructures.enums import TaskStatus
 from pycrap.ontologies import Action
 from .failures import PlanFailure
+
 
 if TYPE_CHECKING:
     from .datastructures.partial_designator import PartialDesignator
@@ -24,9 +26,9 @@ class Plan(nx.DiGraph):
     """
     current_plan: Plan = None
 
-    def __init__(self, root_node: PlanNode = None):
+    def __init__(self, root: PlanNode):
         super().__init__()
-        self.root: PlanNode = root_node or PlanNode(plan=self)
+        self.root = root
         self.add_node(self.root)
         self.current_node: PlanNode = self.root
 
@@ -34,7 +36,7 @@ class Plan(nx.DiGraph):
         mount_node = mount_node or self.root
         self.add_nodes_from(other.nodes)
         self.add_edges_from(other.edges)
-        self.merge_nodes(mount_node, other.root)
+        self.add_edge(mount_node, other.root)
         for node in self.nodes:
             node.plan = self
 
@@ -82,15 +84,15 @@ class Plan(nx.DiGraph):
         pass
 
     def resolve(self):
-        return self.root.children[0].designator_ref.resolve()
+        if isinstance(self.root, DesignatorNode):
+            return self.root.designator_ref.resolve()
 
-    def __enter__(self):
-        self.prev_plan = Plan.current_plan
-        Plan.current_plan = self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        Plan.current_plan = self.prev_plan
-
+    def flattened_parameters(self):
+        result = {}
+        for node in self.nodes:
+            if isinstance(node, DesignatorNode):
+                result.update(node.flattened_parameters())
+        return result
 
 @dataclass
 class PlanNode:
@@ -121,18 +123,20 @@ class PlanNode:
 
     @property
     def parent(self):
-        return list(filter(None, [edge[0] if edge[1] == self else None for edge in  self.plan.edges]))
+        return list(self.plan.predecessors(self))[0]
 
     @property
     def children(self):
-        return list(filter(None, [edge[1] if edge[0] == self else None for edge in  self.plan.edges]))
+        return list(self.plan.successors(self))
 
     def __hash__(self):
         return id(self)
 
+    def perform(self, *args, **kwargs):
+        pass
 
 @dataclass
-class ActionNode(PlanNode):
+class DesignatorNode(PlanNode):
     designator_ref: PartialDesignator = None
     """
     Reference to the Designator in this node
@@ -155,176 +159,32 @@ class ActionNode(PlanNode):
         return f"<{self.designator_ref.performable.__name__}_{id(self)}>"
 
 
+@dataclass
+class ActionNode(DesignatorNode):
+    def __hash__(self):
+        return id(self)
+
+@dataclass
+class MotionNode(DesignatorNode):
+    def __hash__(self):
+        return id(self)
+
 def with_tree(func: Callable) -> Callable:
     pass
 
 
 def with_plan(func: Callable) -> Callable:
-    def wrapper(*args, **kwargs):
-        action = func(*args, **kwargs)
-        # TODO Maybe use bind_partial instead
-        node = ActionNode(designator_ref=action, action="Action", kwargs=action.kwargs)
-        plan = Plan()
-        plan.add_edge(plan.root, node)
+    def wrapper(*args, **kwargs) -> Plan:
+        designator = func(*args, **kwargs)
+        if designator.__class__.__name__ ==  "PartialDesignator":
+            node = ActionNode(designator_ref=designator, action="Action", kwargs=designator.kwargs)
+        else:
+            kwargs = dict(inspect.signature(func).bind(*args, **kwargs).arguments)
+            node = MotionNode(designator_ref=designator, action="Action", kwargs=kwargs)
+        plan = Plan(root=node)
         if Plan.current_plan:
-            Plan.current_plan.mount(plan)
+            Plan.current_plan.mount(plan, Plan.current_plan.current_node)
         return plan
 
     return wrapper
 
-
-# from __future__ import annotations
-import inspect
-from dataclasses import dataclass, field
-from functools import cached_property
-
-import typing_extensions
-from typing_extensions import Type, List, Dict, Any, Union, Tuple
-
-atomic_types = (int, float, str, bool)
-
-@dataclass
-class ClassFlattener:
-    """
-    A utility class that handles flattening and reconstructing objects based on class type annotations.
-    It extracts field types from class type hints and flattens nested objects into a list. It can also
-    reconstruct the original object from a flattened list.
-    """
-
-    clazz: Type
-    """
-    The class type that is the target for flattening and reconstructing.
-    """
-
-    fields: Dict[str, Union[atomic_types, ClassFlattener]] = field(default_factory=dict)
-    """
-    A dictionary that maps field names to their types, including nested types.
-    The keys are the names of the variables. The values are the types of the variables or nested types.
-    """
-
-    def __post_init__(self):
-        # calculate the field
-        for field_name, field_type in typing_extensions.get_type_hints(self.clazz.__init__).items():
-            if field_name.startswith("_"):
-                continue
-            if field_type in atomic_types:
-                self.fields[field_name] = field_type
-            else:
-                self.fields[field_name] = ClassFlattener(field_type)
-
-
-    def flatten(self, obj) -> List:
-        """
-        Flattens the object into a list of field values.
-
-        :param obj: The object to be flattened. It must be an instance of the target class.
-
-        :return: A list of flattened field values from the object.
-
-        :raises TypeError: If the object is not an instance of the target class.
-        """
-        if not isinstance(obj, self.clazz):
-            raise TypeError("Object must be an instance of the target class")
-        result = []
-        for field_name, field_type in self.fields.items():
-            if isinstance(field_type, ClassFlattener):
-                sub_flattener = ClassFlattener(field_type.clazz)
-                sub_obj = getattr(obj, field_name)
-                result.extend(sub_flattener.flatten(sub_obj))
-            else:
-                result.append(getattr(obj, field_name))
-        return result
-
-    @cached_property
-    def flattened_fields(self) -> Dict[str, atomic_types]:
-        """
-        Returns a dictionary of all flattened fields and their types.
-
-        :return: A dictionary mapping field names to their types.
-        """
-        flat_fields = {}
-        for field_name, field_type in self.fields.items():
-            if isinstance(field_type, ClassFlattener):
-                sub_flat_fields = field_type.flattened_fields
-                for sub_field_name, sub_field_type in sub_flat_fields.items():
-                    flat_fields[f"{field_name}.{sub_field_name}"] = sub_field_type
-            else:
-                flat_fields[field_name] = field_type
-        return flat_fields
-
-    @cached_property
-    def number_of_fields(self) -> int:
-        """
-        :return: The total number of fields in the flattened list.
-        """
-        return len(self.flattened_fields)
-
-    @cached_property
-    def field_indices(self) -> Dict[str, Tuple[int, int]]:
-        """
-        :return: A dictionary mapping field names to their indices in the flattened list.
-        """
-        field_indices = {}
-        index = 0
-        for field_name, field_type in self.fields.items():
-            if isinstance(field_type, ClassFlattener):
-                field_indices[field_name] = (index, index + field_type.number_of_fields)
-                index += field_type.number_of_fields
-            else:
-                field_indices[field_name] = (index, index + 1)
-                index += 1
-        return field_indices
-
-
-    def reconstruct(self, flattened: List):
-        """
-        Reconstructs the object from a flattened list of field values.
-
-        :param flattened: The flattened list of field values.
-
-        :return: An instance of the target class with the reconstructed field values.
-
-        :raises TypeError: If the object is not a list or if the length of the list does not match the number of fields.
-        """
-        if len(flattened) != len(self.flattened_fields):
-            raise ValueError("List length does not match number of flattened fields")
-
-        kwargs = {}
-        for field_name, field_type in self.fields.items():
-            start, end = self.field_indices[field_name]
-            if isinstance(field_type, ClassFlattener):
-                sub_obj = flattened[start:end]
-                kwargs[field_name] = field_type.reconstruct(sub_obj)
-            else:
-                kwargs[field_name] = flattened[start]
-
-        return self.clazz(**kwargs)
-
-@dataclass
-class NestedClass:
-    nested_field: str
-    another_nested_field: int
-
-@dataclass
-class MyClass:
-    field1: int
-    field2: str
-    nested: NestedClass
-
-
-def main():
-
-    obj = MyClass(field1=42, field2="Hello", nested=NestedClass(nested_field="World", another_nested_field=100))
-    flattener = ClassFlattener(MyClass)
-
-    print(flattener.fields)
-    print(flattener.flattened_fields)
-    flattened = flattener.flatten(obj)
-    print("Flattened:", flattened)
-    print(flattener.field_indices)
-
-    reconstructed = flattener.reconstruct(flattened)
-    print("Reconstructed:", reconstructed)
-
-if __name__ == "__main__":
-    main()
