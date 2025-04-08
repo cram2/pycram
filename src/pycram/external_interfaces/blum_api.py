@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 import sys
+import json
 from typing import Callable
 from ..ros import logwarn, loginfo, get_node_names, wait_for_service, get_service_proxy, ServiceException
 try:
@@ -26,7 +27,7 @@ def init_kitchen_interface(func: Callable) -> Callable:
             return
         authenticate_user()
 
-        func(*args, **kwargs)
+        return func(*args, **kwargs)
     return wrapper
 
 
@@ -54,14 +55,13 @@ def call_kitchen_service(command, argument):
     try:
         kitchen_service = get_service_proxy('/blum_kitchen_server', Authenticateuser)
         resp1 = kitchen_service(command, argument)
-        print(resp1)
         return resp1.resp
     except ServiceException as e:
         print(f"Service call failed: {e}")
 
 
 @init_kitchen_interface
-def open(kitchen_element):
+def open_cabinet(kitchen_element):
     """
     Opens a cabinet of the apartment kitchen
 
@@ -71,7 +71,7 @@ def open(kitchen_element):
 
 
 @init_kitchen_interface
-def close(kitchen_element):
+def close_cabinet(kitchen_element):
     """
     Closes a cabinet of the apartment kitchen, currently this is only possible for the "oberschrank"
 
@@ -87,3 +87,14 @@ def modules_show():
     """
     return call_kitchen_service('modules_show', ' ')
 
+
+@init_kitchen_interface
+def kitchen_state() -> Dict[str, Dict[str, str]]:
+    """
+    Returns the state of the whole kitchen as a dictionary. The mapping is "name": {"state", "type"}
+
+    :return: A dict describing the kitchen state
+    """
+    state = call_kitchen_service("kitchen_state_json"," ")
+    state_dict = json.loads(state.replace("'", '"'))
+    return state_dict
