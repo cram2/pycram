@@ -7,7 +7,7 @@ Installation Guide
 Compatability
 =============
 
-PyCRAM is compatibil and tested with **ROS1 Noetic/ Ubuntu20.04** and **ROS2 Jazzy/ Ubuntu24.04**.
+PyCRAM is compatible and tested with **ROS1 Noetic/ Ubuntu20.04** and **ROS2 Jazzy/ Ubuntu24.04**.
 ROS2 Humble/ Ubuntu22.04 is not usable since the creation of messages is more strict and some problems
 may arise.
 
@@ -252,6 +252,23 @@ To further test the installation you can run the tests for action designator wit
     source pycram-venv/bin/activate
     pip install pytest
     pytest -v test/action_designator/test_action_designator.py
+
+
+Step 8. Using PyCRAM
+====================
+
+**If you are using PyCRAM on a ROS1 system (e.g. Ubuntu20.04) you have to start up a roscore before using PyCRAM to
+avoid errors. You can start a roscore by typing the following command in a terminal:**
+
+.. code-block:: shell
+
+    roscore
+
+To use PyCRAM you can do this simply by importing PyCRAM in your project.
+
+.. code-block:: python
+
+    import pycram
 
 ========
 Appendix

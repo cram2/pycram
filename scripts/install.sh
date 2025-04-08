@@ -33,3 +33,4 @@ else
     source install/setup.bash
     echo "source ~/workspace/ros/install/setup.bash" >> ~/.bashrc
 fi
+echo "Successfully installed PyCRAM"
