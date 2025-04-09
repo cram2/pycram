@@ -7,10 +7,16 @@ cd ~/workspace/ros/src
 
 echo "Source ROS installation"
 source /opt/ros/$ROS_DISTRO/setup.bash
-echo "Cloning pycram and dependencies"
+
 if [ "$ROS_VERSION" = "1" ]; then
+  echo "Installing apt python-venv and xacro"
+  sudo apt install python3.8-venv ros-"${ROS_DISTRO}"-xacro
+  echo "Cloning pycram and dependencies"
   vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram.rosinstall
 else
+  echo "Installing apt python-venv and xacro"
+  sudo apt install python3.12-venv ros-"${ROS_DISTRO}"-xacro
+  echo "Cloning pycram and dependencies"
   vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram-ros2.rosinstall
 fi
 
