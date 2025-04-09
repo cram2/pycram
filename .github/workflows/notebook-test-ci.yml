@@ -32,7 +32,7 @@ jobs:
           path: "ros/src/pycram"
           repository: ${{ github.repository }}
           ref: ${{ github.ref }}
-          submodules: "recursive"
+          submodules: "false"
 
       # For debugging
       - name: Setup tmate session
