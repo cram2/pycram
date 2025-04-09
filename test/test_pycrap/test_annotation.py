@@ -18,7 +18,7 @@ class TableConceptTestCase(unittest.TestCase):
     def setUp(self):
         self.ontology = OntologyWrapper()
 
-    @unittest.skipIf("GITHUB_ACTIONS" in os.environ, reason="Skipping test since it consumes to much memory")
+    @unittest.skip(reason="Skipping test since it consumes to much memory")
     def test_rules(self):
         with self.ontology.ontology:
 

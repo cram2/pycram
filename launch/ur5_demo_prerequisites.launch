@@ -1,7 +1,0 @@
-<launch>
-    <!-- Setup rosbridge -->
-    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
-
-    <!-- Setup ROS parameter server -->
-    <param name="robot_description" textfile="$(find pycram)/resources/ur5_robotiq.urdf"/>
-</launch>
