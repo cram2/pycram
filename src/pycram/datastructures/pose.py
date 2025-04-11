@@ -172,6 +172,12 @@ class Pose(HasParameters):
         return self.almost_equal(other, position_tolerance=1e-4, orientation_tolerance=1e-4)
 
     @classmethod
+    def from_matrix(cls, matrix: np.ndarray):
+        translation = translation_from_matrix(matrix)
+        rotation = quaternion_from_matrix(matrix)
+        return cls.from_list(translation, rotation)
+
+    @classmethod
     def from_list(cls, position: List[float], orientation: List[float]) -> Self:
         return cls(Vector3(position[0], position[1], position[2]),
                    Quaternion(orientation[0], orientation[1], orientation[2], orientation[3]))
@@ -374,12 +380,6 @@ class Transform(Pose):
         translation = translation_matrix(self.translation.to_list())
         rotation = quaternion_matrix(self.rotation.to_list())
         return np.dot(translation, rotation)
-
-    @classmethod
-    def from_matrix(cls, matrix: np.ndarray):
-        translation = translation_from_matrix(matrix)
-        rotation = quaternion_from_matrix(matrix)
-        return Transform.from_list(translation, rotation)
 
     def __invert__(self):
         inv = inverse_matrix(self.to_matrix())
