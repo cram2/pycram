@@ -18,6 +18,7 @@ from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, 
     Self, Iterator
 from typing import get_type_hints
 
+from .has_parameters import HasParameters
 from .language import LanguageMixin
 from .local_transformer import LocalTransformer
 from .robot_description import RobotDescription
@@ -124,7 +125,7 @@ class DesignatorDescription(ABC):
         return get_type_hints(self.__init__)
 
 @dataclass
-class ActionDescription:
+class ActionDescription(HasParameters):
     """
     The performable designator_description with a single element for each list of possible parameter.
     """

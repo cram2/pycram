@@ -8,15 +8,16 @@ from datetime import datetime
 
 import networkx as nx
 
-from typing_extensions import Optional, Callable, Any, Dict, List, Self, Iterable, TYPE_CHECKING
+from typing_extensions import Optional, Callable, Any, Dict, List, Self, Iterable, TYPE_CHECKING, Type, Tuple
 
 from .datastructures.enums import TaskStatus
-from pycrap.ontologies import Action
+from pycrap.ontologies import Action 
 from .failures import PlanFailure
 
 
 if TYPE_CHECKING:
     from .datastructures.partial_designator import PartialDesignator
+    from .designator import BaseMotion
 
 
 class Plan(nx.DiGraph):
@@ -26,9 +27,12 @@ class Plan(nx.DiGraph):
     """
     current_plan: Plan = None
 
+    on_start_callback: Optional[Type[Action], Callable] = None
+    on_end_callback: Optional[Type[Action], Callable] = None
+
     def __init__(self, root: PlanNode):
         super().__init__()
-        self.root = root
+        self.root: PlanNode = root
         self.add_node(self.root)
         self.current_node: PlanNode = self.root
 
@@ -81,7 +85,7 @@ class Plan(nx.DiGraph):
                 return node
 
     def perform(self):
-        pass
+        return self.root.perform()
 
     def resolve(self):
         if isinstance(self.root, DesignatorNode):
@@ -122,12 +126,23 @@ class PlanNode:
     """
 
     @property
-    def parent(self):
+    def parent(self) -> PlanNode:
         return list(self.plan.predecessors(self))[0]
 
     @property
-    def children(self):
+    def children(self) -> List[PlanNode]:
         return list(self.plan.successors(self))
+
+    @property
+    def recursive_children(self) -> List[PlanNode]:
+        return list(nx.descendants(self.plan, self))
+
+    @property
+    def subtree(self):
+        return nx.subgraph(self.plan, self.recursive_children + [self])
+
+    def flattened_parameters(self):
+        pass
 
     def __hash__(self):
         return id(self)
@@ -158,26 +173,41 @@ class DesignatorNode(PlanNode):
     def __repr__(self, *args, **kwargs):
         return f"<{self.designator_ref.performable.__name__}_{id(self)}>"
 
+    def flattened_parameters(self):
+        return self.designator_ref.performable.flattened_parameters()
+
 
 @dataclass
 class ActionNode(DesignatorNode):
     def __hash__(self):
         return id(self)
 
+    def perform(self, *args, **kwargs):
+        pass
+
+    def __repr__(self, *args, **kwargs):
+        return f"<{self.designator_ref.performable.__name__}_{id(self)}>"
+
 @dataclass
 class MotionNode(DesignatorNode):
+    designator_ref: BaseMotion = None
     def __hash__(self):
         return id(self)
 
+    def perform(self, *args, **kwargs):
+        return self.designator_ref.perform(*args, **kwargs)
+
 def with_tree(func: Callable) -> Callable:
-    pass
+    def handle_tree(*args, **kwargs):
+        return func(*args, **kwargs)
+    return handle_tree
 
 
 def with_plan(func: Callable) -> Callable:
     def wrapper(*args, **kwargs) -> Plan:
         designator = func(*args, **kwargs)
         if designator.__class__.__name__ ==  "PartialDesignator":
-            node = ActionNode(designator_ref=designator, action="Action", kwargs=designator.kwargs)
+            node = ActionNode(designator_ref=designator, action=designator.performable, kwargs=designator.kwargs)
         else:
             kwargs = dict(inspect.signature(func).bind(*args, **kwargs).arguments)
             node = MotionNode(designator_ref=designator, action="Action", kwargs=kwargs)

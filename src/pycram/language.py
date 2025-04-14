@@ -15,34 +15,6 @@ from .ros import  sleep
 from .plan import PlanNode, Plan
 
 
-def add_language_plan(child_plans: Iterable[Plan], root_node: LanguageNode) -> Plan:
-    lang_plan = Plan()
-    lang_plan.add_edge(lang_plan.root, root_node)
-    for plan in child_plans:
-        lang_plan.mount(plan)
-
-    plan = Plan.current_plan
-    plan.mount(lang_plan, plan.current_node)
-    return lang_plan
-
-
-def sequential(*plans: Sequence[Plan]) -> Plan:
-    return add_language_plan(plans, SequentialNode())
-
-def parallel(*plans: Sequence[Plan]) -> Plan:
-    return add_language_plan(plans, ParallelNode())
-
-def try_in_order(*plans: Sequence[Plan]) -> Plan:
-    return add_language_plan(plans, TryInOrderNode())
-
-def try_all(*plans: Sequence[Plan]) -> Plan:
-    return add_language_plan(plans, TryAllNode())
-
-def repeat(*plans: Sequence[Plan], repeat=1) -> Plan:
-    return add_language_plan(plans, RepeatNode(repeat=repeat))
-
-
-
 class LanguageMixin:
     """
     Parent class for language expressions. Implements the operators as well as methods to reduce the resulting language
@@ -53,6 +25,16 @@ class LanguageMixin:
     block_list: List[int] = []
     """List of thread ids which should be blocked from execution."""
 
+    def add_language_plan(self: Plan, child_plans: Iterable[Plan], root_node: LanguageNode) -> Plan:
+        lang_plan = Plan(root_node)
+        lang_plan.mount(self)
+        for plan in child_plans:
+            lang_plan.mount(plan)
+
+        plan = Plan.current_plan
+        plan.mount(lang_plan, plan.current_node)
+        return lang_plan
+
     def __add__(self, other: Plan) -> Plan:
         """
         Language expression for sequential execution.
@@ -60,39 +42,39 @@ class LanguageMixin:
         :param other: Another Language expression, either a designator_description or language expression
         :return: A :func:`~Sequential` object which is the new root node of the language tree
         """
-        return sequential((self, other))
+        return self.add_language_plan(other, SequentialNode())
 
 
-    def __sub__(self, other: LanguageMixin) -> Plan:
+    def __sub__(self, other: Plan) -> Plan:
         """
         Language expression for try in order.
 
         :param other: Another Language expression, either a designator_description or language expression
         :return: A :func:`~TryInOrder` object which is the new root node of the language tree
         """
-        return try_in_order((self, other))
+        return self.add_language_plan(other, TryInOrderNode())
 
-    def __or__(self, other: LanguageMixin) -> Plan:
+    def __or__(self, other: Plan) -> Plan:
         """
         Language expression for parallel execution.
 
         :param other: Another Language expression, either a designator_description or language expression
         :return: A :func:`~Parallel` object which is the new root node of the language tree
         """
-        return parallel((self, other))
+        return self.add_language_plan(other, ParallelNode())
 
 
-    def __xor__(self, other: LanguageMixin) -> Plan:
+    def __xor__(self, other: Plan) -> Plan:
         """
         Language expression for try all execution.
 
         :param other: Another Language expression, either a designator_description or language expression
         :return: A :func:`~TryAll` object which is the new root node of the language tree
         """
-        return try_all((self, other))
+        return self.add_language_plan(other, TryAllNode())
 
 
-    def __rshift__(self, other: LanguageMixin):
+    def __rshift__(self, other: Plan):
         """
         Operator for Monitors, this always makes the Monitor the parent of the other expression.
         
@@ -108,17 +90,17 @@ class LanguageMixin:
             other.children = [self]
             return other
 
-    def __mul__(self, other: int):
+    def __mul__(self: Plan, other: int):
         """
         Language expression for Repeated execution. The other attribute of this operator has to be an integer.
 
         :param other: An integer which states how often the Language expression should be repeated
         :return: A :func:`~Repeat` object which is the new root node of the language tree
         """
-        return repeat((self, other), repeat=other)
+        return self.add_language_plan(self, RepeatNode(repeat=other))
 
 
-    def __rmul__(self, other: int):
+    def __rmul__(self: Plan, other: int):
         """
         Language expression for Repeated execution. The other attribute of this operator has to be an integer. This is
         the reversed operator of __mul__ which allows to write:
@@ -130,64 +112,13 @@ class LanguageMixin:
         :param other: An integer which states how often the Language expression should be repeated
         :return: A :func:`~Repeat` object which is the new root node of the language tree
         """
-        return repeat((self, other), repeat=other)
-
-    def simplify(self) -> LanguageMixin:
-        """
-        Simplifies the language tree by merging which have a parent-child relation and are of the same type.
-
-        .. code-block::
-
-            <pycram.new_language.Parallel>
-            ├── <pycram.new_language.Parallel>
-            │   ├── <pycram.designators.action_designator.NavigateAction>
-            │   └── <pycram.designators.action_designator.MoveTorsoAction>
-            └── <pycram.designators.action_designator.DetectAction>
-
-            would be simplified to:
-
-           <pycram.new_language.Parallel>
-            ├── <pycram.designators.action_designator.NavigateAction>
-            ├── <pycram.designators.action_designator.MoveTorsoAction>
-            └── <pycram.designators.action_designator.DetectAction>
-
-        """
-        for node in PreOrderIter(self.root):
-            for child in node.children:
-                if isinstance(child, MonitorNode):
-                    continue
-                if type(node) is type(child):
-                    self.merge_nodes(node, child)
-        return self.root
-
-    @staticmethod
-    def merge_nodes(node1: Node, node2: Node) -> None:
-        """
-        Merges node1 with node2 in a tree. The children of node2 will be re-parented to node1 and node2 will be deleted
-        from the tree.
-
-        :param node1: Node that should be left in the tree
-        :param node2: Node which children should be appended to node1 and then deleted
-        """
-        node2.parent = None
-        node1.children = node2.children + node1.children
+        return self.add_language_plan(self, RepeatNode(repeat=other))
 
     def interrupt(self) -> None:
         """
         Base method for interrupting the execution of Language expression. To be overwritten in a sub-class.
         """
         raise NotImplementedError
-
-
-class LanguagePlanMixins:
-    def __enter__(self: Plan):
-        self.prev_plan = Plan.current_plan
-        Plan.current_plan = self
-
-    def __exit__(self: Plan, exc_type, exc_val, exc_tb):
-        Plan.current_plan = self.prev_plan
-        if Plan.current_plan:
-            Plan.current_plan.mount(self, Plan.current_plan.current_node)
 
 
 class LanguagePlan(Plan):
@@ -202,47 +133,50 @@ class LanguagePlan(Plan):
             if isinstance(source, LanguageNode) and isinstance(target, LanguageNode):
                 self.merge_nodes(source, target)
 
-class SequentialPlan(LanguagePlan, LanguagePlanMixins):
+class SequentialPlan(LanguagePlan):
 
     def __init__(self, *children: Plan) -> None:
         seq = SequentialNode()
-        super().__init__(root=seq, *children)
+        super().__init__(seq, *children)
 
 
-class ParallelPlan(LanguagePlan, LanguagePlanMixins):
+class ParallelPlan(LanguagePlan):
 
     def __init__(self, *children: Plan) -> None:
         par = ParallelNode()
-        super().__init__(root=par, *children)
+        super().__init__(par, *children)
 
-class TryInOrderPlan(LanguagePlan, LanguagePlanMixins):
+class TryInOrderPlan(LanguagePlan):
 
     def __init__(self,  *children: Plan) -> None:
         try_in_order =TryInOrderNode()
-        super().__init__(root=try_in_order, *children)
+        super().__init__(try_in_order, *children)
 
 
-class TryAllPLan(LanguagePlan, LanguagePlanMixins):
+class TryAllPLan(LanguagePlan):
 
     def __init__(self,  *children: Plan) -> None:
         try_all = TryAllNode()
-        super().__init__(root=try_all, *children)
+        super().__init__(try_all, *children)
 
-class RepeatPlan(LanguagePlan, LanguagePlanMixins):
+class RepeatPlan(LanguagePlan):
 
     def __init__(self, repeat=1,  *children: Plan):
         repeat = RepeatNode(repeat=repeat)
-        super().__init__(root=repeat, *children)
+        super().__init__(repeat, *children)
 
-class MonitorPlan(LanguagePlan, LanguagePlanMixins):
+class MonitorPlan(LanguagePlan):
 
     def __init__(self, condition,  *children: Plan) -> None:
         monitor = MonitorNode(condition=condition)
-        super().__init__(root=monitor, *children)
+        super().__init__(monitor, *children)
 
 
 @dataclass
 class LanguageNode(PlanNode):
+    """
+    Superclass for language nodes in a plan. Used to distinguish language nodes from other types of nodes.
+    """
     ...
 
 
