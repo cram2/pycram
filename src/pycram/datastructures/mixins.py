@@ -37,7 +37,8 @@ class HasConcept:
             return
         self.onto_name = name
         self.ontology_concept = concept
-        self.ontology_individual = self.ontology_concept(name=name, namespace=world.ontology.ontology)
+        self.ontology_individual = self.ontology_concept(name=name.lower() if name is not None else None,
+                                                         namespace=world.ontology.ontology)
         if parse_name:
             inferred_concept = parse_furniture(name)
             if inferred_concept is not None:

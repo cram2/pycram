@@ -696,24 +696,6 @@ class Object(PhysicalBody):
         for link in self.links.values():
             link.reset()
 
-    @property
-    def is_an_environment(self) -> bool:
-        """
-        Check if the object is of type environment.
-
-        :return: True if the object is of type environment, False otherwise.
-        """
-        return issubclass(self.obj_type, Location) or issubclass(self.obj_type, Floor)
-
-    @property
-    def is_a_robot(self) -> bool:
-        """
-        Check if the object is a robot.
-        TODO: Check if this is a the correct filter
-        :return: True if the object is a robot, False otherwise.
-        """
-        return issubclass(self.obj_type, Robot)
-
     def merge(self, other: Object, name: Optional[str] = None, pose: Optional[Pose] = None,
               new_description_file: Optional[str] = None) -> Object:
         """

@@ -9,7 +9,7 @@ from threading import RLock
 from trimesh.parent import Geometry3D
 from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union, Type, Tuple
 
-from pycrap.ontologies import PhysicalObject, Room, Location
+from pycrap.ontologies import PhysicalObject, Room, Location, Robot, Floor
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
     AxisAlignedBoundingBox, RotatedBoundingBox, RayResult
 from .enums import AdjacentBodyMethod, AxisIdentifier, Arms, Grasp
@@ -191,6 +191,26 @@ class PhysicalBody(WorldEntity, ABC):
         self.contained_bodies = []
         for part in self.parts.values():
             part.reset_concepts()
+
+    @property
+    def is_an_environment(self) -> bool:
+        """
+        Check if the object is of type environment.
+
+        :return: True if the object is of type environment, False otherwise.
+        """
+        return ((isinstance(self.parent_entity, PhysicalBody) and self.parent_entity.is_an_environment) or
+                (issubclass(self.ontology_concept, Location) or issubclass(self.ontology_concept, Floor)))
+
+    @property
+    def is_a_robot(self) -> bool:
+        """
+        Check if the object is a robot.
+        TODO: Check if this is a the correct filter
+        :return: True if the object is a robot, False otherwise.
+        """
+        return (issubclass(self.ontology_concept, Robot) or
+                (isinstance(self.parent_entity, PhysicalBody) and self.parent_entity.is_a_robot))
 
     @property
     @abstractmethod
