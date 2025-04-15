@@ -8,11 +8,6 @@ from anytree import RenderTree, AsciiStyle
 import owlready2
 from sqlalchemy import select
 import sqlalchemy.orm
-import pycram.orm.action_designator
-import pycram.orm.base
-import pycram.orm.motion_designator
-import pycram.orm.object_designator
-import pycram.orm.tasktree
 import pycram.tasktree
 from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.dataclasses import Color
@@ -25,7 +20,6 @@ from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import PoseStamped
 from pycram.process_module import simulated_robot
 from pycram.tasktree import with_tree, task_tree
-from pycram.orm.views import PickUpWithContextView
 from pycram.datastructures.enums import Arms, Grasp, GripperState, ObjectType
 from pycram.worlds.bullet_world import BulletWorld
 from pycrap.ontologies import Apartment, Robot, Milk
