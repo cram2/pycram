@@ -261,6 +261,7 @@ def with_tree(fun: Callable) -> Callable:
     def handle_tree(*args, **kwargs):
         # get the task tree
         global task_tree
+        x = task_tree
 
         # parse keyword arguments
         keyword_arguments = inspect.getcallargs(fun, *args, **kwargs)

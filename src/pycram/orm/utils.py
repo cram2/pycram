@@ -1,6 +1,6 @@
 import traceback
 import sqlalchemy
-from .ormatic_designator_interface import mapper_registry
+from .ormatic_interface import mapper_registry
 from ..designators.object_designator import *
 import json
 
