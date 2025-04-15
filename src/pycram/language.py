@@ -1,15 +1,15 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from queue import Queue
 from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence
 
-from .datastructures.enums import State
+from .datastructures.enums import State, TaskStatus
 import threading
 
 from .fluent import Fluent
-from .failures import PlanFailure, NotALanguageExpression
+from .failures import PlanFailure
 from .external_interfaces import giskard
 from .ros import  sleep
 from .plan import PlanNode, Plan
@@ -20,10 +20,6 @@ class LanguageMixin:
     Parent class for language expressions. Implements the operators as well as methods to reduce the resulting language
     tree.
     """
-    parallel_blocklist = ["PickUpAction", "PlaceAction", "OpenAction", "CloseAction", "TransportAction", "GraspingAction"]
-    do_not_use_giskard = ["SetGripperAction", "MoveGripperMotion", "DetectAction", "DetectingMotion"]
-    block_list: List[int] = []
-    """List of thread ids which should be blocked from execution."""
 
     def add_language_plan(self: Plan, child_plans: Iterable[Plan], root_node: LanguageNode) -> Plan:
         lang_plan = Plan(root_node)
@@ -74,7 +70,7 @@ class LanguageMixin:
         return self.add_language_plan(other, TryAllNode())
 
 
-    def __rshift__(self, other: Plan):
+    def __rshift__(self, other: Callable):
         """
         Operator for Monitors, this always makes the Monitor the parent of the other expression.
         
@@ -83,12 +79,7 @@ class LanguageMixin:
         """
         if isinstance(self, MonitorNode) and isinstance(other, MonitorNode):
             raise AttributeError("You can't attach a Monitor to another Monitor.")
-        if isinstance(self, MonitorNode):
-            self.children = [other]
-            return self
-        elif isinstance(other, MonitorNode):
-            other.children = [self]
-            return other
+        return self.add_language_plan((self), MonitorPlan(other))
 
     def __mul__(self: Plan, other: int):
         """
@@ -141,10 +132,15 @@ class SequentialPlan(LanguagePlan):
 
 
 class ParallelPlan(LanguagePlan):
+    parallel_blocklist = ["PickUpAction", "PlaceAction", "OpenAction", "CloseAction", "TransportAction",
+                          "GraspingAction"]
+    def __init__(self, *children: Plan, root: LanguageNode = None) -> None:
+        root = ParallelNode() or root
+        for child in children:
+            if child.__class__.__name__ in self.parallel_blocklist:
+                raise TypeError(f"You can't create a ParallelPlan with a {child.__class__.__name__}.")
 
-    def __init__(self, *children: Plan) -> None:
-        par = ParallelNode()
-        super().__init__(par, *children)
+        super().__init__(root, *children)
 
 class TryInOrderPlan(LanguagePlan):
 
@@ -152,12 +148,11 @@ class TryInOrderPlan(LanguagePlan):
         try_in_order =TryInOrderNode()
         super().__init__(try_in_order, *children)
 
-
-class TryAllPLan(LanguagePlan):
+class TryAllPLan(ParallelPlan):
 
     def __init__(self,  *children: Plan) -> None:
         try_all = TryAllNode()
-        super().__init__(try_all, *children)
+        super().__init__(root=try_all, *children)
 
 class RepeatPlan(LanguagePlan):
 
@@ -180,13 +175,100 @@ class LanguageNode(PlanNode):
     ...
 
 
+@dataclass
+class SequentialNode(LanguageNode):
+    """
+    Executes all children sequentially, an exception while executing a child does not terminate the whole process.
+    Instead, the exception is saved to a list of all exceptions thrown during execution and returned.
+
+    Behaviour:
+        Returns a tuple containing the final state of execution (SUCCEEDED, FAILED) and a list of results from each
+        child's perform() method. The state is :py:attr:`~State.SUCCEEDED` *iff* all children are executed without
+        exception. In any other case the State :py:attr:`~State.FAILED` will be returned.
+    """
+
+    def perform(self):
+        """
+        Behaviour of Sequential, calls perform() on each child sequentially
+
+        :return: The state and list of results according to the behaviour described in :func:`Sequential`
+        """
+        try:
+            self.perform_sequential(self.children)
+        except PlanFailure as e:
+            self.status = TaskStatus.FAILED
+            self.reason = e
+            raise e
+        self.status = TaskStatus.SUCCEEDED
+
+    @staticmethod
+    def perform_sequential(nodes: List[PlanNode], raise_exceptions = True) -> Any:
+        results = {}
+        for child in nodes:
+            try:
+                results[child]  = child.perform()
+                child.status = TaskStatus.SUCCEEDED
+            except PlanFailure as e:
+                child.status = TaskStatus.FAILED
+                child.reason = e
+                if raise_exceptions:
+                    raise e
+
+    def __hash__(self):
+        return id(self)
+
 
 @dataclass
-class RepeatNode(LanguageNode):
+class ParallelNode(LanguageNode):
+    results: dict = field(default_factory=dict)
+    """
+    Executes all children in parallel by creating a thread per children and executing them in the respective thread. All
+    exceptions during execution will be caught, saved to a list and returned upon end.
+
+    Behaviour:
+        Returns a tuple containing the final state of execution (SUCCEEDED, FAILED) and a list of results from
+        each child's perform() method. The state is :py:attr:`~State.SUCCEEDED` *iff* all children could be executed without
+        an exception. In any other case the State :py:attr:`~State.FAILED` will be returned.
+
+    """
+
+    def perform(self):
+        """
+        Behaviour of Parallel, creates a new thread for each child and calls perform() of the child in the respective
+        thread.
+
+        :return: The state and list of results according to the behaviour described in :func:`Parallel`
+
+        """
+        self.perform_parallel(self.children)
+        child_statuses = [child.status for child in self.children]
+        self.status = TaskStatus.SUCCEEDED if TaskStatus.FAILED not in child_statuses else TaskStatus.FAILED
+
+    def perform_parallel(self, nodes: List[PlanNode]):
+        threads = []
+        for child in nodes:
+            t = threading.Thread(target=self._lang_call, args=[child])
+            t.start()
+            threads.append(t)
+        for thread in threads:
+            thread.join()
+
+    def _lang_call(self, node: PlanNode):
+        try:
+            self.results[node] = node.perform()
+            node.state = State.SUCCEEDED
+        except PlanFailure as e:
+            node.status = TaskStatus.FAILED
+            node.reason = e
+            raise e
+
+
+@dataclass
+class RepeatNode(SequentialNode):
     repeat: int = 1
 
     """
-    Executes all children a given number of times.
+    Executes all children a given number of times in sequential order.
     """
     def perform(self):
         """
@@ -194,32 +276,19 @@ class RepeatNode(LanguageNode):
 
         :return:
         """
-        results = []
-        for i in range(self.repeat):
-            for child in self.children:
-                if self.interrupted:
-                    return State.FAILED, results
-                try:
-                    results.append(child.resolve().perform())
-                except PlanFailure as e:
-                    self.root.exceptions[self] = e
-        return State.SUCCEEDED, results
-
-    def interrupt(self) -> None:
-        """
-        Stops the execution of this language expression by setting the ``interrupted`` variable to True, adding this
-        thread to the block_list in ProcessModule and interrupting the current giskard goal
-        """
-        self.interrupted = True
-        self.block_list.append(threading.get_ident())
-        if giskard.giskard_wrapper:
-            giskard.giskard_wrapper.interrupt()
+        for _ in range(self.repeat):
+            try:
+                self.perform_sequential(self.children)
+            except PlanFailure as e:
+                self.status = TaskStatus.FAILED
+                self.reason = e
+                raise e
 
     def __hash__(self):
         return id(self)
 
 @dataclass
-class MonitorNode(LanguageNode):
+class MonitorNode(SequentialNode):
     """
     Monitors a Language Expression and interrupts it when the given condition is evaluated to True.
 
@@ -235,7 +304,6 @@ class MonitorNode(LanguageNode):
 
         :param condition: The condition upon which the Monitor should interrupt the attached language expression.
         """
-        super().__init__(None, None)
         self.kill_event = threading.Event()
         self.exception_queue = Queue()
         if callable(condition):
@@ -245,106 +313,30 @@ class MonitorNode(LanguageNode):
         else:
             raise AttributeError("The condition of a Monitor has to be a Callable or a Fluent")
 
-    def perform(self) -> Tuple[State, Any]:
+    def perform(self):
         """
         Behavior of the Monitor, starts a new Thread which checks the condition and then performs the attached language
         expression
 
         :return: The state of the attached language expression, as well as a list of the results of the children
         """
-        def check_condition():
-            while not self.kill_event.is_set():
-                try:
-                    cond = self.condition.get_value()
-                    if cond:
-                        for child in self.children:
-                            try:
-                                child.interrupt()
-                            except NotImplementedError:
-                                pass
-                        if isinstance(cond, type) and issubclass(cond, Exception):
-                            self.exception_queue.put(cond)
-                        else:
-                            self.exception_queue.put(PlanFailure("Condition met in Monitor"))
-                        return
-                except Exception as e:
-                    self.exception_queue.put(e)
-                    return
-                sleep(0.1)
+        monitor_thread = threading.Thread(target=self.monitor)
+        monitor_thread.start()
+        self.perform_sequential(self.children)
+        self.kill_event.set()
+        monitor_thread.join()
 
-        t = threading.Thread(target=check_condition)
-        t.start()
-        try:
-            state, result = self.children[0].perform()
-            if not self.exception_queue.empty():
-                raise self.exception_queue.get()
-        finally:
-            self.kill_event.set()
-            t.join()
-        return state, result
-
-    def interrupt(self) -> None:
-        """
-        Calls interrupt for each child
-        """
-        for child in self.children:
-            child.interrupt()
+    def monitor(self):
+        while not self.kill_event.is_set():
+            if self.condition.get_value():
+                self.interrupt()
+            sleep(0.1)
 
     def __hash__(self):
         return id(self)
 
 @dataclass
-class SequentialNode(LanguageNode):
-    """
-    Executes all children sequentially, an exception while executing a child does not terminate the whole process.
-    Instead, the exception is saved to a list of all exceptions thrown during execution and returned.
-
-    Behaviour:
-        Returns a tuple containing the final state of execution (SUCCEEDED, FAILED) and a list of results from each
-        child's perform() method. The state is :py:attr:`~State.SUCCEEDED` *iff* all children are executed without
-        exception. In any other case the State :py:attr:`~State.FAILED` will be returned.
-    """
-
-    def perform(self) -> Tuple[State, List[Any]]:
-        """
-        Behaviour of Sequential, calls perform() on each child sequentially
-
-        :return: The state and list of results according to the behaviour described in :func:`Sequential`
-        """
-        children_return_values = [None] * len(self.children)
-        try:
-            for index, child in enumerate(self.children):
-                if self.interrupted:
-                    if threading.get_ident() in self.block_list:
-                        self.block_list.remove(threading.get_ident())
-                    return State.FAILED, children_return_values
-                self.root.executing_thread[id(child)] = threading.get_ident()
-                ret_val = child.resolve().perform()
-                if isinstance(ret_val, tuple):
-                    child_state, child_result = ret_val
-                    children_return_values[index] = child_result
-                else:
-                    children_return_values[index] = ret_val
-        except PlanFailure as e:
-            self.root.exceptions[self] = e
-            return State.FAILED, children_return_values
-        return State.SUCCEEDED, children_return_values
-
-    def interrupt(self) -> None:
-        """
-        Interrupts the execution of this language expression by setting the ``interrupted`` variable to True and calling
-        interrupt on the current giskard goal.
-        """
-        self.interrupted = True
-        self.block_list.append(threading.get_ident())
-        if giskard.giskard_wrapper:
-            giskard.giskard_wrapper.interrupt()
-
-    def __hash__(self):
-        return id(self)
-
-@dataclass
-class TryInOrderNode(LanguageNode):
+class TryInOrderNode(SequentialNode):
     """
     Executes all children sequentially, an exception while executing a child does not terminate the whole process.
     Instead, the exception is saved to a list of all exceptions thrown during execution and returned.
@@ -355,135 +347,22 @@ class TryInOrderNode(LanguageNode):
         exception. In the case that all children could not be executed the State :py:attr:`~State.FAILED` will be returned.
     """
 
-    def perform(self) -> Tuple[State, List[Any]]:
+    def perform(self):
         """
         Behaviour of TryInOrder, calls perform() on each child sequentially and catches raised exceptions.
 
         :return: The state and list of results according to the behaviour described in :func:`TryInOrder`
         """
-        failure_list = []
-        children_return_values = [None] * len(self.children)
-        for index, child in enumerate(self.children):
-            if self.interrupted:
-                if threading.get_ident() in self.block_list:
-                    self.block_list.remove(threading.get_ident())
-                return State.INTERRUPTED, children_return_values
-            try:
-                ret_val = child.resolve().perform()
-                if isinstance(ret_val, tuple):
-                    child_state, child_result = ret_val
-                    children_return_values[index] = child_result
-                else:
-                    children_return_values[index] = ret_val
-            except PlanFailure as e:
-                failure_list.append(e)
-        if len(failure_list) > 0:
-            self.root.exceptions[self] = failure_list
-        if len(failure_list) == len(self.children):
-            self.root.exceptions[self] = failure_list
-            return State.FAILED, children_return_values
-        else:
-            return State.SUCCEEDED, children_return_values
-
-    def interrupt(self) -> None:
-        """
-        Interrupts the execution of this language expression by setting the ``interrupted`` variable to True, adding
-        the current thread to the block_list in Language and interrupting the current giskard goal.
-        """
-        self.interrupted = True
-        self.block_list.append(threading.get_ident())
-        if giskard.giskard_wrapper:
-            giskard.giskard_wrapper.interrupt()
+        self.perform_sequential(self.children, raise_exceptions=False)
+        child_statuses = [child.status for child in self.children]
+        self.status = TaskStatus.SUCCEEDED if TaskStatus.SUCCEEDED in child_statuses else TaskStatus.FAILED
 
     def __hash__(self):
         return id(self)
 
-@dataclass
-class ParallelNode(LanguageNode):
-    """
-    Executes all children in parallel by creating a thread per children and executing them in the respective thread. All
-    exceptions during execution will be caught, saved to a list and returned upon end.
-
-    Behaviour:
-        Returns a tuple containing the final state of execution (SUCCEEDED, FAILED) and a list of results from
-        each child's perform() method. The state is :py:attr:`~State.SUCCEEDED` *iff* all children could be executed without
-        an exception. In any other case the State :py:attr:`~State.FAILED` will be returned.
-
-    """
-
-    def perform(self) -> Tuple[State, List[Any]]:
-        """
-        Behaviour of Parallel, creates a new thread for each child and calls perform() of the child in the respective
-        thread.
-
-        :return: The state and list of results according to the behaviour described in :func:`Parallel`
-
-        """
-        results = [None] * len(self.children)
-        self.threads: List[threading.Thread] = []
-        state = State.SUCCEEDED
-        results_lock = threading.Lock()
-
-        def lang_call(child_node, index):
-            nonlocal state
-            if ("DesignatorDescription" in [cls.__name__ for cls in child_node.__class__.__mro__]
-                    and self.__class__.__name__ not in self.do_not_use_giskard):
-                if self not in giskard.par_threads.keys():
-                    giskard.par_threads[self] = [threading.get_ident()]
-                else:
-                    giskard.par_threads[self].append(threading.get_ident())
-            try:
-                self.root.executing_thread[id(child)] = threading.get_ident()
-                result = child_node.resolve().perform()
-                if isinstance(result, tuple):
-                    child_state, child_result = result
-                    with results_lock:
-                        results[index] = child_result
-                else:
-                    with results_lock:
-                        results[index] = result
-            except PlanFailure as e:
-                nonlocal state
-                with results_lock:
-                    state = State.FAILED
-                if self in self.root.exceptions.keys():
-                    self.root.exceptions[self].append(e)
-                else:
-                    self.root.exceptions[self] = [e]
-
-        for index, child in enumerate(self.children):
-            if self.interrupted:
-                state = State.FAILED
-                break
-            t = threading.Thread(target=lambda: lang_call(child, index))
-            t.start()
-            self.threads.append(t)
-        for thread in self.threads:
-            thread.join()
-        with results_lock:
-            for thread in self.threads:
-                if thread.ident in self.block_list:
-                    self.block_list.remove(thread.ident)
-        if self in self.root.exceptions.keys() and len(self.root.exceptions[self]) != 0:
-            state = State.FAILED
-        return state, results
-
-    def interrupt(self) -> None:
-        """
-        Interrupts the execution of this language expression by setting the ``interrupted`` variable to True, adding the
-        thread id of all parallel execution threads to the block_list in Language and interrupting the current giskard
-        goal.
-        """
-        self.interrupted = True
-        self.block_list += [t.ident for t in self.threads]
-        if giskard.giskard_wrapper:
-            giskard.giskard_wrapper.interrupt()
-
-    def __hash__(self):
-        return id(self)
 
 @dataclass
-class TryAllNode(LanguageNode):
+class TryAllNode(ParallelNode):
     """
     Executes all children in parallel by creating a thread per children and executing them in the respective thread. All
     exceptions during execution will be caught, saved to a list and returned upon end.
@@ -494,67 +373,15 @@ class TryAllNode(LanguageNode):
         without raising an exception. If all children fail the State :py:attr:`~State.FAILED` will be returned.
     """
 
-    def perform(self) -> Tuple[State, List[Any]]:
+    def perform(self):
         """
         Behaviour of TryAll, creates a new thread for each child and executes all children in their respective threads.
 
         :return: The state and list of results according to the behaviour described in :func:`TryAll`
         """
-        results = [None] * len(self.children)
-        results_lock = threading.Lock()
-        state = State.SUCCEEDED
-        self.threads: List[threading.Thread] = []
-        failure_list = []
-
-        def lang_call(child_node, index):
-            if ("DesignatorDescription" in [cls.__name__ for cls in child_node.__class__.__mro__]
-                    and self.__class__.__name__ not in self.do_not_use_giskard):
-                if self not in giskard.par_threads.keys():
-                    giskard.par_threads[self] = [threading.get_ident()]
-                else:
-                    giskard.par_threads[self].append(threading.get_ident())
-            try:
-                result = child_node.resolve().perform()
-                if isinstance(result, tuple):
-                    child_state, child_result = result
-                    with results_lock:
-                        results[index] = child_result
-                else:
-                    with results_lock:
-                        results[index] = result
-            except PlanFailure as e:
-                failure_list.append(e)
-                if self in self.root.exceptions.keys():
-                    self.root.exceptions[self].append(e)
-                else:
-                    self.root.exceptions[self] = [e]
-        for index, child in enumerate(self.children):
-            if self.interrupted:
-                state = State.FAILED
-                break
-            t = threading.Thread(target=lambda: lang_call(child, index))
-            self.threads.append(t)
-            t.start()
-        for thread in self.threads:
-            thread.join()
-        with results_lock:
-            for thread in self.threads:
-                if thread.ident in self.block_list:
-                    self.block_list.remove(thread.ident)
-        if len(self.children) == len(failure_list):
-            self.root.exceptions[self] = failure_list
-            state = State.FAILED
-        return state, results
-
-    def interrupt(self) -> None:
-        """
-        Interrupts the execution of this language expression by setting the ``interrupted`` variable to True, adding the
-        thread id of all parallel execution threads to the block_list in Language and interrupting the current giskard
-        """
-        self.interrupted = True
-        self.block_list += [t.ident for t in self.threads]
-        if giskard.giskard_wrapper:
-            giskard.giskard_wrapper.interrupt()
+        self.perform_parallel(self.children)
+        child_statuses = [child.status for child in self.children]
+        self.status = TaskStatus.SUCCEEDED if TaskStatus.SUCCEEDED in child_statuses else TaskStatus.FAILED
 
     def __hash__(self):
         return id(self)
@@ -601,9 +428,6 @@ class CodeNode(LanguageNode):
 
     def resolve(self) -> Self:
         return self
-
-    def interrupt(self) -> None:
-        raise NotImplementedError
 
     def __hash__(self):
         return id(self)
