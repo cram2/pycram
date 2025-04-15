@@ -1,3 +1,4 @@
+# TODO fix views for new imperative orm structure
 # from sqlalchemy.orm import declarative_base, Mapped, column_property
 # from typing_extensions import Union
 # import sqlalchemy.orm

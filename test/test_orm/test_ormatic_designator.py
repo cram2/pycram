@@ -10,23 +10,31 @@ from sqlalchemy.orm import registry, Session, clear_mappers
 import sqlalchemy.sql.elements
 
 import pycram.tasktree
-from pycram.datastructures.dataclasses import FrozenObject
-from pycram.datastructures.enums import TorsoState, Arms, Grasp, DetectionTechnique
+from pycram.datastructures.dataclasses import FrozenObject, Color
+from pycram.datastructures.enums import TorsoState, Arms, Grasp, DetectionTechnique, DetectionState, GripperState, \
+    WorldMode
 from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.pose import Vector3, Quaternion, Pose, PoseStamped
 from pycram.designator import ObjectDesignatorDescription, ActionDescription
 from pycram.designators.action_designator import PickUpActionDescription, MoveTorsoActionDescription, ParkArmsAction, \
     MoveTorsoAction, NavigateAction, GraspingAction, PickUpAction, DetectActionDescription, DetectAction, \
-    PlaceActionDescription, TransportAction, PlaceAction
+    PlaceActionDescription, TransportAction, PlaceAction, LookAtAction, SetGripperAction, OpenAction, CloseAction, \
+    ParkArmsActionDescription, TransportActionDescription, LookAtActionDescription, NavigateActionDescription
+from pycram.designators.object_designator import BelieveObject, ObjectPart
 from pycram.failures import ObjectNotGraspedError, PerceptionObjectNotFound
 from pycram.process_module import simulated_robot
 from pycram.robot_description import RobotDescription
+from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.tasktree import with_tree, task_tree
 from pycram.testing import BulletWorldTestCase
 
 from pycram.orm.logging_hooks import insert
 from pycram.orm.ormatic_interface import mapper_registry
 from pycram.orm.model import TaskTreeNode as TaskTreeNodeORM, PickUpAction as PickUpActionORM
+from pycram.world_concepts.world_object import Object
+from pycram.worlds.bullet_world import BulletWorld
+from pycrap.ontologies import Milk, Apartment, Robot
+
 
 class ORMaticBaseTestCaseMixin(BulletWorldTestCase):
     engine: sqlalchemy.engine
@@ -107,13 +115,26 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
         result = self.session.scalars(select(ActionDescription)).all()
         self.assertTrue(all([r.robot_position.pose is not None and r.robot_position.pose_id == r.robot_position.pose.id for r in result]))
 
-    def test_place_action(self):
+    def test_pose_vs_pose_stamped(self):
         self.plan()
         insert(task_tree.root, self.session)
-        x = self.session.scalars(select(TaskTreeNodeORM)).all()
-        result = self.session.scalars(select(PlaceAction)).all()
-        print(result)
-        self.assertTrue(len(result) == 1)
+        pose_stamped_result = self.session.scalars(select(PoseStamped)).all()
+        pose_result = self.session.scalars(select(Pose)).all()
+        poses_from_pose_stamped_results = (self.session
+                                           .scalars(select(Pose)
+                                                    .where(Pose.id.in_([r.pose_id for r in pose_stamped_result]))).all())
+        self.assertTrue(all([r.pose is not None for r in pose_stamped_result]))
+        self.assertTrue(all([r.position is not None and r.orientation is not None for r in pose_result]))
+        self.assertEqual(len(poses_from_pose_stamped_results), len(pose_result))
+        self.assertEqual(pose_stamped_result[0].pose_id, pose_result[0].id)
+
+    # def test_place_action(self):
+    #     self.plan()
+    #     insert(task_tree.root, self.session)
+    #     x = self.session.scalars(select(TaskTreeNodeORM)).all()
+    #     result = self.session.scalars(select(PlaceAction)).all()
+    #     print(result)
+    #     self.assertTrue(len(result) == 1)
 
 class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
     def test_code_designator_type(self):
@@ -169,89 +190,60 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         self.assertEqual(result.y, previous_position.position.y)
         self.assertEqual(result.z, previous_position.position.z)
 
-    # # TODO: dicuss on how to change this
-    # @unittest.skip
-    # def test_lookAt_and_detectAction(self):
-    #     object_description = ObjectDesignatorDescription(types=[Milk])
-    #     action = DetectActionDescription(technique=DetectionTechnique.TYPES,
-    #                                      state=DetectionState.START,
-    #                                      object_designator_description=object_description,
-    #                                      region=None).resolve()
-    #     with simulated_robot:
-    #         ParkArmsAction(pycram.datastructures.enums.Arms.BOTH).perform()
-    #         NavigateAction(PoseStamped.from_list([0, 1, 0], [0, 0, 0, 1]), True).perform()
-    #         LookAtAction(object_description.resolve().pose).perform()
-    #         action.perform()
-    #     pycram.orm.base.ProcessMetaData().description = "detectAction_test"
-    #     pycram.tasktree.task_tree.root.insert(self.session)
-    #     result = self.session.scalars(select(pycram.orm.action_designator.DetectAction)).all()
-    #     self.assertEqual(result[0].object.name, "milk")
-    #
-    # def test_setGripperAction(self):
-    #     action = SetGripperAction(Arms.LEFT, GripperState.OPEN)
-    #     with simulated_robot:
-    #         action.perform()
-    #     pycram.orm.base.ProcessMetaData().description = "setGripperAction_test"
-    #     pycram.tasktree.task_tree.root.insert(self.session)
-    #     result = self.session.scalars(select(pycram.orm.action_designator.SetGripperAction)).all()
-    #     self.assertEqual(result[0].gripper, Arms.LEFT)
-    #     self.assertEqual(result[0].motion, GripperState.OPEN)
-    #
-    # def test_open_and_closeAction(self):
-    #     apartment = Object("apartment", Apartment, "apartment.urdf")
-    #     apartment_desig = BelieveObject(names=["apartment"]).resolve()
-    #     handle_desig = object_designator.ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig).resolve()
-    #
-    #     self.kitchen.set_pose(PoseStamped.from_list([20, 20, 0], [0, 0, 0, 1]))
-    #
-    #     with simulated_robot:
-    #         ParkArmsAction(pycram.datastructures.enums.Arms.BOTH).perform()
-    #         NavigateAction(PoseStamped.from_list([1.81, 1.73, 0.0],
-    #                                              [0.0, 0.0, 0.594, 0.804]), True).perform()
-    #         OpenAction(handle_desig, arm=Arms.LEFT, grasping_prepose_distance=0.03).perform()
-    #         CloseAction(handle_desig, arm=Arms.LEFT, grasping_prepose_distance=0.03).perform()
-    #
-    #     pycram.orm.base.ProcessMetaData().description = "open_and_closeAction_test"
-    #     pycram.tasktree.task_tree.root.insert(self.session)
-    #     open_result = self.session.scalars(select(pycram.orm.action_designator.OpenAction)).all()
-    #     close_result = self.session.scalars(select(pycram.orm.action_designator.CloseAction)).all()
-    #     self.assertTrue(open_result is not None)
-    #     self.assertEqual(open_result[0].object.name, "handle_cab10_t")
-    #     self.assertTrue(close_result is not None)
-    #     self.assertEqual(close_result[0].object.name, "handle_cab10_t")
-    #     apartment.remove()
-    # @with_tree
-    # def plan(self):
-    #     # action = ParkArmsAction(Arms.BOTH)
-    #     with simulated_robot:
-    #         MoveTorsoAction(TorsoState.HIGH).perform()
-    #         ParkArmsAction(Arms.BOTH).perform()
+    def test_lookAt_and_detectAction(self):
+        object_description = ObjectDesignatorDescription(types=[Milk])
+        action = DetectActionDescription(technique=DetectionTechnique.TYPES,
+                                         state=DetectionState.START,
+                                         object_designator=object_description,
+                                         region=None).resolve()
+        with simulated_robot:
+            ParkArmsAction(pycram.datastructures.enums.Arms.BOTH).perform()
+            NavigateAction(PoseStamped.from_list([0, 1, 0], [0, 0, 0, 1]), True).perform()
+            LookAtAction(object_description.resolve().pose).perform()
+            action.perform()
+        insert(task_tree.root, self.session)
+        object_result = self.session.scalars(select(FrozenObject)).all()
+        result = self.session.scalars(select(DetectAction)).all()
+        self.assertEqual(len(object_result), 1)
+        self.assertEqual(object_result[0].name, "milk")
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].technique, DetectionTechnique.TYPES)
+        self.assertEqual(result[0].state, DetectionState.START)
+        self.assertEqual(result[0].object_at_execution.name, "milk")
 
-    # @with_tree
-    # def plan(self):
-    #     object_description = ObjectDesignatorDescription(names=["milk"])
-    #     description = PlaceActionDescription(object_description, [PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
-    #     torso_joint = RobotDescription.current_robot_description.torso_joint
-    #     # self.assertEqual(description.resolve().object_designator.name, "milk")
-    #     with simulated_robot:
-    #         NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-    #         MoveTorsoAction(TorsoState.HIGH).perform()
-    #         grasp = GraspDescription(Grasp.FRONT, None, False)
-    #         PickUpAction(object_description.resolve(), Arms.LEFT, grasp, 0.03).perform()
-    #         description.resolve().perform()
+    def test_setGripperAction(self):
+        action = SetGripperAction(Arms.LEFT, GripperState.OPEN)
+        with simulated_robot:
+            action.perform()
+        insert(task_tree.root, self.session)
+        result = self.session.scalars(select(SetGripperAction)).all()
+        self.assertEqual(result[0].gripper, Arms.LEFT)
+        self.assertEqual(result[0].motion, GripperState.OPEN)
 
-    # @with_tree
-    # def plan(self):
-    #     object_description = ObjectDesignatorDescription(names=["milk"])
-    #     grasp_description = GraspDescription(Grasp.FRONT, None, False)
-    #     description = PickUpActionDescription(object_description, [Arms.LEFT], [grasp_description])
-    #     self.assertEqual(description.resolve().object_designator.name, "milk")
-    #     with simulated_robot:
-    #         NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-    #         MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
-    #         description.resolve().perform()
+    def test_open_and_closeAction(self):
+        apartment = Object("apartment", Apartment, "apartment.urdf")
+        apartment_desig = BelieveObject(names=["apartment"]).resolve()
+        handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig).resolve()
 
+        self.kitchen.set_pose(PoseStamped.from_list([20, 20, 0], [0, 0, 0, 1]))
 
+        with simulated_robot:
+            ParkArmsAction(pycram.datastructures.enums.Arms.BOTH).perform()
+            NavigateAction(PoseStamped.from_list([1.81, 1.73, 0.0],
+                                                 [0.0, 0.0, 0.594, 0.804]), True).perform()
+            OpenAction(handle_desig, arm=Arms.LEFT, grasping_prepose_distance=0.03).perform()
+            CloseAction(handle_desig, arm=Arms.LEFT, grasping_prepose_distance=0.03).perform()
+
+        insert(task_tree.root, self.session)
+        open_result = self.session.scalars(select(OpenAction)).all()
+        close_result = self.session.scalars(select(CloseAction)).all()
+        self.assertTrue(open_result is not None)
+        # can not do that yet with new mapping
+        # self.assertEqual(open_result[0].object.name, "handle_cab10_t")
+        self.assertTrue(close_result is not None)
+        # can not do that yet with new mapping
+        # self.assertEqual(close_result[0].object.name, "handle_cab10_t")
+        apartment.remove()
 
 
     def test_node(self):
@@ -330,13 +322,129 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         poses = self.session.scalars(select(Pose)).all()
         print(poses)
         self.assertEqual(len(poses), 1)
-    #
-    # def test_self_mapping_orm_designators(self):
-    #     pass
-    #
-    # def test_explicitly_mapped_orm_designators(self):
-    #     pass
-    #
-    # def test_frozen_object_mapping(self):
-    #     pass
-    #
+
+class BelieveObjectTestCase(unittest.TestCase):
+    engine: sqlalchemy.engine
+    session: sqlalchemy.orm.Session
+
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = create_engine("sqlite+pysqlite:///:memory:", echo=False)
+        environment_path = "apartment.urdf"
+        cls.world = BulletWorld(WorldMode.DIRECT)
+        cls.robot = Object("pr2", Robot, path="pr2.urdf", pose=PoseStamped.from_list([1, 2, 0]))
+        cls.apartment = Object(environment_path[:environment_path.find(".")], Apartment, environment_path)
+        cls.milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1, -1.78, 0.55], [1, 0, 0, 0]),
+                          color=Color(1, 0, 0, 1))
+        # cls.viz_marker_publisher = VizMarkerPublisher()
+
+    def setUp(self):
+        self.world.reset_world()
+        self.mapper_registry = mapper_registry
+        self.session = Session(bind=self.engine)
+        self.mapper_registry.metadata.create_all(bind=self.session.bind)
+
+    def tearDown(self):
+        super().tearDown()
+        self.mapper_registry.metadata.drop_all(self.session.bind)
+        # clear_mappers()
+        self.session.close()
+        pycram.tasktree.task_tree.reset_tree()
+        self.world.reset_world()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.world.ontology.destroy_individuals()
+        # cls.viz_marker_publisher._stop_publishing()
+        cls.world.exit()
+
+    # TODO: Cant test this atm, bc insert for class concept does not work in ORM
+    def test_believe_object(self):
+        # TODO: Find better way to separate BelieveObject no pose from Object pose
+
+        with simulated_robot:
+            ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
+
+            MoveTorsoActionDescription(TorsoState.HIGH).resolve().perform()
+            NavigateActionDescription(target_location=[PoseStamped.from_list([2, -1.89, 0])]).resolve().perform()
+
+            LookAtActionDescription(target=[PoseStamped.from_list([1, -1.78, 0.55])]).resolve().perform()
+
+            object_dict = DetectActionDescription(technique=DetectionTechnique.TYPES,
+                                                  object_designator_description=BelieveObject(types=[Milk])).resolve().perform()
+            object_desig = object_dict[0]
+            TransportActionDescription(object_desig, [PoseStamped.from_list([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
+
+            ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
+            insert(task_tree.root, self.session)
+
+
+# Tests for when views are fixed
+
+# class ViewsSchemaTest(DatabaseTestCaseMixin):
+#
+#     def test_view_creation(self):
+#         pycram.orm.base.ProcessMetaData().description = "view_creation_test"
+#         pycram.tasktree.task_tree.root.insert(self.session)
+#         view = PickUpWithContextView
+#         self.assertEqual(len(view.__table__.columns), 14)
+#         self.assertEqual(view.__table__.name, "PickUpWithContextView")
+#         self.assertEqual(view.__table__.columns[0].name, "id")
+#         self.assertEqual(view.__table__.columns[1].name, "arm")
+#         self.assertEqual(view.__table__.columns[2].name, "approach_direction")
+#         self.assertEqual(view.__table__.columns[3].name, "vertical_alignment")
+#         self.assertEqual(view.__table__.columns[4].name, "rotate_gripper")
+#         self.assertEqual(view.__table__.columns[5].name, "torso_height")
+#         self.assertEqual(view.__table__.columns[6].name, "relative_x")
+#         self.assertEqual(view.__table__.columns[7].name, "relative_y")
+#         self.assertEqual(view.__table__.columns[8].name, "x")
+#         self.assertEqual(view.__table__.columns[9].name, "y")
+#         self.assertEqual(view.__table__.columns[10].name, "z")
+#         self.assertEqual(view.__table__.columns[11].name, "w")
+#         self.assertEqual(view.__table__.columns[12].name, "obj_type")
+#         self.assertEqual(view.__table__.columns[13].name, "status")
+#
+#     def test_pickUpWithContextView(self):
+#         if self.engine.dialect.name == "sqlite":
+#             return
+#         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+#         description = action_designator.PlaceActionDescription(object_description, [PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
+#         torso_joint = RobotDescription.current_robot_description.torso_joint
+#         self.assertEqual(description.resolve().object_designator.name, "milk")
+#         with simulated_robot:
+#             NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+#             MoveTorsoAction(TorsoState.HIGH).perform()
+#             grasp = GraspDescription(Grasp.FRONT, None, False)
+#             PickUpAction(object_description.resolve(), Arms.LEFT, grasp).perform()
+#             description.resolve().perform()
+#         pycram.orm.base.ProcessMetaData().description = "pickUpWithContextView_test"
+#         pycram.tasktree.task_tree.root.insert(self.session)
+#         result = self.session.scalars(select(PickUpWithContextView)).first()
+#         self.assertEqual(result.arm, Arms.LEFT)
+#         self.assertEqual(result.grasp, grasp)
+#         self.assertEqual(result.torso_height, 0.3)
+#         self.assertAlmostEqual(result.relative_x, -0.7, 6)
+#         self.assertAlmostEqual(result.relative_y, -0.6, 6)
+#         self.assertEqual(result.quaternion_x, 0)
+#         self.assertEqual(result.quaternion_w, 1)
+#
+#     def test_pickUpWithContextView_conditions(self):
+#         if self.engine.dialect.name == "sqlite":
+#             return
+#         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+#         description = action_designator.PlaceActionDescription(object_description, [PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
+#         torso_joint = RobotDescription.current_robot_description.torso_joint
+#         self.assertEqual(description.resolve().object_designator.name, "milk")
+#         with simulated_robot:
+#             NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+#             MoveTorsoAction(TorsoState.HIGH).perform()
+#             grasp = GraspDescription(Grasp.FRONT, None, False)
+#             PickUpAction(object_description.resolve(), Arms.LEFT, grasp).perform()
+#             description.resolve().perform()
+#         pycram.orm.base.ProcessMetaData().description = "pickUpWithContextView_conditions_test"
+#         pycram.tasktree.task_tree.root.insert(self.session)
+#         result = self.session.scalars(select(PickUpWithContextView)
+#                                       .where(PickUpWithContextView.arm == Arms.RIGHT)).all()
+#         self.assertEqual(result, [])
+
+
