@@ -1548,7 +1548,7 @@ class FrozenObject:
     """
     Name of this Object
     """
-    concept: Type[PhysicalObject]
+    concept: Type[PhysicalObject] = field(default=PhysicalObject)
     """
     The Concept of the Object as the PyCRAP concept
     """

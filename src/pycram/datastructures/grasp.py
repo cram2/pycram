@@ -7,7 +7,7 @@ from typing_extensions import Optional, Union, List
 from .enums import Grasp, AxisIdentifier
 
 
-@dataclass(frozen=True)
+@dataclass
 class GraspDescription:
     """
     Represents a grasp description with a side grasp, top face, and orientation alignment.

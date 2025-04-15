@@ -70,37 +70,6 @@ def record_object_pre_perform(action):
     action.object_at_execution = action.object_designator.frozen_copy()
 
 
-## Do we still need this??
-# @dataclass
-# class ActionAbstract(ActionDescription, abc.ABC):
-#     """Base class for performable performables."""
-#
-#     @abc.abstractmethod
-#     def plan(self) -> None:
-#         """
-#         plan of the action.
-#
-#         Will be overwritten by each action.
-#         """
-#         pass
-#
-#     def __str__(self):
-#         # all fields that are not ORM classes
-#         fields = {}
-#         for key, value in vars(self).items():
-#             if key.startswith("orm_"):
-#                 continue
-#             if isinstance(value, Object):
-#                 fields[key] = value.name
-#             elif isinstance(value, PoseStamped):
-#                 fields[key] = value.__str__()
-#         fields_str = "\n".join([f"{key}: {value}" for key, value in fields.items()])
-#         return f"{self.__class__.__name__.replace('Performable', '')}:\n{fields_str}"
-#
-#     def __repr__(self):
-#         return self.__str__()
-#
-
 @dataclass
 class MoveTorsoAction(ActionDescription):
     """
@@ -201,7 +170,7 @@ class ReleaseAction(ActionDescription):
     """
 
     def __post_init__(self):
-        super(ActionDescription, self).__post_init__()
+        super().__post_init__()
 
         # Store the object's data copy at execution
         self.pre_perform(record_object_pre_perform)
@@ -249,7 +218,7 @@ class GripAction(ActionDescription):
     """
 
     def __post_init__(self):
-        super(ActionDescription, self).__post_init__()
+        super().__post_init__()
 
         # Store the object's data copy at execution
         self.pre_perform(record_object_pre_perform)
@@ -361,7 +330,7 @@ class ReachToPickUpAction(ActionDescription):
     """
 
     def __post_init__(self):
-        super(ActionDescription, self).__post_init__()
+        super().__post_init__()
 
         # Store the object's data copy at execution
         self.pre_perform(record_object_pre_perform)
@@ -526,7 +495,7 @@ class PickUpAction(ActionDescription):
     """
 
     def __post_init__(self):
-        super(ActionDescription, self).__post_init__()
+        super().__post_init__()
 
         # Store the object's data copy at execution
         self.pre_perform(record_object_pre_perform)
@@ -612,7 +581,7 @@ class PlaceAction(ActionDescription):
     """
 
     def __post_init__(self):
-        super(ActionDescription, self).__post_init__()
+        super().__post_init__()
 
         # Store the object's data copy at execution
         self.pre_perform(record_object_pre_perform)
@@ -767,7 +736,7 @@ class TransportAction(ActionDescription):
     """
 
     def __post_init__(self):
-        super(ActionDescription, self).__post_init__()
+        super().__post_init__()
 
         # Store the object's data copy at execution
         self.pre_perform(record_object_pre_perform)
@@ -895,7 +864,7 @@ class DetectAction(ActionDescription):
     """
 
     def __post_init__(self):
-        super(ActionDescription, self).__post_init__()
+        super().__post_init__()
 
         # Store the object's data copy at execution
         self.pre_perform(record_object_pre_perform)
@@ -914,11 +883,11 @@ class DetectAction(ActionDescription):
     @with_plan
     def description(cls, technique: Union[Iterable[DetectionTechnique], DetectionTechnique],
                     state: Union[Iterable[DetectionState], DetectionState] = None,
-                    object_designator_description: Union[Iterable[Object], Object] = None,
+                    object_designator: Union[Iterable[Object], Object] = None,
                     region: Union[Iterable[Location], Location] = None) -> PartialDesignator[Type[DetectAction]]:
         return PartialDesignator(DetectAction, technique=technique,
                                  state=state,
-                                 object_designator_description=object_designator_description,
+                                 object_designator=object_designator,
                                  region=region)
 
 
