@@ -13,6 +13,7 @@ from typing_extensions import Optional, Callable, Any, Dict, List, Self, Iterabl
 from .datastructures.enums import TaskStatus
 from pycrap.ontologies import Action 
 from .failures import PlanFailure
+from .external_interfaces import giskard
 
 
 if TYPE_CHECKING:
@@ -125,6 +126,7 @@ class PlanNode:
     Reference to the plan to which this node belongs
     """
 
+
     @property
     def parent(self) -> PlanNode:
         return list(self.plan.predecessors(self))[0]
@@ -141,6 +143,10 @@ class PlanNode:
     def subtree(self):
         return nx.subgraph(self.plan, self.recursive_children + [self])
 
+    @property
+    def all_parents(self):
+        return list(nx.ancestors(self.plan, self))
+
     def flattened_parameters(self):
         pass
 
@@ -149,6 +155,11 @@ class PlanNode:
 
     def perform(self, *args, **kwargs):
         pass
+
+    def interrupt(self):
+        self.status = TaskStatus.INTERRUPTED
+        if giskard.giskard_wrapper:
+            giskard.giskard_wrapper.interrupt()
 
 @dataclass
 class DesignatorNode(PlanNode):
@@ -195,7 +206,10 @@ class MotionNode(DesignatorNode):
         return id(self)
 
     def perform(self, *args, **kwargs):
-        return self.designator_ref.perform(*args, **kwargs)
+        all_parents_status = [parent.status for parent in self.all_parents]
+        if TaskStatus.INTERRUPTED in all_parents_status:
+            return
+        return self.designator_ref.perform()
 
 def with_tree(func: Callable) -> Callable:
     def handle_tree(*args, **kwargs):
@@ -210,7 +224,7 @@ def with_plan(func: Callable) -> Callable:
             node = ActionNode(designator_ref=designator, action=designator.performable, kwargs=designator.kwargs)
         else:
             kwargs = dict(inspect.signature(func).bind(*args, **kwargs).arguments)
-            node = MotionNode(designator_ref=designator, action="Action", kwargs=kwargs)
+            node = MotionNode(designator_ref=designator, action=designator.__class__, kwargs=kwargs)
         plan = Plan(root=node)
         if Plan.current_plan:
             Plan.current_plan.mount(plan, Plan.current_plan.current_node)
