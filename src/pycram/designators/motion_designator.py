@@ -8,6 +8,7 @@ from ..datastructures.enums import MovementType
 from ..failure_handling import try_motion
 from ..failures import PerceptionObjectNotFound, ToolPoseNotReachedError
 from ..object_descriptors.urdf import LinkDescription, ObjectDescription
+from ..plan import with_plan
 from ..process_module import ProcessModuleManager
 from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      MoveTCPMotion as ORMMoveTCPMotion, LookingMotion as ORMLookingMotion,
@@ -24,6 +25,7 @@ from ..world_concepts.world_object import Object
 from ..external_interfaces.robokudo import robokudo_found
 
 
+@with_plan
 @dataclass
 class MoveMotion(BaseMotion):
     """
@@ -57,7 +59,7 @@ class MoveMotion(BaseMotion):
 
         return motion
 
-
+@with_plan
 @dataclass
 class MoveTCPMotion(BaseMotion):
     """
@@ -107,7 +109,7 @@ class MoveTCPMotion(BaseMotion):
     def __repr__(self):
         return self.__str__()
 
-
+@with_plan
 @dataclass
 class LookingMotion(BaseMotion):
     """
@@ -131,7 +133,7 @@ class LookingMotion(BaseMotion):
 
         return motion
 
-
+@with_plan
 @dataclass
 class MoveGripperMotion(BaseMotion):
     """
@@ -174,7 +176,7 @@ class MoveGripperMotion(BaseMotion):
     def __repr__(self):
         return self.__str__()
 
-
+@with_plan
 @dataclass
 class DetectingMotion(BaseMotion):
     """
@@ -216,7 +218,7 @@ class DetectingMotion(BaseMotion):
         #
         # return motion
 
-
+@with_plan
 @dataclass
 class MoveArmJointsMotion(BaseMotion):
     """
@@ -242,7 +244,7 @@ class MoveArmJointsMotion(BaseMotion):
     def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
         pass
 
-
+@with_plan
 @dataclass
 class WorldStateDetectingMotion(BaseMotion):
     """
@@ -264,7 +266,7 @@ class WorldStateDetectingMotion(BaseMotion):
     def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
         pass
 
-
+@with_plan
 @dataclass
 class MoveJointsMotion(BaseMotion):
     """
@@ -290,7 +292,7 @@ class MoveJointsMotion(BaseMotion):
     def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
         pass
 
-
+@with_plan
 @dataclass
 class OpeningMotion(BaseMotion):
     """
@@ -320,7 +322,7 @@ class OpeningMotion(BaseMotion):
 
         return motion
 
-
+@with_plan
 @dataclass
 class ClosingMotion(BaseMotion):
     """
@@ -350,7 +352,7 @@ class ClosingMotion(BaseMotion):
 
         return motion
 
-
+@with_plan
 @dataclass
 class TalkingMotion(BaseMotion):
     """

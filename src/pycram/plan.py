@@ -2,23 +2,23 @@ from __future__ import annotations
 
 import enum
 import inspect
+import random
 from dataclasses import field, dataclass
 from datetime import datetime
 
 
 import networkx as nx
 
-from typing_extensions import Optional, Callable, Any, Dict, List, Self, Iterable, TYPE_CHECKING, Type, Tuple
+from typing_extensions import Optional, Callable, Any, Dict, List, Self, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
 from .datastructures.enums import TaskStatus
 from pycrap.ontologies import Action 
 from .failures import PlanFailure
 from .external_interfaces import giskard
-
+from .ros import loginfo
 
 if TYPE_CHECKING:
-    from .datastructures.partial_designator import PartialDesignator
-    from .designator import BaseMotion
+    from .designator import BaseMotion, ActionDescription
 
 
 class Plan(nx.DiGraph):
@@ -86,7 +86,11 @@ class Plan(nx.DiGraph):
                 return node
 
     def perform(self):
-        return self.root.perform()
+        previous_plan = Plan.current_plan
+        Plan.current_plan = self
+        result = self.root.perform()
+        Plan.current_plan = previous_plan
+        return result
 
     def resolve(self):
         if isinstance(self.root, DesignatorNode):
@@ -158,17 +162,18 @@ class PlanNode:
 
     def interrupt(self):
         self.status = TaskStatus.INTERRUPTED
+        loginfo(f"Interrupted node: {str(self)}")
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
 @dataclass
 class DesignatorNode(PlanNode):
-    designator_ref: PartialDesignator = None
+    designator_ref: Any = None
     """
     Reference to the Designator in this node
     """
 
-    action: Optional[Action] = None
+    action: Optional[Any] = None
     """
     The action and that is performed or None if nothing was performed
     """
@@ -182,7 +187,7 @@ class DesignatorNode(PlanNode):
         return id(self)
 
     def __repr__(self, *args, **kwargs):
-        return f"<{self.designator_ref.performable.__name__}_{id(self)}>"
+        return f"<{self.designator_ref.performable.__name__}_{id(self) % 100}>"
 
     def flattened_parameters(self):
         return self.designator_ref.performable.flattened_parameters()
@@ -190,14 +195,40 @@ class DesignatorNode(PlanNode):
 
 @dataclass
 class ActionNode(DesignatorNode):
+    action_iter: Iterator[ActionDescription] = None
     def __hash__(self):
         return id(self)
 
     def perform(self, *args, **kwargs):
-        pass
+        self.plan.current_action = self
+        if not self.action_iter:
+            self.action_iter = iter(self.designator_ref)
+        resolved_action = next(self.action_iter)
+        resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__, )
+        self.plan.add_edge(self, resolved_action_node)
+
+        self.start_time = datetime.now()
+        result = resolved_action_node.perform()
+        self.end_time = datetime.now()
+        return result
 
     def __repr__(self, *args, **kwargs):
-        return f"<{self.designator_ref.performable.__name__}_{id(self)}>"
+        return f"<{self.designator_ref.performable.__name__}_{id(self) % 100}>"
+
+@dataclass
+class ResolvedActionNode(DesignatorNode):
+    def __hash__(self):
+        return id(self)
+
+    def perform(self, *args, **kwargs):
+        self.plan.current_node = self
+        self.start_time = datetime.now()
+        result = self.designator_ref.perform()
+        self.end_time = datetime.now()
+        return result
+
+    def __repr__(self, *args, **kwargs):
+        return f"<{self.designator_ref.__class__.__name__}_{id(self) % 100}>"
 
 @dataclass
 class MotionNode(DesignatorNode):
@@ -209,7 +240,13 @@ class MotionNode(DesignatorNode):
         all_parents_status = [parent.status for parent in self.all_parents]
         if TaskStatus.INTERRUPTED in all_parents_status:
             return
-        return self.designator_ref.perform()
+        self.start_time = datetime.now()
+        result = self.designator_ref.perform()
+        self.end_time = datetime.now()
+        return result
+
+    def __repr__(self, *args, **kwargs):
+        return f"<{self.designator_ref.__class__.__name__}_{id(self) % 100}>"
 
 def with_tree(func: Callable) -> Callable:
     def handle_tree(*args, **kwargs):

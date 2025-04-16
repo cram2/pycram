@@ -10,9 +10,8 @@ from datetime import timedelta
 from threading import Lock, get_ident
 import time
 from abc import ABC
-from typing_extensions import Callable, Type, Any, Union, Optional
+from typing_extensions import Callable, Any, Union, Optional, List
 
-from .language import LanguageMixin
 from .robot_description import RobotDescription
 from .datastructures.world import World
 from typing_extensions import TYPE_CHECKING
@@ -31,11 +30,6 @@ class ProcessModule:
     execution_delay: Optional[timedelta] = World.conf.execution_delay
     """
     Adds a delay after executing a process module, to make the execution in simulation more realistic
-    """
-    block_list = []
-    """
-    List of thread ids for which no Process Modules should be executed. This is used as an interrupt mechanism for 
-    Designators
     """
 
     def __init__(self, lock):
@@ -58,8 +52,6 @@ class ProcessModule:
         :param designator: The designator_description to execute.
         :return: Return of the Process Module if there is any
         """
-        if get_ident() in LanguageMixin.block_list:
-            return None
         with self._lock:
             ret = self._execute(designator)
             if ProcessModule.execution_delay:
@@ -82,8 +74,8 @@ class RealRobot:
     """
 
     def __init__(self):
-        self.pre: str = ""
-        self.pre_delay: bool = False
+        self.pre: ExecutionType = ExecutionType.REAL
+        self.pre_delay: timedelta = World.conf.execution_delay
 
     def __enter__(self):
         """
@@ -121,7 +113,7 @@ class SimulatedRobot:
     """
 
     def __init__(self):
-        self.pre: str = ""
+        self.pre: ExecutionType = ExecutionType.SIMULATED
 
     def __enter__(self):
         """
@@ -156,7 +148,7 @@ class SemiRealRobot:
     """
 
     def __init__(self):
-        self.pre: str = ""
+        self.pre: ExecutionType = ExecutionType.SEMI_REAL
 
     def __enter__(self):
         """
@@ -240,15 +232,15 @@ class ProcessModuleManager(ABC):
     Base class for managing process modules, any new process modules have to implement this class to register the
     Process Modules
     """
-    execution_type = None
+    execution_type: ExecutionType = None
     """
     Whether the robot for which the process module is intended for is real or a simulated one
     """
-    available_pms = []
+    available_pms: List[ProcessModuleManager] = []
     """
     List of all available Process Module Managers
     """
-    _instance = None
+    _instance: ProcessModuleManager = None
     """
     Singelton instance of this Process Module Manager
     """
@@ -257,6 +249,7 @@ class ProcessModuleManager(ABC):
         """
         Creates a new instance if :py:attr:`~ProcessModuleManager._instance` is None, otherwise the instance
         in :py:attr:`~ProcessModuleManager._instance` is returned.
+
         :return: Singelton instance of this Process Module Manager
         """
         if not cls._instance:
@@ -265,10 +258,11 @@ class ProcessModuleManager(ABC):
         else:
             return cls._instance
 
-    def __init__(self, robot_name):
+    def __init__(self, robot_name: str):
         """
         Registers the Process modules for this robot. The name of the robot has to match the name given in the robot
         description.
+
         :param robot_name: Name of the robot for which these Process Modules are intended
         """
 
@@ -286,6 +280,7 @@ class ProcessModuleManager(ABC):
         self._move_gripper_lock = Lock()
         self._open_lock = Lock()
         self._close_lock = Lock()
+        self.available_pms = []
 
     @staticmethod
     def get_manager() -> Union[ProcessModuleManager, None]:
@@ -299,7 +294,7 @@ class ProcessModuleManager(ABC):
         if not ProcessModuleManager.execution_type:
             logerr(
                 f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
-            return
+            return None
 
         robot_description = RobotDescription.current_robot_description
         chains = robot_description.get_manipulator_chains()

@@ -11,7 +11,7 @@ import threading
 from .fluent import Fluent
 from .failures import PlanFailure
 from .external_interfaces import giskard
-from .ros import  sleep
+from .ros import sleep, loginfo
 from .plan import PlanNode, Plan
 
 
@@ -118,11 +118,16 @@ class LanguagePlan(Plan):
         super().__init__(root=root)
         for child in children:
             self.mount(child)
+        self.simplify_language_nodes()
 
     def simplify_language_nodes(self):
+        to_be_merged = []
         for source, target in self.edges:
-            if isinstance(source, LanguageNode) and isinstance(target, LanguageNode):
-                self.merge_nodes(source, target)
+            if isinstance(source, LanguageNode) and isinstance(target, LanguageNode) and type(source) == type(target):
+                to_be_merged.append((source, target))
+        # Since merging nodes changes the edges of the plan we do this in two steps
+        for source, target in to_be_merged:
+            self.merge_nodes(source, target)
 
 class SequentialPlan(LanguagePlan):
 
@@ -194,10 +199,12 @@ class SequentialNode(LanguageNode):
         :return: The state and list of results according to the behaviour described in :func:`Sequential`
         """
         try:
+            loginfo(f"Executing {self}")
             self.perform_sequential(self.children)
         except PlanFailure as e:
             self.status = TaskStatus.FAILED
             self.reason = e
+            # Failure Handling could be done here
             raise e
         self.status = TaskStatus.SUCCEEDED
 
@@ -216,6 +223,9 @@ class SequentialNode(LanguageNode):
 
     def __hash__(self):
         return id(self)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}"
 
 
 @dataclass
@@ -261,6 +271,13 @@ class ParallelNode(LanguageNode):
             node.status = TaskStatus.FAILED
             node.reason = e
             raise e
+
+    def __hash__(self):
+        return id(self)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}"
+
 
 
 @dataclass
