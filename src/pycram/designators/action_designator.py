@@ -72,7 +72,7 @@ from ..world_reasoning import move_away_all_objects_to_create_empty_space, gener
 
 
 @dataclass
-class ActionAbstract(ActionDescription, abc.ABC):
+class ActionAbstract(ActionDescription):
     """Base class for performable performables."""
     _orm_class: Type[ORMAction] = field(init=False, default=None, repr=False)
     """
