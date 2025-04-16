@@ -113,14 +113,27 @@ class LanguageMixin:
 
 
 class LanguagePlan(Plan):
+    """
+    Base class for language plans
+    """
 
     def __init__(self, root: LanguageNode, *children: Plan):
+        """
+        Creates a Language plan with the given root node and children. The root node als determines the behavior of the
+        language plan
+
+        :param root: A LanguageNode which should be the root
+        :param children: A list of child nodes which should be added to the plan
+        """
         super().__init__(root=root)
         for child in children:
             self.mount(child)
         self.simplify_language_nodes()
 
     def simplify_language_nodes(self):
+        """
+        Traverses the plan and merges LanguageNodes of the same type
+        """
         to_be_merged = []
         for source, target in self.edges:
             if isinstance(source, LanguageNode) and isinstance(target, LanguageNode) and type(source) == type(target):
@@ -130,6 +143,9 @@ class LanguagePlan(Plan):
             self.merge_nodes(source, target)
 
 class SequentialPlan(LanguagePlan):
+    """
+    Creates a plan which executes its children in sequential order
+    """
 
     def __init__(self, *children: Plan) -> None:
         seq = SequentialNode()
@@ -137,8 +153,14 @@ class SequentialPlan(LanguagePlan):
 
 
 class ParallelPlan(LanguagePlan):
+    """
+    Creates a plan which executes all children in prallel in seperate threads
+    """
     parallel_blocklist = ["PickUpAction", "PlaceAction", "OpenAction", "CloseAction", "TransportAction",
                           "GraspingAction"]
+    """
+    A list of Actions which can't be part of a Parallel plan
+    """
     def __init__(self, *children: Plan, root: LanguageNode = None) -> None:
         root = ParallelNode() or root
         for child in children:
@@ -148,24 +170,36 @@ class ParallelPlan(LanguagePlan):
         super().__init__(root, *children)
 
 class TryInOrderPlan(LanguagePlan):
+    """
+    Creates a plan that executes all children in sequential order but does not stop if one of them throws an error
+    """
 
     def __init__(self,  *children: Plan) -> None:
         try_in_order =TryInOrderNode()
         super().__init__(try_in_order, *children)
 
 class TryAllPLan(ParallelPlan):
+    """
+    Creates a plan which executes all children in parallel but does not abort if one throws an error
+    """
 
     def __init__(self,  *children: Plan) -> None:
         try_all = TryAllNode()
         super().__init__(root=try_all, *children)
 
 class RepeatPlan(LanguagePlan):
+    """
+    A plan which repeats all children a number of times
+    """
 
     def __init__(self, repeat=1,  *children: Plan):
         repeat = RepeatNode(repeat=repeat)
         super().__init__(repeat, *children)
 
 class MonitorPlan(LanguagePlan):
+    """
+    A plan which monitors a condition and upon the condition becoming true interrupts all children
+    """
 
     def __init__(self, condition,  *children: Plan) -> None:
         monitor = MonitorNode(condition=condition)
@@ -210,6 +244,12 @@ class SequentialNode(LanguageNode):
 
     @staticmethod
     def perform_sequential(nodes: List[PlanNode], raise_exceptions = True) -> Any:
+        """
+        Behavior of the sequential node, performs all children in sequence and raises error if they occour.
+
+        :param nodes: A list of nodes which should be performed in sequence
+        :param raise_exceptions: If True (defualt) errors will be raised
+        """
         results = {}
         for child in nodes:
             try:
@@ -255,6 +295,11 @@ class ParallelNode(LanguageNode):
         self.status = TaskStatus.SUCCEEDED if TaskStatus.FAILED not in child_statuses else TaskStatus.FAILED
 
     def perform_parallel(self, nodes: List[PlanNode]):
+        """
+        Behaviour of the parallel node performs the given nodes in parallel in different threads.
+
+        :param nodes: A list of nodes which should be performed in parallel
+        """
         threads = []
         for child in nodes:
             t = threading.Thread(target=self._lang_call, args=[child])
@@ -264,12 +309,18 @@ class ParallelNode(LanguageNode):
             thread.join()
 
     def _lang_call(self, node: PlanNode):
+        """
+        Wrapper method which is executed in the thread. Wraps the given node in a try catch and performs it
+
+        :param node: The node which is to be performed
+        """
         try:
             self.results[node] = node.perform()
             node.state = State.SUCCEEDED
         except PlanFailure as e:
             node.status = TaskStatus.FAILED
             node.reason = e
+            # Failure handling comes here
             raise e
 
     def __hash__(self):

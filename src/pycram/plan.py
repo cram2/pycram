@@ -38,6 +38,12 @@ class Plan(nx.DiGraph):
         self.current_node: PlanNode = self.root
 
     def mount(self, other: Plan, mount_node: PlanNode = None):
+        """
+        Mounts another plan to this plan. The other plan will be added as a child of the mount_node.
+
+        :param other: The plan to be mounted
+        :param mount_node: A node of this plan to which the other plan will be mounted. If None, the root of this plan will be used.
+        """
         mount_node = mount_node or self.root
         self.add_nodes_from(other.nodes)
         self.add_edges_from(other.edges)
@@ -46,31 +52,68 @@ class Plan(nx.DiGraph):
             node.plan = self
 
     def merge_nodes(self, node1: PlanNode, node2: PlanNode):
+        """
+        Merges two nodes into one. The node2 will be removed and all its children will be added to node1.
+
+        :param node1: Node which will remain in the plan
+        :param node2: Node which will be removed from the plan
+        """
         for node in node2.children:
             self.add_edge(node1, node)
         self.remove_node(node2)
         
     def add_node(self, node_for_adding: PlanNode, **attr):
+        """
+        Adds a node to the plan. The node will not be connected to any other node of the plan.
+
+        :param node_for_adding: Node to be added
+        :param attr: Additional attributes to be added to the node
+        """
         super().add_node(node_for_adding, **attr)
         node_for_adding.plan = self
 
     def add_edge(self, u_of_edge, v_of_edge, **attr):
+        """
+        Adds an edge to the plan. If one or both nodes are not in the plan, they will be added to the plan.
+
+        :param u_of_edge: Origin node of the edge
+        :param v_of_edge: Target node of the edge
+        :param attr: Additional attributes to be added to the edge
+        """
         super().add_edge(u_of_edge, v_of_edge, **attr)
         u_of_edge.plan = self
         v_of_edge.plan = self
 
     def add_edges_from(self, ebunch_to_add: Iterable[Tuple[PlanNode, PlanNode]], **attr):
+        """
+        Adds edges to the plan from an iterable of tuples. If one or both nodes are not in the plan, they will be added to the plan.
+
+        :param ebunch_to_add: Iterable of tuples of nodes to be added
+        :param attr: Additional attributes to be added to the edges
+        """
         super().add_edges_from(ebunch_to_add, **attr)
         for u_edge, v_edge in ebunch_to_add:
             u_edge.plan = self
             v_edge.plan = self
 
     def add_nodes_from(self, nodes_for_adding: Iterable[PlanNode], **attr):
+        """
+        Adds nodes from an Iterable of nodes.
+
+        :param nodes_for_adding: The iterable of nodes
+        :param attr: Addotional attributes to be added
+        """
         super().add_nodes_from(nodes_for_adding, **attr)
         for node in nodes_for_adding:
             node.plan = self
 
     def insert_below(self, insert_node: PlanNode, insert_below: PlanNode):
+        """
+        Inserts a node below the given node.
+
+        :param insert_node: The node to be inserted
+        :param insert_below: A node of the plan below which the given node should be added
+        """
         self.add_edge(insert_below, insert_node)
 
     def insert_after(self, node: PlanNode):
@@ -85,7 +128,12 @@ class Plan(nx.DiGraph):
             if node == plan_root:
                 return node
 
-    def perform(self):
+    def perform(self) -> Any:
+        """
+        Performs the root node of this plan.
+
+        :return: The return value of the root node
+        """
         previous_plan = Plan.current_plan
         Plan.current_plan = self
         result = self.root.perform()
@@ -93,10 +141,20 @@ class Plan(nx.DiGraph):
         return result
 
     def resolve(self):
+        """
+        Resolves the root node of this plan if it is a DesignatorNode
+
+        :return: The resolved designator
+        """
         if isinstance(self.root, DesignatorNode):
             return self.root.designator_ref.resolve()
 
     def flattened_parameters(self):
+        """
+        The atomic parameter of this plan, as dict with paths as keys and the atomic type as value
+
+        :return: A dict of the atomic types
+        """
         result = {}
         for node in self.nodes:
             if isinstance(node, DesignatorNode):
@@ -133,25 +191,55 @@ class PlanNode:
 
     @property
     def parent(self) -> PlanNode:
+        """
+        The parent node of this node
+
+        :return: The parent node
+        """
         return list(self.plan.predecessors(self))[0]
 
     @property
     def children(self) -> List[PlanNode]:
+        """
+        All children nodes of this node
+
+        :return:  A list of child nodes
+        """
         return list(self.plan.successors(self))
 
     @property
     def recursive_children(self) -> List[PlanNode]:
+        """
+        Recursively lists all children and their children.
+
+        :return: A list of all nodes below this node
+        """
         return list(nx.descendants(self.plan, self))
 
     @property
     def subtree(self):
+        """
+        Creates a new plan with this node as the new root
+
+        :return: A new plan
+        """
         return nx.subgraph(self.plan, self.recursive_children + [self])
 
     @property
-    def all_parents(self):
+    def all_parents(self) -> List[PlanNode]:
+        """
+        Returns all nodes above this node until the root node
+
+        :return: A list of all nodes above this
+        """
         return list(nx.ancestors(self.plan, self))
 
     def flattened_parameters(self):
+        """
+        The atomic types pf this node as dict
+
+        :return: The flattened parameter
+        """
         pass
 
     def __hash__(self):
@@ -161,6 +249,9 @@ class PlanNode:
         pass
 
     def interrupt(self):
+        """
+        Interrupts the execution of this node and all nodes below
+        """
         self.status = TaskStatus.INTERRUPTED
         loginfo(f"Interrupted node: {str(self)}")
         if giskard.giskard_wrapper:
@@ -195,12 +286,25 @@ class DesignatorNode(PlanNode):
 
 @dataclass
 class ActionNode(DesignatorNode):
+    """
+    A node in the plan representing an ActionDesignator description
+    """
     action_iter: Iterator[ActionDescription] = None
+    """
+    Iterator over the current evaluation state of the ActionDesignator Description
+    """
     def __hash__(self):
         return id(self)
 
-    def perform(self, *args, **kwargs):
-        self.plan.current_action = self
+    def perform(self):
+        """
+        Performs this node by resolving the ActionDesignator description to the next resolution and then performing the
+        result.
+
+
+        :return: Return value of the resolved action node
+        """
+        self.plan.current_node = self
         if not self.action_iter:
             self.action_iter = iter(self.designator_ref)
         resolved_action = next(self.action_iter)
@@ -217,10 +321,18 @@ class ActionNode(DesignatorNode):
 
 @dataclass
 class ResolvedActionNode(DesignatorNode):
+    """
+    A node representing a resolved ActionDesignator with fully specified parameters
+    """
     def __hash__(self):
         return id(self)
 
-    def perform(self, *args, **kwargs):
+    def perform(self):
+        """
+        Performs this node by performing the resolved action designator in zit
+
+        :return: The return value of the resolved ActionDesignator
+        """
         self.plan.current_node = self
         self.start_time = datetime.now()
         result = self.designator_ref.perform()
@@ -232,11 +344,23 @@ class ResolvedActionNode(DesignatorNode):
 
 @dataclass
 class MotionNode(DesignatorNode):
+    """
+    A node in the plan representing a MotionDesignator
+    """
     designator_ref: BaseMotion = None
+    """
+    Reference to the MotionDesignator
+    """
     def __hash__(self):
         return id(self)
 
-    def perform(self, *args, **kwargs):
+    def perform(self):
+        """
+        Performs this node by performing the respective MotionDesignator. Additionally, checks if one of the parents has
+        the status INTERRUPTED and aborts the perform if that is the case.
+
+        :return: The return value of the Motion Designator
+        """
         all_parents_status = [parent.status for parent in self.all_parents]
         if TaskStatus.INTERRUPTED in all_parents_status:
             return
@@ -248,13 +372,16 @@ class MotionNode(DesignatorNode):
     def __repr__(self, *args, **kwargs):
         return f"<{self.designator_ref.__class__.__name__}_{id(self) % 100}>"
 
-def with_tree(func: Callable) -> Callable:
-    def handle_tree(*args, **kwargs):
-        return func(*args, **kwargs)
-    return handle_tree
 
 
 def with_plan(func: Callable) -> Callable:
+    """
+    Decorator which wrapps the decorated designator into a node, creates a new plan with the node as root and returns
+    the plan.
+
+    :param func: The decorator which should be inserted into a plan
+    :return: A plan with the designator as root node
+    """
     def wrapper(*args, **kwargs) -> Plan:
         designator = func(*args, **kwargs)
         if designator.__class__.__name__ ==  "PartialDesignator":
