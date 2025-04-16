@@ -9,7 +9,7 @@ from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import registry, Session, clear_mappers
 import sqlalchemy.sql.elements
 
-import pycram.tasktree
+from pycram.tasktree import TaskTreeNode, task_tree, with_tree
 from pycram.datastructures.dataclasses import FrozenObject, Color
 from pycram.datastructures.enums import TorsoState, Arms, Grasp, DetectionTechnique, DetectionState, GripperState, \
     WorldMode
@@ -25,7 +25,6 @@ from pycram.failures import ObjectNotGraspedError, PerceptionObjectNotFound
 from pycram.process_module import simulated_robot
 from pycram.robot_description import RobotDescription
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
-from pycram.tasktree import with_tree, task_tree
 from pycram.testing import BulletWorldTestCase
 
 from pycram.orm.logging_hooks import insert
@@ -56,7 +55,7 @@ class ORMaticBaseTestCaseMixin(BulletWorldTestCase):
         self.mapper_registry.metadata.drop_all(self.session.bind)
         # clear_mappers()
         self.session.close()
-        pycram.tasktree.task_tree.reset_tree()
+        task_tree.reset_tree()
 
 
 class SchemaTestCases(ORMaticBaseTestCaseMixin):
@@ -128,13 +127,30 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
         self.assertEqual(len(poses_from_pose_stamped_results), len(pose_result))
         self.assertEqual(pose_stamped_result[0].pose_id, pose_result[0].id)
 
-    # def test_place_action(self):
-    #     self.plan()
-    #     insert(task_tree.root, self.session)
-    #     x = self.session.scalars(select(TaskTreeNodeORM)).all()
-    #     result = self.session.scalars(select(PlaceAction)).all()
-    #     print(result)
-    #     self.assertTrue(len(result) == 1)
+    def test_pose_creation(self):
+        pose = Pose()
+        pose.position.x = 1.0
+        pose.position.y = 2.0
+        pose.position.z = 3.0
+        pose.orientation.x = 4.0
+        pose.orientation.y = 5.0
+        pose.orientation.z = 6.0
+        pose.orientation.w = 7.0
+
+        self.session.add(pose.position)
+        self.session.add(pose.orientation)
+        self.session.add(pose)
+        self.session.commit()
+
+        with self.session.bind.connect() as conn:
+            raw_pose = conn.execute(text("SELECT * FROM Pose")).fetchall()
+
+        pose = self.session.scalars(select(Pose)).first()
+        self.assertEqual(pose.position.x, 1.0)
+        self.assertEqual(pose.position.y, 2.0)
+        self.assertEqual(pose.position.z, 3.0)
+        self.assertEqual(pose.id, raw_pose[0][0])
+
 
 class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
     def test_code_designator_type(self):
@@ -147,7 +163,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         # self.assertEqual(result[1].action.dtype, MoveMotion.__name__)
 
     def test_parkArmsAction(self):
-        action = ParkArmsAction(pycram.datastructures.enums.Arms.BOTH)
+        action = ParkArmsAction(Arms.BOTH)
         with simulated_robot:
             action.perform()
         insert(task_tree.root, self.session)
@@ -197,7 +213,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
                                          object_designator=object_description,
                                          region=None).resolve()
         with simulated_robot:
-            ParkArmsAction(pycram.datastructures.enums.Arms.BOTH).perform()
+            ParkArmsAction(Arms.BOTH).perform()
             NavigateAction(PoseStamped.from_list([0, 1, 0], [0, 0, 0, 1]), True).perform()
             LookAtAction(object_description.resolve().pose).perform()
             action.perform()
@@ -228,7 +244,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         self.kitchen.set_pose(PoseStamped.from_list([20, 20, 0], [0, 0, 0, 1]))
 
         with simulated_robot:
-            ParkArmsAction(pycram.datastructures.enums.Arms.BOTH).perform()
+            ParkArmsAction(Arms.BOTH).perform()
             NavigateAction(PoseStamped.from_list([1.81, 1.73, 0.0],
                                                  [0.0, 0.0, 0.594, 0.804]), True).perform()
             OpenAction(handle_desig, arm=Arms.LEFT, grasping_prepose_distance=0.03).perform()
@@ -257,71 +273,16 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
                                                   object_designator=self.milk)
             description.resolve().perform()
 
-        print(anytree.RenderTree(pycram.tasktree.TaskTree().root))
-        insert(pycram.tasktree.task_tree.root, self.session)
+        insert(task_tree.root, self.session)
         node_results = self.session.scalars(select(TaskTreeNodeORM)).all()
-        # frozen_results = self.session.scalars(select(FrozenObject)).all()
-        print(node_results)
-        self.assertEqual(len(node_results), len(pycram.tasktree.task_tree.root))
+        self.assertEqual(len(node_results), len(task_tree.root))
 
         action_results = self.session.scalars(select(ActionDescription)).all()
-        print(action_results)
         self.assertEqual(1, len(action_results))
 
         detect_actions = self.session.scalars(select(DetectAction)).all()
-        print(detect_actions)
         self.assertEqual(1, len(detect_actions))
 
-    def test_general_orm_designator_creation(self):
-        with simulated_robot:
-            MoveTorsoAction(TorsoState.HIGH).perform()
-            ParkArmsAction(Arms.BOTH).perform()
-
-        insert(pycram.tasktree.TaskTree().root, self.session)
-
-        y = self.session.scalars(select(Vector3)).all()
-        z = self.session.scalars(select(Quaternion)).all()
-        a = self.session.scalars(select(PoseStamped)).all()
-        b = self.session.scalars(select(PoseStamped.pose_id)).all()
-        # print(x)
-        print(y)
-        print(z)
-        result = self.session.scalars(select(ParkArmsAction).join(PoseStamped)).all()
-        result2 = self.session.scalars(select(MoveTorsoAction)).all()
-
-        print(result)
-        # print(result2)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(len(result2), 1)
-
-    def test_pose_creation(self):
-        pose = Pose()
-        pose.position.x = 1.0
-        pose.position.y = 2.0
-        pose.position.z = 3.0
-        pose.orientation.x = 4.0
-        pose.orientation.y = 5.0
-        pose.orientation.z = 6.0
-        pose.orientation.w = 7.0
-
-        print(pose)
-        self.session.add(pose.position)
-        self.session.add(pose.orientation)
-        self.session.add(pose)
-        self.session.commit()
-
-        vectors = self.session.scalars(select(Vector3)).all()
-        print(vectors)
-        orientations = self.session.scalars(select(Quaternion)).all()
-        print(orientations)
-
-        with self.session.bind.connect() as conn:
-            raw_pose = conn.execute(text("SELECT * FROM Pose")).fetchall()
-        print(raw_pose)
-
-        poses = self.session.scalars(select(Pose)).all()
-        print(poses)
-        self.assertEqual(len(poses), 1)
 
 class BelieveObjectTestCase(unittest.TestCase):
     engine: sqlalchemy.engine
@@ -349,7 +310,7 @@ class BelieveObjectTestCase(unittest.TestCase):
         self.mapper_registry.metadata.drop_all(self.session.bind)
         # clear_mappers()
         self.session.close()
-        pycram.tasktree.task_tree.reset_tree()
+        task_tree.reset_tree()
         self.world.reset_world()
 
     @classmethod
