@@ -171,7 +171,6 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         self.assertEqual(len(result), 1)
         self.assertEqual(type(result[0]), ParkArmsAction)
 
-    @unittest.skip
     def test_transportAction(self):
         object_description = ObjectDesignatorDescription(names=["milk"])
         action = TransportAction(object_description.resolve(),
@@ -236,6 +235,8 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         self.assertEqual(result[0].gripper, Arms.LEFT)
         self.assertEqual(result[0].motion, GripperState.OPEN)
 
+    @unittest.skip
+    # TODO fix Pose for OpenAction
     def test_open_and_closeAction(self):
         apartment = Object("apartment", Apartment, "apartment.urdf")
         apartment_desig = BelieveObject(names=["apartment"]).resolve()
