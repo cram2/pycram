@@ -233,6 +233,16 @@ class DefaultClose(ProcessModule):
 
         part_of_object.set_joint_position(container_joint_name, lower_joint_limit)
 
+class DefaultMoveTCPWaypoints(ProcessModule):
+    """
+    This process moves the tool center point of either the right or the left arm along a list of waypoints.
+    """
+
+    def _execute(self, desig: MoveTCPWaypointsMotion):
+        waypoints = desig.waypoints
+        robot = World.robot
+        for waypoint in waypoints:
+            _move_arm_tcp(waypoint, robot, desig.arm)
 
 def _move_arm_tcp(target: Pose, robot: Object, arm: Arms, tip_link:str=None) -> None:
     if tip_link is None:
@@ -465,6 +475,26 @@ class DefaultCloseReal(ProcessModule):
             RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
             designator.object_part.name)
 
+class DefaultMoveTCPWaypointsReal(ProcessModule):
+    """
+    Moves the tool center point of the real robot along a list of waypoints while avoiding all collisions
+    """
+
+    def _execute(self, designator: MoveTCPWaypointsMotion):
+        lt = LocalTransformer()
+        waypoints = [lt.transform_pose(x, "map") for x in designator.waypoints]
+        tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
+        root_link = "map"
+
+        giskard.avoid_all_collisions()
+        if designator.allow_gripper_collision:
+            giskard.allow_gripper_collision(designator.arm)
+
+        giskard.achieve_cartesian_waypoints_goal(waypoints=waypoints,
+                                                 tip_link=tip_link, root_link=root_link,
+                                                 enforce_final_orientation=True if designator.movement_type == WaypointsMovementType.ENFORCE_ORIENTATION_FINAL_POINT else False)
+
+
 
 class DefaultManager(ProcessModuleManager):
 
@@ -529,3 +559,9 @@ class DefaultManager(ProcessModuleManager):
             return DefaultClose(self._close_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return DefaultCloseReal(self._close_lock)
+
+    def move_tcp_waypoints(self):
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
+            return DefaultMoveTCPWaypoints(self._move_tcp_waypoints_lock)
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
+            return DefaultMoveTCPWaypointsReal(self._move_tcp_waypoints_lock)
