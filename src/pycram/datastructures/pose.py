@@ -15,9 +15,13 @@ from ..tf_transformations import quaternion_multiply, translation_matrix, quater
     translation_from_matrix, rotation_from_matrix, quaternion_from_matrix
 from scipy.spatial.transform import Rotation as R
 from ..ros import Time as ROSTime
-from geometry_msgs.msg import (Vector3 as ROSVector3, Quaternion as ROSQuaternion, Point as ROSPoint, Pose as ROSPose,
-                                   PoseStamped as ROSPoseStamped, Transform as ROSTransform, TransformStamped as ROSTransformStamped)
-from std_msgs.msg import Header as ROSHeader
+
+try:
+    from geometry_msgs.msg import (Vector3 as ROSVector3, Quaternion as ROSQuaternion, Point as ROSPoint, Pose as ROSPose,
+                                       PoseStamped as ROSPoseStamped, Transform as ROSTransform, TransformStamped as ROSTransformStamped)
+    from std_msgs.msg import Header as ROSHeader
+except ImportError as e:
+    pass
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object

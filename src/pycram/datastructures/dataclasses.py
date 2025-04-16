@@ -12,7 +12,6 @@ import plotly.graph_objects as go
 import sqlalchemy
 import trimesh
 from matplotlib import pyplot as plt
-from std_msgs.msg import ColorRGBA
 
 from random_events.interval import closed, SimpleInterval, Bound
 from random_events.product_algebra import SimpleEvent, Event
