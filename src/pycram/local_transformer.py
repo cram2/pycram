@@ -142,9 +142,9 @@ class LocalTransformer(TransformManager):
     def __init__(self):
         if self._initialized: return
         super().__init__()
-        self.world = None
+        self.world: World = None
         # TODO: Ask Jonas if this is still needed
-        self.prospection_world = None
+        self.prospection_world: World = None
         self._initialized = True
         self.add_transform("map", "map", transform_from_pq((0, 0, 0, 1, 0, 0, 0)))
 
@@ -163,12 +163,18 @@ class LocalTransformer(TransformManager):
 
         :param objects: List of objects for which the transforms should be updated
         """
-        [obj.update_link_transforms() for obj in objects]
+        # [obj.update_link_transforms() for obj in objects]
+        for obj in objects:
+            obj.update_link_transforms()
+            obj.update_transform()
+            self.update_transforms([obj.pose.to_transform_stamped(obj.tf_frame)])
 
     def transform_pose(self, pose: PoseStamped, target_frame: str) -> Optional[PoseStamped]:
-        # objects = list(map(self.get_object_from_frame, [pose.frame_id, target_frame]))
-        # self.update_transforms_for_objects([obj for obj in objects if obj is not None])
-        self.update_transforms_for_objects(self.world.objects)
+        objects = list(map(self.get_object_from_frame, [pose.frame_id, target_frame]))
+        self.update_transforms_for_objects([obj for obj in objects if obj is not None])
+
+        if self.world.robot:
+            self.update_transforms_for_objects([self.world.robot])
 
         source_frame = pose.header.frame_id
 
@@ -179,7 +185,7 @@ class LocalTransformer(TransformManager):
 
         transform_matrix = self.get_transform(target_frame, source_frame)
 
-        new_pose = pose_matrix @ transform_matrix
+        new_pose = transform_matrix @ pose_matrix
 
         return_pose = PoseStamped(pose=Pose.from_matrix(new_pose), header=Header(frame_id=target_frame))
         return return_pose
@@ -222,6 +228,7 @@ class LocalTransformer(TransformManager):
     def lookup_transform_from_source_to_target_frame(self, source_frame: str, target_frame: str,
                                                      time: Optional[Time] = None) -> TransformStamped:
         pass
+
     def update_transforms(self, transforms: Iterable[TransformStamped], time: Time = None) -> None:
         """
        Updates transforms by updating the time stamps of the header of each transform. If no time is given the current
@@ -232,7 +239,9 @@ class LocalTransformer(TransformManager):
             wxyz = self.xyzw_to_wxyz(transform.rotation.to_list())
             pt_transform = transform_from_pq(np.hstack((np.array(transform.translation.to_list()),
                                                         np.array(wxyz))))
+            # self.remove_transform(transform.header.frame_id, transform.child_frame_id)
             self.add_transform(transform.header.frame_id, transform.child_frame_id, pt_transform)
+        # self.check_consistency()
 
     @staticmethod
     def xyzw_to_wxyz(xyzw: List[float]) -> List[float]:

@@ -278,7 +278,7 @@ class PoseStamped(HasParameters):
         self.orientation.round(decimals)
 
     def copy(self) -> Self:
-        return copy.copy(self)
+        return copy.deepcopy(self)
 
     def to_list(self):
         return self.pose.to_list()
@@ -416,7 +416,7 @@ class Transform(Pose):
 class TransformStamped(PoseStamped):
     child_frame_id: str = field(default_factory=str)
 
-    pose: Transform
+    pose: Transform = field(default_factory=Pose)
 
     @property
     def transform(self) -> Transform:
