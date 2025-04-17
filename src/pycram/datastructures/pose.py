@@ -93,6 +93,15 @@ class Quaternion(HasParameters):
         """
         Normalize the quaternion in-place.
         """
+
+        # TODO fix this
+        # if the object is not fully constructed yet
+        if not (hasattr(self, "x") and
+                hasattr(self, "y") and
+                hasattr(self, "z") and
+                hasattr(self, "w")):
+            return
+
         norm = (self.x ** 2 + self.y ** 2 + self.z ** 2 + self.w ** 2) ** 0.5
         # self.x /= norm
         # self.y /= norm
@@ -128,9 +137,10 @@ class Quaternion(HasParameters):
     def from_list(cls, quaternion: List[float]) -> Self:
         return cls(*quaternion)
 
-    def __setattr__(self, key, value):
-        object.__setattr__(self, key, value)
-        self.normalize()
+    # TODO fix this
+    # def __setattr__(self, key, value):
+    #     object.__setattr__(self, key, value)
+    #     self.normalize()
 
 @has_parameters
 @dataclass
@@ -182,13 +192,14 @@ class Pose(HasParameters):
         return cls(Vector3(position[0], position[1], position[2]),
                    Quaternion(orientation[0], orientation[1], orientation[2], orientation[3]))
 
-    def __setattr__(self, name: str, value: Any):
-        # check if the settet type is correct
-        field_of_name = [f for f in fields(self.__class__) if f.name == name][0]
-        field_type = globals()[field_of_name.type]
-        assert isinstance(value, field_type)
-        self.__dict__[name] = value
-        # setattr(self, name, value) 
+    # def __setattr__(self, name: str, value: Any):
+    #     # check if the settet type is correct
+    #     field_of_name = [f for f in fields(self.__class__) if f.name == name]
+    #     if field_of_name:
+    #         field_of_name = field_of_name[0]
+    #         field_type = globals()[field_of_name.type]
+    #         assert isinstance(value, field_type)
+    #     object.__setattr__(self, name, value)
 
 
 @dataclass
@@ -795,28 +806,6 @@ Point = Vector3
 #         """
 #         self.position = [round(v, decimals) for v in self.position.to_list()]
 #         self.orientation = [round(v, decimals) for v in self.orientation.to_list()]
-#
-#     def to_sql(self) -> ORMPose:
-#         return ORMPose(datetime.datetime.utcfromtimestamp(self.header.stamp.to_sec()), self.frame)
-#
-#     def insert(self, session: sqlalchemy.orm.Session) -> ORMPose:
-#
-#         metadata = ProcessMetaData().insert(session)
-#
-#         position = Position(*self.position.to_list())
-#         position.process_metadata = metadata
-#         orientation = Quaternion(**dict(zip(["x", "y", "z", "w"], self.orientation.to_list())))
-#         orientation.process_metadata = metadata
-#         session.add(position)
-#         session.add(orientation)
-#
-#         pose = self.to_sql()
-#         pose.process_metadata = metadata
-#         pose.orientation = orientation
-#         pose.position = position
-#         session.add(pose)
-#
-#         return pose
 #
 #     def rotate_by_quaternion(self, quaternion: Tuple[float, float, float, float]) -> None:
 #         """

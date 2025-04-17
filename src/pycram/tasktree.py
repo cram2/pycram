@@ -10,18 +10,14 @@ from anytree import RenderTree
 from anytree.exporter import DotExporter
 from typing_extensions import List, Optional, Callable, Dict, Type, TYPE_CHECKING
 import anytree
-import sqlalchemy.orm.session
-import tqdm
 from .datastructures.world import World
 from .helper import Singleton
-from .orm.tasktree import TaskTreeNode as ORMTaskTreeNode
-from .orm.base import ProcessMetaData
 from .failures import PlanFailure
 from .datastructures.enums import TaskStatus
 from .datastructures.dataclasses import Color
 
 if TYPE_CHECKING:
-    from .designators.action_designator import ActionAbstract as Action
+    from .designators.action_designator import ActionDescription as Action
 
 
 class NoOperation:
@@ -64,7 +60,7 @@ class TaskTreeNode(anytree.NodeMixin):
     The reason of failure if the action failed.
     """
 
-    def __init__(self, action: Optional[Action] = NoOperation(), parent: Optional[TaskTreeNode] = None,
+    def __init__(self, action: Optional[Action] = None, parent: Optional[TaskTreeNode] = None,
                  children: Optional[List[TaskTreeNode]] = None, reason: Optional[Exception] = None):
         """
         Create a TaskTreeNode
@@ -74,9 +70,6 @@ class TaskTreeNode(anytree.NodeMixin):
         :param children: An iterable of TaskTreeNode with the ordered children, optional
         """
         super().__init__()
-
-        if action is None:
-            action = NoOperation()
 
         self.action = action
         self.status = TaskStatus.CREATED
@@ -105,75 +98,6 @@ class TaskTreeNode(anytree.NodeMixin):
     def __len__(self):
         """Get the number of nodes that are in this subtree."""
         return 1 + sum([len(child) for child in self.children])
-
-    def to_sql(self) -> ORMTaskTreeNode:
-        """Convert this object to the corresponding object in the pycram.orm package.
-
-        :returns:  corresponding pycram.orm.task.TaskTreeNode object
-        """
-
-        if self.reason:
-            reason = type(self.reason).__name__
-        else:
-            reason = None
-
-        return ORMTaskTreeNode(start_time=self.start_time, end_time=self.end_time, status=self.status, reason=reason)
-
-    def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,
-               parent: Optional[TaskTreeNode] = None, use_progress_bar: bool = True,
-               progress_bar: Optional[tqdm.tqdm] = None) -> ORMTaskTreeNode:
-        """
-        Insert this node into the database.
-
-        :param session: The current session with the database.
-        :param recursive: Rather if the entire tree should be inserted or just this node, defaults to True
-        :param parent: The parent node, defaults to None
-        :param use_progress_bar: Rather to use a progressbar or not
-        :param progress_bar: The progressbar to update. If a progress bar is desired and this is None, a new one will be
-            created.
-
-        :return: The ORM object that got inserted
-        """
-        if use_progress_bar:
-            if not progress_bar:
-                progress_bar = tqdm.tqdm(desc="Inserting TaskTree into database", leave=True, position=0,
-                                         total=len(self) if recursive else 1)
-
-        # convert self to orm object
-        node = self.to_sql()
-
-        # insert action if possible
-        if getattr(self.action, "insert", None):
-            action = self.action.insert(session)
-            node.action = action
-        else:
-            action = None
-            node.action = None
-
-        # get and set metadata
-        metadata = ProcessMetaData().insert(session)
-        node.process_metadata = metadata
-
-        # set node parent
-        node.parent = parent
-
-        # add the node to the session; note that the instance is not yet committed to the db, but rather in a
-        # pending state
-        session.add(node)
-
-        if progress_bar:
-            progress_bar.update()
-
-        # if recursive, insert all children
-        if recursive:
-            [child.insert(session, parent=node, use_progress_bar=use_progress_bar, progress_bar=progress_bar)
-             for child in self.children]
-
-        # once recursion is done and the root node is reached again, commit the session to the database
-        if self.parent is None:
-            session.commit()
-
-        return node
 
 
 class SimulatedTaskTree:
@@ -224,7 +148,6 @@ class TaskTree(metaclass=Singleton):
         self.root = TaskTreeNode()
         self.current_node = self.root
         self.name = "TaskTree"
-        self.insert = self.root.insert
         self.on_start_callbacks = {}
         self.on_end_callbacks = {}
 
@@ -338,6 +261,7 @@ def with_tree(fun: Callable) -> Callable:
     def handle_tree(*args, **kwargs):
         # get the task tree
         global task_tree
+        x = task_tree
 
         # parse keyword arguments
         keyword_arguments = inspect.getcallargs(fun, *args, **kwargs)

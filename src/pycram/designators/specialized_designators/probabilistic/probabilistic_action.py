@@ -15,7 +15,7 @@ from sortedcontainers import SortedSet
 from sqlalchemy import select
 from typing_extensions import Optional, List, Iterator
 
-from ...action_designator import MoveAndPickUpAction, ActionAbstract, MoveAndPlaceAction
+from ...action_designator import MoveAndPickUpAction, MoveAndPlaceAction
 from ....costmaps import OccupancyCostmap, VisibilityCostmap
 from ....datastructures.enums import Arms as EArms, Grasp as EGrasp, TaskStatus
 from ....datastructures.pose import PoseStamped
@@ -23,7 +23,7 @@ from ....datastructures.world import World
 from ....designator import ObjectDesignatorDescription, ActionDescription
 from ....failures import ObjectUnreachable, PlanFailure
 from ....local_transformer import LocalTransformer
-from ....orm.views import PickUpWithContextView, PlaceWithContextView
+# from ....orm.views import PickUpWithContextView, PlaceWithContextView
 from ....world_concepts.world_object import Object
 
 
@@ -73,7 +73,7 @@ class ProbabilisticAction:
             policy = self.default_policy()
         self.policy = policy
 
-    def sample_to_action(self, sample: List) -> ActionAbstract:
+    def sample_to_action(self, sample: List) -> ActionDescription:
         """
         Convert a sample from the policy to a performable action.
 

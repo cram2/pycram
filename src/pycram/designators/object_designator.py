@@ -3,7 +3,6 @@ from __future__ import annotations
 import dataclasses
 
 import owlready2
-import sqlalchemy.orm
 from owlready2.triplelite import _SearchList
 from typing_extensions import TYPE_CHECKING, Iterable, Iterator, Union
 
@@ -11,8 +10,6 @@ from ..datastructures.enums import ObjectType
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.world import World
 from ..external_interfaces.robokudo import *
-from ..orm.base import ProcessMetaData
-from ..orm.object_designator import (BelieveObject as ORMBelieveObject, ObjectPart as ORMObjectPart)
 from ..world_concepts.world_object import Object as WorldObject, Object
 from ..description import ObjectDescription
 

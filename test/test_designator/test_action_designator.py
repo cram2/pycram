@@ -131,7 +131,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.kitchen.set_pose(PoseStamped.from_list([10, 10, 0]))
         self.milk.set_pose(PoseStamped.from_list([1.5, 0, 1.2]))
         object_description = ObjectDesignatorDescription(types=[Milk])
-        description = action_designator.DetectActionDescription(technique=DetectionTechnique.TYPES, object_designator_description=object_description)
+        description = action_designator.DetectActionDescription(technique=DetectionTechnique.TYPES, object_designator=object_description)
         with simulated_robot:
             self._test_validate_action_pre_perform(description, PerceptionObjectNotFound)
             detected_object = description.resolve().perform()

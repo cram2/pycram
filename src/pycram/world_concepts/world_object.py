@@ -1536,7 +1536,3 @@ class Object(PhysicalBody):
 
         return FrozenObject(self.name, self.obj_type, self.path, self.description, self.pose,
                             frozen_links, frozen_joints)
-
-    def insert(self, session):
-        pass
-
