@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from queue import Queue
 from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence
 
-from .datastructures.enums import State, TaskStatus
+from .datastructures.enums import TaskStatus
 import threading
 
 from .fluent import Fluent
@@ -165,7 +165,7 @@ class ParallelPlan(LanguagePlan):
         root = ParallelNode() or root
         for child in children:
             if child.__class__.__name__ in self.parallel_blocklist:
-                raise TypeError(f"You can't create a ParallelPlan with a {child.__class__.__name__}.")
+                raise AttributeError(f"You can't create a ParallelPlan with a {child.__class__.__name__}.")
 
         super().__init__(root, *children)
 
@@ -205,6 +205,15 @@ class MonitorPlan(LanguagePlan):
         monitor = MonitorNode(condition=condition)
         super().__init__(monitor, *children)
 
+class CodePlan(Plan):
+    """
+
+    """
+    def __init__(self, func: Callable, kwargs: Dict[str, Any] = None) -> None:
+        kwargs = kwargs or {}
+        code = CodeNode(func, kwargs)
+        super().__init__(code)
+
 
 @dataclass
 class LanguageNode(PlanNode):
@@ -235,15 +244,15 @@ class SequentialNode(LanguageNode):
         try:
             loginfo(f"Executing {self}")
             self.perform_sequential(self.children)
+            self.status = TaskStatus.SUCCEEDED
         except PlanFailure as e:
             self.status = TaskStatus.FAILED
             self.reason = e
             # Failure Handling could be done here
             raise e
-        self.status = TaskStatus.SUCCEEDED
 
-    @staticmethod
-    def perform_sequential(nodes: List[PlanNode], raise_exceptions = True) -> Any:
+
+    def perform_sequential(self, nodes: List[PlanNode], raise_exceptions = True) -> Any:
         """
         Behavior of the sequential node, performs all children in sequence and raises error if they occour.
 
@@ -257,7 +266,9 @@ class SequentialNode(LanguageNode):
                 child.status = TaskStatus.SUCCEEDED
             except PlanFailure as e:
                 child.status = TaskStatus.FAILED
+                self.status = TaskStatus.FAILED
                 child.reason = e
+                self.reason = e
                 if raise_exceptions:
                     raise e
 
@@ -316,10 +327,12 @@ class ParallelNode(LanguageNode):
         """
         try:
             self.results[node] = node.perform()
-            node.state = State.SUCCEEDED
+            node.state = TaskStatus.SUCCEEDED
         except PlanFailure as e:
             node.status = TaskStatus.FAILED
+            self.status = TaskStatus.FAILED
             node.reason = e
+            self.reason = e
             # Failure handling comes here
             raise e
 
@@ -485,7 +498,7 @@ class CodeNode(LanguageNode):
 
         :returns: State.SUCCEEDED, and anything that the function associated with this object will return.
         """
-        child_state = State.SUCCEEDED
+        child_state = TaskStatus.SUCCEEDED
         ret_val = self.function(**self.kwargs)
         if isinstance(ret_val, tuple):
             child_state, child_result = ret_val

@@ -166,16 +166,6 @@ class ObjectType(int, Enum):
     IMAGINED_SURFACE = auto()
 
 
-class State(int, Enum):
-    """
-    Enumeration which describes the result of a language expression.
-    """
-    SUCCEEDED = 1
-    FAILED = 0
-    RUNNING = 2
-    INTERRUPTED = 3
-
-
 class Shape(Enum):
     """
     Enum for visual shapes of objects
