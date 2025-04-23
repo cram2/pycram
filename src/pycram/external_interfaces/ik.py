@@ -260,16 +260,16 @@ def request_pinocchio_ik(target_pose: PoseStamped, robot: Object, target_link: s
     :return: A dictionary containing the joint names and joint values
     """
     lt = LocalTransformer()
+    target_pose = lt.transform_pose(target_pose, "map")
     target_pose = lt.transform_pose(target_pose, robot.tf_frame)
 
     # Get link after last joint in chain
     wrist_link = RobotDescription.current_robot_description.get_child(joints[-1])
 
-    # target_torso = lt.transform_pose(target_pose, robot.get_link_tf_frame(base_link))
-
     wrist_tool_frame_offset = robot.get_transform_between_links(wrist_link, target_link)
     target_diff = target_pose.to_transform_stamped("target").inverse_times(wrist_tool_frame_offset).to_pose_stamped()
     target_diff.round()
+
 
     res = compute_ik(wrist_link, target_diff, robot)
 

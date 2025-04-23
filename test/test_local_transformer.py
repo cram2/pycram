@@ -1,5 +1,7 @@
 import unittest
 
+import numpy as np
+
 from pycram.local_transformer import LocalTransformer
 from pycram.datastructures.pose import PoseStamped, TransformStamped
 from pycram.testing import BulletWorldTestCase
@@ -53,4 +55,101 @@ class TestLocalTransformer(BulletWorldTestCase):
         self.milk.update_link_transforms()
         self.assertTrue(l.can_transform("map", self.milk.tf_frame, Time(0)))
 
+    def test_transform_object_frame(self):
+        p = PoseStamped()
+        self.milk.set_pose(PoseStamped.from_list([1, 2, 1]))
+        lt = LocalTransformer()
+        new_pose = lt.transform_to_object_frame(p, self.milk)
 
+        self.assertEqual([-1, -2, -1], new_pose.position.to_list())
+
+    def test_link_wrt(self):
+        relative = self.robot.links["torso_lift_link"].get_pose_wrt_link(self.robot.links["torso_lift_link"])
+        self.assertEqual([0, 0, 0], relative.position.to_list())
+        self.assertEqual([0, 0, 0, 1], relative.orientation.to_list())
+
+        relative = self.robot.links["torso_lift_link"].get_pose_wrt_link(self.robot.links["base_link"])
+        for excepted, actual in zip([-0.05, 0, 0.73967], relative.position.to_list()):
+            self.assertAlmostEqual(excepted, actual, 4)
+        self.assertEqual([0, 0, 0, 1], relative.orientation.to_list())
+
+    def test_transform_to_base(self):
+        pose = PoseStamped.from_list([1, 2, 1])
+        lt = LocalTransformer()
+        base_pose = lt.transform_pose(pose, self.robot.tf_frame)
+
+        self.assertEqual([1,2,1], base_pose.position.to_list())
+        self.assertEqual([0, 0, 0, 1], base_pose.orientation.to_list())
+        self.assertEqual(self.robot.tf_frame, base_pose.header.frame_id)
+
+    def test_transform_to_base_movement(self):
+        pose = PoseStamped.from_list([1, 2, 1])
+        lt = LocalTransformer()
+        base_pose = lt.transform_pose(pose, self.robot.tf_frame)
+
+        self.assertEqual([1, 2, 1], base_pose.position.to_list())
+        self.assertEqual([0, 0, 0, 1], base_pose.orientation.to_list())
+        self.assertEqual(self.robot.tf_frame, base_pose.header.frame_id)
+
+        self.robot.pose = PoseStamped.from_list([1, 2, 1])
+        base_pose = lt.transform_pose(pose, self.robot.tf_frame)
+
+        self.assertEqual([0, 0, 0], base_pose.position.to_list())
+        self.assertEqual([0, 0, 0, 1], base_pose.pose.orientation.to_list())
+
+    def test_transform_base_movement(self):
+        pose = PoseStamped.from_list([0, 0, 0])
+        lt = LocalTransformer()
+        gripper_pose = lt.transform_pose(pose, self.robot.links["l_gripper_tool_frame"].tf_frame)
+        np.testing.assert_almost_equal([-0.951, -0.188, -0.7906], gripper_pose.position.to_list(), decimal=3)
+        self.assertEqual([0, 0, 0, 1], gripper_pose.orientation.to_list())
+        self.assertEqual(self.robot.links["l_gripper_tool_frame"].tf_frame, gripper_pose.header.frame_id)
+
+        self.robot.pose = PoseStamped.from_list([1, 2, 1])
+        gripper_pose = lt.transform_pose(pose, self.robot.links["l_gripper_tool_frame"].tf_frame)
+        np.testing.assert_almost_equal([-1.951, -2.188, -1.7906], gripper_pose.position.to_list(), decimal=4)
+        self.assertEqual([0, 0, 0, 1], gripper_pose.orientation.to_list())
+        self.assertEqual(self.robot.links["l_gripper_tool_frame"].tf_frame, gripper_pose.header.frame_id)
+
+    def test_tcp_transform(self):
+        tcp_pose = PoseStamped.from_list(frame=self.robot.links["l_gripper_tool_frame"].tf_frame)
+        lt = LocalTransformer()
+        base_pose = lt.transform_pose(tcp_pose, self.robot.tf_frame)
+
+        # self.assertEqual([0.951, 0.188, 0.7906], base_pose.position.to_list())
+        np.testing.assert_almost_equal([0.951, 0.188, 0.79067], base_pose.position.to_list(), decimal=5)
+        self.assertEqual([0, 0, 0, 1], base_pose.orientation.to_list())
+        self.assertEqual(self.robot.tf_frame, base_pose.header.frame_id)
+
+    def test_tcp_transform_movement(self):
+        tcp_pose = PoseStamped.from_list([0, 0, 0], frame=self.robot.links["l_gripper_tool_frame"].tf_frame)
+        lt = LocalTransformer()
+        base_pose = lt.transform_pose(tcp_pose,  self.robot.tf_frame)
+
+        # self.assertEqual([0.951, 0.188, 0.7906], base_pose.position.to_list())
+        np.testing.assert_almost_equal([0.951, 0.188, 0.79067], base_pose.position.to_list(), decimal=5)
+        self.assertEqual([0, 0, 0, 1], base_pose.orientation.to_list())
+        self.assertEqual(self.robot.tf_frame, base_pose.header.frame_id)
+
+        self.robot.pose = PoseStamped.from_list([1, 2, 1])
+        base_pose = lt.transform_pose(tcp_pose, self.robot.tf_frame)
+        np.testing.assert_almost_equal([0.951, 0.188, 0.79067], base_pose.position.to_list(), decimal=5)
+        self.assertEqual([0, 0, 0, 1], base_pose.orientation.to_list())
+        self.assertEqual(self.robot.tf_frame, base_pose.header.frame_id)
+
+    def test_tcp_transform_rotation_movement(self):
+        tcp_pose = PoseStamped.from_list([0, 0, 0], frame=self.robot.links["l_gripper_tool_frame"].tf_frame)
+        lt = LocalTransformer()
+        base_pose = lt.transform_pose(tcp_pose, self.robot.tf_frame)
+
+        # self.assertEqual([0.951, 0.188, 0.7906], base_pose.position.to_list())
+        np.testing.assert_almost_equal([0.951, 0.188, 0.79067], base_pose.position.to_list(), decimal=5)
+        self.assertEqual([0, 0, 0, 1], base_pose.orientation.to_list())
+        self.assertEqual(self.robot.tf_frame, base_pose.header.frame_id)
+
+        self.robot.pose = PoseStamped.from_list([1, 2, 1], [0, 0, 1, 1])
+
+        base_pose = lt.transform_pose(tcp_pose, self.robot.tf_frame)
+        np.testing.assert_almost_equal([0.951, 0.188, 0.79067], base_pose.position.to_list(), decimal=5)
+        self.assertEqual([0, 0, 0, 1], base_pose.orientation.to_list())
+        self.assertEqual(self.robot.tf_frame, base_pose.header.frame_id)
