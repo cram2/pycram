@@ -9,7 +9,6 @@ from datetime import timedelta
 from pycrap.ontologies import PhysicalObject, Agent
 from .datastructures.enums import ObjectType
 from .datastructures.pose import PoseStamped, GraspDescription
-from .datastructures.property import EmptyProperty
 from .failures import PlanFailure
 
 from .datastructures.world import World

@@ -52,10 +52,6 @@ parts:
         - file: notebooks/interface_examples/giskard.md
         - file: notebooks/interface_examples/robokudo.md
         - file: notebooks/ontology
-      - file: knowledge_examples.rst
-        sections:
-        - file: notebooks/knowledge_source.md
-        - file: notebooks/properties.md
       - file: notebooks/graph_of_convex_sets.md
 
   - caption: API
