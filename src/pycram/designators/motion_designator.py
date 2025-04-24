@@ -11,7 +11,6 @@ from ..datastructures.enums import ObjectType, Arms, GripperState, ExecutionType
 
 from typing_extensions import Dict, Optional, Type
 from ..datastructures.pose import PoseStamped
-from ..tasktree import with_tree
 from ..designator import BaseMotion
 from ..world_concepts.world_object import Object
 from ..external_interfaces.robokudo import robokudo_found
@@ -34,7 +33,6 @@ class MoveMotion(BaseMotion):
     Keep the joint states of the robot during/at the end of the motion
     """
 
-    @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
         return pm_manager.navigate().execute(self)
@@ -63,7 +61,6 @@ class MoveTCPMotion(BaseMotion):
     The type of movement that should be performed.
     """
 
-    @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
         try_motion(pm_manager.move_tcp(), self, ToolPoseNotReachedError)
@@ -87,7 +84,6 @@ class LookingMotion(BaseMotion):
     """
     target: PoseStamped
 
-    @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
         return pm_manager.looking().execute(self)
@@ -113,7 +109,6 @@ class MoveGripperMotion(BaseMotion):
     If the gripper is allowed to collide with something
     """
 
-    @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
         return pm_manager.move_gripper().execute(self)
@@ -154,7 +149,6 @@ class DetectingMotion(BaseMotion):
     Region in which the object should be detected
     """
 
-    @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
         obj_dict = pm_manager.detecting().execute(self)
@@ -233,7 +227,6 @@ class OpeningMotion(BaseMotion):
     Arm that should be used
     """
 
-    @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
         return pm_manager.open().execute(self)
@@ -254,7 +247,6 @@ class ClosingMotion(BaseMotion):
     Arm that should be used
     """
 
-    @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
         return pm_manager.close().execute(self)
@@ -271,7 +263,6 @@ class TalkingMotion(BaseMotion):
     Talking Motion, let the robot say a sentence.
     """
 
-    @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
         return pm_manager.talk().execute(self)

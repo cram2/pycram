@@ -2,10 +2,9 @@ from sqlalchemy.orm import Session
 import tqdm
 from typing_extensions import Optional
 from .model import TaskTreeNode as TaskTreeNodeORM, self_mapped_classes, explicitly_mapped_classes
-from ..tasktree import TaskTreeNode
 
 
-def insert(node: TaskTreeNode, session: Session, use_progress_bar: bool = True,
+def insert(node: "TaskTreeNode", session: Session, use_progress_bar: bool = True,
            progress_bar: Optional[tqdm.tqdm] = None, parent: Optional[TaskTreeNodeORM] = None):
 
     if use_progress_bar:

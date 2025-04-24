@@ -2,7 +2,6 @@ import time
 import unittest
 from datetime import timedelta
 
-from .tasktree import task_tree
 from .datastructures.world import UseProspectionWorld
 from .worlds.bullet_world import BulletWorld
 from .world_concepts.world_object import Object
@@ -31,14 +30,12 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
         # cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):
-        task_tree.reset_tree()
         self.world.reset_world(remove_saved_states=True)
         with UseProspectionWorld():
             pass
 
 
     def tearDown(self):
-        task_tree.reset_tree()
         time.sleep(0.05)
         self.world.reset_world(remove_saved_states=True)
         with UseProspectionWorld():

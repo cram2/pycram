@@ -47,7 +47,6 @@ from ..datastructures.world import World
 
 from ..robot_description import RobotDescription, KinematicChainDescription
 from ..ros import logwarn, loginfo
-from ..tasktree import with_tree
 from ..validation.error_checkers import PoseErrorChecker
 from ..validation.goal_validator import create_multiple_joint_goal_validator
 from ..world_concepts.world_object import Object
@@ -80,7 +79,6 @@ class MoveTorsoAction(ActionDescription):
     The state of the torso that should be set
     """
 
-    @with_tree
     def plan(self) -> None:
         joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
                                                                                                   self.torso_state)
@@ -120,7 +118,6 @@ class SetGripperAction(ActionDescription):
     The motion that should be set on the gripper
     """
 
-    @with_tree
     def plan(self) -> None:
         arm_chains = RobotDescription.current_robot_description.get_arm_chain(self.gripper)
         if type(arm_chains) is not list:
@@ -223,7 +220,6 @@ class GripAction(ActionDescription):
         # Store the object's data copy at execution
         self.pre_perform(record_object_pre_perform)
 
-    @with_tree
     def plan(self) -> None:
         raise NotImplementedError()
 
@@ -246,7 +242,6 @@ class ParkArmsAction(ActionDescription):
     Entry from the enum for which arm should be parked
     """
 
-    @with_tree
     def plan(self) -> None:
         joint_poses = self.get_joint_poses()
         MoveJointsMotion(names=list(joint_poses.keys()), positions=list(joint_poses.values())).perform()
@@ -335,7 +330,6 @@ class ReachToPickUpAction(ActionDescription):
         # Store the object's data copy at execution
         self.pre_perform(record_object_pre_perform)
 
-    @with_tree
     def plan(self) -> None:
         adjusted_oTm = self.adjust_target_pose_to_grasp_type()
 
@@ -500,7 +494,6 @@ class PickUpAction(ActionDescription):
         # Store the object's data copy at execution
         self.pre_perform(record_object_pre_perform)
 
-    @with_tree
     def plan(self) -> None:
         ReachToPickUpAction(self.object_designator, self.arm, self.grasp_description,
                                        self.prepose_distance).perform()
@@ -586,7 +579,6 @@ class PlaceAction(ActionDescription):
         # Store the object's data copy at execution
         self.pre_perform(record_object_pre_perform)
 
-    @with_tree
     def plan(self) -> None:
         target_pose = self.object_designator.attachments[
             World.robot].get_child_link_target_pose_given_parent(self.target_location)
@@ -684,7 +676,6 @@ class NavigateAction(ActionDescription):
     Keep the joint states of the robot the same during the navigation.
     """
 
-    @with_tree
     def plan(self) -> None:
         motion_action = MoveMotion(self.target_location, self.keep_joint_states)
         return try_action(motion_action, failure_type=NavigationGoalNotReachedError)
@@ -741,7 +732,6 @@ class TransportAction(ActionDescription):
         # Store the object's data copy at execution
         self.pre_perform(record_object_pre_perform)
 
-    @with_tree
     def plan(self) -> None:
         robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
         ParkArmsAction(Arms.BOTH).perform()
@@ -803,7 +793,6 @@ class LookAtAction(ActionDescription):
     Position at which the robot should look, given as 6D pose
     """
 
-    @with_tree
     def plan(self) -> None:
         LookingMotion(target=self.target).perform()
 
@@ -869,7 +858,6 @@ class DetectAction(ActionDescription):
         # Store the object's data copy at execution
         self.pre_perform(record_object_pre_perform)
 
-    @with_tree
     def plan(self) -> None:
         return try_action(DetectingMotion(technique=self.technique, state=self.state,
                                           object_designator_description=self.object_designator,
@@ -910,7 +898,6 @@ class OpenAction(ActionDescription):
     The distance in meters the gripper should be at in the x-axis away from the handle.
     """
 
-    @with_tree
     def plan(self) -> None:
         GraspingAction(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
         OpeningMotion(self.object_designator, self.arm).perform()
@@ -954,7 +941,6 @@ class CloseAction(ActionDescription):
     The distance in meters between the gripper and the handle before approaching to grasp.
     """
 
-    @with_tree
     def plan(self) -> None:
         GraspingAction(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
         ClosingMotion(self.object_designator, self.arm).perform()
@@ -1030,7 +1016,6 @@ class GraspingAction(ActionDescription):
     The distance in meters the gripper should be at before grasping the object
     """
 
-    @with_tree
     def plan(self) -> None:
         object_pose = self.object_designator.pose
         lt = LocalTransformer()
@@ -1080,7 +1065,6 @@ class FaceAtAction(ActionDescription):
     Keep the joint states of the robot the same during the navigation.
     """
 
-    @with_tree
     def plan(self) -> None:
         # get the robot position
         robot_position = World.robot.pose
@@ -1147,7 +1131,6 @@ class MoveAndPickUpAction(ActionDescription):
     The distance in meters the gripper should be at before picking up the object
     """
 
-    # @with_tree
     def plan(self):
         if self.grasp == Grasp.TOP:
             grasp = GraspDescription(Grasp.FRONT, self.grasp, False)
@@ -1210,7 +1193,6 @@ class MoveAndPlaceAction(ActionDescription):
     Keep the joint states of the robot the same during the navigation.
     """
 
-    @with_tree
     def plan(self):
         NavigateAction(self.standing_position, self.keep_joint_states).perform()
         FaceAtAction(self.target_location, self.keep_joint_states).perform()
@@ -1266,7 +1248,6 @@ class PouringAction(ActionDescription):
     The angle of the pouring action (default is 90).
     """
 
-    @with_tree
     def plan(self) -> None:
         lt = LocalTransformer()
         movement_type: MovementType = MovementType.CARTESIAN

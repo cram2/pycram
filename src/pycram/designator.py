@@ -22,7 +22,6 @@ from .language import LanguageMixin
 from .local_transformer import LocalTransformer
 from .robot_description import RobotDescription
 from .ros import loginfo
-from .tasktree import with_tree
 from .utils import bcolors
 from .world_concepts.world_object import Object as WorldObject, Object
 
@@ -179,7 +178,6 @@ class ActionDescription():
             self.validate(result)
         return result
 
-    @with_tree
     def plan(self) -> Any:
         """
         Plan of the action. To be overridden by subclasses.
