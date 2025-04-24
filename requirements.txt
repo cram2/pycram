@@ -5,8 +5,7 @@ pathlib~=1.0.1
 numpy==1.26.4; python_version >= '3.9'
 numpy==1.24.4; python_version == '3.8'
 pytransform3d
-graphviz
-anytree>=2.8.0
+# graphviz
 SQLAlchemy>=2.0.36, <2.0.38 #orm
 sqlacodegen==3.0.0 #orm
 tqdm==4.66.3
@@ -14,23 +13,23 @@ psutil==5.9.7
 #lxml==4.9.1
 typing_extensions>=4.10.0
 owlready2>=0.45
-Pillow>=10.3.0
+# Pillow>=10.3.0
 pynput~=1.7.7
 # playsound
-pydub~=0.25.1
-gTTS~=2.5.3
-dm_control
+# pydub~=0.25.1
+# gTTS~=2.5.3
+# dm_control
 trimesh==4.6.0
 deprecated
 probabilistic_model>=6.0.2
 random_events>=4.1.0
 pint>=0.21.1
-Pygments>=2.15.0
 gymnasium
 pin==2.7.0
 inflection>=0.5.1
 manifold3d==3.0.1
 transforms3d
-pyglet==1.5.31
+# pyglet==1.5.31
 python-box
+networkx
 
