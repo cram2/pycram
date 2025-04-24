@@ -23,7 +23,7 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
     world: BulletWorld
     viz_marker_publisher: VizMarkerPublisher
     extension: str = ObjectDescription.get_file_extension()
-    render_mode = WorldMode.GUI
+    render_mode = WorldMode.DIRECT
 
     @classmethod
     def setUpClass(cls):

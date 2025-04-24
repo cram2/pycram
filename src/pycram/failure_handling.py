@@ -99,9 +99,10 @@ class RetryMonitor(FailureHandling):
     A dictionary that maps exception types to recovery actions
     """
 
-    def __init__(self, monitor_plan: MonitorPlan, max_tries: int = 3, recovery: dict = None):
+    def __init__(self, monitor_plan: Plan, max_tries: int = 3, recovery: dict = None):
         """
         Initializes a new instance of the RetryMonitor class.
+
         :param MonitorNode monitor_plan: The Monitor instance to be used.
         :param int max_tries: The maximum number of attempts to retry. Defaults to 3.
         :param dict recovery: A dictionary that maps exception types to recovery actions. Defaults to None.
@@ -118,7 +119,7 @@ class RetryMonitor(FailureHandling):
             for key, value in recovery.items():
                 if not issubclass(key, BaseException):
                     raise TypeError("Keys in the recovery dictionary must be exception types.")
-                if not isinstance(value, LanguageMixin):
+                if not callable(value):
                     raise TypeError("Values in the recovery dictionary must be instances of the Language class.")
             self.recovery = recovery
 
@@ -164,15 +165,19 @@ class RetryMonitor(FailureHandling):
                 for child in self.plan.root.children:
                     reset_interrupted(child)
                 try:
-                    res = self.plan.perform()
-                    break
+                    if tries >= 1:
+                        self.plan.re_perform()
+                        break
+                    else:
+                        res = self.plan.perform()
+                        break
                 except PlanFailure as e:
                     tries += 1
                     if tries >= self.max_tries:
                         raise e
                     exception_type = type(e)
                     if exception_type in self.recovery:
-                        self.recovery[exception_type].perform()
+                        self.recovery[exception_type]()
         return flatten(res)
 
 

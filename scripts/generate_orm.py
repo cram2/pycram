@@ -19,7 +19,8 @@ classes = [pycram.datastructures.grasp.GraspDescription,
            pycram.datastructures.pose.Header,
            pycram.datastructures.pose.PoseStamped,
            pycram.datastructures.pose.Transform,
-           pycram.datastructures.pose.TransformStamped
+           pycram.datastructures.pose.TransformStamped,
+           pycram.datastructures.pose.GraspPose
            ]
 
 
@@ -54,5 +55,5 @@ def generate_orm():
     with open(os.path.join(path, 'ormatic_interface.py'), 'w') as f:
         ormatic.to_python_file(generator, f)
 
-
-generate_orm()
+if __name__ == '__main__':
+    generate_orm()

@@ -77,7 +77,7 @@ class TestPartialActions(BulletWorldTestCase):
     def test_partial_movetorso_action(self):
         move1 = MoveTorsoActionDescription(TorsoState.HIGH).resolve()
         self.assertEqual(move1.torso_state, TorsoState.HIGH)
-        move2 = MoveTorsoActionDescription([TorsoState.HIGH, TorsoState.MID])
+        move2 = MoveTorsoActionDescription([TorsoState.HIGH, TorsoState.MID]).root.designator_ref
         for action in move2:
             self.assertTrue(action.torso_state in [TorsoState.HIGH, TorsoState.MID])
 
@@ -89,7 +89,7 @@ class TestPartialActions(BulletWorldTestCase):
     def test_partial_navigate_action_multiple(self):
         nav = NavigateActionDescription([PoseStamped.from_list([1, 0, 0]), PoseStamped.from_list([2, 0, 0]), PoseStamped.from_list([3, 0, 0])])
         nav_goals = [[1, 0, 0], [2, 0, 0], [3, 0, 0]]
-        for i, action in enumerate(nav):
+        for i, action in enumerate(nav.root.designator_ref):
             with simulated_robot:
                 action.perform()
                 self.assertEqual(self.robot.pose.position.to_list(), nav_goals[i])
@@ -106,7 +106,7 @@ class TestPartialActions(BulletWorldTestCase):
     def test_partial_pickup_action_insert_param(self):
         milk_desig = BelieveObject(names=["milk"])
         grasp_description = GraspDescription(Grasp.FRONT, None, False)
-        pick = PickUpActionDescription(milk_desig, [Arms.LEFT, Arms.RIGHT])
+        pick = PickUpActionDescription(milk_desig, [Arms.LEFT, Arms.RIGHT]).root.designator_ref
         pick_action = pick(grasp_description=grasp_description).resolve()
         self.assertEqual(pick_action.grasp_description, grasp_description)
 

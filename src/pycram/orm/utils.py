@@ -1,6 +1,9 @@
 import traceback
 import sqlalchemy
-from .ormatic_interface import mapper_registry
+try:
+    from .ormatic_interface import mapper_registry
+except ImportError:
+    pass
 from ..designators.object_designator import *
 import json
 

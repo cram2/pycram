@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import inspect
 import random
+import time
 from dataclasses import field, dataclass
 from datetime import datetime
 
@@ -161,6 +162,36 @@ class Plan(nx.DiGraph):
                 result.update(node.flattened_parameters())
         return result
 
+    def re_perform(self):
+        for child in self.root.recursive_children:
+            if child.is_leaf:
+                child.perform()
+
+    @property
+    def actions(self) -> List[ActionNode]:
+        return list(filter(None, [node if type(node) is ActionNode else None for node in self.nodes ]))
+
+
+def managed_node(func: Callable) -> Callable:
+    def wrapper(node: DesignatorNode) -> Any:
+        node.status = TaskStatus.RUNNING
+        node.start_time = datetime.now()
+        result = None
+        try:
+            node.plan.current_node = node
+            result = func(node)
+            node.status = TaskStatus.SUCCEEDED
+        except PlanFailure as e:
+            node.status = TaskStatus.FAILED
+            node.reason = e
+            raise e
+        finally:
+            node.end_time = datetime.now()
+        return result
+    return wrapper
+
+
+
 @dataclass
 class PlanNode:
     status: TaskStatus = TaskStatus.CREATED
@@ -234,6 +265,15 @@ class PlanNode:
         """
         return list(nx.ancestors(self.plan, self))
 
+    @property
+    def is_leaf(self) -> bool:
+        """
+        Returns True if this node is a leaf node
+
+        :return: True if this node is a leaf node
+        """
+        return self.children == []
+
     def flattened_parameters(self):
         """
         The atomic types pf this node as dict
@@ -296,25 +336,21 @@ class ActionNode(DesignatorNode):
     def __hash__(self):
         return id(self)
 
+    @managed_node
     def perform(self):
         """
         Performs this node by resolving the ActionDesignator description to the next resolution and then performing the
         result.
 
-
         :return: Return value of the resolved action node
         """
-        self.plan.current_node = self
         if not self.action_iter:
             self.action_iter = iter(self.designator_ref)
         resolved_action = next(self.action_iter)
         resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__, )
         self.plan.add_edge(self, resolved_action_node)
 
-        self.start_time = datetime.now()
-        result = resolved_action_node.perform()
-        self.end_time = datetime.now()
-        return result
+        return  resolved_action_node.perform()
 
     def __repr__(self, *args, **kwargs):
         return f"<{self.designator_ref.performable.__name__}_{id(self) % 100}>"
@@ -327,17 +363,14 @@ class ResolvedActionNode(DesignatorNode):
     def __hash__(self):
         return id(self)
 
+    @managed_node
     def perform(self):
         """
         Performs this node by performing the resolved action designator in zit
 
         :return: The return value of the resolved ActionDesignator
         """
-        self.plan.current_node = self
-        self.start_time = datetime.now()
-        result = self.designator_ref.perform()
-        self.end_time = datetime.now()
-        return result
+        return self.designator_ref.perform()
 
     def __repr__(self, *args, **kwargs):
         return f"<{self.designator_ref.__class__.__name__}_{id(self) % 100}>"
@@ -354,6 +387,15 @@ class MotionNode(DesignatorNode):
     def __hash__(self):
         return id(self)
 
+    def wait(self):
+        continue_execution = False
+        while not continue_execution:
+            all_parents_status = [parent.status for parent in self.all_parents]
+            if not TaskStatus.SLEEPING in all_parents_status:
+                continue_execution = True
+            time.sleep(0.1)
+
+    @managed_node
     def perform(self):
         """
         Performs this node by performing the respective MotionDesignator. Additionally, checks if one of the parents has
@@ -364,10 +406,9 @@ class MotionNode(DesignatorNode):
         all_parents_status = [parent.status for parent in self.all_parents]
         if TaskStatus.INTERRUPTED in all_parents_status:
             return
-        self.start_time = datetime.now()
-        result = self.designator_ref.perform()
-        self.end_time = datetime.now()
-        return result
+        elif TaskStatus.SLEEPING in all_parents_status:
+            self.wait()
+        return self.designator_ref.perform()
 
     def __repr__(self, *args, **kwargs):
         return f"<{self.designator_ref.__class__.__name__}_{id(self) % 100}>"

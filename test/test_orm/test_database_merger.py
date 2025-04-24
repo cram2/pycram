@@ -2,7 +2,7 @@ import unittest
 import pathlib
 import json
 import sqlalchemy
-import pycram.orm.base
+# import pycram.orm.base
 import pycram.orm.utils
 
 from pycram.designators.action_designator import *

@@ -192,14 +192,14 @@ class Pose(HasParameters):
         return cls(Vector3(position[0], position[1], position[2]),
                    Quaternion(orientation[0], orientation[1], orientation[2], orientation[3]))
 
-    # def __setattr__(self, name: str, value: Any):
-    #     # check if the settet type is correct
-    #     field_of_name = [f for f in fields(self.__class__) if f.name == name]
-    #     if field_of_name:
-    #         field_of_name = field_of_name[0]
-    #         field_type = globals()[field_of_name.type]
-    #         assert isinstance(value, field_type)
-    #     object.__setattr__(self, name, value)
+    def __setattr__(self, name: str, value: Any):
+        # check if the settet type is correct
+        field_of_name = [f for f in fields(self.__class__) if f.name == name]
+        if field_of_name:
+            field_of_name = field_of_name[0]
+            field_type = globals()[field_of_name.type]
+            assert isinstance(value, field_type)
+        object.__setattr__(self, name, value)
 
 
 @dataclass

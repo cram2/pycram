@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+
 from ormatic.ormatic import classproperty, ORMaticExplicitMapping
 from typing_extensions import Optional
 

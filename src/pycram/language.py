@@ -12,7 +12,7 @@ from .fluent import Fluent
 from .failures import PlanFailure
 from .external_interfaces import giskard
 from .ros import sleep, loginfo
-from .plan import PlanNode, Plan
+from .plan import PlanNode, Plan, managed_node
 
 
 class LanguageMixin:
@@ -154,7 +154,7 @@ class SequentialPlan(LanguagePlan):
 
 class ParallelPlan(LanguagePlan):
     """
-    Creates a plan which executes all children in prallel in seperate threads
+    Creates a plan which executes all children in parallel in seperate threads
     """
     parallel_blocklist = ["PickUpAction", "PlaceAction", "OpenAction", "CloseAction", "TransportAction",
                           "GraspingAction"]
@@ -162,10 +162,12 @@ class ParallelPlan(LanguagePlan):
     A list of Actions which can't be part of a Parallel plan
     """
     def __init__(self, *children: Plan, root: LanguageNode = None) -> None:
-        root = ParallelNode() or root
+        root = root or ParallelNode()
         for child in children:
-            if child.__class__.__name__ in self.parallel_blocklist:
-                raise AttributeError(f"You can't create a ParallelPlan with a {child.__class__.__name__}.")
+            child_actions = [action.designator_ref.performable.__name__ for action in child.actions]
+            for action in child_actions:
+                if action in self.parallel_blocklist:
+                    raise AttributeError(f"You can't create a ParallelPlan with a {child.__class__.__name__}.")
 
         super().__init__(root, *children)
 
@@ -175,7 +177,7 @@ class TryInOrderPlan(LanguagePlan):
     """
 
     def __init__(self,  *children: Plan) -> None:
-        try_in_order =TryInOrderNode()
+        try_in_order = TryInOrderNode()
         super().__init__(try_in_order, *children)
 
 class TryAllPLan(ParallelPlan):
@@ -193,6 +195,8 @@ class RepeatPlan(LanguagePlan):
     """
 
     def __init__(self, repeat=1,  *children: Plan):
+        if not isinstance(repeat, int):
+            raise AttributeError(f"Repeat must be an integer")
         repeat = RepeatNode(repeat=repeat)
         super().__init__(repeat, *children)
 
@@ -263,11 +267,8 @@ class SequentialNode(LanguageNode):
         for child in nodes:
             try:
                 results[child]  = child.perform()
-                child.status = TaskStatus.SUCCEEDED
             except PlanFailure as e:
-                child.status = TaskStatus.FAILED
                 self.status = TaskStatus.FAILED
-                child.reason = e
                 self.reason = e
                 if raise_exceptions:
                     raise e
@@ -327,11 +328,8 @@ class ParallelNode(LanguageNode):
         """
         try:
             self.results[node] = node.perform()
-            node.state = TaskStatus.SUCCEEDED
         except PlanFailure as e:
-            node.status = TaskStatus.FAILED
             self.status = TaskStatus.FAILED
-            node.reason = e
             self.reason = e
             # Failure handling comes here
             raise e
@@ -492,20 +490,20 @@ class CodeNode(LanguageNode):
         self.perform = self.execute
         self.performable = self.__class__
 
+    @managed_node
     def execute(self) -> Any:
         """
         Execute the code with its arguments
 
         :returns: State.SUCCEEDED, and anything that the function associated with this object will return.
         """
-        child_state = TaskStatus.SUCCEEDED
         ret_val = self.function(**self.kwargs)
         if isinstance(ret_val, tuple):
             child_state, child_result = ret_val
         else:
             child_result = ret_val
 
-        return child_state, child_result
+        return child_result
 
     def resolve(self) -> Self:
         return self

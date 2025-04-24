@@ -9,7 +9,7 @@ from pycram.fluent import Fluent
 from pycram.failures import PlanFailure, NotALanguageExpression
 from pycram.datastructures.pose import PoseStamped
 from pycram.language import SequentialPlan, ParallelPlan, TryInOrderPlan, TryAllPLan, MonitorPlan, MonitorNode, \
-    SequentialNode, RepeatPlan, CodePlan
+    SequentialNode, RepeatPlan, CodePlan, TryAllNode
 from pycram.process_module import simulated_robot
 from pycram.testing import BulletWorldTestCase
 from pycram.robot_description import RobotDescription
@@ -61,6 +61,7 @@ class LanguageTestCase(BulletWorldTestCase):
         act3 = DetectActionDescription(DetectionTechnique.TYPES)
 
         plan = TryAllPLan(act, act2, act3)
+        self.assertTrue(TryAllNode, type(plan.root))
         self.assertTrue(isinstance(plan, TryAllPLan))
         self.assertEqual(len(plan.root.children), 3)
 
@@ -96,7 +97,7 @@ class LanguageTestCase(BulletWorldTestCase):
 
         plan = MonitorPlan(monitor_func, SequentialPlan(act, act2))
         self.assertEqual(len(plan.root.children), 1)
-        self.assertTrue(isinstance(plan.root.children[0], MonitorNode))
+        self.assertTrue(isinstance(plan.root, MonitorNode))
 
     def test_retry_monitor_construction(self):
         act = ParkArmsActionDescription(Arms.BOTH)
@@ -117,21 +118,22 @@ class LanguageTestCase(BulletWorldTestCase):
         self.assertIsInstance(plan.plan, MonitorPlan)
 
     def test_retry_monitor_tries(self):
-        act = ParkArmsActionDescription([Arms.BOTH])
-        act2 = MoveTorsoActionDescription([TorsoState.HIGH])
+        def raise_failure():
+            raise PlanFailure
         tries_counter = 0
 
         def monitor_func():
             nonlocal tries_counter
             tries_counter += 1
             return True
+        act2 = MoveTorsoActionDescription([TorsoState.HIGH])
+        fail = CodePlan(raise_failure)
+        counter = CodePlan(monitor_func)
 
-        subplan = MonitorPlan(monitor_func, act, act2)
+        subplan = SequentialPlan(counter, fail)
         plan = RetryMonitor(subplan, max_tries=6)
-        try:
-            plan.perform()
-        except PlanFailure as e:
-            pass
+        self.assertRaises(PlanFailure, plan.perform)
+
         self.assertEqual(tries_counter, 6)
 
     def test_retry_monitor_recovery(self):
@@ -143,9 +145,9 @@ class LanguageTestCase(BulletWorldTestCase):
                 monitor_func.tries_counter = 0
             if monitor_func.tries_counter % 2:
                 monitor_func.tries_counter += 1
-                return NotALanguageExpression
+                raise NotALanguageExpression
             monitor_func.tries_counter += 1
-            return PlanFailure
+            raise PlanFailure
 
         def recovery1():
             nonlocal recovery1_counter
@@ -158,16 +160,15 @@ class LanguageTestCase(BulletWorldTestCase):
         recovery = {NotALanguageExpression: recovery1,
                     PlanFailure: recovery2}
 
-        act = ParkArmsActionDescription([Arms.BOTH])
-        act2 = MoveTorsoActionDescription([TorsoState.HIGH])
-        subplan = MonitorPlan(monitor_func, SequentialPlan(act, act2))
+        code = CodePlan(monitor_func)
+        subplan = SequentialPlan(code)
         plan = RetryMonitor(subplan, max_tries=6, recovery=recovery)
         try:
             plan.perform()
         except PlanFailure as e:
             pass
-        self.assertEqual(recovery1_counter, 2)
-        self.assertEqual(recovery2_counter, 3)
+        self.assertEqual(2, recovery1_counter)
+        self.assertEqual(3, recovery2_counter)
 
     def test_repeat_construction(self):
         act = ParkArmsActionDescription([Arms.BOTH])
@@ -243,11 +244,10 @@ class LanguageTestCase(BulletWorldTestCase):
         code = CodePlan(raise_except)
 
         plan = TryInOrderPlan(act, code)
-        def perform_plan():
-            with simulated_robot:
-                _ = plan.perform()
+        with simulated_robot:
+            _ = plan.perform()
         self.assertEqual(2, len(plan.root.children))
-        self.assertEqual(TaskStatus.FAILED, plan.root.status)
+        self.assertEqual(TaskStatus.SUCCEEDED, plan.root.status)
 
     def test_exception_parallel(self):
         def raise_except():
@@ -271,7 +271,8 @@ class LanguageTestCase(BulletWorldTestCase):
         with simulated_robot:
             _ = plan.perform()
 
-        self.assertEqual(plan.root.status, TaskStatus.SUCCEEDED)
+        self.assertEqual(TryAllNode, type(plan.root))
+        self.assertEqual(TaskStatus.SUCCEEDED, plan.root.status)
 
 
 if __name__ == '__main__':

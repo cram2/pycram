@@ -79,6 +79,13 @@ t_FrozenObject = Table(
     Column('pose_id', ForeignKey('PoseStamped.id'))
 )
 
+t_GraspPose = Table(
+    'GraspPose', metadata,
+    Column('id', ForeignKey('PoseStamped.id'), primary_key=True),
+    Column('arm', Enum(pycram.datastructures.enums.Arms), nullable=False),
+    Column('grasp_description_id', ForeignKey('GraspDescription.id'))
+)
+
 t_TransformStamped = Table(
     'TransformStamped', metadata,
     Column('id', ForeignKey('PoseStamped.id'), primary_key=True),
@@ -243,6 +250,8 @@ m_FrozenObject = mapper_registry.map_imperatively(pycram.datastructures.dataclas
 m_Transform = mapper_registry.map_imperatively(pycram.datastructures.pose.Transform, t_Transform, polymorphic_identity = "Transform", inherits = m_Pose)
 
 m_TransformStamped = mapper_registry.map_imperatively(pycram.datastructures.pose.TransformStamped, t_TransformStamped, properties = dict(pose=relationship("Transform", foreign_keys=[t_TransformStamped.c.pose_id])), polymorphic_identity = "TransformStamped", inherits = m_PoseStamped)
+
+m_GraspPose = mapper_registry.map_imperatively(pycram.datastructures.pose.GraspPose, t_GraspPose, properties = dict(grasp_description=relationship("GraspDescription", foreign_keys=[t_GraspPose.c.grasp_description_id])), polymorphic_identity = "GraspPose", inherits = m_PoseStamped)
 
 m_MoveTorsoAction = mapper_registry.map_imperatively(pycram.designators.action_designator.MoveTorsoAction, t_MoveTorsoAction, polymorphic_identity = "MoveTorsoAction", inherits = m_ActionDescription)
 
