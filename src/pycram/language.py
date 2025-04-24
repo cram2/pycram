@@ -211,7 +211,7 @@ class MonitorPlan(LanguagePlan):
 
 class CodePlan(Plan):
     """
-
+    A Plan that contains a function to be executed. Mainly intended for debugging purposes
     """
     def __init__(self, func: Callable, kwargs: Dict[str, Any] = None) -> None:
         kwargs = kwargs or {}
@@ -235,8 +235,8 @@ class SequentialNode(LanguageNode):
 
     Behaviour:
         Returns a tuple containing the final state of execution (SUCCEEDED, FAILED) and a list of results from each
-        child's perform() method. The state is :py:attr:`~State.SUCCEEDED` *iff* all children are executed without
-        exception. In any other case the State :py:attr:`~State.FAILED` will be returned.
+        child's perform() method. The state is :py:attr:`~TaskStatus.SUCCEEDED` *iff* all children are executed without
+        exception. In any other case the State :py:attr:`~TaskStatus.FAILED` will be returned.
     """
 
     def perform(self):
@@ -258,10 +258,10 @@ class SequentialNode(LanguageNode):
 
     def perform_sequential(self, nodes: List[PlanNode], raise_exceptions = True) -> Any:
         """
-        Behavior of the sequential node, performs all children in sequence and raises error if they occour.
+        Behavior of the sequential node, performs all children in sequence and raises error if they occur.
 
         :param nodes: A list of nodes which should be performed in sequence
-        :param raise_exceptions: If True (defualt) errors will be raised
+        :param raise_exceptions: If True (default) errors will be raised
         """
         results = {}
         for child in nodes:
@@ -289,8 +289,8 @@ class ParallelNode(LanguageNode):
 
     Behaviour:
         Returns a tuple containing the final state of execution (SUCCEEDED, FAILED) and a list of results from
-        each child's perform() method. The state is :py:attr:`~State.SUCCEEDED` *iff* all children could be executed without
-        an exception. In any other case the State :py:attr:`~State.FAILED` will be returned.
+        each child's perform() method. The state is :py:attr:`~TaskStatus.SUCCEEDED` *iff* all children could be executed without
+        an exception. In any other case the State :py:attr:`~TaskStatus.FAILED` will be returned.
 
     """
 
@@ -422,8 +422,8 @@ class TryInOrderNode(SequentialNode):
 
     Behaviour:
         Returns a tuple containing the final state of execution (SUCCEEDED, FAILED) and a list of results from each
-        child's perform() method. The state is :py:attr:`~State.SUCCEEDED` if one or more children are executed without
-        exception. In the case that all children could not be executed the State :py:attr:`~State.FAILED` will be returned.
+        child's perform() method. The state is :py:attr:`~TaskStatus.SUCCEEDED` if one or more children are executed without
+        exception. In the case that all children could not be executed the State :py:attr:`~TaskStatus.FAILED` will be returned.
     """
 
     def perform(self):
@@ -448,8 +448,8 @@ class TryAllNode(ParallelNode):
 
     Behaviour:
         Returns a tuple containing the final state of execution (SUCCEEDED, FAILED) and a list of results from each
-        child's perform() method. The state is :py:attr:`~State.SUCCEEDED` if one or more children could be executed
-        without raising an exception. If all children fail the State :py:attr:`~State.FAILED` will be returned.
+        child's perform() method. The state is :py:attr:`~TaskStatus.SUCCEEDED` if one or more children could be executed
+        without raising an exception. If all children fail the State :py:attr:`~TaskStatus.FAILED` will be returned.
     """
 
     def perform(self):
@@ -495,7 +495,7 @@ class CodeNode(LanguageNode):
         """
         Execute the code with its arguments
 
-        :returns: State.SUCCEEDED, and anything that the function associated with this object will return.
+        :returns: Anything that the function associated with this object will return.
         """
         ret_val = self.function(**self.kwargs)
         if isinstance(ret_val, tuple):

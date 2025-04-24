@@ -103,7 +103,7 @@ class TestLinks(BulletWorldTestCase):
         robot_link = self.robot.root_link
         milk_to_robot = milk_link.get_transform_to_link(robot_link)
         robot_to_milk = robot_link.get_transform_to_link(milk_link)
-        self.assertAlmostEqual(robot_to_milk, milk_to_robot.invert())
+        self.assertAlmostEqual(robot_to_milk, ~milk_to_robot)
 
     def test_set_color(self):
         link = self.robot.get_link('base_link')

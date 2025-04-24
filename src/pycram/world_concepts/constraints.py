@@ -72,7 +72,7 @@ class AbstractConstraint:
     def parent_to_child_transform(self) -> Union[TransformStamped, None]:
         if self._parent_to_child is None:
             if self.parent_to_constraint is not None and self.child_to_constraint is not None:
-                self._parent_to_child = self.parent_to_constraint * self.child_to_constraint.invert()
+                self._parent_to_child = ~self.parent_to_constraint * self.child_to_constraint
         return self._parent_to_child
 
     @parent_to_child_transform.setter
@@ -162,7 +162,7 @@ class Constraint(AbstractConstraint):
                  axis_in_child_frame: Point,
                  constraint_to_parent: TransformStamped,
                  child_to_constraint: TransformStamped):
-        parent_to_constraint = constraint_to_parent.invert()
+        parent_to_constraint = ~constraint_to_parent
         AbstractConstraint.__init__(self, parent_link, child_link, _type, parent_to_constraint, child_to_constraint)
         self.axis: Point = axis_in_child_frame
 
@@ -241,7 +241,7 @@ class Attachment(AbstractConstraint):
         Add a fixed constraint between the parent link and the child link.
         """
         self.id = self.parent_link.add_fixed_constraint_with_link(self.child_link,
-                                                                  self.parent_to_child_transform.invert())
+                                                                  ~self.parent_to_child_transform)
 
     def calculate_transform(self) -> TransformStamped:
         """

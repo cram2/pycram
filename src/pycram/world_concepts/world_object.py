@@ -969,7 +969,7 @@ class Object(PhysicalBody):
         if attachment.is_inverse:
             child_object.attach(self, attachment.child_link.name, attachment.parent_link.name,
                                 attachment.bidirectional,
-                                parent_to_child_transform=att_transform.invert())
+                                parent_to_child_transform=~att_transform)
         else:
             self.attach(child_object, attachment.parent_link.name, attachment.child_link.name,
                         attachment.bidirectional, parent_to_child_transform=att_transform)

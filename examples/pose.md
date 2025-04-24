@@ -230,7 +230,7 @@ from pycram.datastructures.pose import TransformStamped
 
 map_to_milk = TransformStamped.from_list([1, 1, 0.5], [0, 0, 0, 1], "map", "milk")
 
-milk_to_map = map_to_milk.invert()
+milk_to_map = ~map_to_milk
 
 print(milk_to_map)
 ```
