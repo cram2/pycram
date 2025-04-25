@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-
+from typing import Type
 
 from ormatic.ormatic import classproperty, ORMaticExplicitMapping
 from typing_extensions import Optional
@@ -14,6 +14,7 @@ from ..designators.action_designator import MoveTorsoAction, SetGripperAction, R
     PlaceAction as PlaceActionDesignator, NavigateAction, TransportAction as TransportActionDesignator, LookAtAction, \
     DetectAction as DetectActionDesignator, OpenAction, CloseAction, GraspingAction as GraspingActionDesignator, \
     FaceAtAction, ActionDescription, ReachToPickUpAction as ReachToPickUpActionDesignator
+from pycram.plan import ActionNode, MotionNode, ResolvedActionNode
 
 
 
@@ -34,6 +35,27 @@ class TaskTreeNode:
     action: Optional[ActionDescription] = None
     parent: Optional["TaskTreeNode"] = None
 
+@dataclass
+class ORMActionNode(ORMaticExplicitMapping):
+
+    @classproperty
+    def explicit_mapping(cls) -> Type:
+        return ActionNode
+@dataclass
+class ORMMotionNode(ORMaticExplicitMapping):
+
+    @classproperty
+    def explicit_mapping(cls) -> Type:
+        return MotionNode
+
+@dataclass
+class ORMResolvedActionNode(ORMaticExplicitMapping):
+
+    designator_ref: ActionDescription
+
+    @classproperty
+    def explicit_mapping(cls) -> Type:
+        return ResolvedActionNode
 
 @dataclass
 class FrozenObject(ORMaticExplicitMapping):
@@ -157,4 +179,4 @@ self_mapped_classes = [TaskTreeNode, ActionDescription, MoveTorsoAction, SetGrip
 
 # List of all classes that are explicitly mapped above. ADD NEW DESIGNATORS HERE!
 explicitly_mapped_classes = [DetectAction, GraspingAction, ReleaseAction, GripAction, FrozenObject,
-                             ReachToPickUpAction, PickUpAction, PlaceAction, TransportAction]
+                             ReachToPickUpAction, PickUpAction, PlaceAction, TransportAction, ORMActionNode, ORMMotionNode, ORMResolvedActionNode]

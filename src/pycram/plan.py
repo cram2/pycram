@@ -18,6 +18,7 @@ from .failures import PlanFailure
 from .external_interfaces import giskard
 from .ros import loginfo
 
+
 if TYPE_CHECKING:
     from .designator import BaseMotion, ActionDescription
 
@@ -171,6 +172,35 @@ class Plan(nx.DiGraph):
     def actions(self) -> List[ActionNode]:
         return list(filter(None, [node if type(node) is ActionNode else None for node in self.nodes ]))
 
+    def plot(self):
+        import matplotlib.pyplot as plt
+
+        # Create a new figure
+        plt.figure(figsize=(12, 8))
+
+        # Use spring layout for node positioning
+        pos = nx.drawing.bfs_layout(self, start=self.root, align='horizontal')
+
+        # Draw nodes (bodies)
+        nx.draw_networkx_nodes(self, pos,
+                               node_color='lightblue',
+                               node_size=2000)
+
+        # Draw edges (connections)
+        edges = self.edges(data=True)
+        nx.draw_networkx_edges(self, pos,
+                               edge_color='gray',
+                               arrows=True,
+                               arrowsize=20)
+
+        # Add link names as labels
+        labels = {node: str(node) for node in self.nodes()}
+        nx.draw_networkx_labels(self, pos, labels)
+
+        plt.title("World Kinematic Structure")
+        plt.axis('off')  # Hide axes
+        plt.show()
+
 
 def managed_node(func: Callable) -> Callable:
     def wrapper(node: DesignatorNode) -> Any:
@@ -318,7 +348,7 @@ class DesignatorNode(PlanNode):
         return id(self)
 
     def __repr__(self, *args, **kwargs):
-        return f"<{self.designator_ref.performable.__name__}_{id(self) % 100}>"
+        return f"<{self.designator_ref.performable.__name__}>"
 
     def flattened_parameters(self):
         return self.designator_ref.performable.flattened_parameters()
@@ -353,13 +383,15 @@ class ActionNode(DesignatorNode):
         return  resolved_action_node.perform()
 
     def __repr__(self, *args, **kwargs):
-        return f"<{self.designator_ref.performable.__name__}_{id(self) % 100}>"
+        return f"<{self.designator_ref.performable.__name__}>"
 
 @dataclass
 class ResolvedActionNode(DesignatorNode):
     """
     A node representing a resolved ActionDesignator with fully specified parameters
     """
+    designator_ref: ActionDescription = None
+
     def __hash__(self):
         return id(self)
 
@@ -373,7 +405,7 @@ class ResolvedActionNode(DesignatorNode):
         return self.designator_ref.perform()
 
     def __repr__(self, *args, **kwargs):
-        return f"<{self.designator_ref.__class__.__name__}_{id(self) % 100}>"
+        return f"<Resolved {self.designator_ref.__class__.__name__}>"
 
 @dataclass
 class MotionNode(DesignatorNode):
@@ -411,7 +443,7 @@ class MotionNode(DesignatorNode):
         return self.designator_ref.perform()
 
     def __repr__(self, *args, **kwargs):
-        return f"<{self.designator_ref.__class__.__name__}_{id(self) % 100}>"
+        return f"<{self.designator_ref.__class__.__name__}>"
 
 
 

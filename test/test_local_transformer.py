@@ -149,6 +149,11 @@ class TestLocalTransformer(BulletWorldTestCase):
 
         self.robot.pose = PoseStamped.from_list([1, 2, 1], [0, 0, 1, 1])
 
+
+        robot_base_pose = lt.transform_pose(self.robot.pose, self.robot.tf_frame)
+        np.testing.assert_almost_equal(robot_base_pose.position.to_list(), [0,0, 0])
+        np.testing.assert_almost_equal(robot_base_pose.orientation.to_list(), [0,0, 0, 1])
+
         base_pose = lt.transform_pose(tcp_pose, self.robot.tf_frame)
         np.testing.assert_almost_equal([0.951, 0.188, 0.79067], base_pose.position.to_list(), decimal=5)
         self.assertEqual([0, 0, 0, 1], base_pose.orientation.to_list())

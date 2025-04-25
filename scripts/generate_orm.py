@@ -6,12 +6,18 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import registry, Session
 import pycram.datastructures.pose
 import pycram.datastructures.grasp
+import pycram.language
+import pycram.plan
+import pycram.designator
 from ormatic.ormatic import logger, ORMatic
 from pycram.orm.model import self_mapped_classes, DetectAction, TaskTreeNode, explicitly_mapped_classes
-
 """
 List of standard classes that are to be mapped to the database.
 """
+pycram.plan.ResolvedActionNode.__annotations__.update({"designator_ref": pycram.designator.ActionDescription})
+pycram.plan.MotionNode.__annotations__.update({"designator_ref": pycram.designator.BaseMotion})
+
+
 classes = [pycram.datastructures.grasp.GraspDescription,
            pycram.datastructures.pose.Vector3,
            pycram.datastructures.pose.Quaternion,
@@ -20,7 +26,11 @@ classes = [pycram.datastructures.grasp.GraspDescription,
            pycram.datastructures.pose.PoseStamped,
            pycram.datastructures.pose.Transform,
            pycram.datastructures.pose.TransformStamped,
-           pycram.datastructures.pose.GraspPose
+           pycram.datastructures.pose.GraspPose,
+           pycram.designator.ActionDescription,
+           pycram.plan.PlanNode,
+           pycram.language.SequentialNode,
+           pycram.language.ParallelNode,
            ]
 
 

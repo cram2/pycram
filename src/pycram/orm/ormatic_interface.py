@@ -5,7 +5,9 @@ import pycram.datastructures.grasp
 import pycram.datastructures.pose
 import pycram.designator
 import pycram.designators.action_designator
+import pycram.language
 import pycram.orm.model
+import pycram.plan
 
 metadata = MetaData()
 
@@ -26,6 +28,32 @@ t_Header = Table(
     Column('sequence', Integer, nullable=False)
 )
 
+t_ORMActionNode = Table(
+    'ORMActionNode', metadata,
+    Column('id', Integer, primary_key=True)
+)
+
+t_ORMMotionNode = Table(
+    'ORMMotionNode', metadata,
+    Column('id', Integer, primary_key=True)
+)
+
+t_ParallelNode = Table(
+    'ParallelNode', metadata,
+    Column('id', Integer, primary_key=True),
+    Column('status', Enum(pycram.datastructures.enums.TaskStatus), nullable=False),
+    Column('start_time', DateTime),
+    Column('end_time', DateTime)
+)
+
+t_PlanNode = Table(
+    'PlanNode', metadata,
+    Column('id', Integer, primary_key=True),
+    Column('status', Enum(pycram.datastructures.enums.TaskStatus), nullable=False),
+    Column('start_time', DateTime),
+    Column('end_time', DateTime)
+)
+
 t_Quaternion = Table(
     'Quaternion', metadata,
     Column('id', Integer, primary_key=True),
@@ -33,6 +61,14 @@ t_Quaternion = Table(
     Column('y', Float, nullable=False),
     Column('z', Float, nullable=False),
     Column('w', Float, nullable=False)
+)
+
+t_SequentialNode = Table(
+    'SequentialNode', metadata,
+    Column('id', Integer, primary_key=True),
+    Column('status', Enum(pycram.datastructures.enums.TaskStatus), nullable=False),
+    Column('start_time', DateTime),
+    Column('end_time', DateTime)
 )
 
 t_Vector3 = Table(
@@ -151,6 +187,12 @@ t_NavigateAction = Table(
     Column('keep_joint_states', Boolean, nullable=False)
 )
 
+t_ORMResolvedActionNode = Table(
+    'ORMResolvedActionNode', metadata,
+    Column('id', Integer, primary_key=True),
+    Column('designator_ref_id', ForeignKey('ActionDescription.id'))
+)
+
 t_OpenAction = Table(
     'OpenAction', metadata,
     Column('id', ForeignKey('ActionDescription.id'), primary_key=True),
@@ -240,12 +282,24 @@ m_Header = mapper_registry.map_imperatively(pycram.datastructures.pose.Header, t
 m_PoseStamped = mapper_registry.map_imperatively(pycram.datastructures.pose.PoseStamped, t_PoseStamped, properties = dict(pose=relationship("Pose", foreign_keys=[t_PoseStamped.c.pose_id]), 
 header=relationship("Header", foreign_keys=[t_PoseStamped.c.header_id])), polymorphic_on = "polymorphic_type", polymorphic_identity = "PoseStamped")
 
+m_ActionDescription = mapper_registry.map_imperatively(pycram.designator.ActionDescription, t_ActionDescription, properties = dict(robot_position=relationship("PoseStamped", foreign_keys=[t_ActionDescription.c.robot_position_id])), polymorphic_on = "polymorphic_type", polymorphic_identity = "ActionDescription")
+
+m_PlanNode = mapper_registry.map_imperatively(pycram.plan.PlanNode, t_PlanNode, )
+
+m_SequentialNode = mapper_registry.map_imperatively(pycram.language.SequentialNode, t_SequentialNode, )
+
+m_ParallelNode = mapper_registry.map_imperatively(pycram.language.ParallelNode, t_ParallelNode, )
+
 m_TaskTreeNode = mapper_registry.map_imperatively(pycram.orm.model.TaskTreeNode, t_TaskTreeNode, properties = dict(action=relationship("ActionDescription", foreign_keys=[t_TaskTreeNode.c.action_id]), 
 parent=relationship("TaskTreeNode", foreign_keys=[t_TaskTreeNode.c.parent_id], remote_side=[t_TaskTreeNode.c.id])))
 
-m_ActionDescription = mapper_registry.map_imperatively(pycram.designator.ActionDescription, t_ActionDescription, properties = dict(robot_position=relationship("PoseStamped", foreign_keys=[t_ActionDescription.c.robot_position_id])), polymorphic_on = "polymorphic_type", polymorphic_identity = "ActionDescription")
-
 m_FrozenObject = mapper_registry.map_imperatively(pycram.datastructures.dataclasses.FrozenObject, t_FrozenObject, properties = dict(pose=relationship("PoseStamped", foreign_keys=[t_FrozenObject.c.pose_id])))
+
+m_ORMActionNode = mapper_registry.map_imperatively(pycram.plan.ActionNode, t_ORMActionNode, )
+
+m_ORMMotionNode = mapper_registry.map_imperatively(pycram.plan.MotionNode, t_ORMMotionNode, )
+
+m_ORMResolvedActionNode = mapper_registry.map_imperatively(pycram.plan.ResolvedActionNode, t_ORMResolvedActionNode, properties = dict(designator_ref=relationship("ActionDescription", foreign_keys=[t_ORMResolvedActionNode.c.designator_ref_id])))
 
 m_Transform = mapper_registry.map_imperatively(pycram.datastructures.pose.Transform, t_Transform, polymorphic_identity = "Transform", inherits = m_Pose)
 

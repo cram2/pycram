@@ -282,7 +282,6 @@ class SequentialNode(LanguageNode):
 
 @dataclass
 class ParallelNode(LanguageNode):
-    results: dict = field(default_factory=dict)
     """
     Executes all children in parallel by creating a thread per children and executing them in the respective thread. All
     exceptions during execution will be caught, saved to a list and returned upon end.

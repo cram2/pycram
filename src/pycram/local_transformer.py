@@ -6,6 +6,7 @@ import logging
 import numpy as np
 from pytransform3d.transform_manager import TransformManager
 from pytransform3d.transformations import transform_from_pq
+from pytransform3d.rotations import quaternion_from_matrix
 
 from .ros import Time
 
