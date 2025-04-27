@@ -241,7 +241,7 @@ To further test the installation you can run the tests for action designator wit
     cd ~/workspace/ros/src/pycram
     source pycram-venv/bin/activate
     pip install pytest
-    pytest -v test/test_designator/test_action_designator.py
+    python -m pytest -v test/test_designator/test_action_designator.py
 
 
 Step 8. Using PyCRAM
