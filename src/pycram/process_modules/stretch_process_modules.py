@@ -1,4 +1,5 @@
 from .default_process_modules import *
+from ..datastructures.enums import JointType
 from ..datastructures.world import World
 from ..designators.motion_designator import *
 from ..external_interfaces.ik import request_giskard_ik
@@ -37,16 +38,16 @@ class StretchOpen(ProcessModule):
     """
 
     def _execute(self, desig: OpeningMotion):
-        part_of_object = desig.object_part.world_object
+        part_of_object = desig.object_part.parent_entity
 
-        container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
+        container_joint = part_of_object.find_joint_above_link(desig.object_part.name, JointType.PRISMATIC)
 
         goal_pose = link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[1] - 0.05}, desig.object_part.name)
 
         _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.world_object.set_joint_position(container_joint,
+        desig.object_part.parent_entity.set_joint_position(container_joint,
                                                               part_of_object.get_joint_limits(
                                                                   container_joint)[1] - 0.05)
 
@@ -57,24 +58,30 @@ class StretchClose(ProcessModule):
     """
 
     def _execute(self, desig: ClosingMotion):
-        part_of_object = desig.object_part.world_object
+        part_of_object = desig.object_part.parent_entity
 
-        container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
+        container_joint = part_of_object.find_joint_above_link(desig.object_part.name, JointType.PRISMATIC)
 
         goal_pose = link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[0]}, desig.object_part.name)
 
         _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.world_object.set_joint_position(container_joint,
+        desig.object_part.parent_entity.set_joint_position(container_joint,
                                                        part_of_object.get_joint_limits(
                                                            container_joint)[0])
 
 
 def _move_arm_tcp(target: PoseStamped, robot: Object, arm: Arms) -> None:
+    """
+    Moves the arm TCP of stretch, explicitly uses Giskard for ik solution since a whole-body solution is needed
+
+    :param target: Target pose to which the end effector should move
+    :param robot: Robot object that should be moved
+    :param arm: Arm that should be moved
+    """
     gripper = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
 
-    # inv = request_ik(target, robot, joints, gripper)
     pose, joint_states = request_giskard_ik(target, robot, gripper)
     robot.set_pose(pose)
     robot.set_multiple_joint_positions(joint_states)

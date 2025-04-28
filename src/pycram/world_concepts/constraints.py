@@ -69,7 +69,12 @@ class AbstractConstraint:
         return (parent_pose.to_transform_stamped(self.parent_link.tf_frame) * self.parent_to_child_transform).to_pose_stamped()
 
     @property
-    def parent_to_child_transform(self) -> Union[TransformStamped, None]:
+    def parent_to_child_transform(self) -> TransformStamped:
+        """
+        Return the transform from the parent link to the child link of the constraint.
+
+        :return: The transform from the parent link to the child link of the constraint.
+        """
         if self._parent_to_child is None:
             if self.parent_to_constraint is not None and self.child_to_constraint is not None:
                 self._parent_to_child = ~self.parent_to_constraint * self.child_to_constraint

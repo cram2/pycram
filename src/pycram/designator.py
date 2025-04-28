@@ -331,6 +331,7 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator, Iter
                 # yield self.Object(obj.name, obj.obj_type, obj)
                 yield obj
 
+
 @dataclass
 class BaseMotion(ABC):
 
@@ -340,7 +341,6 @@ class BaseMotion(ABC):
         Passes this designator to the process module for execution. Will be overwritten by each motion.
         """
         pass
-        # return ProcessModule.perform(self)
 
     def __post_init__(self):
         """

@@ -6,6 +6,7 @@ ProcessModule -- implementation of process modules.
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 import inspect
+from dataclasses import field
 from datetime import timedelta
 from threading import Lock, get_ident
 import time
@@ -236,7 +237,7 @@ class ProcessModuleManager(ABC):
     """
     Whether the robot for which the process module is intended for is real or a simulated one
     """
-    available_pms: List[ProcessModuleManager] = []
+    available_pms: List[ProcessModuleManager] = field(default_factory=list)
     """
     List of all available Process Module Managers
     """

@@ -7,17 +7,15 @@ import time
 from dataclasses import field, dataclass
 from datetime import datetime
 
-
 import networkx as nx
 
 from typing_extensions import Optional, Callable, Any, Dict, List, Self, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
 from .datastructures.enums import TaskStatus
-from pycrap.ontologies import Action 
+from pycrap.ontologies import Action
 from .failures import PlanFailure
 from .external_interfaces import giskard
 from .ros import loginfo
-
 
 if TYPE_CHECKING:
     from .designator import BaseMotion, ActionDescription
@@ -63,7 +61,7 @@ class Plan(nx.DiGraph):
         for node in node2.children:
             self.add_edge(node1, node)
         self.remove_node(node2)
-        
+
     def add_node(self, node_for_adding: PlanNode, **attr):
         """
         Adds a node to the plan. The node will not be connected to any other node of the plan.
@@ -118,18 +116,6 @@ class Plan(nx.DiGraph):
         """
         self.add_edge(insert_below, insert_node)
 
-    def insert_after(self, node: PlanNode):
-        pass
-
-    def find_node(self, designator) -> str:
-        pass
-
-    def find_plan(self, plan: Plan):
-        plan_root = plan.root
-        for node in self.nodes:
-            if node == plan_root:
-                return node
-
     def perform(self) -> Any:
         """
         Performs the root node of this plan.
@@ -170,7 +156,7 @@ class Plan(nx.DiGraph):
 
     @property
     def actions(self) -> List[ActionNode]:
-        return list(filter(None, [node if type(node) is ActionNode else None for node in self.nodes ]))
+        return list(filter(None, [node if type(node) is ActionNode else None for node in self.nodes]))
 
     def plot(self):
         import matplotlib.pyplot as plt
@@ -203,6 +189,13 @@ class Plan(nx.DiGraph):
 
 
 def managed_node(func: Callable) -> Callable:
+    """
+    Decorator which manages the state of a node, including the start and end time, status and reason of failure as well
+    as the setting of the current node in the plan.
+
+    :param func: Reference to the perform function of the node
+    :return: The wrapped perform function
+    """
     def wrapper(node: DesignatorNode) -> Any:
         node.status = TaskStatus.RUNNING
         node.start_time = datetime.now()
@@ -218,8 +211,8 @@ def managed_node(func: Callable) -> Callable:
         finally:
             node.end_time = datetime.now()
         return result
-    return wrapper
 
+    return wrapper
 
 
 @dataclass
@@ -248,7 +241,6 @@ class PlanNode:
     """
     Reference to the plan to which this node belongs
     """
-
 
     @property
     def parent(self) -> PlanNode:
@@ -327,6 +319,7 @@ class PlanNode:
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
+
 @dataclass
 class DesignatorNode(PlanNode):
     designator_ref: Any = None
@@ -363,6 +356,7 @@ class ActionNode(DesignatorNode):
     """
     Iterator over the current evaluation state of the ActionDesignator Description
     """
+
     def __hash__(self):
         return id(self)
 
@@ -380,10 +374,11 @@ class ActionNode(DesignatorNode):
         resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__, )
         self.plan.add_edge(self, resolved_action_node)
 
-        return  resolved_action_node.perform()
+        return resolved_action_node.perform()
 
     def __repr__(self, *args, **kwargs):
         return f"<{self.designator_ref.performable.__name__}>"
+
 
 @dataclass
 class ResolvedActionNode(DesignatorNode):
@@ -407,6 +402,7 @@ class ResolvedActionNode(DesignatorNode):
     def __repr__(self, *args, **kwargs):
         return f"<Resolved {self.designator_ref.__class__.__name__}>"
 
+
 @dataclass
 class MotionNode(DesignatorNode):
     """
@@ -416,6 +412,7 @@ class MotionNode(DesignatorNode):
     """
     Reference to the MotionDesignator
     """
+
     def __hash__(self):
         return id(self)
 
@@ -423,7 +420,7 @@ class MotionNode(DesignatorNode):
         continue_execution = False
         while not continue_execution:
             all_parents_status = [parent.status for parent in self.all_parents]
-            if not TaskStatus.SLEEPING in all_parents_status:
+            if TaskStatus.SLEEPING not in all_parents_status:
                 continue_execution = True
             time.sleep(0.1)
 
@@ -446,7 +443,6 @@ class MotionNode(DesignatorNode):
         return f"<{self.designator_ref.__class__.__name__}>"
 
 
-
 def with_plan(func: Callable) -> Callable:
     """
     Decorator which wrapps the decorated designator into a node, creates a new plan with the node as root and returns
@@ -455,9 +451,10 @@ def with_plan(func: Callable) -> Callable:
     :param func: The decorator which should be inserted into a plan
     :return: A plan with the designator as root node
     """
+
     def wrapper(*args, **kwargs) -> Plan:
         designator = func(*args, **kwargs)
-        if designator.__class__.__name__ ==  "PartialDesignator":
+        if designator.__class__.__name__ == "PartialDesignator":
             node = ActionNode(designator_ref=designator, action=designator.performable, kwargs=designator.kwargs)
         else:
             kwargs = dict(inspect.signature(func).bind(*args, **kwargs).arguments)
@@ -468,4 +465,3 @@ def with_plan(func: Callable) -> Callable:
         return plan
 
     return wrapper
-

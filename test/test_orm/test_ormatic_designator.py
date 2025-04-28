@@ -47,7 +47,6 @@ class ORMaticBaseTestCaseMixin(BulletWorldTestCase):
     def tearDown(self):
         super().tearDown()
         self.mapper_registry.metadata.drop_all(self.session.bind)
-        # clear_mappers()
         self.session.close()
 
 
@@ -161,7 +160,6 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         result = self.session.scalars(select(ORMResolvedActionNode).where(ORMResolvedActionNode.designator_ref.isnot(None))).all()
         print(result)
         self.assertEqual(type(result[0].action), NavigateAction)
-        # self.assertEqual(result[1].action.dtype, MoveMotion.__name__)
 
     def test_parkArmsAction(self):
         action = ParkArmsActionDescription(Arms.BOTH)
@@ -317,7 +315,6 @@ class BelieveObjectTestCase(unittest.TestCase):
         self.mapper_registry.metadata.drop_all(self.session.bind)
         # clear_mappers()
         self.session.close()
-        task_tree.reset_tree()
         self.world.reset_world()
 
     @classmethod

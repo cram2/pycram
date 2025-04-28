@@ -44,7 +44,6 @@ class TestLocalTransformer(BulletWorldTestCase):
         l.update_transforms([TransformStamped.from_list([1, 0, 0], [0, 0, 1, 1], "map", "test_frame")])
         test_pose = PoseStamped.from_list([1, 0, 0], [0, 0, 0, 1], frame="test_frame")
         transformed_pose = l.transform_pose(test_pose, "map")
-        # self.assertEqual([1,1,0], transformed_pose.position.to_list())
         for expect, actual in zip([1,1,0], transformed_pose.position.to_list()):
             self.assertAlmostEqual(expect, actual)
 
@@ -116,7 +115,6 @@ class TestLocalTransformer(BulletWorldTestCase):
         lt = LocalTransformer()
         base_pose = lt.transform_pose(tcp_pose, self.robot.tf_frame)
 
-        # self.assertEqual([0.951, 0.188, 0.7906], base_pose.position.to_list())
         np.testing.assert_almost_equal([0.951, 0.188, 0.79067], base_pose.position.to_list(), decimal=5)
         self.assertEqual([0, 0, 0, 1], base_pose.orientation.to_list())
         self.assertEqual(self.robot.tf_frame, base_pose.header.frame_id)
@@ -126,7 +124,6 @@ class TestLocalTransformer(BulletWorldTestCase):
         lt = LocalTransformer()
         base_pose = lt.transform_pose(tcp_pose,  self.robot.tf_frame)
 
-        # self.assertEqual([0.951, 0.188, 0.7906], base_pose.position.to_list())
         np.testing.assert_almost_equal([0.951, 0.188, 0.79067], base_pose.position.to_list(), decimal=5)
         self.assertEqual([0, 0, 0, 1], base_pose.orientation.to_list())
         self.assertEqual(self.robot.tf_frame, base_pose.header.frame_id)
@@ -142,13 +139,11 @@ class TestLocalTransformer(BulletWorldTestCase):
         lt = LocalTransformer()
         base_pose = lt.transform_pose(tcp_pose, self.robot.tf_frame)
 
-        # self.assertEqual([0.951, 0.188, 0.7906], base_pose.position.to_list())
         np.testing.assert_almost_equal([0.951, 0.188, 0.79067], base_pose.position.to_list(), decimal=5)
         self.assertEqual([0, 0, 0, 1], base_pose.orientation.to_list())
         self.assertEqual(self.robot.tf_frame, base_pose.header.frame_id)
 
         self.robot.pose = PoseStamped.from_list([1, 2, 1], [0, 0, 1, 1])
-
 
         robot_base_pose = lt.transform_pose(self.robot.pose, self.robot.tf_frame)
         np.testing.assert_almost_equal(robot_base_pose.position.to_list(), [0,0, 0])
