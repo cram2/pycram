@@ -213,6 +213,13 @@ class DefaultClose(ProcessModule):
 
 
 def _move_arm_tcp(target: PoseStamped, robot: Object, arm: Arms) -> None:
+    """
+    Calls the ik solver to calculate the inverse kinematics of the arm and then sets the joint states accordingly.
+
+    :param target: Target pose to which the end-effector should move.
+    :param robot: Robot object representing the robot.
+    :param arm: Which arm to move
+    """
     gripper = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
 
     joints = RobotDescription.current_robot_description.get_arm_chain(arm).joints

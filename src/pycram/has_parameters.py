@@ -37,6 +37,11 @@ class HasParametersMeta(type):
 
     @classmethod
     def create_parameters(cls, target_class):
+        """
+        Creates the flattened parameters for the given class.
+
+        :param target_class: Class for which to create the parameters.
+        """
         if not issubclass(target_class, HasParameters):
             raise TypeError(
                 f"{target_class.__name__} must inherit from HasParameters. If you are using a dataclass use both the decorator has_parameters and inherit from HasParameters.")
@@ -162,9 +167,11 @@ class HasParameters(metaclass=HasParametersMeta):
         """
         raise NotImplementedError
 
+
 T = typing_extensions.TypeVar("T")
 
-def has_parameters(target_class: T) -> T :
+
+def has_parameters(target_class: T) -> T:
     """
     Insert parameters of a class post construction.
     Use this when dataclasses should be combined with HasParameters.

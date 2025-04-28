@@ -12,12 +12,19 @@ import pycram.designator
 from ormatic.ormatic import logger, ORMatic
 from pycram.orm.model import self_mapped_classes, explicitly_mapped_classes, type_mappings
 
+# ----------------------------------------------------------------------------------------------------------------------
+# This script generates the ORM classes for the pycram package. Dataclasses can be mapped automatically to the ORM model
+# using the ORMatic library, they just have to be registered in the classes list.
+# Classes that are self_mapped and explicitly_mapped are already mapped in the model.py file. Look there for more
+# information on how to map them.
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 """
 List of standard classes that are to be mapped to the database.
 """
 pycram.plan.ResolvedActionNode.__annotations__.update({"designator_ref": pycram.designator.ActionDescription})
 pycram.plan.MotionNode.__annotations__.update({"designator_ref": pycram.designator.BaseMotion})
-
 
 classes = [pycram.datastructures.grasp.GraspDescription,
            pycram.datastructures.pose.Vector3,
@@ -65,6 +72,7 @@ def generate_orm():
     path = os.path.abspath(os.path.join(os.getcwd(), '../src/pycram/orm/'))
     with open(os.path.join(path, 'ormatic_interface.py'), 'w') as f:
         ormatic.to_python_file(generator, f)
+
 
 if __name__ == '__main__':
     generate_orm()

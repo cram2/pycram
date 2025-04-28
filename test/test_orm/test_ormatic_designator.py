@@ -48,7 +48,6 @@ class ORMaticBaseTestCaseMixin(BulletWorldTestCase):
     def tearDown(self):
         super().tearDown()
         self.mapper_registry.metadata.drop_all(self.session.bind)
-        # clear_mappers()
         self.session.close()
 
 
@@ -371,7 +370,6 @@ class BelieveObjectTestCase(unittest.TestCase):
         self.mapper_registry.metadata.drop_all(self.session.bind)
         # clear_mappers()
         self.session.close()
-        task_tree.reset_tree()
         self.world.reset_world()
 
     @classmethod

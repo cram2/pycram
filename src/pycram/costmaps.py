@@ -101,9 +101,6 @@ class Costmap:
 
         # working on a copy of the costmap, since found rectangles are deleted
         map = np.copy(self.map)
-        curr_width = 0
-        curr_height = 0
-        curr_pose = []
         boxes = []
         # Finding all rectangles in the costmap
         for i in range(0, map.shape[0]):
@@ -129,10 +126,7 @@ class Costmap:
         for cell_parts in self._chunks(cells, 127):
             offset = [[-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05], [0, 0, 0, 1]]
             origin_transform = TransformStamped.from_list(self.origin.position.to_list(), self.origin.orientation.to_list())
-            #                    .get_homogeneous_matrix())
             offset_transform = TransformStamped.from_list(offset[0], offset[1])
-            #offset_transform = (TransformStamped.from_list(offset[0], offset[1]).get_homogeneous_matrix())
-            #new_pose_transform = np.dot(origin_transform, offset_transform)
             new_pose_transform = origin_transform * offset_transform
             new_pose = PoseStamped.from_list(new_pose_transform.translation.to_list(), new_pose_transform.rotation.to_list())
             map_obj = self.world.create_multi_body_from_visual_shapes(cell_parts, new_pose)

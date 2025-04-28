@@ -65,7 +65,12 @@ class LinkDescription(AbstractLinkDescription):
         return None
 
     @property
-    def origin(self) -> Union[PoseStamped, None]:
+    def origin(self) -> Optional[PoseStamped]:
+        """
+        The origin of this link
+
+        :return: The origin of this link as a PoseStamped object.
+        """
         if self.collision is None:
             return None
         coll = self.collision[0] if isinstance(self.collision, List) else self.collision
@@ -379,6 +384,15 @@ class ObjectDescription(AbstractObjectDescription):
         self.write_description_to_file(content, save_path)
 
     def generate_from_description_file(self, path: str, save_path: str, make_mesh_paths_absolute: bool = True) -> None:
+        """
+        Generates a loadable URDF file from the given URDF file. The method will fix the attributes of some links,
+        replace relative paths with absolute paths and fix the missing inertial tags. The generated URDF file will be
+        saved to the given save_path.
+
+        :param path: Path to the URDF file which should be processed.
+        :param save_path: Path to where to save the processed URDF file.
+        :param make_mesh_paths_absolute: If mesh paths should be made absolute. This is needed for PyBullet to load the URDF file.
+        """
         with open(path, mode="r") as f:
             urdf_string = self.fix_missing_inertial(f.read())
         urdf_string = self.remove_error_tags(urdf_string)

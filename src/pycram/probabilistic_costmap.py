@@ -12,7 +12,7 @@ from .datastructures.world import World
 from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
 import matplotlib.colorbar
 from .datastructures.pose import PoseStamped
-from .ros import  create_publisher
+from .ros import create_publisher, Duration
 from .units import meter
 
 from pint import Quantity
@@ -132,7 +132,7 @@ class ProbabilisticCostmap:
         position = [x, y, self.origin.position.z]
         angle = np.arctan2(position[1] - self.origin.position.y, position[0] - self.origin.position.x) + np.pi
         orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
-        return PoseStamped(position, orientation, self.origin.frame_id)
+        return PoseStamped.from_list(position, orientation, self.origin.frame_id)
 
     def visualize(self):
         """
@@ -149,7 +149,7 @@ class ProbabilisticCostmap:
         marker.action = Marker.ADD
         marker.header.frame_id = self.origin.frame_id
         marker.pose = PoseStamped().pose
-        # marker.lifetime = Duration(60)
+        marker.lifetime = Duration(60)
         marker.scale.x = 0.05
         marker.scale.y = 0.05
 

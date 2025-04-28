@@ -12,13 +12,12 @@ from ..datastructures.dataclasses import FrozenObject as FrozenObjectIm
 from ..datastructures.enums import Arms, DetectionTechnique, DetectionState, Grasp, TaskStatus
 from ..datastructures.grasp import GraspDescription
 from ..datastructures.pose import Pose, PoseStamped, Vector3
-from ..designators.action_designator import MoveTorsoAction, SetGripperAction, ReleaseAction as ReleaseActionDesignator,\
-    GripAction as GripActionDesignator, ParkArmsAction , PickUpAction as PickUpActionDesignator, \
+from ..designators.action_designator import MoveTorsoAction, SetGripperAction, ReleaseAction as ReleaseActionDesignator, \
+    GripAction as GripActionDesignator, ParkArmsAction, PickUpAction as PickUpActionDesignator, \
     PlaceAction as PlaceActionDesignator, NavigateAction, TransportAction as TransportActionDesignator, LookAtAction, \
     DetectAction as DetectActionDesignator, OpenAction, CloseAction, GraspingAction as GraspingActionDesignator, \
     FaceAtAction, ActionDescription, ReachToPickUpAction as ReachToPickUpActionDesignator
 from pycram.plan import ActionNode, MotionNode, ResolvedActionNode
-
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -38,6 +37,7 @@ class TaskTreeNode:
     action: Optional[ActionDescription] = None
     parent: Optional["TaskTreeNode"] = None
 
+
 @dataclass
 class ORMActionNode(ORMaticExplicitMapping):
 
@@ -56,7 +56,6 @@ class ORMMotionNode(ORMaticExplicitMapping):
 
 @dataclass
 class ORMResolvedActionNode(ORMaticExplicitMapping):
-
     designator_ref: ActionDescription
 
     @classproperty
@@ -191,4 +190,5 @@ self_mapped_classes = [TaskTreeNode, ActionDescription, MoveTorsoAction, SetGrip
 
 # List of all classes that are explicitly mapped above. ADD NEW DESIGNATORS HERE!
 explicitly_mapped_classes = [DetectAction, GraspingAction, ReleaseAction, GripAction, FrozenObject,
-                             ReachToPickUpAction, PickUpAction, PlaceAction, TransportAction, ORMActionNode, ORMMotionNode, ORMResolvedActionNode]
+                             ReachToPickUpAction, PickUpAction, PlaceAction, TransportAction, ORMActionNode,
+                             ORMMotionNode, ORMResolvedActionNode]

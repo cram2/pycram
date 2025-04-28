@@ -137,7 +137,6 @@ class RetryMonitor(FailureHandling):
         """
 
         def reset_interrupted(child):
-            # child.interrupted = False
             child.status = TaskStatus.CREATED
             try:
                 for sub_child in child.children:
@@ -160,7 +159,6 @@ class RetryMonitor(FailureHandling):
         with self.lock:
             tries = 0
             while True:
-                # self.plan.kill_event.clear()
                 self.plan.interrupted = False
                 for child in self.plan.root.children:
                     reset_interrupted(child)
