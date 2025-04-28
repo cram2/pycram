@@ -16,24 +16,26 @@ jupyter:
 
 The PyCRAM plan language is a way to structure the execution of your plan. In generally the plan language allows to
 execute designators either sequential or in parallel. Furthermore, exceptions that occur during execution of a plan with
-the plan language do not interrupt the execution instead they are caught and saved to a dictionary for later analysis.
-All language expressions return a State, this can either be SUCCEDED or FAILED.
+the plan language do not interrupt the execution instead they are caught and handed to the failure handling module.
+The language create a tree structure of the plan where the language expressions one kine of nodes among designators
+these nodes store additional information about the execution of the plan including the exceptions that occurred and the 
+status of execution.
 
 There are 4 language expressions:
 
-| Expression | Name             | Description                                                                                                                                                                                                                                                                                | 
-|------------|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| +          | **Sequential**   | Executes the designators one after another, if one of the designators raises an exception the execution is aborted and the state FAILED will be returned.                                                                                                                                  |
-| -          | **Try In Order** | Executes the designators one after another, if one designator raises an exception the exception is caught and saved but the execution is not interrupted and the other designators are executed. Returns the state SUCCEDED if at least one designator can be executed without exception. |
-| *          | **Repeat**       | Repeat the previous language expression a number of time. Has to be used with a language expression and an integer.                                                                                                                                                                        | 
-| \|         | **Parallel**     | Executes all designators in parallel. For each designator there will be a new thread created and the designator is executed in this thread. If one of the designators raises an exception the returned state will be FAILED.                                                               |
-| ^          | **Try All**      | Executes all designators in parallel with a designated thread for each designator. Returns the state SUCCEDED if at least one designator can be executed without an exception                                                                                                              |
-| >>         | **Monitor**      | Monitors the execution of the attached langauge expression, will interrupt the execution as soon as a given condition is fulfilled.                                                                                                                                                        | 
+| Name             | Description                                                                                                                                                                                                                                                                                | 
+|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Sequential**   | Executes the designators one after another, if one of the designators raises an exception the execution is aborted and the state FAILED will be returned.                                                                                                                                  |
+| **Try In Order** | Executes the designators one after another, if one designator raises an exception the exception is caught and saved but the execution is not interrupted and the other designators are executed. Returns the state SUCCEDED if at least one designator can be executed without exception. |
+| **Repeat**       | Repeat the previous language expression a number of time. Has to be used with a language expression and an integer.                                                                                                                                                                        | 
+| **Parallel**     | Executes all designators in parallel. For each designator there will be a new thread created and the designator is executed in this thread. If one of the designators raises an exception the returned state will be FAILED.                                                               |
+| **Try All**      | Executes all designators in parallel with a designated thread for each designator. Returns the state SUCCEDED if at least one designator can be executed without an exception                                                                                                              |
+| **Monitor**      | Monitors the execution of the attached langauge expression, will interrupt the execution as soon as a given condition is fulfilled.                                                                                                                                                        | 
 
-The Sequential expression is the only one which aborts the execution once an error is raised.
+The Sequential plan is the only one which aborts the execution once an error is raised.
 
 When using the plan language a tree structure of the plan is created where the language expressions are nodes and
-designators are leafs. This tree uses AnyTree (like the task tree) and can be rendered with the anytree Renderer.
+designators are leafs. 
 
 ## Sequential
 
@@ -43,24 +45,21 @@ the execution will be aborted and the state FAILED will be returned.
 We will start with a simple example that uses an action designator for moving the robot and parking its arms.
 
 ```python
-import time
-
 from pycram.designators.action_designator import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
+from pycram.language import SequentialPlan
 
-navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
+navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = navigate + park
+plan = SequentialPlan(navigate, park)
 ```
 
 With this simple plan created we can inspect it and render the created tree structure.
 
 ```python
-from anytree import RenderTree
-
-print(RenderTree(plan))
+plan.plot()
 ```
 
 As you can see there is the root node which is the language expression and then there are the leafs which are the
@@ -75,7 +74,6 @@ If you are performing a plan with a simulated robot, you need a BulletWorld.
 ```python
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
-from pycram.datastructures.enums import ObjectType
 from pycrap.ontologies import Robot
 
 world = BulletWorld()
@@ -104,13 +102,14 @@ from pycram.designators.action_designator import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
+from pycram.language import TryAllPLan
 
 world.reset_world()
 
-navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
+navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = navigate - park
+plan = TryAllPLan(navigate, park)
 
 with simulated_robot:
     plan.perform()
@@ -125,7 +124,7 @@ in any other case FAILED will be returned.
 
 Since executing designators in parallel can get chaotic especially with complex actions like PickUp or Transport. For
 this reason not all action designators can be used in parallel and try all expressions. The list of action designator
-that cannot be used in language expressions can be seen in {attr}`~pycram.language.Language.parallel_blocklist`.
+that cannot be used in language expressions can be seen in {attr}`~pycram.language.ParallelPlan.parallel_blocklist`.
 
 Designators that cannot be used in parallel and try all:
 
@@ -142,13 +141,14 @@ from pycram.designators.action_designator import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
+from pycram.language import ParallelPlan
 
 world.reset_world()
 
-navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
+navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = navigate | park
+plan = ParallelPlan(navigate, park)
 
 with simulated_robot:
     plan.perform()
@@ -166,13 +166,14 @@ from pycram.designators.action_designator import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
+from pycram.language import TryAllPLan
 
 world.reset_world()
 
-navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
+navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = navigate ^ park
+plan = TryAllPLan(navigate, park)
 
 with simulated_robot:
     plan.perform()
@@ -184,7 +185,7 @@ You can also combine different language expressions to further structure your pl
 parallel expression please keep in mind that sequential expressions bind stronger than parallel ones. For example:
 
 ```
-navigate | park + move_torso
+ParallelPlan(navigate, SequentialPlan(park, move_torso))
 ```
 
 In this case 'park' and 'move_torso' would form a Sequential expression and 'naviagte' would form a Parallel expression
@@ -195,6 +196,7 @@ from pycram.designators.action_designator import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
+from pycram.language import SequentialPlan, ParallelPlan
 
 world.reset_world()
 
@@ -202,7 +204,7 @@ navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
 park = ParkArmsActionDescription([Arms.BOTH])
 move_torso = MoveTorsoActionDescription([TorsoState.HIGH])
 
-plan = navigate | park + move_torso
+plan = ParallelPlan(navigate, SequentialPlan(park, move_torso))
 
 with simulated_robot:
     plan.perform()
@@ -216,11 +218,14 @@ which takes a callable and the arguments for this callable. This allows you to e
 The callable that is used in the {class}`~pycram.language.Code` object can either be a lambda expression or, for more complex code, a
 function. If you use a function you can provide parameters as keyword-arguments.
 
+Although this expression is more intended for debugging and testing purposes since the code can not really interact with 
+other parts of the plan.
+
 ```python
 from pycram.designators.action_designator import *
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
-from pycram.language import Code
+from pycram.language import CodePlan, ParallelPlan
 
 
 def code_test(param):
@@ -229,10 +234,10 @@ def code_test(param):
 
 
 park = ParkArmsActionDescription([Arms.BOTH])
-code = Code(lambda: print("This is from the code object"))
-code_func = Code(code_test, {"param": "Code function"})
+code = CodePlan(lambda: print("This is from the code object"))
+code_func = CodePlan(code_test, {"param": "Code function"})
 
-plan = park | code | code_func
+plan = ParallelPlan(park, code, code_func)
 
 with simulated_robot:
     plan.perform()
@@ -254,7 +259,7 @@ We will see how exceptions are handled at a simple example.
 ```python
 from pycram.designators.action_designator import *
 from pycram.process_module import simulated_robot
-from pycram.language import Code
+from pycram.language import CodePlan, ParallelPlan
 from pycram.failures import PlanFailure
 
 
@@ -263,14 +268,14 @@ def code_test():
 
 
 navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
-code_func = Code(code_test)
+code_func = CodePlan(code_test)
 
-plan = navigate | code_func
+plan = ParallelPlan(navigate, code_func)
 
 with simulated_robot:
     plan.perform()
 
-print(plan.exceptions)
+print(plan.root.reason)
 ```
 
 ## Repeat
@@ -287,11 +292,12 @@ You can see an example of how to use Repeat below.
 from pycram.designators.action_designator import *
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import TorsoState
+from pycram.language import SequentialPlan, RepeatPlan
 
 move_torso_up = MoveTorsoActionDescription([TorsoState.HIGH])
 move_torso_down = MoveTorsoActionDescription([TorsoState.LOW])
 
-plan = (move_torso_up + move_torso_down) * 5
+plan = RepeatPlan(5, SequentialPlan(move_torso_up, move_torso_down))
 
 with simulated_robot:
     plan.perform()
@@ -302,7 +308,8 @@ with simulated_robot:
 Monitor allows to monitor the execution of a language expression and interrupt it as soon as a given condition is
 fulfilled. The condition can either be a Callable which returns a boolean or a Fluent.
 When executed the Monitor will create a separate thread which will check if the condition is satisfied with a frequency
-of 10 Hz. If the condition is satisfied the execution of the language expression will be interrupted.
+of 10 Hz. If the condition is satisfied the execution of the monitored plan will be interrupted and the state
+of the node will be set to INTERUPTED.
 
 For the example on how Monitors work we will use the previous example with the robot moving up and down. We will use a
 Monitor to interrupt the execution after 2 seconds instead of executing the whole plan 5 times.
@@ -310,7 +317,7 @@ Monitor to interrupt the execution after 2 seconds instead of executing the whol
 ```python
 from pycram.designators.action_designator import *
 from pycram.process_module import simulated_robot
-from pycram.language import Monitor
+from pycram.language import MonitorPlan, RepeatPlan, SequentialPlan
 import time
 from pycram.datastructures.enums import TorsoState
 
@@ -323,7 +330,7 @@ def monitor_func():
     return True
 
 
-plan = (move_torso_up + move_torso_down) * 5 >> Monitor(monitor_func)
+plan = MonitorPlan(monitor_func, RepeatPlan(5, SequentialPlan(move_torso_up, move_torso_down)))
 
 with simulated_robot:
     plan.perform()

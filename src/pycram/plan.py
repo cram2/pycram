@@ -159,6 +159,10 @@ class Plan(nx.DiGraph):
         return list(filter(None, [node if type(node) is ActionNode else None for node in self.nodes]))
 
     def plot(self):
+        """
+        Plots the plan using matplotlib and networkx. The plan is plotted as a tree with the root node at the bottom and
+        the children nodes above.
+        """
         import matplotlib.pyplot as plt
 
         # Create a new figure

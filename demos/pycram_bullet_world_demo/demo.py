@@ -1,3 +1,4 @@
+from pycram.language import SequentialPlan, ParallelPlan, CodePlan
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
@@ -46,90 +47,97 @@ def move_and_detect(obj_type):
     object_desig = DetectActionDescription(technique=DetectionTechnique.TYPES,
                                            object_designator_description=BelieveObject(
                                                types=[obj_type])).resolve().perform()
+
     return object_desig[0]
 
 
 with simulated_robot:
-    ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
+    SequentialPlan(
 
-    MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
+        ParallelPlan(
+            ParkArmsActionDescription([Arms.BOTH]),
 
-    loginfo("Handling milk")
+            MoveTorsoActionDescription([TorsoState.HIGH])),
 
-    milk_desig = move_and_detect(Milk)
+        CodePlan(loginfo("Handling milk")),
 
-    TransportActionDescription(milk_desig, [PoseStamped.from_list([4.8, 3.55, 0.8])], [Arms.LEFT]).resolve().perform()
+        TransportActionDescription(move_and_detect(Milk), [PoseStamped.from_list([4.8, 3.55, 0.8])], [Arms.LEFT]),
 
-    loginfo("Handling cereal")
+        CodePlan(loginfo("Handling cereal")),
 
-    cereal_desig = move_and_detect(Cereal)
+        TransportActionDescription(move_and_detect(Cereal), [PoseStamped.from_list([5.2, 3.4, 0.8], [0, 0, 1, 1])],
+                                   [Arms.RIGHT]),
 
-    TransportActionDescription(cereal_desig, [PoseStamped.from_list([5.2, 3.4, 0.8], [0, 0, 1, 1])], [Arms.RIGHT]).resolve().perform()
+        CodePlan(loginfo("Handling bowl")),
 
-    loginfo("Handling bowl")
+        TransportActionDescription(move_and_detect(Bowl), [PoseStamped.from_list([5, 3.3, 0.8], [0, 0, 1, 1])],
+                                   [Arms.LEFT]),
 
-    bowl_desig = move_and_detect(Bowl)
+        CodePlan(loginfo("Opening drawer to get spoon")),
 
-    TransportActionDescription(bowl_desig, [PoseStamped.from_list([5, 3.3, 0.8], [0, 0, 1, 1])], [Arms.LEFT]).resolve().perform()
+        MoveTorsoActionDescription([TorsoState.HIGH]),
+        # Finding and navigating to the drawer holding the spoon
 
-    loginfo("Opening drawer to get spoon")
+        NavigateActionDescription(
+            AccessingLocation(handle=ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig),
+                              robot_desig=robot_desig,
+                              arm=Arms.RIGHT)),
 
-    MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
-    # Finding and navigating to the drawer holding the spoon
-    handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig)
-    drawer_open_loc = AccessingLocation(handle=handle_desig,
-                                        robot_desig=robot_desig,
-                                        arm=Arms.RIGHT).resolve()
+        OpenActionDescription(
+            object_designator_description=ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig),
+            arm=Arms.RIGHT),
+        CodePlan(spoon.detach(apartment)),
 
-    NavigateActionDescription(drawer_open_loc).resolve().perform()
+        ParkArmsActionDescription(Arms.BOTH),
+        # Detect and pickup the spoon
+        LookAtActionDescription([apartment.get_link_pose("handle_cab10_t")]),
 
-    OpenActionDescription(object_designator_description=handle_desig, arm=Arms.RIGHT).resolve().perform()
-    spoon.detach(apartment)
-    ParkArmsActionDescription(Arms.BOTH).resolve().perform()
-    # Detect and pickup the spoon
-    LookAtActionDescription([apartment.get_link_pose("handle_cab10_t")]).resolve().perform()
+        CodePlan(loginfo("Detecting and picking up spoon")),
 
-    loginfo("Detecting and picking up spoon")
+        ParkArmsActionDescription([Arms.BOTH]),
+        NavigateActionDescription(CostmapLocation(DetectActionDescription(technique=DetectionTechnique.TYPES,
+                                                                          object_designator_description=BelieveObject(
+                                                                              types=[Spoon]))[0],
+                                                  reachable_for=robot_desig.resolve(),
+                                                  reachable_arm=Arms.LEFT,
+                                                  grasp_descriptions=GraspDescription(Grasp.FRONT, Grasp.TOP, False))),
 
-    spoon_desigs = DetectActionDescription(technique=DetectionTechnique.TYPES,
-                                           object_designator_description=BelieveObject(
-                                               types=[Spoon])).resolve().perform()
-    spoon_desig = spoon_desigs[0]
-    pickup_arm = Arms.LEFT
+        PickUpActionDescription(BelieveObject(types=[Spoon]), [Arms.LEFT],
+                                GraspDescription(Grasp.FRONT, Grasp.TOP, False)),
 
-    ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
-    top_grasp = GraspDescription(Grasp.FRONT, Grasp.TOP, False)
-    NavigateActionDescription(CostmapLocation(spoon_desig,
-                                              reachable_for=robot_desig.resolve(),
-                                              reachable_arm=pickup_arm,
-                                              grasp_descriptions=top_grasp)).resolve().perform()
+        ParallelPlan(
+            ParkArmsActionDescription([Arms.LEFT if Arms.LEFT == Arms.LEFT else Arms.RIGHT]),
 
-    PickUpActionDescription(spoon_desig, [pickup_arm], top_grasp).resolve().perform()
+            NavigateActionDescription(
+                AccessingLocation(handle=ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig),
+                                  robot_desig=robot_desig,
+                                  arm=Arms.RIGHT))),
 
-    ParkArmsActionDescription([Arms.LEFT if pickup_arm == Arms.LEFT else Arms.RIGHT]).resolve().perform()
+        CodePlan(loginfo("Closing drawer")),
 
-    NavigateActionDescription(drawer_open_loc).resolve().perform()
+        CloseActionDescription(
+            object_designator_description=ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig),
+            arm=Arms.RIGHT),
 
-    loginfo("Closing drawer")
+        ParallelPlan(
+            ParkArmsActionDescription(Arms.BOTH),
 
-    CloseActionDescription(object_designator_description=handle_desig, arm=Arms.RIGHT).resolve().perform()
+            MoveTorsoActionDescription(TorsoState.MID)),
+        CodePlan(loginfo("Placing spoon")),
 
-    ParkArmsActionDescription(Arms.BOTH).resolve().perform()
+        # Find a pose to place the spoon, move and then place it
+        ParallelPlan(
+            MoveTorsoActionDescription([TorsoState.HIGH]),
 
-    MoveTorsoActionDescription(TorsoState.MID).resolve().perform()
+            NavigateActionDescription(CostmapLocation(target=PoseStamped.from_list([4.7, 3.25, 0.8], [0, 0, 1, 1]),
+                                                      reachable_for=robot_desig.resolve(),
+                                                      reachable_arm=[Arms.LEFT],
+                                                      object_in_hand=BelieveObject(types=[Spoon])))),
 
-    loginfo("Placing spoon")
+        PlaceActionDescription(BelieveObject(types=[Spoon]), PoseStamped.from_list([4.7, 3.25, 0.8], [0, 0, 1, 1]),
+                               [Arms.LEFT]),
 
-    # Find a pose to place the spoon, move and then place it
-    spoon_target_pose = PoseStamped.from_list([4.7, 3.25, 0.8], [0, 0, 1, 1])
-    MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
-    placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(),
-                                  reachable_arm=[pickup_arm], object_in_hand=spoon_desig).resolve()
+        ParkArmsActionDescription(Arms.BOTH))
 
-    NavigateActionDescription(placing_loc).resolve().perform()
-
-    PlaceActionDescription(spoon_desig, [spoon_target_pose], [pickup_arm]).resolve().perform()
-
-    ParkArmsActionDescription(Arms.BOTH).resolve().perform()
 viz._stop_publishing()
 world.exit()
