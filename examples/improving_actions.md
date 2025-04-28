@@ -1,4 +1,4 @@
-from pycram.language import SequentialPlanfrom pycram.orm.ormatic_interface import mapper_registry---
+---
 jupyter:
   jupytext:
     text_representation:
