@@ -2,9 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Type
 
-from ormatic.ormatic import classproperty, ORMaticExplicitMapping
+from ormatic.ormatic import ORMaticExplicitMapping
+from ormatic.utils import classproperty
 from typing_extensions import Optional
 
+from pycrap.ontologies import PhysicalObject
+from .casts import StringType
 from ..datastructures.dataclasses import FrozenObject as FrozenObjectIm
 from ..datastructures.enums import Arms, DetectionTechnique, DetectionState, Grasp, TaskStatus
 from ..datastructures.grasp import GraspDescription
@@ -41,12 +44,15 @@ class ORMActionNode(ORMaticExplicitMapping):
     @classproperty
     def explicit_mapping(cls) -> Type:
         return ActionNode
+
+
 @dataclass
 class ORMMotionNode(ORMaticExplicitMapping):
 
     @classproperty
     def explicit_mapping(cls) -> Type:
         return MotionNode
+
 
 @dataclass
 class ORMResolvedActionNode(ORMaticExplicitMapping):
@@ -57,10 +63,11 @@ class ORMResolvedActionNode(ORMaticExplicitMapping):
     def explicit_mapping(cls) -> Type:
         return ResolvedActionNode
 
+
 @dataclass
 class FrozenObject(ORMaticExplicitMapping):
     name: str
-    # concept: Optional[PhysicalObject]
+    concept: PhysicalObject
     pose: Optional[PoseStamped]
 
     @classproperty
@@ -171,6 +178,11 @@ class MoveAndPickUpAction(ActionDescription, ORMaticExplicitMapping):
     # @classproperty
     # def explicit_mapping(cls):
     #     return
+
+# specify custom type mappings
+type_mappings ={
+    PhysicalObject: StringType()
+}
 
 
 # List of all classes that are self-mapped. ADD NEW DESIGNATORS HERE!

@@ -10,7 +10,8 @@ import pycram.language
 import pycram.plan
 import pycram.designator
 from ormatic.ormatic import logger, ORMatic
-from pycram.orm.model import self_mapped_classes, DetectAction, TaskTreeNode, explicitly_mapped_classes
+from pycram.orm.model import self_mapped_classes, explicitly_mapped_classes, type_mappings
+
 """
 List of standard classes that are to be mapped to the database.
 """
@@ -50,7 +51,7 @@ def generate_orm():
     session = Session(engine)
 
     # Create an ORMatic object with the classes to be mapped
-    ormatic = ORMatic(classes + self_mapped_classes + explicitly_mapped_classes, mapper_registry)
+    ormatic = ORMatic(classes + self_mapped_classes + explicitly_mapped_classes, mapper_registry, type_mappings)
 
     # Generate the ORM classes
     ormatic.make_all_tables()
