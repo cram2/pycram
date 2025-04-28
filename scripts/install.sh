@@ -1,22 +1,34 @@
 #!/bin/bash
 
+echo "Setting up workspace structure"
+mkdir -p ~/workspace/ros/src
+cd ~/workspace/ros
+cd ~/workspace/ros/src
+
+echo "Source ROS installation"
 source /opt/ros/$ROS_DISTRO/setup.bash
-echo "Cloning pycram and dependencies"
+
 if [ "$ROS_VERSION" = "1" ]; then
+  echo "Installing apt python-venv and xacro"
+  sudo apt install python3.8-venv ros-"${ROS_DISTRO}"-xacro
+  echo "Cloning pycram and dependencies"
   vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram.rosinstall
 else
+  echo "Installing apt python-venv and xacro"
+  sudo apt install python3.12-venv ros-"${ROS_DISTRO}"-xacro
+  echo "Cloning pycram and dependencies"
   vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram-ros2.rosinstall
 fi
 
 echo "Setting up virtual environment"
-python -m venv pycram/pycram-venv --system-site-packages
+python3 -m venv pycram/pycram-venv --system-site-packages
 source pycram/pycram-venv/bin/activate
 echo "Installing python dependencies"
+pip install -U pip
 pip install -U setuptools
 pip install -r pycram/requirements.txt
-echo "Cheking for dependencies of other ros packages"
-rosdep update && rosdep install --from-paths . -i -y
-cd ..
+echo "Checking for dependencies of other ros packages"
+cd ~/workspace/ros
 echo "Building workspace"
 if [ "$ROS_VERSION" = "1" ]; then
     catkin build
@@ -27,16 +39,4 @@ else
     source install/setup.bash
     echo "source ~/workspace/ros/install/setup.bash" >> ~/.bashrc
 fi
-
-printf 'Should IPython startup script be installed? [y/N]: '
-read answer
-
-if [ "$answer" != "${answer#[Yy]}" ] ;then
-    if dpkg -s python3-ipython &>/dev/null; then
-      echo 'Found IPython installation'
-    else
-      echo 'Installing IPython'
-      sudo apt-get install python3-ipython
-    fi
-    cp src/pycram/script/ipython_helper/* ~/.ipython/profile_default/startup/
-fi
+echo "Successfully installed PyCRAM"

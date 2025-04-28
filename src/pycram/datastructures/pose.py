@@ -238,9 +238,9 @@ class Quaternion(HasParameters):
         return cls(*quaternion)
 
     # TODO fix this
-    # def __setattr__(self, key, value):
-    #     object.__setattr__(self, key, value)
-    #     self.normalize()
+    def __setattr__(self, key, value):
+         object.__setattr__(self, key, value)
+         self.normalize()
 
 
 @has_parameters

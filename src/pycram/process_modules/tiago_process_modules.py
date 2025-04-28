@@ -14,7 +14,7 @@ from .default_process_modules import DefaultOpen, DefaultClose, DefaultMoveGripp
     DefaultNavigation, DefaultMoveHead, DefaultDetecting, DefaultMoveArmJoints, DefaultWorldStateDetecting, \
     DefaultDetectingReal
 from ..robot_description import RobotDescription
-from ..ros import  logdebug
+from ..ros import logdebug
 from ..external_interfaces import giskard
 from ..world_concepts.world_object import Object
 from ..external_interfaces.robokudo import send_query
@@ -24,6 +24,7 @@ class TiagoNavigationReal(ProcessModule):
     def _execute(self, designator: MoveMotion):
         logdebug(f"Sending goal to giskard to Move the robot")
         giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
+
 
 class TiagoMoveHeadReal(ProcessModule):
     def _execute(self, designator: MoveMotion):
@@ -50,6 +51,7 @@ class TiagoMoveHeadReal(ProcessModule):
         giskard.achieve_joint_goal({pan_link: new_pan + current_pan,
                                     tilt_link: new_tilt + current_tilt})
 
+
 class TiagoDetectingReal(ProcessModule):
     def _execute(self, designator: DetectingMotion):
         query_result = send_query(ObjectDesignatorDescription(types=[designator.object_type]))
@@ -74,6 +76,7 @@ class TiagoDetectingReal(ProcessModule):
 
         return world_obj[0]
 
+
 class TiagoMoveTCPReal(ProcessModule):
     def _execute(self, designator: MoveTCPMotion):
         lt = LocalTransformer()
@@ -85,42 +88,12 @@ class TiagoMoveTCPReal(ProcessModule):
             designator.arm).get_tool_frame(),
                                        "torso_lift_link")
 
-class TiagoMoveArmJointsReal(ProcessModule):
-    def _execute(self, designator: MoveArmJointsMotion):
-        joint_goals = {}
-        if designator.left_arm_poses:
-            joint_goals.update(designator.left_arm_poses)
-        if designator.right_arm_poses:
-            joint_goals.update(designator.right_arm_poses)
-        giskard.avoid_all_collisions()
-        giskard.achieve_joint_goal(joint_goals)
-
-class TiagoMoveJointsReal(ProcessModule):
-    def _execute(self, designator: MoveJointsMotion):
-        name_to_position = dict(zip(designator.names, designator.positions))
-        giskard.avoid_all_collisions()
-        giskard.achieve_joint_goal(name_to_position)
-
-class TiagoOpenReal(ProcessModule):
-    def _execute(self, designator: OpeningMotion):
-        giskard.achieve_open_container_goal(
-            RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
-            designator.object_part.name)
-
-class TiagoCloseReal(ProcessModule):
-    def _execute(self, designator: ClosingMotion):
-        giskard.achieve_close_container_goal(
-            RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
-            designator.object_part.name)
-
-
 
 class TiagoManager(DefaultManager):
 
     def __init__(self):
         super().__init__()
         self.robot_name = "tiago_dual"
-
 
     def navigate(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
@@ -140,37 +113,13 @@ class TiagoManager(DefaultManager):
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return TiagoMoveTCPReal(self._move_tcp_lock)
 
-    def move_arm_joints(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return DefaultMoveArmJoints(self._move_arm_joints_lock)
-        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return TiagoMoveArmJointsReal(self._move_arm_joints_lock)
-
     def world_state_detecting(self):
         if (ProcessModuleManager.execution_type == ExecutionType.SIMULATED or
                 ProcessModuleManager.execution_type == ExecutionType.REAL):
             return DefaultWorldStateDetecting(self._world_state_detecting_lock)
-
-    def move_joints(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return DefaultMoveJoints(self._move_joints_lock)
-        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return TiagoMoveJointsReal(self._move_joints_lock)
 
     def move_gripper(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return DefaultMoveGripperReal(self._move_gripper_lock)
-
-    def open(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return DefaultOpen(self._open_lock)
-        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return TiagoOpenReal(self._open_lock)
-
-    def close(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
-            return DefaultClose(self._close_lock)
-        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return TiagoCloseReal(self._close_lock)

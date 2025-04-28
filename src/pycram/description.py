@@ -276,7 +276,8 @@ class Link(PhysicalBody, ObjectEntity, LinkDescription, ABC):
         try:
             return self.world.get_body_convex_hull(self)
         except NotImplementedError:
-            if isinstance(self.geometry, MeshVisualShape):
+
+            if len(self.geometry) > 0 and isinstance(self.geometry[0], MeshVisualShape):
                 mesh_paths = self.get_mesh_path(self.geometry)
                 meshes = [trimesh.load_mesh(mesh_path) for mesh_path in mesh_paths]
                 mesh = meshes[0].union(meshes[1:]) if len(meshes) > 1 else meshes[0]

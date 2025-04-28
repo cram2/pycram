@@ -12,7 +12,7 @@ from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, U
 from pycrap.ontologies import PhysicalObject, Room, Location
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
     AxisAlignedBoundingBox, RotatedBoundingBox, RayResult
-from .enums import AdjacentBodyMethod, AxisIdentifier
+from .enums import AdjacentBodyMethod, AxisIdentifier, Arms, Grasp
 from .mixins import HasConcept
 from ..local_transformer import LocalTransformer
 from ..ros import Time, logdebug
@@ -568,3 +568,35 @@ class PhysicalBody(WorldEntity, ABC):
         grasp_configs = objectTmap.calculate_grasp_descriptions(robot, preferred_grasp_alignment)
 
         return grasp_configs
+
+    def get_grasp_pose(self, end_effector, grasp: GraspDescription) -> Pose:
+        """
+        Translates the grasp pose of the object using the desired grasp description and object knowledge.
+        Leaves the orientation untouched.
+        Returns the translated grasp pose.
+
+        :param end_effector: The end effector that will be used to grasp the object.
+        :param grasp: The desired grasp description.
+
+        :return: The grasp pose of the object.
+        """
+        grasp_pose = self.pose.copy()
+
+        if self.ontology_concept.has_preferred_alignment[0].has_rim_grasp[0].value:
+            approach_axis = end_effector.get_approach_axis()
+            approach_direction = grasp.approach_direction
+            rim_direction = GraspDescription(approach_direction, None, False)
+            rim_direction_index = approach_direction.value[0].value.index(1)
+            rim_offset = self.get_rotated_bounding_box().dimensions[rim_direction_index] / 2
+            grasp_pose.rotate_by_quaternion(end_effector.grasps[rim_direction])
+            grasp_pose = LocalTransformer().translate_pose_along_local_axis(grasp_pose, approach_axis, -rim_offset)
+            grasp_pose = Pose(grasp_pose.position_as_list(), self.orientation_as_list)
+
+        return grasp_pose
+
+    def get_approach_offset(self) -> float:
+        """
+        :return: The pre-grasp offset of the object. It is the largest dimension of the object divided by 2.
+        """
+        max_object_dimension = max(self.get_rotated_bounding_box().dimensions)
+        return max_object_dimension / 2

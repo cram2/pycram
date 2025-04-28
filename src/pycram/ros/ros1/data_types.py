@@ -1,5 +1,8 @@
 import rospy
 
+# Here so it can be imported from pycram.ros
+from rospy import ServiceException
+
 def Time(time: int = 0.0, nsecs: int = 0) -> rospy.Time:
     """
     Wrapper for rospy.Time to create a Time object.

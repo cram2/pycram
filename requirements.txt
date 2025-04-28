@@ -10,7 +10,6 @@ SQLAlchemy>=2.0.36, <2.0.38 #orm
 sqlacodegen==3.0.0 #orm
 tqdm==4.66.3
 psutil==5.9.7
-#lxml==4.9.1
 typing_extensions>=4.10.0
 owlready2>=0.45
 # Pillow>=10.3.0
@@ -31,5 +30,6 @@ manifold3d==3.0.1
 transforms3d
 # pyglet==1.5.31
 python-box
+urdf_parser_py
 networkx
 

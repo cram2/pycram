@@ -10,6 +10,8 @@ from pytransform3d.rotations import quaternion_from_matrix
 
 from .ros import Time
 
+from .tf_transformations import quaternion_matrix
+
 if 'world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.world.")
 
@@ -106,6 +108,26 @@ class LocalTransformer(TransformManager):
         world = self.get_world_from_frame(frame)
         found_objects = [obj for obj in world.objects if frame == obj.tf_frame]
         return found_objects[0] if len(found_objects) > 0 else self.get_object_from_link_frame(frame)
+
+    @staticmethod
+    def translate_pose_along_local_axis(pose: PoseStamped, axis: List, distance: float) -> PoseStamped:
+        """
+        Translate a pose along a given 3d vector (axis) by a given distance. The axis is given in the local coordinate
+        frame of the pose. The axis is normalized and then scaled by the distance.
+
+        :param pose: The pose that should be translated
+        :param axis: The local axis along which the translation should be performed
+        :param distance: The distance by which the pose should be translated
+
+        :return: The translated pose
+        """
+        normalized_translation_vector = np.array(axis) / np.linalg.norm(axis)
+
+        rot_matrix = quaternion_matrix(pose.orientation.to_list())[:3, :3]
+        translation_in_world = rot_matrix @ normalized_translation_vector
+        scaled_translation_vector = np.array(pose.position.to_list()) + translation_in_world * distance
+
+        return PoseStamped.from_list(list(scaled_translation_vector), pose.orientation.to_list(), pose.frame_id)
 
     def get_object_from_link_frame(self, link_frame: str) -> Optional[Object]:
         """

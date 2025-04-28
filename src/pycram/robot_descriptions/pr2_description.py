@@ -86,11 +86,13 @@ torso.add_static_joint_states(TorsoState.LOW, {"torso_lift_joint": 0})
 pr2_description.add_kinematic_chain_description(torso)
 
 ################################## Neck ##################################
-pr2_description.add_kinematic_chain("neck", "head_pan_link", "head_tilt_link")
+pr2_description.set_neck(yaw_joint="head_pan_joint", pitch_joint="head_tilt_joint")
 
 ################################# Grasps ##################################
 left_gripper.update_all_grasp_orientations([0, 0, 0, 1])
+left_gripper.set_approach_axis([1, 0, 0])
 right_gripper.update_all_grasp_orientations([0, 0, 0, 1])
+right_gripper.set_approach_axis([1, 0, 0])
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

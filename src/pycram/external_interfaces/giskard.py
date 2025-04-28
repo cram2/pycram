@@ -3,15 +3,15 @@ import threading
 
 import sys
 
-from ..ros import  Time
-from ..ros import  logwarn, loginfo_once
-from ..ros import  get_node_names
+from ..ros import Time
+from ..ros import logwarn, loginfo_once
+from ..ros import get_node_names
 
 from ..datastructures.enums import JointType, ObjectType, Arms
 from ..datastructures.pose import PoseStamped
 from ..datastructures.world import World
 from ..datastructures.dataclasses import MeshVisualShape
-from ..ros import  get_service_proxy
+from ..ros import get_service_proxy
 from ..world_concepts.world_object import Object
 from ..robot_description import RobotDescription
 
@@ -19,7 +19,6 @@ from typing_extensions import List, Dict, Callable, Optional
 from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 from threading import Lock, RLock
 from pycram.ros import logging as log
-
 
 try:
     from giskardpy.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
@@ -544,6 +543,68 @@ def achieve_close_container_goal(tip_link: str, environment_link: str) -> 'MoveR
     giskard_wrapper.set_close_container_goal(tip_link, environment_link)
     # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
+
+
+@init_giskard_interface
+def achieve_cartesian_waypoints_goal(waypoints: List[PoseStamped], tip_link: str,
+                                     root_link: str, enforce_final_orientation: bool = True) -> 'MoveResult':
+    """
+        Tries to achieve each waypoint in the given sequence of waypoints.
+        If :param enforce_final_orientation is False, each waypoint needs a corresponding orientation. If it is True only
+        the last waypoint needs to have an orientation.
+
+        :param waypoints: The sequence of waypoints as poses to achieve.
+        :param tip_link: The endeffector link of the chain that should be used.
+        :param root_link: The root link of the chain that should be used.
+        :param enforce_final_orientation: If true, only achieve the orientation of the last waypoint. If false, achieve the orientation of each waypoint.
+        :return: MoveResult message for this goal
+        """
+    old_position_monitor = None
+    old_orientation_monitor = None
+
+    for i, waypoint in enumerate(waypoints):
+        point = make_point_stamped(waypoint.position_as_list())
+        orientation = make_quaternion_stamped(waypoint.orientation_as_list())
+        start_condition = '' if not old_position_monitor else old_position_monitor
+
+        # -------- Monitor Logic ------------
+        if not enforce_final_orientation or (enforce_final_orientation and i == len(waypoints) - 1):
+            if not enforce_final_orientation:
+                start_condition = '' if not old_orientation_monitor else f'{old_orientation_monitor} and {old_position_monitor}'
+            orientation_monitor = giskard_wrapper.monitors.add_cartesian_orientation(goal_orientation=orientation,
+                                                                     tip_link=tip_link, root_link=root_link,
+                                                                     start_condition=start_condition,
+                                                                     name=str(id(waypoint)) + 'orientation')
+            old_orientation_monitor = orientation_monitor
+
+        # in all cases a position monitor is needed for each waypoint
+        position_monitor = giskard_wrapper.monitors.add_cartesian_position(goal_point=point, tip_link=tip_link,
+                                                            root_link=root_link,
+                                                            start_condition=start_condition, name=str(id(waypoint)),
+                                                            threshold=0.01 + (0.01 * (len(waypoints) - 1 - i)))
+        # -------- Task Logic ---------------
+        task_end_condition = position_monitor
+        if not enforce_final_orientation or (enforce_final_orientation and i == len(waypoints) - 1):
+            task_end_condition = f'{orientation_monitor} and {position_monitor}'
+            giskard_wrapper.motion_goals.add_cartesian_orientation(goal_orientation=orientation,
+                                                                       tip_link=tip_link, root_link=root_link,
+                                                                       end_condition=task_end_condition,
+                                                                       start_condition=start_condition,
+                                                                       name=str(id(waypoint)) + 'orientation')
+
+        # in all cases a position goal is needed for each waypoint
+        giskard_wrapper.motion_goals.add_cartesian_position(goal_point=point, tip_link=tip_link,
+                                                            root_link=root_link,
+                                                            end_condition=task_end_condition, start_condition=start_condition,
+                                                            name=str(id(waypoint)))
+
+
+        old_position_monitor = position_monitor
+
+
+    giskard_wrapper.monitors.add_end_motion(start_condition=f'{old_position_monitor} and {old_orientation_monitor}')
+    giskard_wrapper.monitors.add_max_trajectory_length(30)
+    giskard_wrapper.execute(add_default=False)
 
 
 # Projection Goals

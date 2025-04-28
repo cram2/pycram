@@ -2,11 +2,12 @@ from ..robot_description import RobotDescription, KinematicChainDescription, End
     RobotDescriptionManager, CameraDescription
 from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState, StaticJointState
 from ..ros import get_ros_package_path
+from ..datastructures.dataclasses import VirtualMobileBaseJoints
 
 filename = get_ros_package_path('pycram') + '/resources/robots/' + "Armar6" + '.urdf'
 
 armar_description = RobotDescription("Armar6", "world", "torso", "torso_joint",
-                                      filename)
+                                      filename, virtual_mobile_base_joints=VirtualMobileBaseJoints())
 
 ################################## Left Arm ##################################
 left_arm = KinematicChainDescription("left", "world", "arm_t8_r0",
@@ -130,7 +131,7 @@ armar_description.add_camera_description(camera)
 
 ################################## Neck ##################################
 armar_description.add_kinematic_chain("neck", "lower_neck", "upper_neck")
-# armar_description.set_neck(yaw_joint="neck_1_yaw", pitch_joint="neck_2_pitch")
+armar_description.set_neck(yaw_joint="neck_1_yaw", pitch_joint="neck_2_pitch")
 
 
 ################################# Grasps ##################################

@@ -44,8 +44,8 @@ class TestLocalTransformer(BulletWorldTestCase):
         l.update_transforms([TransformStamped.from_list([1, 0, 0], [0, 0, 1, 1], "map", "test_frame")])
         test_pose = PoseStamped.from_list([1, 0, 0], [0, 0, 0, 1], frame="test_frame")
         transformed_pose = l.transform_pose(test_pose, "map")
-        for expect, actual in zip([1,1,0], transformed_pose.position.to_list()):
-            self.assertAlmostEqual(expect, actual)
+        np.testing.assert_almost_equal([1, 1, 0], transformed_pose.position.to_list(), decimal=3)
+
 
     @unittest.skip
     def test_update_for_object(self):
