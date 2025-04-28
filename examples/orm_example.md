@@ -1,4 +1,3 @@
-from pycram.designators.action_designator import PickUpActionfrom pycram.datastructures.pose import PoseStampedfrom pycram.designator import ActionDescriptionfrom pycram.designators.action_designator import NavigateActionfrom pycram.designators.action_designator import PickUpAction---
 jupyter:
   jupytext:
     text_representation:
