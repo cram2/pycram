@@ -14,6 +14,14 @@ import pycram.plan
 metadata = MetaData()
 
 
+t_CodeNode = Table(
+    'CodeNode', metadata,
+    Column('id', Integer, primary_key=True),
+    Column('status', Enum(pycram.datastructures.enums.TaskStatus), nullable=False),
+    Column('start_time', DateTime),
+    Column('end_time', DateTime)
+)
+
 t_GraspDescription = Table(
     'GraspDescription', metadata,
     Column('id', Integer, primary_key=True),
@@ -45,7 +53,8 @@ t_ParallelNode = Table(
     Column('id', Integer, primary_key=True),
     Column('status', Enum(pycram.datastructures.enums.TaskStatus), nullable=False),
     Column('start_time', DateTime),
-    Column('end_time', DateTime)
+    Column('end_time', DateTime),
+    Column('polymorphic_type', String)
 )
 
 t_PlanNode = Table(
@@ -70,7 +79,8 @@ t_SequentialNode = Table(
     Column('id', Integer, primary_key=True),
     Column('status', Enum(pycram.datastructures.enums.TaskStatus), nullable=False),
     Column('start_time', DateTime),
-    Column('end_time', DateTime)
+    Column('end_time', DateTime),
+    Column('polymorphic_type', String)
 )
 
 t_Vector3 = Table(
@@ -81,12 +91,33 @@ t_Vector3 = Table(
     Column('z', Float, nullable=False)
 )
 
+t_MonitorNode = Table(
+    'MonitorNode', metadata,
+    Column('id', ForeignKey('SequentialNode.id'), primary_key=True)
+)
+
 t_Pose = Table(
     'Pose', metadata,
     Column('id', Integer, primary_key=True),
     Column('position_id', ForeignKey('Vector3.id')),
     Column('orientation_id', ForeignKey('Quaternion.id')),
     Column('polymorphic_type', String)
+)
+
+t_RepeatNode = Table(
+    'RepeatNode', metadata,
+    Column('id', ForeignKey('SequentialNode.id'), primary_key=True),
+    Column('repeat', Integer, nullable=False)
+)
+
+t_TryAllNode = Table(
+    'TryAllNode', metadata,
+    Column('id', ForeignKey('ParallelNode.id'), primary_key=True)
+)
+
+t_TryInOrderNode = Table(
+    'TryInOrderNode', metadata,
+    Column('id', ForeignKey('SequentialNode.id'), primary_key=True)
 )
 
 t_PoseStamped = Table(
@@ -159,7 +190,6 @@ t_GraspingAction = Table(
     'GraspingAction', metadata,
     Column('id', ForeignKey('ActionDescription.id'), primary_key=True),
     Column('arm', Enum(pycram.datastructures.enums.Arms), nullable=False),
-    Column('prepose_distance', Float, nullable=False),
     Column('object_at_execution_id', ForeignKey('FrozenObject.id'))
 )
 
@@ -213,8 +243,6 @@ t_PickUpAction = Table(
     'PickUpAction', metadata,
     Column('id', ForeignKey('ActionDescription.id'), primary_key=True),
     Column('arm', Enum(pycram.datastructures.enums.Arms), nullable=False),
-    Column('prepose_distance', Float, nullable=False),
-    Column('grasp_description_id', ForeignKey('GraspDescription.id')),
     Column('object_at_execution_id', ForeignKey('FrozenObject.id'))
 )
 
@@ -230,7 +258,6 @@ t_ReachToPickUpAction = Table(
     'ReachToPickUpAction', metadata,
     Column('id', ForeignKey('ActionDescription.id'), primary_key=True),
     Column('arm', Enum(pycram.datastructures.enums.Arms), nullable=False),
-    Column('prepose_distance', Float, nullable=False),
     Column('grasp_description_id', ForeignKey('GraspDescription.id')),
     Column('object_at_execution_id', ForeignKey('FrozenObject.id'))
 )
@@ -265,7 +292,6 @@ t_TransportAction = Table(
     Column('id', ForeignKey('ActionDescription.id'), primary_key=True),
     Column('arm', Enum(pycram.datastructures.enums.Arms), nullable=False),
     Column('target_location_id', ForeignKey('PoseStamped.id')),
-    Column('pickup_prepose_distance', Float, nullable=False),
     Column('object_at_execution_id', ForeignKey('FrozenObject.id'))
 )
 
@@ -289,9 +315,11 @@ m_ActionDescription = mapper_registry.map_imperatively(pycram.designator.ActionD
 
 m_PlanNode = mapper_registry.map_imperatively(pycram.plan.PlanNode, t_PlanNode, )
 
-m_SequentialNode = mapper_registry.map_imperatively(pycram.language.SequentialNode, t_SequentialNode, )
+m_SequentialNode = mapper_registry.map_imperatively(pycram.language.SequentialNode, t_SequentialNode, polymorphic_on = "polymorphic_type", polymorphic_identity = "SequentialNode")
 
-m_ParallelNode = mapper_registry.map_imperatively(pycram.language.ParallelNode, t_ParallelNode, )
+m_ParallelNode = mapper_registry.map_imperatively(pycram.language.ParallelNode, t_ParallelNode, polymorphic_on = "polymorphic_type", polymorphic_identity = "ParallelNode")
+
+m_CodeNode = mapper_registry.map_imperatively(pycram.language.CodeNode, t_CodeNode, )
 
 m_TaskTreeNode = mapper_registry.map_imperatively(pycram.orm.model.TaskTreeNode, t_TaskTreeNode, properties = dict(action=relationship("ActionDescription", foreign_keys=[t_TaskTreeNode.c.action_id]), 
 parent=relationship("TaskTreeNode", foreign_keys=[t_TaskTreeNode.c.parent_id], remote_side=[t_TaskTreeNode.c.id])))
@@ -338,11 +366,18 @@ m_GripAction = mapper_registry.map_imperatively(pycram.designators.action_design
 m_ReachToPickUpAction = mapper_registry.map_imperatively(pycram.designators.action_designator.ReachToPickUpAction, t_ReachToPickUpAction, properties = dict(grasp_description=relationship("GraspDescription", foreign_keys=[t_ReachToPickUpAction.c.grasp_description_id]), 
 object_at_execution=relationship("FrozenObject", foreign_keys=[t_ReachToPickUpAction.c.object_at_execution_id])), polymorphic_identity = "ReachToPickUpAction", inherits = m_ActionDescription)
 
-m_PickUpAction = mapper_registry.map_imperatively(pycram.designators.action_designator.PickUpAction, t_PickUpAction, properties = dict(grasp_description=relationship("GraspDescription", foreign_keys=[t_PickUpAction.c.grasp_description_id]), 
-object_at_execution=relationship("FrozenObject", foreign_keys=[t_PickUpAction.c.object_at_execution_id])), polymorphic_identity = "PickUpAction", inherits = m_ActionDescription)
+m_PickUpAction = mapper_registry.map_imperatively(pycram.designators.action_designator.PickUpAction, t_PickUpAction, properties = dict(object_at_execution=relationship("FrozenObject", foreign_keys=[t_PickUpAction.c.object_at_execution_id])), polymorphic_identity = "PickUpAction", inherits = m_ActionDescription)
 
 m_PlaceAction = mapper_registry.map_imperatively(pycram.designators.action_designator.PlaceAction, t_PlaceAction, properties = dict(target_location=relationship("PoseStamped", foreign_keys=[t_PlaceAction.c.target_location_id]), 
 object_at_execution=relationship("FrozenObject", foreign_keys=[t_PlaceAction.c.object_at_execution_id])), polymorphic_identity = "PlaceAction", inherits = m_ActionDescription)
 
 m_TransportAction = mapper_registry.map_imperatively(pycram.designators.action_designator.TransportAction, t_TransportAction, properties = dict(target_location=relationship("PoseStamped", foreign_keys=[t_TransportAction.c.target_location_id]), 
 object_at_execution=relationship("FrozenObject", foreign_keys=[t_TransportAction.c.object_at_execution_id])), polymorphic_identity = "TransportAction", inherits = m_ActionDescription)
+
+m_TryInOrderNode = mapper_registry.map_imperatively(pycram.language.TryInOrderNode, t_TryInOrderNode, polymorphic_identity = "TryInOrderNode", inherits = m_SequentialNode)
+
+m_MonitorNode = mapper_registry.map_imperatively(pycram.language.MonitorNode, t_MonitorNode, polymorphic_identity = "MonitorNode", inherits = m_SequentialNode)
+
+m_RepeatNode = mapper_registry.map_imperatively(pycram.language.RepeatNode, t_RepeatNode, polymorphic_identity = "RepeatNode", inherits = m_SequentialNode)
+
+m_TryAllNode = mapper_registry.map_imperatively(pycram.language.TryAllNode, t_TryAllNode, polymorphic_identity = "TryAllNode", inherits = m_ParallelNode)

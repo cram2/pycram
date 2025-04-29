@@ -62,7 +62,7 @@ class ActionAbstractDigest:
         self.clazz: Type[ActionDescription] = clazz
         self.full_name: str = get_full_class_name(clazz)
         self.classname: str = clazz.__name__
-        self.docstring: str = clazz.__doc__
+        self.docstring: str = clazz.__doc__ or ""
         self.parameters: Optional[List[ParameterDigest]] = self.extract_dataclass_parameter_information()
 
     def extract_dataclass_parameter_information(self) -> List[ParameterDigest]:
@@ -98,7 +98,7 @@ class ActionAbstractDigest:
                 ParameterDigest(
                     clazz=param_clazz,
                     name=param,
-                    docstring=class_param_comment[param],
+                    docstring=class_param_comment[param] if param in class_param_comment.keys() else "",
                     default_value=parameters_inspection[param].default,
                 ))
         return parameter_digests
@@ -110,7 +110,7 @@ def create_ontology_from_performables(
     """
     Create an ontology from the performables.
 
-    :param output_path: Path of the output ontology file..
+    :param output_path: Path of the output ontology file.
     :param abstract_actions_to_parse: ActionAbstract classes to parse.
     If not set, all subclasses of ActionAbstract will be parsed.
     """

@@ -11,6 +11,7 @@ from .process_module import ProcessModule
 from .datastructures.enums import WorldMode
 from .object_descriptors.urdf import ObjectDescription
 from .ros_utils.viz_marker_publisher import VizMarkerPublisher
+from .plan import Plan
 from pycrap.ontologies import Milk, Robot, Kitchen, Cereal
 
 
@@ -31,6 +32,7 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
 
     def setUp(self):
         self.world.reset_world(remove_saved_states=True)
+        Plan.current_plan = None
         with UseProspectionWorld():
             pass
 

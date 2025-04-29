@@ -98,7 +98,6 @@ class GripAction(ActionDescription, ORMaticExplicitMapping):
 @dataclass
 class ReachToPickUpAction(ActionDescription, ORMaticExplicitMapping):
     arm: Arms
-    prepose_distance: float
     grasp_description: GraspDescription
     object_at_execution: Optional[FrozenObject]
 
@@ -110,8 +109,6 @@ class ReachToPickUpAction(ActionDescription, ORMaticExplicitMapping):
 @dataclass
 class PickUpAction(ActionDescription, ORMaticExplicitMapping):
     arm: Arms
-    prepose_distance: float
-    grasp_description: GraspDescription
     object_at_execution: Optional[FrozenObject]
 
     @classproperty
@@ -134,7 +131,6 @@ class PlaceAction(ActionDescription, ORMaticExplicitMapping):
 class TransportAction(ActionDescription, ORMaticExplicitMapping):
     arm: Arms
     target_location: PoseStamped
-    pickup_prepose_distance: float
     object_at_execution: Optional[FrozenObject]
 
     @classproperty
@@ -157,7 +153,6 @@ class DetectAction(ActionDescription, ORMaticExplicitMapping):
 @dataclass
 class GraspingAction(ActionDescription, ORMaticExplicitMapping):
     arm: Arms
-    prepose_distance: float
     object_at_execution: FrozenObject
 
     @classproperty
@@ -172,7 +167,6 @@ class MoveAndPickUpAction(ActionDescription, ORMaticExplicitMapping):
     arm: Arms
     grasp: Grasp
     keep_joint_states: bool
-    pickup_prepose_distance: float
 
     # @classproperty
     # def explicit_mapping(cls):

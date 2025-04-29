@@ -93,7 +93,7 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
             plan = SequentialPlan(
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
                 MoveTorsoActionDescription(TorsoState.HIGH),
-                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(Grasp.FRONT, None, False), 0.03),
+                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(Grasp.FRONT, None, False)),
                 description)
             plan.perform()
         return plan
@@ -169,7 +169,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
                 ParkArmsActionDescription(Arms.BOTH),
                 PickUpActionDescription(object_description.resolve(), Arms.LEFT,
-                                        GraspDescription(Grasp.FRONT, None, False), 0.03),
+                                        GraspDescription(Grasp.FRONT, None, False)),
                 NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1]), True),
                 PlaceActionDescription(object_description.resolve(),
                                        PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
@@ -191,7 +191,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
     def test_transportAction(self):
         object_description = ObjectDesignatorDescription(names=["milk"])
         action = TransportActionDescription(object_description.resolve(),
-                                 PoseStamped.from_list([1.3, 0.9, 0.9], [0, 0, 0, 1]), Arms.LEFT, 0.03)
+                                 PoseStamped.from_list([1.3, 0.9, 0.9], [0, 0, 0, 1]), Arms.LEFT)
         with simulated_robot:
             action.perform()
         insert(action, self.session)
@@ -209,7 +209,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
             sp = SequentialPlan(
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
                 ParkArmsActionDescription(Arms.BOTH),
-                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(Grasp.FRONT, None, False), 0.03),
+                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(Grasp.FRONT, None, False)),
                 NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1]), True),
                 PlaceActionDescription(object_description.resolve(), PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
                             Arms.LEFT))
@@ -308,7 +308,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
     def test_type_casting(self):
         object_description = ObjectDesignatorDescription(names=["milk"], types=[Milk])
         action = PickUpActionDescription(object_description.resolve(), Arms.LEFT,
-                                GraspDescription(Grasp.FRONT, None, False), 0.03)
+                                GraspDescription(Grasp.FRONT, None, False))
         with simulated_robot:
             sp = SequentialPlan(
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
@@ -332,7 +332,7 @@ class RelationalAlgebraTestCase(ORMaticBaseTestCaseMixin):
             sp = SequentialPlan(
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
                 ParkArmsActionDescription(Arms.BOTH),
-                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(Grasp.FRONT, None, False), 0.03),
+                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(Grasp.FRONT, None, False)),
                 NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1]), True),
                 PlaceActionDescription(object_description.resolve(), PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
                                        Arms.LEFT))

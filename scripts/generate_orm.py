@@ -39,6 +39,11 @@ classes = [pycram.datastructures.grasp.GraspDescription,
            pycram.plan.PlanNode,
            pycram.language.SequentialNode,
            pycram.language.ParallelNode,
+           pycram.language.TryInOrderNode,
+           pycram.language.TryAllNode,
+           pycram.language.MonitorNode,
+           pycram.language.CodeNode,
+           pycram.language.RepeatNode,
            ]
 
 

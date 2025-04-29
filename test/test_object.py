@@ -71,7 +71,7 @@ class TestObject(BulletWorldTestCase):
             self.milk.set_position(1)
 
         with self.assertRaises(AssertionError):
-            self.milk.get_pose().position = 1
+            self.assertEqual(1, self.milk.pose.position)
 
     def test_set_orientation_as_list(self):
         self.milk.set_orientation([1, 0, 0, 0])
