@@ -1,3 +1,5 @@
+from pycram.orm.casts import StringType
+
 from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, MetaData, String, Table
 from sqlalchemy.orm import registry, relationship
 import pycram.datastructures.dataclasses
@@ -112,6 +114,7 @@ t_FrozenObject = Table(
     'FrozenObject', metadata,
     Column('id', Integer, primary_key=True),
     Column('name', String, nullable=False),
+    Column('concept', StringType),
     Column('pose_id', ForeignKey('PoseStamped.id'))
 )
 
@@ -293,7 +296,8 @@ m_ParallelNode = mapper_registry.map_imperatively(pycram.language.ParallelNode, 
 m_TaskTreeNode = mapper_registry.map_imperatively(pycram.orm.model.TaskTreeNode, t_TaskTreeNode, properties = dict(action=relationship("ActionDescription", foreign_keys=[t_TaskTreeNode.c.action_id]), 
 parent=relationship("TaskTreeNode", foreign_keys=[t_TaskTreeNode.c.parent_id], remote_side=[t_TaskTreeNode.c.id])))
 
-m_FrozenObject = mapper_registry.map_imperatively(pycram.datastructures.dataclasses.FrozenObject, t_FrozenObject, properties = dict(pose=relationship("PoseStamped", foreign_keys=[t_FrozenObject.c.pose_id])))
+m_FrozenObject = mapper_registry.map_imperatively(pycram.datastructures.dataclasses.FrozenObject, t_FrozenObject, properties = dict(concept=t_FrozenObject.c.concept, 
+pose=relationship("PoseStamped", foreign_keys=[t_FrozenObject.c.pose_id])))
 
 m_ORMActionNode = mapper_registry.map_imperatively(pycram.plan.ActionNode, t_ORMActionNode, )
 
