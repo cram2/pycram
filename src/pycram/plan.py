@@ -214,6 +214,7 @@ def managed_node(func: Callable) -> Callable:
             raise e
         finally:
             node.end_time = datetime.now()
+            node.plan.current_node = node.parent
         return result
 
     return wrapper
@@ -249,11 +250,11 @@ class PlanNode:
     @property
     def parent(self) -> PlanNode:
         """
-        The parent node of this node
+        The parent node of this node, None if this is the root node
 
         :return: The parent node
         """
-        return list(self.plan.predecessors(self))[0]
+        return list(self.plan.predecessors(self))[0] if list(self.plan.predecessors(self)) else None
 
     @property
     def children(self) -> List[PlanNode]:

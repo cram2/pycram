@@ -15,7 +15,7 @@ from .tf_transformations import quaternion_matrix
 if 'world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.world.")
 
-from .datastructures.pose import PoseStamped, TransformStamped, Pose, Header
+from .datastructures.pose import PoseStamped, TransformStamped, Pose, Header, Transform
 from typing_extensions import List, Optional, Union, Iterable, TYPE_CHECKING, Tuple, Dict, Hashable
 
 if TYPE_CHECKING:
@@ -173,5 +173,5 @@ class LocalTransformer(TransformManager):
         """
         return [xyzw[3], *xyzw[:3]]
 
-    def get_all_frames(self) -> Dict[Tuple[Hashable, Hashable], np.ndarray]:
-        return self.transforms
+    def get_all_frames(self) -> Dict[Tuple[Hashable, Hashable], Transform]:
+        return {key: Transform.from_matrix(value) for key, value in self.transforms.items()}
