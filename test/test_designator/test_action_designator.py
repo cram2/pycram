@@ -7,7 +7,8 @@ from pycram.datastructures.pose import GraspDescription
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import PickUpAction, \
-    NavigateAction, FaceAtAction, MoveTorsoAction, MoveTorsoActionDescription
+    NavigateAction, FaceAtAction, MoveTorsoAction, MoveTorsoActionDescription, SearchActionDescription, \
+    ParkArmsActionDescription
 from pycram.designators.motion_designator import MoveGripperMotion, MoveTCPWaypointsMotion
 from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError, \
     ObjectNotInGraspingArea, ObjectStillInContact, GripperIsNotOpen, NavigationGoalNotReachedError, \
@@ -231,3 +232,12 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             self.fail(f"{failure.__name__} should have been raised.")
         except failure:
             pass
+
+    def test_search_action(self):
+        description = SearchActionDescription(PoseStamped.from_list([1, 1, 1]), Milk)
+        with simulated_robot:
+            ParkArmsActionDescription([Arms.BOTH]).perform()
+            milk = description.perform()
+        self.assertTrue(milk)
+        self.assertEqual(milk.obj_type, Milk)
+        self.assertEqual(self.milk.pose, milk.pose)

@@ -11,6 +11,8 @@ from time import sleep
 import numpy as np
 
 from .object_designator import BelieveObject
+from ..datastructures.world_entity import PhysicalBody
+from ..language import SequentialPlan, TryInOrderPlan
 from ..plan import with_plan
 
 from ..datastructures.partial_designator import PartialDesignator
@@ -20,7 +22,7 @@ from .. import utils
 from ..tf_transformations import quaternion_from_euler
 from typing_extensions import List, Union, Optional, Type, Dict, Any, Iterable
 
-from pycrap.ontologies import Location
+from pycrap.ontologies import Location, PhysicalObject
 from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
@@ -99,7 +101,8 @@ class MoveTorsoAction(ActionDescription):
 
     @classmethod
     @with_plan
-    def description(cls, torso_state: Union[Iterable[TorsoState], TorsoState]) -> PartialDesignator[Type[MoveTorsoAction]]:
+    def description(cls, torso_state: Union[Iterable[TorsoState], TorsoState]) -> PartialDesignator[
+        Type[MoveTorsoAction]]:
         return PartialDesignator(MoveTorsoAction, torso_state=torso_state)
 
 
@@ -135,7 +138,8 @@ class SetGripperAction(ActionDescription):
     @classmethod
     @with_plan
     def description(cls, gripper: Union[Iterable[Arms], Arms],
-                    motion: Union[Iterable[GripperState], GripperState] = None) -> PartialDesignator[Type[SetGripperAction]]:
+                    motion: Union[Iterable[GripperState], GripperState] = None) -> PartialDesignator[
+        Type[SetGripperAction]]:
         return PartialDesignator(SetGripperAction, gripper=gripper, motion=motion)
 
 
@@ -226,7 +230,8 @@ class GripAction(ActionDescription):
     @classmethod
     @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
-                    gripper: Union[Iterable[Arms], Arms] = None, effort: Union[Iterable[float], float] = None, ) -> PartialDesignator[Type[GripAction]]:
+                    gripper: Union[Iterable[Arms], Arms] = None, effort: Union[Iterable[float], float] = None, ) -> \
+    PartialDesignator[Type[GripAction]]:
         return PartialDesignator(GripAction, object_designator=object_designator,
                                  gripper=gripper, effort=effort)
 
@@ -343,7 +348,7 @@ class ReachToPickUpAction(ActionDescription):
         World.current_world.remove_vis_axis()
 
     def move_gripper_to_pose(self, pose: PoseStamped, movement_type: MovementType = MovementType.CARTESIAN,
-                   add_vis_axis: bool = True):
+                             add_vis_axis: bool = True):
         """
         Move the gripper to a specific pose.
 
@@ -355,7 +360,6 @@ class ReachToPickUpAction(ActionDescription):
         if add_vis_axis:
             World.current_world.add_vis_axis(pose)
         MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
-
 
     @cached_property
     def local_transformer(self) -> LocalTransformer:
@@ -599,7 +603,6 @@ class NavigateAction(ActionDescription):
         if not pose_validator.is_error_acceptable(World.robot.pose, self.target_location):
             raise NavigationGoalNotReachedError(World.robot.pose, self.target_location)
 
-
     @classmethod
     @with_plan
     def description(cls, target_location: Union[Iterable[PoseStamped], PoseStamped],
@@ -816,7 +819,8 @@ class OpenAction(ActionDescription):
     @with_plan
     def description(cls, object_designator_description: Union[Iterable[ObjectDescription.Link], ObjectDescription.Link],
                     arm: Union[Iterable[Arms], Arms] = None,
-                    grasping_prepose_distance: Union[Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
+                    grasping_prepose_distance: Union[
+                        Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
             PartialDesignator[Type[OpenAction]]:
         return PartialDesignator(OpenAction, object_designator=object_designator_description,
                                  arm=arm,
@@ -858,7 +862,8 @@ class CloseAction(ActionDescription):
     @with_plan
     def description(cls, object_designator_description: Union[Iterable[ObjectDescription.Link], ObjectDescription.Link],
                     arm: Union[Iterable[Arms], Arms] = None,
-                    grasping_prepose_distance: Union[Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
+                    grasping_prepose_distance: Union[
+                        Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
             PartialDesignator[Type[CloseAction]]:
         return PartialDesignator(CloseAction, object_designator=object_designator_description,
                                  arm=arm,
@@ -948,7 +953,8 @@ class GraspingAction(ActionDescription):
                     arm: Union[Iterable[Arms], Arms] = None,
                     prepose_distance: Union[Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
             PartialDesignator[Type[GraspingAction]]:
-        return PartialDesignator(GraspingAction, object_designator=object_designator, arm=arm, prepose_distance=prepose_distance)
+        return PartialDesignator(GraspingAction, object_designator=object_designator, arm=arm,
+                                 prepose_distance=prepose_distance)
 
 
 @dataclass
@@ -1178,6 +1184,7 @@ class PouringAction(ActionDescription):
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
         pass
+
     @classmethod
     @with_plan
     def description(cls, object: Union[Iterable[Object], Object],
@@ -1186,6 +1193,59 @@ class PouringAction(ActionDescription):
                     technique: Optional[Union[Iterable[str], str]] = None,
                     angle: Optional[Union[Iterable[float], float]] = 90) -> PartialDesignator[Type[PouringAction]]:
         return PartialDesignator(PouringAction, object=object, tool=tool, arm=arm, technique=technique, angle=angle)
+
+
+@dataclass
+class SearchAction(ActionDescription):
+    """
+    Searches for a target object around the given location.
+    """
+
+    target_location: PoseStamped
+    """
+    Location around which to look for a target object.
+    """
+
+    object_type: Type[PhysicalObject]
+    """
+    Type of the object which is searched for.
+    """
+
+    def plan(self) -> None:
+        lt = LocalTransformer()
+        target_base = lt.transform_pose(self.target_location, World.robot.tf_frame)
+
+        target_base_left = target_base.copy()
+        target_base_left.pose.position.x -= 0.1
+
+        target_base_right = target_base.copy()
+        target_base_right.pose.position.x += 0.1
+
+        plan = SequentialPlan(
+            NavigateActionDescription(CostmapLocation(target=self.target_location, visible_for=World.robot)),
+
+            TryInOrderPlan(
+                SequentialPlan(
+                    LookAtActionDescription(target_base_left),
+                    DetectActionDescription(DetectionTechnique.TYPES, BelieveObject(types=[self.object_type]))),
+                SequentialPlan(
+                    LookAtActionDescription(target_base_right),
+                    DetectActionDescription(DetectionTechnique.TYPES, BelieveObject(types=[self.object_type]))),
+                SequentialPlan(
+                    LookAtActionDescription(target_base),
+                    DetectActionDescription(DetectionTechnique.TYPES, BelieveObject(types=[self.object_type])))))
+
+        return plan.perform()
+
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        pass
+
+    @classmethod
+    @with_plan
+    def description(cls, target_location: Union[Iterable[PoseStamped], PoseStamped],
+                    object_type: Union[Iterable[PhysicalObject], PhysicalObject]) -> PartialDesignator[
+        Type[SearchAction]]:
+        return PartialDesignator(SearchAction, target_location=target_location, object_type=object_type)
 
 
 MoveTorsoActionDescription = MoveTorsoAction.description
@@ -1207,3 +1267,4 @@ MoveAndPlaceActionDescription = MoveAndPlaceAction.description
 ReleaseActionDescription = ReleaseAction.description
 GripActionDescription = GripAction.description
 PouringActionDescription = PouringAction.description
+SearchActionDescription = SearchAction.description

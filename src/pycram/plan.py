@@ -187,7 +187,7 @@ class Plan(nx.DiGraph):
         labels = {node: str(node) for node in self.nodes()}
         nx.draw_networkx_labels(self, pos, labels)
 
-        plt.title("World Kinematic Structure")
+        plt.title("Plan Structure")
         plt.axis('off')  # Hide axes
         plt.show()
 

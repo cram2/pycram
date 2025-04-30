@@ -45,7 +45,7 @@ def move_and_detect(obj_type):
     LookAtActionDescription(target=[pick_pose]).resolve().perform()
 
     object_desig = DetectActionDescription(technique=DetectionTechnique.TYPES,
-                                           object_designator_description=BelieveObject(
+                                           object_designator=BelieveObject(
                                                types=[obj_type])).resolve().perform()
 
     return object_desig[0]
@@ -96,7 +96,7 @@ with simulated_robot:
 
         ParkArmsActionDescription([Arms.BOTH]),
         NavigateActionDescription(CostmapLocation(DetectActionDescription(technique=DetectionTechnique.TYPES,
-                                                                          object_designator_description=BelieveObject(
+                                                                          object_designator=BelieveObject(
                                                                               types=[Spoon]))[0],
                                                   reachable_for=robot_desig.resolve(),
                                                   reachable_arm=Arms.LEFT,
@@ -137,7 +137,9 @@ with simulated_robot:
         PlaceActionDescription(BelieveObject(types=[Spoon]), PoseStamped.from_list([4.7, 3.25, 0.8], [0, 0, 1, 1]),
                                [Arms.LEFT]),
 
-        ParkArmsActionDescription(Arms.BOTH))
+        ParkArmsActionDescription(Arms.BOTH)).plot()
+
+
 
 viz._stop_publishing()
 world.exit()

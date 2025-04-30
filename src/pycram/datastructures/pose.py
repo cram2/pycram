@@ -443,7 +443,7 @@ class PoseStamped(HasParameters):
         :param child_link_id: Frame to which the transform is pointing.
         :return: A TransformStamped object.
         """
-        return TransformStamped(header=self.header, pose=Transform.from_pose(self.pose), child_frame_id=child_link_id)
+        return TransformStamped(header=self.header, pose=Transform.from_list(self.position.to_list(), self.orientation.to_list()), child_frame_id=child_link_id)
 
     def round(self, decimals: int = 4):
         """

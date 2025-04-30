@@ -84,7 +84,7 @@ class LinkDescription(AbstractLinkDescription):
         coll = self.collision[0] if isinstance(self.collision, List) else self.collision
         if coll.origin is None:
             return None
-        return PoseStamped(coll.origin.xyz,
+        return PoseStamped.from_list(coll.origin.xyz,
                            quaternion_from_euler(*coll.origin.rpy))
 
     @property
@@ -601,7 +601,7 @@ class ObjectDescription(AbstractObjectDescription):
 
     @property
     def origin(self) -> PoseStamped:
-        return PoseStamped(self.parsed_description.origin.xyz,
+        return PoseStamped.from_list(self.parsed_description.origin.xyz,
                            quaternion_from_euler(*self.parsed_description.origin.rpy))
 
     @property
