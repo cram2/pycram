@@ -401,7 +401,7 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
     """
 
     def __init__(self, link_name, part_of, for_object=None, edges_only: bool = False,
-                 horizontal_edges_only: bool = False, edge_size_in_meters: float = 0.06):
+                 horizontal_edges_only: bool = False, edge_size_in_meters: float = 0.06, height_offset: float = 0.0):
         """
         Creates a distribution over a link to sample poses which are on this link. Can be used, for example, to find
         poses that are on a table. Optionally an object can be given for which poses should be calculated, in that case
@@ -417,7 +417,8 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         super().__init__()
         PartialDesignator.__init__(self, SemanticCostmapLocation, link_name=link_name, part_of=part_of,
                                    for_object=for_object, edges_only=edges_only,
-                                   horizontal_edges_only=horizontal_edges_only, edge_size_in_meters=edge_size_in_meters)
+                                   horizontal_edges_only=horizontal_edges_only, edge_size_in_meters=edge_size_in_meters,
+                                   height_offset=height_offset)
         self.link_name: str = link_name
         self.part_of: Object = part_of
         self.for_object: Optional[Object] = for_object
@@ -449,7 +450,7 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
             if params_box.edges_only or params_box.horizontal_edges_only:
                 self.sem_costmap = self.sem_costmap.get_edges_map(params_box.edge_size_in_meters,
                                                                   horizontal_only=params_box.horizontal_edges_only)
-            height_offset = 0
+            height_offset = params_box.height_offset
             if params_box.for_object:
                 min_p, max_p = params_box.for_object.get_axis_aligned_bounding_box().get_min_max_points()
                 height_offset = (max_p.z - min_p.z) / 2

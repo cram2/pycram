@@ -22,8 +22,9 @@ from .language import LanguageMixin
 from .local_transformer import LocalTransformer
 from .robot_description import RobotDescription
 from .ros import loginfo
-from .utils import bcolors
+from .utils import bcolors, is_iterable
 from .world_concepts.world_object import Object as WorldObject, Object
+from .plan import Plan
 
 
 class DesignatorError(Exception):
@@ -276,7 +277,7 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator, Iter
     Class for object designator_description descriptions.
     Descriptions hold possible parameter ranges for object designators.
     """
-    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None):
+    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None, resolution_strategy: Union[Iterable[WorldObject], Callable[WorldObject]] = None):
         """
         Base of all object designator_description descriptions. Every object designator_description has the name and type of the object.
 

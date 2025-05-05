@@ -1471,9 +1471,9 @@ class RayResult:
         Check if the ray intersects with a body.
         return: Whether the ray intersects with a body.
         """
-        if not self.obj_id:
-            logwarn("obj_id should be available to check if the ray intersects with a body,"
-                    "It appears that the ray result is not valid.")
+        #if not self.obj_id:
+        #    logwarn("obj_id should be available to check if the ray intersects with a body,"
+        #            "It appears that the ray result is not valid.")
         return self.obj_id != -1
 
     @property

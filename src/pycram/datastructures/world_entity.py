@@ -16,7 +16,7 @@ from .enums import AdjacentBodyMethod, AxisIdentifier, Arms, Grasp
 from .mixins import HasConcept
 from ..local_transformer import LocalTransformer
 from ..ros import Time, logdebug
-from .pose import GraspDescription, Vector3
+from .pose import GraspDescription, Vector3, PoseStamped
 from .grasp import PreferredGraspAlignment
 
 if TYPE_CHECKING:
@@ -590,7 +590,7 @@ class PhysicalBody(WorldEntity, ABC):
             rim_offset = self.get_rotated_bounding_box().dimensions[rim_direction_index] / 2
             grasp_pose.rotate_by_quaternion(end_effector.grasps[rim_direction])
             grasp_pose = LocalTransformer().translate_pose_along_local_axis(grasp_pose, approach_axis, -rim_offset)
-            grasp_pose = Pose(grasp_pose.position_as_list(), self.orientation_as_list)
+            grasp_pose = PoseStamped.from_list(grasp_pose.position.to_list(), self.orientation.to_list())
 
         return grasp_pose
 

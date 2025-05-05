@@ -56,8 +56,10 @@ class DefaultMoveHead(ProcessModule):
         pan_joint = neck["yaw"][1]
         tilt_joint = neck["pitch"][1]
 
-        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link)).position.to_list()
-        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link)).position.to_list()
+        pose_in_map = local_transformer.transform_pose(target, "map")
+
+        pose_in_pan = local_transformer.transform_pose(pose_in_map, robot.get_link_tf_frame(pan_link)).position.to_list()
+        pose_in_tilt = local_transformer.transform_pose(pose_in_map, robot.get_link_tf_frame(tilt_link)).position.to_list()
 
         new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
 

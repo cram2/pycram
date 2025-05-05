@@ -208,6 +208,7 @@ def managed_node(func: Callable) -> Callable:
             node.plan.current_node = node
             result = func(node)
             node.status = TaskStatus.SUCCEEDED
+            node.result = result
         except PlanFailure as e:
             node.status = TaskStatus.FAILED
             node.reason = e
@@ -245,6 +246,11 @@ class PlanNode:
     plan: Plan = None
     """
     Reference to the plan to which this node belongs
+    """
+
+    result: Any = None
+    """
+    Result from the execution of this node
     """
 
     @property

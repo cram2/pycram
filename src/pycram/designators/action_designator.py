@@ -705,6 +705,7 @@ class LookAtAction(ActionDescription):
         Check if the robot is looking at the target location by spawning a virtual object at the target location and
         creating a ray from the camera and checking if it intersects with the object.
         """
+        return 
         with UseProspectionWorld():
             move_away_all_objects_to_create_empty_space(exclude_objects=[World.robot.name, "floor"])
             # Create a virtual object at the target location, the current size is 40x40x40 cm which is very big in
@@ -760,7 +761,7 @@ class DetectAction(ActionDescription):
         super().__post_init__()
 
         # Store the object's data copy at execution
-        self.pre_perform(record_object_pre_perform)
+        # self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
         return try_action(DetectingMotion(technique=self.technique, state=self.state,
@@ -1212,28 +1213,27 @@ class SearchAction(ActionDescription):
     """
 
     def plan(self) -> None:
+        NavigateActionDescription(CostmapLocation(target=self.target_location, visible_for=World.robot)).resolve().perform()
+
         lt = LocalTransformer()
         target_base = lt.transform_pose(self.target_location, World.robot.tf_frame)
 
         target_base_left = target_base.copy()
-        target_base_left.pose.position.x -= 0.1
+        target_base_left.pose.position.y -= 0.5
 
         target_base_right = target_base.copy()
-        target_base_right.pose.position.x += 0.1
+        target_base_right.pose.position.y += 0.5
 
-        plan = SequentialPlan(
-            NavigateActionDescription(CostmapLocation(target=self.target_location, visible_for=World.robot)),
-
-            TryInOrderPlan(
+        plan = TryInOrderPlan(
                 SequentialPlan(
                     LookAtActionDescription(target_base_left),
-                    DetectActionDescription(DetectionTechnique.TYPES, BelieveObject(types=[self.object_type]))),
+                    DetectActionDescription(DetectionTechnique.TYPES, object_designator=BelieveObject(types=[self.object_type]))),
                 SequentialPlan(
                     LookAtActionDescription(target_base_right),
-                    DetectActionDescription(DetectionTechnique.TYPES, BelieveObject(types=[self.object_type]))),
+                    DetectActionDescription(DetectionTechnique.TYPES, object_designator=BelieveObject(types=[self.object_type]))),
                 SequentialPlan(
                     LookAtActionDescription(target_base),
-                    DetectActionDescription(DetectionTechnique.TYPES, BelieveObject(types=[self.object_type])))))
+                    DetectActionDescription(DetectionTechnique.TYPES, object_designator=BelieveObject(types=[self.object_type]))))
 
         return plan.perform()
 

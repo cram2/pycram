@@ -263,15 +263,17 @@ class SequentialNode(LanguageNode):
         :param nodes: A list of nodes which should be performed in sequence
         :param raise_exceptions: If True (default) errors will be raised
         """
-        results = {}
+        res = None
         for child in nodes:
             try:
-                results[child]  = child.perform()
+                res = child.perform()
             except PlanFailure as e:
                 self.status = TaskStatus.FAILED
                 self.reason = e
                 if raise_exceptions:
                     raise e
+
+        return res
 
     def __hash__(self):
         return id(self)
@@ -326,7 +328,7 @@ class ParallelNode(LanguageNode):
         :param node: The node which is to be performed
         """
         try:
-            self.results[node] = node.perform()
+            return node.perform()
         except PlanFailure as e:
             self.status = TaskStatus.FAILED
             self.reason = e
@@ -434,6 +436,10 @@ class TryInOrderNode(SequentialNode):
         self.perform_sequential(self.children, raise_exceptions=False)
         child_statuses = [child.status for child in self.children]
         self.status = TaskStatus.SUCCEEDED if TaskStatus.SUCCEEDED in child_statuses else TaskStatus.FAILED
+        child_results = list(filter(None, [child.result for child in self.recursive_children]))
+        if child_results:
+            self.result = child_results[0]
+            return self.result[0]
 
     def __hash__(self):
         return id(self)
