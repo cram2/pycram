@@ -10,7 +10,7 @@ from pycram.testing import BulletWorldTestCase
 from pycram.costmaps import OccupancyCostmap, AlgebraicSemanticCostmap, VisibilityCostmap
 from pycram.probabilistic_costmap import ProbabilisticCostmap
 from pycram.units import meter, centimeter
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 import plotly.graph_objects as go
 
 
@@ -19,15 +19,15 @@ class CostmapTestCase(BulletWorldTestCase):
     def test_raytest_bug(self):
         for i in range(30):
             o = OccupancyCostmap(distance_to_obstacle=0.2, from_ros=False, size=200, resolution=0.02,
-                                 origin=Pose([0, 0, 0], [0, 0, 0, 1]))
+                                 origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
 
     def test_attachment_exclusion(self):
-        self.kitchen.set_pose(Pose([50, 50, 0]))
-        self.robot.set_pose(Pose([0, 0, 0]))
-        self.milk.set_pose(Pose([0.5, 0, 1]))
-        self.cereal.set_pose(Pose([50, 50, 0]))
+        self.kitchen.set_pose(PoseStamped.from_list([50, 50, 0]))
+        self.robot.set_pose(PoseStamped.from_list([0, 0, 0]))
+        self.milk.set_pose(PoseStamped.from_list([0.5, 0, 1]))
+        self.cereal.set_pose(PoseStamped.from_list([50, 50, 0]))
         o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
-                             origin=Pose([0, 0, 0], [0, 0, 0, 1]))
+                             origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
         self.assertEqual(np.sum(o.map[115:135, 90:110]), 0)
 
         self.robot.attach(self.milk)
@@ -35,7 +35,7 @@ class CostmapTestCase(BulletWorldTestCase):
 
     def test_partition_into_rectangles(self):
         ocm = OccupancyCostmap(distance_to_obstacle=0.2, from_ros=False, size=200, resolution=0.02,
-                               origin=Pose([0, 0, 0], [0, 0, 0, 1]))
+                               origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
         rectangles = ocm.partitioning_rectangles()
         ocm.visualize()
 
@@ -58,14 +58,14 @@ class CostmapTestCase(BulletWorldTestCase):
 
     def test_visualize(self):
         o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
-                             origin=Pose([0, 0, 0], [0, 0, 0, 1]))
+                             origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
         o.visualize()
 
     def test_merge_costmap(self):
         o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
-                             origin=Pose([0, 0, 0], [0, 0, 0, 1]))
+                             origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
         o2 = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
-                                origin=Pose([0, 0, 0], [0, 0, 0, 1]))
+                              origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
         o3 = o + o2
         self.assertTrue(np.all(o.map == o3.map))
         o2.map[100:120, 100:120] = 0
@@ -101,14 +101,14 @@ class SemanticCostmapTestCase(BulletWorldTestCase):
         costmap = AlgebraicSemanticCostmap(self.kitchen, "kitchen_island_surface")
         costmap.valid_area = costmap.valid_area.__deepcopy__() & costmap.left() & costmap.bottom() & costmap.border(0.2)
         for sample in iter(costmap):
-            self.assertIsInstance(sample, Pose)
+            self.assertIsInstance(sample, PoseStamped)
             self.assertTrue(costmap.valid_area.contains([sample.position.x, sample.position.y]))
 
 
 @unittest.skip("Wait for PM Upgrade to go live")
 class ProbabilisticCostmapTestCase(BulletWorldTestCase):
 
-    origin = Pose([1.5, 1, 0], [0, 0, 0, 1])
+    origin = PoseStamped.from_list([1.5, 1, 0], [0, 0, 0, 1])
 
     def setUp(self):
         super().setUp()

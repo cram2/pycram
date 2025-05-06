@@ -20,7 +20,7 @@ First we need to import and create a BulletWorld.
 
 ```python
 from pycram.worlds.bullet_world import BulletWorld
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycrap.ontologies import Milk, Cereal, Robot
 

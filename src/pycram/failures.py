@@ -6,7 +6,7 @@ from pathlib import Path
 from typing_extensions import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
-    from .datastructures.pose import Pose
+    from .datastructures.pose import PoseStamped
     from .description import Link, Joint
     from .world_concepts.world_object import Object
     from .datastructures.enums import JointType, MultiverseAPIName, Arms, StaticJointState, Grasp, DetectionTechnique, \
@@ -207,12 +207,12 @@ class LookingHighLevelFailure(HighLevelFailure):
     """
     The robot that performed the look at action.
     """
-    target: Pose
+    target: PoseStamped
     """
     The target pose that the robot was supposed to look at.
     """
 
-    def __init__(self, robot: Object, target: Pose, *args, **kwargs):
+    def __init__(self, robot: Object, target: PoseStamped, *args, **kwargs):
         self.robot = robot
         self.target = target
         super().__init__(*args, **kwargs)
@@ -221,9 +221,9 @@ class LookingHighLevelFailure(HighLevelFailure):
 class LookAtGoalNotReached(LookingHighLevelFailure):
     """Thrown when the look at goal is not reached."""
 
-    def __init__(self, robot: Object, target: Pose, *args, **kwargs):
+    def __init__(self, robot: Object, target: PoseStamped, *args, **kwargs):
         super().__init__(robot, target, f"Look at action failed for {robot.name} and target "
-                                        f"{target.position_as_list()}{target.orientation_as_list()}", *args, **kwargs)
+                                        f"{target.position.to_list()}{target.orientation.to_list()}", *args, **kwargs)
 
 
 class ManipulationGoalInCollision(HighLevelFailure):
@@ -248,7 +248,7 @@ class RobotInCollision(PlanFailure):
 
 class IKError(PlanFailure):
     """Thrown when no inverse kinematics solution could be found"""
-    pose: Pose
+    pose: PoseStamped
     """
     The pose for which no IK solution could be found.
     """
@@ -358,7 +358,7 @@ class ObjectPlacingError(HighLevelFailure):
     """
     The object that should be placed.
     """
-    placing_pose: Pose
+    placing_pose: PoseStamped
     """
     The target pose at which the object should be placed.
     """
@@ -371,7 +371,7 @@ class ObjectPlacingError(HighLevelFailure):
     The robot arm used to place the object.
     """
 
-    def __init__(self, obj: Object, placing_pose: Pose, robot: Object, arm: Arms,
+    def __init__(self, obj: Object, placing_pose: PoseStamped, robot: Object, arm: Arms,
                  *args, **kwargs):
         self.obj = obj
         self.placing_pose = placing_pose
@@ -387,24 +387,24 @@ class ObjectStillInContact(ObjectPlacingError):
     The links of the robot that are still in contact with the object.
     """
 
-    def __init__(self, obj: Object, contact_links: List[Link], placing_pose: Pose, robot: Object, arm: Arms,
+    def __init__(self, obj: Object, contact_links: List[Link], placing_pose: PoseStamped, robot: Object, arm: Arms,
                  *args, **kwargs):
         self.contact_links = contact_links
         contact_link_names = [link.name for link in contact_links]
         super().__init__(obj, placing_pose, robot, arm,
                          f"Object {obj.name} is still in contact with {robot.name}, the contact links are"
                          f"{contact_link_names}, after placing at"
-                         f" target pose {placing_pose.position_as_list()}{placing_pose.orientation_as_list()} using"
+                         f" target pose {placing_pose.position.to_list()}{placing_pose.orientation.to_list()} using"
                          f" {arm.name} arm", *args, **kwargs)
 
 
 class ObjectNotPlacedAtTargetLocation(ObjectPlacingError):
     """Thrown when the object was not placed at the target location."""
 
-    def __init__(self, obj: Object, placing_pose: Pose, robot: Object, arm: Arms, *args, **kwargs):
+    def __init__(self, obj: Object, placing_pose: PoseStamped, robot: Object, arm: Arms, *args, **kwargs):
         super().__init__(obj, placing_pose, robot, arm,
-                         "Object {obj.name} was not placed at target pose {placing_pose.position_as_list()}"
-                         f"{placing_pose.orientation_as_list()} using {arm.name} arm of {robot.name}", *args, **kwargs)
+                         "Object {obj.name} was not placed at target pose {placing_pose.position.to_list()}"
+                         f"{placing_pose.orientation.to_list()} using {arm.name} arm of {robot.name}", *args, **kwargs)
 
 
 class ObjectUnfetchable(HighLevelFailure):
@@ -700,16 +700,16 @@ class NavigationGoalNotReachedError(PlanFailure):
     """
     Thrown when the navigation goal is not reached.
     """
-    current_pose: Pose
+    current_pose: PoseStamped
     """
     The current pose of the robot.
     """
-    goal_pose: Pose
+    goal_pose: PoseStamped
     """
     The goal pose of the robot.
     """
 
-    def __init__(self, current_pose: Pose, goal_pose: Pose, *args, **kwargs):
+    def __init__(self, current_pose: PoseStamped, goal_pose: PoseStamped, *args, **kwargs):
         self.current_pose = current_pose
         self.goal_pose = goal_pose
         super().__init__(f"Navigation goal not reached. Current pose: {current_pose}, goal pose: {goal_pose}",
@@ -720,16 +720,16 @@ class ToolPoseNotReachedError(PlanFailure):
     """
     Thrown when the tool pose is not reached.
     """
-    current_pose: Pose
+    current_pose: PoseStamped
     """
     The current pose of the tool.
     """
-    goal_pose: Pose
+    goal_pose: PoseStamped
     """
     The goal pose of the tool.
     """
 
-    def __init__(self, current_pose: Pose, goal_pose: Pose, *args, **kwargs):
+    def __init__(self, current_pose: PoseStamped, goal_pose: PoseStamped, *args, **kwargs):
         self.current_pose = current_pose
         self.goal_pose = goal_pose
         super().__init__(f"Tool pose not reached. Current pose: {current_pose}, goal pose: {goal_pose}",

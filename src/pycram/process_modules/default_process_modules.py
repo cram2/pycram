@@ -56,14 +56,16 @@ class DefaultMoveHead(ProcessModule):
         pan_joint = neck["yaw"][1]
         tilt_joint = neck["pitch"][1]
 
-        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link)).position_as_list()
-        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link)).position_as_list()
+        pose_in_map = local_transformer.transform_pose(target, "map")
+
+        pose_in_pan = local_transformer.transform_pose(pose_in_map, robot.get_link_tf_frame(pan_link)).position.to_list()
+        pose_in_tilt = local_transformer.transform_pose(pose_in_map, robot.get_link_tf_frame(tilt_link)).position.to_list()
 
         new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
 
         tilt_offset = RobotDescription.current_robot_description.get_offset(tilt_joint)
         if tilt_offset:
-            tilt_offset_rotation = tilt_offset.pose.orientation
+            tilt_offset_rotation = tilt_offset.orientation
             quaternion_list = [tilt_offset_rotation.x, tilt_offset_rotation.y, tilt_offset_rotation.z, tilt_offset_rotation.w]
         else:
             quaternion_list = [0, 0, 0, 1]
@@ -244,7 +246,14 @@ class DefaultMoveTCPWaypoints(ProcessModule):
         for waypoint in waypoints:
             _move_arm_tcp(waypoint, robot, desig.arm)
 
-def _move_arm_tcp(target: Pose, robot: Object, arm: Arms, tip_link:str=None) -> None:
+def _move_arm_tcp(target: PoseStamped, robot: Object, arm: Arms, tip_link:str=None) -> None:
+    """
+    Calls the ik solver to calculate the inverse kinematics of the arm and then sets the joint states accordingly.
+
+    :param target: Target pose to which the end-effector should move.
+    :param robot: Robot object representing the robot.
+    :param arm: Which arm to move
+    """
     if tip_link is None:
         tip_link = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
 
@@ -283,9 +292,9 @@ class DefaultDetectingReal(ProcessModule):
             perceived_objects = []
             for i in range(0, len(query_result.res)):
                 try:
-                    obj_pose = Pose.from_pose_stamped(query_result.res[i].pose[0])
+                    obj_pose = PoseStamped.from_pose_stamped(query_result.res[i].pose[0])
                 except IndexError:
-                    obj_pose = Pose.from_pose_stamped(query_result.res[i].pose)
+                    obj_pose = PoseStamped.from_pose_stamped(query_result.res[i].pose)
                     pass
                 obj_type = query_result.res[i].type
                 obj_size = None
@@ -361,8 +370,8 @@ class DefaultMoveHeadReal(ProcessModule):
         pan_joint = neck["yaw"][1]
         tilt_joint = neck["pitch"][1]
 
-        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link)).position_as_list()
-        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link)).position_as_list()
+        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link)).position.to_list()
+        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link)).position.to_list()
 
         new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
 
@@ -406,11 +415,11 @@ class DefaultMoveTCPReal(ProcessModule):
             giskard.allow_gripper_collision(designator.arm.name.lower())
 
         if designator.movement_type == MovementType.STRAIGHT_TRANSLATION:
-            giskard.achieve_straight_translation_goal(pose_in_map.position_as_list(), tip_link, root_link)
+            giskard.achieve_straight_translation_goal(pose_in_map.position.to_list(), tip_link, root_link)
         elif designator.movement_type == MovementType.STRAIGHT_CARTESIAN:
             giskard.achieve_straight_cartesian_goal(pose_in_map, tip_link, root_link)
         elif designator.movement_type == MovementType.TRANSLATION:
-            giskard.achieve_translation_goal(pose_in_map.position_as_list(), tip_link, root_link)
+            giskard.achieve_translation_goal(pose_in_map.position.to_list(), tip_link, root_link)
         elif designator.movement_type == MovementType.CARTESIAN:
             giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
                                            grippers_that_can_collide=gripper_that_can_collide,

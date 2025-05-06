@@ -41,7 +41,7 @@ state of the BulletWorld.
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycrap.ontologies import Apartment, Robot, Milk
 
 use_multiverse = False
@@ -49,16 +49,18 @@ viz_marker_publisher = None
 if use_multiverse:
     try:
         from pycram.worlds.multiverse import Multiverse
+
         world = Multiverse()
     except ImportError:
         raise ImportError("Multiverse is not installed, please install it to use it.")
 else:
     from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
+
     world = BulletWorld()
     viz_marker_publisher = VizMarkerPublisher()
-    
+
 apartment = Object("apartment", Apartment, "apartment.urdf")
-pr2 = Object("pr2", Robot, "pr2.urdf", pose=Pose([1, 2, 0]))
+pr2 = Object("pr2", Robot, "pr2.urdf", pose=PoseStamped.from_list([1, 2, 0]))
 ```
 
 Next up we will create the location designator description, the {meth}`~pycram.designators.location_designator.CostmapLocation` that we will be using needs a

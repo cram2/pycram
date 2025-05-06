@@ -7,8 +7,9 @@ from typing_extensions import List, Tuple, Dict
 
 from ..failures import IKError
 from ..world_concepts.world_object import Object
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..config.ik_conf import PinocchioConfig
+
 
 def create_joint_configuration(robot: Object, model) -> np.ndarray[float]:
     """
@@ -33,8 +34,7 @@ def create_joint_configuration(robot: Object, model) -> np.ndarray[float]:
     return np.array(configuration)
 
 
-
-def compute_ik(target_link: str, target_pose: Pose, robot: Object) -> Dict[str, float]:
+def compute_ik(target_link: str, target_pose: PoseStamped, robot: Object) -> Dict[str, float]:
     """
     Compute the inverse kinematics for a given target link and pose.
 
@@ -50,10 +50,9 @@ def compute_ik(target_link: str, target_pose: Pose, robot: Object) -> Dict[str, 
 
     JOINT_ID = model.frames[model.getFrameId(target_link)].parent
     # Object to destination transformation
-    oMdes = pinocchio.XYZQUATToSE3(np.array(target_pose.position_as_list() + target_pose.orientation_as_list()))
+    oMdes = pinocchio.XYZQUATToSE3(np.array(target_pose.position.to_list() + target_pose.orientation.to_list()))
 
     # Initial joint configuration
-    # q = pinocchio.neutral(model)
     # The configuration vector for all joints of the robot, created from the current joint states of the robot
     q = create_joint_configuration(robot, model)
     eps = PinocchioConfig.error_threshold
@@ -61,13 +60,13 @@ def compute_ik(target_link: str, target_pose: Pose, robot: Object) -> Dict[str, 
     DT = PinocchioConfig.time_step
     damp = PinocchioConfig.dampening_factor
 
-    # q, success = inverse_kinematics_translation(model, q, data, JOINT_ID, oMdes, eps, IT_MAX, DT, damp)
     q, success = inverse_kinematics_logarithmic(model, q, data, JOINT_ID, oMdes, eps, IT_MAX, DT, damp)
 
     if success:
         return parse_configuration_vector_to_joint_positions(q, model)
     else:
         raise IKError(pinocchio.SE3ToXYZQUAT(oMdes), robot.tf_frame, target_link)
+
 
 def inverse_kinematics_logarithmic(model, configuration, data, target_joint_id, target_transformation, eps=1e-4,
                                    max_iter=1000, dt=1e-1, damp=1e-12) -> Tuple[np.ndarray[float], bool]:
@@ -144,6 +143,7 @@ def inverse_kinematics_translation(model, configuration, data, target_joint_id, 
 
     return q, success
 
+
 def parse_configuration_vector_to_joint_positions(configuration: np.ndarray[float], model) -> Dict[str, float]:
     """
     Takes the configuration vector from pinocchio and the robot model and returns a dictionary with joint names and
@@ -157,7 +157,7 @@ def parse_configuration_vector_to_joint_positions(configuration: np.ndarray[floa
     for joint in model.joints:
         if joint.idx_q == -1:
             continue
-        if joint.shortname() in ["JointModelRUBX","JointModelRUBY", "JointModelRUBZ"]:
+        if joint.shortname() in ["JointModelRUBX", "JointModelRUBY", "JointModelRUBZ"]:
             # Continuous Joints are represented as sin(theta) and cos(theta) of the joint value, so we use arctan2 to
             # get the joint value
             joint_value = np.arctan2(configuration[joint.idx_q + 1], configuration[joint.idx_q])
@@ -168,7 +168,8 @@ def parse_configuration_vector_to_joint_positions(configuration: np.ndarray[floa
     return result
 
 
-def clip_joints_to_limits(joint_positions: List[float], lower_limits: List[float], upper_limits: List[float]) -> np.ndarray[float]:
+def clip_joints_to_limits(joint_positions: List[float], lower_limits: List[float], upper_limits: List[float]) -> \
+np.ndarray[float]:
     """
     Clip the joint positions to the joint limits.
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from pycram.designators.action_designator import ActionAbstract
+from pycram.designator import ActionDescription
 
 
 class GripperState(Enum):
@@ -19,7 +19,7 @@ class Arms(int, Enum):
     BOTH = 2
 
 @dataclass
-class TestOntomaticPerformable(ActionAbstract):
+class TestOntomaticPerformable(ActionDescription):
     """
     Set the gripper state of the robot.
     """

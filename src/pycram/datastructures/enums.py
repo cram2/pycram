@@ -100,6 +100,8 @@ class TaskStatus(int, Enum):
     RUNNING = 1
     SUCCEEDED = 2
     FAILED = 3
+    INTERRUPTED = 4
+    SLEEPING = 5
 
 
 class JointType(Enum):
@@ -163,16 +165,6 @@ class ObjectType(int, Enum):
     GENERIC_OBJECT = auto()
     HUMAN = auto()
     IMAGINED_SURFACE = auto()
-
-
-class State(int, Enum):
-    """
-    Enumeration which describes the result of a language expression.
-    """
-    SUCCEEDED = 1
-    FAILED = 0
-    RUNNING = 2
-    INTERRUPTED = 3
 
 
 class Shape(Enum):

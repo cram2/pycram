@@ -11,7 +11,7 @@ from ..datastructures.world import World, UseProspectionWorld
 from ..world_concepts.world_object import Object
 from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..robot_description import RobotDescription
 from ..failures import IKError
 from ..external_interfaces.giskard import projection_cartesian_goal, allow_gripper_collision
@@ -28,7 +28,7 @@ except ImportError:
 
 
 
-def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_object: Object,
+def _make_request_msg(root_link: str, tip_link: str, target_pose: PoseStamped, robot_object: Object,
                       joints: List[str]) -> PositionIKRequest:
     """
     Generates an ik request message for the kdl_ik_service. The message is
@@ -65,7 +65,7 @@ def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_ob
     return msg_request
 
 
-def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Object, joints: List[str]) -> List[float]:
+def call_ik(root_link: str, tip_link: str, target_pose: PoseStamped, robot_object: Object, joints: List[str]) -> List[float]:
     """
    Sends a request to the kdl_ik_service and returns the solution.
    Note that the robot in robot_object should be identical to the robot description
@@ -104,9 +104,9 @@ def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Obje
     return resp.solution.joint_state.position
 
 
-def try_to_reach_with_grasp(pose_or_object: Union[Pose, Object],
+def try_to_reach_with_grasp(pose_or_object: Union[PoseStamped, Object],
                             prospection_robot: Object, gripper_name: str,
-                            grasp_quaternion: List[float]) -> Union[Pose, None]:
+                            grasp_quaternion: List[float]) -> Union[PoseStamped, None]:
     """
     Checks if the robot can reach a given position with a specific grasp orientation.
     To determine this the inverse kinematics are calculated and applied.
@@ -124,7 +124,7 @@ def try_to_reach_with_grasp(pose_or_object: Union[Pose, Object],
     return try_to_reach(target_pose, prospection_robot, gripper_name)
 
 
-def apply_grasp_orientation_to_pose(grasp_orientation: List[float], pose: Pose) -> Pose:
+def apply_grasp_orientation_to_pose(grasp_orientation: List[float], pose: PoseStamped) -> PoseStamped:
     """
     Applies the orientation of a grasp to a given pose. This is done by using the grasp orientation
     of the given grasp and applying it to the given pose.
@@ -141,8 +141,8 @@ def apply_grasp_orientation_to_pose(grasp_orientation: List[float], pose: Pose) 
     return target_map
 
 
-def try_to_reach(pose_or_object: Union[Pose, Object], prospection_robot: Object,
-                 gripper_name: str) -> Union[Pose, None]:
+def try_to_reach(pose_or_object: Union[PoseStamped, Object], prospection_robot: Object,
+                 gripper_name: str) -> Union[PoseStamped, None]:
     """
     Tries to reach a given position with a given robot. This is done by calculating the inverse kinematics.
 
@@ -167,7 +167,7 @@ def try_to_reach(pose_or_object: Union[Pose, Object], prospection_robot: Object,
     return input_pose
 
 
-def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str) -> Tuple[Pose, Dict[str, float]]:
+def request_ik(target_pose: PoseStamped, robot: Object, joints: List[str], gripper: str) -> Tuple[PoseStamped, Dict[str, float]]:
     """
     Top-level method to request ik solution for a given pose. This method will check if the giskard node is running
     and if so will call the giskard service. If the giskard node is not running the kdl_ik_service will be called.
@@ -184,7 +184,7 @@ def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str
     return request_giskard_ik(target_pose, robot, gripper)
 
 
-def request_kdl_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str) -> Dict[str, float]:
+def request_kdl_ik(target_pose: PoseStamped, robot: Object, joints: List[str], gripper: str) -> Dict[str, float]:
     """
     Top-level method to request ik solution for a given pose. Before calling the ik service the links directly before
     and after the joint chain will be queried and the target_pose will be transformed into the frame of the root_link.
@@ -205,14 +205,14 @@ def request_kdl_ik(target_pose: Pose, robot: Object, joints: List[str], gripper:
     target_torso = local_transformer.transform_pose(target_pose, robot.get_link_tf_frame(base_link))
 
     wrist_tool_frame_offset = robot.get_transform_between_links(end_effector, gripper)
-    target_diff = target_torso.to_transform("target").inverse_times(wrist_tool_frame_offset).to_pose()
+    target_diff = target_torso.to_transform_stamped("target").inverse_times(wrist_tool_frame_offset).to_pose_stamped()
 
     inv = call_ik(base_link, end_effector, target_diff, robot, joints)
 
     return dict(zip(joints, inv))
 
 
-def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[Pose, Dict[str, float]]:
+def request_giskard_ik(target_pose: PoseStamped, robot: Object, gripper: str) -> Tuple[PoseStamped, Dict[str, float]]:
     """
     Calls giskard in projection mode and queries the ik solution for a full body ik solution. This method will
     try to drive the robot directly to a pose from which the target_pose is reachable for the end effector. If there
@@ -236,7 +236,7 @@ def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[
     prospection_robot = World.current_world.get_prospection_object_for_object(robot)
 
     orientation = list(tf_transformations.quaternion_from_euler(0, 0, joint_states["brumbrum_yaw"], axes="sxyz"))
-    pose = Pose([joint_states["brumbrum_x"], joint_states["brumbrum_y"], 0], orientation)
+    pose = PoseStamped.from_list([joint_states["brumbrum_x"], joint_states["brumbrum_y"], 0], orientation)
 
     robot_joint_states = {}
     for joint_name, state in joint_states.items():
@@ -248,13 +248,13 @@ def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[
         prospection_robot.set_pose(pose)
 
         tip_pose = prospection_robot.get_link_pose(gripper)
-        dist = tip_pose.dist(target_map)
+        dist = tip_pose.position.euclidean_distance(target_map.position)
 
         if dist > 0.01:
             raise IKError(target_pose, "map", gripper)
         return pose, robot_joint_states
 
-def request_pinocchio_ik(target_pose: Pose, robot: Object, target_link: str, joints: List[str]) -> Dict[str, float]:
+def request_pinocchio_ik(target_pose: PoseStamped, robot: Object, target_link: str, joints: List[str]) -> Dict[str, float]:
     """
     Calls the pinocchio ik solver to calculate the ik solution for a given target link and pose.
 
@@ -265,16 +265,16 @@ def request_pinocchio_ik(target_pose: Pose, robot: Object, target_link: str, joi
     :return: A dictionary containing the joint names and joint values
     """
     lt = LocalTransformer()
+    target_pose = lt.transform_pose(target_pose, "map")
     target_pose = lt.transform_pose(target_pose, robot.tf_frame)
 
     # Get link after last joint in chain
     wrist_link = RobotDescription.current_robot_description.get_child(joints[-1])
 
-    # target_torso = lt.transform_pose(target_pose, robot.get_link_tf_frame(base_link))
-
     wrist_tool_frame_offset = robot.get_transform_between_links(wrist_link, target_link)
-    target_diff = target_pose.to_transform("target").inverse_times(wrist_tool_frame_offset).to_pose()
+    target_diff = target_pose.to_transform_stamped("target").inverse_times(wrist_tool_frame_offset).to_pose_stamped()
     target_diff.round()
+
 
     res = compute_ik(wrist_link, target_diff, robot)
 

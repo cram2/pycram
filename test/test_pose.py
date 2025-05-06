@@ -1,77 +1,85 @@
 import unittest
 
-from pycram.datastructures.pose import Pose, Transform
+from pycram.datastructures.pose import PoseStamped, TransformStamped, Quaternion, Vector3
 
 
 class TestPose(unittest.TestCase):
 
     def test_pose_creation(self):
-        p = Pose([1, 2, 3], [0, 0, 0, 1], "test")
+        p = PoseStamped.from_list([1, 2, 3], [0, 0, 0, 1], "test")
 
-        self.assertEqual(p.position_as_list(), [1, 2, 3])
-        self.assertEqual(p.orientation_as_list(), [0, 0, 0, 1])
-        self.assertEqual(p.frame, "test")
-        self.assertEqual(p.to_list(), [[1, 2, 3], [0, 0, 0, 1]])
+        self.assertEqual(p.position.to_list(), [1, 2, 3])
+        self.assertEqual(p.orientation.to_list(), [0, 0, 0, 1])
+        self.assertEqual(p.frame_id, "test")
+        self.assertEqual(p.pose.to_list(), [[1, 2, 3], [0, 0, 0, 1]])
 
     def test_pose_to_transform(self):
-        p = Pose([3, 2, 1], [0, 0, 1, 0], "map")
+        p = PoseStamped.from_list([3, 2, 1], [0, 0, 1, 0], "map")
 
-        transform = p.to_transform("test_frame")
+        transform = p.to_transform_stamped("test_frame")
 
-        self.assertEqual(transform, Transform([3, 2, 1], [0, 0, 1, 0], "map", "test_frame"))
+        self.assertEqual(transform, TransformStamped.from_list([3, 2, 1], [0, 0, 1, 0], "map", "test_frame"))
 
     def test_pose_edit(self):
-        p = Pose([3, 4, 5], [0, 1, 0, 0], "map")
+        p = PoseStamped.from_list([3, 4, 5], [0, 1, 0, 0], "map")
 
-        p.position = [1, 1, 1]
-        self.assertEqual(p.position_as_list(), [1, 1, 1])
+        p.position = Vector3(1, 1, 1)
+        self.assertEqual(p.position.to_list(), [1, 1, 1])
         p.position.x = 2
-        self.assertEqual(p.position_as_list(), [2, 1, 1])
-        p.set_position([3, 3, 3])
-        self.assertEqual(p.position_as_list(), [3, 3, 3])
+        self.assertEqual(p.position.to_list(), [2, 1, 1])
+        p.position = Vector3( 3, 3, 3)
+        self.assertEqual(p.position.to_list(), [3, 3, 3])
 
-        p.orientation = [0, 0, 0, 1]
-        self.assertEqual(p.orientation_as_list(), [0, 0, 0, 1])
+        p.orientation = Quaternion(0,0,0,1)
+        self.assertEqual(p.orientation.to_list(), [0, 0, 0, 1])
         p.orientation.x = 1
-        self.assertEqual(p.orientation_as_list(), [1, 0, 0, 1])
-        p.set_orientation([0, 0, 1, 0])
-        self.assertEqual(p.orientation_as_list(), [0, 0, 1, 0])
+        self.assertEqual(p.orientation.to_list(), [1, 0, 0, 1])
+        p.orientation = Quaternion(0, 0, 1, 0)
+        self.assertEqual(p.orientation.to_list(), [0, 0, 1, 0])
 
     def test_pose_copy(self):
-        p1 = Pose([1, 2, 3], [0, 0, 0, 1], "map")
+        p1 = PoseStamped.from_list([1, 2, 3], [0, 0, 0, 1], "map")
         p2 = p1.copy()
 
         self.assertEqual(p1, p2)
         self.assertFalse(p1 is p2)
 
     def test_transform_creation(self):
-        t = Transform([1, 2, 3], [0, 0, 0, 1], "map", "test_frame")
+        t = TransformStamped.from_list([1, 2, 3], [0, 0, 0, 1], "map", "test_frame")
 
-        self.assertEqual(t.translation_as_list(), [1, 2, 3])
-        self.assertEqual(t.rotation_as_list(), [0, 0, 0, 1])
-        self.assertEqual(t.frame, "map")
+        self.assertEqual(t.translation.to_list(), [1, 2, 3])
+        self.assertEqual(t.rotation.to_list(), [0, 0, 0, 1])
+        self.assertEqual(t.frame_id, "map")
         self.assertEqual(t.child_frame_id, "test_frame")
 
     def test_transform_edit(self):
-        t = Transform([3, 2, 1], [0, 1, 0, 0], "map", "test_frame")
+        t = TransformStamped.from_list([3, 2, 1], [0, 1, 0, 0], "map", "test_frame")
 
-        t.translation = [2, 2, 2]
-        self.assertEqual(t.translation_as_list(), [2, 2, 2])
+        t.translation = Vector3(2, 2, 2)
+        self.assertEqual(t.translation.to_list(), [2, 2, 2])
         t.translation.x = 3
-        self.assertEqual(t.translation_as_list(), [3, 2, 2])
-        t.set_translation([1, 1, 1])
-        self.assertEqual(t.translation_as_list(), [1, 1, 1])
+        self.assertEqual(t.translation.to_list(), [3, 2, 2])
+        t.translation = Vector3(1, 1, 1)
+        self.assertEqual(t.translation.to_list(), [1, 1, 1])
 
-        t.rotation = [1, 0, 0, 0]
-        self.assertEqual(t.rotation_as_list(), [1, 0, 0, 0])
+        t.rotation = Quaternion(1, 0, 0, 0)
+        self.assertEqual(t.rotation.to_list(), [1, 0, 0, 0])
         t.rotation.y = 1
-        self.assertEqual(t.rotation_as_list(), [1, 1, 0, 0])
-        t.set_rotation([0, 0, 0, 1])
-        self.assertEqual(t.rotation_as_list(), [0, 0, 0, 1])
+        self.assertEqual(t.rotation.to_list(), [1, 1, 0, 0])
+        t.rotation = Quaternion(0, 0, 0, 1)
+        self.assertEqual(t.rotation.to_list(), [0, 0, 0, 1])
 
     def test_transform_copy(self):
-        t = Transform([1, 1, 1], [0, 0, 0, 1], "map", "test_frame")
+        t = TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], "map", "test_frame")
 
         t_copy = t.copy()
         self.assertEqual(t, t_copy)
         self.assertFalse(t is t_copy)
+
+    def test_transform_multiplication(self):
+        t = TransformStamped.from_list([1, 2, 3], [0, 0, 0, 1], "map", "test_frame")
+        t2 = TransformStamped.from_list([3, 2, 1], [0, 0, 0, 1], "test_frame", "final_frame")
+
+        mul_t = t * t2
+
+        self.assertEqual(mul_t.translation.to_list(), [4, 4, 4])

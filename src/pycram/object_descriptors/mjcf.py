@@ -11,7 +11,7 @@ from typing_extensions import Union, List, Optional, Dict, Tuple, Self
 from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
     SphereVisualShape, MeshVisualShape, VisualShapeUnion
 from ..datastructures.enums import JointType, MJCFGeomType, MJCFJointType, Shape
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription, ObjectDescription
 from ..failures import MultiplePossibleTipLinks
@@ -87,7 +87,7 @@ class LinkDescription(AbstractLinkDescription):
                     return files[0]
 
     @property
-    def origin(self) -> Union[Pose, None]:
+    def origin(self) -> Union[PoseStamped, None]:
         """
         :return: The origin of this link.
         """
@@ -118,7 +118,7 @@ class JointDescription(AbstractJointDescription):
         super().__init__(mjcf_description, is_virtual=is_virtual)
 
     @property
-    def origin(self) -> Pose:
+    def origin(self) -> PoseStamped:
         return parse_pose_from_body_element(self.parsed_description)
 
     @property
@@ -362,7 +362,7 @@ class ObjectDescription(AbstractObjectDescription):
                           joint_type: JointType = JointType.FIXED,
                           axis: Optional[Point] = None,
                           lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
-                          child_pose_wrt_parent: Optional[Pose] = None,
+                          child_pose_wrt_parent: Optional[PoseStamped] = None,
                           in_place: bool = False,
                           new_description_file: Optional[str] = None) -> Union[ObjectDescription, Self]:
         raise NotImplementedError
@@ -435,7 +435,7 @@ class ObjectDescription(AbstractObjectDescription):
         return self._joint_map
 
     def add_joint(self, name: str, child: str, joint_type: JointType,
-                  axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
+                  axis: Point, parent: Optional[str] = None, origin: Optional[PoseStamped] = None,
                   lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
                   is_virtual: Optional[bool] = False) -> None:
         """
@@ -450,8 +450,8 @@ class ObjectDescription(AbstractObjectDescription):
         limit = [lower_limit, upper_limit]
 
         if origin is not None:
-            position = origin.position_as_list()
-            quaternion = origin.orientation_as_list()
+            position = origin.position.to_list()
+            quaternion = origin.orientation.to_list()
             quaternion = [quaternion[1], quaternion[2], quaternion[3], quaternion[0]]
         if axis is not None:
             axis = [axis.x, axis.y, axis.z]
@@ -587,7 +587,7 @@ class ObjectDescription(AbstractObjectDescription):
         return '.xml'
 
     @property
-    def origin(self) -> Pose:
+    def origin(self) -> PoseStamped:
         return parse_pose_from_body_element(self.parsed_description)
 
     @property
@@ -595,7 +595,7 @@ class ObjectDescription(AbstractObjectDescription):
         return self.parsed_description.name
 
 
-def parse_pose_from_body_element(body: mjcf.Element) -> Pose:
+def parse_pose_from_body_element(body: mjcf.Element) -> PoseStamped:
     """
     Parse the pose from a body element.
 
@@ -607,4 +607,4 @@ def parse_pose_from_body_element(body: mjcf.Element) -> Pose:
     position = [0, 0, 0] if position is None else position
     quaternion = [1, 0, 0, 0] if quaternion is None else quaternion
     quaternion = [quaternion[1], quaternion[2], quaternion[3], quaternion[0]]
-    return Pose(position, quaternion)
+    return PoseStamped(position, quaternion)

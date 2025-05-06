@@ -14,7 +14,7 @@ class DescriptionTest(BulletWorldTestCase):
 
     def test_orientation_as_list(self):
         base_link = self.robot.links["base_link"]
-        self.assertEqual(base_link.orientation_as_list, base_link.pose.orientation_as_list())
+        self.assertEqual(base_link.orientation.to_list(), base_link.pose.orientation.to_list())
 
     def test_pose_as_list(self):
         base_link = self.robot.links["base_link"]

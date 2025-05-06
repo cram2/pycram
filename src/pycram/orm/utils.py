@@ -1,6 +1,9 @@
 import traceback
 import sqlalchemy
-from .base import Base
+try:
+    from .ormatic_interface import mapper_registry
+except ImportError:
+    pass
 from ..designators.object_designator import *
 import json
 
@@ -20,7 +23,7 @@ def write_database_to_file(in_sessionmaker: sqlalchemy.orm.sessionmaker, filenam
     with in_sessionmaker() as session:
         with open("whatever.txt", "w") as f:
             to_json_dict = dict()
-            for table in Base.metadata.sorted_tables:
+            for table in mapper_registry.metadata.sorted_tables:
                 list_of_row = list()
                 for column_object in session.query(table).all():
                     list_of_row.append(column_object)
@@ -36,7 +39,7 @@ def print_database(in_sessionmaker: sqlalchemy.orm.sessionmaker):
     :param in_sessionmaker: Database Session which should be printed
     """
     with in_sessionmaker() as session:
-        for table in Base.metadata.sorted_tables:
+        for table in mapper_registry.metadata.sorted_tables:
             try:
                 smt = sqlalchemy.select('*').select_from(table)
                 result = session.execute(smt).all()
@@ -59,7 +62,7 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
     """
     destination_session = destination_session_maker()
     source_session = source_session_maker()
-    sortedTables = Base.metadata.sorted_tables
+    sortedTables = mapper_registry.metadata.sorted_tables
     for table in sortedTables:
         try:
             list_of_primary_keys_of_this_table = table.primary_key.columns.values()
@@ -111,7 +114,7 @@ def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
     """
 
     with source_session_maker() as source_session, destination_session_maker() as destination_session:
-        sorted_tables = Base.metadata.sorted_tables
+        sorted_tables = mapper_registry.metadata.sorted_tables
         for table in sorted_tables:
             for value in source_session.query(table).all():
                 insert_statement = sqlalchemy.insert(table).values(value)
@@ -131,7 +134,7 @@ def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
     :return: empty
     """
     with session_maker() as session:
-        for table in Base.metadata.sorted_tables:
+        for table in mapper_registry.metadata.sorted_tables:
             try:
                 foreign_key_statement = sqlalchemy.text(
                     "SELECT con.oid, con.conname, con.contype, con.confupdtype, con.confdeltype, con.confmatchtype, pg_get_constraintdef(con.oid) FROM pg_catalog.pg_constraint con INNER JOIN pg_catalog.pg_class rel ON rel.oid = con.conrelid INNER JOIN pg_catalog.pg_namespace nsp ON nsp.oid = connamespace WHERE rel.relname = '{}';".format(

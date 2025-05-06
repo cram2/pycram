@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from random_events.interval import SimpleInterval
 from random_events.product_algebra import SimpleEvent
 
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.dataclasses import BoundingBox
 from pycram.failures import PlanFailure
 from pycram.graph_of_convex_sets import GraphOfConvexSets, PoseOccupiedError
@@ -74,8 +74,8 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
         self.assertGreater(len(gcs.nodes), 0)
         self.assertGreater(len(gcs.edges), 0)
 
-        start = Pose([-0.9, -0.9, 0.4])
-        target = Pose([-0.9, 0.9, 0.9])
+        start = PoseStamped.from_list([-0.9, -0.9, 0.4])
+        target = PoseStamped.from_list([-0.9, 0.9, 0.9])
 
         path = gcs.path_from_to(start, target)
 
@@ -86,8 +86,8 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
         self.assertGreater(len(path), 1)
 
         with self.assertRaises(PoseOccupiedError):
-            start = Pose([-10, -10, -10])
-            target = Pose([10, 10, 10])
+            start = PoseStamped.from_list([-10, -10, -10])
+            target = PoseStamped.from_list([10, 10, 10])
             gcs.path_from_to(start, target)
 
     def test_navigation_map_from_world(self):

@@ -8,7 +8,7 @@ from ....costmaps import Rectangle, OccupancyCostmap
 from ....designator import LocationDesignatorDescription
 from ....designators.location_designator import CostmapLocation
 from ....orm.views import PickUpWithContextView
-from ....datastructures.pose import Pose
+from ....datastructures.pose import PoseStamped
 
 
 @dataclass
@@ -16,7 +16,7 @@ class Location(LocationDesignatorDescription.Location):
     """
     A location that is described by a pose, a reachable arm, a torso height and a grasp.
     """
-    pose: Pose
+    pose: PoseStamped
     reachable_arm: str
     torso_height: float
     grasp: str
@@ -104,11 +104,11 @@ class DatabaseCostmapLocation(AbstractCostmapLocation):
         :return: The costmap location
         """
 
-        target_x, target_y, target_z = self.target.pose.position_as_list()
+        target_x, target_y, target_z = self.target.pose.position.to_list()
         position = [target_x + sample[3], target_y + sample[4], 0]
         orientation = [sample[5], sample[6], sample[7], sample[8]]
 
-        result = Location(Pose(position, orientation), sample.arm, sample.torso_height, sample.grasp)
+        result = Location(PoseStamped(position, orientation), sample.arm, sample.torso_height, sample.grasp)
         return result
 
     def __iter__(self) -> Location:

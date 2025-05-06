@@ -8,7 +8,7 @@ from pycram.validation.error_checkers import calculate_angle_between_quaternions
     PoseErrorChecker, PositionErrorChecker, OrientationErrorChecker, RevoluteJointPositionErrorChecker, \
     PrismaticJointPositionErrorChecker, MultiJointPositionErrorChecker
 
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 
 
 class TestErrorCheckers(TestCase):
@@ -33,23 +33,23 @@ class TestErrorCheckers(TestCase):
         self.assertEqual(error, np.pi/2)
 
     def test_pose_error_checker(self):
-        pose_1 = Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0])
-        pose_2 = Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0])
+        pose_1 = PoseStamped.from_list([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0])
+        pose_2 = PoseStamped.from_list([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0])
         error_checker = PoseErrorChecker()
         error = error_checker.calculate_error(pose_1, pose_2)
         self.assertEqual(error, [0.0, 0.0])
         self.assertTrue(error_checker.is_error_acceptable(pose_1, pose_2))
         quat = quaternion_from_euler(0, np.pi/2, 0)
-        pose_2 = Pose([0, 1, np.sqrt(3)], quat)
+        pose_2 = PoseStamped.from_list([0, 1, np.sqrt(3)], quat)
         error = error_checker.calculate_error(pose_1, pose_2)
         self.assertAlmostEqual(error[0], 2, places=5)
         self.assertEqual(error[1], np.pi/2)
         self.assertFalse(error_checker.is_error_acceptable(pose_1, pose_2))
         quat = quaternion_from_euler(0, 0, np.pi/360)
-        pose_2 = Pose([0, 0.0001, 0.0001], quat)
+        pose_2 = PoseStamped.from_list([0, 0.0001, 0.0001], quat)
         self.assertTrue(error_checker.is_error_acceptable(pose_1, pose_2))
         quat = quaternion_from_euler(0, 0, np.pi / 179)
-        pose_2 = Pose([0, 0.0001, 0.0001], quat)
+        pose_2 = PoseStamped.from_list([0, 0.0001, 0.0001], quat)
         self.assertFalse(error_checker.is_error_acceptable(pose_1, pose_2))
 
     def test_position_error_checker(self):
@@ -101,17 +101,17 @@ class TestErrorCheckers(TestCase):
         self.assertFalse(error_checker.is_error_acceptable(position_1, position_2))
 
     def test_list_of_poses_error_checker(self):
-        poses_1 = [Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]),
-                   Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0])]
-        poses_2 = [Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]),
-                     Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0])]
+        poses_1 = [PoseStamped.from_list([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]),
+                   PoseStamped.from_list([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0])]
+        poses_2 = [PoseStamped.from_list([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]),
+                   PoseStamped.from_list([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0])]
         error_checker = PoseErrorChecker(is_iterable=True)
         error = error_checker.calculate_error(poses_1, poses_2)
         self.assertEqual(error, [[0.0, 0.0], [0.0, 0.0]])
         self.assertTrue(error_checker.is_error_acceptable(poses_1, poses_2))
         quat = quaternion_from_euler(0, np.pi/2, 0)
-        poses_2 = [Pose([0, 1, np.sqrt(3)], quat),
-                   Pose([0, 1, np.sqrt(3)], quat)]
+        poses_2 = [PoseStamped.from_list([0, 1, np.sqrt(3)], quat),
+                   PoseStamped.from_list([0, 1, np.sqrt(3)], quat)]
         error = error_checker.calculate_error(poses_1, poses_2)
         self.assertAlmostEqual(error[0][0], 2, places=5)
         self.assertEqual(error[0][1], np.pi/2)

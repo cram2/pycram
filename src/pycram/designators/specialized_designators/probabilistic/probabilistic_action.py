@@ -15,15 +15,15 @@ from sortedcontainers import SortedSet
 from sqlalchemy import select
 from typing_extensions import Optional, List, Iterator
 
-from ...action_designator import MoveAndPickUpAction, ActionAbstract, MoveAndPlaceAction
+from ...action_designator import MoveAndPickUpAction, MoveAndPlaceAction
 from ....costmaps import OccupancyCostmap, VisibilityCostmap
 from ....datastructures.enums import Arms as EArms, Grasp as EGrasp, TaskStatus
-from ....datastructures.pose import Pose
+from ....datastructures.pose import PoseStamped
 from ....datastructures.world import World
 from ....designator import ObjectDesignatorDescription, ActionDescription
 from ....failures import ObjectUnreachable, PlanFailure
 from ....local_transformer import LocalTransformer
-from ....orm.views import PickUpWithContextView, PlaceWithContextView
+# from ....orm.views import PickUpWithContextView, PlaceWithContextView
 from ....world_concepts.world_object import Object
 
 
@@ -73,7 +73,7 @@ class ProbabilisticAction:
             policy = self.default_policy()
         self.policy = policy
 
-    def sample_to_action(self, sample: List) -> ActionAbstract:
+    def sample_to_action(self, sample: List) -> ActionDescription:
         """
         Convert a sample from the policy to a performable action.
 
@@ -146,7 +146,7 @@ class MoveAndPickUp(ActionDescription, ProbabilisticAction):
     def sample_to_action(self, sample: List) -> MoveAndPickUpAction:
         arm, grasp, relative_x, relative_y = sample
         position = [relative_x, relative_y, 0.]
-        pose = Pose(position, frame=self.object_designator.tf_frame)
+        pose = PoseStamped(position, frame_id=self.object_designator.tf_frame)
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
         action = MoveAndPickUpAction(standing_position, self.object_designator, EArms[Arms(int(arm)).name],
@@ -288,7 +288,7 @@ class MoveAndPlace(ActionDescription, ProbabilisticAction):
     The object designator that should be picked up.
     """
 
-    target_location: Pose
+    target_location: PoseStamped
     """
     The position to place the object.
     """
@@ -299,7 +299,7 @@ class MoveAndPlace(ActionDescription, ProbabilisticAction):
     """
 
     def __init__(self, object_designator: Object,
-                 target_location: Pose, policy: Optional[ProbabilisticCircuit] = None):
+                 target_location: PoseStamped, policy: Optional[ProbabilisticCircuit] = None):
         ProbabilisticAction.__init__(self, policy)
         self.object_designator = object_designator
         self.target_location = target_location
@@ -307,7 +307,7 @@ class MoveAndPlace(ActionDescription, ProbabilisticAction):
     def sample_to_action(self, sample: List) -> MoveAndPlaceAction:
         relative_x, relative_y = sample
         position = [relative_x + self.target_location.position.x, relative_y + self.target_location.position.y, 0.]
-        pose = Pose(position, frame=self.target_location.frame)
+        pose = PoseStamped(position, frame_id=self.target_location.frame_id)
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
         action = MoveAndPlaceAction(standing_position, self.object_designator,
