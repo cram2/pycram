@@ -16,7 +16,7 @@ from ..designators.action_designator import MoveTorsoAction, SetGripperAction, R
     GripAction as GripActionDesignator, ParkArmsAction, PickUpAction as PickUpActionDesignator, \
     PlaceAction as PlaceActionDesignator, NavigateAction, TransportAction as TransportActionDesignator, LookAtAction, \
     DetectAction as DetectActionDesignator, OpenAction, CloseAction, GraspingAction as GraspingActionDesignator, \
-    FaceAtAction, ActionDescription, ReachToPickUpAction as ReachToPickUpActionDesignator
+    FaceAtAction, ActionDescription, ReachToPickUpAction as ReachToPickUpActionDesignator, SearchAction as SearchActionDesignator
 from pycram.plan import ActionNode, MotionNode, ResolvedActionNode
 
 
@@ -174,13 +174,13 @@ class MoveAndPickUpAction(ActionDescription, ORMaticExplicitMapping):
 
 # specify custom type mappings
 type_mappings ={
-    PhysicalObject: StringType()
+    PhysicalObject: StringType(),
 }
 
 
 # List of all classes that are self-mapped. ADD NEW DESIGNATORS HERE!
 self_mapped_classes = [TaskTreeNode, ActionDescription, MoveTorsoAction, SetGripperAction, ParkArmsAction,
-                       NavigateAction, LookAtAction, OpenAction, CloseAction, FaceAtAction]
+                       NavigateAction, LookAtAction, OpenAction, CloseAction, FaceAtAction, SearchActionDesignator]
 
 # List of all classes that are explicitly mapped above. ADD NEW DESIGNATORS HERE!
 explicitly_mapped_classes = [DetectAction, GraspingAction, ReleaseAction, GripAction, FrozenObject,

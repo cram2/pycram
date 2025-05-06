@@ -28,8 +28,8 @@ class Plan(nx.DiGraph):
     """
     current_plan: Plan = None
 
-    on_start_callback: Optional[Type[Action], Callable] = None
-    on_end_callback: Optional[Type[Action], Callable] = None
+    on_start_callback: Dict[Type[ActionDescription], List[Callable]] = field(default_factory=dict)
+    on_end_callback: Dict[Type[ActionDescription], List[Callable]] = field(default_factory=dict)
 
     def __init__(self, root: PlanNode):
         super().__init__()
@@ -191,6 +191,55 @@ class Plan(nx.DiGraph):
         plt.axis('off')  # Hide axes
         plt.show()
 
+    def add_on_start_callback(self, callback: Callable[[ResolvedActionNode], None],
+                              action_type: Type[ActionDescription]):
+        """
+        Adds a callback to be called when an action of the given type is started.
+
+        :param callback: The callback to be called
+        :param action_type: The type of the action
+        """
+        if not self.on_start_callback:
+            self.on_start_callback = {}
+        if action_type not in self.on_start_callback:
+            self.on_start_callback[action_type] = []
+        self.on_start_callback[action_type].append(callback)
+
+    def add_on_end_callback(self, callback: Callable[[ResolvedActionNode], None], action_type: Type[ActionDescription]):
+        """
+        Adds a callback to be called when an action of the given type is ended.
+
+        :param callback: The callback to be called
+        :param action_type: The type of the action
+        """
+        if not self.on_end_callback:
+            self.on_end_callback = {}
+        if action_type not in self.on_end_callback:
+            self.on_end_callback[action_type] = []
+        self.on_end_callback[action_type].append(callback)
+
+    def remove_on_start_callback(self, callback: Callable[[ResolvedActionNode], None],
+                                 action_type: Type[ActionDescription]):
+        """
+        Removes a callback to be called when an action of the given type is started.
+
+        :param callback: The callback to be removed
+        :param action_type: The type of the action
+        """
+        if self.on_start_callback and action_type in self.on_start_callback:
+            self.on_start_callback[action_type].remove(callback)
+
+    def remove_on_end_callback(self, callback: Callable[[ResolvedActionNode], None],
+                               action_type: Type[ActionDescription]):
+        """
+        Removes a callback to be called when an action of the given type is ended.
+
+        :param callback: The callback to be removed
+        :param action_type: The type of the action
+        """
+        if self.on_end_callback and action_type in self.on_end_callback:
+            self.on_end_callback[action_type].remove(callback)
+
 
 def managed_node(func: Callable) -> Callable:
     """
@@ -203,6 +252,12 @@ def managed_node(func: Callable) -> Callable:
     def wrapper(node: DesignatorNode) -> Any:
         node.status = TaskStatus.RUNNING
         node.start_time = datetime.now()
+        on_start_callbacks = (node.plan.on_start_callback.get(node.action, []) +
+                              node.plan.on_start_callback.get(ActionDescription, []))
+        on_end_callbacks = (node.plan.on_end_callback.get(node.action, []) +
+                            node.plan.on_end_callback.get(ActionDescription, []))
+        for call_back in on_start_callbacks:
+            call_back(node)
         result = None
         try:
             node.plan.current_node = node
@@ -216,7 +271,9 @@ def managed_node(func: Callable) -> Callable:
         finally:
             node.end_time = datetime.now()
             node.plan.current_node = node.parent
-        return result
+            for call_back in on_end_callbacks:
+                call_back(node)
+            return result
 
     return wrapper
 

@@ -761,7 +761,7 @@ class DetectAction(ActionDescription):
         super().__post_init__()
 
         # Store the object's data copy at execution
-        # self.pre_perform(record_object_pre_perform)
+        self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
         return try_action(DetectingMotion(technique=self.technique, state=self.state,

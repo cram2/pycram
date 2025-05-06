@@ -16,7 +16,7 @@ from datetime import timedelta
 import numpy as np
 import sqlalchemy.orm
 
-from pycrap import Robot, Milk
+from pycrap.ontologies import Robot, Milk
 
 import pycram.orm.base
 from pycram.designators.object_designator import ObjectDesignatorDescription
