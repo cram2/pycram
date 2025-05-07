@@ -82,9 +82,9 @@ class LocalTransformer(TransformManager):
 
         source_frame = pose.header.frame_id
 
-        wxyz = self.xyzw_to_wxyz(pose.orientation)
+        wxyz = self.xyzw_to_wxyz(pose.orientation.to_list())
 
-        pose_matrix = transform_from_pq(np.hstack((np.array(pose.pose.position),
+        pose_matrix = transform_from_pq(np.hstack((np.array(pose.pose.position.to_list()),
                                                    np.array(wxyz))))
 
         transform_matrix = self.get_transform(target_frame, source_frame)

@@ -60,8 +60,9 @@ class WorldStateUpdater:
                 continue
             else:
                 tf_frame = obj.tf_frame
+
             trans, rot = self.tf_listener.lookupTransform("/map", tf_frame, Time(0))
-            obj.set_pose(PoseStamped(Pose(trans, rot)))
+            obj.set_pose(PoseStamped.from_list(trans, rot))
 
     def _subscribe_joint_state(self, msg: JointState) -> None:
         """
