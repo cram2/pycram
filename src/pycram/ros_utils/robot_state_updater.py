@@ -9,7 +9,7 @@ from typing_extensions import Optional
 
 from ..datastructures.world import World
 from ..robot_description import RobotDescription
-from ..datastructures.pose import PoseStamped, Pose
+from ..datastructures.pose import PoseStamped
 from ..ros import  Time, Duration
 from ..ros import  wait_for_message, create_timer
 
