@@ -31,14 +31,14 @@ A BulletWorld can be created by simply creating an object of the BulletWorld cla
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycrap.ontologies import Milk, Cereal, Robot, Kitchen
 
 world = BulletWorld(mode=WorldMode.DIRECT)
 
 milk = Object("milk", Milk, "milk.stl")
 pr2 = Object("pr2", Robot, "pr2.urdf")
-cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
+cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=PoseStamped.from_list([1.4, 1, 0.95]))
 ```
 
 The BulletWorld allows to render images from arbitrary positions. In the following example we render images with the
@@ -233,7 +233,7 @@ function contains a "with" scope which executes something on the simulated robot
 from pycram.designators.motion_designator import *
 from pycram.process_module import simulated_robot, with_simulated_robot
 
-description = MoveMotion(target=Pose([1, 0, 0], [0, 0, 0, 1]))
+description = MoveMotion(target=PoseStamped.from_list([1, 0, 0], [0, 0, 0, 1]))
 
 with simulated_robot:
     description.perform()
@@ -410,8 +410,8 @@ print(*navigations, sep="\n")
 navigations = (session.scalars(
     select(pycram.orm.action_designator.NavigateAction, pycram.orm.base.Position, pycram.orm.base.Quaternion).
     join(pycram.orm.action_designator.NavigateAction.pose).
-    join(pycram.orm.base.Pose.position).
-    join(pycram.orm.base.Pose.orientation)).all())
+    join(pycram.orm.base.PoseStamped.position).
+    join(pycram.orm.base.PoseStamped.orientation)).all())
 print(*navigations, sep="\n")
 ```
 

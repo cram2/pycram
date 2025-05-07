@@ -8,7 +8,7 @@ from owlready2 import Thing
 from ...action_designator import PickUpAction, PickUpAction
 from ....local_transformer import LocalTransformer
 from ....datastructures.world import World
-from ....datastructures.pose import Pose, Transform
+from ....datastructures.pose import PoseStamped, TransformStamped
 from ....datastructures.enums import Arms, Grasp
 from ....robot_description import RobotDescription, KinematicChainDescription
 from ....designator import ObjectDesignatorDescription
@@ -55,14 +55,14 @@ class DualArmPickupAction(PickUpAction):
 
         local_transformer = LocalTransformer()
 
-        object_pose: Pose = obj_desig.world_object.pose
+        object_pose: PoseStamped = obj_desig.world_object.pose
         distances = []
         # Iterate over possible grippers
         for gripper in self.gripper_list:
             # Object pose in gripper frame
             gripper_frame = World.robot.get_link_tf_frame(gripper.get_tool_frame())
 
-            object_T_gripper: Pose = local_transformer.transform_pose(object_pose, gripper_frame)
+            object_T_gripper: PoseStamped = local_transformer.transform_pose(object_pose, gripper_frame)
             object_V_gripper: Vector3 = object_T_gripper.pose.position  # translation vector
             distance = norm(array([object_V_gripper.x, object_V_gripper.y, object_V_gripper.z]))
             loginfo(f"Distance between {gripper} and {obj_desig.name}: {distance}")

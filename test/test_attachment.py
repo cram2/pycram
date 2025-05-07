@@ -2,7 +2,7 @@ import time
 
 from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.enums import ObjectType
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.world import UseProspectionWorld
 from pycram.world_concepts.world_object import Object
 from pycrap.ontologies import Milk, Cereal
@@ -61,9 +61,9 @@ class TestAttachment(BulletWorldTestCase):
         self.assertEqual(new_milk_pos.x, milk_pos.x)
 
     def test_prospection_object_attachments_not_changed_with_real_object(self):
-        milk_2 = Object("milk_2", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        milk_2 = Object("milk_2", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
         cereal_2 = Object("cereal_2", Cereal, "breakfast_cereal.stl",
-                        pose=Pose([1.3, 0.7, 0.95]))
+                          pose=PoseStamped.from_list([1.3, 0.7, 0.95]))
         time.sleep(0.05)
         milk_2.attach(cereal_2)
         time.sleep(0.05)

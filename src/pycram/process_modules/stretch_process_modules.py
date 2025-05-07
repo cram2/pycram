@@ -1,4 +1,5 @@
 from .default_process_modules import *
+from ..datastructures.enums import JointType
 from ..datastructures.world import World
 from ..designators.motion_designator import *
 from ..external_interfaces.ik import request_giskard_ik

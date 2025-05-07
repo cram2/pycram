@@ -5,7 +5,7 @@ on:
       - master
       - dev
     paths:
-      - 'requirements.txt' 
+      - 'requirements.txt'
 # only run when a commit has changes in the requirements.txt file
 
 jobs:
@@ -26,6 +26,6 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: ./docker
+          context: ./docker/ros2
           push: true
-          tags: ${{ vars.DOCKER_IMAGE }}
+          tags: pycram/pycram:jazzy

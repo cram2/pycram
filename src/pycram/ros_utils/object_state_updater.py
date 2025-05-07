@@ -6,7 +6,7 @@ from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
 from ..datastructures.world import World
 from ..robot_description import RobotDescription
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..ros import  Time, Duration, sleep
 from ..ros import  wait_for_message, create_timer
 
@@ -48,7 +48,7 @@ class RobotStateUpdater:
         """
         self.tf_listener.waitForTransform("map", RobotDescription.current_robot_description.base_link, Time(0.0), Duration(5))
         trans, rot = self.tf_listener.lookupTransform("map", RobotDescription.current_robot_description.base_link, Time(0.0))
-        World.robot.set_pose(Pose(trans, rot))
+        World.robot.set_pose(PoseStamped(trans, rot))
 
     def _subscribe_joint_state(self, msg: JointState) -> None:
         """

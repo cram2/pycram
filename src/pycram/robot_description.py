@@ -13,7 +13,7 @@ from typing_extensions import List, Dict, Union, Optional, Tuple, TYPE_CHECKING
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, Rotations
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState
-from .datastructures.pose import GraspDescription
+from .datastructures.pose import GraspDescription, PoseStamped
 from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
     get_robot_description_path
 from .object_descriptors.urdf import ObjectDescription as URDFObject
@@ -322,7 +322,7 @@ class RobotDescription:
             raise ValueError(f"There is no KinematicChain with name {kinematic_chain_name} for robot {self.name}. "
                              f"The following chains are available: {list(self.kinematic_chains.keys())}")
 
-    def get_offset(self, name) -> Optional[Pose]:
+    def get_offset(self, name: str) -> Optional[PoseStamped]:
         """
         Returns the offset of a Joint in the URDF.
 
@@ -331,10 +331,10 @@ class RobotDescription:
         """
         if name not in self.urdf_object.joint_map.keys():
             logerr(f"The name: {name} is not part of this robot URDF")
-            return Pose()
+            return PoseStamped()
 
         offset = self.urdf_object.joint_map[name].origin
-        return offset if offset else Pose()
+        return offset if offset else PoseStamped()
 
     def get_parent(self, name: str) -> str:
         """

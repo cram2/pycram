@@ -15,7 +15,7 @@ from ...datastructures.dataclasses import MultiverseRayResult, MultiverseContact
     AxisAlignedBoundingBox
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
-from ...datastructures.pose import Pose
+from ...datastructures.pose import PoseStamped
 from ...failures import MultiverseFailedAPIResponse
 from ...utils import wxyz_to_xyzw
 from ...world_concepts.constraints import Constraint
@@ -81,7 +81,7 @@ class MultiverseReader(MultiverseClient):
         """
         return self.get_body_data(name, [BodyProperty.POSITION, BodyProperty.ORIENTATION], wait=wait)
 
-    def get_multiple_body_poses(self, body_names: List[str], wait: bool = False) -> Optional[Dict[str, Pose]]:
+    def get_multiple_body_poses(self, body_names: List[str], wait: bool = False) -> Optional[Dict[str, PoseStamped]]:
         """
         Get the body poses from the multiverse server for multiple bodies.
 
@@ -95,8 +95,8 @@ class MultiverseReader(MultiverseClient):
                                             },
                                            wait=wait)
         if data is not None:
-            return {name: Pose(data[name][BodyProperty.POSITION.value],
-                               wxyz_to_xyzw(data[name][BodyProperty.ORIENTATION.value]))
+            return {name: PoseStamped(data[name][BodyProperty.POSITION.value],
+                                      wxyz_to_xyzw(data[name][BodyProperty.ORIENTATION.value]))
                     for name in body_names}
 
     def get_body_position(self, name: str, wait: bool = False) -> Optional[List[float]]:
@@ -680,11 +680,11 @@ class MultiverseAPI(MultiverseClient):
         :param constraint: The constraint.
         :return: The attachment pose as a string.
         """
-        pose = constraint.parent_to_child_transform.to_pose()
+        pose = constraint.parent_to_child_transform.to_pose_stamped()
         return self._pose_to_string(pose)
 
     @staticmethod
-    def _pose_to_string(pose: Pose) -> str:
+    def _pose_to_string(pose: PoseStamped) -> str:
         """
         Convert the pose to a string.
 

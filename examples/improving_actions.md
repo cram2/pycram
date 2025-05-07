@@ -43,7 +43,6 @@ from probabilistic_model.learning.jpt.jpt import JPT
 from probabilistic_model.learning.jpt.variables import infer_variables_from_dataframe
 from random_events.product_algebra import Event, SimpleEvent
 
-import pycram.orm.base
 from pycram.designators.action_designator import MoveTorsoAction
 from pycram.failures import PlanFailure
 from pycram.designators.object_designator import ObjectDesignatorDescription
@@ -51,13 +50,11 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.robot_descriptions import robot_description
 from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.process_module import ProcessModule, simulated_robot
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUp, Arms, Grasp
-from pycram.tasktree import task_tree, TaskTree 
 from datetime import timedelta
-
 
 np.random.seed(69)
 random.seed(69)
@@ -66,11 +63,12 @@ random.seed(69)
 Next, we connect to a database where we can store and load robot experiences.
 
 ```python
+from pycram.orm.ormatic_interface import mapper_registry
 pycrorm_uri = "robot_enjoyer:I_love_robots_123@neem-2.informatik.uni-bremen.de:3306/pycram_ci"
 pycrorm_uri = "mysql+pymysql://" + pycrorm_uri
 engine = sqlalchemy.create_engine(pycrorm_uri)
 session = sqlalchemy.orm.sessionmaker(bind=engine)()
-# pycram.orm.base.Base.metadata.create_all(engine)
+mapper_registry = mapper_registry
 ```
 
 Now we construct an empty world with just a floating milk, where we can learn about PickUp actions.
@@ -107,16 +105,13 @@ After finishing the experiments, we insert the results into the database.
 If you want to generate some data locally, you can uncomment the following code.
 
 ```python
-# pycram.orm.base.ProcessMetaData().description = "Experimenting with Pick Up Actions"
-# fpa.sample_amount = 100
-# with simulated_robot:
-#     fpa.batch_rollout()
-# task_tree.root.insert(session)
-# session.commit()
-# task_tree.reset_tree()
+fpa.sample_amount = 100
+with simulated_robot:
+  x = fpa.batch_rollout()
+insert(x, session)
 ```
 
-Let's query the data that is needed to learn a pick up action and have a look at it.
+Let's query the data needed to learn a pick up action and have a look at it.
 
 ```python
 samples = pd.read_sql(fpa.query_for_database(), engine)

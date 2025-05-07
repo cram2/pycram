@@ -4,12 +4,12 @@ from __future__ import annotations
 from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING, TypeVar, Generic, Iterator, Iterable, AnyStr
 from inspect import signature
 
-from ..language import Language
+from ..language import LanguageMixin
 from ..utils import is_iterable, lazy_product
 
 T = TypeVar('T')
 
-class PartialDesignator(Language, Iterable[T]):
+class PartialDesignator(LanguageMixin, Iterable[T]):
     """
     A partial designator_description is somewhat between a DesignatorDescription and a specified designator_description. Basically it is a
     partially initialized specified designator_description which can take a list of input arguments (like a DesignatorDescription)
@@ -40,7 +40,6 @@ class PartialDesignator(Language, Iterable[T]):
     """
 
     def __init__(self, performable: T, *args, **kwargs):
-        super().__init__(None, None)
         self.performable = performable
         # We use the init of the performable class since typing for the whole class messes up the signature of the class.
         # This is not optimal since "self" needs to be filtered from the parameter list but it works.
@@ -107,6 +106,13 @@ class PartialDesignator(Language, Iterable[T]):
         :return: A fully parametrized Designator
         """
         return next(iter(self))
+
+    def to_dict(self):
+        desig = {"type": self.performable.__name__}
+        desig.update(self.kwargs)
+        return desig
+
+
 
 
 

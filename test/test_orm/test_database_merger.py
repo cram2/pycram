@@ -2,15 +2,13 @@ import unittest
 import pathlib
 import json
 import sqlalchemy
-import pycram.orm.base
+# import pycram.orm.base
 import pycram.orm.utils
 
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms, ObjectType, WorldMode
-from pycram.tasktree import with_tree
-import pycram.tasktree
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.designators.object_designator import *
@@ -31,17 +29,16 @@ class ExamplePlans:
         self.world = BulletWorld(WorldMode.DIRECT)
         self.pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
         self.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
-        self.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-        self.cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.3, 0.7, 0.95]))
+        self.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
+        self.cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=PoseStamped.from_list([1.3, 0.7, 0.95]))
         self.milk_desig = ObjectDesignatorDescription(names=["milk"])
         self.cereal_desig = ObjectDesignatorDescription(names=["cereal"])
         self.robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
         self.kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
 
-    @with_tree
     def pick_and_place_plan(self):
         with simulated_robot:
-            ParkArmsActionPerformable(Arms.BOTH).perform()
+            ParkArmsActionDescription(Arms.BOTH).perform()
             MoveTorsoAction([0.3]).resolve().perform()
             pickup_pose = CostmapLocation(target=self.cereal_desig.resolve(), reachable_for=self.robot_desig).resolve()
             pickup_arm = pickup_pose.reachable_arm
@@ -60,7 +57,7 @@ class ExamplePlans:
 
             PlaceAction(self.cereal_desig, target_locations=[place_island.pose], arms=[pickup_arm]).resolve().perform()
 
-            ParkArmsActionPerformable(Arms.BOTH).perform()
+            ParkArmsActionDescription(Arms.BOTH).perform()
 
 
 class MergerTestCaseBase(unittest.TestCase):

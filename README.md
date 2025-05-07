@@ -40,6 +40,7 @@ from pycram.designators.location_designator import *
 from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
 from pycram.datastructures.enums import ObjectType, Arms, Grasp, WorldMode
+from pycram.language import SequentialPlan, ParallelPlan
 
 world = BulletWorld(WorldMode.GUI)
 kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
@@ -51,29 +52,26 @@ kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
 robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
 
 with simulated_robot:
-    ParkArmsAction([Arms.BOTH]).resolve().perform()
+    SequentialPlan(
+        ParallelPlan(    
+        ParkArmsAction([Arms.BOTH]),
 
-    MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
+        MoveTorsoAction([TorsoState.HIGH])),
 
-    pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
-    pickup_arm = pickup_pose.reachable_arm
 
-    NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
+    NavigateAction(target_locations=CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()]),
 
-    PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=[Grasp.FRONT]).resolve().perform()
+    PickUpAction(object_designator_description=cereal_desig, arms=[Arms.LEFT], grasps=[Grasp.FRONT]),
 
-    ParkArmsAction([Arms.BOTH]).resolve().perform()
+    ParkArmsAction([Arms.BOTH]),
 
-    place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(), cereal_desig.resolve()).resolve()
+    NavigateAction(target_locations=CostmapLocation( 
+        SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(), cereal_desig.resolve()), 
+        reachable_for=robot_desig, reachable_arm=Arms.LEFT)),
 
-    place_stand = CostmapLocation(place_island.pose, reachable_for=robot_desig, reachable_arm=pickup_arm).resolve()
+    PlaceAction(cereal_desig, target_locations=[place_island.pose], arms=[Arms.LEFT]),
 
-    NavigateAction(target_locations=[place_stand.pose]).resolve().perform()
-
-    PlaceAction(cereal_desig, target_locations=[place_island.pose], arms=[pickup_arm]).resolve().perform()
-
-    ParkArmsAction([Arms.BOTH]).resolve().perform()
-
+    ParkArmsAction([Arms.BOTH]),
 world.exit()
 ```
 

@@ -1,15 +1,16 @@
 import logging
 
-from .datastructures.enums import State
+from .datastructures.enums import TaskStatus
 from .designator import DesignatorDescription, BaseMotion
 from .failures import PlanFailure
 from threading import Lock
 from typing_extensions import Union, Tuple, Any, List, Optional, Type, Callable
-from .language import Language, Monitor
+from .language import LanguageMixin, MonitorNode, MonitorPlan
+from .plan import Plan
 from .process_module import ProcessModule
 
 
-class FailureHandling(Language):
+class FailureHandling(LanguageMixin):
     """
     Base class for failure handling mechanisms in automated systems or workflows.
 
@@ -18,14 +19,14 @@ class FailureHandling(Language):
     to be extended by subclasses that implement specific failure handling behaviors.
     """
 
-    def __init__(self, designator_description: Optional[Union[DesignatorDescription, Monitor]] = None):
+    def __init__(self, plan: Optional[Plan] = None):
         """
         Initializes a new instance of the FailureHandling class.
 
-        :param Union[DesignatorDescription, Monitor] designator_description: The description or context of the task
+        :param Union[DesignatorDescription, MonitorNode] plan: The description or context of the task
         or process for which the failure handling is being set up.
         """
-        self.designator_description = designator_description
+        self.plan = plan
 
     def perform(self):
         """
@@ -51,17 +52,17 @@ class Retry(FailureHandling):
     The maximum number of attempts to retry the action.
     """
 
-    def __init__(self, designator_description: DesignatorDescription, max_tries: int = 3):
+    def __init__(self, plan: MonitorPlan, max_tries: int = 3):
         """
         Initializes a new instance of the Retry class.
 
-        :param designator_description: The description or context of the task or process for which the retry mechanism is being set up.
+        :param plan: The description or context of the task or process for which the retry mechanism is being set up.
         :param max_tries: The maximum number of attempts to retry. Defaults to 3.
         """
-        super().__init__(designator_description)
+        super().__init__(plan)
         self.max_tries = max_tries
 
-    def perform(self) -> Tuple[State, List[Any]]:
+    def perform(self) -> List[Any]:
         """
         Implementation of the retry mechanism.
 
@@ -72,7 +73,7 @@ class Retry(FailureHandling):
         :raises PlanFailure: If all retry attempts fail.
         """
         tries = 0
-        for action in iter(self.designator_description):
+        for action in iter(self.plan):
             tries += 1
             try:
                 action.perform()
@@ -98,14 +99,15 @@ class RetryMonitor(FailureHandling):
     A dictionary that maps exception types to recovery actions
     """
 
-    def __init__(self, designator_description: Monitor, max_tries: int = 3, recovery: dict = None):
+    def __init__(self, monitor_plan: Plan, max_tries: int = 3, recovery: dict = None):
         """
         Initializes a new instance of the RetryMonitor class.
-        :param Monitor designator_description: The Monitor instance to be used.
+
+        :param MonitorNode monitor_plan: The Monitor instance to be used.
         :param int max_tries: The maximum number of attempts to retry. Defaults to 3.
         :param dict recovery: A dictionary that maps exception types to recovery actions. Defaults to None.
         """
-        super().__init__(designator_description)
+        super().__init__(monitor_plan)
         self.max_tries = max_tries
         self.lock = Lock()
         if recovery is None:
@@ -117,11 +119,11 @@ class RetryMonitor(FailureHandling):
             for key, value in recovery.items():
                 if not issubclass(key, BaseException):
                     raise TypeError("Keys in the recovery dictionary must be exception types.")
-                if not isinstance(value, Language):
+                if not callable(value):
                     raise TypeError("Values in the recovery dictionary must be instances of the Language class.")
             self.recovery = recovery
 
-    def perform(self) -> Tuple[State, List[Any]]:
+    def perform(self) -> List[Any]:
         """
         This method attempts to perform the Monitor + plan specified in the designator_description. If the action
         fails, it is retried up to max_tries times. If all attempts fail, the last exception is raised. In every
@@ -135,7 +137,7 @@ class RetryMonitor(FailureHandling):
         """
 
         def reset_interrupted(child):
-            child.interrupted = False
+            child.status = TaskStatus.CREATED
             try:
                 for sub_child in child.children:
                     reset_interrupted(sub_child)
@@ -157,21 +159,24 @@ class RetryMonitor(FailureHandling):
         with self.lock:
             tries = 0
             while True:
-                self.designator_description.kill_event.clear()
-                self.designator_description.interrupted = False
-                for child in self.designator_description.children:
+                self.plan.interrupted = False
+                for child in self.plan.root.children:
                     reset_interrupted(child)
                 try:
-                    status, res = self.designator_description.perform()
-                    break
+                    if tries >= 1:
+                        self.plan.re_perform()
+                        break
+                    else:
+                        res = self.plan.perform()
+                        break
                 except PlanFailure as e:
                     tries += 1
                     if tries >= self.max_tries:
                         raise e
                     exception_type = type(e)
                     if exception_type in self.recovery:
-                        self.recovery[exception_type].perform()
-        return status, flatten(res)
+                        self.recovery[exception_type]()
+        return flatten(res)
 
 
 def try_action(action: Any, failure_type: Type[Exception], max_tries: int = 3):

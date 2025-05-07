@@ -11,8 +11,8 @@ from visualization_msgs.msg import Marker, MarkerArray
 from .datastructures.world import World
 from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
 import matplotlib.colorbar
-from .datastructures.pose import Pose
-from .ros import  create_publisher
+from .datastructures.pose import PoseStamped
+from .ros import create_publisher, Duration
 from .units import meter
 
 from pint import Quantity
@@ -47,7 +47,7 @@ class ProbabilisticCostmap:
     The legacy costmap.
     """
 
-    origin: Pose
+    origin: PoseStamped
     """
     The origin of the costmap.
     """
@@ -62,7 +62,7 @@ class ProbabilisticCostmap:
     The distribution associated with the costmap.
     """
 
-    def __init__(self, origin: Pose,
+    def __init__(self, origin: PoseStamped,
                  size: Quantity = 2 * meter,
                  max_cells = 10000,
                  costmap_type: Type[Costmap] = OccupancyCostmap,
@@ -120,7 +120,7 @@ class ProbabilisticCostmap:
         # self.distribution, _ = self.distribution.conditional(self.create_event_from_map())
         self.distribution = uniform_measure_of_event(self.create_event_from_map())
 
-    def sample_to_pose(self, sample: np.ndarray) -> Pose:
+    def sample_to_pose(self, sample: np.ndarray) -> PoseStamped:
         """
         Convert a sample from the costmap to a pose.
 
@@ -132,7 +132,7 @@ class ProbabilisticCostmap:
         position = [x, y, self.origin.position.z]
         angle = np.arctan2(position[1] - self.origin.position.y, position[0] - self.origin.position.x) + np.pi
         orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
-        return Pose(position, orientation, self.origin.frame)
+        return PoseStamped.from_list(position, orientation, self.origin.frame_id)
 
     def visualize(self):
         """
@@ -147,9 +147,9 @@ class ProbabilisticCostmap:
         marker.type = Marker.POINTS
         marker.id = 0
         marker.action = Marker.ADD
-        marker.header.frame_id = self.origin.frame
-        marker.pose = Pose().pose
-        # marker.lifetime = Duration(60)
+        marker.header.frame_id = self.origin.frame_id
+        marker.pose = PoseStamped().pose
+        marker.lifetime = Duration(60)
         marker.scale.x = 0.05
         marker.scale.y = 0.05
 

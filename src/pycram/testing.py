@@ -2,16 +2,16 @@ import time
 import unittest
 from datetime import timedelta
 
-from .tasktree import task_tree
 from .datastructures.world import UseProspectionWorld
 from .worlds.bullet_world import BulletWorld
 from .world_concepts.world_object import Object
-from .datastructures.pose import Pose
+from .datastructures.pose import PoseStamped
 from .robot_description import RobotDescription, RobotDescriptionManager
 from .process_module import ProcessModule
 from .datastructures.enums import WorldMode
 from .object_descriptors.urdf import ObjectDescription
 from .ros_utils.viz_marker_publisher import VizMarkerPublisher
+from .plan import Plan
 from pycrap.ontologies import Milk, Robot, Kitchen, Cereal
 
 
@@ -28,17 +28,16 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(mode=cls.render_mode)
-        cls.viz_marker_publisher = VizMarkerPublisher()
+        # cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):
-        task_tree.reset_tree()
         self.world.reset_world(remove_saved_states=True)
+        Plan.current_plan = None
         with UseProspectionWorld():
             pass
 
 
     def tearDown(self):
-        task_tree.reset_tree()
         time.sleep(0.05)
         self.world.reset_world(remove_saved_states=True)
         with UseProspectionWorld():
@@ -46,7 +45,7 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.viz_marker_publisher._stop_publishing()
+        # cls.viz_marker_publisher._stop_publishing()
         cls.world.exit()
 
 
@@ -64,12 +63,12 @@ class BulletWorldTestCase(EmptyBulletWorldTestCase):
         super().setUpClass()
         rdm = RobotDescriptionManager()
         rdm.load_description("pr2")
-        cls.milk = Object("milk", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        cls.milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
         cls.robot = Object(RobotDescription.current_robot_description.name, Robot,
                            RobotDescription.current_robot_description.name + cls.extension)
         cls.kitchen = Object("kitchen", Kitchen, "kitchen" + cls.extension)
         cls.cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
-                            pose=Pose([1.3, 0.7, 0.95]))
+                            pose=PoseStamped.from_list([1.3, 0.7, 0.95]))
 
 class BulletWorldGUITestCase(BulletWorldTestCase):
     render_mode = WorldMode.GUI

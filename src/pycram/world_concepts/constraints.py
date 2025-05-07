@@ -5,7 +5,7 @@ from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional, TYPE_CHECKING, Self
 
 from ..datastructures.enums import JointType
-from ..datastructures.pose import Transform, Pose
+from ..datastructures.pose import TransformStamped, PoseStamped
 
 if TYPE_CHECKING:
     from ..description import Link
@@ -21,8 +21,8 @@ class AbstractConstraint:
                  parent_link: Link,
                  child_link: Link,
                  _type: JointType,
-                 parent_to_constraint: Transform,
-                 child_to_constraint: Transform):
+                 parent_to_constraint: TransformStamped,
+                 child_to_constraint: TransformStamped):
         self.parent_link: Link = parent_link
         self.child_link: Link = child_link
         self.type: JointType = _type
@@ -30,13 +30,13 @@ class AbstractConstraint:
         self.child_to_constraint = child_to_constraint
         self._parent_to_child = None
 
-    def get_child_object_pose(self) -> Pose:
+    def get_child_object_pose(self) -> PoseStamped:
         """
         :return: The pose of the child object.
         """
         return self.child_link.object.pose
 
-    def get_child_object_pose_given_parent(self, pose: Pose) -> Pose:
+    def get_child_object_pose_given_parent(self, pose: PoseStamped) -> PoseStamped:
         """
         Get the pose of the child object given the parent pose.
 
@@ -53,30 +53,35 @@ class AbstractConstraint:
         """
         self.child_link.set_object_pose_given_link_pose(self.get_child_link_target_pose())
 
-    def get_child_link_target_pose(self) -> Pose:
+    def get_child_link_target_pose(self) -> PoseStamped:
         """
         :return: The target pose of the child object. (The pose of the child object in the parent object frame)
         """
-        return self.parent_to_child_transform.to_pose()
+        return self.parent_to_child_transform.to_pose_stamped()
 
-    def get_child_link_target_pose_given_parent(self, parent_pose: Pose) -> Pose:
+    def get_child_link_target_pose_given_parent(self, parent_pose: PoseStamped) -> PoseStamped:
         """
         Get the target pose of the child object link given the parent link pose.
 
         :param parent_pose: The parent link pose.
         :return: The target pose of the child object link.
         """
-        return (parent_pose.to_transform(self.parent_link.tf_frame) * self.parent_to_child_transform).to_pose()
+        return (parent_pose.to_transform_stamped(self.parent_link.tf_frame) * self.parent_to_child_transform).to_pose_stamped()
 
     @property
-    def parent_to_child_transform(self) -> Union[Transform, None]:
+    def parent_to_child_transform(self) -> TransformStamped:
+        """
+        Return the transform from the parent link to the child link of the constraint.
+
+        :return: The transform from the parent link to the child link of the constraint.
+        """
         if self._parent_to_child is None:
             if self.parent_to_constraint is not None and self.child_to_constraint is not None:
-                self._parent_to_child = self.parent_to_constraint * self.child_to_constraint.invert()
+                self._parent_to_child = ~self.parent_to_constraint * self.child_to_constraint
         return self._parent_to_child
 
     @parent_to_child_transform.setter
-    def parent_to_child_transform(self, transform: Transform) -> None:
+    def parent_to_child_transform(self, transform: TransformStamped) -> None:
         self._parent_to_child = transform
 
     @property
@@ -112,42 +117,42 @@ class AbstractConstraint:
         """
         :return: The constraint frame pose with respect to the parent origin as a list
         """
-        return self.pose_wrt_parent.position_as_list()
+        return self.pose_wrt_parent.position.to_list()
 
     @property
     def orientation_wrt_parent_as_list(self) -> List[float]:
         """
         :return: The constraint frame orientation with respect to the parent origin as a list
         """
-        return self.pose_wrt_parent.orientation_as_list()
+        return self.pose_wrt_parent.orientation.to_list()
 
     @property
-    def pose_wrt_parent(self) -> Pose:
+    def pose_wrt_parent(self) -> PoseStamped:
         """
         :return: The joint frame pose with respect to the parent origin
         """
-        return self.parent_to_constraint.to_pose()
+        return self.parent_to_constraint.to_pose_stamped()
 
     @property
     def position_wrt_child_as_list(self) -> List[float]:
         """
         :return: The constraint frame pose with respect to the child origin as a list
         """
-        return self.pose_wrt_child.position_as_list()
+        return self.pose_wrt_child.position.to_list()
 
     @property
     def orientation_wrt_child_as_list(self) -> List[float]:
         """
         :return: The constraint frame orientation with respect to the child origin as a list
         """
-        return self.pose_wrt_child.orientation_as_list()
+        return self.pose_wrt_child.orientation.to_list()
 
     @property
-    def pose_wrt_child(self) -> Pose:
+    def pose_wrt_child(self) -> PoseStamped:
         """
         :return: The joint frame pose with respect to the child origin
         """
-        return self.child_to_constraint.to_pose()
+        return self.child_to_constraint.to_pose_stamped()
 
 
 class Constraint(AbstractConstraint):
@@ -160,9 +165,9 @@ class Constraint(AbstractConstraint):
                  child_link: Link,
                  _type: JointType,
                  axis_in_child_frame: Point,
-                 constraint_to_parent: Transform,
-                 child_to_constraint: Transform):
-        parent_to_constraint = constraint_to_parent.invert()
+                 constraint_to_parent: TransformStamped,
+                 child_to_constraint: TransformStamped):
+        parent_to_constraint = ~constraint_to_parent
         AbstractConstraint.__init__(self, parent_link, child_link, _type, parent_to_constraint, child_to_constraint)
         self.axis: Point = axis_in_child_frame
 
@@ -179,7 +184,7 @@ class Attachment(AbstractConstraint):
                  parent_link: Link,
                  child_link: Link,
                  bidirectional: bool = False,
-                 parent_to_child_transform: Optional[Transform] = None,
+                 parent_to_child_transform: Optional[TransformStamped] = None,
                  constraint_id: Optional[int] = None,
                  is_inverse: bool = False):
         """
@@ -193,7 +198,7 @@ class Attachment(AbstractConstraint):
         :param constraint_id: The id of the constraint in the simulator.
         """
         super().__init__(parent_link, child_link, JointType.FIXED, parent_to_child_transform,
-                         Transform(frame=child_link.tf_frame))
+                         TransformStamped.from_list(frame=child_link.tf_frame))
         self.id = constraint_id
         self.bidirectional: bool = bidirectional
         self._loose: bool = False
@@ -241,9 +246,9 @@ class Attachment(AbstractConstraint):
         Add a fixed constraint between the parent link and the child link.
         """
         self.id = self.parent_link.add_fixed_constraint_with_link(self.child_link,
-                                                                  self.parent_to_child_transform.invert())
+                                                                  ~self.parent_to_child_transform)
 
-    def calculate_transform(self) -> Transform:
+    def calculate_transform(self) -> TransformStamped:
         """
         Calculate the transform from the parent link to the child link.
         """
@@ -296,10 +301,10 @@ class Attachment(AbstractConstraint):
                 and self.child_link.name == other.child_link.name
                 and self.bidirectional == other.bidirectional
                 and self.loose == other.loose
-                and np.allclose(self.parent_to_child_transform.translation_as_list(),
-                                other.parent_to_child_transform.translation_as_list(), rtol=0, atol=1e-3)
-                and np.allclose(self.parent_to_child_transform.rotation_as_list(),
-                                other.parent_to_child_transform.rotation_as_list(), rtol=0, atol=1e-3))
+                and np.allclose(self.parent_to_child_transform.translation.to_list(),
+                                other.parent_to_child_transform.translation.to_list(), rtol=0, atol=1e-3)
+                and np.allclose(self.parent_to_child_transform.rotation.to_list(),
+                                other.parent_to_child_transform.rotation.to_list(), rtol=0, atol=1e-3))
 
     def __hash__(self):
         return hash((self.parent_link.name, self.child_link.name, self.bidirectional, self.parent_to_child_transform))

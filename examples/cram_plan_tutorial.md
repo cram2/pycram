@@ -27,7 +27,7 @@ from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.designators.object_designator import *
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 from pycram.world_concepts.world_object import Object
 import anytree
 import pycram.failures
@@ -41,14 +41,16 @@ viz_marker_publisher = None
 if use_multiverse:
     try:
         from pycram.worlds.multiverse import Multiverse
+
         world = Multiverse()
     except ImportError:
         raise ImportError("Multiverse is not installed, please install it to use it.")
 else:
     from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
+
     world = BulletWorld()
     viz_marker_publisher = VizMarkerPublisher()
-    
+
 robot = Object("pr2", Robot, "pr2.urdf")
 robot_desig = ObjectDesignatorDescription(names=['pr2']).resolve()
 apartment = Object("apartment", Apartment, "apartment.urdf")
@@ -62,7 +64,7 @@ import numpy as np
 
 
 def get_n_random_positions(pose_list, n=4, dist=0.5, random=True):
-    positions = [pose.position_as_list() for pose in pose_list[:1000]]
+    positions = [pose.position.to_list() for pose in pose_list[:1000]]
     all_indices = list(range(len(positions)))
     print(len(all_indices))
     pos_idx = np.random.choice(all_indices) if random else all_indices[0]
@@ -101,7 +103,7 @@ scm = SemanticCostmap(apartment, counter_name)
 # take only 6 cms from edges as viable region
 edges_cm = scm.get_edges_map(0.06, horizontal_only=True)
 poses_list = list(PoseGenerator(edges_cm, number_of_samples=-1))
-poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x.position_as_list()))
+poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x.position.to_list()()))
 object_poses = get_n_random_positions(poses_list)
 object_names = ["breakfast_cereal", "milk"]
 object_types = [Cereal, Milk]
@@ -186,7 +188,7 @@ def plan(obj_desig: Object, torso=None, place=counter_name):
                 else:
                     z_angle = 0
                 orientation = quaternion_from_euler(0, 0, z_angle)
-                pose_island = Pose(pose_island.position_as_list(), orientation)
+                pose_island = Pose(pose_island.position.to_list(), orientation)
                 pose_island.position.z += 0.07
                 print(pose_island.position)
                 place_location = CostmapLocation(target=pose_island, reachable_for=robot_desig,  reachable_arm=[pickup_arm])

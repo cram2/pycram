@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 from deprecated import deprecated
-from geometry_msgs.msg import Point, Quaternion
 from trimesh.parent import Geometry3D
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
@@ -13,7 +12,7 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList, RotatedBoundingBox, VirtualJoint, FrozenObject, FrozenLink, FrozenJoint)
 from ..datastructures.enums import ObjectType, JointType
-from ..datastructures.pose import Pose, Transform
+from ..datastructures.pose import PoseStamped, TransformStamped, Point, Quaternion, Vector3
 from ..datastructures.world import World
 from ..datastructures.world_entity import PhysicalBody
 from ..description import ObjectDescription, LinkDescription, Joint
@@ -55,12 +54,12 @@ class Object(PhysicalBody):
 
     def __init__(self, name: str, concept: Type[PhysicalObject], path: Optional[str] = None,
                  description: Optional[ObjectDescription] = None,
-                 pose: Optional[Pose] = None,
+                 pose: Optional[PoseStamped] = None,
                  world: Optional[World] = None,
                  color: Optional[Color] = None,
                  ignore_cached_files: bool = False,
                  scale_mesh: Optional[float] = None,
-                 mesh_transform: Optional[Transform] = None):
+                 mesh_transform: Optional[TransformStamped] = None):
         """
         The constructor loads the description file into the given World, if no World is specified the
         :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
@@ -84,7 +83,7 @@ class Object(PhysicalBody):
         self.name: str = name
         super().__init__(-1, self.world, concept=concept)
 
-        pose = Pose() if pose is None else pose
+        pose = PoseStamped() if pose is None else pose
 
         self.path: Optional[str] = path
 
@@ -207,7 +206,7 @@ class Object(PhysicalBody):
         else:
             raise UnsupportedFileExtension(self.name, path)
 
-    def set_mobile_robot_pose(self, pose: Pose) -> None:
+    def set_mobile_robot_pose(self, pose: PoseStamped) -> None:
         """
         Set the goal for the mobile base joints of a mobile robot to reach a target pose. This is used for example when
         the simulator does not support setting the pose of the robot directly (e.g. MuJoCo).
@@ -218,7 +217,7 @@ class Object(PhysicalBody):
         goal = {vj.name: pos for vj, pos in goal.items()}
         self.set_multiple_joint_positions(goal)
 
-    def get_mobile_base_joint_goal(self, pose: Pose) -> Dict[VirtualJoint, float]:
+    def get_mobile_base_joint_goal(self, pose: PoseStamped) -> Dict[VirtualJoint, float]:
         """
         Get the goal for the mobile base joints of a mobile robot to reach a target pose.
 
@@ -232,7 +231,7 @@ class Object(PhysicalBody):
                 mobile_base_joints.translation_y: pose.position.y,
                 mobile_base_joints.angular_z: pose.z_angle}
 
-    def get_mobile_base_pose_difference(self, pose: Pose) -> Tuple[Point, float]:
+    def get_mobile_base_pose_difference(self, pose: PoseStamped) -> Tuple[Point, float]:
         """
         Get the difference between the current and the target pose of the mobile base.
 
@@ -291,7 +290,7 @@ class Object(PhysicalBody):
         """
         return self.world.get_multiple_link_orientations(links)
 
-    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, Pose]:
+    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, PoseStamped]:
         """
         Get the poses of multiple links of the object.
 
@@ -300,7 +299,7 @@ class Object(PhysicalBody):
         """
         return self.world.get_multiple_link_poses(links)
 
-    def get_poses_of_attached_objects(self) -> Dict[Object, Pose]:
+    def get_poses_of_attached_objects(self) -> Dict[Object, PoseStamped]:
         """
         Get the poses of the attached objects.
 
@@ -309,7 +308,7 @@ class Object(PhysicalBody):
         return {child_object: attachment.get_child_object_pose()
                 for child_object, attachment in self.attachments.items() if not attachment.loose}
 
-    def get_target_poses_of_attached_objects_given_parent(self, pose: Pose) -> Dict[Object, Pose]:
+    def get_target_poses_of_attached_objects_given_parent(self, pose: PoseStamped) -> Dict[Object, PoseStamped]:
         """
         Get the target poses of the attached objects of an object. Given the pose of the parent object. (i.e. the poses
          to which the attached objects will move when the parent object is at the given pose)
@@ -344,7 +343,7 @@ class Object(PhysicalBody):
         return self.world.get_object_pose(self)
 
     @pose.setter
-    def pose(self, pose: Pose):
+    def pose(self, pose: PoseStamped):
         """
         Set the pose of the object.
         """
@@ -355,7 +354,7 @@ class Object(PhysicalBody):
         """
         The current transform of the object.
         """
-        return self.get_pose().to_transform(self.tf_frame)
+        return self.get_pose().to_transform_stamped(self.tf_frame)
 
     @property
     def obj_type(self) -> Type[PhysicalObject]:
@@ -506,7 +505,7 @@ class Object(PhysicalBody):
         """
         return self.links[link_name]
 
-    def get_link_pose(self, link_name: str) -> Pose:
+    def get_link_pose(self, link_name: str) -> PoseStamped:
         """
         Return the pose of the link with the given name.
 
@@ -531,7 +530,7 @@ class Object(PhysicalBody):
         :param link_name: The name of the link.
         :return: The position of the link.
         """
-        return self.links[link_name].position_as_list
+        return self.links[link_name].position.to_list()
 
     def get_link_orientation(self, link_name: str) -> Quaternion:
         """
@@ -549,7 +548,7 @@ class Object(PhysicalBody):
         :param link_name: The name of the link.
         :return: The orientation of the link.
         """
-        return self.links[link_name].orientation_as_list
+        return self.links[link_name].orientation.to_list()
 
     def get_link_tf_frame(self, link_name: str) -> str:
         """
@@ -571,7 +570,7 @@ class Object(PhysicalBody):
         """
         return self.links[link_name].get_axis_aligned_bounding_box(transform_to_link_pose)
 
-    def get_transform_between_links(self, from_link: str, to_link: str) -> Transform:
+    def get_transform_between_links(self, from_link: str, to_link: str) -> TransformStamped:
         """
         Return the transform between two links.
 
@@ -616,7 +615,7 @@ class Object(PhysicalBody):
         """
         return self.links[link_name].visual_geometry
 
-    def get_link_transform(self, link_name: str) -> Transform:
+    def get_link_transform(self, link_name: str) -> TransformStamped:
         """
         Return the transform of the link with the given name.
 
@@ -625,7 +624,7 @@ class Object(PhysicalBody):
         """
         return self.links[link_name].transform
 
-    def get_link_origin(self, link_name: str) -> Pose:
+    def get_link_origin(self, link_name: str) -> PoseStamped:
         """
         Return the origin of the link with the given name.
 
@@ -634,7 +633,7 @@ class Object(PhysicalBody):
         """
         return self.links[link_name].origin
 
-    def get_link_origin_transform(self, link_name: str) -> Transform:
+    def get_link_origin_transform(self, link_name: str) -> TransformStamped:
         """
         Return the origin transform of the link with the given name.
 
@@ -696,7 +695,25 @@ class Object(PhysicalBody):
         for link in self.links.values():
             link.reset()
 
-    def merge(self, other: Object, name: Optional[str] = None, pose: Optional[Pose] = None,
+    @property
+    def is_an_environment(self) -> bool:
+        """
+        Check if the object is of type environment.
+
+        :return: True if the object is of type environment, False otherwise.
+        """
+        return issubclass(self.obj_type, Location) or issubclass(self.obj_type, Floor)
+
+    @property
+    def is_a_robot(self) -> bool:
+        """
+        Check if the object is a robot.
+        TODO: Check if this is a the correct filter
+        :return: True if the object is a robot, False otherwise.
+        """
+        return issubclass(self.obj_type, Robot)
+
+    def merge(self, other: Object, name: Optional[str] = None, pose: Optional[PoseStamped] = None,
               new_description_file: Optional[str] = None) -> Object:
         """
         Merge the object with another object. This is done by merging the descriptions of the objects,
@@ -725,7 +742,7 @@ class Object(PhysicalBody):
                child_link: Optional[str] = None,
                bidirectional: bool = True,
                coincide_the_objects: bool = False,
-               parent_to_child_transform: Optional[Transform] = None) -> None:
+               parent_to_child_transform: Optional[TransformStamped] = None) -> None:
         """
         Attach another object to this object. This is done by
         saving the transformation between the given link, if there is one, and
@@ -747,7 +764,7 @@ class Object(PhysicalBody):
         child_link = child_object.links[child_link] if child_link else child_object.root_link
 
         if coincide_the_objects and parent_to_child_transform is None:
-            parent_to_child_transform = Transform()
+            parent_to_child_transform = TransformStamped.from_list()
         attachment = Attachment(parent_link, child_link, bidirectional, parent_to_child_transform)
 
         self.attachments[child_object] = attachment
@@ -788,7 +805,7 @@ class Object(PhysicalBody):
         """
         return self.get_pose().position
 
-    def get_orientation(self) -> Pose.orientation:
+    def get_orientation(self) -> PoseStamped.orientation:
         """
         Return the orientation of this object as a list of xyzw, representing a quaternion.
 
@@ -802,7 +819,7 @@ class Object(PhysicalBody):
 
         :return: The current position of this object
         """
-        return self.get_pose().position_as_list()
+        return self.get_pose().position.to_list()
 
     def get_base_position_as_list(self) -> List[float]:
         """
@@ -810,7 +827,7 @@ class Object(PhysicalBody):
 
         :return: The current position of this object
         """
-        return self.get_base_origin().position_as_list()
+        return self.get_base_origin().position.to_list()
 
     def get_orientation_as_list(self) -> List[float]:
         """
@@ -818,9 +835,9 @@ class Object(PhysicalBody):
 
         :return: A list of xyzw
         """
-        return self.get_pose().orientation_as_list()
+        return self.get_pose().orientation.to_list()
 
-    def get_pose(self) -> Pose:
+    def get_pose(self) -> PoseStamped:
         """
         Return the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
 
@@ -828,7 +845,7 @@ class Object(PhysicalBody):
         """
         return self.pose
 
-    def set_pose(self, pose: Pose, base: bool = False, set_attachments: bool = True) -> None:
+    def set_pose(self, pose: PoseStamped, base: bool = False, set_attachments: bool = True) -> None:
         """
         Set the Pose of the object.
 
@@ -838,14 +855,14 @@ class Object(PhysicalBody):
         """
         pose_in_map = self.local_transformer.transform_pose(pose, "map")
         if base:
-            pose_in_map.position = (np.array(pose_in_map.position_as_list()) + self.base_origin_shift).tolist()
+            pose_in_map.position = Vector3.from_list(np.array(pose_in_map.position.to_list()) + self.base_origin_shift)
 
         self.reset_base_pose(pose_in_map)
 
         if set_attachments:
             self._set_attached_objects_poses()
 
-    def reset_base_pose(self, pose: Pose) -> bool:
+    def reset_base_pose(self, pose: PoseStamped) -> bool:
         return self.world.reset_object_base_pose(self, pose)
 
     def move_base_to_origin_pose(self) -> None:
@@ -961,12 +978,12 @@ class Object(PhysicalBody):
         if attachment.is_inverse:
             child_object.attach(self, attachment.child_link.name, attachment.parent_link.name,
                                 attachment.bidirectional,
-                                parent_to_child_transform=att_transform.invert())
+                                parent_to_child_transform=~att_transform)
         else:
             self.attach(child_object, attachment.parent_link.name, attachment.child_link.name,
                         attachment.bidirectional, parent_to_child_transform=att_transform)
 
-    def get_attachment_transform_with_object(self, attachment: Attachment, child_object: Object) -> Transform:
+    def get_attachment_transform_with_object(self, attachment: Attachment, child_object: Object) -> TransformStamped:
         """
         Return the attachment transform for the given parent and child objects, taking into account the prospection
         world.
@@ -979,7 +996,7 @@ class Object(PhysicalBody):
             raise WorldMismatchErrorBetweenAttachedObjects(self, child_object)
         att_transform = attachment.parent_to_child_transform.copy()
         if self.world.is_prospection_world and not attachment.parent_object.world.is_prospection_world:
-            att_transform.frame = self.tf_prospection_world_prefix + att_transform.frame
+            att_transform.frame_id = self.tf_prospection_world_prefix + att_transform.frame_id
             att_transform.child_frame_id = self.tf_prospection_world_prefix + att_transform.child_frame_id
         return att_transform
 
@@ -1079,7 +1096,7 @@ class Object(PhysicalBody):
                 child.set_pose(attachment.get_child_link_target_pose(), set_attachments=False)
                 child._set_attached_objects_poses(already_moved_objects + [self])
 
-    def set_position(self, position: Union[Pose, Point, List], base=False) -> None:
+    def set_position(self, position: Union[PoseStamped, Point, List], base=False) -> None:
         """
         Set this Object to the given position, if base is true, place the bottom of the Object at the position
         instead of the origin in the center of the Object. The given position can either be a Pose,
@@ -1088,10 +1105,10 @@ class Object(PhysicalBody):
         :param position: Target position as xyz.
         :param base: If the bottom of the Object should be placed or the origin in the center.
         """
-        pose = Pose()
-        if isinstance(position, Pose):
+        pose = PoseStamped()
+        if isinstance(position, PoseStamped):
             target_position = position.position
-            pose.frame = position.frame
+            pose.frame_id = position.frame_id
         elif isinstance(position, Point):
             target_position = position
         elif isinstance(position, (List, np.ndarray, tuple)):
@@ -1106,17 +1123,17 @@ class Object(PhysicalBody):
         pose.orientation = self.get_orientation()
         self.set_pose(pose, base=base)
 
-    def set_orientation(self, orientation: Union[Pose, Quaternion, List, Tuple, np.ndarray]) -> None:
+    def set_orientation(self, orientation: Union[PoseStamped, Quaternion, List, Tuple, np.ndarray]) -> None:
         """
         Set the orientation of the Object to the given orientation. Orientation can either be a Pose, in this case only
         the orientation of this pose is used or a geometry_msgs.msg/Quaternion which is the orientation of a Pose.
 
         :param orientation: Target orientation given as a list of xyzw.
         """
-        pose = Pose()
-        if isinstance(orientation, Pose):
+        pose = PoseStamped()
+        if isinstance(orientation, PoseStamped):
             target_orientation = orientation.orientation
-            pose.frame = orientation.frame
+            pose.frame_id = orientation.frame_id
         elif isinstance(orientation, Quaternion):
             target_orientation = orientation
         elif (isinstance(orientation, list) or isinstance(orientation, np.ndarray) or isinstance(orientation, tuple)) \
@@ -1469,7 +1486,7 @@ class Object(PhysicalBody):
         else:
             return self.world.get_body_convex_hull(self)
 
-    def get_base_origin(self) -> Pose:
+    def get_base_origin(self) -> PoseStamped:
         """
         Return the origin of the base/bottom of this object.
 
@@ -1478,8 +1495,8 @@ class Object(PhysicalBody):
         aabb = self.get_axis_aligned_bounding_box()
         base_width = np.absolute(aabb.min_x - aabb.max_x)
         base_length = np.absolute(aabb.min_y - aabb.max_y)
-        return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
-                    self.get_orientation_as_list())
+        return PoseStamped.from_list([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
+                           self.get_orientation_as_list())
 
     def get_joint_by_id(self, joint_id: int) -> Joint:
         """
@@ -1535,7 +1552,3 @@ class Object(PhysicalBody):
 
         return FrozenObject(self.name, self.obj_type, self.path, self.description, self.pose,
                             frozen_links, frozen_joints)
-
-    def insert(self, session):
-        pass
-

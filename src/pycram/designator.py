@@ -6,13 +6,10 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
 from datetime import timedelta
 
-from sqlalchemy.orm.session import Session
 from pycrap.ontologies import PhysicalObject, Agent
 from .datastructures.enums import ObjectType
-from .datastructures.pose import Pose, GraspDescription
-from .datastructures.property import EmptyProperty
+from .datastructures.pose import PoseStamped, GraspDescription
 from .failures import PlanFailure
-from sqlalchemy.orm.session import Session
 
 from .datastructures.world import World
 from .datastructures.partial_designator import PartialDesignator
@@ -20,17 +17,15 @@ from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, 
     Self, Iterator
 from typing import get_type_hints
 
-from .language import Language
+from .has_parameters import HasParameters
+from .language import LanguageMixin
 from .local_transformer import LocalTransformer
-from .orm.action_designator import (Action as ORMAction)
-from .orm.base import RobotState, ProcessMetaData
-from .orm.motion_designator import Motion as ORMMotionDesignator
-from .orm.object_designator import (Object as ORMObjectDesignator)
 from .robot_description import RobotDescription
 from .ros import loginfo
-from .tasktree import with_tree
-from .utils import bcolors
-from .world_concepts.world_object import Object as WorldObject
+from .utils import bcolors, is_iterable
+from .world_concepts.world_object import Object as WorldObject, Object
+from .plan import Plan
+
 
 class DesignatorError(Exception):
     """Implementation of designator_description errors."""
@@ -129,11 +124,11 @@ class DesignatorDescription(ABC):
         return get_type_hints(cls.__init__)
 
 @dataclass
-class ActionDescription:
+class ActionDescription():
     """
     The performable designator_description with a single element for each list of possible parameter.
     """
-    robot_position: Pose = field(init=False)
+    robot_position: PoseStamped = field(init=False)
     """
     The position of the robot at the start of the action.
     """
@@ -142,7 +137,7 @@ class ActionDescription:
     The torso height of the robot at the start of the action.
     """
 
-    robot_type: Type[Agent] = field(init=False)
+    _robot_type: Type[Agent] = field(init=False)
     """
     The type of the robot at the start of the action.
     """
@@ -163,7 +158,7 @@ class ActionDescription:
                 RobotDescription.current_robot_description.torso_joint)
         else:
             self.robot_torso_height = 0.0
-        self.robot_type = World.robot.obj_type
+        self._robot_type = World.robot.obj_type
 
     def perform(self) -> Any:
         """
@@ -184,7 +179,6 @@ class ActionDescription:
             self.validate(result)
         return result
 
-    @with_tree
     def plan(self) -> Any:
         """
         Plan of the action. To be overridden by subclasses.
@@ -201,43 +195,6 @@ class ActionDescription:
         :param max_wait_time: The maximum time to wait for the action to be validated, before raising an error.
         """
         raise NotImplementedError()
-
-    def to_sql(self) -> ORMAction:
-        """
-        Create an ORM object that corresponds to this description.
-
-        :return: The created ORM object.
-        """
-        raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
-
-    def insert(self, session: Session, *args, **kwargs) -> ORMAction:
-        """
-        Add and commit this and all related objects to the session.
-        Auto-Incrementing primary keys and foreign keys have to be filled by this method.
-
-        :param session: Session with a database that is used to add and commit the objects
-        :param args: Possible extra arguments
-        :param kwargs: Possible extra keyword arguments
-        :return: The completely instanced ORM object
-        """
-
-        pose = self.robot_position.insert(session)
-
-        # get or create metadata
-        metadata = ProcessMetaData().insert(session)
-
-        # create robot-state object
-        robot_state = RobotState(self.robot_torso_height, str(self.robot_type))
-        robot_state.pose = pose
-        robot_state.process_metadata = metadata
-        session.add(robot_state)
-
-        # create action
-        action = self.to_sql()
-        action.process_metadata = metadata
-        action.robot_state = robot_state
-
-        return action
 
     @classmethod
     def get_type_hints(cls, localns=None) -> Dict[str, Any]:
@@ -283,9 +240,24 @@ class ActionDescription:
     def description(cls, *args, **kwargs) -> PartialDesignator[Self]:
         raise NotImplementedError()
 
+    def __str__(self):
+        # all fields that are not ORM classes
+        fields = {}
+        for key, value in vars(self).items():
+            if key.startswith("orm_"):
+                continue
+            if isinstance(value, Object):
+                fields[key] = value.name
+            elif isinstance(value, PoseStamped):
+                fields[key] = value.__str__()
+        fields_str = "\n".join([f"{key}: {value}" for key, value in fields.items()])
+        return f"{self.__class__.__name__.replace('Performable', '')}:\n{fields_str}"
+
+    def __repr__(self):
+        return self.__str__()
 
 
-class LocationDesignatorDescription(DesignatorDescription, PartialDesignator, Iterable[Pose]):
+class LocationDesignatorDescription(DesignatorDescription, PartialDesignator, Iterable[PoseStamped]):
     """
     Parent class of location designator_description descriptions.
     """
@@ -293,7 +265,7 @@ class LocationDesignatorDescription(DesignatorDescription, PartialDesignator, It
     def __init__(self):
         super().__init__()
 
-    def ground(self) -> Pose:
+    def ground(self) -> PoseStamped:
         """
         Find a location that satisfies all constrains.
         """
@@ -305,7 +277,7 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator, Iter
     Class for object designator_description descriptions.
     Descriptions hold possible parameter ranges for object designators.
     """
-    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None):
+    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None, resolution_strategy: Union[Iterable[WorldObject], Callable[WorldObject]] = None):
         """
         Base of all object designator_description descriptions. Every object designator_description has the name and type of the object.
 
@@ -347,6 +319,7 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator, Iter
                 # yield self.Object(obj.name, obj.obj_type, obj)
                 yield obj
 
+
 @dataclass
 class BaseMotion(ABC):
 
@@ -356,34 +329,6 @@ class BaseMotion(ABC):
         Passes this designator to the process module for execution. Will be overwritten by each motion.
         """
         pass
-        # return ProcessModule.perform(self)
-
-    @abstractmethod
-    def to_sql(self) -> ORMMotionDesignator:
-        """
-        Create an ORM object that corresponds to this description. Will be overwritten by each motion.
-
-        :return: The created ORM object.
-        """
-        return ORMMotionDesignator()
-
-    @abstractmethod
-    def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
-        """
-        Add and commit this and all related objects to the session.
-        Auto-Incrementing primary keys and foreign keys have to be filled by this method.
-
-        :param session: Session with a database that is used to add and commit the objects
-        :param args: Possible extra arguments
-        :param kwargs: Possible extra keyword arguments
-        :return: The completely instanced ORM motion.
-        """
-        metadata = ProcessMetaData().insert(session)
-
-        motion = self.to_sql()
-        motion.process_metadata = metadata
-
-        return motion
 
     def __post_init__(self):
         """

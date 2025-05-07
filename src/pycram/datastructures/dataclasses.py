@@ -9,7 +9,6 @@ from enum import Enum
 
 import numpy as np
 import plotly.graph_objects as go
-import sqlalchemy
 import trimesh
 from matplotlib import pyplot as plt
 from std_msgs.msg import ColorRGBA
@@ -22,12 +21,10 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
 
 from pycrap.ontologies import PhysicalObject
 from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp, AxisIdentifier
-from .pose import Pose, Point, Transform
-from ..orm.base import ProcessMetaData
+from .pose import PoseStamped, Point, TransformStamped
 from ..ros import logwarn, logwarn_once
 from ..utils import classproperty
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
-from ..orm.object_designator import Object as ORMObject
 
 if TYPE_CHECKING:
     from ..description import Link, ObjectDescription
@@ -406,15 +403,8 @@ class BoundingBox:
         return mesh
 
     @property
-    def transform_as_array(self) -> np.ndarray:
-        """
-        :return: The transformation of the bounding box as a numpy array.
-        """
-        return self.transform.get_homogeneous_matrix()
-
-    @property
     @abstractmethod
-    def transform(self) -> Transform:
+    def transform(self) -> TransformStamped:
         """
         Get the transformation of the bounding box.
         """
@@ -445,7 +435,7 @@ class BoundingBox:
         """
         :return: The mesh of the bounding box.
         """
-        return trimesh.primitives.Box(self.extents(), self.transform_as_array)
+        return trimesh.primitives.Box(self.extents(), self.transform.transform.to_matrix())
 
     @staticmethod
     def get_mesh_from_event(event: Event) -> trimesh.Trimesh:
@@ -637,10 +627,10 @@ class BoundingBox:
 class AxisAlignedBoundingBox(BoundingBox):
 
     @property
-    def transform(self) -> Transform:
-        return Transform(self.origin)
+    def transform(self) -> TransformStamped:
+        return TransformStamped.from_list(self.origin)
 
-    def get_rotated_box(self, transform: Transform) -> RotatedBoundingBox:
+    def get_rotated_box(self, transform: TransformStamped) -> RotatedBoundingBox:
         """
         Apply a transformation to the axis-aligned bounding box and return the transformed axis-aligned bounding box.
 
@@ -693,23 +683,23 @@ class RotatedBoundingBox(BoundingBox):
     """
 
     def __init__(self, min_x: float, min_y: float, min_z: float, max_x: float, max_y: float, max_z: float,
-                 transform: Optional[Transform] = None, points: Optional[List[Point]] = None):
+                 transform: Optional[TransformStamped] = None, points: Optional[List[Point]] = None):
         """
         Set the rotated bounding box from a minimum and maximum point.
         :param transform: The transformation
         :param points: The points of the rotated bounding box.
         """
-        self._transform: Optional[Transform] = transform
+        self._transform: Optional[TransformStamped] = transform
         super().__init__(min_x, min_y, min_z, max_x, max_y, max_z)
         self._points: Optional[List[Point]] = points
 
     @property
-    def transform(self) -> Transform:
+    def transform(self) -> TransformStamped:
         return self._transform
 
     @classmethod
     def from_min_max(cls, min_point: Sequence[float], max_point: Sequence[float],
-                     transform: Optional[Transform] = None):
+                     transform: Optional[TransformStamped] = None):
         """
         Set the rotated bounding box from a minimum, maximum point, and a transformation.
 
@@ -746,11 +736,11 @@ class MultiBody:
     Dataclass for storing the information of a multibody which consists of a base and multiple links with joints.
     """
     base_visual_shape_index: int
-    base_pose: Pose
+    base_pose: PoseStamped
     link_visual_shape_indices: List[int]
-    link_poses: List[Pose]
+    link_poses: List[PoseStamped]
     link_masses: List[float]
-    link_inertial_frame_poses: List[Pose]
+    link_inertial_frame_poses: List[PoseStamped]
     link_parent_indices: List[int]
     link_joint_types: List[JointType]
     link_joint_axis: List[Point]
@@ -926,7 +916,7 @@ class PhysicalBodyState(State):
     """
     Dataclass for storing the state of a physical body.
     """
-    pose: Pose
+    pose: PoseStamped
     is_translating: bool
     is_rotating: bool
     velocity: List[float]
@@ -1052,7 +1042,7 @@ class ObjectState(State):
                 and self.joint_states == other.joint_states)
 
     @property
-    def pose(self) -> Pose:
+    def pose(self) -> PoseStamped:
         return self.body_state.pose
 
     def all_attachments_exist(self, other: ObjectState) -> bool:
@@ -1481,9 +1471,9 @@ class RayResult:
         Check if the ray intersects with a body.
         return: Whether the ray intersects with a body.
         """
-        if not self.obj_id:
-            logwarn("obj_id should be available to check if the ray intersects with a body,"
-                    "It appears that the ray result is not valid.")
+        #if not self.obj_id:
+        #    logwarn("obj_id should be available to check if the ray intersects with a body,"
+        #            "It appears that the ray result is not valid.")
         return self.obj_id != -1
 
     @property
@@ -1570,7 +1560,7 @@ class FrozenObject:
     """
     The description of the object, this is a combination of links and joints
     """
-    pose: Optional[Pose] = field(default_factory=Pose)
+    pose: Optional[PoseStamped] = field(default_factory=PoseStamped)
     """
     The pose at which this object is placed
     """
@@ -1583,18 +1573,6 @@ class FrozenObject:
     A dictionary of all joints, with the joint name as key and the joint object as value
     """
 
-    def to_sql(self):
-        return ORMObject(obj_type=str(self.concept), name=self.name)
-
-    def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObject:
-        metadata = ProcessMetaData().insert(session)
-        obj = self.to_sql()
-        pose = self.pose.insert(session)
-        obj.pose = pose
-        obj.process_metadata = metadata
-        session.add(obj)
-
-        return obj
 
 @dataclass(frozen=True)
 class FrozenLink:
@@ -1602,7 +1580,7 @@ class FrozenLink:
     """
     Name of this FrozenLink
     """
-    pose: Pose
+    pose: PoseStamped
     """
     Pose of this Link in the world frame
     """
@@ -1610,6 +1588,7 @@ class FrozenLink:
     """
     The geometry of this link
     """
+
 
 @dataclass(frozen=True)
 class FrozenJoint:

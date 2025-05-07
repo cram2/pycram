@@ -9,7 +9,7 @@ from ..ros import  get_node_names
 from geometry_msgs.msg import PointStamped
 from typing_extensions import List, Callable, Optional
 
-from ..datastructures.pose import Pose
+from ..datastructures.pose import PoseStamped
 from ..designator import ObjectDesignatorDescription
 
 robokudo_found = False
@@ -173,12 +173,12 @@ def query_human_attributes() -> Any:
 
 
 @init_robokudo_interface
-def query_waving_human() -> Pose:
+def query_waving_human() -> PoseStamped:
     """Query RoboKudo for detecting a waving human."""
     result = send_query(obj_type='human')
     if result and result.res:
         try:
-            pose = Pose.from_pose_stamped(result.res[0].pose[0])
+            pose = PoseStamped.from_pose_stamped(result.res[0].pose[0])
             return pose
         except IndexError:
             pass
