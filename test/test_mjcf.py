@@ -1,7 +1,7 @@
 from unittest import TestCase, skipIf
-from dm_control import mjcf
 try:
     from pycram.object_descriptors.mjcf import ObjectDescription as MJCFObjDesc
+    from dm_control import mjcf
 except ImportError:
     MJCFObjDesc = None
 

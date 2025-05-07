@@ -29,7 +29,7 @@ except ImportError:
 
 
 def _make_request_msg(root_link: str, tip_link: str, target_pose: PoseStamped, robot_object: Object,
-                      joints: List[str]) -> PositionIKRequest:
+                      joints: List[str]) -> 'PositionIKRequest':
     """
     Generates an ik request message for the kdl_ik_service. The message is
     of the type moveit_msgs/PositionIKRequest and contains all information

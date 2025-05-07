@@ -11,13 +11,15 @@ from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
 from ..external_interfaces import giskard
 from ..datastructures.world import World
-from pydub import AudioSegment
-from pydub.playback import play
-from gtts import gTTS
+from ..ros import  logdebug
+try:
+    from pydub import AudioSegment
+    from pydub.playback import play
+    from gtts import gTTS
+except ImportError:
+    logdebug("pydub and gtts are not installed. HSR speech simulated will not work.")
 
 import io
-
-from ..ros import  logdebug
 
 
 
