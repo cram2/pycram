@@ -259,10 +259,8 @@ def managed_node(func: Callable) -> Callable:
     def wrapper(node: DesignatorNode) -> Any:
         node.status = TaskStatus.RUNNING
         node.start_time = datetime.now()
-        print(node)
         on_start_callbacks = (Plan.on_start_callback.get(node.action, []) +
                              Plan.on_start_callback.get(None, []))
-        print(on_start_callbacks)
         on_end_callbacks = (Plan.on_end_callback.get(node.action, []) +
                            Plan.on_end_callback.get(None, []))
         for call_back in on_start_callbacks:
