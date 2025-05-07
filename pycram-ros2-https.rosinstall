@@ -1,0 +1,13 @@
+repositories:
+  iai_maps:
+    type: git
+    url: https://github.com/code-iai/iai_maps.git
+    version: ros-jazzy
+  pycram:
+    type: git
+    url: https://github.com/cram2/pycram.git
+    version: dev
+  iai_pr2:
+    type: git
+    url: https://github.com/code-iai/iai_pr2.git
+    version: ros-jazzy-main

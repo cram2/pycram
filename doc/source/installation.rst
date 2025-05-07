@@ -78,17 +78,7 @@ install the necessary Python packages.
 Additionally the script can install the IPython startup scripts which come in handy when using PyCRAM in an IPython shell
 for development.
 
-To use the script you have to setup a ROS workspace before:
-
-.. code-block:: shell
-
-    mkdir -p ~/workspace/ros/src
-    cd workspace/ros
-    catkin build
-    source install/setup.bash
-    cd src
-
-Now you can run the install script, *The scripts excepts that it is executed from /workspace/ros/src*:
+To run the install script simply past the following command into a terminal:
 
 .. code-block:: shell
 
@@ -251,7 +241,7 @@ To further test the installation you can run the tests for action designator wit
     cd ~/workspace/ros/src/pycram
     source pycram-venv/bin/activate
     pip install pytest
-    pytest -v test/action_designator/test_action_designator.py
+    python -m pytest -v test/test_designator/test_action_designator.py
 
 
 Step 8. Using PyCRAM

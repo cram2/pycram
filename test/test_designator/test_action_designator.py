@@ -1,5 +1,6 @@
 import time
 import unittest
+from copy import deepcopy
 from datetime import timedelta
 
 from pycram.datastructures.pose import GraspDescription
@@ -7,7 +8,7 @@ from pycram.designator import ObjectDesignatorDescription
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import PickUpAction, \
     NavigateAction, FaceAtAction, MoveTorsoAction, MoveTorsoActionDescription
-from pycram.designators.motion_designator import MoveGripperMotion
+from pycram.designators.motion_designator import MoveGripperMotion, MoveTCPWaypointsMotion
 from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError, \
     ObjectNotInGraspingArea, ObjectStillInContact, GripperIsNotOpen, NavigationGoalNotReachedError, \
     LookAtGoalNotReached, PerceptionObjectNotFound, ContainerManipulationError
@@ -204,6 +205,21 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             FaceAtAction(self.milk.pose, True).perform()
             milk_in_robot_frame = LocalTransformer().transform_to_object_frame(self.milk.pose, self.robot)
             self.assertAlmostEqual(milk_in_robot_frame.position.y, 0.)
+
+    def test_move_tcp_waypoints(self):
+        tcp = RobotDescription.current_robot_description.get_arm_tool_frame(arm=Arms.RIGHT)
+        gripper_pose = self.robot.links[tcp].pose
+        path = []
+        for i in range(1, 3):
+            new_pose = deepcopy(gripper_pose)
+            new_pose.position.z += 0.05 * i
+            path.append(new_pose)
+        description = MoveTCPWaypointsMotion(path, Arms.RIGHT)
+        with simulated_robot:
+            description.perform()
+        gripper_position_rounded = [round(x, 2) for x in self.robot.links[tcp].pose.position_as_list()]
+        goal_position_rounded = [round(x, 2) for x in path[-1].position_as_list()]
+        self.assertListEqual(gripper_position_rounded, goal_position_rounded)
 
     def _test_validate_action_pre_perform(self, action_description, failure):
         try:

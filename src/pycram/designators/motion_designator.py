@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from pycrap.ontologies import PhysicalObject, Location
 from .object_designator import ObjectDesignatorDescription, ObjectPart
-from ..datastructures.enums import MovementType
+from ..datastructures.enums import MovementType,WaypointsMovementType
 from ..failure_handling import try_motion
 from ..failures import PerceptionObjectNotFound, ToolPoseNotReachedError
 from ..object_descriptors.urdf import LinkDescription, ObjectDescription
@@ -16,7 +16,7 @@ from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      Motion as ORMMotionDesignator)
 from ..datastructures.enums import ObjectType, Arms, GripperState, ExecutionType, DetectionTechnique, DetectionState
 
-from typing_extensions import Dict, Optional, Type
+from typing_extensions import Dict, Optional, Type, List
 from ..datastructures.pose import Pose
 from ..tasktree import with_tree
 from ..designator import BaseMotion
@@ -372,3 +372,53 @@ class TalkingMotion(BaseMotion):
 
     def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
         pass
+
+
+@dataclass
+class MoveTCPWaypointsMotion(BaseMotion):
+    """
+    Moves the Tool center point (TCP) of the robot
+    """
+
+    waypoints: List[Pose]
+    """
+    Waypoints the TCP should move along 
+    """
+    arm: Arms
+    """
+    Arm with the TCP that should be moved to the target
+    """
+    allow_gripper_collision: Optional[bool] = None
+    """
+    If the gripper can collide with something
+    """
+    movement_type: WaypointsMovementType = WaypointsMovementType.ENFORCE_ORIENTATION_FINAL_POINT
+    """
+    The type of movement that should be performed.
+    """
+
+    @with_tree
+    def perform(self):
+        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager.move_tcp_waypoints().execute(self)
+
+    def to_sql(self) -> ORMMoveTCPMotion:
+        return ORMMoveTCPMotion(self.arm, self.allow_gripper_collision)
+
+    def insert(self, session: Session, *args, **kwargs) -> ORMMoveTCPMotion:
+        motion = super().insert(session)
+        pose = self.waypoints[-1].insert(session)
+        motion.pose = pose
+        session.add(motion)
+
+        return motion
+
+    def __str__(self):
+        return (f"MoveTCPWaypointsMotion:\n"
+                f"Waypoints: {self.waypoints}\n"
+                f"Arm: {self.arm}\n"
+                f"AllowGripperCollision: {self.allow_gripper_collision}\n"
+                f"MovementType: {self.movement_type}")
+
+    def __repr__(self):
+        return self.__str__()

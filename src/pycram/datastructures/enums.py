@@ -338,6 +338,13 @@ class MovementType(Enum):
     TRANSLATION = auto()
     CARTESIAN = auto()
 
+class WaypointsMovementType(Enum):
+    """
+    Enum for the different movement types of the robot.
+    """
+    ENFORCE_ORIENTATION_STRICT = auto()
+    ENFORCE_ORIENTATION_FINAL_POINT = auto()
+
 
 class MultiverseAPIName(Enum):
     """
