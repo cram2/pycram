@@ -177,7 +177,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_transport(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.TransportActionDescription(object_description,
-                                                        [PoseStamped.from_list([-1.35, 0.78, 0.95],
+                                                        [PoseStamped.from_list([-1.4, 0.78, 0.95],
                                                                      [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])],
                                                         [Arms.LEFT])
         with simulated_robot:
@@ -185,8 +185,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             description.resolve().perform()
         self.assertEqual(description.resolve().object_designator.name, "milk")
         milk_position = np.array(self.milk.get_pose().position.to_list())
-        dist = np.linalg.norm(milk_position - np.array([-1.35, 0.78, 0.95]))
-        self.assertTrue(dist < 0.01)
+        dist = np.linalg.norm(milk_position - np.array([-1.4, 0.78, 0.95]))
+        self.assertLessEqual(dist, 0.01)
 
     def test_grasping(self):
         self.milk.set_pose(PoseStamped.from_list([-1.4, 1, 1]))

@@ -1,5 +1,0 @@
--r requirements.txt
-pandas>=2.0.3
-psycopg2>=2.9.10
-pyjpt>=0.1.31
-pymysql>=1.0.3

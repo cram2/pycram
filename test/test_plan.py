@@ -9,9 +9,9 @@ class TestPlan(unittest.TestCase):
     def test_plan_construction(self):
         sp = SequentialPlan(MoveTorsoActionDescription(None),
                             NavigateActionDescription(None))
-        self.assertEquals(2, len(sp.root.children))
-        self.assertEquals(3, len(sp.nodes))
-        self.assertEquals(2, len(sp.edges))
+        self.assertEqual(2, len(sp.root.children))
+        self.assertEqual(3, len(sp.nodes))
+        self.assertEqual(2, len(sp.edges))
 
     def test_plan_construction_nested(self):
         sp = SequentialPlan(MoveTorsoActionDescription(None),
@@ -19,6 +19,6 @@ class TestPlan(unittest.TestCase):
                             ParallelPlan(NavigateActionDescription(None) ,
                                          NavigateActionDescription(None)))
 
-        self.assertEquals(3, len(sp.root.children))
-        self.assertEquals(6, len(sp.nodes))
-        self.assertEquals(5, len(sp.edges))
+        self.assertEqual(3, len(sp.root.children))
+        self.assertEqual(6, len(sp.nodes))
+        self.assertEqual(5, len(sp.edges))

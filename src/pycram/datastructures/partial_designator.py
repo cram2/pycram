@@ -107,5 +107,12 @@ class PartialDesignator(LanguageMixin, Iterable[T]):
         """
         return next(iter(self))
 
+    def to_dict(self):
+        desig = {"type": self.performable.__name__}
+        desig.update(self.kwargs)
+        return desig
+
+
+
 
 

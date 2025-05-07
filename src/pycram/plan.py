@@ -28,14 +28,16 @@ class Plan(nx.DiGraph):
     """
     current_plan: Plan = None
 
-    on_start_callback: Dict[Type[ActionDescription], List[Callable]] = field(default_factory=dict)
-    on_end_callback: Dict[Type[ActionDescription], List[Callable]] = field(default_factory=dict)
+    on_start_callback: Dict[Type[ActionDescription], List[Callable]] = None
+    on_end_callback: Dict[Type[ActionDescription], List[Callable]] = None
 
     def __init__(self, root: PlanNode):
         super().__init__()
         self.root: PlanNode = root
         self.add_node(self.root)
         self.current_node: PlanNode = self.root
+        self.on_start_callback = {}
+        self.on_end_callback = {}
 
     def mount(self, other: Plan, mount_node: PlanNode = None):
         """
@@ -273,7 +275,7 @@ def managed_node(func: Callable) -> Callable:
             node.plan.current_node = node.parent
             #for call_back in on_end_callbacks:
             #    call_back(node)
-            return result
+        return result
 
     return wrapper
 

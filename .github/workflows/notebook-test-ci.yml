@@ -22,7 +22,7 @@ jobs:
     name: Test Jupyter Notebooks
     runs-on: ubuntu-22.04
     container:
-      image: "pycram/pycram:dev"
+      image: "pycram/pycram:jazzy"
 
     steps:
 
@@ -50,35 +50,25 @@ jobs:
 
       - name: Install python dependencies
         run: |
-          pip3 install --upgrade pip --root-user-action=ignore
+          source /opt/ros/overlay_ws/src/pycram-venv/bin/activate
+          pip install --upgrade pip --root-user-action=ignore
           cd /opt/ros/overlay_ws/src/pycram
-          pip3 install -r requirements.txt
-          sudo apt-get update
-          sudo apt-get install -y libpq-dev
-          pip3 install -r requirements-resolver.txt
-
-      # ----------------------------------------------------------------------------------------------------------------
-
-      - name: Install Jupytext & Jupyter notebook
-        run: |
-          pip3 install jupytext treon
+          pip install -r requirements.txt
+          pip install jupytext treon
 
       # ----------------------------------------------------------------------------------------------------------------
       - name: Convert Notebooks
         run: |
+          source /opt/ros/overlay_ws/src/pycram-venv/bin/activate
           cd /opt/ros/overlay_ws/src/pycram/examples
           rm -rf tmp
           mkdir tmp
-          jupytext --to notebook *.md
+          python -m jupytext --to notebook *.md
           mv *.ipynb tmp && cd tmp
-
-      - name: Source and start ROS
-        run: |
-          source /opt/ros/overlay_ws/devel/setup.bash 
-          roscore &
 
       - name: Run tests
         run: |
-          source /opt/ros/overlay_ws/devel/setup.bash 
-          roscd pycram/examples/tmp
-          treon --thread 1 -v --exclude=migrate_neems.ipynb --exclude=improving_actions.ipynb
+          source /opt/ros/overlay_ws/install/setup.bash
+          source /opt/ros/overlay_ws/src/pycram-venv/bin/activate
+          cd /opt/ros/overlay_ws/src/pycram/examples/tmp
+          python -m treon --thread 1 -v --exclude=migrate_neems.ipynb --exclude=improving_actions.ipynb
