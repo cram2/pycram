@@ -60,7 +60,6 @@ class WorldStateUpdater:
                 continue
             else:
                 tf_frame = obj.tf_frame
-
             trans, rot = self.tf_listener.lookupTransform("/map", tf_frame, Time(0))
             obj.set_pose(PoseStamped.from_list(trans, rot))
 
