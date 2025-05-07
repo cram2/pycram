@@ -394,6 +394,18 @@ class PlanNode:
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
+    def resume(self):
+        """
+        Resumes the execution of this node and all nodes below
+        """
+        self.status = TaskStatus.RUNNING
+
+    def pause(self):
+        """
+        Suspends the execution of this node and all nodes below.
+        """
+        self.status = TaskStatus.SLEEPING
+
 
 @dataclass
 class DesignatorNode(PlanNode):
