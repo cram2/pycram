@@ -6,6 +6,9 @@ from functools import lru_cache
 import typing_extensions
 from typing_extensions import List, Dict, Union, Tuple, TYPE_CHECKING, get_origin, get_args
 
+from pycrap.ontologies import PhysicalObject
+from .ros import logwarn
+
 # Forward declaration of the class
 HasParameters = object
 
@@ -14,7 +17,7 @@ if TYPE_CHECKING:
 
     ParameterDict = Dict[str, Union[LeafTypes, HasParameters]]
 
-leaf_types = (int, float, str, bool, enum.Enum)
+leaf_types = (int, float, str, bool, enum.Enum, type, PhysicalObject)
 
 
 class HasParametersMeta(type):
@@ -63,8 +66,15 @@ class HasParametersMeta(type):
                 field_type = type_a or type_b
                 target_class._parameters[field_name] = field_type
                 continue
-            if issubclass(field_type, leaf_types) or issubclass(field_type, HasParameters):
-                target_class._parameters[field_name] = field_type
+            if get_origin(field_type) is type:
+                type_type = get_args(field_type)[0]
+                target_class._parameters[field_name] = type_type
+                continue
+            try:
+                if issubclass(field_type, leaf_types) or issubclass(field_type, HasParameters):
+                    target_class._parameters[field_name] = field_type
+            except TypeError as e:
+                logwarn(f"Filed type in {target_class.__name__} is not a leaf type: {field_type}")
 
 
 class HasParameters(metaclass=HasParametersMeta):
@@ -100,6 +110,7 @@ class HasParameters(metaclass=HasParametersMeta):
         """
         flat_fields = {}
         for field_name, field_type in cls._parameters.items():
+            print(field_type)
             if issubclass(field_type, HasParameters):
                 sub_flat_fields = field_type.flattened_parameters()
                 for sub_field_name, sub_field_type in sub_flat_fields.items():
