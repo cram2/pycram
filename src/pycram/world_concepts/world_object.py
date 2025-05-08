@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 from deprecated import deprecated
 from trimesh.parent import Geometry3D
-from typing_extensions import Type, Optional, Dict, Tuple, List, Union
+from typing_extensions import Type, Optional, Dict, Tuple, List, Union, Any
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
@@ -18,6 +18,7 @@ from ..datastructures.world_entity import PhysicalBody
 from ..description import ObjectDescription, LinkDescription, Joint
 from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenAttachedObjects, UnsupportedFileExtension, \
     ObjectDescriptionUndefined
+from ..has_parameters import HasParameters, leaf_types
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
@@ -35,7 +36,7 @@ from pycrap.ontologies import PhysicalObject, Joint, \
 Link = ObjectDescription.Link
 
 
-class Object(PhysicalBody):
+class Object(PhysicalBody, HasParameters):
     """
     Represents a spawned Object in the World.
     """
@@ -1552,3 +1553,16 @@ class Object(PhysicalBody):
 
         return FrozenObject(self.name, self.obj_type, self.path, self.description, self.pose,
                             frozen_links, frozen_joints)
+
+    @classmethod
+    def define_parameters(cls) -> Dict[str, Any]:
+        """
+        Defines the parameters of Object for the HasParameter flattener. Relevant parameters for objects are only the
+        Pose and Type.
+
+        :return: A dictionary with the parameters of the object
+        """
+        params = {}
+        params.update(PoseStamped._parameters)
+        params["obj_type"] = PhysicalObject
+        return params

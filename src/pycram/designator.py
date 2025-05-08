@@ -56,7 +56,7 @@ class ResolutionError(Exception):
         super(ResolutionError, self).__init__(self.message)
 
 
-class DesignatorDescription(ABC):
+class DesignatorDescription:
     """
     :ivar resolve: The specialized_designators function to use for this designator_description, defaults to self.ground
     """
@@ -124,7 +124,7 @@ class DesignatorDescription(ABC):
         return get_type_hints(cls.__init__)
 
 @dataclass
-class ActionDescription():
+class ActionDescription(HasParameters):
     """
     The performable designator_description with a single element for each list of possible parameter.
     """
@@ -257,7 +257,7 @@ class ActionDescription():
         return self.__str__()
 
 
-class LocationDesignatorDescription(DesignatorDescription, PartialDesignator, Iterable[PoseStamped]):
+class LocationDesignatorDescription(DesignatorDescription, PartialDesignator):
     """
     Parent class of location designator_description descriptions.
     """
@@ -272,12 +272,12 @@ class LocationDesignatorDescription(DesignatorDescription, PartialDesignator, It
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
 
 
-class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator, Iterable[WorldObject]):
+class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
     """
     Class for object designator_description descriptions.
     Descriptions hold possible parameter ranges for object designators.
     """
-    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None, resolution_strategy: Union[Iterable[WorldObject], Callable[WorldObject]] = None):
+    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None):
         """
         Base of all object designator_description descriptions. Every object designator_description has the name and type of the object.
 
