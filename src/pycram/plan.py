@@ -17,6 +17,7 @@ from pycrap.ontologies import Action
 from .failures import PlanFailure
 from .external_interfaces import giskard
 from .ros import loginfo
+from .has_parameters import leaf_types
 
 if TYPE_CHECKING:
     from .designator import BaseMotion, ActionDescription
@@ -29,8 +30,8 @@ class Plan(nx.DiGraph):
     """
     current_plan: Plan = None
 
-    on_start_callback: Dict[Type[ActionDescription], List[Callable]] = None
-    on_end_callback: Dict[Type[ActionDescription], List[Callable]] = None
+    on_start_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
+    on_end_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
 
     def __init__(self, root: PlanNode):
         super().__init__()
@@ -194,54 +195,59 @@ class Plan(nx.DiGraph):
         plt.axis('off')  # Hide axes
         plt.show()
 
-    def add_on_start_callback(self, callback: Callable[[ResolvedActionNode], None],
-                              action_type: Type[ActionDescription]):
+    @classmethod
+    def add_on_start_callback(cls, callback: Callable[[ResolvedActionNode], None],
+                              action_type: Optional[Type[ActionDescription]] = None):
         """
         Adds a callback to be called when an action of the given type is started.
 
         :param callback: The callback to be called
-        :param action_type: The type of the action
+        :param action_type: The type of the action, if None, the callback will be called for all actions
         """
-        if not self.on_start_callback:
-            self.on_start_callback = {}
-        if action_type not in self.on_start_callback:
-            self.on_start_callback[action_type] = []
-        self.on_start_callback[action_type].append(callback)
+        if not cls.on_start_callback:
+            cls.on_start_callback = {}
+        if action_type not in cls.on_start_callback:
+            cls.on_start_callback[action_type] = []
+        cls.on_start_callback[action_type].append(callback)
 
-    def add_on_end_callback(self, callback: Callable[[ResolvedActionNode], None], action_type: Type[ActionDescription]):
+    @classmethod
+    def add_on_end_callback(cls, callback: Callable[[ResolvedActionNode], None],
+                            action_type: Optional[Type[ActionDescription]] = None):
         """
         Adds a callback to be called when an action of the given type is ended.
 
         :param callback: The callback to be called
         :param action_type: The type of the action
         """
-        if not self.on_end_callback:
-            self.on_end_callback = {}
-        if action_type not in self.on_end_callback:
-            self.on_end_callback[action_type] = []
-        self.on_end_callback[action_type].append(callback)
+        if not cls.on_end_callback:
+            cls.on_end_callback = {}
+        if action_type not in cls.on_end_callback:
+            cls.on_end_callback[action_type] = []
+        cls.on_end_callback[action_type].append(callback)
 
-    def remove_on_start_callback(self, callback: Callable[[ResolvedActionNode], None],
-                                 action_type: Type[ActionDescription]):
+    @classmethod
+    def remove_on_start_callback(cls, callback: Callable[[ResolvedActionNode], None],
+                                 action_type: Optional[Type[ActionDescription]] = None):
         """
         Removes a callback to be called when an action of the given type is started.
 
         :param callback: The callback to be removed
         :param action_type: The type of the action
         """
-        if self.on_start_callback and action_type in self.on_start_callback:
-            self.on_start_callback[action_type].remove(callback)
+        if cls.on_start_callback and action_type in cls.on_start_callback:
+            cls.on_start_callback[action_type].remove(callback)
 
-    def remove_on_end_callback(self, callback: Callable[[ResolvedActionNode], None],
-                               action_type: Type[ActionDescription]):
+    @classmethod
+    def remove_on_end_callback(cls, callback: Callable[[ResolvedActionNode], None],
+                               action_type: Optional[Type[ActionDescription]] = None):
         """
         Removes a callback to be called when an action of the given type is ended.
 
         :param callback: The callback to be removed
         :param action_type: The type of the action
         """
-        if self.on_end_callback and action_type in self.on_end_callback:
-            self.on_end_callback[action_type].remove(callback)
+        if cls.on_end_callback and action_type in cls.on_end_callback:
+            cls.on_end_callback[action_type].remove(callback)
 
     def parameter_algebra(self) -> Event:
         for node in self.nodes:
@@ -260,12 +266,12 @@ def managed_node(func: Callable) -> Callable:
     def wrapper(node: DesignatorNode) -> Any:
         node.status = TaskStatus.RUNNING
         node.start_time = datetime.now()
-        #on_start_callbacks = (node.plan.on_start_callback.get(node.action, []) +
-        #                      node.plan.on_start_callback.get(ActionDescription, []))
-        #on_end_callbacks = (node.plan.on_end_callback.get(node.action, []) +
-        #                    node.plan.on_end_callback.get(ActionDescription, []))
-        #for call_back in on_start_callbacks:
-        #    call_back(node)
+        on_start_callbacks = (Plan.on_start_callback.get(node.action, []) +
+                             Plan.on_start_callback.get(None, []))
+        on_end_callbacks = (Plan.on_end_callback.get(node.action, []) +
+                           Plan.on_end_callback.get(None, []))
+        for call_back in on_start_callbacks:
+           call_back(node)
         result = None
         try:
             node.plan.current_node = node
@@ -279,8 +285,8 @@ def managed_node(func: Callable) -> Callable:
         finally:
             node.end_time = datetime.now()
             node.plan.current_node = node.parent
-            #for call_back in on_end_callbacks:
-            #    call_back(node)
+            for call_back in on_end_callbacks:
+               call_back(node)
         return result
 
     return wrapper
@@ -395,6 +401,18 @@ class PlanNode:
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 
+    def resume(self):
+        """
+        Resumes the execution of this node and all nodes below
+        """
+        self.status = TaskStatus.RUNNING
+
+    def pause(self):
+        """
+        Suspends the execution of this node and all nodes below.
+        """
+        self.status = TaskStatus.SLEEPING
+
 
 @dataclass
 class DesignatorNode(PlanNode):
@@ -419,8 +437,26 @@ class DesignatorNode(PlanNode):
     def __repr__(self, *args, **kwargs):
         return f"<{self.designator_ref.performable.__name__}>"
 
-    def flattened_parameters(self):
+    def flattened_parameters(self) -> Dict[str, leaf_types]:
+        """
+        The atomic types of the parameters of this node as dict with paths as keys and the atomic type as value.
+        This resolves the parameters to its type not the actual value.
+
+        :return: The atomic types of this action
+        """
         return self.designator_ref.performable.flattened_parameters()
+
+    def flatten(self) -> Dict[str, leaf_types]:
+        """
+        Flattens the parameters of this node to a dict with the parameter as  key and the value as value.
+
+        :return: A dict of the flattened parameters
+        """
+        params = self.designator_ref.performable.flattened_parameters()
+        for key, value in self.designator_ref.kwargs.items():
+            if key in params:
+                params[key] = value
+        return params
 
 
 @dataclass
@@ -447,7 +483,8 @@ class ActionNode(DesignatorNode):
         if not self.action_iter:
             self.action_iter = iter(self.designator_ref)
         resolved_action = next(self.action_iter)
-        resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__, )
+        kwargs = {key: resolved_action.__getattribute__(key) for key in self.designator_ref.kwargs.keys()}
+        resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__, kwargs=kwargs)
         self.plan.add_edge(self, resolved_action_node)
 
         return resolved_action_node.perform()
@@ -477,6 +514,12 @@ class ResolvedActionNode(DesignatorNode):
 
     def __repr__(self, *args, **kwargs):
         return f"<Resolved {self.designator_ref.__class__.__name__}>"
+
+    def flatten(self):
+        return self.designator_ref.flatten()
+
+    def flattened_parameters(self):
+        return self.designator_ref.flattened_parameters()
 
 
 @dataclass
@@ -517,6 +560,12 @@ class MotionNode(DesignatorNode):
 
     def __repr__(self, *args, **kwargs):
         return f"<{self.designator_ref.__class__.__name__}>"
+
+    def flatten(self):
+        return {}
+
+    def flattened_parameters(self):
+        return {}
 
 
 def with_plan(func: Callable) -> Callable:

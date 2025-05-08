@@ -6,11 +6,12 @@ from pathlib import Path
 import numpy as np
 from deprecated import deprecated
 from trimesh.parent import Geometry3D
-from typing_extensions import Type, Optional, Dict, Tuple, List, Union
+from typing_extensions import Type, Optional, Dict, Tuple, List, Union, Any
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
-                                          ContactPointsList, RotatedBoundingBox, VirtualJoint, FrozenObject, FrozenLink, FrozenJoint)
+                                          ContactPointsList, RotatedBoundingBox, VirtualJoint, FrozenObject, FrozenLink,
+                                          FrozenJoint)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import PoseStamped, TransformStamped, Point, Quaternion, Vector3
 from ..datastructures.world import World
@@ -18,6 +19,7 @@ from ..datastructures.world_entity import PhysicalBody
 from ..description import ObjectDescription, LinkDescription, Joint
 from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenAttachedObjects, UnsupportedFileExtension, \
     ObjectDescriptionUndefined
+from ..has_parameters import HasParameters, leaf_types
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
@@ -30,12 +32,12 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from pycrap.ontologies import PhysicalObject, Joint, \
-    Robot, Floor, Location, Bowl, Spoon, Cereal
+    Robot, Floor, Location, Bowl, Spoon, Cereal, Environment
 
 Link = ObjectDescription.Link
 
 
-class Object(PhysicalBody):
+class Object(PhysicalBody, HasParameters):
     """
     Represents a spawned Object in the World.
     """
@@ -107,6 +109,10 @@ class Object(PhysicalBody):
         # if the object is an agent in the belief state
         if self.is_a_robot and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
+
+        # if the object is an environment in the belief state
+        if self.is_an_environment and not self.world.is_prospection_world:
+            self._update_world_environment_object()
 
         self.id = self._spawn_object_and_get_id()
 
@@ -397,6 +403,12 @@ class Object(PhysicalBody):
         rdm.load_description(self.description.name)
         World.robot = self
         self._add_virtual_move_base_joints()
+
+    def _update_world_environment_object(self):
+        """
+        Initialize the environment as the current environment in the World.
+        """
+        World.environment = self
 
     def _add_virtual_move_base_joints(self):
         """
@@ -702,7 +714,18 @@ class Object(PhysicalBody):
 
         :return: True if the object is of type environment, False otherwise.
         """
-        return issubclass(self.obj_type, Location) or issubclass(self.obj_type, Floor)
+        return (issubclass(self.obj_type, Location) or issubclass(self.obj_type, Floor)
+                or issubclass(self.obj_type, Environment))
+
+    @property
+    def is_an_object(self) -> bool:
+        """
+        Check if the object is of type Physical Object or Generic Object.
+
+        :return: True if the object is of type PhysicalObject , False otherwise.
+        """
+        return issubclass(self.obj_type, PhysicalObject)
+
 
     @property
     def is_a_robot(self) -> bool:
@@ -1496,7 +1519,7 @@ class Object(PhysicalBody):
         base_width = np.absolute(aabb.min_x - aabb.max_x)
         base_length = np.absolute(aabb.min_y - aabb.max_y)
         return PoseStamped.from_list([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
-                           self.get_orientation_as_list())
+                                     self.get_orientation_as_list())
 
     def get_joint_by_id(self, joint_id: int) -> Joint:
         """
@@ -1548,7 +1571,21 @@ class Object(PhysicalBody):
         :return FrozenObject: The copied forzen object.
         """
         frozen_links = {l_name: FrozenLink(l.name, l.pose, l.geometry) for l_name, l in self.links.items()}
-        frozen_joints = {j_name: FrozenJoint(j.name, j.type, [j.child], j.parent, j.current_state.position) for j_name, j in self.joints.items()}
+        frozen_joints = {j_name: FrozenJoint(j.name, j.type, [j.child], j.parent, j.current_state.position) for
+                         j_name, j in self.joints.items()}
 
         return FrozenObject(self.name, self.obj_type, self.path, self.description, self.pose,
                             frozen_links, frozen_joints)
+
+    @classmethod
+    def define_parameters(cls) -> Dict[str, Any]:
+        """
+        Defines the parameters of Object for the HasParameter flattener. Relevant parameters for objects are only the
+        Pose and Type.
+
+        :return: A dictionary with the parameters of the object
+        """
+        params = {}
+        params.update(PoseStamped._parameters)
+        params["obj_type"] = PhysicalObject
+        return params

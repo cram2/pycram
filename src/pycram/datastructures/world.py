@@ -70,6 +70,12 @@ class World(WorldEntity, ABC):
      the URDF with the name of the URDF on the parameter server. 
     """
 
+    environment: Optional[Object] = None
+    """
+    Global reference to the spawned Object that represents the environment. The environment is identified by checking the name in
+     the URDF with the name of the URDF on the parameter server. 
+    """
+
     cache_manager: CacheManager = CacheManager(conf.cache_dir, [conf.resources_path], False)
     """
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.

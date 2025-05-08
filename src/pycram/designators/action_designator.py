@@ -12,6 +12,7 @@ import numpy as np
 
 from .object_designator import BelieveObject
 from ..datastructures.world_entity import PhysicalBody
+from ..has_parameters import has_parameters
 from ..language import SequentialPlan, TryInOrderPlan
 from ..plan import with_plan
 
@@ -71,6 +72,7 @@ def record_object_pre_perform(action):
     action.object_at_execution = action.object_designator.frozen_copy()
 
 
+@has_parameters
 @dataclass
 class MoveTorsoAction(ActionDescription):
     """
@@ -106,6 +108,7 @@ class MoveTorsoAction(ActionDescription):
         return PartialDesignator(MoveTorsoAction, torso_state=torso_state)
 
 
+@has_parameters
 @dataclass
 class SetGripperAction(ActionDescription):
     """
@@ -143,6 +146,7 @@ class SetGripperAction(ActionDescription):
         return PartialDesignator(SetGripperAction, gripper=gripper, motion=motion)
 
 
+@has_parameters
 @dataclass
 class ReleaseAction(ActionDescription):
     """
@@ -186,6 +190,7 @@ class ReleaseAction(ActionDescription):
         return PartialDesignator(ReleaseAction, object_designator=object_designator, gripper=gripper)
 
 
+@has_parameters
 @dataclass
 class GripAction(ActionDescription):
     """
@@ -231,11 +236,12 @@ class GripAction(ActionDescription):
     @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     gripper: Union[Iterable[Arms], Arms] = None, effort: Union[Iterable[float], float] = None, ) -> \
-    PartialDesignator[Type[GripAction]]:
+            PartialDesignator[Type[GripAction]]:
         return PartialDesignator(GripAction, object_designator=object_designator,
                                  gripper=gripper, effort=effort)
 
 
+@has_parameters
 @dataclass
 class ParkArmsAction(ActionDescription):
     """
@@ -292,6 +298,7 @@ SPECIAL_KNOWLEDGE = {
 }
 
 
+@has_parameters
 @dataclass
 class ReachToPickUpAction(ActionDescription):
     """
@@ -395,6 +402,7 @@ class ReachToPickUpAction(ActionDescription):
                                  grasp=grasp)
 
 
+@has_parameters
 @dataclass
 class PickUpAction(ActionDescription):
     """
@@ -481,6 +489,7 @@ class PickUpAction(ActionDescription):
                                  grasp_description=grasp_description)
 
 
+@has_parameters
 @dataclass
 class PlaceAction(ActionDescription):
     """
@@ -578,6 +587,7 @@ class PlaceAction(ActionDescription):
                                  arm=arm)
 
 
+@has_parameters
 @dataclass
 class NavigateAction(ActionDescription):
     """
@@ -612,6 +622,7 @@ class NavigateAction(ActionDescription):
                                  keep_joint_states=keep_joint_states)
 
 
+@has_parameters
 @dataclass
 class TransportAction(ActionDescription):
     """
@@ -686,6 +697,7 @@ class TransportAction(ActionDescription):
                                  arm=arm)
 
 
+@has_parameters
 @dataclass
 class LookAtAction(ActionDescription):
     """
@@ -705,7 +717,7 @@ class LookAtAction(ActionDescription):
         Check if the robot is looking at the target location by spawning a virtual object at the target location and
         creating a ray from the camera and checking if it intersects with the object.
         """
-        return 
+        return
         with UseProspectionWorld():
             move_away_all_objects_to_create_empty_space(exclude_objects=[World.robot.name, "floor"])
             # Create a virtual object at the target location, the current size is 40x40x40 cm which is very big in
@@ -722,6 +734,7 @@ class LookAtAction(ActionDescription):
         return PartialDesignator(LookAtAction, target=target)
 
 
+@has_parameters
 @dataclass
 class DetectAction(ActionDescription):
     """
@@ -784,6 +797,7 @@ class DetectAction(ActionDescription):
                                  region=region)
 
 
+@has_parameters
 @dataclass
 class OpenAction(ActionDescription):
     """
@@ -828,6 +842,7 @@ class OpenAction(ActionDescription):
                                  grasping_prepose_distance=grasping_prepose_distance)
 
 
+@has_parameters
 @dataclass
 class CloseAction(ActionDescription):
     """
@@ -905,6 +920,7 @@ def check_closed(joint_obj: Joint, obj_part: Link, arm: Arms, lower_limit: float
                                          ContainerManipulationType.Closing)
 
 
+@has_parameters
 @dataclass
 class GraspingAction(ActionDescription):
     """
@@ -958,6 +974,7 @@ class GraspingAction(ActionDescription):
                                  prepose_distance=prepose_distance)
 
 
+@has_parameters
 @dataclass
 class FaceAtAction(ActionDescription):
     """
@@ -1003,6 +1020,7 @@ class FaceAtAction(ActionDescription):
         return PartialDesignator(FaceAtAction, pose=pose, keep_joint_states=keep_joint_states)
 
 
+@has_parameters
 @dataclass
 class MoveAndPickUpAction(ActionDescription):
     """
@@ -1062,6 +1080,7 @@ class MoveAndPickUpAction(ActionDescription):
                                  grasp=grasp)
 
 
+@has_parameters
 @dataclass
 class MoveAndPlaceAction(ActionDescription):
     """
@@ -1117,6 +1136,7 @@ class MoveAndPlaceAction(ActionDescription):
                                  arm=arm)
 
 
+@has_parameters
 @dataclass
 class PouringAction(ActionDescription):
     """
@@ -1196,6 +1216,7 @@ class PouringAction(ActionDescription):
         return PartialDesignator(PouringAction, object=object, tool=tool, arm=arm, technique=technique, angle=angle)
 
 
+@has_parameters
 @dataclass
 class SearchAction(ActionDescription):
     """
@@ -1213,7 +1234,8 @@ class SearchAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        NavigateActionDescription(CostmapLocation(target=self.target_location, visible_for=World.robot)).resolve().perform()
+        NavigateActionDescription(
+            CostmapLocation(target=self.target_location, visible_for=World.robot)).resolve().perform()
 
         lt = LocalTransformer()
         target_base = lt.transform_pose(self.target_location, World.robot.tf_frame)
@@ -1225,15 +1247,18 @@ class SearchAction(ActionDescription):
         target_base_right.pose.position.y += 0.5
 
         plan = TryInOrderPlan(
-                SequentialPlan(
-                    LookAtActionDescription(target_base_left),
-                    DetectActionDescription(DetectionTechnique.TYPES, object_designator=BelieveObject(types=[self.object_type]))),
-                SequentialPlan(
-                    LookAtActionDescription(target_base_right),
-                    DetectActionDescription(DetectionTechnique.TYPES, object_designator=BelieveObject(types=[self.object_type]))),
-                SequentialPlan(
-                    LookAtActionDescription(target_base),
-                    DetectActionDescription(DetectionTechnique.TYPES, object_designator=BelieveObject(types=[self.object_type]))))
+            SequentialPlan(
+                LookAtActionDescription(target_base_left),
+                DetectActionDescription(DetectionTechnique.TYPES,
+                                        object_designator=BelieveObject(types=[self.object_type]))),
+            SequentialPlan(
+                LookAtActionDescription(target_base_right),
+                DetectActionDescription(DetectionTechnique.TYPES,
+                                        object_designator=BelieveObject(types=[self.object_type]))),
+            SequentialPlan(
+                LookAtActionDescription(target_base),
+                DetectActionDescription(DetectionTechnique.TYPES,
+                                        object_designator=BelieveObject(types=[self.object_type]))))
 
         return plan.perform()
 
