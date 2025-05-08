@@ -110,7 +110,7 @@ class Object(PhysicalBody):
             self._update_world_robot_and_description()
 
         # if the object is an environment in the belief state
-        if self.is_a_environment and not self.world.is_prospection_world:
+        if self.is_an_environment and not self.world.is_prospection_world:
             self._update_world_environment_object()
 
         self.id = self._spawn_object_and_get_id()
@@ -717,6 +717,16 @@ class Object(PhysicalBody):
                 or issubclass(self.obj_type, Environment))
 
     @property
+    def is_an_object(self) -> bool:
+        """
+        Check if the object is of type Physical Object or Generic Object.
+
+        :return: True if the object is of type PhysicalObject , False otherwise.
+        """
+        return issubclass(self.obj_type, PhysicalObject)
+
+
+    @property
     def is_a_robot(self) -> bool:
         """
         Check if the object is a robot.
@@ -724,15 +734,6 @@ class Object(PhysicalBody):
         :return: True if the object is a robot, False otherwise.
         """
         return issubclass(self.obj_type, Robot)
-
-    @property
-    def is_a_environment(self) -> bool:
-        """
-        Check if the object is a environment.
-        TODO: Check if this is a the correct filter
-        :return: True if the object is a environment, False otherwise.
-        """
-        return issubclass(self.obj_type, Environment)
 
     def merge(self, other: Object, name: Optional[str] = None, pose: Optional[PoseStamped] = None,
               new_description_file: Optional[str] = None) -> Object:
