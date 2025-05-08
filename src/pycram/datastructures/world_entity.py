@@ -123,7 +123,7 @@ class StateEntity:
         self._saved_states = {}
 
 
-class WorldEntity(StateEntity, HasConcept, ABC):
+class WorldEntity(StateEntity, HasConcept):
     """
     A class that represents an entity of the world, such as an object or a link.
     """
@@ -169,7 +169,7 @@ class WorldEntity(StateEntity, HasConcept, ABC):
         return hash((self.id, self.name, self.parent_entity))
 
 
-class PhysicalBody(WorldEntity, ABC):
+class PhysicalBody(WorldEntity):
     """
     A class that represents a physical body in the world that has some related physical properties.
     """

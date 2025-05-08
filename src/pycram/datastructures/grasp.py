@@ -5,10 +5,12 @@ from dataclasses import dataclass
 from typing_extensions import Optional, Union, List
 
 from .enums import Grasp, AxisIdentifier
+from ..has_parameters import HasParameters, has_parameters
 
 
+@has_parameters
 @dataclass
-class GraspDescription:
+class GraspDescription(HasParameters):
     """
     Represents a grasp description with a side grasp, top face, and orientation alignment.
     """

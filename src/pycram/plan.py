@@ -16,6 +16,7 @@ from pycrap.ontologies import Action
 from .failures import PlanFailure
 from .external_interfaces import giskard
 from .ros import loginfo
+from .has_parameters import leaf_types
 
 if TYPE_CHECKING:
     from .designator import BaseMotion, ActionDescription
@@ -430,8 +431,26 @@ class DesignatorNode(PlanNode):
     def __repr__(self, *args, **kwargs):
         return f"<{self.designator_ref.performable.__name__}>"
 
-    def flattened_parameters(self):
+    def flattened_parameters(self) -> Dict[str, leaf_types]:
+        """
+        The atomic types of the parameters of this node as dict with paths as keys and the atomic type as value.
+        This resolves the parameters to its type not the actual value.
+
+        :return: The atomic types of this action
+        """
         return self.designator_ref.performable.flattened_parameters()
+
+    def flatten(self) -> Dict[str, leaf_types]:
+        """
+        Flattens the parameters of this node to a dict with the parameter as  key and the value as value.
+
+        :return: A dict of the flattened parameters
+        """
+        params = self.designator_ref.performable.flattened_parameters()
+        for key, value in self.designator_ref.kwargs.items():
+            if key in params:
+                params[key] = value
+        return params
 
 
 @dataclass
@@ -458,7 +477,8 @@ class ActionNode(DesignatorNode):
         if not self.action_iter:
             self.action_iter = iter(self.designator_ref)
         resolved_action = next(self.action_iter)
-        resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__, )
+        kwargs = {key: resolved_action.__getattribute__(key) for key in self.designator_ref.kwargs.keys()}
+        resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__, kwargs=kwargs)
         self.plan.add_edge(self, resolved_action_node)
 
         return resolved_action_node.perform()
@@ -488,6 +508,12 @@ class ResolvedActionNode(DesignatorNode):
 
     def __repr__(self, *args, **kwargs):
         return f"<Resolved {self.designator_ref.__class__.__name__}>"
+
+    def flatten(self):
+        return self.designator_ref.flatten()
+
+    def flattened_parameters(self):
+        return self.designator_ref.flattened_parameters()
 
 
 @dataclass
@@ -528,6 +554,12 @@ class MotionNode(DesignatorNode):
 
     def __repr__(self, *args, **kwargs):
         return f"<{self.designator_ref.__class__.__name__}>"
+
+    def flatten(self):
+        return {}
+
+    def flattened_parameters(self):
+        return {}
 
 
 def with_plan(func: Callable) -> Callable:
