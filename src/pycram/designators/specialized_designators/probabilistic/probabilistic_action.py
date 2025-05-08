@@ -105,7 +105,7 @@ class ProbabilisticAction:
         raise NotImplementedError
 
 
-class MoveAndPickUp(ActionDescription, ProbabilisticAction):
+class MoveAndPickUp( ProbabilisticAction):
 
     @dataclass
     class Variables:
@@ -269,7 +269,7 @@ class MoveAndPickUp(ActionDescription, ProbabilisticAction):
             World.current_world.reset_world()
 
 
-class MoveAndPlace(ActionDescription, ProbabilisticAction):
+class MoveAndPlace(ProbabilisticAction):
 
     @dataclass
     class Variables:
