@@ -22,3 +22,12 @@ class TestPlan(unittest.TestCase):
         self.assertEqual(3, len(sp.root.children))
         self.assertEqual(6, len(sp.nodes))
         self.assertEqual(5, len(sp.edges))
+
+
+class AlgebraTest(unittest.TestCase):
+
+    def test_algebra(self):
+        sp = SequentialPlan(MoveTorsoActionDescription(None),
+                            NavigateActionDescription(None))
+
+        sp.parameter_algebra()

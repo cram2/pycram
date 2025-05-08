@@ -8,6 +8,7 @@ from dataclasses import field, dataclass
 from datetime import datetime
 
 import networkx as nx
+from random_events.product_algebra import Event
 
 from typing_extensions import Optional, Callable, Any, Dict, List, Self, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
@@ -242,6 +243,11 @@ class Plan(nx.DiGraph):
         if self.on_end_callback and action_type in self.on_end_callback:
             self.on_end_callback[action_type].remove(callback)
 
+    def parameter_algebra(self) -> Event:
+        for node in self.nodes:
+            if isinstance(node, DesignatorNode):
+                parameters = node.action._parameters
+                print(parameters)
 
 def managed_node(func: Callable) -> Callable:
     """
