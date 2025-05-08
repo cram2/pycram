@@ -249,11 +249,7 @@ class Plan(nx.DiGraph):
         if cls.on_end_callback and action_type in cls.on_end_callback:
             cls.on_end_callback[action_type].remove(callback)
 
-    def parameter_algebra(self) -> Event:
-        for node in self.nodes:
-            if isinstance(node, DesignatorNode):
-                parameters = node.action._parameters
-                print(parameters)
+
 
 def managed_node(func: Callable) -> Callable:
     """

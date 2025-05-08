@@ -2,6 +2,7 @@ import unittest
 
 from pycram.designators.action_designator import *
 from pycram.language import SequentialPlan, ParallelPlan
+from pycram.parameterizer import Parameterizer
 
 
 class TestPlan(unittest.TestCase):
@@ -28,6 +29,9 @@ class AlgebraTest(unittest.TestCase):
 
     def test_algebra(self):
         sp = SequentialPlan(MoveTorsoActionDescription(None),
-                            NavigateActionDescription(None))
+                            NavigateActionDescription(None),
+                            MoveTorsoActionDescription(None))
 
-        sp.parameter_algebra()
+        p = Parameterizer(sp)
+
+
