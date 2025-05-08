@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from queue import Queue
-from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence
+from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence, Type
 
 from .datastructures.enums import TaskStatus
 import threading
@@ -221,10 +221,12 @@ class CodePlan(Plan):
 
 @dataclass
 class LanguageNode(PlanNode):
+    action: Type = None
     """
     Superclass for language nodes in a plan. Used to distinguish language nodes from other types of nodes.
     """
-    ...
+    def __init__(self):
+        self.action = self.__class__
 
 
 @dataclass

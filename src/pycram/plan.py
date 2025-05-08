@@ -28,8 +28,8 @@ class Plan(nx.DiGraph):
     """
     current_plan: Plan = None
 
-    on_start_callback: Dict[Type[ActionDescription], List[Callable]] = None
-    on_end_callback: Dict[Type[ActionDescription], List[Callable]] = None
+    on_start_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
+    on_end_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
 
     def __init__(self, root: PlanNode):
         super().__init__()
@@ -193,54 +193,59 @@ class Plan(nx.DiGraph):
         plt.axis('off')  # Hide axes
         plt.show()
 
-    def add_on_start_callback(self, callback: Callable[[ResolvedActionNode], None],
-                              action_type: Type[ActionDescription]):
+    @classmethod
+    def add_on_start_callback(cls, callback: Callable[[ResolvedActionNode], None],
+                              action_type: Optional[Type[ActionDescription]] = None):
         """
         Adds a callback to be called when an action of the given type is started.
 
         :param callback: The callback to be called
-        :param action_type: The type of the action
+        :param action_type: The type of the action, if None, the callback will be called for all actions
         """
-        if not self.on_start_callback:
-            self.on_start_callback = {}
-        if action_type not in self.on_start_callback:
-            self.on_start_callback[action_type] = []
-        self.on_start_callback[action_type].append(callback)
+        if not cls.on_start_callback:
+            cls.on_start_callback = {}
+        if action_type not in cls.on_start_callback:
+            cls.on_start_callback[action_type] = []
+        cls.on_start_callback[action_type].append(callback)
 
-    def add_on_end_callback(self, callback: Callable[[ResolvedActionNode], None], action_type: Type[ActionDescription]):
+    @classmethod
+    def add_on_end_callback(cls, callback: Callable[[ResolvedActionNode], None],
+                            action_type: Optional[Type[ActionDescription]] = None):
         """
         Adds a callback to be called when an action of the given type is ended.
 
         :param callback: The callback to be called
         :param action_type: The type of the action
         """
-        if not self.on_end_callback:
-            self.on_end_callback = {}
-        if action_type not in self.on_end_callback:
-            self.on_end_callback[action_type] = []
-        self.on_end_callback[action_type].append(callback)
+        if not cls.on_end_callback:
+            cls.on_end_callback = {}
+        if action_type not in cls.on_end_callback:
+            cls.on_end_callback[action_type] = []
+        cls.on_end_callback[action_type].append(callback)
 
-    def remove_on_start_callback(self, callback: Callable[[ResolvedActionNode], None],
-                                 action_type: Type[ActionDescription]):
+    @classmethod
+    def remove_on_start_callback(cls, callback: Callable[[ResolvedActionNode], None],
+                                 action_type: Optional[Type[ActionDescription]] = None):
         """
         Removes a callback to be called when an action of the given type is started.
 
         :param callback: The callback to be removed
         :param action_type: The type of the action
         """
-        if self.on_start_callback and action_type in self.on_start_callback:
-            self.on_start_callback[action_type].remove(callback)
+        if cls.on_start_callback and action_type in cls.on_start_callback:
+            cls.on_start_callback[action_type].remove(callback)
 
-    def remove_on_end_callback(self, callback: Callable[[ResolvedActionNode], None],
-                               action_type: Type[ActionDescription]):
+    @classmethod
+    def remove_on_end_callback(cls, callback: Callable[[ResolvedActionNode], None],
+                               action_type: Optional[Type[ActionDescription]] = None):
         """
         Removes a callback to be called when an action of the given type is ended.
 
         :param callback: The callback to be removed
         :param action_type: The type of the action
         """
-        if self.on_end_callback and action_type in self.on_end_callback:
-            self.on_end_callback[action_type].remove(callback)
+        if cls.on_end_callback and action_type in cls.on_end_callback:
+            cls.on_end_callback[action_type].remove(callback)
 
 
 def managed_node(func: Callable) -> Callable:
@@ -254,12 +259,12 @@ def managed_node(func: Callable) -> Callable:
     def wrapper(node: DesignatorNode) -> Any:
         node.status = TaskStatus.RUNNING
         node.start_time = datetime.now()
-        #on_start_callbacks = (node.plan.on_start_callback.get(node.action, []) +
-        #                      node.plan.on_start_callback.get(ActionDescription, []))
-        #on_end_callbacks = (node.plan.on_end_callback.get(node.action, []) +
-        #                    node.plan.on_end_callback.get(ActionDescription, []))
-        #for call_back in on_start_callbacks:
-        #    call_back(node)
+        on_start_callbacks = (Plan.on_start_callback.get(node.action, []) +
+                             Plan.on_start_callback.get(None, []))
+        on_end_callbacks = (Plan.on_end_callback.get(node.action, []) +
+                           Plan.on_end_callback.get(None, []))
+        for call_back in on_start_callbacks:
+           call_back(node)
         result = None
         try:
             node.plan.current_node = node
@@ -273,8 +278,8 @@ def managed_node(func: Callable) -> Callable:
         finally:
             node.end_time = datetime.now()
             node.plan.current_node = node.parent
-            #for call_back in on_end_callbacks:
-            #    call_back(node)
+            for call_back in on_end_callbacks:
+               call_back(node)
         return result
 
     return wrapper
@@ -388,6 +393,18 @@ class PlanNode:
         loginfo(f"Interrupted node: {str(self)}")
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
+
+    def resume(self):
+        """
+        Resumes the execution of this node and all nodes below
+        """
+        self.status = TaskStatus.RUNNING
+
+    def pause(self):
+        """
+        Suspends the execution of this node and all nodes below.
+        """
+        self.status = TaskStatus.SLEEPING
 
 
 @dataclass
