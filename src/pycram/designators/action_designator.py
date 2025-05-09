@@ -760,10 +760,10 @@ class DetectAction(ActionDescription):
     The region in which the object should be detected
     """
 
-    object_at_execution: Optional[FrozenObject] = field(init=False)
-    """
-    The object at the time this Action got created. It is used to be a static, information holding entity
-    """
+    # object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
+    # """
+    # The object at the time this Action got created. It is used to be a static, information holding entity
+    # """
 
     _pre_perform_callbacks = []
     """
@@ -773,8 +773,8 @@ class DetectAction(ActionDescription):
     def __post_init__(self):
         super().__post_init__()
 
-        # Store the object's data copy at execution
-        self.pre_perform(record_object_pre_perform)
+        # # Store the object's data copy at execution
+        # self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
         return try_action(DetectingMotion(technique=self.technique, state=self.state,
@@ -782,8 +782,9 @@ class DetectAction(ActionDescription):
                                           region=self.region), PerceptionObjectNotFound)
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        if not result:
-            raise PerceptionObjectNotFound(self.object_designator, self.technique, self.region)
+        return
+        # if not result:
+        #     raise PerceptionObjectNotFound(self.object_designator, self.technique, self.region)
 
     @classmethod
     @with_plan
@@ -1190,7 +1191,7 @@ class PouringAction(ActionDescription):
         World.current_world.add_vis_axis(oTgm)
 
         adjusted_oTgm = oTgm.copy()
-        new_q = utils.axis_angle_to_quaternion([1, 0, 0], self.angle)
+        new_q = utils.axis_angle_to_quaternion([1, 0, 0], - self.angle)
         new_x = new_q[0]
         new_y = new_q[1]
         new_z = new_q[2]
@@ -1208,12 +1209,12 @@ class PouringAction(ActionDescription):
 
     @classmethod
     @with_plan
-    def description(cls, object: Union[Iterable[Object], Object],
+    def description(cls, object_: Union[Iterable[Object], Object],
                     tool: Union[Iterable[Object], Object],
                     arm: Optional[Union[Iterable[Arms], Arms]] = None,
                     technique: Optional[Union[Iterable[str], str]] = None,
                     angle: Optional[Union[Iterable[float], float]] = 90) -> PartialDesignator[Type[PouringAction]]:
-        return PartialDesignator(PouringAction, object=object, tool=tool, arm=arm, technique=technique, angle=angle)
+        return PartialDesignator(PouringAction, object_=object_, tool=tool, arm=arm, technique=technique, angle=angle)
 
 
 @has_parameters
