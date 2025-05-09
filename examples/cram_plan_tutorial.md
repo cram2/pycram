@@ -28,7 +28,6 @@ from pycram.process_module import simulated_robot
 from pycram.designators.object_designator import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.world_concepts.world_object import Object
-import anytree
 import pycram.failures
 import numpy as np
 from pycrap.ontologies import Milk, Cereal, Robot, Kitchen, Spoon, Apartment, Bowl
