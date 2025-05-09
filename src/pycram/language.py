@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from queue import Queue
-from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence, Type
+from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence, Type, \
+    TYPE_CHECKING
 
 from .datastructures.enums import TaskStatus
 import threading
@@ -13,6 +14,9 @@ from .failures import PlanFailure
 from .external_interfaces import giskard
 from .ros import sleep, loginfo
 from .plan import PlanNode, Plan, managed_node
+
+if TYPE_CHECKING:
+    from .designator import ActionDescription
 
 
 class LanguageMixin:
@@ -221,12 +225,12 @@ class CodePlan(Plan):
 
 @dataclass
 class LanguageNode(PlanNode):
-    action: Type = None
+
+    action: Type[LanguageNode] = field(default_factory=lambda : LanguageNode)
     """
     Superclass for language nodes in a plan. Used to distinguish language nodes from other types of nodes.
     """
-    def __init__(self):
-        self.action = self.__class__
+
 
 
 @dataclass
