@@ -1,4 +1,4 @@
----
+from pycram.datastructures.pose import PoseStamped---
 jupyter:
   jupytext:
     text_representation:
@@ -21,7 +21,6 @@ Next we will create a bullet world with a PR2 in a kitchen containing milk and c
 ```python
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.robot_description import RobotDescription
-import pycram.tasktree
 from pycram.datastructures.enums import Arms, ObjectType
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
@@ -103,7 +102,7 @@ scm = SemanticCostmap(apartment, counter_name)
 # take only 6 cms from edges as viable region
 edges_cm = scm.get_edges_map(0.06, horizontal_only=True)
 poses_list = list(PoseGenerator(edges_cm, number_of_samples=-1))
-poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x.position.to_list()()))
+poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x.position.to_list()))
 object_poses = get_n_random_positions(poses_list)
 object_names = ["breakfast_cereal", "milk"]
 object_types = [Cereal, Milk]
@@ -116,7 +115,7 @@ for obj_name, obj_type, obj_pose in zip(object_names, object_types, object_poses
         z_angle = 0
     orientation = quaternion_from_euler(0, 0, z_angle)
     objects[obj_name] = Object(obj_name, obj_type, obj_name + ".stl",
-                               pose=Pose([obj_pose.position.x, obj_pose.position.y, table_top.z],
+                               pose=PoseStamped.from_list([obj_pose.position.x, obj_pose.position.y, table_top.z],
                                          orientation))
     objects[obj_name].move_base_to_origin_pose()
     objects[obj_name].original_pose = objects[obj_name].pose
@@ -148,7 +147,6 @@ from pycram.datastructures.enums import Grasp
 from pycram.datastructures.grasp import GraspDescription
 
 
-@pycram.tasktree.with_tree
 def plan(obj_desig: Object, torso=None, place=counter_name):
     world.reset_world()
     with simulated_robot:
@@ -188,7 +186,7 @@ def plan(obj_desig: Object, torso=None, place=counter_name):
                 else:
                     z_angle = 0
                 orientation = quaternion_from_euler(0, 0, z_angle)
-                pose_island = Pose(pose_island.position.to_list(), orientation)
+                pose_island = PoseStamped.from_list(pose_island.position.to_list(), orientation)
                 pose_island.position.z += 0.07
                 print(pose_island.position)
                 place_location = CostmapLocation(target=pose_island, reachable_for=robot_desig,  reachable_arm=[pickup_arm])
@@ -205,7 +203,6 @@ def plan(obj_desig: Object, torso=None, place=counter_name):
                     raise StopIteration("No place found")
 
         ParkArmsAction(Arms.BOTH).perform()
-
 
 good_torsos = []
 for obj_name in object_names:

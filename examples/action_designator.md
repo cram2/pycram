@@ -158,8 +158,7 @@ world.reset_world()
 ```
 
 ```python
-from pycram.designators.action_designator import PickUpActionDescription, PlaceActionDescription,
-    ParkArmsActionDescription, MoveTorsoActionDescription, NavigateActionDescription
+from pycram.designators.action_designator import PickUpActionDescription, PlaceActionDescription, ParkArmsActionDescription, MoveTorsoActionDescription, NavigateActionDescription
 from pycram.designators.object_designator import BelieveObject
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms, Grasp, TorsoState
@@ -217,8 +216,7 @@ world.reset_world()
 ```
 
 ```python
-from pycram.designators.action_designator import DetectActionDescription, LookAtActionDescription,
-    ParkArmsActionDescription, NavigateActionDescription
+from pycram.designators.action_designator import DetectActionDescription, LookAtActionDescription, ParkArmsActionDescription, NavigateActionDescription
 from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
@@ -232,10 +230,10 @@ with simulated_robot:
 
     NavigateActionDescription([PoseStamped.from_list([1.7, 2, 0], [0, 0, 0, 1])]).resolve().perform()
 
-    LookAtActionDescription(target=[milk_desig.resolve().pose]).resolve().perform()
+    LookAtActionDescription(target=milk_desig.resolve().pose).resolve().perform()
 
     obj_desig = DetectActionDescription(DetectionTechnique.ALL,
-                                        object_designator_description=milk_desig).resolve().perform()
+                                        object_designator=milk_desig).resolve().perform()
 
     print(obj_desig)
 ```
