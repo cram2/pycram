@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from .world_concepts.world_object import Object
     from .datastructures.world import World
 
+
 class LocalTransformer(TransformManager):
     _instance = None
     prospection_prefix: str = "prospection/"
@@ -82,8 +83,10 @@ class LocalTransformer(TransformManager):
 
         source_frame = pose.header.frame_id
 
-        wxyz = self.xyzw_to_wxyz(pose.orientation.to_list())
-
+        if not isinstance(pose.orientation, list):
+            wxyz = self.xyzw_to_wxyz(pose.orientation.to_list())
+        else:
+            wxyz = self.xyzw_to_wxyz(pose.orientation)
         pose_matrix = transform_from_pq(np.hstack((np.array(pose.pose.position.to_list()),
                                                    np.array(wxyz))))
 
@@ -93,8 +96,6 @@ class LocalTransformer(TransformManager):
 
         return_pose = PoseStamped(pose=Pose.from_matrix(new_pose), header=Header(frame_id=target_frame))
         return return_pose
-
-
 
     def get_object_from_frame(self, frame: str) -> Optional[Object]:
         """

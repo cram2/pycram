@@ -58,6 +58,8 @@ class WorldStateUpdater:
                 tf_frame = RobotDescription.current_robot_description.base_link
             elif obj.is_an_environment:
                 continue
+            elif obj.is_an_object:
+                continue
             else:
                 tf_frame = obj.tf_frame
             trans, rot = self.tf_listener.lookupTransform("/map", tf_frame, Time(0))
