@@ -20,7 +20,7 @@ from pycram.designators.object_designator import BelieveObject, ObjectPart
 from pycram.language import SequentialPlan
 from pycram.orm.logging_hooks import insert
 from pycram.orm.model import TaskTreeNode as TaskTreeNodeORM, ORMResolvedActionNode
-from pycram.orm.ormatic_interface import mapper_registry
+from pycram.orm.ormatic_interface import *
 from pycram.plan import ResolvedActionNode
 from pycram.process_module import simulated_robot
 from pycram.robot_description import RobotDescription
