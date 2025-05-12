@@ -8,6 +8,7 @@ from dataclasses import field, dataclass
 from datetime import datetime
 
 import networkx as nx
+from bokeh.core.enums import Align
 
 from typing_extensions import Optional, Callable, Any, Dict, List, Self, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
@@ -248,6 +249,55 @@ class Plan(nx.DiGraph):
         if cls.on_end_callback and action_type in cls.on_end_callback:
             cls.on_end_callback[action_type].remove(callback)
 
+    def _create_pure_networkx_graph(self, attributes: List[str]) -> nx.DiGraph[int]:
+        """
+        Creates a pure networkx graph of this plan and adds the given attributes of nodes as networkx Node attrivutes.
+
+        :param attributes: A list of attributes from the nodes which should be contained in the returned graph
+        :return: A networkx graph of the hash values of the PlanNodes
+        """
+        hash_nodes = {hash(node): node for node in self.nodes}
+        edges = [(hash(source), hash(target)) for source, target in self.edges]
+        graph = nx.DiGraph()
+        graph.add_nodes_from(hash_nodes.keys())
+        graph.add_edges_from(edges)
+
+        for v in graph:
+            for attr in attributes:
+                graph.nodes[v][attr] = str(getattr(hash_nodes[v], attr))
+        return graph
+
+    def plot_bokeh(self, attributes: List[str] = None):
+        attributes = attributes or ["status", "start_time"]
+        from bokeh.palettes import Category20_20
+        from bokeh.plotting import figure, from_networkx, show
+        from bokeh.models import (BoxSelectTool, HoverTool, MultiLine,
+                                  NodesAndLinkedEdges, Plot, Range1d, Scatter, TapTool)
+
+        p = figure(x_range=(-2, 2), y_range=(-2, 2),
+                   width=1500, height=1000,
+                      x_axis_location=None, y_axis_location=None, toolbar_location=None,
+                      title="Plan Visualization", background_fill_color="#efefef",)
+        node_hover_tool = HoverTool(tooltips=[("status", "@status"), ("start", "@start_time")])
+        p.add_tools(node_hover_tool)
+
+        p.grid.grid_line_color = None
+
+        graph = from_networkx(self._create_pure_networkx_graph(attributes), nx.drawing.spring_layout, scale=1.8, center=(0, 0))
+        graph.selection_policy = NodesAndLinkedEdges()
+        graph.inspection_policy = NodesAndLinkedEdges()
+
+        graph.node_renderer.glyph.update(size=20, fill_color="lightblue")
+
+        p.renderers.append(graph)
+
+        show(p)
+
+    def _create_labels(self):
+        pass
+
+
+
 
 def managed_node(func: Callable) -> Callable:
     """
@@ -406,6 +456,7 @@ class PlanNode:
         Suspends the execution of this node and all nodes below.
         """
         self.status = TaskStatus.SLEEPING
+
 
 
 @dataclass
