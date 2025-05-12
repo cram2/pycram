@@ -7,6 +7,7 @@ from pycram.language import SequentialPlan, ParallelPlan, CodeNode
 from pycram.plan import PlanNode, Plan
 from pycram.process_module import simulated_robot
 from pycram.testing import BulletWorldTestCase
+from pycram.failures import TorsoGoalNotReached
 
 class TestPlan(unittest.TestCase):
 
@@ -164,8 +165,9 @@ class TestPlanInterrupt(BulletWorldTestCase):
 
             code_node = CodeNode(interrupt_plan)
             sleep_node = CodeNode(node_sleep)
-            with simulated_robot:
-                ParallelPlan(Plan(code_node), SequentialPlan(Plan(sleep_node), MoveTorsoActionDescription([TorsoState.HIGH]))).perform()
+            with self.assertRaises(TorsoGoalNotReached):
+                with simulated_robot:
+                    ParallelPlan(Plan(code_node), SequentialPlan(Plan(sleep_node), MoveTorsoActionDescription([TorsoState.HIGH]))).perform()
 
             self.assertEqual(0, self.robot.joints["torso_lift_joint"].position)
 
