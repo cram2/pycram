@@ -1,4 +1,4 @@
-from pycram.datastructures.pose import PoseStampedfrom pycram.datastructures.pose import PoseStampedfrom pycram.datastructures.pose import PoseStampedfrom pycram.datastructures.pose import PoseStamped---
+---
 jupyter:
   jupytext:
     text_representation:
