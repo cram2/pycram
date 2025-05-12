@@ -1,6 +1,7 @@
 import unittest
 
 from probabilistic_model.probabilistic_circuit.nx.helper import fully_factorized
+from pycram.process_module import simulated_robot
 from random_events.product_algebra import SimpleEvent, Event
 
 from pycram.designators.action_designator import *
@@ -29,6 +30,7 @@ class TestPlan(unittest.TestCase):
         self.assertEqual(5, len(sp.edges))
 
 
+
 class AlgebraTest(BulletWorldTestCase):
 
     def test_algebra(self):
@@ -51,8 +53,8 @@ class AlgebraTest(BulletWorldTestCase):
 
         conditional, p_c = distribution.conditional(condition)
         sample = distribution.sample(1)
-        print(sample)
         resolved = p.plan_from_sample(conditional, sample[0])
 
-        resolved.perform()
+        with simulated_robot:
+            resolved.perform()
 

@@ -151,6 +151,9 @@ class ActionDescription(HasParameters):
     List of callback functions that will be called after the action is performed.
     """
 
+    def __post_init__(self):
+        ...
+
     # def __post_init__(self):
     #     self.robot_position = World.robot.get_pose()
     #     if RobotDescription.current_robot_description.torso_joint != "":
