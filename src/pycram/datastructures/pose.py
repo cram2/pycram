@@ -50,7 +50,7 @@ class Vector3(HasParameters):
         :return: The ROS message.
         """
         from geometry_msgs.msg import Vector3 as ROSVector3
-        return ROSVector3(x=self.x, y=self.y, z=self.z)
+        return ROSVector3(x=float(self.x), y=float(self.y), z=float(self.z))
 
     def to_list(self) -> List[float]:
         """
@@ -179,7 +179,7 @@ class Quaternion(HasParameters):
 
     def ros_message(self) -> ROSQuaternion:
         from geometry_msgs.msg import Quaternion as ROSQuaternion
-        return ROSQuaternion(x=self.x, y=self.y, z=self.z, w=self.w)
+        return ROSQuaternion(x=float(self.x), y=float(self.y), z=float(self.z), w=float(self.w))
 
     def to_list(self) -> List[float]:
         """
@@ -264,7 +264,7 @@ class Pose(HasParameters):
         """
         from geometry_msgs.msg import Point as ROSPoint
         from geometry_msgs.msg import Pose as ROSPose
-        point = ROSPoint(x=self.position.x, y=self.position.y, z=self.position.z)
+        point = ROSPoint(x=float(self.position.x), y=float(self.position.y), z=float(self.position.z))
         return ROSPose(position=point, orientation=self.orientation.ros_message())
 
     def to_list(self):
@@ -740,7 +740,8 @@ class TransformStamped(PoseStamped):
 
         :return: A PoseStamped object created from the TransformStamped.
         """
-        return PoseStamped(self.pose, self.header)
+        p = Pose(self.pose.position, self.pose.orientation)
+        return PoseStamped(p, self.header)
 
     def inverse_times(self, other: TransformStamped) -> Self:
         """
