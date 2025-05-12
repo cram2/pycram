@@ -484,6 +484,7 @@ class CodeNode(LanguageNode):
     :ivar function: The function (plan) that was called
     :ivar kwargs: Dictionary holding the keyword arguments of the function
     """
+    action: LanguageNode = field(default_factory=lambda : LanguageNode)
 
     def __init__(self, function: Optional[Callable] = None,
                  kwargs: Optional[Dict] = None):
@@ -500,6 +501,7 @@ class CodeNode(LanguageNode):
         self.kwargs: Dict[str, Any] = kwargs
         self.perform = self.execute
         self.performable = self.__class__
+        self.action = self.__class__
 
     @managed_node
     def execute(self) -> Any:

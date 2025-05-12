@@ -17,7 +17,7 @@ np.random.seed(420)
 extension = ObjectDescription.get_file_extension()
 
 world = BulletWorld(WorldMode.GUI)
-# viz = VizMarkerPublisher()
+viz = VizMarkerPublisher()
 
 robot = Object("pr2", Robot, f"pr2{extension}", pose=PoseStamped.from_list([1, 2, 0]))
 apartment = Object("apartment", Apartment, f"apartment{extension}")
@@ -51,5 +51,5 @@ with simulated_robot:
 
 
 
-# viz._stop_publishing()
+viz._stop_publishing()
 world.exit()

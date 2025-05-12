@@ -343,18 +343,28 @@ class PlanNode:
         return list(nx.descendants(self.plan, self))
 
     @property
-    def subtree(self):
+    def subtree(self) -> Plan:
         """
         Creates a new plan with this node as the new root
 
         :return: A new plan
         """
-        return nx.subgraph(self.plan, self.recursive_children + [self])
+        graph = nx.DiGraph()
+        graph.add_nodes_from(self.plan.nodes)
+        graph.add_edges_from(self.plan.edges)
+        # The subgraph methods tries to create a new instance of the graph class it is give which in the case of Plan()
+        # would fail because of the "root" param, that's the reason for this weird conversion.
+        sub_grap = nx.subgraph(graph, [self] +  self.recursive_children)
+        plan = Plan(self)
+        plan.add_nodes_from(sub_grap.nodes)
+        plan.add_edges_from(sub_grap.edges)
+        return plan
+
 
     @property
     def all_parents(self) -> List[PlanNode]:
         """
-        Returns all nodes above this node until the root node
+        Returns all nodes above this node until the root node. The order is from this node to the root node.
 
         :return: A list of all nodes above this
         """
