@@ -231,6 +231,7 @@ class LanguageNode(PlanNode):
 
 @dataclass
 class SequentialNode(LanguageNode):
+    action: Type[SequentialNode] = field(default_factory=lambda: SequentialNode)
     """
     Executes all children sequentially, an exception while executing a child does not terminate the whole process.
     Instead, the exception is saved to a list of all exceptions thrown during execution and returned.

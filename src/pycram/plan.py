@@ -1,23 +1,20 @@
 from __future__ import annotations
 
-import enum
 import inspect
-import random
 import time
 from dataclasses import field, dataclass
 from datetime import datetime
 
 import networkx as nx
-from bokeh.core.enums import Align
-
-from typing_extensions import Optional, Callable, Any, Dict, List, Self, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
+from bokeh.models.annotations.labels import LabelSet
+from bokeh.models.sources import ColumnDataSource
+from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
 from .datastructures.enums import TaskStatus
-from pycrap.ontologies import Action
-from .failures import PlanFailure
 from .external_interfaces import giskard
-from .ros import loginfo
+from .failures import PlanFailure
 from .has_parameters import leaf_types
+from .ros import loginfo
 
 if TYPE_CHECKING:
     from .designator import BaseMotion, ActionDescription
@@ -251,10 +248,10 @@ class Plan(nx.DiGraph):
 
     def _create_pure_networkx_graph(self, attributes: List[str]) -> nx.DiGraph[int]:
         """
-        Creates a pure networkx graph of this plan and adds the given attributes of nodes as networkx Node attrivutes.
+        Creates a pure networkx graph of this plan and adds the given attributes of nodes as networkx Node attributes.
 
         :param attributes: A list of attributes from the nodes which should be contained in the returned graph
-        :return: A networkx graph of the hash values of the PlanNodes
+        :return: A NetworkX graph of the hash values of the PlanNodes
         """
         hash_nodes = {hash(node): node for node in self.nodes}
         edges = [(hash(source), hash(target)) for source, target in self.edges]
@@ -269,21 +266,21 @@ class Plan(nx.DiGraph):
 
     def plot_bokeh(self, attributes: List[str] = None):
         attributes = attributes or ["status", "start_time"]
-        from bokeh.palettes import Category20_20
         from bokeh.plotting import figure, from_networkx, show
-        from bokeh.models import (BoxSelectTool, HoverTool, MultiLine,
-                                  NodesAndLinkedEdges, Plot, Range1d, Scatter, TapTool)
+        from bokeh.models import (HoverTool, NodesAndLinkedEdges)
 
         p = figure(x_range=(-2, 2), y_range=(-2, 2),
-                   width=1500, height=1000,
-                      x_axis_location=None, y_axis_location=None, toolbar_location=None,
-                      title="Plan Visualization", background_fill_color="#efefef",)
+                   width=1700, height=950,
+                   x_axis_location=None, y_axis_location=None, toolbar_location=None,
+                   title="Plan Visualization", background_fill_color="#efefef", )
         node_hover_tool = HoverTool(tooltips=[("status", "@status"), ("start", "@start_time")])
         p.add_tools(node_hover_tool)
 
         p.grid.grid_line_color = None
+        p.add_layout(self._create_labels())
 
-        graph = from_networkx(self._create_pure_networkx_graph(attributes), nx.drawing.spring_layout, scale=1.8, center=(0, 0))
+        graph = from_networkx(self._create_pure_networkx_graph(attributes), nx.drawing.bfs_layout,
+                              start=hash(self.root), align='horizontal')
         graph.selection_policy = NodesAndLinkedEdges()
         graph.inspection_policy = NodesAndLinkedEdges()
 
@@ -291,12 +288,26 @@ class Plan(nx.DiGraph):
 
         p.renderers.append(graph)
 
-        show(p)
+        show(p, new="same")
 
-    def _create_labels(self):
-        pass
+    def _create_labels(self) -> LabelSet:
+        """
+        Creates a label set for the plan visualization. Labels are the PlanNode.action attribute.
 
+        :return: A LabelSet object which can be added to a bokeh plot.
+        """
+        from bokeh.models import ColumnDataSource, LabelSet
+        hash_nodes = {hash(node): node for node in self.nodes}
+        layout=nx.drawing.bfs_layout(self._create_pure_networkx_graph([]), start=hash(self.root), align='horizontal')
+        x = [pose[0] for pose in layout.values()]
+        y = [pose[1] for pose in layout.values()]
+        name = [str(hash_nodes[node].action.__name__) for node in layout.keys()]
+        label_dict = {'x': x, 'y': y, 'names': name}
 
+        data_source = ColumnDataSource(data=label_dict)
+        labels= LabelSet(x='x', y='y', text='names',
+                          x_offset=-55, y_offset=10, source=data_source)
+        return labels
 
 
 def managed_node(func: Callable) -> Callable:
@@ -307,15 +318,16 @@ def managed_node(func: Callable) -> Callable:
     :param func: Reference to the perform function of the node
     :return: The wrapped perform function
     """
+
     def wrapper(node: DesignatorNode) -> Any:
         node.status = TaskStatus.RUNNING
         node.start_time = datetime.now()
         on_start_callbacks = (Plan.on_start_callback.get(node.action, []) +
-                             Plan.on_start_callback.get(None, []))
+                              Plan.on_start_callback.get(None, []))
         on_end_callbacks = (Plan.on_end_callback.get(node.action, []) +
-                           Plan.on_end_callback.get(None, []))
+                            Plan.on_end_callback.get(None, []))
         for call_back in on_start_callbacks:
-           call_back(node)
+            call_back(node)
         result = None
         try:
             node.plan.current_node = node
@@ -330,7 +342,7 @@ def managed_node(func: Callable) -> Callable:
             node.end_time = datetime.now()
             node.plan.current_node = node.parent
             for call_back in on_end_callbacks:
-               call_back(node)
+                call_back(node)
         return result
 
     return wrapper
@@ -458,7 +470,6 @@ class PlanNode:
         self.status = TaskStatus.SLEEPING
 
 
-
 @dataclass
 class DesignatorNode(PlanNode):
     designator_ref: Any = None
@@ -529,7 +540,8 @@ class ActionNode(DesignatorNode):
             self.action_iter = iter(self.designator_ref)
         resolved_action = next(self.action_iter)
         kwargs = {key: resolved_action.__getattribute__(key) for key in self.designator_ref.kwargs.keys()}
-        resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__, kwargs=kwargs)
+        resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__,
+                                                  kwargs=kwargs)
         self.plan.add_edge(self, resolved_action_node)
 
         return resolved_action_node.perform()
