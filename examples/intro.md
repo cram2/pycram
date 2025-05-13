@@ -1,4 +1,4 @@
----
+from pycram.datastructures.pose import PoseStamped---
 jupyter:
   jupytext:
     text_representation:
@@ -53,7 +53,7 @@ these winodws are missing, click the BulletWorld window to focus it, and press "
   assigning every pixel the unique id of the object that is displayed there.
 
 ```python
-world.get_images_for_target(Pose([1, 0, 1], [0, 0, 0, 1]), Pose([0.3, 0, 1], [0, 0, 0, 1]))
+world.get_images_for_target(PoseStamped.from_list([1, 0, 1], [0, 0, 0, 1]), PoseStamped.from_list([0.3, 0, 1], [0, 0, 0, 1]))
 ```
 
 ## Objects
@@ -84,7 +84,7 @@ These methods are the same for every Object, however since some Objects may not 
 methods related to these will not work.
 
 ```python
-milk.set_position(Pose([1, 0, 0]))
+milk.set_position(PoseStamped.from_list([1, 0, 0]))
 ```
 
 Since everything inside the BulletWorld is an Object, even a complex environment Object like the kitchen can be spawned
@@ -114,7 +114,7 @@ Costmaps are able to work with cameras that are movable in height for example, i
 ```python
 import pycram.costmaps as cm
 
-v = cm.VisibilityCostmap(1.27, 1.60, size=300, resolution=0.02, origin=Pose([0, 0, 0.1], [0, 0, 0, 1]))
+v = cm.VisibilityCostmap(1.27, 1.60, size=300, resolution=0.02, origin=PoseStamped.from_list([0, 0, 0.1], [0, 0, 0, 1]))
 ```
 
 ```python
@@ -130,7 +130,7 @@ v.close_visualization()
 Is valid for every position where the robot can be placed without colliding with an object.
 
 ```python
-o = cm.OccupancyCostmap(0.2, from_ros=False, size=300, resolution=0.02, origin=Pose([0, 0, 0.1], [0, 0, 0, 1]))
+o = cm.OccupancyCostmap(0.2, from_ros=False, size=300, resolution=0.02, origin=PoseStamped.from_list([0, 0, 0.1], [0, 0, 0, 1]))
 ```
 
 ```python
@@ -185,7 +185,7 @@ We start with testing for visibility
 ```python
 from pycram.world_reasoning import visible
 
-milk.set_position(Pose([1, 0, 1]))
+milk.set_position(PoseStamped.from_list([1, 0, 1]))
 visible = visible(milk, pr2.get_link_pose("wide_stereo_optical_frame"))
 print(f"Milk visible: {visible}")
 ```
@@ -194,7 +194,7 @@ print(f"Milk visible: {visible}")
 from pycram.world_reasoning import contact
 from pycram.datastructures.world import World
 
-milk.set_position(Pose([1, 0, 0.05]))
+milk.set_position(PoseStamped.from_list([1, 0, 0.05]))
 
 plane = World.current_world.objects[0]
 contact = contact(milk, plane)
@@ -204,7 +204,7 @@ print(f"Milk is in contact with the floor: {contact}")
 ```python
 from pycram.world_reasoning import reachable
 
-milk.set_position(Pose([0.6, -0.5, 0.7]))
+milk.set_position(PoseStamped.from_list([0.6, -0.5, 0.7]))
 
 reachable = reachable(milk, pr2, "r_gripper_tool_frame")
 print(f"Milk is reachable for the PR2: {reachable}")
@@ -247,7 +247,7 @@ from pycram.process_module import with_simulated_robot
 
 @with_simulated_robot
 def move():
-    MoveMotion(target=Pose([0, 0, 0], [0, 0, 0, 1])).perform()
+    MoveMotion(target=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1])).perform()
 
 
 move()
@@ -362,58 +362,95 @@ with simulated_robot:
 
 ```
 
-# Task Trees
+[//]: # (# Task Trees)
 
-Task trees are a hierarchical representation of all Actions involved in a plan. The Task tree can later be used to
-inspect and restructure the execution order of Actions in the plan.
+[//]: # ()
+[//]: # (Task trees are a hierarchical representation of all Actions involved in a plan. The Task tree can later be used to)
 
-```python
-import pycram.tasktree
-import anytree
+[//]: # (inspect and restructure the execution order of Actions in the plan.)
 
-tt = pycram.tasktree.task_tree
-print(anytree.RenderTree(tt))
-```
+[//]: # ()
+[//]: # (```python)
 
-```python
-from anytree.dotexport import RenderTreeGraph, DotExporter
+[//]: # (import pycram.tasktree)
 
-RenderTreeGraph(tt).to_picture("tree.png")
-```
+[//]: # (import anytree)
 
-# ORM
+[//]: # ()
+[//]: # (tt = pycram.tasktree.task_tree)
 
-```python
-import sqlalchemy.orm
-import pycram.orm.base
-import pycram.orm.action_designator
+[//]: # (print&#40;anytree.RenderTree&#40;tt&#41;&#41;)
 
-# set description of what we are doing
-pycram.orm.base.ProcessMetaData().description = "Tutorial for getting familiar with the ORM."
+[//]: # (```)
 
-engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
-session = sqlalchemy.orm.Session(bind=engine)
-pycram.orm.base.Base.metadata.create_all(engine)
-session.commit()
+[//]: # ()
+[//]: # (```python)
 
-tt.insert(session)
-```
+[//]: # (from anytree.dotexport import RenderTreeGraph, DotExporter)
 
-```python
-from sqlalchemy import select
+[//]: # ()
+[//]: # (RenderTreeGraph&#40;tt&#41;.to_picture&#40;"tree.png"&#41;)
 
-navigations = session.scalars(select(pycram.orm.action_designator.NavigateAction)).all()
-print(*navigations, sep="\n")
-```
+[//]: # (```)
 
-```python
-navigations = (session.scalars(
-    select(pycram.orm.action_designator.NavigateAction, pycram.orm.base.Position, pycram.orm.base.Quaternion).
-    join(pycram.orm.action_designator.NavigateAction.pose).
-    join(pycram.orm.base.PoseStamped.position).
-    join(pycram.orm.base.PoseStamped.orientation)).all())
-print(*navigations, sep="\n")
-```
+[//]: # (# ORM)
+
+[//]: # ()
+[//]: # (```python)
+
+[//]: # (import sqlalchemy.orm)
+
+[//]: # (import pycram.orm.base)
+
+[//]: # (import pycram.orm.action_designator)
+
+[//]: # ()
+[//]: # (# set description of what we are doing)
+
+[//]: # (pycram.orm.base.ProcessMetaData&#40;&#41;.description = "Tutorial for getting familiar with the ORM.")
+
+[//]: # ()
+[//]: # (engine = sqlalchemy.create_engine&#40;"sqlite+pysqlite:///:memory:", echo=False&#41;)
+
+[//]: # (session = sqlalchemy.orm.Session&#40;bind=engine&#41;)
+
+[//]: # (pycram.orm.base.Base.metadata.create_all&#40;engine&#41;)
+
+[//]: # (session.commit&#40;&#41;)
+
+[//]: # ()
+[//]: # (tt.insert&#40;session&#41;)
+
+[//]: # (```)
+
+[//]: # ()
+[//]: # (```python)
+
+[//]: # (from sqlalchemy import select)
+
+[//]: # ()
+[//]: # (navigations = session.scalars&#40;select&#40;pycram.orm.action_designator.NavigateAction&#41;&#41;.all&#40;&#41;)
+
+[//]: # (print&#40;*navigations, sep="\n"&#41;)
+
+[//]: # (```)
+
+[//]: # ()
+[//]: # (```python)
+
+[//]: # (navigations = &#40;session.scalars&#40;)
+
+[//]: # (    select&#40;pycram.orm.action_designator.NavigateAction, pycram.orm.base.Position, pycram.orm.base.Quaternion&#41;.)
+
+[//]: # (    join&#40;pycram.orm.action_designator.NavigateAction.pose&#41;.)
+
+[//]: # (    join&#40;pycram.orm.base.PoseStamped.position&#41;.)
+
+[//]: # (    join&#40;pycram.orm.base.PoseStamped.orientation&#41;&#41;.all&#40;&#41;&#41;)
+
+[//]: # (print&#40;*navigations, sep="\n"&#41;)
+
+[//]: # (```)
 
 The world can also be closed with the 'exit' method
 

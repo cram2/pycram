@@ -1,4 +1,4 @@
----
+from geometry_msgs.msg import PoseStamped---
 jupyter:
   jupytext:
     text_representation:
@@ -57,8 +57,8 @@ from pycram.datastructures.enums import ObjectType
 from pycrap.ontologies import Kitchen, Milk, Bowl
 
 kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
-milk = Object("milk", Milk, "milk.stl", pose=Pose([0.9, 1, 0.95]))
-bowl = Object("bowl", Bowl, "bowl.stl", pose=Pose([1.6, 1, 0.90]))
+milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([0.9, 1, 0.95]))
+bowl = Object("bowl", Bowl, "bowl.stl", pose=PoseStamped.from_list([1.6, 1, 0.90]))
 ```
 
 ## Creating a Local Transfomer
@@ -86,7 +86,7 @@ relative to our objects.
 from pycram.local_transformer import LocalTransformer
 
 l = LocalTransformer()
-test_pose = Pose([1, 1, 1], [0, 0, 0, 1], "map")
+test_pose = PoseStamped.from_list([1, 1, 1], [0, 0, 0, 1], "map")
 
 transformed_pose = l.transform_to_object_frame(test_pose, milk)
 print(transformed_pose)
@@ -104,8 +104,8 @@ Transform.
 ```python
 from pycram.datastructures.pose import TransformStamped
 
-l.set_transform(TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], "map", "test_frame"), "example")
-p = Pose()
+l.update_transforms([TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], "map", "test_frame")])
+p = PoseStamped()
 
 transformed_pose = l.transform_pose(p, "test_frame")
 ```

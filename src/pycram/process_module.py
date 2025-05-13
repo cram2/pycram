@@ -294,9 +294,8 @@ class ProcessModuleManager(ABC):
         manager = None
         _default_manager = None
         if not ProcessModuleManager.execution_type:
-            logerr(
+            raise RuntimeError(
                 f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
-            return None
 
         robot_description = RobotDescription.current_robot_description
         chains = robot_description.get_manipulator_chains()

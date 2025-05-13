@@ -51,9 +51,9 @@ Since {meth}`~pycram.designators.object_designator.BelieveObject` describes Obje
 ```python
 from pycrap.ontologies import Milk, Cereal, Kitchen, Spoon
 kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
-milk = Object("milk", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-cereal = Object("froot_loops", Cereal, "breakfast_cereal.stl", pose=Pose([1.3, 0.9, 0.95]))
-spoon = Object("spoon", Spoon, "spoon.stl", pose=Pose([1.3, 1.1, 0.87]))
+milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
+cereal = Object("froot_loops", Cereal, "breakfast_cereal.stl", pose=PoseStamped.from_list([1.3, 0.9, 0.95]))
+spoon = Object("spoon", Spoon, "spoon.stl", pose=PoseStamped.from_list([1.3, 1.1, 0.87]))
 ```
 
 Now that we have objects we can create an object designator to describe them. For the start we want an object designator

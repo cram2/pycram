@@ -15,14 +15,6 @@ import pycram.plan
 metadata = MetaData()
 
 
-t_CodeNode = Table(
-    'CodeNode', metadata,
-    Column('id', Integer, primary_key=True),
-    Column('status', Enum(pycram.datastructures.enums.TaskStatus), nullable=False),
-    Column('start_time', DateTime),
-    Column('end_time', DateTime)
-)
-
 t_GraspDescription = Table(
     'GraspDescription', metadata,
     Column('id', Integer, primary_key=True),
@@ -49,21 +41,13 @@ t_ORMMotionNode = Table(
     Column('id', Integer, primary_key=True)
 )
 
-t_ParallelNode = Table(
-    'ParallelNode', metadata,
-    Column('id', Integer, primary_key=True),
-    Column('status', Enum(pycram.datastructures.enums.TaskStatus), nullable=False),
-    Column('start_time', DateTime),
-    Column('end_time', DateTime),
-    Column('polymorphic_type', String)
-)
-
 t_PlanNode = Table(
     'PlanNode', metadata,
     Column('id', Integer, primary_key=True),
     Column('status', Enum(pycram.datastructures.enums.TaskStatus), nullable=False),
     Column('start_time', DateTime),
-    Column('end_time', DateTime)
+    Column('end_time', DateTime),
+    Column('polymorphic_type', String)
 )
 
 t_Quaternion = Table(
@@ -75,15 +59,6 @@ t_Quaternion = Table(
     Column('w', Float, nullable=False)
 )
 
-t_SequentialNode = Table(
-    'SequentialNode', metadata,
-    Column('id', Integer, primary_key=True),
-    Column('status', Enum(pycram.datastructures.enums.TaskStatus), nullable=False),
-    Column('start_time', DateTime),
-    Column('end_time', DateTime),
-    Column('polymorphic_type', String)
-)
-
 t_Vector3 = Table(
     'Vector3', metadata,
     Column('id', Integer, primary_key=True),
@@ -92,33 +67,12 @@ t_Vector3 = Table(
     Column('z', Float, nullable=False)
 )
 
-t_MonitorNode = Table(
-    'MonitorNode', metadata,
-    Column('id', ForeignKey('SequentialNode.id'), primary_key=True)
-)
-
 t_Pose = Table(
     'Pose', metadata,
     Column('id', Integer, primary_key=True),
     Column('position_id', ForeignKey('Vector3.id'), nullable=False),
     Column('orientation_id', ForeignKey('Quaternion.id'), nullable=False),
     Column('polymorphic_type', String)
-)
-
-t_RepeatNode = Table(
-    'RepeatNode', metadata,
-    Column('id', ForeignKey('SequentialNode.id'), primary_key=True),
-    Column('repeat', Integer, nullable=False)
-)
-
-t_TryAllNode = Table(
-    'TryAllNode', metadata,
-    Column('id', ForeignKey('ParallelNode.id'), primary_key=True)
-)
-
-t_TryInOrderNode = Table(
-    'TryInOrderNode', metadata,
-    Column('id', ForeignKey('SequentialNode.id'), primary_key=True)
 )
 
 t_PoseStamped = Table(
@@ -137,8 +91,8 @@ t_Transform = Table(
 t_ActionDescription = Table(
     'ActionDescription', metadata,
     Column('id', Integer, primary_key=True),
-    Column('robot_position_id', ForeignKey('PoseStamped.id'), nullable=False),
-    Column('robot_torso_height', Float, nullable=False),
+    Column('robot_position_id', ForeignKey('PoseStamped.id')),
+    Column('robot_torso_height', Float),
     Column('polymorphic_type', String)
 )
 
@@ -200,6 +154,12 @@ t_GripAction = Table(
     Column('gripper', Enum(pycram.datastructures.enums.Arms), nullable=False),
     Column('effort', Float, nullable=False),
     Column('object_at_execution_id', ForeignKey('FrozenObject.id'))
+)
+
+t_LanguageNode = Table(
+    'LanguageNode', metadata,
+    Column('id', ForeignKey('PlanNode.id'), primary_key=True),
+    Column('action_id', ForeignKey('ActionDescription.id'), nullable=False)
 )
 
 t_LookAtAction = Table(
@@ -303,6 +263,42 @@ t_TransportAction = Table(
     Column('object_at_execution_id', ForeignKey('FrozenObject.id'))
 )
 
+t_CodeNode = Table(
+    'CodeNode', metadata,
+    Column('id', ForeignKey('LanguageNode.id'), primary_key=True)
+)
+
+t_ParallelNode = Table(
+    'ParallelNode', metadata,
+    Column('id', ForeignKey('LanguageNode.id'), primary_key=True)
+)
+
+t_SequentialNode = Table(
+    'SequentialNode', metadata,
+    Column('id', ForeignKey('LanguageNode.id'), primary_key=True)
+)
+
+t_MonitorNode = Table(
+    'MonitorNode', metadata,
+    Column('id', ForeignKey('SequentialNode.id'), primary_key=True)
+)
+
+t_RepeatNode = Table(
+    'RepeatNode', metadata,
+    Column('id', ForeignKey('SequentialNode.id'), primary_key=True),
+    Column('repeat', Integer, nullable=False)
+)
+
+t_TryAllNode = Table(
+    'TryAllNode', metadata,
+    Column('id', ForeignKey('ParallelNode.id'), primary_key=True)
+)
+
+t_TryInOrderNode = Table(
+    'TryInOrderNode', metadata,
+    Column('id', ForeignKey('SequentialNode.id'), primary_key=True)
+)
+
 mapper_registry = registry(metadata=metadata)
 
 m_GraspDescription = mapper_registry.map_imperatively(pycram.datastructures.grasp.GraspDescription, t_GraspDescription, )
@@ -321,13 +317,7 @@ header=relationship('Header',foreign_keys=[t_PoseStamped.c.header_id])), polymor
 
 m_ActionDescription = mapper_registry.map_imperatively(pycram.designator.ActionDescription, t_ActionDescription, properties = dict(robot_position=relationship('PoseStamped',foreign_keys=[t_ActionDescription.c.robot_position_id])), polymorphic_on = "polymorphic_type", polymorphic_identity = "ActionDescription")
 
-m_PlanNode = mapper_registry.map_imperatively(pycram.plan.PlanNode, t_PlanNode, )
-
-m_SequentialNode = mapper_registry.map_imperatively(pycram.language.SequentialNode, t_SequentialNode, polymorphic_on = "polymorphic_type", polymorphic_identity = "SequentialNode")
-
-m_ParallelNode = mapper_registry.map_imperatively(pycram.language.ParallelNode, t_ParallelNode, polymorphic_on = "polymorphic_type", polymorphic_identity = "ParallelNode")
-
-m_CodeNode = mapper_registry.map_imperatively(pycram.language.CodeNode, t_CodeNode, )
+m_PlanNode = mapper_registry.map_imperatively(pycram.plan.PlanNode, t_PlanNode, polymorphic_on = "polymorphic_type", polymorphic_identity = "PlanNode")
 
 m_TaskTreeNode = mapper_registry.map_imperatively(pycram.orm.model.TaskTreeNode, t_TaskTreeNode, properties = dict(action=relationship('ActionDescription',foreign_keys=[t_TaskTreeNode.c.action_id]), 
 parent=relationship('TaskTreeNode',foreign_keys=[t_TaskTreeNode.c.parent_id])))
@@ -384,6 +374,14 @@ object_at_execution=relationship('FrozenObject',foreign_keys=[t_PlaceAction.c.ob
 
 m_TransportAction = mapper_registry.map_imperatively(pycram.designators.action_designator.TransportAction, t_TransportAction, properties = dict(target_location=relationship('PoseStamped',foreign_keys=[t_TransportAction.c.target_location_id]), 
 object_at_execution=relationship('FrozenObject',foreign_keys=[t_TransportAction.c.object_at_execution_id])), polymorphic_identity = "TransportAction", inherits = m_ActionDescription)
+
+m_LanguageNode = mapper_registry.map_imperatively(pycram.language.LanguageNode, t_LanguageNode, properties = dict(action=relationship('ActionDescription',foreign_keys=[t_LanguageNode.c.action_id])), polymorphic_identity = "LanguageNode", inherits = m_PlanNode)
+
+m_SequentialNode = mapper_registry.map_imperatively(pycram.language.SequentialNode, t_SequentialNode, polymorphic_identity = "SequentialNode", inherits = m_LanguageNode)
+
+m_ParallelNode = mapper_registry.map_imperatively(pycram.language.ParallelNode, t_ParallelNode, polymorphic_identity = "ParallelNode", inherits = m_LanguageNode)
+
+m_CodeNode = mapper_registry.map_imperatively(pycram.language.CodeNode, t_CodeNode, polymorphic_identity = "CodeNode", inherits = m_LanguageNode)
 
 m_TryInOrderNode = mapper_registry.map_imperatively(pycram.language.TryInOrderNode, t_TryInOrderNode, polymorphic_identity = "TryInOrderNode", inherits = m_SequentialNode)
 

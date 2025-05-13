@@ -91,9 +91,6 @@ print(f"Edit the whole position:\n{example_pose.position}", "\n")
 
 example_pose.frame_id = "new_frame"
 print(f"Set a new frame:\n{example_pose.frame_id}", "\n")
-
-example_pose.set_position([3, 2, 1])
-print(f"Set the position via method:\n{example_pose.position}", "\n")
 ```
 
 ## Copy Poses

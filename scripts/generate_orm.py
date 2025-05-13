@@ -25,6 +25,7 @@ List of standard classes that are to be mapped to the database.
 """
 pycram.plan.ResolvedActionNode.__annotations__.update({"designator_ref": pycram.designator.ActionDescription})
 pycram.plan.MotionNode.__annotations__.update({"designator_ref": pycram.designator.BaseMotion})
+pycram.language.LanguageNode.__annotations__.update({"action": pycram.designator.ActionDescription})
 
 classes = [pycram.datastructures.grasp.GraspDescription,
            pycram.datastructures.pose.Vector3,
@@ -37,6 +38,7 @@ classes = [pycram.datastructures.grasp.GraspDescription,
            pycram.datastructures.pose.GraspPose,
            pycram.designator.ActionDescription,
            pycram.plan.PlanNode,
+           pycram.language.LanguageNode,
            pycram.language.SequentialNode,
            pycram.language.ParallelNode,
            pycram.language.TryInOrderNode,

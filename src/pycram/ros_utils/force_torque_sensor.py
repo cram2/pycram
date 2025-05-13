@@ -56,7 +56,6 @@ class ForceTorqueSensorSimulated:
         while not self.kill_event.is_set():
             joint_ft = self.world.get_joint_reaction_force_torque(self.world.robot, self.fts_joint_idx)
             h = Header()
-            h.seq = seq
             h.stamp = Time().now()
             h.frame_id = self.joint_name
 

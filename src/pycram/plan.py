@@ -1,22 +1,18 @@
 from __future__ import annotations
 
-import enum
 import inspect
-import random
 import time
 from dataclasses import field, dataclass
 from datetime import datetime
 
 import networkx as nx
-
-from typing_extensions import Optional, Callable, Any, Dict, List, Self, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
+from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
 from .datastructures.enums import TaskStatus
-from pycrap.ontologies import Action
-from .failures import PlanFailure
 from .external_interfaces import giskard
-from .ros import loginfo
+from .failures import PlanFailure
 from .has_parameters import leaf_types
+from .ros import loginfo
 
 if TYPE_CHECKING:
     from .designator import BaseMotion, ActionDescription
@@ -257,15 +253,16 @@ def managed_node(func: Callable) -> Callable:
     :param func: Reference to the perform function of the node
     :return: The wrapped perform function
     """
+
     def wrapper(node: DesignatorNode) -> Any:
         node.status = TaskStatus.RUNNING
         node.start_time = datetime.now()
         on_start_callbacks = (Plan.on_start_callback.get(node.action, []) +
-                             Plan.on_start_callback.get(None, []))
+                              Plan.on_start_callback.get(None, []))
         on_end_callbacks = (Plan.on_end_callback.get(node.action, []) +
-                           Plan.on_end_callback.get(None, []))
+                            Plan.on_end_callback.get(None, []))
         for call_back in on_start_callbacks:
-           call_back(node)
+            call_back(node)
         result = None
         try:
             node.plan.current_node = node
@@ -280,7 +277,7 @@ def managed_node(func: Callable) -> Callable:
             node.end_time = datetime.now()
             node.plan.current_node = node.parent
             for call_back in on_end_callbacks:
-               call_back(node)
+                call_back(node)
         return result
 
     return wrapper
@@ -346,18 +343,28 @@ class PlanNode:
         return list(nx.descendants(self.plan, self))
 
     @property
-    def subtree(self):
+    def subtree(self) -> Plan:
         """
         Creates a new plan with this node as the new root
 
         :return: A new plan
         """
-        return nx.subgraph(self.plan, self.recursive_children + [self])
+        graph = nx.DiGraph()
+        graph.add_nodes_from(self.plan.nodes)
+        graph.add_edges_from(self.plan.edges)
+        # The subgraph methods tries to create a new instance of the graph class it is give which in the case of Plan()
+        # would fail because of the "root" param, that's the reason for this weird conversion.
+        sub_grap = nx.subgraph(graph, [self] +  self.recursive_children)
+        plan = Plan(self)
+        plan.add_nodes_from(sub_grap.nodes)
+        plan.add_edges_from(sub_grap.edges)
+        return plan
+
 
     @property
     def all_parents(self) -> List[PlanNode]:
         """
-        Returns all nodes above this node until the root node
+        Returns all nodes above this node until the root node. The order is from this node to the root node.
 
         :return: A list of all nodes above this
         """
@@ -463,6 +470,8 @@ class ActionNode(DesignatorNode):
     Iterator over the current evaluation state of the ActionDesignator Description
     """
 
+    action: ActionDescription = None
+
     def __hash__(self):
         return id(self)
 
@@ -478,7 +487,8 @@ class ActionNode(DesignatorNode):
             self.action_iter = iter(self.designator_ref)
         resolved_action = next(self.action_iter)
         kwargs = {key: resolved_action.__getattribute__(key) for key in self.designator_ref.kwargs.keys()}
-        resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__, kwargs=kwargs)
+        resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__,
+                                                  kwargs=kwargs)
         self.plan.add_edge(self, resolved_action_node)
 
         return resolved_action_node.perform()
@@ -493,6 +503,8 @@ class ResolvedActionNode(DesignatorNode):
     A node representing a resolved ActionDesignator with fully specified parameters
     """
     designator_ref: ActionDescription = None
+
+    action: ActionDescription = None
 
     def __hash__(self):
         return id(self)

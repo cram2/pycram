@@ -25,9 +25,12 @@ session = sqlalchemy.orm.Session(bind=engine)
 ```
 
 Next, we need a mapper_registry to map our classes to the database tables. We will use the default mapper_registry from sqlalchemy.
+
 ```python
-mapper_registry = sqlalchemy.orm.mapper_registry
-mapper_registry.metadata.create_all(session.bind)
+import pycram.orm.ormatic_interface
+from pycram.orm.ormatic_interface import *
+
+pycram.orm.ormatic_interface.metadata.create_all(engine)
 ```
 
 Next, we will write a simple plan where the robot parks its arms, moves somewhere, picks up an object, navigates somewhere else, and places it. 
@@ -58,7 +61,7 @@ with simulated_robot:
     sp = SequentialPlan(
         NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
         ParkArmsActionDescription(Arms.BOTH),
-        PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(Grasp.FRONT, None, False), 0.03),
+        PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(Grasp.FRONT, None, False)),
         NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1]), True),
         PlaceActionDescription(object_description.resolve(), PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
                                Arms.LEFT))
@@ -115,7 +118,7 @@ object_actions = (session.scalars(select(Vector3)
                                       .join(PickUpAction.object_at_execution)
                                       .join(FrozenObject.pose)
                                       .join(PoseStamped.pose)
-                                      .join(Pose.position)).first())
+                                      .join(Pose.position)).all())
 print(*object_actions, sep="\n")
 ```
 
@@ -139,9 +142,7 @@ Make sure to check out the other examples of ORM querying.
 If we want to filter for all successful tasks we can just add the filter operator:
 
 ```python
-from pycram.orm.tasktree import TaskTreeNode
-
-filtered_navigate_results = self.session.scalars(select(NavigateAction).where(NavigateAction.id == 1)).all()
+filtered_navigate_results = session.scalars(select(NavigateAction).where(NavigateAction.id == 1)).all()
 print(*filtered_navigate_results, sep="\n")
 ```
 

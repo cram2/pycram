@@ -128,11 +128,11 @@ class ActionDescription(HasParameters):
     """
     The performable designator_description with a single element for each list of possible parameter.
     """
-    robot_position: PoseStamped = field(init=False)
+    robot_position: Optional[PoseStamped] = field(init=False)
     """
     The position of the robot at the start of the action.
     """
-    robot_torso_height: float = field(init=False)
+    robot_torso_height: Optional[float] = field(init=False)
     """
     The torso height of the robot at the start of the action.
     """
@@ -152,13 +152,7 @@ class ActionDescription(HasParameters):
     """
 
     def __post_init__(self):
-        self.robot_position = World.robot.get_pose()
-        if RobotDescription.current_robot_description.torso_joint != "":
-            self.robot_torso_height = World.robot.get_joint_position(
-                RobotDescription.current_robot_description.torso_joint)
-        else:
-            self.robot_torso_height = 0.0
-        self._robot_type = World.robot.obj_type
+      self._pre_perform_callbacks.append(self._update_robot_params)
 
     def perform(self) -> Any:
         """
@@ -256,6 +250,10 @@ class ActionDescription(HasParameters):
     def __repr__(self):
         return self.__str__()
 
+    def _update_robot_params(self, action: ActionDescription):
+        action.robot_position = World.robot.pose
+        action.robot_torso_height = World.robot.get_joint_position(RobotDescription.current_robot_description.torso_joint)
+        action._robot_type = World.robot.obj_type
 
 class LocationDesignatorDescription(DesignatorDescription, PartialDesignator):
     """
