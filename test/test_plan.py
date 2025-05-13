@@ -2,21 +2,16 @@ import time
 import unittest
 from datetime import datetime
 
-from probabilistic_model.probabilistic_circuit.nx.helper import fully_factorized
-from pycram.process_module import simulated_robot
 from random_events.product_algebra import SimpleEvent, Event
 
 from pycram.datastructures.enums import TaskStatus
 from pycram.designators.action_designator import *
-from pycram.language import SequentialPlan, ParallelPlan
-from pycram.parameterizer import Parameterizer
-from pycram.testing import BulletWorldTestCase
-
 from pycram.language import SequentialPlan, ParallelPlan, CodeNode
+from pycram.parameterizer import Parameterizer
 from pycram.plan import PlanNode, Plan
 from pycram.process_module import simulated_robot
 from pycram.testing import BulletWorldTestCase
-from pycram.failures import TorsoGoalNotReached
+
 
 class TestPlan(unittest.TestCase):
 
@@ -82,6 +77,7 @@ class TestPlan(unittest.TestCase):
         self.assertIn((mount_node, plan2.root), plan.edges)
         self.assertEqual(len(plan.edges), 2)
         self.assertEqual(len(plan.nodes), 3)
+
 
 class TestPlanNode(unittest.TestCase):
     def test_plan_node_creation(self):
@@ -164,44 +160,44 @@ class TestPlanNode(unittest.TestCase):
         self.assertEqual(len(sub_tree.edges), 1)
         self.assertIn((node2, node3), sub_tree.edges)
 
-@unittest.skip("There is some weird error here that causes the interpreter to abort with exit code 134, something with thread handling. Needs more investigation")
+
+@unittest.skip(
+    "There is some weird error here that causes the interpreter to abort with exit code 134, something with thread handling. Needs more investigation")
 class TestPlanInterrupt(BulletWorldTestCase):
-        def test_interrupt_plan(self):
-            def node_sleep():
-                sleep(1)
+    def test_interrupt_plan(self):
+        def node_sleep():
+            sleep(1)
 
-            def interrupt_plan():
-                Plan.current_plan.root.interrupt()
+        def interrupt_plan():
+            Plan.current_plan.root.interrupt()
 
-            code_node = CodeNode(interrupt_plan)
-            sleep_node = CodeNode(node_sleep)
-            with simulated_robot:
-                ParallelPlan(Plan(code_node), SequentialPlan(Plan(sleep_node), MoveTorsoActionDescription([TorsoState.HIGH]))).perform()
+        code_node = CodeNode(interrupt_plan)
+        sleep_node = CodeNode(node_sleep)
+        with simulated_robot:
+            ParallelPlan(Plan(code_node),
+                         SequentialPlan(Plan(sleep_node), MoveTorsoActionDescription([TorsoState.HIGH]))).perform()
 
+        self.assertEqual(0, self.robot.joints["torso_lift_joint"].position)
+
+    def test_pause_plan(self):
+        def node_sleep():
+            sleep(1)
+
+        def pause_plan():
+            Plan.current_plan.root.pause()
             self.assertEqual(0, self.robot.joints["torso_lift_joint"].position)
-
-        def test_pause_plan(self):
-            def node_sleep():
-                sleep(1)
-
-            def pause_plan():
-                Plan.current_plan.root.pause()
-                self.assertEqual(0, self.robot.joints["torso_lift_joint"].position)
-                Plan.current_plan.root.resume()
-                sleep(3)
-                self.assertEqual(0.3, self.robot.joints["torso_lift_joint"].position)
-
-            code_node = CodeNode(pause_plan)
-            sleep_node = CodeNode(node_sleep)
-            robot_plan = SequentialPlan(Plan(sleep_node), MoveTorsoActionDescription([TorsoState.HIGH]))
-
-            with simulated_robot:
-                ParallelPlan(Plan(code_node), robot_plan).perform()
-
+            Plan.current_plan.root.resume()
+            sleep(3)
             self.assertEqual(0.3, self.robot.joints["torso_lift_joint"].position)
 
+        code_node = CodeNode(pause_plan)
+        sleep_node = CodeNode(node_sleep)
+        robot_plan = SequentialPlan(Plan(sleep_node), MoveTorsoActionDescription([TorsoState.HIGH]))
 
+        with simulated_robot:
+            ParallelPlan(Plan(code_node), robot_plan).perform()
 
+        self.assertEqual(0.3, self.robot.joints["torso_lift_joint"].position)
 
 
 class AlgebraTest(BulletWorldTestCase):
@@ -221,7 +217,6 @@ class AlgebraTest(BulletWorldTestCase):
             se = SimpleEvent({v1: state, v2: state})
             conditions.append(se)
 
-
         condition = Event(*conditions)
         condition.fill_missing_variables(p.variables)
 
@@ -238,8 +233,8 @@ class AlgebraTest(BulletWorldTestCase):
         condition &= p.create_restrictions().as_composite_set()
 
         conditional, p_c = distribution.conditional(condition)
-        sample = distribution.sample(1)
+        sample = conditional.sample(1)
+
         resolved = p.plan_from_sample(conditional, sample[0])
         with simulated_robot:
             resolved.perform()
-            time.sleep(100)
