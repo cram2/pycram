@@ -12,12 +12,12 @@ if [ "$ROS_VERSION" = "1" ]; then
   echo "Installing apt python-venv and xacro"
   sudo apt install python3.8-venv ros-"${ROS_DISTRO}"-xacro
   echo "Cloning pycram and dependencies"
-  vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram.rosinstall
+  vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/rosinstall/pycram.rosinstall
 else
   echo "Installing apt python-venv and xacro"
   sudo apt install python3.12-venv ros-"${ROS_DISTRO}"-xacro
   echo "Cloning pycram and dependencies"
-  vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram-ros2.rosinstall
+  vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/rosinstall/pycram-ros2.rosinstall
 fi
 
 echo "Setting up virtual environment"
