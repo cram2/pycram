@@ -269,7 +269,7 @@ class Plan(nx.DiGraph):
         return graph
 
     def plot_bokeh(self, attributes: List[str] = None):
-        attributes = attributes or ["status", "start_time"]
+        attributes = attributes or ["status", "start_time", "action"]
         from bokeh.palettes import Category20_20
         from bokeh.plotting import figure, from_networkx, show
         from bokeh.models import (BoxSelectTool, HoverTool, MultiLine,
@@ -279,7 +279,7 @@ class Plan(nx.DiGraph):
                    width=1500, height=1000,
                       x_axis_location=None, y_axis_location=None, toolbar_location=None,
                       title="Plan Visualization", background_fill_color="#efefef",)
-        node_hover_tool = HoverTool(tooltips=[("status", "@status"), ("start", "@start_time")])
+        node_hover_tool = HoverTool(tooltips=[("status", "@status"), ("start", "@start_time"), ("action", "@action")])
         p.add_tools(node_hover_tool)
 
         p.grid.grid_line_color = None

@@ -41,7 +41,6 @@ class AlgebraTest(BulletWorldTestCase):
 
         p = Parameterizer(sp)
         distribution = p.create_fully_factorized_distribution()
-        print(p.variables)
 
         conditions = []
         for state in TorsoState:
@@ -69,6 +68,6 @@ class AlgebraTest(BulletWorldTestCase):
         conditional, p_c = distribution.conditional(condition)
         sample = distribution.sample(1)
         resolved = p.plan_from_sample(conditional, sample[0])
-        print(resolved)
         with simulated_robot:
             resolved.perform()
+            time.sleep(100)
