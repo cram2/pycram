@@ -2,6 +2,7 @@ import time
 import unittest
 from datetime import datetime
 
+from random_events.interval import closed
 from random_events.product_algebra import SimpleEvent, Event
 
 from pycram.datastructures.enums import TaskStatus
@@ -233,8 +234,10 @@ class AlgebraTest(BulletWorldTestCase):
         condition &= p.create_restrictions().as_composite_set()
 
         conditional, p_c = distribution.conditional(condition)
-        sample = conditional.sample(1)
 
-        resolved = p.plan_from_sample(conditional, sample[0])
-        with simulated_robot:
-            resolved.perform()
+        for i in range(10):
+            sample = conditional.sample(1)
+
+            resolved = p.plan_from_sample(conditional, sample[0])
+            with simulated_robot:
+                resolved.perform()
