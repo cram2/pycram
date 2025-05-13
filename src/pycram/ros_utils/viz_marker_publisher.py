@@ -101,7 +101,7 @@ class VizMarkerPublisher:
                 else:
                     link_origin = TransformStamped.from_list()
                 link_pose_with_origin = link_pose * link_origin
-                msg.pose = link_pose_with_origin.to_pose_stamped().pose
+                msg.pose = link_pose_with_origin.to_pose_stamped().pose.ros_message()
 
                 color = obj.get_link_color(link).get_rgba()
 

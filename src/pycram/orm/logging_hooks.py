@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 import tqdm
 from typing_extensions import Optional
 from .model import TaskTreeNode as TaskTreeNodeORM, self_mapped_classes, explicitly_mapped_classes
+from ..language import LanguageNode
 from ..plan import Plan
 
 
@@ -24,6 +25,10 @@ def insert(plan: Plan, session: Session, use_progress_bar: bool = True,
 
     # convert self to orm object
     for node in plan.nodes:
+        if isinstance(node, LanguageNode):
+            continue
         session.add(node)
+        if use_progress_bar:
+            progress_bar.update(1)
 
     session.commit()
