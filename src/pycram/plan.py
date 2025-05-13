@@ -6,8 +6,6 @@ from dataclasses import field, dataclass
 from datetime import datetime
 
 import networkx as nx
-from bokeh.models.annotations.labels import LabelSet
-from bokeh.models.sources import ColumnDataSource
 from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
 from .datastructures.enums import TaskStatus
@@ -251,29 +249,43 @@ class Plan(nx.DiGraph):
         Creates a pure networkx graph of this plan and adds the given attributes of nodes as networkx Node attributes.
 
         :param attributes: A list of attributes from the nodes which should be contained in the returned graph
-        :return: A NetworkX graph of the hash values of the PlanNodes
+        :return: A NetworkX graph from hash values of the PlanNodes
+
         """
         hash_nodes = {hash(node): node for node in self.nodes}
         edges = [(hash(source), hash(target)) for source, target in self.edges]
         graph = nx.DiGraph()
         graph.add_nodes_from(hash_nodes.keys())
         graph.add_edges_from(edges)
+        node_colors = {TaskStatus.CREATED: "lightgrey", TaskStatus.RUNNING: "lightblue", TaskStatus.SUCCEEDED: "lightgreen",
+                       TaskStatus.FAILED: "lightcoral", TaskStatus.INTERRUPTED: "lightpink", TaskStatus.SLEEPING: "lightyellow"}
+
 
         for v in graph:
             for attr in attributes:
                 graph.nodes[v][attr] = str(getattr(hash_nodes[v], attr))
+                graph.nodes[v]["node_type"] = hash_nodes[v].__class__.__name__
+                graph.nodes[v]["node_color"] = node_colors[hash_nodes[v].status]
         return graph
 
     def plot_bokeh(self, attributes: List[str] = None):
+        """
+        Plots the plan using bokeh and networkx. The plan is plotted as a tree with the root node at the bottom and
+        PlanNode.action attributes as labels.
+        The plot features a hover tool showing the attributes of the nodes when the mouse is over them. Shown attributes
+        can be configured using the attributes parameter. The attributes have to be a subset of the PlanNode attributes.
+
+        :param attributes: A list of attributes from the nodes which should be shown in the hover tool.
+        """
         attributes = attributes or ["status", "start_time"]
         from bokeh.plotting import figure, from_networkx, show
         from bokeh.models import (HoverTool, NodesAndLinkedEdges)
 
         p = figure(x_range=(-2, 2), y_range=(-2, 2),
                    width=1700, height=950,
-                   x_axis_location=None, y_axis_location=None, toolbar_location=None,
+                   x_axis_location=None, y_axis_location=None, toolbar_location="below",
                    title="Plan Visualization", background_fill_color="#efefef", )
-        node_hover_tool = HoverTool(tooltips=[("status", "@status"), ("start", "@start_time")])
+        node_hover_tool = HoverTool(tooltips= [("node_type", "@node_type")] + [(attr, "@" + attr) for attr in attributes])
         p.add_tools(node_hover_tool)
 
         p.grid.grid_line_color = None
@@ -284,13 +296,13 @@ class Plan(nx.DiGraph):
         graph.selection_policy = NodesAndLinkedEdges()
         graph.inspection_policy = NodesAndLinkedEdges()
 
-        graph.node_renderer.glyph.update(size=20, fill_color="lightblue")
+        graph.node_renderer.glyph.update(size=20, fill_color="node_color")
 
         p.renderers.append(graph)
 
         show(p, new="same")
 
-    def _create_labels(self) -> LabelSet:
+    def _create_labels(self):
         """
         Creates a label set for the plan visualization. Labels are the PlanNode.action attribute.
 
