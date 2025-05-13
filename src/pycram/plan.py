@@ -244,6 +244,83 @@ class Plan(nx.DiGraph):
         if cls.on_end_callback and action_type in cls.on_end_callback:
             cls.on_end_callback[action_type].remove(callback)
 
+    def _create_pure_networkx_graph(self, attributes: List[str]) -> nx.DiGraph[int]:
+        """
+        Creates a pure networkx graph of this plan and adds the given attributes of nodes as networkx Node attributes.
+
+        :param attributes: A list of attributes from the nodes which should be contained in the returned graph
+        :return: A NetworkX graph from hash values of the PlanNodes
+
+        """
+        hash_nodes = {hash(node): node for node in self.nodes}
+        edges = [(hash(source), hash(target)) for source, target in self.edges]
+        graph = nx.DiGraph()
+        graph.add_nodes_from(hash_nodes.keys())
+        graph.add_edges_from(edges)
+        node_colors = {TaskStatus.CREATED: "lightgrey", TaskStatus.RUNNING: "lightblue", TaskStatus.SUCCEEDED: "lightgreen",
+                       TaskStatus.FAILED: "lightcoral", TaskStatus.INTERRUPTED: "lightpink", TaskStatus.SLEEPING: "lightyellow"}
+
+
+        for v in graph:
+            for attr in attributes:
+                graph.nodes[v][attr] = str(getattr(hash_nodes[v], attr))
+                graph.nodes[v]["node_type"] = hash_nodes[v].__class__.__name__
+                graph.nodes[v]["node_color"] = node_colors[hash_nodes[v].status]
+        return graph
+
+    def plot_bokeh(self, attributes: List[str] = None):
+        """
+        Plots the plan using bokeh and networkx. The plan is plotted as a tree with the root node at the bottom and
+        PlanNode.action attributes as labels.
+        The plot features a hover tool showing the attributes of the nodes when the mouse is over them. Shown attributes
+        can be configured using the attributes parameter. The attributes have to be a subset of the PlanNode attributes.
+
+        :param attributes: A list of attributes from the nodes which should be shown in the hover tool.
+        """
+        attributes = attributes or ["status", "start_time"]
+        from bokeh.plotting import figure, from_networkx, show
+        from bokeh.models import (HoverTool, NodesAndLinkedEdges)
+
+        p = figure(x_range=(-2, 2), y_range=(-2, 2),
+                   width=1700, height=950,
+                   x_axis_location=None, y_axis_location=None, toolbar_location="below",
+                   title="Plan Visualization", background_fill_color="#efefef", )
+        node_hover_tool = HoverTool(tooltips= [("node_type", "@node_type")] + [(attr, "@" + attr) for attr in attributes])
+        p.add_tools(node_hover_tool)
+
+        p.grid.grid_line_color = None
+        p.add_layout(self._create_labels())
+
+        graph = from_networkx(self._create_pure_networkx_graph(attributes), nx.drawing.bfs_layout,
+                              start=hash(self.root), align='horizontal')
+        graph.selection_policy = NodesAndLinkedEdges()
+        graph.inspection_policy = NodesAndLinkedEdges()
+
+        graph.node_renderer.glyph.update(size=20, fill_color="node_color")
+
+        p.renderers.append(graph)
+
+        show(p, new="same")
+
+    def _create_labels(self):
+        """
+        Creates a label set for the plan visualization. Labels are the PlanNode.action attribute.
+
+        :return: A LabelSet object which can be added to a bokeh plot.
+        """
+        from bokeh.models import ColumnDataSource, LabelSet
+        hash_nodes = {hash(node): node for node in self.nodes}
+        layout=nx.drawing.bfs_layout(self._create_pure_networkx_graph([]), start=hash(self.root), align='horizontal')
+        x = [pose[0] for pose in layout.values()]
+        y = [pose[1] for pose in layout.values()]
+        name = [str(hash_nodes[node].action.__name__) for node in layout.keys()]
+        label_dict = {'x': x, 'y': y, 'names': name}
+
+        data_source = ColumnDataSource(data=label_dict)
+        labels= LabelSet(x='x', y='y', text='names',
+                          x_offset=-55, y_offset=10, source=data_source)
+        return labels
+
 
 def managed_node(func: Callable) -> Callable:
     """
