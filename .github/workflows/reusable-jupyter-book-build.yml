@@ -26,10 +26,9 @@ jobs:
       - name: Checkout 🛎
         uses: actions/checkout@v3
 
-      - name: Install PyCRAM dependencies 🍼
-        uses: py-actions/py-dependency-install@v4
-        with:
-          path: "requirements-setuptools.txt"
+      - name: Update pip 🍼
+        run: |
+          pip install -U pip
 
       # ----------------------------------------------------------------------------------------------------------------
 
