@@ -5,6 +5,8 @@ from enum import Enum
 from typing import Dict, Any, Type, List
 
 import numpy as np
+from probabilistic_model.probabilistic_circuit.nx.helper import fully_factorized
+from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
 from probabilistic_model.probabilistic_model import ProbabilisticModel
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.set import Set
@@ -98,6 +100,34 @@ class Parameterizer:
                        action = node.action, kwargs=kwargs)))
 
         return SequentialPlan(*sub_plans)
+
+    def create_fully_factorized_distribution(self) -> ProbabilisticCircuit:
+        """
+        :return: a fully factorized distribution for the plan.
+        """
+        distribution = fully_factorized(self.variables, means={v: 0 for v in self.variables},
+                                        variances={v: 1 for v in self.variables})
+        return distribution
+
+    def create_restrictions(self) -> SimpleEvent:
+        """
+        :return: The restrictions present in the plan as random event.
+        """
+        restrictions = {}
+        for index, (node, variables) in enumerate(self.variables_of_node.items()):
+            for variable in variables:
+                parameter_name = variable.name.split(".", 1)[1]
+                restriction = node.kwargs.get(parameter_name, None)
+
+                if restriction is None:
+                    continue
+
+                restrictions[variable] = restriction
+
+        # create the restrictions as random event
+        result = SimpleEvent(restrictions)
+        result.fill_missing_variables(self.variables)
+        return result
 
 
 def leaf_type_to_variable(name: str, leaf_type: Type) -> Variable:

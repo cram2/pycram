@@ -1,3 +1,4 @@
+import time
 import unittest
 
 from probabilistic_model.probabilistic_circuit.nx.helper import fully_factorized
@@ -39,8 +40,8 @@ class AlgebraTest(BulletWorldTestCase):
                             MoveTorsoActionDescription(None))
 
         p = Parameterizer(sp)
-        distribution = fully_factorized(p.variables, means={v: 0 for v in p.variables},
-                                        variances={v: 1 for v in p.variables})
+        distribution = p.create_fully_factorized_distribution()
+        print(p.variables)
 
         conditions = []
         for state in TorsoState:
@@ -48,13 +49,26 @@ class AlgebraTest(BulletWorldTestCase):
             v2 = p.get_variable("MoveTorsoAction_2.torso_state")
             se = SimpleEvent({v1: state, v2: state})
             conditions.append(se)
+
+
         condition = Event(*conditions)
         condition.fill_missing_variables(p.variables)
+
+        navigate_condition = SimpleEvent({
+            p.get_variable("NavigateAction_1.target_location.pose.position.z"): 0,
+            p.get_variable("NavigateAction_1.target_location.pose.orientation.x"): 0,
+            p.get_variable("NavigateAction_1.target_location.pose.orientation.y"): 0,
+            p.get_variable("NavigateAction_1.target_location.pose.orientation.z"): 0,
+            p.get_variable("NavigateAction_1.target_location.pose.orientation.w"): 1
+        })
+        navigate_condition.fill_missing_variables(p.variables)
+        condition &= navigate_condition.as_composite_set()
+
+        condition &= p.create_restrictions().as_composite_set()
 
         conditional, p_c = distribution.conditional(condition)
         sample = distribution.sample(1)
         resolved = p.plan_from_sample(conditional, sample[0])
-
+        print(resolved)
         with simulated_robot:
             resolved.perform()
-
