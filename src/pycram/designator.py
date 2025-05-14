@@ -317,6 +317,11 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
                 # yield self.Object(obj.name, obj.obj_type, obj)
                 yield obj
 
+    def flatten(self) -> List:
+        res = [None] * 7
+        res.append(self.types[0])
+        return res
+
 
 @dataclass
 class BaseMotion(ABC):
