@@ -1269,7 +1269,6 @@ class PouringAction(ActionDescription):
         oTog.orientation = grasp_rotation
         oTgm = lt.transform_pose(oTog, "map")
 
-        print("movetcp1!!!")
         MoveTCPMotion(oTgm, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
 
         # World.current_world.add_vis_axis(oTgm)
