@@ -1147,22 +1147,22 @@ class MixingAction(ActionDescription):
 
     object_: Object
     """
-    The object to be cut.
+    The object to be mixed in.
     """
 
     tool: Object
     """
-    The tool used for cutting.
+    The tool used for mixing.
     """
 
     arm: Arms
     """
-    The robot arm designated for the cutting task.
+    The robot arm designated for the mixing task.
     """
 
     technique: Optional[str] = None
     """
-    The technique used for cutting (default is None).
+    The technique used for mixing (default is None).
     """
 
     def plan(self) -> None:
