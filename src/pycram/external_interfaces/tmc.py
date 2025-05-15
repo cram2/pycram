@@ -2,7 +2,7 @@ from typing_extensions import Optional
 
 from ..datastructures.enums import GripperState
 from ..designators.motion_designator import MoveGripperMotion, TalkingMotion
-from ..ros import  loginfo
+from ..ros import  loginfo, logwarn
 from ..ros import  create_publisher
 from ..ros import  Rate
 
@@ -13,13 +13,11 @@ def init_tmc_interface():
     global is_init
     if is_init:
         return
-    try:
-        from tmc_control_msgs.msg import GripperApplyEffortActionGoal
-        from tmc_msgs.msg import Voice
-        is_init = True
-        loginfo("Successfully initialized tmc interface")
-    except ModuleNotFoundError as e:
-        logwarn(f"Could not import TMC messages, tmc interface could not be initialized")
+    from tmc_control_msgs.msg import GripperApplyEffortActionGoal
+    from tmc_msgs.msg import Voice
+    is_init = True
+    loginfo("Successfully initialized tmc interface")
+
 
 
 def tmc_gripper_control(designator: MoveGripperMotion, topic_name: Optional[str] = '/hsrb/gripper_controller/grasp/goal'):

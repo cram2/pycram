@@ -4,7 +4,7 @@ import threading
 import sys
 
 from ..ros import Time
-from ..ros import logwarn, loginfo_once
+from ..ros import logwarn, loginfo_once, loginfo
 from ..ros import get_node_names
 
 from ..datastructures.enums import JointType, ObjectType, Arms
@@ -16,15 +16,11 @@ from ..world_concepts.world_object import Object
 from ..robot_description import RobotDescription
 
 from typing_extensions import List, Dict, Callable, Optional
-from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
+from geometry_msgs.msg import PoseStamped as ROSPoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 from threading import Lock, RLock
 from pycram.ros import logging as log
 
-try:
-    from giskardpy.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
-    from giskard_msgs.msg import WorldBody, MoveResult, CollisionEntry
-except ModuleNotFoundError as e:
-    logwarn("Failed to import Giskard messages, the real robot will not be available")
+
 
 giskard_wrapper = None
 giskard_update_service = None
@@ -63,6 +59,10 @@ def init_giskard_interface(func: Callable) -> Callable:
     """
 
     def wrapper(*args, **kwargs):
+
+        from giskardpy.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
+        from giskard_msgs.msg import WorldBody, MoveResult, CollisionEntry
+
         global giskard_wrapper
         global giskard_update_service
         global is_init
@@ -142,7 +142,7 @@ def sync_worlds(projection: bool = False) -> None:
             if projection:
                 giskard_wrapper.monitors.add_set_seed_configuration(joint_config_filtered,
                                                                     RobotDescription.current_robot_description.name)
-                giskard_wrapper.monitors.add_set_seed_odometry(_pose_to_pose_stamped(obj.get_pose()),
+                giskard_wrapper.monitors.add_set_seed_odometry(obj.get_pose().ros_message(),
                                                                RobotDescription.current_robot_description.name)
     giskard_object_names = set(giskard_wrapper.get_group_names())
     robot_name = {RobotDescription.current_robot_description.name}
@@ -351,7 +351,7 @@ def achieve_cartesian_goal(goal_pose: PoseStamped, tip_link: str, root_link: str
     :return: MoveResult message for this goal
     """
     sync_worlds()
-    par_return = _manage_par_motion_goals(giskard_wrapper.set_cart_goal, _pose_to_pose_stamped(goal_pose),
+    par_return = _manage_par_motion_goals(giskard_wrapper.set_cart_goal, goal_pose.ros_message(),
                                           tip_link, root_link)
     if par_return:
         return par_return
@@ -359,13 +359,13 @@ def achieve_cartesian_goal(goal_pose: PoseStamped, tip_link: str, root_link: str
     cart_monitor1 = None
     if use_monitor:
         cart_monitor1 = giskard_wrapper.monitors.add_cartesian_pose(root_link=root_link, tip_link=tip_link,
-                                                                    goal_pose=_pose_to_pose_stamped(goal_pose),
+                                                                    goal_pose=goal_pose.ros_message(),
                                                                     position_threshold=position_threshold, orientation_threshold=orientation_threshold,
                                                                     name='cart goal 1')
         end_monitor = giskard_wrapper.monitors.add_local_minimum_reached(start_condition=cart_monitor1)
 
     giskard_wrapper.motion_goals.add_cartesian_pose(name='g1', root_link=root_link, tip_link=tip_link,
-                                                    goal_pose=_pose_to_pose_stamped(goal_pose),
+                                                    goal_pose=goal_pose.ros_message(),
                                                     end_condition=cart_monitor1)
 
     if use_monitor:
@@ -394,7 +394,7 @@ def achieve_straight_cartesian_goal(goal_pose: PoseStamped, tip_link: str,
     :return: MoveResult message for this goal
     """
     sync_worlds()
-    par_return = _manage_par_motion_goals(giskard_wrapper.set_straight_cart_goal, _pose_to_pose_stamped(goal_pose),
+    par_return = _manage_par_motion_goals(giskard_wrapper.set_straight_cart_goal, goal_pose.ros_message(),
                                           tip_link, root_link)
     if par_return:
         return par_return
@@ -402,7 +402,7 @@ def achieve_straight_cartesian_goal(goal_pose: PoseStamped, tip_link: str,
     giskard_wrapper.avoid_all_collisions()
     if grippers_that_can_collide is not None:
         allow_gripper_collision(grippers_that_can_collide)
-    giskard_wrapper.set_straight_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
+    giskard_wrapper.set_straight_cart_goal(goal_pose.ros_message(), tip_link, root_link)
     # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
 
@@ -622,7 +622,7 @@ def projection_cartesian_goal(goal_pose: PoseStamped, tip_link: str, root_link: 
     :return: MoveResult message for this goal
     """
     sync_worlds(projection=True)
-    giskard_wrapper.set_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
+    giskard_wrapper.set_cart_goal(goal_pose.ros_message(), tip_link, root_link)
     return giskard_wrapper.projection()
 
 
@@ -642,10 +642,10 @@ def projection_cartesian_goal_with_approach(approach_pose: PoseStamped, goal_pos
     """
     sync_worlds(projection=True)
     giskard_wrapper.allow_all_collisions()
-    giskard_wrapper.set_cart_goal(_pose_to_pose_stamped(approach_pose), robot_base_link, "map")
+    giskard_wrapper.set_cart_goal(approach_pose.ros_message(), robot_base_link, "map")
     giskard_wrapper.projection()
     giskard_wrapper.avoid_all_collisions()
-    giskard_wrapper.set_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
+    giskard_wrapper.set_cart_goal(goal_pose.ros_message(), tip_link, root_link)
     return giskard_wrapper.projection()
 
 
@@ -810,18 +810,3 @@ def make_vector_stamped(vector: List[float]) -> Vector3Stamped:
     msg.vector.z = vector[2]
 
     return msg
-
-
-def _pose_to_pose_stamped(pose: PoseStamped) -> PoseStamped:
-    """
-    Transforms a PyCRAM pose to a PoseStamped message, this is necessary since Giskard NEEDS a PoseStamped message
-    otherwise it will crash.
-
-    :param pose: PyCRAM pose that should be converted
-    :return: An equivalent PoseStamped message
-    """
-    ps = PoseStamped()
-    ps.pose = pose.pose
-    ps.header = pose.header
-
-    return ps

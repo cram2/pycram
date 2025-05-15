@@ -7,10 +7,7 @@ from ..ros import  get_node_names
 from geometry_msgs.msg import PoseStamped
 from typing import Callable
 
-try:
-    from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-except ModuleNotFoundError as e:
-    logwarn(f"Could not import MoveBase messages, Navigation interface could not be initialized")
+
 
 
 # Global variables for shared resources
@@ -30,6 +27,9 @@ def init_nav_interface(func: Callable) -> Callable:
     """Ensures initialization of the navigation interface before function execution."""
 
     def wrapper(*args, **kwargs):
+        from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+
+
         global is_init
         global nav_action_client
 
