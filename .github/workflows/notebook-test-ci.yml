@@ -1,4 +1,4 @@
-name: Test Jupyter Notebook Examples
+name: Jupyter Notebook Examples
 
 on:
   push:
