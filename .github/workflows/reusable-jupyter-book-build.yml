@@ -19,7 +19,7 @@ defaults:
 jobs:
   test-and-build:
     name: Build Jupyter-Book  documentation
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
 
