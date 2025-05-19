@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import numpy as np
-from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional, TYPE_CHECKING, Self
 
 from ..datastructures.enums import JointType
-from ..datastructures.pose import TransformStamped, PoseStamped
+from ..datastructures.pose import TransformStamped, PoseStamped, Point
 
 if TYPE_CHECKING:
     from ..description import Link

@@ -8,14 +8,14 @@ import time
 import numpy as np
 import pycram_bullet as p
 import yaml
-from geometry_msgs.msg import Point
+# from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Any, Callable
 
 from pycrap.ontologies import Floor
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
     ClosestPoint, LateralFriction, ContactPoint, ContactPointsList, ClosestPointsList, RayResult
 from ..datastructures.enums import ObjectType, WorldMode, JointType
-from ..datastructures.pose import PoseStamped
+from ..datastructures.pose import PoseStamped, Point
 from ..datastructures.world import World
 from ..datastructures.world_entity import PhysicalBody
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
@@ -376,7 +376,7 @@ class BulletWorld(World):
                               link_poses=[PoseStamped(), PoseStamped(), PoseStamped()], link_masses=[1.0, 1.0, 1.0],
                               link_inertial_frame_poses=[PoseStamped(), PoseStamped(), PoseStamped()], link_parent_indices=[0, 0, 0],
                               link_joint_types=[JointType.FIXED.value, JointType.FIXED.value, JointType.FIXED.value],
-                              link_joint_axis=[Point(x=1, y=0, z=0), Point(x=0, y=1, z=0), Point(x=0, y=0, z=1)],
+                              link_joint_axis=[Point(x=1.0, y=0.0, z=0.0), Point(x=0.0, y=1.0, z=0.0), Point(x=0.0, y=0.0, z=1.0)],
                               link_collision_shape_indices=[-1, -1, -1])
 
         body_id = self._create_multi_body(multibody)
