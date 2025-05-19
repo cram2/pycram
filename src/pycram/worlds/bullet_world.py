@@ -8,7 +8,6 @@ import time
 import numpy as np
 import pycram_bullet as p
 import yaml
-# from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Any, Callable
 
 from pycrap.ontologies import Floor
