@@ -77,9 +77,9 @@ class PoseGenerator(Iterable[PoseStamped]):
             # and muiltiplied with the transformation of the origin.
             vector_to_origin = (center - ind) * self.costmap.resolution
             point_to_origin = TransformStamped.from_list([*vector_to_origin, 0], frame="point", child_frame_id="origin")
-            origin_to_map = self.costmap.origin.to_transform_stamped("origin").invert()
+            origin_to_map = ~self.costmap.origin.to_transform_stamped("origin")
             point_to_map = point_to_origin * origin_to_map
-            map_to_point = point_to_map.invert()
+            map_to_point = ~point_to_map
 
             orientation = self.orientation_generator(map_to_point.translation.to_list(), self.costmap.origin)
             yield PoseStamped.from_list(map_to_point.translation.to_list(), orientation)

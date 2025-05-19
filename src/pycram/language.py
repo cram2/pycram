@@ -3,16 +3,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from queue import Queue
-from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence
+from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence, Type, \
+    TYPE_CHECKING
 
-from .datastructures.enums import State, TaskStatus
+from .datastructures.enums import TaskStatus
 import threading
 
 from .fluent import Fluent
 from .failures import PlanFailure
 from .external_interfaces import giskard
 from .ros import sleep, loginfo
-from .plan import PlanNode, Plan
+from .plan import PlanNode, Plan, managed_node
+
+if TYPE_CHECKING:
+    from .designator import ActionDescription
 
 
 class LanguageMixin:
@@ -113,14 +117,27 @@ class LanguageMixin:
 
 
 class LanguagePlan(Plan):
+    """
+    Base class for language plans
+    """
 
     def __init__(self, root: LanguageNode, *children: Plan):
+        """
+        Creates a Language plan with the given root node and children. The root node als determines the behavior of the
+        language plan
+
+        :param root: A LanguageNode which should be the root
+        :param children: A list of child nodes which should be added to the plan
+        """
         super().__init__(root=root)
         for child in children:
             self.mount(child)
         self.simplify_language_nodes()
 
     def simplify_language_nodes(self):
+        """
+        Traverses the plan and merges LanguageNodes of the same type
+        """
         to_be_merged = []
         for source, target in self.edges:
             if isinstance(source, LanguageNode) and isinstance(target, LanguageNode) and type(source) == type(target):
@@ -130,6 +147,9 @@ class LanguagePlan(Plan):
             self.merge_nodes(source, target)
 
 class SequentialPlan(LanguagePlan):
+    """
+    Creates a plan which executes its children in sequential order
+    """
 
     def __init__(self, *children: Plan) -> None:
         seq = SequentialNode()
@@ -137,59 +157,93 @@ class SequentialPlan(LanguagePlan):
 
 
 class ParallelPlan(LanguagePlan):
+    """
+    Creates a plan which executes all children in parallel in seperate threads
+    """
     parallel_blocklist = ["PickUpAction", "PlaceAction", "OpenAction", "CloseAction", "TransportAction",
                           "GraspingAction"]
+    """
+    A list of Actions which can't be part of a Parallel plan
+    """
     def __init__(self, *children: Plan, root: LanguageNode = None) -> None:
-        root = ParallelNode() or root
+        root = root or ParallelNode()
         for child in children:
-            if child.__class__.__name__ in self.parallel_blocklist:
-                raise TypeError(f"You can't create a ParallelPlan with a {child.__class__.__name__}.")
+            child_actions = [action.designator_ref.performable.__name__ for action in child.actions]
+            for action in child_actions:
+                if action in self.parallel_blocklist:
+                    raise AttributeError(f"You can't create a ParallelPlan with a {child.__class__.__name__}.")
 
         super().__init__(root, *children)
 
 class TryInOrderPlan(LanguagePlan):
+    """
+    Creates a plan that executes all children in sequential order but does not stop if one of them throws an error
+    """
 
     def __init__(self,  *children: Plan) -> None:
-        try_in_order =TryInOrderNode()
+        try_in_order = TryInOrderNode()
         super().__init__(try_in_order, *children)
 
 class TryAllPLan(ParallelPlan):
+    """
+    Creates a plan which executes all children in parallel but does not abort if one throws an error
+    """
 
     def __init__(self,  *children: Plan) -> None:
         try_all = TryAllNode()
         super().__init__(root=try_all, *children)
 
 class RepeatPlan(LanguagePlan):
+    """
+    A plan which repeats all children a number of times
+    """
 
     def __init__(self, repeat=1,  *children: Plan):
+        if not isinstance(repeat, int):
+            raise AttributeError(f"Repeat must be an integer")
         repeat = RepeatNode(repeat=repeat)
         super().__init__(repeat, *children)
 
 class MonitorPlan(LanguagePlan):
+    """
+    A plan which monitors a condition and upon the condition becoming true interrupts all children
+    """
 
     def __init__(self, condition,  *children: Plan) -> None:
         monitor = MonitorNode(condition=condition)
         super().__init__(monitor, *children)
 
+class CodePlan(Plan):
+    """
+    A Plan that contains a function to be executed. Mainly intended for debugging purposes
+    """
+    def __init__(self, func: Callable, kwargs: Dict[str, Any] = None) -> None:
+        kwargs = kwargs or {}
+        code = CodeNode(func, kwargs)
+        super().__init__(code)
+
 
 @dataclass
 class LanguageNode(PlanNode):
+
+    action: Type[LanguageNode] = field(default_factory=lambda : LanguageNode)
     """
     Superclass for language nodes in a plan. Used to distinguish language nodes from other types of nodes.
     """
-    ...
+
 
 
 @dataclass
 class SequentialNode(LanguageNode):
+    action: Type[SequentialNode] = field(default_factory=lambda: SequentialNode)
     """
     Executes all children sequentially, an exception while executing a child does not terminate the whole process.
     Instead, the exception is saved to a list of all exceptions thrown during execution and returned.
 
     Behaviour:
         Returns a tuple containing the final state of execution (SUCCEEDED, FAILED) and a list of results from each
-        child's perform() method. The state is :py:attr:`~State.SUCCEEDED` *iff* all children are executed without
-        exception. In any other case the State :py:attr:`~State.FAILED` will be returned.
+        child's perform() method. The state is :py:attr:`~TaskStatus.SUCCEEDED` *iff* all children are executed without
+        exception. In any other case the State :py:attr:`~TaskStatus.FAILED` will be returned.
     """
 
     def perform(self):
@@ -201,25 +255,32 @@ class SequentialNode(LanguageNode):
         try:
             loginfo(f"Executing {self}")
             self.perform_sequential(self.children)
+            self.status = TaskStatus.SUCCEEDED
         except PlanFailure as e:
             self.status = TaskStatus.FAILED
             self.reason = e
             # Failure Handling could be done here
             raise e
-        self.status = TaskStatus.SUCCEEDED
 
-    @staticmethod
-    def perform_sequential(nodes: List[PlanNode], raise_exceptions = True) -> Any:
-        results = {}
+
+    def perform_sequential(self, nodes: List[PlanNode], raise_exceptions = True) -> Any:
+        """
+        Behavior of the sequential node, performs all children in sequence and raises error if they occur.
+
+        :param nodes: A list of nodes which should be performed in sequence
+        :param raise_exceptions: If True (default) errors will be raised
+        """
+        res = None
         for child in nodes:
             try:
-                results[child]  = child.perform()
-                child.status = TaskStatus.SUCCEEDED
+                res = child.perform()
             except PlanFailure as e:
-                child.status = TaskStatus.FAILED
-                child.reason = e
+                self.status = TaskStatus.FAILED
+                self.reason = e
                 if raise_exceptions:
                     raise e
+
+        return res
 
     def __hash__(self):
         return id(self)
@@ -230,15 +291,14 @@ class SequentialNode(LanguageNode):
 
 @dataclass
 class ParallelNode(LanguageNode):
-    results: dict = field(default_factory=dict)
     """
     Executes all children in parallel by creating a thread per children and executing them in the respective thread. All
     exceptions during execution will be caught, saved to a list and returned upon end.
 
     Behaviour:
         Returns a tuple containing the final state of execution (SUCCEEDED, FAILED) and a list of results from
-        each child's perform() method. The state is :py:attr:`~State.SUCCEEDED` *iff* all children could be executed without
-        an exception. In any other case the State :py:attr:`~State.FAILED` will be returned.
+        each child's perform() method. The state is :py:attr:`~TaskStatus.SUCCEEDED` *iff* all children could be executed without
+        an exception. In any other case the State :py:attr:`~TaskStatus.FAILED` will be returned.
 
     """
 
@@ -255,6 +315,11 @@ class ParallelNode(LanguageNode):
         self.status = TaskStatus.SUCCEEDED if TaskStatus.FAILED not in child_statuses else TaskStatus.FAILED
 
     def perform_parallel(self, nodes: List[PlanNode]):
+        """
+        Behaviour of the parallel node performs the given nodes in parallel in different threads.
+
+        :param nodes: A list of nodes which should be performed in parallel
+        """
         threads = []
         for child in nodes:
             t = threading.Thread(target=self._lang_call, args=[child])
@@ -264,12 +329,17 @@ class ParallelNode(LanguageNode):
             thread.join()
 
     def _lang_call(self, node: PlanNode):
+        """
+        Wrapper method which is executed in the thread. Wraps the given node in a try catch and performs it
+
+        :param node: The node which is to be performed
+        """
         try:
-            self.results[node] = node.perform()
-            node.state = State.SUCCEEDED
+            return node.perform()
         except PlanFailure as e:
-            node.status = TaskStatus.FAILED
-            node.reason = e
+            self.status = TaskStatus.FAILED
+            self.reason = e
+            # Failure handling comes here
             raise e
 
     def __hash__(self):
@@ -360,8 +430,8 @@ class TryInOrderNode(SequentialNode):
 
     Behaviour:
         Returns a tuple containing the final state of execution (SUCCEEDED, FAILED) and a list of results from each
-        child's perform() method. The state is :py:attr:`~State.SUCCEEDED` if one or more children are executed without
-        exception. In the case that all children could not be executed the State :py:attr:`~State.FAILED` will be returned.
+        child's perform() method. The state is :py:attr:`~TaskStatus.SUCCEEDED` if one or more children are executed without
+        exception. In the case that all children could not be executed the State :py:attr:`~TaskStatus.FAILED` will be returned.
     """
 
     def perform(self):
@@ -373,6 +443,10 @@ class TryInOrderNode(SequentialNode):
         self.perform_sequential(self.children, raise_exceptions=False)
         child_statuses = [child.status for child in self.children]
         self.status = TaskStatus.SUCCEEDED if TaskStatus.SUCCEEDED in child_statuses else TaskStatus.FAILED
+        child_results = list(filter(None, [child.result for child in self.recursive_children]))
+        if child_results:
+            self.result = child_results[0]
+            return self.result[0]
 
     def __hash__(self):
         return id(self)
@@ -386,8 +460,8 @@ class TryAllNode(ParallelNode):
 
     Behaviour:
         Returns a tuple containing the final state of execution (SUCCEEDED, FAILED) and a list of results from each
-        child's perform() method. The state is :py:attr:`~State.SUCCEEDED` if one or more children could be executed
-        without raising an exception. If all children fail the State :py:attr:`~State.FAILED` will be returned.
+        child's perform() method. The state is :py:attr:`~TaskStatus.SUCCEEDED` if one or more children could be executed
+        without raising an exception. If all children fail the State :py:attr:`~TaskStatus.FAILED` will be returned.
     """
 
     def perform(self):
@@ -411,6 +485,7 @@ class CodeNode(LanguageNode):
     :ivar function: The function (plan) that was called
     :ivar kwargs: Dictionary holding the keyword arguments of the function
     """
+    action: LanguageNode = field(default_factory=lambda : LanguageNode)
 
     def __init__(self, function: Optional[Callable] = None,
                  kwargs: Optional[Dict] = None):
@@ -427,21 +502,22 @@ class CodeNode(LanguageNode):
         self.kwargs: Dict[str, Any] = kwargs
         self.perform = self.execute
         self.performable = self.__class__
+        self.action = self.__class__
 
+    @managed_node
     def execute(self) -> Any:
         """
         Execute the code with its arguments
 
-        :returns: State.SUCCEEDED, and anything that the function associated with this object will return.
+        :returns: Anything that the function associated with this object will return.
         """
-        child_state = State.SUCCEEDED
         ret_val = self.function(**self.kwargs)
         if isinstance(ret_val, tuple):
             child_state, child_result = ret_val
         else:
             child_result = ret_val
 
-        return child_state, child_result
+        return child_result
 
     def resolve(self) -> Self:
         return self

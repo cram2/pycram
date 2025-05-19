@@ -30,16 +30,20 @@ Cup.is_a = [Container]
 Bowl.is_a = [Container]
 
 DefaultPreferredGraspAlignment.is_a = [PreferredGraspAlignment, has_preferred_axis.some(NoAlignment),
-                                       has_vertical_alignment.value(Falsy), has_rotated_gripper.value(Falsy)]
+                                       has_vertical_alignment.value(Falsy), has_rotated_gripper.value(Falsy),
+                                       has_rim_grasp.value(Falsy)]
 
 BowlPreferredGraspAlignment.is_a = [PreferredGraspAlignment, has_preferred_axis.value(NoAlignment),
-                                    has_vertical_alignment.value(Truthy), has_rotated_gripper.value(Falsy)]
+                                    has_vertical_alignment.value(Truthy), has_rotated_gripper.value(Truthy),
+                                    has_rim_grasp.value(Truthy)]
 
 SpoonPreferredGraspAlignment.is_a = [PreferredGraspAlignment, has_preferred_axis.value(XAxis),
-                                     has_vertical_alignment.value(Truthy), has_rotated_gripper.value(Falsy)]
+                                     has_vertical_alignment.value(Truthy), has_rotated_gripper.value(Falsy),
+                                     has_rim_grasp.value(Falsy)]
 
 CerealPreferredGraspAlignment.is_a = [PreferredGraspAlignment, has_preferred_axis.value(XAxis),
-                                      has_vertical_alignment.value(Falsy), has_rotated_gripper.value(Falsy)]
+                                      has_vertical_alignment.value(Falsy), has_rotated_gripper.value(Falsy),
+                                      has_rim_grasp.value(Falsy)]
 
 Cabinet.is_a = [Container]
 

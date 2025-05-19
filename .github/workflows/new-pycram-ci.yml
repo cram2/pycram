@@ -1,4 +1,4 @@
-name: pycram_docker_ci
+name: Python Tests
 defaults:
   run:
     shell: bash -ieo pipefail {0}
@@ -22,9 +22,9 @@ on:
 
 jobs:
   build_and_run_tests:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     container:
-      image: "pycram/pycram:dev"
+      image: "pycram/pycram:jazzy"
     steps:
       - name: Checkout PyCRAM
         uses: actions/checkout@v3
@@ -46,37 +46,24 @@ jobs:
           rm -rf .git .github .gitignore .gitmodules .readthedocs.yaml
           cp -r /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros/src/pycram /opt/ros/overlay_ws/src
 
-      - name: Remake workspace & start roscore
+      - name: Install python dependencies and PyTest
         run: |
-          sudo -s
-          sudo apt-get install python3-catkin-tools -y
-          source /opt/ros/noetic/setup.bash
-          cd /opt/ros/overlay_ws
-          catkin build
-          source /opt/ros/overlay_ws/devel/setup.bash 
-          roscore &
-
-      - name: Install python dependencies
-        run: |
-          pip3 install --upgrade pip --root-user-action=ignore
           cd /opt/ros/overlay_ws/src/pycram
-          pip3 install -r requirements.txt
-          sudo apt-get update
-          sudo apt-get install -y libpq-dev
-          pip3 install -r requirements-resolver.txt
-
-      - name: Install pytest & pyjpt
-        run: |
-          pip3 install --ignore-installed pytest pyjpt
+          source ../pycram-venv/bin/activate
+          pip install -U sqlalchemy
+          pip install -r requirements.txt
+          pip install --ignore-installed pytest
 
       - name: Run tests
         run: | 
-          source /opt/ros/overlay_ws/devel/setup.bash 
-          roscd pycram
+          source /opt/ros/overlay_ws/install/setup.bash 
+          cd /opt/ros/overlay_ws/src/pycram
+          source ../pycram-venv/bin/activate
           pytest -v test
 
       - name: Run Demos
         run: | 
-          source /opt/ros/overlay_ws/devel/setup.bash 
-          roscd pycram
+          source /opt/ros/overlay_ws/install/setup.bash 
+          cd /opt/ros/overlay_ws/src/pycram
+          source ../pycram-venv/bin/activate
           python3 demos/pycram_bullet_world_demo/test_demo.py

@@ -86,10 +86,10 @@ nx.draw(gcs, with_labels=True, font_size=8)
 Let's use graph theory to find a path!
 
 ```{code-cell} ipython2
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import PoseStamped
 
-start = Pose([-0.75, 0, 0.15])
-goal = Pose([0.75, 0, 0.15])
+start = PoseStamped.from_list([-0.75, 0, 0.15])
+goal = PoseStamped.from_list([0.75, 0, 0.15])
 path = gcs.path_from_to(start, goal)
 print("A potential path is", [(point.position.x, point.position.y) for point in path])
 ```
@@ -134,8 +134,8 @@ This allows the accessing of locations using a sequence of local problems put to
 Finally, let's find a way from here to there:
 
 ```{code-cell} ipython2
-start = Pose([-0.75, 0, 0.15])
-goal = Pose([0.75, 0, 0.15])
+start = PoseStamped.from_list([-0.75, 0, 0.15])
+goal = PoseStamped.from_list([0.75, 0, 0.15])
 path = gcs.path_from_to(start, goal)
 print("A potential path is", [(point.position.x, point.position.y, point.position.z) for point in path])
 ```

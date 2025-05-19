@@ -9,14 +9,14 @@ from threading import RLock
 from trimesh.parent import Geometry3D
 from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, Union, Type, Tuple
 
-from pycrap.ontologies import PhysicalObject, Room, Location
+from pycrap.ontologies import PhysicalObject, Room, Location, Robot, Floor
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
     AxisAlignedBoundingBox, RotatedBoundingBox, RayResult
-from .enums import AdjacentBodyMethod, AxisIdentifier
+from .enums import AdjacentBodyMethod, AxisIdentifier, Arms, Grasp
 from .mixins import HasConcept
 from ..local_transformer import LocalTransformer
 from ..ros import Time, logdebug
-from .pose import GraspDescription, Vector3
+from .pose import GraspDescription, Vector3, PoseStamped
 from .grasp import PreferredGraspAlignment
 
 if TYPE_CHECKING:
@@ -123,7 +123,7 @@ class StateEntity:
         self._saved_states = {}
 
 
-class WorldEntity(StateEntity, HasConcept, ABC):
+class WorldEntity(StateEntity, HasConcept):
     """
     A class that represents an entity of the world, such as an object or a link.
     """
@@ -169,7 +169,7 @@ class WorldEntity(StateEntity, HasConcept, ABC):
         return hash((self.id, self.name, self.parent_entity))
 
 
-class PhysicalBody(WorldEntity, ABC):
+class PhysicalBody(WorldEntity):
     """
     A class that represents a physical body in the world that has some related physical properties.
     """
@@ -191,6 +191,26 @@ class PhysicalBody(WorldEntity, ABC):
         self.contained_bodies = []
         for part in self.parts.values():
             part.reset_concepts()
+
+    @property
+    def is_an_environment(self) -> bool:
+        """
+        Check if the object is of type environment.
+
+        :return: True if the object is of type environment, False otherwise.
+        """
+        return ((isinstance(self.parent_entity, PhysicalBody) and self.parent_entity.is_an_environment) or
+                (issubclass(self.ontology_concept, Location) or issubclass(self.ontology_concept, Floor)))
+
+    @property
+    def is_a_robot(self) -> bool:
+        """
+        Check if the object is a robot.
+        TODO: Check if this is a the correct filter
+        :return: True if the object is a robot, False otherwise.
+        """
+        return (issubclass(self.ontology_concept, Robot) or
+                (isinstance(self.parent_entity, PhysicalBody) and self.parent_entity.is_a_robot))
 
     @property
     @abstractmethod
@@ -568,3 +588,35 @@ class PhysicalBody(WorldEntity, ABC):
         grasp_configs = objectTmap.calculate_grasp_descriptions(robot, preferred_grasp_alignment)
 
         return grasp_configs
+
+    def get_grasp_pose(self, end_effector, grasp: GraspDescription) -> Pose:
+        """
+        Translates the grasp pose of the object using the desired grasp description and object knowledge.
+        Leaves the orientation untouched.
+        Returns the translated grasp pose.
+
+        :param end_effector: The end effector that will be used to grasp the object.
+        :param grasp: The desired grasp description.
+
+        :return: The grasp pose of the object.
+        """
+        grasp_pose = self.pose.copy()
+
+        if self.ontology_concept.has_preferred_alignment[0].has_rim_grasp[0].value:
+            approach_axis = end_effector.get_approach_axis()
+            approach_direction = grasp.approach_direction
+            rim_direction = GraspDescription(approach_direction, None, False)
+            rim_direction_index = approach_direction.value[0].value.index(1)
+            rim_offset = self.get_rotated_bounding_box().dimensions[rim_direction_index] / 2
+            grasp_pose.rotate_by_quaternion(end_effector.grasps[rim_direction])
+            grasp_pose = LocalTransformer().translate_pose_along_local_axis(grasp_pose, approach_axis, -rim_offset)
+            grasp_pose = PoseStamped.from_list(grasp_pose.position.to_list(), self.orientation.to_list())
+
+        return grasp_pose
+
+    def get_approach_offset(self) -> float:
+        """
+        :return: The pre-grasp offset of the object. It is the largest dimension of the object divided by 2.
+        """
+        max_object_dimension = max(self.get_rotated_bounding_box().dimensions)
+        return max_object_dimension / 2

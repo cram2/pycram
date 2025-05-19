@@ -39,17 +39,15 @@ class Kitchen(Base):
     """
 
 
-class PouringTool(Base):
-    """
-    The Tool that is used for pouring, can be cup, bottle, etc.
-    """
-
-
 class Food(Base):
     ...
 
 
-class Apartment(Base):
+class Environment(Base):
+    ...
+
+
+class Apartment(Environment):
     ...
 
 
@@ -131,6 +129,12 @@ class Link(Base):
 
 class PhysicalObject(Base):
     ...
+
+
+class PouringTool(PhysicalObject):
+    """
+    The Tool that is used for pouring, can be cup, bottle, etc.
+    """
 
 
 class Agent(Base):

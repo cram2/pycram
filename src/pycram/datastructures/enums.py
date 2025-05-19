@@ -101,6 +101,7 @@ class TaskStatus(int, Enum):
     SUCCEEDED = 2
     FAILED = 3
     INTERRUPTED = 4
+    SLEEPING = 5
 
 
 class JointType(Enum):
@@ -164,16 +165,6 @@ class ObjectType(int, Enum):
     GENERIC_OBJECT = auto()
     HUMAN = auto()
     IMAGINED_SURFACE = auto()
-
-
-class State(int, Enum):
-    """
-    Enumeration which describes the result of a language expression.
-    """
-    SUCCEEDED = 1
-    FAILED = 0
-    RUNNING = 2
-    INTERRUPTED = 3
 
 
 class Shape(Enum):
@@ -338,6 +329,13 @@ class MovementType(Enum):
     STRAIGHT_CARTESIAN = auto()
     TRANSLATION = auto()
     CARTESIAN = auto()
+
+class WaypointsMovementType(Enum):
+    """
+    Enum for the different movement types of the robot.
+    """
+    ENFORCE_ORIENTATION_STRICT = auto()
+    ENFORCE_ORIENTATION_FINAL_POINT = auto()
 
 
 class MultiverseAPIName(Enum):

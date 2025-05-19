@@ -2,6 +2,7 @@ import atexit
 from datetime import timedelta
 import time
 
+import tf
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
 from typing_extensions import Optional
@@ -57,10 +58,12 @@ class WorldStateUpdater:
                 tf_frame = RobotDescription.current_robot_description.base_link
             elif obj.is_an_environment:
                 continue
+            elif obj.is_an_object:
+                continue
             else:
                 tf_frame = obj.tf_frame
             trans, rot = self.tf_listener.lookupTransform("/map", tf_frame, Time(0))
-            obj.set_pose(PoseStamped(trans, rot))
+            obj.set_pose(PoseStamped.from_list(trans, rot))
 
     def _subscribe_joint_state(self, msg: JointState) -> None:
         """

@@ -20,7 +20,6 @@ First we need to import and create a BulletWorld.
 
 ```python
 from pycram.worlds.bullet_world import BulletWorld
-from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycrap.ontologies import Milk, Cereal, Robot
 
@@ -41,8 +40,11 @@ To spawn new things in the BulletWorld we need to import the Object class and cr
 
 ```python
 from pycram.world_concepts.world_object import Object
+from pycram.datastructures.pose import PoseStamped
+from pycrap.ontologies import Milk
 
-milk = Object("milk", Milk, "milk.stl", pose=Pose([0, 0, 1]))
+
+milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([0, 0, 1]))
 ```
 
 <!-- #region -->
@@ -63,15 +65,15 @@ Since the Object is spawned, we can now interact with it. First we want to move 
 <!-- #endregion -->
 
 ```python
-milk.set_position(Pose([1, 1, 1]))
+milk.set_position(PoseStamped.from_list([1, 1, 1]))
 ```
 
 ```python
-milk.set_orientation(Pose(orientation=[1, 0, 0, 1]))
+milk.set_orientation(PoseStamped.from_list(orientation=[1, 0, 0, 1]))
 ```
 
 ```python
-milk.set_pose(Pose([0, 0, 1], [0, 0, 0, 1]))
+milk.set_pose(PoseStamped.from_list([0, 0, 1], [0, 0, 0, 1]))
 ```
 
 In the same sense as setting the position or orientation, you can also get the position and orientation.
@@ -92,7 +94,7 @@ parameter. Since attachments are bi-directional it doesn't matter on which Objec
 First we need another Object
 
 ```python
-cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=Pose([1, 0, 1]))
+cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=PoseStamped.from_list([1, 0, 1]))
 ```
 
 ```python
@@ -102,7 +104,7 @@ milk.attach(cereal)
 Now since they are attached to each other, if we move one of them the other will move in conjunction.
 
 ```python
-milk.set_position(Pose([1, 1, 1]))
+milk.set_position(PoseStamped.from_list([1, 1, 1]))
 ```
 
 In the same way the Object can also be detached, just call the detach method on one of the two attached Objects.

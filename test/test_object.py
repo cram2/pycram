@@ -11,7 +11,6 @@ from pycram.failures import UnsupportedFileExtension
 from pycram.world_concepts.world_object import Object
 from pycram.object_descriptors.generic import ObjectDescription as GenericObjectDescription
 
-# from geometry_msgs.msg import Point, Quaternion
 import pathlib
 
 from pycrap.ontologies import Milk, Food
@@ -71,7 +70,7 @@ class TestObject(BulletWorldTestCase):
             self.milk.set_position(1)
 
         with self.assertRaises(AssertionError):
-            self.milk.get_pose().position = 1
+            self.assertEqual(1, self.milk.pose.position)
 
     def test_set_orientation_as_list(self):
         self.milk.set_orientation([1, 0, 0, 0])

@@ -6,11 +6,12 @@ from pathlib import Path
 import numpy as np
 from deprecated import deprecated
 from trimesh.parent import Geometry3D
-from typing_extensions import Type, Optional, Dict, Tuple, List, Union
+from typing_extensions import Type, Optional, Dict, Tuple, List, Union, Any
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
-                                          ContactPointsList, RotatedBoundingBox, VirtualJoint, FrozenObject, FrozenLink, FrozenJoint)
+                                          ContactPointsList, RotatedBoundingBox, VirtualJoint, FrozenObject, FrozenLink,
+                                          FrozenJoint)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import PoseStamped, TransformStamped, Point, Quaternion, Vector3
 from ..datastructures.world import World
@@ -18,6 +19,7 @@ from ..datastructures.world_entity import PhysicalBody
 from ..description import ObjectDescription, LinkDescription, Joint
 from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenAttachedObjects, UnsupportedFileExtension, \
     ObjectDescriptionUndefined
+from ..has_parameters import HasParameters, leaf_types
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
@@ -30,12 +32,12 @@ except ImportError:
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 from pycrap.ontologies import PhysicalObject, Joint, \
-    Robot, Floor, Location, Bowl, Spoon, Cereal
+    Robot, Floor, Location, Bowl, Spoon, Cereal, Environment
 
 Link = ObjectDescription.Link
 
 
-class Object(PhysicalBody):
+class Object(PhysicalBody, HasParameters):
     """
     Represents a spawned Object in the World.
     """
@@ -107,6 +109,10 @@ class Object(PhysicalBody):
         # if the object is an agent in the belief state
         if self.is_a_robot and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
+
+        # if the object is an environment in the belief state
+        if self.is_an_environment and not self.world.is_prospection_world:
+            self._update_world_environment_object()
 
         self.id = self._spawn_object_and_get_id()
 
@@ -398,6 +404,12 @@ class Object(PhysicalBody):
         World.robot = self
         self._add_virtual_move_base_joints()
 
+    def _update_world_environment_object(self):
+        """
+        Initialize the environment as the current environment in the World.
+        """
+        World.environment = self
+
     def _add_virtual_move_base_joints(self):
         """
         Add the virtual mobile base joints to the robot description.
@@ -597,14 +609,23 @@ class Object(PhysicalBody):
         """
         self.links[link_name].color = Color.from_list(color)
 
-    def get_link_geometry(self, link_name: str) -> Union[VisualShape, None]:
+    def get_link_geometry(self, link_name: str) -> List[VisualShape]:
         """
-        Return the geometry of the link with the given name.
+        Return the collision geometry of the link with the given name.
 
         :param link_name: The name of the link.
-        :return: The geometry of the link.
+        :return: List of the collision geometry of the link.
         """
         return self.links[link_name].geometry
+
+    def get_link_visual_geometry(self, link_name: str) -> List[VisualShape]:
+        """
+        Return the visual geometry of the link with the given name.
+
+        :param link_name: The name of the link.
+        :return: The visual geometry of the link.
+        """
+        return self.links[link_name].visual_geometry
 
     def get_link_transform(self, link_name: str) -> TransformStamped:
         """
@@ -693,7 +714,18 @@ class Object(PhysicalBody):
 
         :return: True if the object is of type environment, False otherwise.
         """
-        return issubclass(self.obj_type, Location) or issubclass(self.obj_type, Floor)
+        return (issubclass(self.obj_type, Location) or issubclass(self.obj_type, Floor)
+                or issubclass(self.obj_type, Environment))
+
+    @property
+    def is_an_object(self) -> bool:
+        """
+        Check if the object is of type Physical Object or Generic Object.
+
+        :return: True if the object is of type PhysicalObject , False otherwise.
+        """
+        return issubclass(self.obj_type, PhysicalObject)
+
 
     @property
     def is_a_robot(self) -> bool:
@@ -969,7 +1001,7 @@ class Object(PhysicalBody):
         if attachment.is_inverse:
             child_object.attach(self, attachment.child_link.name, attachment.parent_link.name,
                                 attachment.bidirectional,
-                                parent_to_child_transform=att_transform.invert())
+                                parent_to_child_transform=~att_transform)
         else:
             self.attach(child_object, attachment.parent_link.name, attachment.child_link.name,
                         attachment.bidirectional, parent_to_child_transform=att_transform)
@@ -1330,23 +1362,30 @@ class Object(PhysicalBody):
         """
         return self.joints[joint_name].parent_link
 
-    def find_joint_above_link(self, link_name: str) -> str:
+    def find_joint_above_link(self, link_name: str, joint_type: Optional[JointType] = None) -> Optional[str]:
         """
-        Traverse the chain from 'link' to the URDF origin and return the first joint that is not FIXED.
+        Traverses the chain from 'link' to the URDF origin and returns the first joint that is of type 'joint_type'.
+        If no joint type is given, the first joint that is not FIXED is returned.
 
         :param link_name: AbstractLink name above which the joint should be found
-        :return: Name of the first non-fixed joint, None if no joint is found
+        :param joint_type: Joint type that should be searched for
+        :return: Name of the first joint which has the given type
         """
         chain = self.description.get_chain(self.description.get_root(), link_name)
         reversed_chain = reversed(chain)
-        container_joint = None
         for element in reversed_chain:
-            if element in self.joint_name_to_id and self.get_joint_type(element) != JointType.FIXED:
-                container_joint = element
-                break
-        if not container_joint:
-            logwarn(f"No movable parent joint found above link {link_name}")
-        return container_joint
+            if element not in self.joint_name_to_id:
+                continue
+
+            element_joint_type = self.get_joint_type(element)
+            if joint_type is not None and element_joint_type == joint_type:
+                return element
+
+            if joint_type is None and element_joint_type != JointType.FIXED:
+                return element
+
+        logwarn(f"No joint of type {joint_type} found above link {link_name}")
+        return None
 
     def get_multiple_joint_positions(self, joint_names: List[str]) -> Dict[str, float]:
         """
@@ -1480,7 +1519,7 @@ class Object(PhysicalBody):
         base_width = np.absolute(aabb.min_x - aabb.max_x)
         base_length = np.absolute(aabb.min_y - aabb.max_y)
         return PoseStamped.from_list([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
-                           self.get_orientation_as_list())
+                                     self.get_orientation_as_list())
 
     def get_joint_by_id(self, joint_id: int) -> Joint:
         """
@@ -1532,11 +1571,21 @@ class Object(PhysicalBody):
         :return FrozenObject: The copied forzen object.
         """
         frozen_links = {l_name: FrozenLink(l.name, l.pose, l.geometry) for l_name, l in self.links.items()}
-        frozen_joints = {j_name: FrozenJoint(j.name, j.type, [j.child], j.parent, j.current_state.position) for j_name, j in self.joints.items()}
+        frozen_joints = {j_name: FrozenJoint(j.name, j.type, [j.child], j.parent, j.current_state.position) for
+                         j_name, j in self.joints.items()}
 
         return FrozenObject(self.name, self.obj_type, self.path, self.description, self.pose,
                             frozen_links, frozen_joints)
 
-    def insert(self, session):
-        pass
+    @classmethod
+    def define_parameters(cls) -> Dict[str, Any]:
+        """
+        Defines the parameters of Object for the HasParameter flattener. Relevant parameters for objects are only the
+        Pose and Type.
 
+        :return: A dictionary with the parameters of the object
+        """
+        params = {}
+        params.update(PoseStamped._parameters)
+        params["obj_type"] = PhysicalObject
+        return params

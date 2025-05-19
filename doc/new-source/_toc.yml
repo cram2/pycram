@@ -1,0 +1,89 @@
+# Table of contents
+# Learn more at https://jupyterbook.org/customize/toc.html
+
+format: jb-book
+root: index.rst
+parts:
+  - caption: Getting Started
+    chapters:
+    - file: intro/installation.rst
+    - file: intro/quickstart_guide.rst
+  - caption: Readers Guide
+    chapters:
+      - file: readers_guide/audience.rst
+      - file: readers_guide/sources_technical.rst
+
+  - caption: Intro Cognitive Architecture
+    chapters:
+        - file: cognitive_architecture/history.rst
+        - file: cognitive_architecture/cog_arch_pycram.rst
+
+  - caption: Approach
+    chapter:
+      - file: approach/pycram_history.rst
+      - file: approach/pycram_architecture.rst
+      - file: approach/pycram_concepts.rst
+  - caption: Modules Cognitive Architecture
+    chapters:
+      - file: modules_cognitive_architecture/perception.rst
+      - file: modules_cognitive_architecture/attention.rst
+      - file: modules_cognitive_architecture/action_selection.rst
+      - file: modules_cognitive_architecture/memory.rst
+      - file: modules_cognitive_architecture/learning.rst
+      - file: modules_cognitive_architecture/reasoning.rst
+      - file: modules_cognitive_architecture/metacognition.rst
+      - file: modules_cognitive_architecture/imagination.rst
+#
+#  - caption: Concepts
+#    chapters:
+#    - file: ros_utils.rst
+#    - file: new_robot.rst
+#    - file: notebooks.rst
+#    - file: designators.rst
+#    - file: knowledge.rst
+#    - file: knowledge_and_reasoning.rst
+#    - file: costmap.rst
+#
+#  - caption: Trouble Shooting
+#    chapters:
+#    - file: troubleshooting.rst
+#    - file: remarks.rst
+#
+#
+#  - caption: Examples
+#    chapters:
+#      - file: notebooks/intro
+#      - file: notebooks/bullet_world
+#      - file: notebooks/language
+#      - file: notebooks/local_transformer
+#      - file: notebooks/minimal_task_tree
+#      - file: notebooks/improving_actions
+#      - file: designator_example.rst
+#        sections:
+#        - file: notebooks/action_designator
+#        - file: notebooks/object_designator
+#        - file: notebooks/location_designator
+#        - file: notebooks/motion_designator
+#      - file: orm
+#        sections:
+#        - file: notebooks/orm_example
+#        - file: notebooks/orm_querying_examples
+#        - file: notebooks/migrate_neems
+#      - file: datastructures.rst
+#        sections:
+#        - file: notebooks/pose
+#        - file: notebooks/robot_description
+#      - file: external_interfaces.rst
+#        sections:
+#        - file: notebooks/interface_examples/giskard.md
+#        - file: notebooks/interface_examples/robokudo.md
+#        - file: notebooks/ontology
+#      - file: knowledge_examples.rst
+#        sections:
+#        - file: notebooks/knowledge_source.md
+#        - file: notebooks/properties.md
+#      - file: notebooks/graph_of_convex_sets.md
+
+  - caption: API
+    chapters:
+    - file: autoapi/pycram/index.rst

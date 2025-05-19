@@ -18,21 +18,20 @@ class TestPartialDesignator(BulletWorldTestCase):
         partial_desig = PartialDesignator(PickUpAction, test_object, arm=Arms.RIGHT)
         self.assertEqual(partial_desig.performable, PickUpAction)
         self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": test_object,
-                                                "grasp_description": None, 'prepose_distance': None})
+                                                "grasp_description": None})
 
     def test_partial_desig_construction_none(self):
         partial_desig =  PartialDesignator(PickUpAction,None, arm=Arms.RIGHT)
         self.assertEqual(partial_desig.performable, PickUpAction)
         self.assertEqual(partial_desig.kwargs, {"arm": Arms.RIGHT, "object_designator": None,
-                                                "grasp_description": None, 'prepose_distance': None})
+                                                "grasp_description": None})
 
     def test_partial_desig_call(self):
         partial_desig =  PartialDesignator(PickUpAction, None, arm=Arms.RIGHT)
         grasp_description = GraspDescription(Grasp.FRONT, None, False)
         new_partial_desig = partial_desig(grasp_description=grasp_description)
         self.assertEqual(new_partial_desig.performable, PickUpAction)
-        self.assertEqual({"arm": Arms.RIGHT, "grasp_description": grasp_description, "object_designator": None,
-                          'prepose_distance': None}, new_partial_desig.kwargs)
+        self.assertEqual({"arm": Arms.RIGHT, "grasp_description": grasp_description, "object_designator": None}, new_partial_desig.kwargs)
 
     def test_partial_desig_missing_params(self):
         partial_desig =  PartialDesignator(PickUpAction, None, arm=Arms.RIGHT)
@@ -42,7 +41,7 @@ class TestPartialDesignator(BulletWorldTestCase):
         grasp_description = GraspDescription(Grasp.FRONT, None, False)
         new_partial = partial_desig(grasp_description=grasp_description)
         missing_params = new_partial.missing_parameter()
-        self.assertEqual(['object_designator', "prepose_distance"], missing_params)
+        self.assertEqual(['object_designator'], missing_params)
 
     def test_is_iterable(self):
         self.assertTrue(is_iterable([1, 2, 3]))
@@ -77,7 +76,7 @@ class TestPartialActions(BulletWorldTestCase):
     def test_partial_movetorso_action(self):
         move1 = MoveTorsoActionDescription(TorsoState.HIGH).resolve()
         self.assertEqual(move1.torso_state, TorsoState.HIGH)
-        move2 = MoveTorsoActionDescription([TorsoState.HIGH, TorsoState.MID])
+        move2 = MoveTorsoActionDescription([TorsoState.HIGH, TorsoState.MID]).root.designator_ref
         for action in move2:
             self.assertTrue(action.torso_state in [TorsoState.HIGH, TorsoState.MID])
 
@@ -89,7 +88,7 @@ class TestPartialActions(BulletWorldTestCase):
     def test_partial_navigate_action_multiple(self):
         nav = NavigateActionDescription([PoseStamped.from_list([1, 0, 0]), PoseStamped.from_list([2, 0, 0]), PoseStamped.from_list([3, 0, 0])])
         nav_goals = [[1, 0, 0], [2, 0, 0], [3, 0, 0]]
-        for i, action in enumerate(nav):
+        for i, action in enumerate(nav.root.designator_ref):
             with simulated_robot:
                 action.perform()
                 self.assertEqual(self.robot.pose.position.to_list(), nav_goals[i])
@@ -106,7 +105,7 @@ class TestPartialActions(BulletWorldTestCase):
     def test_partial_pickup_action_insert_param(self):
         milk_desig = BelieveObject(names=["milk"])
         grasp_description = GraspDescription(Grasp.FRONT, None, False)
-        pick = PickUpActionDescription(milk_desig, [Arms.LEFT, Arms.RIGHT])
+        pick = PickUpActionDescription(milk_desig, [Arms.LEFT, Arms.RIGHT]).root.designator_ref
         pick_action = pick(grasp_description=grasp_description).resolve()
         self.assertEqual(pick_action.grasp_description, grasp_description)
 

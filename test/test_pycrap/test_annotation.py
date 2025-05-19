@@ -7,6 +7,7 @@ from pycrap.ontologies import (DesignedFurniture, Surface, PhysicalObject, ontol
                                Kitchen, PhysicalTask, Milk, Cereal, Refrigerator, Sink, Washer, Action, is_part_of,
                                Drawer, Door, Agent, Location, Cabinet)
 from pycrap.ontology_wrapper import OntologyWrapper
+import os
 
 
 class TableConceptTestCase(unittest.TestCase):
@@ -17,6 +18,7 @@ class TableConceptTestCase(unittest.TestCase):
     def setUp(self):
         self.ontology = OntologyWrapper()
 
+    @unittest.skip(reason="Skipping test since it consumes to much memory")
     def test_rules(self):
         with self.ontology.ontology:
 

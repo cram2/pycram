@@ -1,7 +1,7 @@
 from std_msgs.msg import Float64
 from typing_extensions import Any
 
-from .default_process_modules import DefaultMoveGripper, DefaultManager
+from .default_process_modules import *
 from ..datastructures.enums import GripperState, ExecutionType
 from ..datastructures.world import World
 from ..designators.motion_designator import MoveGripperMotion
@@ -10,7 +10,7 @@ from ..robot_descriptions.ur5e_controlled_description import data as ur5e_data
 from ..ros import create_publisher
 
 
-class RobotiqMoveGripperReal(ProcessModule):
+class RobotiqMoveGripperReal(DefaultMoveGripperReal):
     """
     Opens or closes the gripper of the real Robotiq gripper, uses a topic for this instead of giskard
     """

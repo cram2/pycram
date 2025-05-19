@@ -4,3 +4,4 @@ numpy
 ghp-import
 sphinx-proof
 sphinx-autoapi
+Pygments>=2.15.0

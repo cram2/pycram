@@ -36,16 +36,24 @@ class LinkDescription(AbstractLinkDescription):
 
 
     @property
-    def geometry(self) -> Union[List[VisualShape], VisualShape, None]:
+    def geometry(self) -> List[VisualShape]:
         """
         :return: The geometry type of the URDF collision element of this link.
         """
         if self.collision is None:
-            return None
+            return []
         if isinstance(self.collision, List):
             return [self._get_visual_shape(coll.geometry) for coll in self.collision]
         urdf_geometry = self.collision.geometry
-        return self._get_visual_shape(urdf_geometry)
+        return [self._get_visual_shape(urdf_geometry)]
+
+    @property
+    def visual_geometry(self) -> List[VisualShape]:
+        """
+        :return: The geometry type of the URDF visual element of this link.
+        """
+        visuals = self.parsed_description.visuals
+        return [self._get_visual_shape(vis.geometry) for vis in visuals]
 
     @staticmethod
     def _get_visual_shape(urdf_geometry) -> Union[VisualShape, None]:
@@ -65,13 +73,18 @@ class LinkDescription(AbstractLinkDescription):
         return None
 
     @property
-    def origin(self) -> Union[PoseStamped, None]:
+    def origin(self) -> Optional[PoseStamped]:
+        """
+        The origin of this link
+
+        :return: The origin of this link as a PoseStamped object.
+        """
         if self.collision is None:
             return None
         coll = self.collision[0] if isinstance(self.collision, List) else self.collision
         if coll.origin is None:
             return None
-        return PoseStamped(coll.origin.xyz,
+        return PoseStamped.from_list(coll.origin.xyz,
                            quaternion_from_euler(*coll.origin.rpy))
 
     @property
@@ -107,8 +120,8 @@ class JointDescription(AbstractJointDescription):
 
     @property
     def origin(self) -> PoseStamped:
-        return PoseStamped(self.parsed_description.origin.xyz,
-                           quaternion_from_euler(*self.parsed_description.origin.rpy))
+        return PoseStamped.from_list(self.parsed_description.origin.xyz,
+                                    quaternion_from_euler(*self.parsed_description.origin.rpy))
 
     @property
     def name(self) -> str:
@@ -379,6 +392,15 @@ class ObjectDescription(AbstractObjectDescription):
         self.write_description_to_file(content, save_path)
 
     def generate_from_description_file(self, path: str, save_path: str, make_mesh_paths_absolute: bool = True) -> None:
+        """
+        Generates a loadable URDF file from the given URDF file. The method will fix the attributes of some links,
+        replace relative paths with absolute paths and fix the missing inertial tags. The generated URDF file will be
+        saved to the given save_path.
+
+        :param path: Path to the URDF file which should be processed.
+        :param save_path: Path to where to save the processed URDF file.
+        :param make_mesh_paths_absolute: If mesh paths should be made absolute. This is needed for PyBullet to load the URDF file.
+        """
         with open(path, mode="r") as f:
             urdf_string = self.fix_missing_inertial(f.read())
         urdf_string = self.remove_error_tags(urdf_string)
@@ -579,7 +601,7 @@ class ObjectDescription(AbstractObjectDescription):
 
     @property
     def origin(self) -> PoseStamped:
-        return PoseStamped(self.parsed_description.origin.xyz,
+        return PoseStamped.from_list(self.parsed_description.origin.xyz,
                            quaternion_from_euler(*self.parsed_description.origin.rpy))
 
     @property

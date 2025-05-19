@@ -6,6 +6,9 @@ from functools import lru_cache
 import typing_extensions
 from typing_extensions import List, Dict, Union, Tuple, TYPE_CHECKING, get_origin, get_args
 
+from pycrap.ontologies import PhysicalObject
+from .ros import logwarn
+
 # Forward declaration of the class
 HasParameters = object
 
@@ -14,7 +17,7 @@ if TYPE_CHECKING:
 
     ParameterDict = Dict[str, Union[LeafTypes, HasParameters]]
 
-leaf_types = (int, float, str, bool, enum.Enum)
+leaf_types = (int, float, str, bool, enum.Enum, type, PhysicalObject)
 
 
 class HasParametersMeta(type):
@@ -37,6 +40,11 @@ class HasParametersMeta(type):
 
     @classmethod
     def create_parameters(cls, target_class):
+        """
+        Creates the flattened parameters for the given class.
+
+        :param target_class: Class for which to create the parameters.
+        """
         if not issubclass(target_class, HasParameters):
             raise TypeError(
                 f"{target_class.__name__} must inherit from HasParameters. If you are using a dataclass use both the decorator has_parameters and inherit from HasParameters.")
@@ -58,8 +66,15 @@ class HasParametersMeta(type):
                 field_type = type_a or type_b
                 target_class._parameters[field_name] = field_type
                 continue
-            if issubclass(field_type, leaf_types) or issubclass(field_type, HasParameters):
-                target_class._parameters[field_name] = field_type
+            if get_origin(field_type) is type:
+                type_type = get_args(field_type)[0]
+                target_class._parameters[field_name] = type_type
+                continue
+            try:
+                if issubclass(field_type, leaf_types) or issubclass(field_type, HasParameters):
+                    target_class._parameters[field_name] = field_type
+            except TypeError as e:
+                logwarn(f"Filed type in {target_class.__name__} is not a leaf type: {field_type}")
 
 
 class HasParameters(metaclass=HasParametersMeta):
@@ -162,9 +177,11 @@ class HasParameters(metaclass=HasParametersMeta):
         """
         raise NotImplementedError
 
+
 T = typing_extensions.TypeVar("T")
 
-def has_parameters(target_class: T) -> T :
+
+def has_parameters(target_class: T) -> T:
     """
     Insert parameters of a class post construction.
     Use this when dataclasses should be combined with HasParameters.

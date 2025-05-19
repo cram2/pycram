@@ -349,7 +349,7 @@ def move_away_all_objects_to_create_empty_space(exclude_objects: List[str] = Non
             obj.set_position([100 + step * i, 100 + step * i, 0])
 
 
-def generate_object_at_target(target_location: List[float], size: Tuple[float] = (0.2, 0.2, 0.2),
+def generate_object_at_target(target_location: List[float], size: Tuple[float, ...] = (0.2, 0.2, 0.2),
                               name: str = "target") -> Object:
     """
     Generate a virtual object at the target location.

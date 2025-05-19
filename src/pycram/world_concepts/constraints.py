@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import numpy as np
-from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional, TYPE_CHECKING, Self
 
 from ..datastructures.enums import JointType
-from ..datastructures.pose import TransformStamped, PoseStamped
+from ..datastructures.pose import TransformStamped, PoseStamped, Point
 
 if TYPE_CHECKING:
     from ..description import Link
@@ -69,10 +68,15 @@ class AbstractConstraint:
         return (parent_pose.to_transform_stamped(self.parent_link.tf_frame) * self.parent_to_child_transform).to_pose_stamped()
 
     @property
-    def parent_to_child_transform(self) -> Union[TransformStamped, None]:
+    def parent_to_child_transform(self) -> TransformStamped:
+        """
+        Return the transform from the parent link to the child link of the constraint.
+
+        :return: The transform from the parent link to the child link of the constraint.
+        """
         if self._parent_to_child is None:
             if self.parent_to_constraint is not None and self.child_to_constraint is not None:
-                self._parent_to_child = self.parent_to_constraint * self.child_to_constraint.invert()
+                self._parent_to_child = ~self.parent_to_constraint * self.child_to_constraint
         return self._parent_to_child
 
     @parent_to_child_transform.setter
@@ -162,7 +166,7 @@ class Constraint(AbstractConstraint):
                  axis_in_child_frame: Point,
                  constraint_to_parent: TransformStamped,
                  child_to_constraint: TransformStamped):
-        parent_to_constraint = constraint_to_parent.invert()
+        parent_to_constraint = ~constraint_to_parent
         AbstractConstraint.__init__(self, parent_link, child_link, _type, parent_to_constraint, child_to_constraint)
         self.axis: Point = axis_in_child_frame
 
@@ -241,7 +245,7 @@ class Attachment(AbstractConstraint):
         Add a fixed constraint between the parent link and the child link.
         """
         self.id = self.parent_link.add_fixed_constraint_with_link(self.child_link,
-                                                                  self.parent_to_child_transform.invert())
+                                                                  ~self.parent_to_child_transform)
 
     def calculate_transform(self) -> TransformStamped:
         """

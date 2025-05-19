@@ -95,7 +95,7 @@ PR2 will be set to 0.2 since otherwise the arms of the robot will be too low to 
 
 ```python
 pr2.set_joint_position("torso_lift_joint", 0.2)
-milk = Object("milk", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
 
 ```
 
@@ -201,8 +201,7 @@ handle_name = "cabinet10_drawer1_handle" if use_multiverse else "handle_cab10_t"
 handle_desig = ObjectPart(names=[handle_name], part_of=apartment_desig.resolve())
 robot_desig = BelieveObject(types=[Robot])
 
-access_location = AccessingLocation(handle_desig.resolve(), robot_desig.resolve(),
-                                    prepose_distance=0.03).resolve()
+access_location = AccessingLocation(handle_desig.resolve(), robot_desig.resolve()).resolve()
 print(access_location)
 ```
 
@@ -223,7 +222,7 @@ if "/giskard" in get_node_names():
     
     robot_desig = BelieveObject(names=["pr2"]).resolve()
     
-    loc = GiskardLocation(target=Pose([1, 1, 1]), reachable_for=robot_desig).resolve()
+    loc = GiskardLocation(target=PoseStamped.from_list([1, 1, 1]), reachable_for=robot_desig).resolve()
     print(loc)
 ```
 

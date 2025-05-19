@@ -6,6 +6,7 @@ ProcessModule -- implementation of process modules.
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 import inspect
+from dataclasses import field
 from datetime import timedelta
 from threading import Lock, get_ident
 import time
@@ -267,7 +268,7 @@ class ProcessModuleManager(ABC):
         """
 
         self.robot_name = robot_name
-        ProcessModuleManager.available_pms.append(self)
+        self.available_pms.append(self)
         self._navigate_lock = Lock()
         self._pick_up_lock = Lock()
         self._place_lock = Lock()
@@ -280,6 +281,7 @@ class ProcessModuleManager(ABC):
         self._move_gripper_lock = Lock()
         self._open_lock = Lock()
         self._close_lock = Lock()
+        self._move_tcp_waypoints_lock = Lock()
         self.available_pms = []
 
     @staticmethod
@@ -292,9 +294,8 @@ class ProcessModuleManager(ABC):
         manager = None
         _default_manager = None
         if not ProcessModuleManager.execution_type:
-            logerr(
+            raise RuntimeError(
                 f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
-            return None
 
         robot_description = RobotDescription.current_robot_description
         chains = robot_description.get_manipulator_chains()
@@ -433,6 +434,16 @@ class ProcessModuleManager(ABC):
          the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for closing drawers
+        """
+        raise NotImplementedError(
+            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+
+    def move_tcp_waypoints(self) -> ProcessModule:
+        """
+        Get the Process Module for moving the Tool Center Point along a list of waypoints with respect to
+         the :py:attr:`~ProcessModuleManager.execution_type`
+
+        :return: The Process Module for moving the TCP along a list of waypoints
         """
         raise NotImplementedError(
             f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")

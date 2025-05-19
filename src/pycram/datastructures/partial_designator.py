@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING, TypeVar, Generic, Iterator, Iterable, AnyStr
 from inspect import signature
 
+from ..has_parameters import leaf_types, HasParameters
 from ..language import LanguageMixin
 from ..utils import is_iterable, lazy_product
 
@@ -106,6 +107,40 @@ class PartialDesignator(LanguageMixin, Iterable[T]):
         :return: A fully parametrized Designator
         """
         return next(iter(self))
+
+    def to_dict(self):
+        desig = {"type": self.performable.__name__}
+        desig.update(self.kwargs)
+        return desig
+
+    def flatten(self) -> List[leaf_types]:
+        """
+        Flattens a partial designator, very similar to HasParameters.flatten but this method can deal with parameters
+        thet are None.
+
+        :return: A list of flattened field values from the object.
+        """
+        result = []
+        for field_name, field_type in self.performable._parameters.items():
+            if self.kwargs[field_name] is not None:
+                if issubclass(field_type, HasParameters):
+                    sub_obj = self.kwargs[field_name]
+                    result.extend(sub_obj.flatten())
+                else:
+                    result.append(self.kwargs[field_name])
+            else:
+                result.append(self.kwargs[field_name])
+        return result
+
+    def flatten_parameters(self) -> Dict[str, leaf_types]:
+        """
+        The flattened parameter types of the performable.
+
+        :return: A dict with the flattened parameter types of the performable.
+        """
+        return self.performable.flatten_parameters()
+
+
 
 
 

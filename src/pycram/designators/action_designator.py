@@ -9,7 +9,11 @@ from functools import cached_property
 from time import sleep
 
 import numpy as np
-from sqlalchemy.orm import Session
+
+from .object_designator import BelieveObject
+from ..datastructures.world_entity import PhysicalBody
+from ..has_parameters import has_parameters
+from ..language import SequentialPlan, TryInOrderPlan
 from ..plan import with_plan
 
 from ..datastructures.partial_designator import PartialDesignator
@@ -17,20 +21,16 @@ from ..datastructures.dataclasses import FrozenObject
 
 from .. import utils
 from ..tf_transformations import quaternion_from_euler
-from typing_extensions import List, Union, Optional, Type, Dict, Any, Iterable, Self
+from typing_extensions import List, Union, Optional, Type, Dict, Any, Iterable
 
-from pycrap.ontologies import Location
+from pycrap.ontologies import Location, PhysicalObject
 from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
-from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
-from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
-    TorsoState, StaticJointState, Frame, FindBodyInRegionMethod, ContainerManipulationType, Frame, FindBodyInRegionMethod, ContainerManipulationType
-from ..datastructures.pose import PoseStamped
 from ..datastructures.grasp import GraspDescription
 from ..datastructures.world import World, UseProspectionWorld
 from ..description import Joint, Link, ObjectDescription
-from ..designator import ActionDescription
+from ..designator import ActionDescription, ObjectDesignatorDescription
 from ..failure_handling import try_action
 from ..failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotInGraspingArea, \
     ObjectNotPlacedAtTargetLocation, ObjectStillInContact, LookAtGoalNotReached, \
@@ -38,27 +38,18 @@ from ..failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotIn
 from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
     ObjectNotGraspedError
+from ..robot_description import EndEffectorDescription
+from ..ros import sleep
 from ..config.action_conf import ActionConfig
 
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
-    TorsoState, StaticJointState
+    TorsoState, StaticJointState, Frame, FindBodyInRegionMethod, ContainerManipulationType
 
 from ..datastructures.pose import PoseStamped
 from ..datastructures.world import World
 
-from ..orm.action_designator import Action as ORMAction
-from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
-                                     PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
-                                     MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
-                                     LookAtAction as ORMLookAtAction, DetectAction as ORMDetectAction,
-                                     TransportAction as ORMTransportAction, OpenAction as ORMOpenAction,
-                                     CloseAction as ORMCloseAction, GraspingAction as ORMGraspingAction,
-                                     FaceAtAction as ORMFaceAtAction, ReachToPickUpAction as ORMReachToPickUpAction)
-from ..orm.base import Pose as ORMPose
-from ..orm.object_designator import Object as ORMObject
 from ..robot_description import RobotDescription, KinematicChainDescription
 from ..ros import logwarn, loginfo
-from ..tasktree import with_tree
 from ..validation.error_checkers import PoseErrorChecker
 from ..validation.goal_validator import create_multiple_joint_goal_validator
 from ..world_concepts.world_object import Object
@@ -70,99 +61,20 @@ from ..world_reasoning import move_away_all_objects_to_create_empty_space, gener
 # ---------------- Performables ----------------------------------------------
 # ----------------------------------------------------------------------------
 
-
-@dataclass
-class ActionAbstract(ActionDescription):
-    """Base class for performable performables."""
-    _orm_class: Type[ORMAction] = field(init=False, default=None, repr=False)
+def record_object_pre_perform(action):
     """
-    The ORM class that is used to insert this action into the database. Must be overwritten by every action in order to
-    be able to insert the action into the database.
+    Record the object before the action is performed.
+
+    This should be appended to the pre performs of every action that interacts with an object.
     """
-
-    @abc.abstractmethod
-    def plan(self) -> None:
-        """
-        plan of the action.
-
-        Will be overwritten by each action.
-        """
-        pass
-
-    def to_sql(self) -> ORMAction:
-        """
-        Convert this action to its ORM equivalent.
-
-        Needs to be overwritten by an action if it didn't overwrite the orm_class attribute with its ORM equivalent.
-
-        :return: An instance of the ORM equivalent of the action with the parameters set
-        """
-        # get all class parameters
-        class_variables = {key: value for key, value in vars(self).items()
-                           if key in inspect.getfullargspec(self.__init__).args}
-
-        # get all orm class parameters
-        orm_class_variables = inspect.getfullargspec(self._orm_class.__init__).args
-
-        # list of parameters that will be passed to the ORM class. If the name does not match the orm_class equivalent
-        # or if it is a type that needs to be inserted into the session manually, it will not be added to the list
-        parameters = [value for key, value in class_variables.items() if key in orm_class_variables
-                      and not isinstance(value, (Object, PoseStamped))]
-
-        return self._orm_class(*parameters)
-
-    def insert(self, session: Session, **kwargs) -> ORMAction:
-        """
-        Insert this action into the database.
-
-        Needs to be overwritten by an action if the action has attributes that do not exist in the orm class
-        equivalent. In that case, the attributes need to be inserted into the session manually.
-
-        :param session: Session with a database that is used to add and commit the objects
-        :param kwargs: Possible extra keyword arguments
-        :return: The completely instanced ORM action that was inserted into the database
-        """
-
-        action = super().insert(session)
-
-        # get all class parameters
-        class_variables = {key: value for key, value in vars(self).items()
-                           if key in inspect.getfullargspec(self.__init__).args}
-
-        # get all orm class parameters
-        orm_class_variables = inspect.getfullargspec(self._orm_class.__init__).args
-
-        # loop through all class parameters and insert them into the session unless they are already added by the ORM
-        for key, value in class_variables.items():
-            if key not in orm_class_variables:
-                variable = value.insert(session)
-                if isinstance(variable, ORMObject):
-                    action.object = variable
-                elif isinstance(variable, ORMPose):
-                    action.pose = variable
-        session.add(action)
-
-        return action
-
-    def __str__(self):
-        # all fields that are not ORM classes
-        fields = {}
-        for key, value in vars(self).items():
-            if key.startswith("orm_"):
-                continue
-            if isinstance(value, Object):
-                fields[key] = value.name
-            elif isinstance(value, PoseStamped):
-                fields[key] = value.__str__()
-        fields_str = "\n".join([f"{key}: {value}" for key, value in fields.items()])
-        return f"{self.__class__.__name__.replace('Performable', '')}:\n{fields_str}"
-
-    def __repr__(self):
-        return self.__str__()
+    # for every field in the action that is an object
+    # write it to a dict mapping the OG field name to the frozen copy
+    action.object_at_execution = action.object_designator.frozen_copy()
 
 
+@has_parameters
 @dataclass
-class MoveTorsoAction(ActionAbstract):
+class MoveTorsoAction(ActionDescription):
     """
     Move the torso of the robot up and down.
     """
@@ -170,9 +82,7 @@ class MoveTorsoAction(ActionAbstract):
     """
     The state of the torso that should be set
     """
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMMoveTorsoAction)
 
-    @with_tree
     def plan(self) -> None:
         joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
                                                                                                   self.torso_state)
@@ -193,12 +103,14 @@ class MoveTorsoAction(ActionAbstract):
 
     @classmethod
     @with_plan
-    def description(cls, torso_state: Union[Iterable[TorsoState], TorsoState]) -> PartialDesignator[Type[MoveTorsoAction]]:
+    def description(cls, torso_state: Union[Iterable[TorsoState], TorsoState]) -> PartialDesignator[
+        Type[MoveTorsoAction]]:
         return PartialDesignator(MoveTorsoAction, torso_state=torso_state)
 
 
+@has_parameters
 @dataclass
-class SetGripperAction(ActionAbstract):
+class SetGripperAction(ActionDescription):
     """
     Set the gripper state of the robot.
     """
@@ -211,9 +123,7 @@ class SetGripperAction(ActionAbstract):
     """
     The motion that should be set on the gripper
     """
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMSetGripperAction)
 
-    @with_tree
     def plan(self) -> None:
         arm_chains = RobotDescription.current_robot_description.get_arm_chain(self.gripper)
         if type(arm_chains) is not list:
@@ -231,20 +141,44 @@ class SetGripperAction(ActionAbstract):
     @classmethod
     @with_plan
     def description(cls, gripper: Union[Iterable[Arms], Arms],
-                    motion: Union[Iterable[GripperState], GripperState] = None) -> PartialDesignator[Type[SetGripperAction]]:
+                    motion: Union[Iterable[GripperState], GripperState] = None) -> PartialDesignator[
+        Type[SetGripperAction]]:
         return PartialDesignator(SetGripperAction, gripper=gripper, motion=motion)
 
 
+@has_parameters
 @dataclass
-class ReleaseAction(ActionAbstract):
+class ReleaseAction(ActionDescription):
     """
     Releases an Object from the robot.
 
     Note: This action can not ve used yet.
     """
     object_designator: Object
+    """
+    The object that should be released
+    """
+
+    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
+    """
+    The object at the time this Action got created. It is used to be a static, information holding entity
+    """
 
     gripper: Arms
+    """
+    The gripper that should be used to release the object
+    """
+
+    _pre_perform_callbacks = []
+    """
+    List to save the callbacks which should be called before performing the action.
+    """
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # Store the object's data copy at execution
+        self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
         raise NotImplementedError
@@ -256,31 +190,60 @@ class ReleaseAction(ActionAbstract):
         return PartialDesignator(ReleaseAction, object_designator=object_designator, gripper=gripper)
 
 
+@has_parameters
 @dataclass
-class GripAction(ActionAbstract):
+class GripAction(ActionDescription):
     """
     Grip an object with the robot.
 
     Note: This action can not be used yet.
     """
     object_designator: Object
-    gripper: Arms
-    effort: float = None
+    """
+    The object that should be gripped
+    """
 
-    @with_tree
+    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
+    """
+    The object at the time this Action got created. It is used to be a static, information holding entity
+    """
+
+    gripper: Arms
+    """
+    The gripper that should be used to grip the object
+    """
+
+    effort: float = None
+    """
+    The effort that should be used to grip the object
+    """
+
+    _pre_perform_callbacks = []
+    """
+    List to save the callbacks which should be called before performing the action.
+    """
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # Store the object's data copy at execution
+        self.pre_perform(record_object_pre_perform)
+
     def plan(self) -> None:
         raise NotImplementedError()
 
     @classmethod
     @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
-                    gripper: Union[Iterable[Arms], Arms] = None, effort: Union[Iterable[float], float] = None, ) -> PartialDesignator[Type[GripAction]]:
+                    gripper: Union[Iterable[Arms], Arms] = None, effort: Union[Iterable[float], float] = None, ) -> \
+            PartialDesignator[Type[GripAction]]:
         return PartialDesignator(GripAction, object_designator=object_designator,
                                  gripper=gripper, effort=effort)
 
 
+@has_parameters
 @dataclass
-class ParkArmsAction(ActionAbstract):
+class ParkArmsAction(ActionDescription):
     """
     Park the arms of the robot.
     """
@@ -289,9 +252,7 @@ class ParkArmsAction(ActionAbstract):
     """
     Entry from the enum for which arm should be parked
     """
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMParkArmsAction)
 
-    @with_tree
     def plan(self) -> None:
         joint_poses = self.get_joint_poses()
         MoveJointsMotion(names=list(joint_poses.keys()), positions=list(joint_poses.values())).perform()
@@ -337,8 +298,9 @@ SPECIAL_KNOWLEDGE = {
 }
 
 
+@has_parameters
 @dataclass
-class ReachToPickUpAction(ActionAbstract):
+class ReachToPickUpAction(ActionDescription):
     """
     Let the robot reach a specific pose.
     """
@@ -358,43 +320,44 @@ class ReachToPickUpAction(ActionAbstract):
     The grasp description that should be used for picking up the object
     """
 
-    orm_object_at_execution: Optional[FrozenObject] = field(init=False, repr=False)
+    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
     """
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
-    not updated when the BulletWorld object is changed.
+    not updated when the world object is changed.
     """
-
-    prepose_distance: float = ActionConfig.pick_up_prepose_distance
+    _pre_perform_callbacks = []
     """
-    The distance in meters the gripper should be at before picking up the object
+    List to save the callbacks which should be called before performing the action.
     """
-
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMReachToPickUpAction)
 
     def __post_init__(self):
-        super(ActionAbstract, self).__post_init__()
+        super().__post_init__()
+
         # Store the object's data copy at execution
-        self.orm_object_at_execution = self.object_designator.frozen_copy()
+        self.pre_perform(record_object_pre_perform)
 
-    @with_tree
     def plan(self) -> None:
-        adjusted_oTm = self.adjust_target_pose_to_grasp_type()
 
-        pre_pose = self.calculate_pre_grasping_pose(adjusted_oTm)
+        target_pose = self.object_designator.get_grasp_pose(self.end_effector, self.grasp_description)
+        target_pose.rotate_by_quaternion(self.end_effector.grasps[self.grasp_description])
+
+        target_pre_pose = LocalTransformer().translate_pose_along_local_axis(target_pose,
+                                                                             self.end_effector.get_approach_axis(),
+                                                                             -self.object_designator.get_approach_offset())
 
         MoveGripperMotion(motion=GripperState.OPEN, gripper=self.arm).perform()
 
-        self.go_to_pose(pre_pose)
+        self.move_gripper_to_pose(target_pre_pose)
 
-        self.go_to_pose(adjusted_oTm, MovementType.STRAIGHT_CARTESIAN, add_vis_axis=True)
+        self.move_gripper_to_pose(target_pose, MovementType.STRAIGHT_CARTESIAN)
 
         # Remove the vis axis from the world if it was added
         World.current_world.remove_vis_axis()
 
-    def go_to_pose(self, pose: PoseStamped, movement_type: MovementType = MovementType.CARTESIAN,
-                   add_vis_axis: bool = True):
+    def move_gripper_to_pose(self, pose: PoseStamped, movement_type: MovementType = MovementType.CARTESIAN,
+                             add_vis_axis: bool = True):
         """
-        Go to a specific pose.
+        Move the gripper to a specific pose.
 
         :param pose: The pose to go to.
         :param movement_type: The type of movement that should be performed.
@@ -405,84 +368,17 @@ class ReachToPickUpAction(ActionAbstract):
             World.current_world.add_vis_axis(pose)
         MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
 
-    def adjust_target_pose_to_grasp_type(self) -> PoseStamped:
-        """
-        Adjust the target pose according to the grasp type by adjusting the orientation of the gripper.
-
-        :return: The adjusted target pose.
-        """
-        # Get grasp orientation and target pose
-        grasp = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.grasps[
-            self.grasp_description]
-        oTm = self.object_designator.get_pose()
-        # Transform the object pose to the object frame, basically the origin of the object frame
-        mTo = self.local_transformer.transform_to_object_frame(oTm, self.object_designator)
-        # Adjust the pose according to the special knowledge of the object designator_description
-        adjusted_pose = self.special_knowledge_adjustment_pose(grasp, mTo)
-        # Transform the adjusted pose to the map frame
-        adjusted_oTm = self.local_transformer.transform_pose(adjusted_pose, Frame.Map.value)
-        # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
-        adjusted_oTm.rotate_by_quaternion(grasp)
-        return adjusted_oTm
-
-    def special_knowledge_adjustment_pose(self, grasp: Grasp, pose: PoseStamped) -> PoseStamped:
-        """
-        Get the adjusted target pose based on special knowledge for "grasp front".
-
-        :param grasp: From which side the object should be grasped
-        :param pose: Pose at which the object should be grasped, before adjustment
-        :return: The adjusted grasp pose
-        """
-        lt = LocalTransformer()
-        pose_in_object = lt.transform_pose(pose, self.object_designator.tf_frame)
-
-        special_knowledge = []  # Initialize as an empty list
-        if self.object_designator.obj_type in SPECIAL_KNOWLEDGE:
-            special_knowledge = SPECIAL_KNOWLEDGE[self.object_designator.obj_type]
-
-        for key, value in special_knowledge:
-            if key == grasp:
-                # Adjust target pose based on special knowledge
-                pose_in_object.pose.position.x += value[0]
-                pose_in_object.pose.position.y += value[1]
-                pose_in_object.pose.position.z += value[2]
-                loginfo(f"Adjusted target pose based on special knowledge for grasp: {grasp}")
-                return pose_in_object
-        return pose
-
-    def calculate_pre_grasping_pose(self, obj_pose: PoseStamped) -> PoseStamped:
-        """
-        Calculate the pre grasping pose of the object depending on the gripper and the pre-pose distance.
-
-        :return: The pre grasping pose of the object.
-        """
-        # pre-pose depending on the gripper.
-        oTg = self.local_transformer.transform_pose(obj_pose, self.gripper_frame)
-        oTg.pose.position.x -= self.prepose_distance  # in x since this is how the gripper is oriented
-        return self.local_transformer.transform_pose(oTg, Frame.Map.value)
-
     @cached_property
     def local_transformer(self) -> LocalTransformer:
         return LocalTransformer()
 
     @cached_property
-    def gripper_frame(self) -> str:
-        return World.robot.get_link_tf_frame(self.arm_chain.get_tool_frame())
-
-    @cached_property
     def arm_chain(self) -> KinematicChainDescription:
         return RobotDescription.current_robot_description.get_arm_chain(self.arm)
 
-    # TODO find a way to use orm_object_at_execution instead of object_designator in the automatic orm mapping in
-    #  ActionAbstract
-    def to_sql(self) -> ORMAction:
-        return ORMReachToPickUpAction(arm=self.arm, prepose_distance=self.prepose_distance)
-
-    def insert(self, session: Session, **kwargs) -> ORMAction:
-        action = super(ActionAbstract, self).insert(session)
-        action.object = self.orm_object_at_execution.insert(session)
-        session.add(action)
-        return action
+    @cached_property
+    def end_effector(self) -> EndEffectorDescription:
+        return self.arm_chain.end_effector
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """
@@ -500,17 +396,15 @@ class ReachToPickUpAction(ActionAbstract):
     @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     arm: Union[Iterable[Arms], Arms] = None,
-                    grasp: Union[Iterable[Grasp], Grasp] = None,
-                    prepose_distance: Union[Iterable[float], float] = ActionConfig.pick_up_prepose_distance) -> \
-    PartialDesignator[Type[ReachToPickUpAction]]:
+                    grasp: Union[Iterable[Grasp], Grasp] = None) -> PartialDesignator[Type[ReachToPickUpAction]]:
         return PartialDesignator(ReachToPickUpAction, object_designator=object_designator,
                                  arm=arm,
-                                 grasp=grasp,
-                                 prepose_distance=prepose_distance)
+                                 grasp=grasp)
 
 
+@has_parameters
 @dataclass
-class PickUpAction(ActionAbstract):
+class PickUpAction(ActionDescription):
     """
     Let the robot pick up an object.
     """
@@ -530,15 +424,10 @@ class PickUpAction(ActionAbstract):
     The GraspDescription that should be used for picking up the object
     """
 
-    orm_object_at_execution: Optional[FrozenObject] = field(init=False, repr=False)
+    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
     """
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
     not updated when the BulletWorld object is changed.
-    """
-
-    prepose_distance: float = ActionConfig.pick_up_prepose_distance
-    """
-    The distance in meters the gripper should be at before picking up the object
     """
 
     _pre_perform_callbacks = []
@@ -546,20 +435,14 @@ class PickUpAction(ActionAbstract):
     List to save the callbacks which should be called before performing the action.
     """
 
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMPickUpAction)
-
     def __post_init__(self):
-        super(ActionAbstract, self).__post_init__()
+        super().__post_init__()
 
         # Store the object's data copy at execution
-        @PickUpAction.pre_perform
-        def pre_perform(pick_up_action: PickUpAction):
-            pick_up_action.orm_object_at_execution = pick_up_action.object_designator.frozen_copy()
+        self.pre_perform(record_object_pre_perform)
 
-    @with_tree
     def plan(self) -> None:
-        ReachToPickUpAction(self.object_designator, self.arm, self.grasp_description,
-                                       self.prepose_distance).perform()
+        ReachToPickUpAction(self.object_designator, self.arm, self.grasp_description).perform()
 
         MoveGripperMotion(motion=GripperState.CLOSE, gripper=self.arm).perform()
 
@@ -585,17 +468,6 @@ class PickUpAction(ActionAbstract):
         gripper_link = self.arm_chain.get_tool_frame()
         return World.robot.links[gripper_link].pose
 
-    # TODO find a way to use orm_object_at_execution instead of object_designator in the automatic orm mapping in
-    #  ActionAbstract
-    def to_sql(self) -> ORMAction:
-        return ORMPickUpAction(arm=self.arm, prepose_distance=self.prepose_distance)
-
-    def insert(self, session: Session, **kwargs) -> ORMAction:
-        action = super(ActionAbstract, self).insert(session)
-        action.object = self.orm_object_at_execution.insert(session)
-        session.add(action)
-        return action
-
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """
         Check if picked up object is in contact with the gripper.
@@ -611,15 +483,15 @@ class PickUpAction(ActionAbstract):
     @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     arm: Union[Iterable[Arms], Arms] = None,
-                    grasp_description: Union[Iterable[GraspDescription], GraspDescription] = None,
-                    prepose_distance: Union[Iterable[float], float] = ActionConfig.pick_up_prepose_distance) -> \
+                    grasp_description: Union[Iterable[GraspDescription], GraspDescription] = None) -> \
             PartialDesignator[Type[PickUpAction]]:
         return PartialDesignator(PickUpAction, object_designator=object_designator, arm=arm,
-                                 grasp_description=grasp_description, prepose_distance=prepose_distance)
+                                 grasp_description=grasp_description)
 
 
+@has_parameters
 @dataclass
-class PlaceAction(ActionAbstract):
+class PlaceAction(ActionDescription):
     """
     Places an Object at a position using an arm.
     """
@@ -636,28 +508,22 @@ class PlaceAction(ActionAbstract):
     """
     Arm that is currently holding the object
     """
-    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False)
+    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
     """
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
     not updated when the BulletWorld object is changed.
     """
-
     _pre_perform_callbacks = []
     """
     List to save the callbacks which should be called before performing the action.
     """
 
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMPlaceAction)
-
     def __post_init__(self):
-        super(ActionAbstract, self).__post_init__()
+        super().__post_init__()
 
         # Store the object's data copy at execution
-        @PlaceAction.pre_perform
-        def pre_perform(pick_up_action: PickUpAction):
-            pick_up_action.object_at_execution = pick_up_action.object_designator.frozen_copy()
+        self.pre_perform(record_object_pre_perform)
 
-    @with_tree
     def plan(self) -> None:
         target_pose = self.object_designator.attachments[
             World.robot].get_child_link_target_pose_given_parent(self.target_location)
@@ -666,32 +532,10 @@ class PlaceAction(ActionAbstract):
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()
         World.robot.detach(self.object_designator)
 
-        retract_pose = self.calculate_retract_pose(target_pose, distance=0.05)
+        retract_pose = LocalTransformer().translate_pose_along_local_axis(target_pose,
+                                                                          self.end_effector.get_approach_axis(),
+                                                                          -self.object_designator.get_approach_offset())
         MoveTCPMotion(retract_pose, self.arm).perform()
-
-    def calculate_target_pose_of_gripper(self):
-        """
-        Calculate the target pose of the gripper given the target pose of the held object.
-        wTg (world to gripper) = wTo (world to object target) * oTg (object to gripper, this is constant since object
-        is attached to the gripper)
-        """
-        gripper_pose_in_object = self.local_transformer.transform_pose(self.gripper_link.pose,
-                                                                       self.object_designator.tf_frame)
-        object_to_gripper = gripper_pose_in_object.to_transform_stamped("object")
-        world_to_object_target = self.target_location.to_transform_stamped("target")
-        world_to_gripper_target = world_to_object_target * object_to_gripper
-        return world_to_gripper_target.to_pose_stamped()
-
-    def calculate_retract_pose(self, target_pose: PoseStamped, distance: float) -> PoseStamped:
-        """
-        Calculate the retract pose of the gripper.
-
-        :param target_pose: The target pose of the gripper.
-        :param distance: The distance the gripper should be retracted.
-        """
-        retract_pose = self.local_transformer.transform_pose(target_pose, self.gripper_link.tf_frame)
-        retract_pose.position.x -= distance
-        return retract_pose
 
     @cached_property
     def gripper_link(self) -> Link:
@@ -700,6 +544,10 @@ class PlaceAction(ActionAbstract):
     @cached_property
     def arm_chain(self) -> KinematicChainDescription:
         return RobotDescription.current_robot_description.get_arm_chain(self.arm)
+
+    @cached_property
+    def end_effector(self) -> EndEffectorDescription:
+        return self.arm_chain.end_effector
 
     @cached_property
     def local_transformer(self) -> LocalTransformer:
@@ -738,20 +586,10 @@ class PlaceAction(ActionAbstract):
                                  target_location=target_location,
                                  arm=arm)
 
-    def to_sql(self) -> ORMAction:
-        return ORMPlaceAction(arm=self.arm)
 
-    def insert(self, session: Session, **kwargs) -> ORMAction:
-        action = super(ActionAbstract, self).insert(session)
-        action.object = self.object_at_execution.insert(session)
-        pose = self.target_location.insert(session)
-        action.pose = pose
-        session.add(action)
-        return action
-
-
+@has_parameters
 @dataclass
-class NavigateAction(ActionAbstract):
+class NavigateAction(ActionDescription):
     """
     Navigates the Robot to a position.
     """
@@ -766,9 +604,6 @@ class NavigateAction(ActionAbstract):
     Keep the joint states of the robot the same during the navigation.
     """
 
-    _orm_class: Type[ActionAbstract] = field(init=False, default=ORMNavigateAction)
-
-    @with_tree
     def plan(self) -> None:
         motion_action = MoveMotion(self.target_location, self.keep_joint_states)
         return try_action(motion_action, failure_type=NavigationGoalNotReachedError)
@@ -777,7 +612,6 @@ class NavigateAction(ActionAbstract):
         pose_validator = PoseErrorChecker(World.conf.get_pose_tolerance())
         if not pose_validator.is_error_acceptable(World.robot.pose, self.target_location):
             raise NavigationGoalNotReachedError(World.robot.pose, self.target_location)
-
 
     @classmethod
     @with_plan
@@ -788,8 +622,9 @@ class NavigateAction(ActionAbstract):
                                  keep_joint_states=keep_joint_states)
 
 
+@has_parameters
 @dataclass
-class TransportAction(ActionAbstract):
+class TransportAction(ActionDescription):
     """
     Transports an object to a position using an arm
     """
@@ -806,31 +641,33 @@ class TransportAction(ActionAbstract):
     """
     Arm that should be used
     """
-    pickup_prepose_distance: float = ActionConfig.pick_up_prepose_distance
+    _pre_perform_callbacks = []
     """
-    Distance between the object and the gripper in the x-axis before picking up the object.
+    List to save the callbacks which should be called before performing the action.
     """
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMTransportAction)
 
-    @with_tree
+    def __post_init__(self):
+        super().__post_init__()
+
+        # Store the object's data copy at execution
+        self.pre_perform(record_object_pre_perform)
+
     def plan(self) -> None:
         robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
-        ParkArmsAction(Arms.BOTH).perform()
+        ParkArmsActionDescription(Arms.BOTH).perform()
         pickup_loc = CostmapLocation(target=self.object_designator,
                                      reachable_for=robot_desig_resolved,
-                                     reachable_arm=[self.arm],
-                                     prepose_distance=self.pickup_prepose_distance)
+                                     reachable_arm=[self.arm])
         # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = pickup_loc.resolve()
         if not pickup_pose:
             raise ObjectUnfetchable(
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
 
-        NavigateAction(pickup_pose, True).perform()
-        PickUpAction(self.object_designator, pickup_pose.arm,
-                     grasp_description=pickup_pose.grasp_description,
-                     prepose_distance=self.pickup_prepose_distance).perform()
-        ParkArmsAction(Arms.BOTH).perform()
+        NavigateActionDescription(pickup_pose, True).perform()
+        PickUpActionDescription(self.object_designator, pickup_pose.arm,
+                     grasp_description=pickup_pose.grasp_description).perform()
+        ParkArmsActionDescription(Arms.BOTH).perform()
         try:
             place_loc = CostmapLocation(
                 target=self.target_location,
@@ -842,40 +679,27 @@ class TransportAction(ActionAbstract):
         except StopIteration:
             raise ReachabilityFailure(
                 f"No location found from where the robot can reach the target location: {self.target_location}")
-        NavigateAction(place_loc, True).perform()
-        PlaceAction(self.object_designator, self.target_location, self.arm).perform()
-        ParkArmsAction(Arms.BOTH).perform()
+        NavigateActionDescription(place_loc, True).perform()
+        PlaceActionDescription(self.object_designator, self.target_location, self.arm).perform()
+        ParkArmsActionDescription(Arms.BOTH).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation of each atomic action is done in the action itself, so no more validation needed here.
         pass
 
-    def to_sql(self) -> ORMAction:
-        return ORMTransportAction(arm=self.arm, pickup_prepose_distance=self.pickup_prepose_distance)
-
-    def insert(self, session: Session, **kwargs) -> ORMAction:
-        action = super(ActionAbstract, self).insert(session)
-        frozen_object = self.object_designator.frozen_copy().insert(session)
-        frozen_object.name = self.object_designator.name
-        action.object = frozen_object
-        session.add(action)
-        return action
-
     @classmethod
     @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
-                    arm: Union[Iterable[Arms], Arms] = None,
-                    pickup_prepose_distance: Union[Iterable[float], float] = ActionConfig.pick_up_prepose_distance) -> \
-            PartialDesignator[Type[TransportAction]]:
+                    arm: Union[Iterable[Arms], Arms] = None) -> PartialDesignator[Type[TransportAction]]:
         return PartialDesignator(TransportAction, object_designator=object_designator,
                                  target_location=target_location,
-                                 arm=arm,
-                                 pickup_prepose_distance=pickup_prepose_distance)
+                                 arm=arm)
 
 
+@has_parameters
 @dataclass
-class LookAtAction(ActionAbstract):
+class LookAtAction(ActionDescription):
     """
     Lets the robot look at a position.
     """
@@ -884,9 +708,7 @@ class LookAtAction(ActionAbstract):
     """
     Position at which the robot should look, given as 6D pose
     """
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMLookAtAction)
 
-    @with_tree
     def plan(self) -> None:
         LookingMotion(target=self.target).perform()
 
@@ -895,6 +717,7 @@ class LookAtAction(ActionAbstract):
         Check if the robot is looking at the target location by spawning a virtual object at the target location and
         creating a ray from the camera and checking if it intersects with the object.
         """
+        return
         with UseProspectionWorld():
             move_away_all_objects_to_create_empty_space(exclude_objects=[World.robot.name, "floor"])
             # Create a virtual object at the target location, the current size is 40x40x40 cm which is very big in
@@ -911,8 +734,9 @@ class LookAtAction(ActionAbstract):
         return PartialDesignator(LookAtAction, target=target)
 
 
+@has_parameters
 @dataclass
-class DetectAction(ActionAbstract):
+class DetectAction(ActionDescription):
     """
     Detects an object that fits the object description and returns an object designator_description describing the object.
 
@@ -927,7 +751,7 @@ class DetectAction(ActionAbstract):
     """
     The state of the detection, e.g Start Stop for continues perception
     """
-    object_designator_description: Optional[Object] = None
+    object_designator: Optional[Object] = None
     """
     The type of the object that should be detected, only considered if technique is equal to Type
     """
@@ -935,34 +759,48 @@ class DetectAction(ActionAbstract):
     """
     The region in which the object should be detected
     """
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMDetectAction)
 
-    orm_object_at_execution: Optional[FrozenObject] = field(init=False)
+    # object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
+    # """
+    # The object at the time this Action got created. It is used to be a static, information holding entity
+    # """
 
-    @with_tree
+    _pre_perform_callbacks = []
+    """
+    List to save the callbacks which should be called before performing the action.
+    """
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # # Store the object's data copy at execution
+        # self.pre_perform(record_object_pre_perform)
+
     def plan(self) -> None:
         return try_action(DetectingMotion(technique=self.technique, state=self.state,
-                                          object_designator_description=self.object_designator_description,
+                                          object_designator_description=self.object_designator,
                                           region=self.region), PerceptionObjectNotFound)
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        if not result:
-            raise PerceptionObjectNotFound(self.object_designator_description, self.technique, self.region)
+        return
+        # if not result:
+        #     raise PerceptionObjectNotFound(self.object_designator, self.technique, self.region)
 
     @classmethod
     @with_plan
     def description(cls, technique: Union[Iterable[DetectionTechnique], DetectionTechnique],
                     state: Union[Iterable[DetectionState], DetectionState] = None,
-                    object_designator_description: Union[Iterable[Object], Object] = None,
+                    object_designator: Union[Iterable[Object], Object] = None,
                     region: Union[Iterable[Location], Location] = None) -> PartialDesignator[Type[DetectAction]]:
         return PartialDesignator(DetectAction, technique=technique,
                                  state=state,
-                                 object_designator_description=object_designator_description,
+                                 object_designator=object_designator,
                                  region=region)
 
 
+@has_parameters
 @dataclass
-class OpenAction(ActionAbstract):
+class OpenAction(ActionDescription):
     """
     Opens a container like object
     """
@@ -979,9 +817,7 @@ class OpenAction(ActionAbstract):
     """
     The distance in meters the gripper should be at in the x-axis away from the handle.
     """
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMOpenAction)
 
-    @with_tree
     def plan(self) -> None:
         GraspingAction(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
         OpeningMotion(self.object_designator, self.arm).perform()
@@ -999,26 +835,17 @@ class OpenAction(ActionAbstract):
     @with_plan
     def description(cls, object_designator_description: Union[Iterable[ObjectDescription.Link], ObjectDescription.Link],
                     arm: Union[Iterable[Arms], Arms] = None,
-                    grasping_prepose_distance: Union[Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
+                    grasping_prepose_distance: Union[
+                        Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
             PartialDesignator[Type[OpenAction]]:
         return PartialDesignator(OpenAction, object_designator=object_designator_description,
                                  arm=arm,
                                  grasping_prepose_distance=grasping_prepose_distance)
 
-    def to_sql(self) -> ORMAction:
-        return ORMOpenAction(arm=self.arm, grasping_prepose_distance=self.grasping_prepose_distance)
 
-    def insert(self, session: Session, **kwargs) -> ORMAction:
-        action = super(ActionAbstract, self).insert(session)
-        frozen_object = self.object_designator.parent_entity.frozen_copy().insert(session)
-        frozen_object.name = self.object_designator.name
-        action.object = frozen_object
-        session.add(action)
-        return action
-
-
+@has_parameters
 @dataclass
-class CloseAction(ActionAbstract):
+class CloseAction(ActionDescription):
     """
     Closes a container like object.
     """
@@ -1035,9 +862,7 @@ class CloseAction(ActionAbstract):
     """
     The distance in meters between the gripper and the handle before approaching to grasp.
     """
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMCloseAction)
 
-    @with_tree
     def plan(self) -> None:
         GraspingAction(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
         ClosingMotion(self.object_designator, self.arm).perform()
@@ -1050,22 +875,12 @@ class CloseAction(ActionAbstract):
         """
         validate_close_open(self.object_designator, self.arm, CloseAction)
 
-    def to_sql(self) -> ORMAction:
-        return ORMCloseAction(arm=self.arm, grasping_prepose_distance=self.grasping_prepose_distance)
-
-    def insert(self, session: Session, **kwargs) -> ORMAction:
-        action = super(ActionAbstract, self).insert(session)
-        frozen_object = self.object_designator.parent_entity.frozen_copy().insert(session)
-        frozen_object.name = self.object_designator.name
-        action.object = frozen_object
-        session.add(action)
-        return action
-
     @classmethod
     @with_plan
     def description(cls, object_designator_description: Union[Iterable[ObjectDescription.Link], ObjectDescription.Link],
                     arm: Union[Iterable[Arms], Arms] = None,
-                    grasping_prepose_distance: Union[Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
+                    grasping_prepose_distance: Union[
+                        Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
             PartialDesignator[Type[CloseAction]]:
         return PartialDesignator(CloseAction, object_designator=object_designator_description,
                                  arm=arm,
@@ -1106,12 +921,13 @@ def check_closed(joint_obj: Joint, obj_part: Link, arm: Arms, lower_limit: float
                                          ContainerManipulationType.Closing)
 
 
+@has_parameters
 @dataclass
-class GraspingAction(ActionAbstract):
+class GraspingAction(ActionDescription):
     """
     Grasps an object described by the given Object Designator description
     """
-    object_desig: Union[Object, ObjectDescription.Link]
+    object_designator: Union[Object, ObjectDescription.Link]
     """
     Object Designator for the object that should be grasped
     """
@@ -1123,11 +939,9 @@ class GraspingAction(ActionAbstract):
     """
     The distance in meters the gripper should be at before grasping the object
     """
-    orm_class: Type[ActionAbstract] = field(init=False, default=ORMGraspingAction)
 
-    @with_tree
     def plan(self) -> None:
-        object_pose = self.object_desig.pose
+        object_pose = self.object_designator.pose
         lt = LocalTransformer()
         gripper_name = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
 
@@ -1144,35 +958,26 @@ class GraspingAction(ActionAbstract):
         MoveGripperMotion(GripperState.CLOSE, self.arm, allow_gripper_collision=True).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        body = self.object_desig
+        body = self.object_designator
         contact_links = body.get_contact_points_with_body(World.robot).get_all_bodies()
         arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.arm)
         gripper_links = arm_chain.end_effector.links
         if not any([link.name in gripper_links for link in contact_links]):
-            raise ObjectNotGraspedError(self.object_desig, World.robot, self.arm, None)
-
-    def to_sql(self) -> ORMAction:
-        return ORMGraspingAction(arm=self.arm, prepose_distance=self.prepose_distance)
-
-    def insert(self, session: Session, **kwargs) -> ORMAction:
-        action = super(ActionAbstract, self).insert(session)
-        frozen_object = self.object_desig.parent_entity.frozen_copy().insert(session)
-        frozen_object.name = self.object_desig.name
-        action.object = frozen_object
-        session.add(action)
-        return action
+            raise ObjectNotGraspedError(self.object_designator, World.robot, self.arm, None)
 
     @classmethod
     @with_plan
-    def description(cls, object_desig: Union[Iterable[Object], Object],
+    def description(cls, object_designator: Union[Iterable[Object], Object],
                     arm: Union[Iterable[Arms], Arms] = None,
                     prepose_distance: Union[Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
             PartialDesignator[Type[GraspingAction]]:
-        return PartialDesignator(GraspingAction, object_desig=object_desig, arm=arm, prepose_distance=prepose_distance)
+        return PartialDesignator(GraspingAction, object_designator=object_designator, arm=arm,
+                                 prepose_distance=prepose_distance)
 
 
+@has_parameters
 @dataclass
-class FaceAtAction(ActionAbstract):
+class FaceAtAction(ActionDescription):
     """
     Turn the robot chassis such that is faces the ``pose`` and after that perform a look at action.
     """
@@ -1186,9 +991,6 @@ class FaceAtAction(ActionAbstract):
     Keep the joint states of the robot the same during the navigation.
     """
 
-    orm_class = ORMFaceAtAction
-
-    @with_tree
     def plan(self) -> None:
         # get the robot position
         robot_position = World.robot.pose
@@ -1219,8 +1021,9 @@ class FaceAtAction(ActionAbstract):
         return PartialDesignator(FaceAtAction, pose=pose, keep_joint_states=keep_joint_states)
 
 
+@has_parameters
 @dataclass
-class MoveAndPickUpAction(ActionAbstract):
+class MoveAndPickUpAction(ActionDescription):
     """
     Navigate to `standing_position`, then turn towards the object and pick it up.
     """
@@ -1250,12 +1053,6 @@ class MoveAndPickUpAction(ActionAbstract):
     Keep the joint states of the robot the same during the navigation.
     """
 
-    pick_up_prepose_distance: float = ActionConfig.pick_up_prepose_distance
-    """
-    The distance in meters the gripper should be at before picking up the object
-    """
-
-    # @with_tree
     def plan(self):
         if self.grasp == Grasp.TOP:
             grasp = GraspDescription(Grasp.FRONT, self.grasp, False)
@@ -1263,8 +1060,7 @@ class MoveAndPickUpAction(ActionAbstract):
             grasp = GraspDescription(self.grasp, None, False)
         NavigateAction(self.standing_position, self.keep_joint_states).perform()
         FaceAtAction(self.object_designator.pose, self.keep_joint_states).perform()
-        PickUpAction(self.object_designator, self.arm, grasp,
-                     self.pick_up_prepose_distance).perform()
+        PickUpAction(self.object_designator, self.arm, grasp).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
@@ -1276,19 +1072,18 @@ class MoveAndPickUpAction(ActionAbstract):
                     object_designator: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None,
                     grasp: Union[Iterable[Grasp], Grasp] = None,
-                    keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states,
-                    pick_up_prepose_distance: Union[Iterable[float], float] = ActionConfig.pick_up_prepose_distance) -> \
+                    keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states) -> \
             PartialDesignator[Type[MoveAndPickUpAction]]:
         return PartialDesignator(MoveAndPickUpAction,
                                  standing_position=standing_position,
                                  object_designator=object_designator,
                                  arm=arm,
-                                 grasp=grasp,
-                                 pick_up_prepose_distance=pick_up_prepose_distance)
+                                 grasp=grasp)
 
 
+@has_parameters
 @dataclass
-class MoveAndPlaceAction(ActionAbstract):
+class MoveAndPlaceAction(ActionDescription):
     """
     Navigate to `standing_position`, then turn towards the object and pick it up.
     """
@@ -1318,7 +1113,6 @@ class MoveAndPlaceAction(ActionAbstract):
     Keep the joint states of the robot the same during the navigation.
     """
 
-    @with_tree
     def plan(self):
         NavigateAction(self.standing_position, self.keep_joint_states).perform()
         FaceAtAction(self.target_location, self.keep_joint_states).perform()
@@ -1343,8 +1137,9 @@ class MoveAndPlaceAction(ActionAbstract):
                                  arm=arm)
 
 
+@has_parameters
 @dataclass
-class PouringAction(ActionAbstract):
+class PouringAction(ActionDescription):
     """
     Action class for the Pouring action.
     """
@@ -1374,7 +1169,6 @@ class PouringAction(ActionAbstract):
     The angle of the pouring action (default is 90).
     """
 
-    @with_tree
     def plan(self) -> None:
         lt = LocalTransformer()
         movement_type: MovementType = MovementType.CARTESIAN
@@ -1397,7 +1191,7 @@ class PouringAction(ActionAbstract):
         World.current_world.add_vis_axis(oTgm)
 
         adjusted_oTgm = oTgm.copy()
-        new_q = utils.axis_angle_to_quaternion([1, 0, 0], self.angle)
+        new_q = utils.axis_angle_to_quaternion([1, 0, 0], - self.angle)
         new_x = new_q[0]
         new_y = new_q[1]
         new_z = new_q[2]
@@ -1415,12 +1209,69 @@ class PouringAction(ActionAbstract):
 
     @classmethod
     @with_plan
-    def description(cls, object: Union[Iterable[Object], Object],
+    def description(cls, object_: Union[Iterable[Object], Object],
                     tool: Union[Iterable[Object], Object],
                     arm: Optional[Union[Iterable[Arms], Arms]] = None,
                     technique: Optional[Union[Iterable[str], str]] = None,
                     angle: Optional[Union[Iterable[float], float]] = 90) -> PartialDesignator[Type[PouringAction]]:
-        return PartialDesignator(PouringAction, object=object, tool=tool, arm=arm, technique=technique, angle=angle)
+        return PartialDesignator(PouringAction, object_=object_, tool=tool, arm=arm, technique=technique, angle=angle)
+
+
+@has_parameters
+@dataclass
+class SearchAction(ActionDescription):
+    """
+    Searches for a target object around the given location.
+    """
+
+    target_location: PoseStamped
+    """
+    Location around which to look for a target object.
+    """
+
+    object_type: Type[PhysicalObject]
+    """
+    Type of the object which is searched for.
+    """
+
+    def plan(self) -> None:
+        NavigateActionDescription(
+            CostmapLocation(target=self.target_location, visible_for=World.robot)).resolve().perform()
+
+        lt = LocalTransformer()
+        target_base = lt.transform_pose(self.target_location, World.robot.tf_frame)
+
+        target_base_left = target_base.copy()
+        target_base_left.pose.position.y -= 0.5
+
+        target_base_right = target_base.copy()
+        target_base_right.pose.position.y += 0.5
+
+        plan = TryInOrderPlan(
+            SequentialPlan(
+                LookAtActionDescription(target_base_left),
+                DetectActionDescription(DetectionTechnique.TYPES,
+                                        object_designator=BelieveObject(types=[self.object_type]))),
+            SequentialPlan(
+                LookAtActionDescription(target_base_right),
+                DetectActionDescription(DetectionTechnique.TYPES,
+                                        object_designator=BelieveObject(types=[self.object_type]))),
+            SequentialPlan(
+                LookAtActionDescription(target_base),
+                DetectActionDescription(DetectionTechnique.TYPES,
+                                        object_designator=BelieveObject(types=[self.object_type]))))
+
+        return plan.perform()
+
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        pass
+
+    @classmethod
+    @with_plan
+    def description(cls, target_location: Union[Iterable[PoseStamped], PoseStamped],
+                    object_type: Union[Iterable[PhysicalObject], PhysicalObject]) -> PartialDesignator[
+        Type[SearchAction]]:
+        return PartialDesignator(SearchAction, target_location=target_location, object_type=object_type)
 
 
 MoveTorsoActionDescription = MoveTorsoAction.description
@@ -1442,3 +1293,4 @@ MoveAndPlaceActionDescription = MoveAndPlaceAction.description
 ReleaseActionDescription = ReleaseAction.description
 GripActionDescription = GripAction.description
 PouringActionDescription = PouringAction.description
+SearchActionDescription = SearchAction.description

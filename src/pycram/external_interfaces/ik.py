@@ -7,11 +7,6 @@ from ..ros import get_node_names
 from ..ros import  Duration, ServiceException
 from ..ros import  loginfo_once, logerr
 from ..ros import  get_service_proxy, wait_for_service
-from moveit_msgs.msg import PositionIKRequest
-from moveit_msgs.msg import RobotState
-from moveit_msgs.srv import GetPositionIK
-from sensor_msgs.msg import JointState
-
 from ..datastructures.world import World, UseProspectionWorld
 from ..world_concepts.world_object import Object
 from ..utils import _apply_ik
@@ -21,10 +16,20 @@ from ..robot_description import RobotDescription
 from ..failures import IKError
 from ..external_interfaces.giskard import projection_cartesian_goal, allow_gripper_collision
 from .pinocchio_ik import compute_ik
+from ..datastructures.enums import Arms
+
+try:
+    from moveit_msgs.msg import PositionIKRequest
+    from moveit_msgs.msg import RobotState
+    from moveit_msgs.srv import GetPositionIK
+    from sensor_msgs.msg import JointState
+except ImportError:
+    pass
+
 
 
 def _make_request_msg(root_link: str, tip_link: str, target_pose: PoseStamped, robot_object: Object,
-                      joints: List[str]) -> PositionIKRequest:
+                      joints: List[str]) -> 'PositionIKRequest':
     """
     Generates an ik request message for the kdl_ik_service. The message is
     of the type moveit_msgs/PositionIKRequest and contains all information
@@ -222,7 +227,7 @@ def request_giskard_ik(target_pose: PoseStamped, robot: Object, gripper: str) ->
     local_transformer = LocalTransformer()
     target_map = local_transformer.transform_pose(target_pose, "map")
 
-    allow_gripper_collision("all")
+    allow_gripper_collision(Arms.BOTH)
     result = projection_cartesian_goal(target_map, gripper, "map")
     last_point = result.trajectory.points[-1]
     joint_names = result.trajectory.joint_names
@@ -260,16 +265,16 @@ def request_pinocchio_ik(target_pose: PoseStamped, robot: Object, target_link: s
     :return: A dictionary containing the joint names and joint values
     """
     lt = LocalTransformer()
+    target_pose = lt.transform_pose(target_pose, "map")
     target_pose = lt.transform_pose(target_pose, robot.tf_frame)
 
     # Get link after last joint in chain
     wrist_link = RobotDescription.current_robot_description.get_child(joints[-1])
 
-    # target_torso = lt.transform_pose(target_pose, robot.get_link_tf_frame(base_link))
-
     wrist_tool_frame_offset = robot.get_transform_between_links(wrist_link, target_link)
     target_diff = target_pose.to_transform_stamped("target").inverse_times(wrist_tool_frame_offset).to_pose_stamped()
     target_diff.round()
+
 
     res = compute_ik(wrist_link, target_diff, robot)
 

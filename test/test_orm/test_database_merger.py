@@ -2,15 +2,13 @@ import unittest
 import pathlib
 import json
 import sqlalchemy
-import pycram.orm.base
+# import pycram.orm.base
 import pycram.orm.utils
 
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms, ObjectType, WorldMode
-from pycram.tasktree import with_tree
-import pycram.tasktree
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.designators.object_designator import *
@@ -38,10 +36,9 @@ class ExamplePlans:
         self.robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
         self.kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
 
-    @with_tree
     def pick_and_place_plan(self):
         with simulated_robot:
-            ParkArmsActionPerformable(Arms.BOTH).perform()
+            ParkArmsActionDescription(Arms.BOTH).perform()
             MoveTorsoAction([0.3]).resolve().perform()
             pickup_pose = CostmapLocation(target=self.cereal_desig.resolve(), reachable_for=self.robot_desig).resolve()
             pickup_arm = pickup_pose.reachable_arm
@@ -60,7 +57,7 @@ class ExamplePlans:
 
             PlaceAction(self.cereal_desig, target_locations=[place_island.pose], arms=[pickup_arm]).resolve().perform()
 
-            ParkArmsActionPerformable(Arms.BOTH).perform()
+            ParkArmsActionDescription(Arms.BOTH).perform()
 
 
 class MergerTestCaseBase(unittest.TestCase):

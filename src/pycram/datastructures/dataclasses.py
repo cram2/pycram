@@ -9,7 +9,6 @@ from enum import Enum
 
 import numpy as np
 import plotly.graph_objects as go
-import sqlalchemy
 import trimesh
 from matplotlib import pyplot as plt
 
@@ -22,11 +21,9 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
 from pycrap.ontologies import PhysicalObject
 from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp, AxisIdentifier
 from .pose import PoseStamped, Point, TransformStamped
-from ..orm.base import ProcessMetaData
 from ..ros import logwarn, logwarn_once
 from ..utils import classproperty
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
-from ..orm.object_designator import Object as ORMObject
 
 if TYPE_CHECKING:
     from ..description import Link, ObjectDescription
@@ -1473,9 +1470,9 @@ class RayResult:
         Check if the ray intersects with a body.
         return: Whether the ray intersects with a body.
         """
-        if not self.obj_id:
-            logwarn("obj_id should be available to check if the ray intersects with a body,"
-                    "It appears that the ray result is not valid.")
+        #if not self.obj_id:
+        #    logwarn("obj_id should be available to check if the ray intersects with a body,"
+        #            "It appears that the ray result is not valid.")
         return self.obj_id != -1
 
     @property
@@ -1575,18 +1572,6 @@ class FrozenObject:
     A dictionary of all joints, with the joint name as key and the joint object as value
     """
 
-    def to_sql(self):
-        return ORMObject(obj_type=str(self.concept), name=self.name)
-
-    def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObject:
-        metadata = ProcessMetaData().insert(session)
-        obj = self.to_sql()
-        pose = self.pose.insert(session)
-        obj.pose = pose
-        obj.process_metadata = metadata
-        session.add(obj)
-
-        return obj
 
 @dataclass(frozen=True)
 class FrozenLink:
@@ -1602,6 +1587,7 @@ class FrozenLink:
     """
     The geometry of this link
     """
+
 
 @dataclass(frozen=True)
 class FrozenJoint:
