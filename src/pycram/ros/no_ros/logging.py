@@ -2,11 +2,12 @@ from logging import getLogger, Logger
 from functools import lru_cache
 import logging
 
-logging.basicConfig(format='[%(filename) %(lineno)s %(funcName)s] %(message)s')
+format = '%(filename)s %(lineno)s %(funcName)s %(message)s'
+logging.basicConfig(format=format)
 logger = getLogger(__name__)
 
 def logwarn(msg: str):
-    logger.warn(msg)
+    logger.warning(msg)
 
 def logerr(msg: str):
     logger.error(msg)
@@ -19,7 +20,7 @@ def logdebug(msg: str):
 
 @lru_cache(None)
 def logwarn_once(msg: str):
-    logger.warn(msg)
+    logger.warning(msg)
 
 @lru_cache(None)
 def logerr_once(msg: str):
@@ -32,3 +33,10 @@ def loginfo_once(msg: str):
 @lru_cache(None)
 def logdebug_once(msg: str):
     logger.debug(msg)
+
+def set_logger_level(level: int):
+    """
+    Set the logging level for the logger.
+    :param level: The logging level to set.
+    """
+    logger.setLevel(level)

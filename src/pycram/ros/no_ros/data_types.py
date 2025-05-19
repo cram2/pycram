@@ -2,12 +2,12 @@ import time
 import datetime
 
 
-class Time():
+class Time:
     """
     Class to abstract the ROS2 Time, to make it more consistent with the ROS1 Time class.
     """
     def __init__(self, time=0.0):
-        super().__init__(sec=time)
+        self.time = time
 
     @classmethod
     def now(cls):
@@ -25,3 +25,12 @@ def Duration(duration=0.0):
 
 def Rate(rate):
     return rate
+
+
+class ServiceException(Exception):
+    """
+    Exception class for service exceptions.
+    """
+    def __init__(self, message: str):
+        super().__init__(message)
+        self.message = message
