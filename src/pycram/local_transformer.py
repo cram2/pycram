@@ -79,7 +79,7 @@ class LocalTransformer(TransformManager):
         :return: The transformed PoseStamped in target frame
         """
         self._check_pose_integrity(pose)
-        
+
         objects = list(filter(None, map(self.get_object_from_frame, [pose.frame_id, target_frame])))
         self.update_transforms_for_objects(objects)
 

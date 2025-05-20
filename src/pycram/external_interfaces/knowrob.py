@@ -1,17 +1,17 @@
 from datetime import datetime
 from functools import lru_cache
 
-from pycram.designators.action_designator import *
-from pycram.designators.object_designator import *
-from pycram.plan import ActionNode, DesignatorNode, ResolvedActionNode, PlanNode
-from pycram.ros import create_publisher
-from pycram.ros import Time as ROSTime
+from ..designators.action_designator import *
+from ..designators.object_designator import *
+from ..plan import ActionNode, DesignatorNode, ResolvedActionNode, PlanNode
+from ..ros import create_publisher
+from ..ros import Time as ROSTime
 
 try:
     from knowrob_designator.msg import DesignatorExecutionFinished, DesignatorExecutionStart, DesignatorInit, \
         DesignatorResolutionFinished, DesignatorResolutionStart, ObjectDesignator
 except ImportError:
-    pass
+    loginfo("Could not import knowrob_designator.msg")
 
 desig_execution_start = create_publisher("knowrob/designator_execution_started", DesignatorExecutionStart)
 desig_execution_finished = create_publisher("knowrob/designator_execution_finished", DesignatorExecutionFinished)
