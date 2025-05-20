@@ -28,7 +28,7 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(mode=cls.render_mode)
-        # cls.viz_marker_publisher = VizMarkerPublisher()
+        cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):
         self.world.reset_world(remove_saved_states=True)
@@ -45,7 +45,7 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        # cls.viz_marker_publisher._stop_publishing()
+        cls.viz_marker_publisher._stop_publishing()
         cls.world.exit()
 
 

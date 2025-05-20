@@ -1,13 +1,18 @@
+import time
 import unittest
 from datetime import datetime
+
+from random_events.interval import closed
+from random_events.product_algebra import SimpleEvent, Event
 
 from pycram.datastructures.enums import TaskStatus
 from pycram.designators.action_designator import *
 from pycram.language import SequentialPlan, ParallelPlan, CodeNode
+from pycram.parameterizer import Parameterizer
 from pycram.plan import PlanNode, Plan
 from pycram.process_module import simulated_robot
 from pycram.testing import BulletWorldTestCase
-from pycram.failures import TorsoGoalNotReached
+
 
 class TestPlan(unittest.TestCase):
 
@@ -73,6 +78,7 @@ class TestPlan(unittest.TestCase):
         self.assertIn((mount_node, plan2.root), plan.edges)
         self.assertEqual(len(plan.edges), 2)
         self.assertEqual(len(plan.nodes), 3)
+
 
 class TestPlanNode(unittest.TestCase):
     def test_plan_node_creation(self):
@@ -191,3 +197,43 @@ class TestPlanInterrupt(BulletWorldTestCase):
             self.assertEqual(0.3, self.robot.joints["torso_lift_joint"].position)
 
 
+class AlgebraTest(BulletWorldTestCase):
+
+    def test_algebra(self):
+        sp = SequentialPlan(MoveTorsoActionDescription(None),
+                            NavigateActionDescription(None),
+                            MoveTorsoActionDescription(None))
+
+        p = Parameterizer(sp)
+        distribution = p.create_fully_factorized_distribution()
+
+        conditions = []
+        for state in TorsoState:
+            v1 = p.get_variable("MoveTorsoAction_0.torso_state")
+            v2 = p.get_variable("MoveTorsoAction_2.torso_state")
+            se = SimpleEvent({v1: state, v2: state})
+            conditions.append(se)
+
+        condition = Event(*conditions)
+        condition.fill_missing_variables(p.variables)
+
+        navigate_condition = SimpleEvent({
+            p.get_variable("NavigateAction_1.target_location.pose.position.z"): 0,
+            p.get_variable("NavigateAction_1.target_location.pose.orientation.x"): 0,
+            p.get_variable("NavigateAction_1.target_location.pose.orientation.y"): 0,
+            p.get_variable("NavigateAction_1.target_location.pose.orientation.z"): 0,
+            p.get_variable("NavigateAction_1.target_location.pose.orientation.w"): 1
+        })
+        navigate_condition.fill_missing_variables(p.variables)
+        condition &= navigate_condition.as_composite_set()
+
+        condition &= p.create_restrictions().as_composite_set()
+
+        conditional, p_c = distribution.conditional(condition)
+
+        for i in range(10):
+            sample = conditional.sample(1)
+
+            resolved = p.plan_from_sample(conditional, sample[0])
+            with simulated_robot:
+                resolved.perform()
