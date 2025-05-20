@@ -655,7 +655,7 @@ class TransportAction(ActionDescription):
 
     def plan(self) -> None:
         robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
-        ParkArmsAction(Arms.BOTH).perform()
+        ParkArmsActionDescription(Arms.BOTH).perform()
         pickup_loc = CostmapLocation(target=self.object_designator,
                                      reachable_for=robot_desig_resolved,
                                      reachable_arm=[self.arm])
@@ -665,10 +665,10 @@ class TransportAction(ActionDescription):
             raise ObjectUnfetchable(
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
 
-        NavigateAction(pickup_pose, True).perform()
-        PickUpAction(self.object_designator, pickup_pose.arm,
+        NavigateActionDescription(pickup_pose, True).perform()
+        PickUpActionDescription(self.object_designator, pickup_pose.arm,
                      grasp_description=pickup_pose.grasp_description).perform()
-        ParkArmsAction(Arms.BOTH).perform()
+        ParkArmsActionDescription(Arms.BOTH).perform()
         try:
             place_loc = CostmapLocation(
                 target=self.target_location,
@@ -680,9 +680,9 @@ class TransportAction(ActionDescription):
         except StopIteration:
             raise ReachabilityFailure(
                 f"No location found from where the robot can reach the target location: {self.target_location}")
-        NavigateAction(place_loc, True).perform()
-        PlaceAction(self.object_designator, self.target_location, self.arm).perform()
-        ParkArmsAction(Arms.BOTH).perform()
+        NavigateActionDescription(place_loc, True).perform()
+        PlaceActionDescription(self.object_designator, self.target_location, self.arm).perform()
+        ParkArmsActionDescription(Arms.BOTH).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation of each atomic action is done in the action itself, so no more validation needed here.

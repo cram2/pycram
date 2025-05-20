@@ -194,8 +194,8 @@ class Plan(nx.DiGraph):
         plt.show()
 
     @classmethod
-    def add_on_start_callback(cls, callback: Callable[[ResolvedActionNode], None],
-                              action_type: Optional[Type[ActionDescription]] = None):
+    def add_on_start_callback(cls, callback: Callable[[PlanNode], None],
+                              action_type: Optional[Type[ActionDescription], Type[PlanNode]] = None):
         """
         Adds a callback to be called when an action of the given type is started.
 
@@ -209,8 +209,8 @@ class Plan(nx.DiGraph):
         cls.on_start_callback[action_type].append(callback)
 
     @classmethod
-    def add_on_end_callback(cls, callback: Callable[[ResolvedActionNode], None],
-                            action_type: Optional[Type[ActionDescription]] = None):
+    def add_on_end_callback(cls, callback: Callable[[PlanNode], None],
+                            action_type: Optional[Type[ActionDescription], Type[PlanNode]] = None):
         """
         Adds a callback to be called when an action of the given type is ended.
 
@@ -224,8 +224,8 @@ class Plan(nx.DiGraph):
         cls.on_end_callback[action_type].append(callback)
 
     @classmethod
-    def remove_on_start_callback(cls, callback: Callable[[ResolvedActionNode], None],
-                                 action_type: Optional[Type[ActionDescription]] = None):
+    def remove_on_start_callback(cls, callback: Callable[[PlanNode], None],
+                                 action_type: Optional[Type[ActionDescription], Type[PlanNode]] = None):
         """
         Removes a callback to be called when an action of the given type is started.
 
@@ -236,8 +236,8 @@ class Plan(nx.DiGraph):
             cls.on_start_callback[action_type].remove(callback)
 
     @classmethod
-    def remove_on_end_callback(cls, callback: Callable[[ResolvedActionNode], None],
-                               action_type: Optional[Type[ActionDescription]] = None):
+    def remove_on_end_callback(cls, callback: Callable[[PlanNode], None],
+                               action_type: Optional[Type[ActionDescription], Type[PlanNode]] = None):
         """
         Removes a callback to be called when an action of the given type is ended.
 
@@ -338,9 +338,9 @@ def managed_node(func: Callable) -> Callable:
         node.status = TaskStatus.RUNNING
         node.start_time = datetime.now()
         on_start_callbacks = (Plan.on_start_callback.get(node.action, []) +
-                              Plan.on_start_callback.get(None, []))
+                              Plan.on_start_callback.get(None, []) + Plan.on_start_callback.get(node.__class__, []))
         on_end_callbacks = (Plan.on_end_callback.get(node.action, []) +
-                            Plan.on_end_callback.get(None, []))
+                            Plan.on_end_callback.get(None, []) + Plan.on_end_callback.get(node.__class__, []))
         for call_back in on_start_callbacks:
             call_back(node)
         result = None
@@ -533,11 +533,7 @@ class DesignatorNode(PlanNode):
 
         :return: A dict of the flattened parameters
         """
-        params = self.designator_ref.performable.flattened_parameters()
-        for key, value in self.designator_ref.kwargs.items():
-            if key in params:
-                params[key] = value
-        return params
+        return self.designator_ref.flatten()
 
 
 @dataclass
@@ -601,11 +597,6 @@ class ResolvedActionNode(DesignatorNode):
     def __repr__(self, *args, **kwargs):
         return f"<Resolved {self.designator_ref.__class__.__name__}>"
 
-    def flatten(self):
-        return self.designator_ref.flatten()
-
-    def flattened_parameters(self):
-        return self.designator_ref.flattened_parameters()
 
 
 @dataclass

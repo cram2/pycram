@@ -8,7 +8,6 @@ from abc import ABC, abstractmethod
 from copy import copy
 
 import numpy as np
-from geometry_msgs.msg import Point
 from trimesh import Trimesh
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
@@ -25,7 +24,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           ObjectState, WorldState, ClosestPointsList,
                                           ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox, RayResult)
 from ..datastructures.enums import JointType, WorldMode, Arms, AdjacentBodyMethod as ABM
-from ..datastructures.pose import PoseStamped, TransformStamped
+from ..datastructures.pose import PoseStamped, TransformStamped, Point
 from ..datastructures.world_entity import PhysicalBody, WorldEntity
 from ..failures import ProspectionObjectNotFound, ObjectNotFound
 from ..local_transformer import LocalTransformer

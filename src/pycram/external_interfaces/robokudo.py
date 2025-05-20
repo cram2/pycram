@@ -13,12 +13,6 @@ from ..datastructures.pose import PoseStamped
 from ..designator import ObjectDesignatorDescription
 
 robokudo_found = False
-try:
-    from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjectDesignator
-    from robokudo_msgs.msg import QueryAction, QueryGoal, QueryResult
-    robokudo_found = True
-except ModuleNotFoundError as e:
-    logwarn("Failed to import Robokudo messages, the real robot will not be available")
 
 is_init = False
 client = None
@@ -56,6 +50,11 @@ def init_robokudo_interface(func: Callable) -> Callable:
     """
 
     def wrapper(*args, **kwargs):
+
+        from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjectDesignator
+        from robokudo_msgs.msg import QueryAction, QueryGoal, QueryResult
+        robokudo_found = True
+
         global is_init
         global client
         if is_init and "/robokudo" in get_node_names():

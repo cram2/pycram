@@ -11,7 +11,6 @@ from pycram.failures import UnsupportedFileExtension
 from pycram.world_concepts.world_object import Object
 from pycram.object_descriptors.generic import ObjectDescription as GenericObjectDescription
 
-# from geometry_msgs.msg import Point, Quaternion
 import pathlib
 
 from pycrap.ontologies import Milk, Food

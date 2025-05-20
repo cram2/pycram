@@ -8,7 +8,7 @@ from ..ros import logwarn, loginfo, get_node_names, wait_for_service, get_servic
 try:
     from iai_apartment_kitchen_msgs.srv import Authenticateuser
 except ModuleNotFoundError as e:
-    logwarn(f"Could not import Apartment kitchen messages, Apartment kitchen interface could not be initialized")
+    pass
 
 
 def init_kitchen_interface(func: Callable) -> Callable:
