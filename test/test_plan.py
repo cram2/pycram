@@ -180,21 +180,21 @@ class TestPlanInterrupt(BulletWorldTestCase):
             def node_sleep():
                 sleep(1)
 
-        def pause_plan():
-            Plan.current_plan.root.pause()
-            self.assertEqual(0, self.robot.joints["torso_lift_joint"].position)
-            Plan.current_plan.root.resume()
-            sleep(3)
+            def pause_plan():
+                Plan.current_plan.root.pause()
+                self.assertEqual(0, self.robot.joints["torso_lift_joint"].position)
+                Plan.current_plan.root.resume()
+                sleep(3)
+                self.assertEqual(0.3, self.robot.joints["torso_lift_joint"].position)
+
+            code_node = CodeNode(pause_plan)
+            sleep_node = CodeNode(node_sleep)
+            robot_plan = SequentialPlan(Plan(sleep_node), MoveTorsoActionDescription([TorsoState.HIGH]))
+
+            with simulated_robot:
+                ParallelPlan(Plan(code_node), robot_plan).perform()
+
             self.assertEqual(0.3, self.robot.joints["torso_lift_joint"].position)
-
-        code_node = CodeNode(pause_plan)
-        sleep_node = CodeNode(node_sleep)
-        robot_plan = SequentialPlan(Plan(sleep_node), MoveTorsoActionDescription([TorsoState.HIGH]))
-
-        with simulated_robot:
-            ParallelPlan(Plan(code_node), robot_plan).perform()
-
-        self.assertEqual(0.3, self.robot.joints["torso_lift_joint"].position)
 
 
 class AlgebraTest(BulletWorldTestCase):
