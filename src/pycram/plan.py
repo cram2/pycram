@@ -7,6 +7,9 @@ from datetime import datetime
 
 import networkx as nx
 from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
+from random_events.product_algebra import Event
+
+from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
 from .datastructures.enums import TaskStatus
 from .external_interfaces import giskard

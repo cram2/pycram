@@ -15,7 +15,7 @@ from .tf_transformations import quaternion_matrix
 if 'world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.world.")
 
-from .datastructures.pose import PoseStamped, TransformStamped, Pose, Header, Transform
+from .datastructures.pose import PoseStamped, TransformStamped, Pose, Header, Transform, Vector3, Quaternion
 from typing_extensions import List, Optional, Union, Iterable, TYPE_CHECKING, Tuple, Dict, Hashable
 
 if TYPE_CHECKING:
@@ -78,12 +78,14 @@ class LocalTransformer(TransformManager):
         :param target_frame: The name of the target frame
         :return: The transformed PoseStamped in target frame
         """
+        self._check_pose_integrity(pose)
+
         objects = list(filter(None, map(self.get_object_from_frame, [pose.frame_id, target_frame])))
         self.update_transforms_for_objects(objects)
 
         source_frame = pose.header.frame_id
 
-        wxyz = self.xyzw_to_wxyz(pose.orientation.to_list())
+        wxyz = self.xyzw_to_wxyz(pose.pose.orientation.to_list())
 
         pose_matrix = transform_from_pq(np.hstack((np.array(pose.pose.position.to_list()),
                                                    np.array(wxyz))))
@@ -174,3 +176,15 @@ class LocalTransformer(TransformManager):
 
     def get_all_frames(self) -> Dict[Tuple[Hashable, Hashable], Transform]:
         return {key: Transform.from_matrix(value) for key, value in self.transforms.items()}
+
+    @staticmethod
+    def _check_pose_integrity(pose: PoseStamped) -> None:
+        """
+        Check the integrity of the pose. This is a placeholder for any integrity checks that might be needed.
+        """
+        if not isinstance(pose, PoseStamped):
+            raise TypeError("The pose must be of type PoseStamped.")
+        elif not isinstance(pose.position, Vector3):
+            raise TypeError("The position must be of type Vector3.")
+        elif not isinstance(pose.orientation, Quaternion):
+            raise TypeError("The orientation must be of type Quaternion.")

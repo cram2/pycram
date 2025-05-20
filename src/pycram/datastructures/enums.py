@@ -1,6 +1,6 @@
 """Module holding all enums of PyCRAM."""
 
-from enum import Enum, auto
+from enum import Enum, auto, IntEnum
 
 from ..failures import UnsupportedJointType
 
@@ -179,7 +179,7 @@ class Shape(Enum):
     CAPSULE = 7
 
 
-class TorsoState(Enum):
+class TorsoState(IntEnum):
     """
     Enum for the different states of the torso.
     """

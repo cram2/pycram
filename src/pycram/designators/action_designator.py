@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import abc
 import inspect
+import math
 from dataclasses import dataclass, field
 from datetime import timedelta
 from functools import cached_property
@@ -1139,86 +1140,6 @@ class MoveAndPlaceAction(ActionDescription):
 
 @has_parameters
 @dataclass
-class PouringAction(ActionDescription):
-    """
-    Action class for the Pouring action.
-    """
-
-    object_: ObjectDesignatorDescription
-    """
-    The object to be poured into.
-    """
-
-    tool: ObjectDesignatorDescription
-    """
-    The tool used for pouring.
-    """
-
-    arm: Arms
-    """
-    The robot arm designated for the pouring task.
-    """
-
-    technique: Optional[str] = None
-    """
-    The technique used for pouring (default is None).
-    """
-
-    angle: Optional[float] = 90
-    """
-    The angle of the pouring action (default is 90).
-    """
-
-    def plan(self) -> None:
-        lt = LocalTransformer()
-        movement_type: MovementType = MovementType.CARTESIAN
-        oTm = self.object_.pose
-        grasp_rotation = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.get_grasp(
-            Grasp.FRONT, None, False)
-        oTbs = lt.transform_pose(oTm, World.robot.get_link_tf_frame("base_link"))
-        oTbs.pose.position.x += 0.009
-        oTbs.pose.position.z += 0.17
-        oTbs.pose.position.y -= 0.125
-
-        oTms = lt.transform_pose(oTbs, "map")
-        World.current_world.add_vis_axis(oTms)
-        oTog = lt.transform_pose(oTms, World.robot.get_link_tf_frame("base_link"))
-        oTog.orientation = grasp_rotation
-        oTgm = lt.transform_pose(oTog, "map")
-
-        MoveTCPMotion(oTgm, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
-
-        World.current_world.add_vis_axis(oTgm)
-
-        adjusted_oTgm = oTgm.copy()
-        new_q = utils.axis_angle_to_quaternion([1, 0, 0], - self.angle)
-        new_x = new_q[0]
-        new_y = new_q[1]
-        new_z = new_q[2]
-        new_w = new_q[3]
-        adjusted_oTgm.rotate_by_quaternion([new_x, new_y, new_z, new_w])
-
-        World.current_world.add_vis_axis(adjusted_oTgm)
-        MoveTCPMotion(adjusted_oTgm, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
-        sleep(3)
-        MoveTCPMotion(oTgm, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
-
-    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        # The validation will be done in each of the atomic action perform methods so no need to validate here.
-        pass
-
-    @classmethod
-    @with_plan
-    def description(cls, object_: Union[Iterable[Object], Object],
-                    tool: Union[Iterable[Object], Object],
-                    arm: Optional[Union[Iterable[Arms], Arms]] = None,
-                    technique: Optional[Union[Iterable[str], str]] = None,
-                    angle: Optional[Union[Iterable[float], float]] = 90) -> PartialDesignator[Type[PouringAction]]:
-        return PartialDesignator(PouringAction, object_=object_, tool=tool, arm=arm, technique=technique, angle=angle)
-
-
-@has_parameters
-@dataclass
 class SearchAction(ActionDescription):
     """
     Searches for a target object around the given location.
@@ -1292,5 +1213,4 @@ MoveAndPickUpActionDescription = MoveAndPickUpAction.description
 MoveAndPlaceActionDescription = MoveAndPlaceAction.description
 ReleaseActionDescription = ReleaseAction.description
 GripActionDescription = GripAction.description
-PouringActionDescription = PouringAction.description
 SearchActionDescription = SearchAction.description
