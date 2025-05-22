@@ -8,21 +8,16 @@ from ormatic.utils import classproperty
 from random_events.utils import recursive_subclasses
 from typing_extensions import Optional
 
-from ..datastructures import pose
-from ..plan import ActionNode, MotionNode, ResolvedActionNode, PlanNode
 from pycrap.ontologies import PhysicalObject
 from .casts import StringType
+from ..datastructures import grasp
+from ..datastructures import pose
 from ..datastructures.dataclasses import FrozenObject
-from ..datastructures.enums import Arms, DetectionTechnique, DetectionState, Grasp
-from ..datastructures.grasp import GraspDescription
-from ..datastructures.pose import Pose, PoseStamped
-from ..designators.action_designator import MoveTorsoAction, SetGripperAction, ReleaseAction, \
-    GripAction, ParkArmsAction, PickUpAction, \
-    PlaceAction, NavigateAction, TransportAction, LookAtAction, \
-    DetectAction, OpenAction, CloseAction, GraspingAction, \
-    FaceAtAction, ActionDescription, ReachToPickUpAction, \
-    SearchAction, MoveAndPickUpAction
-from ..language import LanguageNode, SequentialNode, ParallelNode, TryInOrderNode, TryAllNode, RepeatNode
+from ..datastructures.pose import PoseStamped
+from ..designator import ActionDescription
+from ..designators import action_designator
+from ..language import LanguageNode, SequentialNode, RepeatNode
+from ..plan import ActionNode, MotionNode, PlanNode, ResolvedActionNode
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -70,90 +65,91 @@ class FrozenObjectDAO(ORMaticExplicitMapping):
         return FrozenObject
 
 
-@dataclass
-class ReleaseActionDAO(ActionDescription, ORMaticExplicitMapping):
-    gripper: Arms
-    object_at_execution: Optional[FrozenObject]
-
-    @classproperty
-    def explicit_mapping(cls):
-        return ReleaseAction
-
-
-@dataclass
-class GripActionDAO(ActionDescription, ORMaticExplicitMapping):
-    gripper: Arms
-    effort: float
-    object_at_execution: Optional[FrozenObject]
-
-    @classproperty
-    def explicit_mapping(cls):
-        return GripAction
-
-
-@dataclass
-class ReachToPickUpActionDAO(ActionDescription, ORMaticExplicitMapping):
-    arm: Arms
-    grasp_description: GraspDescription
-    object_at_execution: Optional[FrozenObject]
-
-    @classproperty
-    def explicit_mapping(cls):
-        return ReachToPickUpAction
-
-
-@dataclass
-class PickUpActionDAO(ActionDescription, ORMaticExplicitMapping):
-    arm: Arms
-    object_at_execution: Optional[FrozenObject]
-
-    @classproperty
-    def explicit_mapping(cls):
-        return PickUpAction
-
-
-@dataclass
-class PlaceActionDAO(ActionDescription, ORMaticExplicitMapping):
-    arm: Arms
-    target_location: PoseStamped
-    object_at_execution: Optional[FrozenObject]
-
-    @classproperty
-    def explicit_mapping(cls):
-        return PlaceAction
-
-
-@dataclass
-class TransportActionDAO(ActionDescription, ORMaticExplicitMapping):
-    arm: Arms
-    target_location: PoseStamped
-    object_at_execution: Optional[FrozenObject]
-
-    @classproperty
-    def explicit_mapping(cls):
-        return TransportAction
-
-
-@dataclass
-class DetectActionDAO(ActionDescription, ORMaticExplicitMapping):
-    technique: DetectionTechnique
-    state: Optional[DetectionState]
-    region: Optional[str]
-    object_at_execution: Optional[FrozenObject]
-
-    @classproperty
-    def explicit_mapping(cls):
-        return DetectAction
-
-
-@dataclass
-class GraspingActionDAO(ActionDescription, ORMaticExplicitMapping):
-    arm: Arms
-    object_at_execution: FrozenObject
-
-    @classproperty
-    def explicit_mapping(cls):
-        return GraspingAction
+#
+# @dataclass
+# class ReleaseActionDAO(ActionDescription, ORMaticExplicitMapping):
+#     gripper: Arms
+#     object_at_execution: Optional[FrozenObject]
+#
+#     @classproperty
+#     def explicit_mapping(cls):
+#         return ReleaseAction
+#
+#
+# @dataclass
+# class GripActionDAO(ActionDescription, ORMaticExplicitMapping):
+#     gripper: Arms
+#     effort: float
+#     object_at_execution: Optional[FrozenObject]
+#
+#     @classproperty
+#     def explicit_mapping(cls):
+#         return GripAction
+#
+#
+# @dataclass
+# class ReachToPickUpActionDAO(ActionDescription, ORMaticExplicitMapping):
+#     arm: Arms
+#     grasp_description: GraspDescription
+#     object_at_execution: Optional[FrozenObject]
+#
+#     @classproperty
+#     def explicit_mapping(cls):
+#         return ReachToPickUpAction
+#
+#
+# @dataclass
+# class PickUpActionDAO(ActionDescription, ORMaticExplicitMapping):
+#     arm: Arms
+#     object_at_execution: Optional[FrozenObject]
+#
+#     @classproperty
+#     def explicit_mapping(cls):
+#         return PickUpAction
+#
+#
+# @dataclass
+# class PlaceActionDAO(ActionDescription, ORMaticExplicitMapping):
+#     arm: Arms
+#     target_location: PoseStamped
+#     object_at_execution: Optional[FrozenObject]
+#
+#     @classproperty
+#     def explicit_mapping(cls):
+#         return PlaceAction
+#
+#
+# @dataclass
+# class TransportActionDAO(ActionDescription, ORMaticExplicitMapping):
+#     arm: Arms
+#     target_location: PoseStamped
+#     object_at_execution: Optional[FrozenObject]
+#
+#     @classproperty
+#     def explicit_mapping(cls):
+#         return TransportAction
+#
+#
+# @dataclass
+# class DetectActionDAO(ActionDescription, ORMaticExplicitMapping):
+#     technique: DetectionTechnique
+#     state: Optional[DetectionState]
+#     region: Optional[str]
+#     object_at_execution: Optional[FrozenObject]
+#
+#     @classproperty
+#     def explicit_mapping(cls):
+#         return DetectAction
+#
+#
+# @dataclass
+# class GraspingActionDAO(ActionDescription, ORMaticExplicitMapping):
+#     arm: Arms
+#     object_at_execution: FrozenObject
+#
+#     @classproperty
+#     def explicit_mapping(cls):
+#         return GraspingAction
 
 
 # @dataclass
@@ -193,28 +189,31 @@ def classes_of_module(module) -> List[Type]:
 
 
 self_mapped_classes = classes_of_module(pose)
+self_mapped_classes += [ActionDescription] + classes_of_module(action_designator)
+self_mapped_classes += classes_of_module(grasp)
 
-self_mapped_classes += [GraspDescription,
-                        ActionDescription,
-                        PlanNode,
-                        LanguageNode,
+self_mapped_classes += [PlanNode,
+                        # LanguageNode,
                         SequentialNode,
+                        RepeatNode,
+                        # ActionDescription,
+
                         # ParallelNode,
                         # TryInOrderNode,
                         # TryAllNode,
                         # CodeNode,
-                        RepeatNode,
-                        MoveTorsoAction,
-                        SetGripperAction,
-                        ParkArmsAction,
-                        NavigateAction,
-                        LookAtAction,
-                        OpenAction,
-                        CloseAction,
-                        FaceAtAction,
-                        SearchAction,
-                        MoveAndPickUpAction
+
+                        # MoveTorsoAction,
+                        # SetGripperAction,
+                        # ParkArmsAction,
+                        # NavigateAction,
+                        # LookAtAction,
+                        # OpenAction,
+                        # CloseAction,
+                        # FaceAtAction,
+                        # SearchAction,
+                        # MoveAndPickUpAction
                         ]
 
-# List of all classes that are explicitly mapped above. ADD NEW DESIGNATORS HERE!
+# List of all classes that are explicitly mapped above.
 explicitly_mapped_classes = recursive_subclasses(ORMaticExplicitMapping)

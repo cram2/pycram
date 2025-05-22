@@ -928,7 +928,7 @@ class GraspingAction(ActionDescription):
     """
     Grasps an object described by the given Object Designator description
     """
-    object_designator: Union[Object, ObjectDescription.Link]
+    object_designator: Object# Union[Object, ObjectDescription.Link]
     """
     Object Designator for the object that should be grasped
     """

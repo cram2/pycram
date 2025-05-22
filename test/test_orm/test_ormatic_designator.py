@@ -35,7 +35,9 @@ class ORMaticBaseTestCaseMixin(BulletWorldTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.engine = create_engine('sqlite:///:memory:')
+        pycrorm_uri = "sqlite:///:memory:"
+        # pycrorm_uri = "mysql+pymysql://pycrorm@localhost:3306/pycrorm"
+        cls.engine = create_engine(pycrorm_uri)
 
     def setUp(self):
         super().setUp()
