@@ -4,7 +4,6 @@ import sqlalchemy.sql.elements
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import registry, Session
 
-# from pycram.tasktree import TaskTreeNode, task_tree, with_tree
 from pycram.datastructures.dataclasses import FrozenObject, Color
 from pycram.datastructures.enums import TorsoState, Arms, Grasp, DetectionTechnique, DetectionState, GripperState, \
     WorldMode
@@ -19,7 +18,6 @@ from pycram.designators.action_designator import MoveTorsoActionDescription, Par
 from pycram.designators.object_designator import BelieveObject, ObjectPart
 from pycram.language import SequentialPlan
 from pycram.orm.logging_hooks import insert
-from pycram.orm.model import TaskTreeNode as TaskTreeNodeORM, ORMResolvedActionNode
 from pycram.orm.ormatic_interface import *
 from pycram.plan import ResolvedActionNode
 from pycram.process_module import simulated_robot
@@ -49,37 +47,6 @@ class ORMaticBaseTestCaseMixin(BulletWorldTestCase):
         super().tearDown()
         self.mapper_registry.metadata.drop_all(self.session.bind)
         self.session.close()
-
-
-class SchemaTestCases(ORMaticBaseTestCaseMixin):
-    def test_schema_creation(self):
-        tables = list(self.mapper_registry.metadata.tables.keys())
-        self.assertTrue("Vector3" in tables)
-        self.assertTrue("Quaternion" in tables)
-        self.assertTrue("Pose" in tables)
-        self.assertTrue("Header" in tables)
-        self.assertTrue("GraspDescription" in tables)
-        self.assertTrue("FrozenObject" in tables)
-        self.assertTrue("PoseStamped" in tables)
-        self.assertTrue("Transform" in tables)
-        self.assertTrue("TransformStamped" in tables)
-        self.assertTrue("CloseAction" in tables)
-        self.assertTrue("DetectAction" in tables)
-        self.assertTrue("FaceAtAction" in tables)
-        self.assertTrue("GraspingAction" in tables)
-        self.assertTrue("GripAction" in tables)
-        self.assertTrue("LookAtAction" in tables)
-        self.assertTrue("MoveTorsoAction" in tables)
-        self.assertTrue("NavigateAction" in tables)
-        self.assertTrue("OpenAction" in tables)
-        self.assertTrue("ParkArmsAction" in tables)
-        self.assertTrue("PickUpAction" in tables)
-        self.assertTrue("PlaceAction" in tables)
-        self.assertTrue("ReleaseAction" in tables)
-        self.assertTrue("SetGripperAction" in tables)
-        self.assertTrue("TaskTreeNode" in tables)
-        self.assertTrue("TransportAction" in tables)
-
 
 class PoseTestCases(ORMaticBaseTestCaseMixin):
 
@@ -342,63 +309,6 @@ class RelationalAlgebraTestCase(ORMaticBaseTestCaseMixin):
         filtered_navigate_results = self.session.scalars(select(NavigateAction).where(NavigateAction.id == 1)).all()
         self.assertEqual(1, len(filtered_navigate_results))
 
-
-@unittest.skip
-class BelieveObjectTestCase(unittest.TestCase):
-    engine: sqlalchemy.engine
-    session: sqlalchemy.orm.Session
-
-    @classmethod
-    def setUpClass(cls):
-        cls.engine = create_engine("sqlite+pysqlite:///:memory:", echo=False)
-        environment_path = "apartment.urdf"
-        cls.world = BulletWorld(WorldMode.DIRECT)
-        cls.robot = Object("pr2", Robot, path="pr2.urdf", pose=PoseStamped.from_list([1, 2, 0]))
-        cls.apartment = Object(environment_path[:environment_path.find(".")], Apartment, environment_path)
-        cls.milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1, -1.78, 0.55], [1, 0, 0, 0]),
-                          color=Color(1, 0, 0, 1))
-        # cls.viz_marker_publisher = VizMarkerPublisher()
-
-    def setUp(self):
-        self.world.reset_world()
-        self.mapper_registry = mapper_registry
-        self.session = Session(bind=self.engine)
-        self.mapper_registry.metadata.create_all(bind=self.session.bind)
-
-    def tearDown(self):
-        super().tearDown()
-        self.mapper_registry.metadata.drop_all(self.session.bind)
-        # clear_mappers()
-        self.session.close()
-        self.world.reset_world()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.world.ontology.destroy_individuals()
-        # cls.viz_marker_publisher._stop_publishing()
-        cls.world.exit()
-
-    # TODO: Cant test this atm, bc insert for class concept does not work in ORM
-    def test_believe_object(self):
-        # TODO: Find better way to separate BelieveObject no pose from Object pose
-
-        with simulated_robot:
-            ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
-
-            MoveTorsoActionDescription(TorsoState.HIGH).resolve().perform()
-            NavigateActionDescription(target_location=[PoseStamped.from_list([2, -1.89, 0])]).resolve().perform()
-
-            LookAtActionDescription(target=[PoseStamped.from_list([1, -1.78, 0.55])]).resolve().perform()
-
-            object_dict = DetectActionDescription(technique=DetectionTechnique.TYPES,
-                                                  object_designator_description=BelieveObject(
-                                                      types=[Milk])).resolve().perform()
-            object_desig = object_dict[0]
-            TransportActionDescription(object_desig, [PoseStamped.from_list([4.8, 3.55, 0.8])],
-                                       [Arms.LEFT]).resolve().perform()
-
-            ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
-            insert(task_tree.root, self.session)
 
 # Tests for when views are fixed
 

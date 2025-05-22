@@ -1044,7 +1044,7 @@ class MoveAndPickUpAction(ActionDescription):
     The arm to use
     """
 
-    grasp: Grasp
+    grasp_description: GraspDescription
     """
     The grasp to use
     """
@@ -1055,13 +1055,9 @@ class MoveAndPickUpAction(ActionDescription):
     """
 
     def plan(self):
-        if self.grasp == Grasp.TOP:
-            grasp = GraspDescription(Grasp.FRONT, self.grasp, False)
-        else:
-            grasp = GraspDescription(self.grasp, None, False)
         NavigateAction(self.standing_position, self.keep_joint_states).perform()
         FaceAtAction(self.object_designator.pose, self.keep_joint_states).perform()
-        PickUpAction(self.object_designator, self.arm, grasp).perform()
+        PickUpAction(self.object_designator, self.arm, self.grasp_description).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
@@ -1072,15 +1068,15 @@ class MoveAndPickUpAction(ActionDescription):
     def description(cls, standing_position: Union[Iterable[PoseStamped], PoseStamped],
                     object_designator: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None,
-                    grasp: Union[Iterable[Grasp], Grasp] = None,
+                    grasp_description: Union[Iterable[Grasp], Grasp] = None,
                     keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states) -> \
             PartialDesignator[Type[MoveAndPickUpAction]]:
         return PartialDesignator(MoveAndPickUpAction,
                                  standing_position=standing_position,
                                  object_designator=object_designator,
                                  arm=arm,
-                                 grasp=grasp)
-
+                                 grasp_description=grasp_description,
+                                 keep_joint_states=keep_joint_states)
 
 @has_parameters
 @dataclass

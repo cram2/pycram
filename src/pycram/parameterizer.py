@@ -167,6 +167,8 @@ def update_variables_of_simple_event(event: SimpleEvent, new_variables: Dict[Var
         new_variables.get(variable, variable): value for variable, value in event.items()
     })
 
+def update_variables_of_event(event: Event, new_variables: Dict[Variable, Variable]) -> Event:
+    return Event([update_variables_of_simple_event(simple_event, new_variables) for simple_event in event.simple_sets])
 
 def leaf_type_to_variable(name: str, leaf_type: Type) -> Variable:
     """

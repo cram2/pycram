@@ -1,23 +1,28 @@
+import inspect
+import sys
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Type
+from typing import Type, List
 
 from ormatic.ormatic import ORMaticExplicitMapping
 from ormatic.utils import classproperty
+from random_events.utils import recursive_subclasses
 from typing_extensions import Optional
 
+from ..datastructures import pose
+from ..plan import ActionNode, MotionNode, ResolvedActionNode, PlanNode
 from pycrap.ontologies import PhysicalObject
 from .casts import StringType
-from ..datastructures.dataclasses import FrozenObject as FrozenObjectIm
-from ..datastructures.enums import Arms, DetectionTechnique, DetectionState, Grasp, TaskStatus
+from ..datastructures.dataclasses import FrozenObject
+from ..datastructures.enums import Arms, DetectionTechnique, DetectionState, Grasp
 from ..datastructures.grasp import GraspDescription
-from ..datastructures.pose import Pose, PoseStamped, Vector3
-from ..designators.action_designator import MoveTorsoAction, SetGripperAction, ReleaseAction as ReleaseActionDesignator, \
-    GripAction as GripActionDesignator, ParkArmsAction, PickUpAction as PickUpActionDesignator, \
-    PlaceAction as PlaceActionDesignator, NavigateAction, TransportAction as TransportActionDesignator, LookAtAction, \
-    DetectAction as DetectActionDesignator, OpenAction, CloseAction, GraspingAction as GraspingActionDesignator, \
-    FaceAtAction, ActionDescription, ReachToPickUpAction as ReachToPickUpActionDesignator, SearchAction as SearchActionDesignator
-from pycram.plan import ActionNode, MotionNode, ResolvedActionNode
+from ..datastructures.pose import Pose, PoseStamped
+from ..designators.action_designator import MoveTorsoAction, SetGripperAction, ReleaseAction, \
+    GripAction, ParkArmsAction, PickUpAction, \
+    PlaceAction, NavigateAction, TransportAction, LookAtAction, \
+    DetectAction, OpenAction, CloseAction, GraspingAction, \
+    FaceAtAction, ActionDescription, ReachToPickUpAction, \
+    SearchAction, MoveAndPickUpAction
+from ..language import LanguageNode, SequentialNode, ParallelNode, TryInOrderNode, TryAllNode, RepeatNode
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -28,18 +33,9 @@ from pycram.plan import ActionNode, MotionNode, ResolvedActionNode
 #            One attribute equals one column. Please refer to the ORMatic documentation for more information.
 # ----------------------------------------------------------------------------------------------------------------------
 
-@dataclass
-class TaskTreeNode:
-    start_time: datetime
-    end_time: Optional[datetime]
-    status: TaskStatus
-    reason: Optional[str]
-    action: Optional[ActionDescription] = None
-    parent: Optional["TaskTreeNode"] = None
-
 
 @dataclass
-class ORMActionNode(ORMaticExplicitMapping):
+class ActionNodeDAO(ORMaticExplicitMapping):
 
     @classproperty
     def explicit_mapping(cls) -> Type:
@@ -47,7 +43,7 @@ class ORMActionNode(ORMaticExplicitMapping):
 
 
 @dataclass
-class ORMMotionNode(ORMaticExplicitMapping):
+class MotionNodeDAO(ORMaticExplicitMapping):
 
     @classproperty
     def explicit_mapping(cls) -> Type:
@@ -55,7 +51,7 @@ class ORMMotionNode(ORMaticExplicitMapping):
 
 
 @dataclass
-class ORMResolvedActionNode(ORMaticExplicitMapping):
+class ResolvedActionNodeDAO(ORMaticExplicitMapping):
     designator_ref: ActionDescription
 
     @classproperty
@@ -64,82 +60,82 @@ class ORMResolvedActionNode(ORMaticExplicitMapping):
 
 
 @dataclass
-class FrozenObject(ORMaticExplicitMapping):
+class FrozenObjectDAO(ORMaticExplicitMapping):
     name: str
     concept: PhysicalObject
     pose: Optional[PoseStamped]
 
     @classproperty
     def explicit_mapping(cls):
-        return FrozenObjectIm
+        return FrozenObject
 
 
 @dataclass
-class ReleaseAction(ActionDescription, ORMaticExplicitMapping):
+class ReleaseActionDAO(ActionDescription, ORMaticExplicitMapping):
     gripper: Arms
     object_at_execution: Optional[FrozenObject]
 
     @classproperty
     def explicit_mapping(cls):
-        return ReleaseActionDesignator
+        return ReleaseAction
 
 
 @dataclass
-class GripAction(ActionDescription, ORMaticExplicitMapping):
+class GripActionDAO(ActionDescription, ORMaticExplicitMapping):
     gripper: Arms
     effort: float
     object_at_execution: Optional[FrozenObject]
 
     @classproperty
     def explicit_mapping(cls):
-        return GripActionDesignator
+        return GripAction
 
 
 @dataclass
-class ReachToPickUpAction(ActionDescription, ORMaticExplicitMapping):
+class ReachToPickUpActionDAO(ActionDescription, ORMaticExplicitMapping):
     arm: Arms
     grasp_description: GraspDescription
     object_at_execution: Optional[FrozenObject]
 
     @classproperty
     def explicit_mapping(cls):
-        return ReachToPickUpActionDesignator
+        return ReachToPickUpAction
 
 
 @dataclass
-class PickUpAction(ActionDescription, ORMaticExplicitMapping):
+class PickUpActionDAO(ActionDescription, ORMaticExplicitMapping):
     arm: Arms
     object_at_execution: Optional[FrozenObject]
 
     @classproperty
     def explicit_mapping(cls):
-        return PickUpActionDesignator
+        return PickUpAction
 
 
 @dataclass
-class PlaceAction(ActionDescription, ORMaticExplicitMapping):
-    arm: Arms
-    target_location: PoseStamped
-    object_at_execution: Optional[FrozenObject]
-
-    @classproperty
-    def explicit_mapping(cls):
-        return PlaceActionDesignator
-
-
-@dataclass
-class TransportAction(ActionDescription, ORMaticExplicitMapping):
+class PlaceActionDAO(ActionDescription, ORMaticExplicitMapping):
     arm: Arms
     target_location: PoseStamped
     object_at_execution: Optional[FrozenObject]
 
     @classproperty
     def explicit_mapping(cls):
-        return TransportActionDesignator
+        return PlaceAction
 
 
 @dataclass
-class DetectAction(ActionDescription, ORMaticExplicitMapping):
+class TransportActionDAO(ActionDescription, ORMaticExplicitMapping):
+    arm: Arms
+    target_location: PoseStamped
+    object_at_execution: Optional[FrozenObject]
+
+    @classproperty
+    def explicit_mapping(cls):
+        return TransportAction
+
+
+@dataclass
+class DetectActionDAO(ActionDescription, ORMaticExplicitMapping):
     technique: DetectionTechnique
     state: Optional[DetectionState]
     region: Optional[str]
@@ -147,42 +143,78 @@ class DetectAction(ActionDescription, ORMaticExplicitMapping):
 
     @classproperty
     def explicit_mapping(cls):
-        return DetectActionDesignator
+        return DetectAction
 
 
 @dataclass
-class GraspingAction(ActionDescription, ORMaticExplicitMapping):
+class GraspingActionDAO(ActionDescription, ORMaticExplicitMapping):
     arm: Arms
     object_at_execution: FrozenObject
 
     @classproperty
     def explicit_mapping(cls):
-        return GraspingActionDesignator
+        return GraspingAction
 
 
-@dataclass
-class MoveAndPickUpAction(ActionDescription, ORMaticExplicitMapping):
-    standing_position: Pose
-    object_designator: FrozenObject
-    arm: Arms
-    grasp: Grasp
-    keep_joint_states: bool
+# @dataclass
+# class MoveAndPickUpActionDAO(ActionDescription, ORMaticExplicitMapping):
+#     standing_position: PoseStamped
+#     object_designator: FrozenObject
+#     arm: Arms
+#     grasp: Grasp
+#     keep_joint_states: bool
+#
+#     @classproperty
+#     def explicit_mapping(cls):
+#         return MoveAndPickUpAction
 
-    # @classproperty
-    # def explicit_mapping(cls):
-    #     return
 
 # specify custom type mappings
-type_mappings ={
+type_mappings = {
     PhysicalObject: StringType(),
 }
 
+"""
+List of standard classes that are to be mapped to the database.
+"""
 
-# List of all classes that are self-mapped. ADD NEW DESIGNATORS HERE!
-self_mapped_classes = [TaskTreeNode, ActionDescription, MoveTorsoAction, SetGripperAction, ParkArmsAction,
-                       NavigateAction, LookAtAction, OpenAction, CloseAction, FaceAtAction, SearchActionDesignator]
+
+# pycram.plan.ResolvedActionNode.__annotations__.update({"designator_ref": pycram.designator.ActionDescription})
+# pycram.plan.ResolvedActionNode.__annotations__.update({"action": pycram.designator.ActionDescription})
+# pycram.plan.MotionNode.__annotations__.update({"designator_ref": pycram.designator.BaseMotion})
+# pycram.language.LanguageNode.__annotations__.update({"action": pycram.designator.ActionDescription})
+
+def classes_of_module(module) -> List[Type]:
+    result = []
+    for name, obj in inspect.getmembers(sys.modules[module.__name__]):
+        if inspect.isclass(obj) and obj.__module__ == module.__name__:
+            result.append(obj)
+    return result
+
+
+self_mapped_classes = classes_of_module(pose)
+
+self_mapped_classes += [GraspDescription,
+                        ActionDescription,
+                        PlanNode,
+                        LanguageNode,
+                        SequentialNode,
+                        # ParallelNode,
+                        # TryInOrderNode,
+                        # TryAllNode,
+                        # CodeNode,
+                        RepeatNode,
+                        MoveTorsoAction,
+                        SetGripperAction,
+                        ParkArmsAction,
+                        NavigateAction,
+                        LookAtAction,
+                        OpenAction,
+                        CloseAction,
+                        FaceAtAction,
+                        SearchAction,
+                        MoveAndPickUpAction
+                        ]
 
 # List of all classes that are explicitly mapped above. ADD NEW DESIGNATORS HERE!
-explicitly_mapped_classes = [DetectAction, GraspingAction, ReleaseAction, GripAction, FrozenObject,
-                             ReachToPickUpAction, PickUpAction, PlaceAction, TransportAction, ORMActionNode,
-                             ORMMotionNode, ORMResolvedActionNode]
+explicitly_mapped_classes = recursive_subclasses(ORMaticExplicitMapping)

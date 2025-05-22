@@ -92,7 +92,7 @@ The default policy tries to pick up the object by standing close to it, but not 
 fpa = MoveAndPickUp(milk_description, arms=[Arms.LEFT, Arms.RIGHT],
                     grasps=[Grasp.FRONT.value, Grasp.LEFT.value, Grasp.RIGHT.value, Grasp.TOP.value])
 print(world.current_world)
-p_xy = fpa.policy.marginal([fpa.variables.relative_x, fpa.variables.relative_y])
+p_xy = fpa.policy.marginal([fpa.Variables.relative_x, fpa.Variables.relative_y])
 fig = go.Figure(p_xy.plot(), p_xy.plotly_layout())
 fig.update_layout(title="Marginal View of relative x and y position of the robot with respect to the object.")
 fig.show()
@@ -133,7 +133,7 @@ print(model)
 ```
 
 ```python
-arm, grasp, relative_x, relative_y = model.variables
+arm, grasp, relative_x, relative_y = model.Variables
 ```
 
 Let's have a look at how the model looks like. We will visualize the model density when we condition on grasping the
