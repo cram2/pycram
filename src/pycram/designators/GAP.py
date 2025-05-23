@@ -6,13 +6,13 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from time import sleep
-from typing import Optional, Union, Iterable
+from typing import Optional, Union, Iterable, Tuple
 
 from typing_extensions import Any
 
 from .. import utils
 from .motion_designator import MoveTCPMotion
-from ..datastructures.enums import Arms, Grasp
+from ..datastructures.enums import Arms, Grasp, AxisIdentifier
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.pose import PoseStamped
 from ..datastructures.world import World
@@ -98,7 +98,7 @@ class CuttingAction(GAP):
         for slice_pose in slice_poses:
             pose_a = obj.pose
             pose_b = World.robot.pose
-            angle, angle_y = pose_a.get_rotation_offset_from_axis_preference(pose_b)
+            angle, angle_y = self.get_rotation_offset_from_axis_preference(pose_a, pose_b)
             direction = 1 if angle_y >= 0 else -1
             slice_pose.pose.position.y += direction * (length_tool / 2)
 
@@ -134,6 +134,21 @@ class CuttingAction(GAP):
         rotation_quaternion = utils.axis_angle_to_quaternion([0, 0, 1], angle)
         pose_rotated.rotate_by_quaternion(rotation_quaternion)
         return pose_rotated
+
+    @staticmethod
+    def get_rotation_offset_from_axis_preference(pose_a, pose_b: PoseStamped) -> Tuple[int, float]:
+        """
+        Compute a discrete rotation offset (-90 or 90 degrees) to align this pose's local axes with the direction
+        toward a target pose, based on which axis (X or Y) is more aligned.
+
+        :param pose_a: The source pose.
+        :param pose_b: The target pose to align with.
+        :return: Tuple of (rotation offset in degrees, signed angle difference in radians for Y axis).
+        """
+        fx, ax = pose_a.is_facing_2d_axis(pose_b, axis=AxisIdentifier.X)
+        fy, ay = pose_a.is_facing_2d_axis(pose_b, axis=AxisIdentifier.Y)
+
+        return (-90 if abs(ax) > abs(ay) else 90), ay
 
 
 
