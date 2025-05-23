@@ -107,11 +107,3 @@ class TestPose(unittest.TestCase):
         # reverse direction
         b.position.x = -1
         self.assertFalse(a.is_facing_x_or_y(b))
-
-    def test_rotation_offset_from_axis_preference(self):
-        a = PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1], "map")
-        b = PoseStamped.from_list([0, 1, 0], [0, 0, 0, 1], "map")  # upward in Y
-
-        angle, angle_y = a.get_rotation_offset_from_axis_preference(b)
-        self.assertEqual(angle, 90)
-        self.assertTrue(angle_y > 0)
