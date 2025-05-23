@@ -1,5 +1,7 @@
+import math
 import unittest
 
+from datastructures.enums import AxisIdentifier
 from pycram.datastructures.pose import PoseStamped, TransformStamped, Quaternion, Vector3
 
 
@@ -88,12 +90,12 @@ class TestPose(unittest.TestCase):
         a = PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1], "map")  # facing +x
         b = PoseStamped.from_list([1, 0, 0], [0, 0, 0, 1], "map")
 
-        facing, angle = a.is_facing_2d_axis(b, axis='x')
+        facing, angle = a.is_facing_2d_axis(b, axis=AxisIdentifier.X)
         self.assertTrue(facing)
         self.assertAlmostEqual(angle, 0, delta=1e-6)
 
         # now test Y alignment (should be 90 deg difference)
-        facing_y, angle_y = a.is_facing_2d_axis(b, axis='y')
+        facing_y, angle_y = a.is_facing_2d_axis(b, axis=AxisIdentifier.Y)
         self.assertFalse(facing_y)
         self.assertAlmostEqual(abs(angle_y), math.pi / 2, delta=1e-6)
 

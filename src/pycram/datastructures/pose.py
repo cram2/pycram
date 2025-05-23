@@ -585,7 +585,9 @@ class PoseStamped(HasParameters):
         """
         self.orientation = self.orientation * Quaternion.from_list(quaternion)
 
-    def is_facing_2d_axis(self, pose_b, axis='x', threshold_deg=82):
+    def is_facing_2d_axis(self, pose_b: PoseStamped, axis: Optional[AxisIdentifier] = AxisIdentifier.X,
+                          threshold_deg=82) -> \
+            Tuple[bool, float]:
         """
          Check if this pose is facing another pose along a specific axis (X or Y) within a given angular threshold.
 
@@ -601,12 +603,12 @@ class PoseStamped(HasParameters):
 
         q = self.orientation
         yaw = math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y ** 2 + q.z ** 2))
-        if axis == 'y':
+        if axis == AxisIdentifier.Y:
             yaw += math.pi / 2
         diff = math.atan2(math.sin(target_angle - yaw), math.cos(target_angle - yaw))
         return abs(diff) < math.radians(threshold_deg), diff
 
-    def is_facing_x_or_y(self, pose_b):
+    def is_facing_x_or_y(self, pose_b: PoseStamped) -> bool:
         """
         Check if this pose is facing another pose along either the X or Y axis within a default angular threshold.
 
@@ -614,10 +616,10 @@ class PoseStamped(HasParameters):
         :return: True if this pose is facing the target along either X or Y axis, False otherwise.
         """
 
-        result = {a: self.is_facing_2d_axis(pose_b, axis=a) for a in ('x', 'y')}
+        result = {a: self.is_facing_2d_axis(pose_b, axis=a) for a in (AxisIdentifier.X, AxisIdentifier.Y)}
         return any(r[0] for r in result.values())
 
-    def get_rotation_offset_from_axis_preference(self, pose_b):
+    def get_rotation_offset_from_axis_preference(self, pose_b: PoseStamped) -> Tuple[int, float]:
         """
         Compute a discrete rotation offset (-90 or 90 degrees) to align this pose's local axes with the direction
         toward a target pose, based on which axis (X or Y) is more aligned.
@@ -625,12 +627,10 @@ class PoseStamped(HasParameters):
         :param pose_b: The target pose to align with.
         :return: Tuple of (rotation offset in degrees, signed angle difference in radians for Y axis).
         """
-        fx, ax = self.is_facing_2d_axis(pose_b, axis='x')
-        fy, ay = self.is_facing_2d_axis(pose_b, axis='y')
+        fx, ax = self.is_facing_2d_axis(pose_b, axis=AxisIdentifier.X)
+        fy, ay = self.is_facing_2d_axis(pose_b, axis=AxisIdentifier.Y)
 
         return (-90 if abs(ax) > abs(ay) else 90), ay
-
-
 
 
 @dataclass
