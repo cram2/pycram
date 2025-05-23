@@ -1,8 +1,7 @@
 import math
 import unittest
 
-from datastructures.enums import AxisIdentifier
-from pycram.datastructures.pose import PoseStamped, TransformStamped, Quaternion, Vector3
+from pycram.datastructures.pose import PoseStamped, TransformStamped, Quaternion, Vector3, AxisIdentifier
 
 
 class TestPose(unittest.TestCase):
