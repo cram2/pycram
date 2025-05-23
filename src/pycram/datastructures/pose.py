@@ -619,18 +619,6 @@ class PoseStamped(HasParameters):
         result = {a: self.is_facing_2d_axis(pose_b, axis=a) for a in (AxisIdentifier.X, AxisIdentifier.Y)}
         return any(r[0] for r in result.values())
 
-    def get_rotation_offset_from_axis_preference(self, pose_b: PoseStamped) -> Tuple[int, float]:
-        """
-        Compute a discrete rotation offset (-90 or 90 degrees) to align this pose's local axes with the direction
-        toward a target pose, based on which axis (X or Y) is more aligned.
-
-        :param pose_b: The target pose to align with.
-        :return: Tuple of (rotation offset in degrees, signed angle difference in radians for Y axis).
-        """
-        fx, ax = self.is_facing_2d_axis(pose_b, axis=AxisIdentifier.X)
-        fy, ay = self.is_facing_2d_axis(pose_b, axis=AxisIdentifier.Y)
-
-        return (-90 if abs(ax) > abs(ay) else 90), ay
 
 
 @dataclass
