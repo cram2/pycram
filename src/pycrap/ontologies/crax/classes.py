@@ -151,6 +151,12 @@ class CuttingTool(PhysicalObject):
     """
 
 
+class MixingTool(PhysicalObject):
+    """
+    The tool used for mixing — such as a Spoon, Whisk, or similar — depends on the specific task and object being processed.
+    """
+
+
 class Agent(Base):
     ...
 
