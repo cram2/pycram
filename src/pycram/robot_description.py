@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import dataclasses
+import glob
+import importlib
+from os.path import dirname, basename, isfile, join
 import math
 from dataclasses import field
 from enum import Enum
@@ -44,6 +47,7 @@ class RobotDescriptionManager:
         if self._initialized: return
         self.descriptions: Dict[str, RobotDescription] = {}
         self._initialized = True
+        self.register_all_descriptions()
 
     def load_description(self, name: str):
         """
@@ -72,6 +76,17 @@ class RobotDescriptionManager:
         if description.name in self.descriptions.keys():
             raise ValueError(f"Description {description.name} already exists")
         self.descriptions[description.name] = description
+
+    @staticmethod
+    def register_all_descriptions():
+        modules = glob.glob(join(dirname(__file__) + "/robot_descriptions", "*.py"))
+        __all__ = [basename(f)[:-3] for f in modules if isfile(f) and not f.endswith('__init__.py')]
+
+        for module_name in __all__:
+            try:
+                importlib.import_module(f".{module_name}", package="pycram.robot_descriptions")
+            except Exception as e:
+                print(f"Error loading module {module_name}: {e}")
 
 
 class RobotDescription:

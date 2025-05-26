@@ -84,3 +84,5 @@ class DonbotManager(DefaultManager):
     def looking(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DonbotMoveHead(self._looking_lock)
+
+DonbotManager()

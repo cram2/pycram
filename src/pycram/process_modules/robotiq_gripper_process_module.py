@@ -37,3 +37,5 @@ class RobotiqManager(DefaultManager):
             return DefaultMoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return RobotiqMoveGripperReal(self._move_gripper_lock)
+
+RobotiqManager()

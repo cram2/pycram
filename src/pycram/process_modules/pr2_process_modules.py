@@ -103,3 +103,6 @@ class Pr2Manager(DefaultManager):
                 return Pr2MoveGripperMultiverse(self._move_gripper_lock)
             else:
                 return Pr2MoveGripperReal(self._move_gripper_lock)
+
+# Initialize the PR2 manager and register it with the process module manager
+Pr2Manager()

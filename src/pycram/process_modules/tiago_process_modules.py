@@ -123,3 +123,5 @@ class TiagoManager(DefaultManager):
             return DefaultMoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return DefaultMoveGripperReal(self._move_gripper_lock)
+
+TiagoManager()
