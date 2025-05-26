@@ -1,7 +1,7 @@
 
 from .datastructures.world import World
 import signal
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 
 def signal_handler(sig, frame):
