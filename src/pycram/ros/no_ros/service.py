@@ -14,4 +14,4 @@ def wait_for_service(topic_name: str) -> None:
 
     :param topic_name: The name of the service.
     """
-    pass
+    raise NotImplementedError("ROS is not available. Cannot wait for service.")

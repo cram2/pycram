@@ -10,4 +10,4 @@ def create_publisher(topic, msg_type, queue_size=10, latch: bool = False) -> Non
     """
     # This is a placeholder implementation. In a real implementation, you would use
     # the appropriate ROS API to create the publisher.
-    pass
+    raise NotImplementedError("ROS is not available in this environment. ")

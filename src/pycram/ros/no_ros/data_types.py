@@ -6,8 +6,9 @@ class Time:
     """
     Class to abstract the ROS2 Time, to make it more consistent with the ROS1 Time class.
     """
-    def __init__(self, time=0.0):
+    def __init__(self, time=0.0, nsec=0.0):
         self.time = time
+        self.nsec = nsec
 
     @classmethod
     def now(cls):
