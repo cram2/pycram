@@ -1,3 +1,4 @@
+import os
 import time
 import unittest
 from datetime import timedelta
@@ -10,10 +11,13 @@ from .robot_description import RobotDescription, RobotDescriptionManager
 from .process_module import ProcessModule
 from .datastructures.enums import WorldMode
 from .object_descriptors.urdf import ObjectDescription
-from .ros_utils.viz_marker_publisher import VizMarkerPublisher
 from .plan import Plan
+from .ros import loginfo
 from pycrap.ontologies import Milk, Robot, Kitchen, Cereal
-
+try:
+    from .ros_utils.viz_marker_publisher import VizMarkerPublisher
+except ImportError:
+    loginfo("Could not import VizMarkerPublisher. This is probably because you are not running ROS.")
 
 class EmptyBulletWorldTestCase(unittest.TestCase):
     """
@@ -21,14 +25,15 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
     """
 
     world: BulletWorld
-    viz_marker_publisher: VizMarkerPublisher
+    #viz_marker_publisher: VizMarkerPublisher
     extension: str = ObjectDescription.get_file_extension()
     render_mode = WorldMode.DIRECT
 
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(mode=cls.render_mode)
-        cls.viz_marker_publisher = VizMarkerPublisher()
+        if "ROS_VERSION" in os.environ:
+            cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):
         self.world.reset_world(remove_saved_states=True)
@@ -45,7 +50,8 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.viz_marker_publisher._stop_publishing()
+        if "ROS_VERSION" in os.environ:
+            cls.viz_marker_publisher._stop_publishing()
         cls.world.exit()
 
 
@@ -55,7 +61,7 @@ class BulletWorldTestCase(EmptyBulletWorldTestCase):
     """
 
     world: BulletWorld
-    viz_marker_publisher: VizMarkerPublisher
+    #viz_marker_publisher: VizMarkerPublisher
     extension: str = ObjectDescription.get_file_extension()
 
     @classmethod

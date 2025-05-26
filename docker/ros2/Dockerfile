@@ -10,7 +10,7 @@ WORKDIR $OVERLAY_WS/src
 SHELL ["/bin/bash", "-c"]
 
 RUN apt update && apt install python3.12-venv ros-jazzy-xacro python3-vcstool git ros-dev-tools default-jre -y
-RUN vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram-ros2-https.rosinstall
+RUN vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/rosinstall/pycram-ros2-https.rosinstall
 RUN source /opt/ros/jazzy/setup.bash && cd $OVERLAY_WS && colcon build --symlink-install
 RUN echo "source $OVERLAY_WS/install/setup.bash" >> ~/.bashrc
 

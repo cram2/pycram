@@ -8,7 +8,7 @@ WORKDIR $OVERLAY_WS/src
 RUN apt-get update && apt-get install python3-pip python3-vcstool git default-jre python3-catkin-tools -y && pip3 install pip --upgrade
 RUN pip3 install rosdep && rosdep init
 
-RUN vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram-https.rosinstall --skip-existing $OVERLAY_WS/src
+RUN vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/rosinstall/pycram-https.rosinstall--skip-existing $OVERLAY_WS/src
 RUN rosdep update && rosdep install --from-paths $OVERLAY_WS/src --ignore-src -r -y
 
 RUN . /opt/ros/noetic/setup.sh && cd $OVERLAY_WS && catkin build

@@ -13,8 +13,11 @@ from .datastructures.world import World
 from .datastructures.dataclasses import BoundingBox
 from .datastructures.pose import PoseStamped
 from .failures import PlanFailure
-from .ros_utils.viz_marker_publisher import TrajectoryPublisher
-
+from .ros import loginfo
+try:
+    from .ros_utils.viz_marker_publisher import TrajectoryPublisher
+except ImportError:
+    loginfo("Could not import TrajectoryPublisher. This is probably because you are not running ROS.")
 
 class PoseOccupiedError(PlanFailure):
     """
