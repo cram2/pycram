@@ -4,7 +4,7 @@ from . import robot_descriptions
 
 from .datastructures.world import World
 import signal
-__version__ = "0.0.9"
+__version__ = "0.0.91"
 
 
 def signal_handler(sig, frame):

@@ -38,7 +38,7 @@ if os.environ.get('ROS_VERSION') == "1":
     setup(**setup_args)
 elif os.environ.get('ROS_VERSION') == "2":
 
-    package_name = 'pycram'
+    package_name = 'pycram-robotics'
 
 
     # Iterate through all the files and subdirectories
@@ -83,7 +83,7 @@ elif os.environ.get('ROS_VERSION') == "2":
 
 else:
     setup(
-        name="pycram",
+        name="pycram-robotics",
         version=get_version(),
         # packages=find_packages(exclude=['test'], include=['pycram', 'pycrap']),
         package_dir={"": "src"},  # Optional
