@@ -19,7 +19,7 @@ from ..datastructures.pose import PoseStamped
 from ..designator import ActionDescription
 from ..designators import action_designator
 from ..failures import PlanFailure
-from ..language import LanguageNode, SequentialNode, RepeatNode
+from ..language import LanguageNode, SequentialNode, RepeatNode, TryInOrderNode, ParallelNode, TryAllNode, CodeNode
 from ..plan import ActionNode, MotionNode, PlanNode, ResolvedActionNode, DesignatorNode
 
 
@@ -95,6 +95,34 @@ class ResolvedActionNodeDAO(ORMaticExplicitMapping):
     def explicit_mapping(cls) -> Type:
         return ResolvedActionNode
 
+@dataclass
+class TryInOrderDAO(ORMaticExplicitMapping):
+
+    @classproperty
+    def explicit_mapping(cls) -> Type:
+        return TryInOrderNode
+
+@dataclass
+class ParallelNodeDAO(ORMaticExplicitMapping):
+
+    @classproperty
+    def explicit_mapping(cls):
+        return ParallelNode
+
+
+@dataclass
+class TryAllNodeDAO(ORMaticExplicitMapping):
+
+    @classproperty
+    def explicit_mapping(cls):
+        return TryAllNode
+
+class CodeNodeDAO(ORMaticExplicitMapping):
+
+    @classproperty
+    def explicit_mapping(cls):
+        return CodeNode
+
 
 @dataclass
 class FrozenObjectDAO(ORMaticExplicitMapping):
@@ -105,3 +133,4 @@ class FrozenObjectDAO(ORMaticExplicitMapping):
     @classproperty
     def explicit_mapping(cls):
         return FrozenObject
+
