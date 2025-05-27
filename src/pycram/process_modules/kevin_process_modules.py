@@ -72,3 +72,5 @@ class KevinManager(DefaultManager):
         elif ProcessModuleManager.execution_type == "real":
             raise NotImplemented
             # return KevinMoveGripperReal(self._move_gripper_lock)
+
+KevinManager()

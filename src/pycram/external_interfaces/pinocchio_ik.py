@@ -24,7 +24,7 @@ def create_joint_configuration(robot: Object, model) -> np.ndarray[float]:
         if name == "universe":
             continue
         # These are continuous joints for all dimensions which are represented by the sin and cos values
-        if joint.shortname() in ["JointModelRUBX", "JointModelRUBY", "JointModelRUBZ"]:
+        if joint.shortname() in ["JointModelRUBX", "JointModelRUBY", "JointModelRUBZ", "JointModelRevoluteUnboundedUnaligned"]:
             configuration.append(np.cos(robot.joints[name].position))
             configuration.append(np.sin(robot.joints[name].position))
         else:

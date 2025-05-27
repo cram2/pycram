@@ -16,7 +16,6 @@ from ..world_concepts.world_object import Object
 from ..robot_description import RobotDescription
 
 from typing_extensions import List, Dict, Callable, Optional
-from geometry_msgs.msg import PoseStamped as ROSPoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 from threading import Lock, RLock
 from pycram.ros import logging as log
 
@@ -62,6 +61,7 @@ def init_giskard_interface(func: Callable) -> Callable:
 
         from giskardpy.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
         from giskard_msgs.msg import WorldBody, MoveResult, CollisionEntry
+        from geometry_msgs.msg import PoseStamped as ROSPoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 
         global giskard_wrapper
         global giskard_update_service
@@ -208,7 +208,7 @@ def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> 'UpdateWorldResp
 
 
 @init_giskard_interface
-def spawn_mesh(name: str, path: str, pose: PoseStamped) -> 'UpdateWorldResponse':
+def spawn_mesh(name: str, path: str, pose: 'PoseStamped') -> 'UpdateWorldResponse':
     """
     Spawns a mesh into giskard's belief state
 
@@ -332,7 +332,7 @@ def set_joint_goal(goal_poses: Dict[str, float]) -> None:
 
 @init_giskard_interface
 @thread_safe
-def achieve_cartesian_goal(goal_pose: PoseStamped, tip_link: str, root_link: str,
+def achieve_cartesian_goal(goal_pose: 'PoseStamped', tip_link: str, root_link: str,
                            position_threshold: float = 0.02,
                            orientation_threshold: float = 0.02,
                            use_monitor: bool = True,
@@ -380,7 +380,7 @@ def achieve_cartesian_goal(goal_pose: PoseStamped, tip_link: str, root_link: str
 
 @init_giskard_interface
 @thread_safe
-def achieve_straight_cartesian_goal(goal_pose: PoseStamped, tip_link: str,
+def achieve_straight_cartesian_goal(goal_pose: 'PoseStamped', tip_link: str,
                                     root_link: str,
                                     grippers_that_can_collide: Optional[Arms] = None) -> 'MoveResult':
     """
@@ -546,7 +546,7 @@ def achieve_close_container_goal(tip_link: str, environment_link: str) -> 'MoveR
 
 
 @init_giskard_interface
-def achieve_cartesian_waypoints_goal(waypoints: List[PoseStamped], tip_link: str,
+def achieve_cartesian_waypoints_goal(waypoints: List['PoseStamped'], tip_link: str,
                                      root_link: str, enforce_final_orientation: bool = True) -> 'MoveResult':
     """
         Tries to achieve each waypoint in the given sequence of waypoints.
@@ -611,7 +611,7 @@ def achieve_cartesian_waypoints_goal(waypoints: List[PoseStamped], tip_link: str
 
 
 @init_giskard_interface
-def projection_cartesian_goal(goal_pose: PoseStamped, tip_link: str, root_link: str) -> 'MoveResult':
+def projection_cartesian_goal(goal_pose: 'PoseStamped', tip_link: str, root_link: str) -> 'MoveResult':
     """
     Tries to move the tip_link to the position defined by goal_pose using the chain defined by tip_link and root_link.
     The goal_pose is projected to the closest point on the robot's workspace.
@@ -627,7 +627,7 @@ def projection_cartesian_goal(goal_pose: PoseStamped, tip_link: str, root_link: 
 
 
 @init_giskard_interface
-def projection_cartesian_goal_with_approach(approach_pose: PoseStamped, goal_pose: PoseStamped, tip_link: str, root_link: str,
+def projection_cartesian_goal_with_approach(approach_pose: 'PoseStamped', goal_pose: 'PoseStamped', tip_link: str, root_link: str,
                                             robot_base_link: str) -> 'MoveResult':
     """
     Tries to achieve the goal_pose using the chain defined by tip_link and root_link. The approach_pose is used to drive
@@ -757,7 +757,7 @@ def make_world_body(object: Object) -> 'WorldBody':
     return urdf_body
 
 
-def make_point_stamped(point: List[float]) -> PointStamped:
+def make_point_stamped(point: List[float]) -> 'PointStamped':
     """
     Creates a PointStamped message for the given position in world coordinate frame.
 
@@ -775,7 +775,7 @@ def make_point_stamped(point: List[float]) -> PointStamped:
     return msg
 
 
-def make_quaternion_stamped(quaternion: List[float]) -> QuaternionStamped:
+def make_quaternion_stamped(quaternion: List[float]) -> 'QuaternionStamped':
     """
     Creates a QuaternionStamped message for the given quaternion.
 
@@ -794,7 +794,7 @@ def make_quaternion_stamped(quaternion: List[float]) -> QuaternionStamped:
     return msg
 
 
-def make_vector_stamped(vector: List[float]) -> Vector3Stamped:
+def make_vector_stamped(vector: List[float]) -> 'Vector3Stamped':
     """
     Creates a Vector3Stamped message, this is similar to PointStamped but represents a vector instead of a point.
 

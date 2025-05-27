@@ -1,6 +1,7 @@
+import math
 import unittest
 
-from pycram.datastructures.pose import PoseStamped, TransformStamped, Quaternion, Vector3
+from pycram.datastructures.pose import PoseStamped, TransformStamped, Quaternion, Vector3, AxisIdentifier
 
 
 class TestPose(unittest.TestCase):
@@ -27,10 +28,10 @@ class TestPose(unittest.TestCase):
         self.assertEqual(p.position.to_list(), [1, 1, 1])
         p.position.x = 2
         self.assertEqual(p.position.to_list(), [2, 1, 1])
-        p.position = Vector3( 3, 3, 3)
+        p.position = Vector3(3, 3, 3)
         self.assertEqual(p.position.to_list(), [3, 3, 3])
 
-        p.orientation = Quaternion(0,0,0,1)
+        p.orientation = Quaternion(0, 0, 0, 1)
         self.assertEqual(p.orientation.to_list(), [0, 0, 0, 1])
         p.orientation.x = 1
         self.assertEqual(p.orientation.to_list(), [1, 0, 0, 1])
@@ -83,3 +84,26 @@ class TestPose(unittest.TestCase):
         mul_t = t * t2
 
         self.assertEqual(mul_t.translation.to_list(), [4, 4, 4])
+
+    def test_is_facing_2d_axis(self):
+        a = PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1], "map")  # facing +x
+        b = PoseStamped.from_list([1, 0, 0], [0, 0, 0, 1], "map")
+
+        facing, angle = a.is_facing_2d_axis(b, axis=AxisIdentifier.X)
+        self.assertTrue(facing)
+        self.assertAlmostEqual(angle, 0, delta=1e-6)
+
+        # now test Y alignment (should be 90 deg difference)
+        facing_y, angle_y = a.is_facing_2d_axis(b, axis=AxisIdentifier.Y)
+        self.assertFalse(facing_y)
+        self.assertAlmostEqual(abs(angle_y), math.pi / 2, delta=1e-6)
+
+    def test_is_facing_x_or_y(self):
+        a = PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1], "map")
+        b = PoseStamped.from_list([1, 0, 0], [0, 0, 0, 1], "map")
+
+        self.assertTrue(a.is_facing_x_or_y(b))
+
+        # reverse direction
+        b.position.x = -1
+        self.assertFalse(a.is_facing_x_or_y(b))

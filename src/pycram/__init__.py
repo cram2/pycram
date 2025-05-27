@@ -1,10 +1,7 @@
-from . import process_modules
-from . import robot_descriptions
-# from .specialized_designators import *
 
 from .datastructures.world import World
 import signal
-__version__ = "0.0.2"
+__version__ = "1.0.1"
 
 
 def signal_handler(sig, frame):
@@ -14,6 +11,4 @@ def signal_handler(sig, frame):
     exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
-
-
 

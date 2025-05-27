@@ -335,6 +335,20 @@ def managed_node(func: Callable) -> Callable:
     """
 
     def wrapper(node: DesignatorNode) -> Any:
+        def wait(node):
+            continue_execution = False
+            while not continue_execution:
+                all_parents_status = [parent.status for parent in node.all_parents] + [node.status]
+                if TaskStatus.SLEEPING not in all_parents_status:
+                    continue_execution = True
+                time.sleep(0.1)
+
+        all_parents_status = [parent.status for parent in node.all_parents] + [node.status]
+        if TaskStatus.INTERRUPTED in all_parents_status:
+            return
+        elif TaskStatus.SLEEPING in all_parents_status:
+            wait(node)
+
         node.status = TaskStatus.RUNNING
         node.start_time = datetime.now()
         on_start_callbacks = (Plan.on_start_callback.get(node.action, []) +
@@ -612,13 +626,6 @@ class MotionNode(DesignatorNode):
     def __hash__(self):
         return id(self)
 
-    def wait(self):
-        continue_execution = False
-        while not continue_execution:
-            all_parents_status = [parent.status for parent in self.all_parents]
-            if TaskStatus.SLEEPING not in all_parents_status:
-                continue_execution = True
-            time.sleep(0.1)
 
     @managed_node
     def perform(self):
@@ -628,11 +635,6 @@ class MotionNode(DesignatorNode):
 
         :return: The return value of the Motion Designator
         """
-        all_parents_status = [parent.status for parent in self.all_parents]
-        if TaskStatus.INTERRUPTED in all_parents_status:
-            return
-        elif TaskStatus.SLEEPING in all_parents_status:
-            self.wait()
         return self.designator_ref.perform()
 
     def __repr__(self, *args, **kwargs):
