@@ -9,7 +9,13 @@ PyCRAM is a plan executive framework for cognitive robotics that enables robust 
 
 ## Installation
 
-The recommended installation method is via the automated script:
+The recommended installation method is via `pip`:
+
+```bash
+pip install pycram-robotics
+```
+
+For an alternative installation from source, use the automated script:
 
 ```bash
 curl -s https://raw.githubusercontent.com/cram2/pycram/dev/scripts/install.sh | bash
