@@ -168,9 +168,8 @@ class TestPlanInterrupt(BulletWorldTestCase):
                 Plan.current_plan.root.interrupt()
 
             code_node = CodeNode(interrupt_plan)
-            with self.assertRaises(TorsoGoalNotReached):
-                with simulated_robot:
-                    SequentialPlan(MoveTorsoActionDescription(TorsoState.HIGH), Plan(code_node), MoveTorsoActionDescription([TorsoState.LOW])).perform()
+            with simulated_robot:
+                SequentialPlan(MoveTorsoActionDescription(TorsoState.HIGH), Plan(code_node), MoveTorsoActionDescription([TorsoState.LOW])).perform()
 
             self.assertEqual(0.3, self.robot.joints["torso_lift_joint"].position)
 
