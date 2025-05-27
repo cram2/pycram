@@ -642,6 +642,13 @@ class TransportAction(ActionDescription):
     """
     Arm that should be used
     """
+
+    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
+    """
+    The object at the time this Action got created. It is used to be a static, information holding entity. It is
+    not updated when the BulletWorld object is changed.
+    """
+
     _pre_perform_callbacks = []
     """
     List to save the callbacks which should be called before performing the action.
@@ -748,7 +755,7 @@ class DetectAction(ActionDescription):
     """
     The technique that should be used for detection
     """
-    state: DetectionState = None
+    state: Optional[DetectionState] = None
     """
     The state of the detection, e.g Start Stop for continues perception
     """
@@ -756,7 +763,7 @@ class DetectAction(ActionDescription):
     """
     The type of the object that should be detected, only considered if technique is equal to Type
     """
-    region: Location = None
+    region: Optional[Location] = None
     """
     The region in which the object should be detected
     """
