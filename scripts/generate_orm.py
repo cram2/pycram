@@ -37,8 +37,6 @@ type_mappings = {
     PhysicalObject: StringType(),
 }
 
-print(classes)
-
 
 # self_mapped_classes += [PlanNode,
 #                         SequentialNode,

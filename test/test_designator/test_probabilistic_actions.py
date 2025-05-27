@@ -3,13 +3,15 @@ import unittest
 
 import numpy as np
 import sqlalchemy.orm
+from sqlalchemy import select
 
+from pycram.datastructures.enums import TaskStatus
 from pycram.datastructures.pose import PoseStamped
 from pycram.designator import ObjectDesignatorDescription
-from pycram.designators.action_designator import MoveAndPickUpActionDescription
+from pycram.designators.action_designator import MoveAndPickUpActionDescription, MoveAndPickUpAction
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUpParameterizer
 from pycram.orm.logging_hooks import insert
-from pycram.plan import Plan, ResolvedActionNode
+from pycram.plan import Plan, ResolvedActionNode, PlanNode
 from pycram.process_module import simulated_robot
 from pycram.robot_description import RobotDescriptionManager, RobotDescription
 from pycram.testing import EmptyBulletWorldTestCase
@@ -52,6 +54,9 @@ class MoveAndPickUpTestCase(EmptyBulletWorldTestCase):
                 ...
 
         insert(plan, self.session)
+
+        result = self.session.scalars(select(ResolvedActionNode)).one()
+        self.assertEqual(result.status, TaskStatus.FAILED)
 
 
 if __name__ == '__main__':

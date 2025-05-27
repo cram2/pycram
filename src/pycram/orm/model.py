@@ -47,6 +47,10 @@ class PlanNodeDAO(ORMaticExplicitMapping):
 
 @dataclass
 class DesignatorNodeDAO(ORMaticExplicitMapping):
+    status: TaskStatus = TaskStatus.CREATED
+    start_time: Optional[datetime] = field(default_factory=datetime.now)
+    end_time: Optional[datetime] = None
+    reason: Optional[PlanFailure] = None
 
     @classproperty
     def explicit_mapping(cls) -> Type:
@@ -56,6 +60,10 @@ class DesignatorNodeDAO(ORMaticExplicitMapping):
 @dataclass
 class ActionNodeDAO(DesignatorNodeDAO, ORMaticExplicitMapping):
 
+    status: TaskStatus = TaskStatus.CREATED
+    start_time: Optional[datetime] = field(default_factory=datetime.now)
+    end_time: Optional[datetime] = None
+    reason: Optional[PlanFailure] = None
     @classproperty
     def explicit_mapping(cls) -> Type:
         return ActionNode
@@ -63,6 +71,10 @@ class ActionNodeDAO(DesignatorNodeDAO, ORMaticExplicitMapping):
 
 @dataclass
 class MotionNodeDAO(ORMaticExplicitMapping):
+    status: TaskStatus = TaskStatus.CREATED
+    start_time: Optional[datetime] = field(default_factory=datetime.now)
+    end_time: Optional[datetime] = None
+    reason: Optional[PlanFailure] = None
 
     @classproperty
     def explicit_mapping(cls) -> Type:
@@ -71,7 +83,13 @@ class MotionNodeDAO(ORMaticExplicitMapping):
 
 @dataclass
 class ResolvedActionNodeDAO(ORMaticExplicitMapping):
+
     designator_ref: ActionDescription
+
+    status: TaskStatus = TaskStatus.CREATED
+    start_time: Optional[datetime] = field(default_factory=datetime.now)
+    end_time: Optional[datetime] = None
+    reason: Optional[PlanFailure] = None
 
     @classproperty
     def explicit_mapping(cls) -> Type:
