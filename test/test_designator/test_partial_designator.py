@@ -139,3 +139,13 @@ class TestLazyProduct(unittest.TestCase):
                     raise RuntimeError()
                 yield i
         self.assertRaises(RuntimeError, lambda: list(lazy_product(bad_generator())))
+
+    def test_correct_error(self):
+        def bad_generator():
+            if False:
+                yield 1
+
+        with self.assertRaises(RuntimeError) as cm:
+            list(lazy_product(bad_generator()))
+            self.assertIn("bad_generator", str(cm.exception))
+
