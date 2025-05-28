@@ -1,65 +1,54 @@
 ![](doc/images/pycram_logo.png)
 
-# Welcome to the PyCRAM package
+# PyCRAM
 
 [![Python Tests](https://github.com/cram2/pycram/actions/workflows/new-pycram-ci.yml/badge.svg)](https://github.com/cram2/pycram/actions/workflows/new-pycram-ci.yml/badge.svg)
 [![Example Tests](https://github.com/cram2/pycram/actions/workflows/notebook-test-ci.yml/badge.svg)](https://github.com/cram2/pycram/actions/workflows/notebook-test-ci.yml/badge.svg)
 
-
-PyCRAM is a plan executive for cognitive robotic designed to facility the execution of high-level plans on
-robots in partially observable environments. To achieve this goal PyCRAM provides a set of tools for the design,
-implementation and execution of high-level plans. The framework is designed to be modular and extensible, allowing
-users to easily add new functionality and robots to the system to suit their needs.
-
-
+PyCRAM is a plan executive framework for cognitive robotics that enables robust execution of high-level robot plans in partially observable environments. It provides modular, extensible tools for designing, implementing, and executing robot plans, facilitating integration of new functionalities and heterogeneous robot platforms.
 
 ## Installation
 
-The simplest way to install PyCRAM is via the installation script:
+The recommended installation method is via `pip`:
+
+```bash
+pip install pycram-robotics
+```
+
+For an alternative installation from source, use the automated script:
 
 ```bash
 curl -s https://raw.githubusercontent.com/cram2/pycram/dev/scripts/install.sh | bash
 ```
 
-For more information on installing PyCRAM and a manual installation guide please refer to the guide [here](https://pycram.readthedocs.io/en/latest/installation.html).
+Detailed installation instructions and manual setup guides are available [here](https://pycram.readthedocs.io/en/latest/installation.html).
 
+## Live Demonstration
 
-## Live Demo
+Test PyCRAM directly in your browser via our [Virtual Research Building](https://vib.ai.uni-bremen.de/page/fallschool/).
 
-**If you want to test out PyCRAM right away, you can do that in the browser in our virtual research
-building [here](https://vib.ai.uni-bremen.de/page/fallschool/)**
+## Cross-Platform Plan Execution Example
 
-## Simple Demonstration
+PyCRAM supports executing identical high-level plans on different robot platforms. Below is a demonstration of the same plan running on the PR2 and IAI's Boxy:
 
-PyCRAM allows the execution of the same high-level plan on different robot platforms. Below you can see an example of
-this where the plan is executed on the PR2 and the IAIs Boxy.
-
-|               Boxy                |           PR2           |
-|:---------------------------------:|:-----------------------:|
-| ![image alt](doc/images/boxy.gif) | ![](doc/images/pr2.gif) |
-
+|             Boxy             |             PR2            |
+| :--------------------------: | :------------------------: |
+| ![Boxy](doc/images/boxy.gif) | ![PR2](doc/images/pr2.gif) |
 
 ## Documentation
 
-The latest version of the documentation is hosted on Read the
-Docs [here](https://pycram.readthedocs.io/en/latest/index.html).
+The full documentation is maintained at [Read the Docs](https://pycram.readthedocs.io/en/latest/index.html).
 
-The documentation can be found in the `doc` folder, for instructions on how to build and view the documentation please
-take a look at the respective `README` file.
+Source documentation is located in the `doc` directory. Instructions for building and viewing the documentation can be found in the corresponding `README` file.
 
 ## Examples
 
-Examples of features can be found either in the documentation under the [Examples](https://pycram.readthedocs.io/en/latest/notebooks/intro.html) Section or in the `examples` folder.
-The examples in the `examples` folder are Jupyter Notebooks which can be viewed and executed, for more information
-how to do that take a look at the respective `README` file.
+Comprehensive examples are provided as Jupyter Notebooks in the `examples` folder and documented in the [Examples section](https://pycram.readthedocs.io/en/latest/notebooks/intro.html). Refer to the examples folder's `README` for instructions on executing these notebooks.
 
-# Virtual Building
+## Virtual Building
 
-Within our virtual building, you can find a variety of labs and examples that showcase the use of PyCRAM. These
-resources are available at our [Labs page](https://vib.ai.uni-bremen.de/page/labs/). They are designed to help you
-understand and experiment with PyCRAM's capabilities.
+Explore a variety of labs and demonstrations showcasing PyCRAM's capabilities on the [Labs page](https://vib.ai.uni-bremen.de/page/labs/) of our virtual building.
 
 ## Setting Up Your Own Lab
 
-If you're looking to set up your own lab within the virtual building, please refer to the `vrb` branch of this
-repository. It includes detailed instructions and templates to guide you through the process.
+To create a custom lab in the virtual building, consult the `vrb` branch of this repository, which includes detailed setup instructions and templates.
