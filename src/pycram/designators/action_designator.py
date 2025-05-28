@@ -1061,6 +1061,23 @@ class MoveAndPickUpAction(ActionDescription):
     Keep the joint states of the robot the same during the navigation.
     """
 
+    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
+    """
+    The object at the time this Action got created. It is used to be a static, information holding entity. It is
+    not updated when the BulletWorld object is changed.
+    """
+
+    _pre_perform_callbacks = []
+    """
+    List to save the callbacks which should be called before performing the action.
+    """
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # Store the object's data copy at execution
+        self.pre_perform(record_object_pre_perform)
+
     def plan(self):
         NavigateAction(self.standing_position, self.keep_joint_states).perform()
         FaceAtAction(self.object_designator.pose, self.keep_joint_states).perform()

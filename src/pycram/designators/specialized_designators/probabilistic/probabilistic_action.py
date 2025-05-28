@@ -10,6 +10,7 @@ from probabilistic_model.utils import MissingDict
 from random_events.set import Set
 from random_events.variable import Symbolic, Continuous
 from random_events.product_algebra import SimpleEvent
+from sqlalchemy import select
 from typing_extensions import Optional, List
 
 from ...action_designator import MoveAndPickUpAction
@@ -51,15 +52,6 @@ class ProbabilisticAction:
         if policy is None:
             policy = self.default_policy()
         self.policy = policy
-
-    def sample_to_action(self, sample: List) -> ActionDescription:
-        """
-        Convert a sample from the policy to a performable action.
-
-        :param sample: The sample.
-        :return: The action.
-        """
-        raise NotImplementedError
 
     def default_policy(self) -> ProbabilisticCircuit:
         """
@@ -158,12 +150,17 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
 
         return result
 
-    def create_action(self):
+    def create_actions(self, amount: int = 100) -> List[MoveAndPickUpAction]:
         model = self.create_distribution()
-        samples = model.sample(10)
+        samples = model.sample(amount)
         ll = model.log_likelihood(samples)
-        sample = samples[ll.argmax()]
+        sorted_indices = ll.argsort()
+        samples = samples[sorted_indices][:amount]
 
+        return [self.sample_to_action(sample, model) for sample in samples]
+
+
+    def sample_to_action(self, sample: List, model: ProbabilisticCircuit) -> MoveAndPickUpAction:
         sample_dict = {variable: value for variable, value in zip(model.variables, sample)}
         obj = World.current_world.get_object_by_id(sample_dict[self.object_variable])
 
@@ -183,3 +180,12 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
                                    grasp_description=grasp_description,
                                    keep_joint_states=sample_dict[self.variables.keep_joint_states.value]
                                    )
+
+
+    def create_action(self):
+        return self.create_actions(100)[0]
+
+    def query_for_database(self):
+        select(
+
+        )
