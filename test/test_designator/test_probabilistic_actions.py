@@ -40,7 +40,7 @@ class MoveAndPickUpTestCase(EmptyBulletWorldTestCase):
         cls.robot = Object(RobotDescription.current_robot_description.name, Robot,
                            RobotDescription.current_robot_description.name + cls.extension)
 
-    def test_something(self):
+    def test_orm(self):
         odd = ObjectDesignatorDescription(types=[Milk])
         mpa_description = MoveAndPickUpActionDescription(None, odd, None, None, None)
         mpa = MoveAndPickUpParameterizer(mpa_description.root).create_action()
