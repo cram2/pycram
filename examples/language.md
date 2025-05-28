@@ -309,7 +309,7 @@ Monitor allows monitoring the execution of a language expression and interruptin
 fulfilled. The condition can either be a Callable that returns a boolean or a Fluent.
 When executed, the Monitor will create a separate thread which will check if the condition is satisfied with a frequency
 of 10 Hz. If the condition is satisfied, the execution of the monitored plan will be interrupted and the state
-of the node will be set to INTERUPTED.
+of the node will be set to INTERRUPTED.
 
 For the example on how Monitors work, we will use the previous example with the robot moving up and down. We will use a
 Monitor to interrupt the execution after 2 seconds instead of executing the whole plan 5 times.
@@ -335,6 +335,33 @@ plan = MonitorPlan(monitor_func, RepeatPlan(3, SequentialPlan(move_torso_up, mov
 with simulated_robot:
     plan.perform()
 ```
+
+Monitors can be configured to do more than just interrupt the execution of the monitored plan. You can also configure them to
+pause and resume the execution of the monitored plan. This can be achieved with the `behavior` parameter of the `MonitorPlan`.
+
+If the `behavior` is set to `resume`, the plan will be launched in a paused state and will be resumed as soon as the condition is fulfilled.
+
+```python
+from pycram.designators.action_designator import *
+from pycram.process_module import simulated_robot
+from pycram.language import MonitorPlan, RepeatPlan, SequentialPlan
+from pycram.datastructures.enums import TorsoState
+import time
+
+def monitor_func():
+    time.sleep(2)
+    return True
+
+move_torso_up = MoveTorsoActionDescription([TorsoState.HIGH, TorsoState.MID, TorsoState.LOW])
+move_torso_down = MoveTorsoActionDescription([TorsoState.LOW, TorsoState.MID, TorsoState.HIGH])
+
+plan = MonitorPlan(monitor_func, RepeatPlan(3, SequentialPlan(move_torso_up, move_torso_down)), behavior="resume")
+
+with simulated_robot:
+    plan.perform()
+```
+This will resume the execution of the monitored plan as soon as the condition is fulfilled.
+
 
 If you are finished with this example you can close the world with the cell below.
 

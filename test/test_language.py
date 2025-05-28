@@ -3,7 +3,7 @@ import time
 import unittest
 from pycram.designators.action_designator import *
 from pycram.designators.object_designator import BelieveObject
-from pycram.datastructures.enums import ObjectType, DetectionTechnique, TaskStatus
+from pycram.datastructures.enums import ObjectType, DetectionTechnique, TaskStatus, MonitorBehavior
 from pycram.failure_handling import RetryMonitor
 from pycram.fluent import Fluent
 from pycram.failures import PlanFailure, NotALanguageExpression
@@ -273,6 +273,23 @@ class LanguageTestCase(BulletWorldTestCase):
 
         self.assertEqual(TryAllNode, type(plan.root))
         self.assertEqual(TaskStatus.SUCCEEDED, plan.root.status)
+
+
+    def test_monitor_resume(self):
+        act = ParkArmsActionDescription(Arms.BOTH)
+        act2 = MoveTorsoActionDescription(TorsoState.HIGH)
+
+        def monitor_func():
+            time.sleep(2)
+            return True
+
+        plan = MonitorPlan(monitor_func, SequentialPlan(act, act2), behavior=MonitorBehavior.RESUME)
+        with simulated_robot:
+            plan.perform()
+        self.assertEqual(len(plan.root.children), 1)
+        self.assertTrue(isinstance(plan.root, MonitorNode))
+        self.assertEqual(plan.root.status, TaskStatus.SUCCEEDED)
+        self.assertTrue(1 < (plan.root.end_time - plan.root.start_time).seconds <= 2)
 
 
 if __name__ == '__main__':
