@@ -93,6 +93,9 @@ def inverse_kinematics_logarithmic(model, configuration, data, target_joint_id, 
         iMd = data.oMi[target_joint_id].actInv(target_transformation)
         # Error between the current pose and the target pose, this should be minimized
         err = pinocchio.log(iMd).vector  # in joint frame
+        # Log is numerically unstable for small errors, so we add a small value to the configuration if the error contains NaN
+        if np.isnan(err).any():
+            q += 0.0001
         if norm(err) < eps:
             success = True
             break
