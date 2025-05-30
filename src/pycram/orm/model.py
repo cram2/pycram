@@ -127,7 +127,7 @@ class CodeNodeDAO(ORMaticExplicitMapping):
 @dataclass
 class FrozenObjectDAO(ORMaticExplicitMapping):
     name: str
-    concept: PhysicalObject
+    concept: Type[PhysicalObject]
     pose: Optional[PoseStamped]
 
     @classproperty

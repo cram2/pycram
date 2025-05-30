@@ -73,6 +73,7 @@ class MoveAndPickUpVariables(Variables):
     y = Continuous("y")
 
     approach_direction = Symbolic("approach_direction", Set.from_iterable(Grasp))
+    vertical_alignment = Symbolic("vertical_alignment", Set.from_iterable(Grasp))
 
 
 @dataclass
@@ -117,6 +118,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
         # apply grasp conditions
         grasp_condition = SimpleEvent({
             self.variables.approach_direction.value: [Grasp.FRONT, Grasp.BACK, Grasp.LEFT, Grasp.RIGHT],
+            self.variables.vertical_alignment.value: [Grasp.TOP, Grasp.BOTTOM],
         }).as_composite_set()
         grasp_condition.fill_missing_variables(model.variables)
         condition &= grasp_condition
@@ -171,7 +173,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
         grasp_description = GraspDescription(
             approach_direction=list(Grasp)[int(sample_dict[self.variables.approach_direction.value])],
             rotate_gripper=sample_dict[self.variables.rotate_gripper.value],
-
+            vertical_alignment=list(Grasp)[int(sample_dict[self.variables.vertical_alignment.value])],
         )
 
         return MoveAndPickUpAction(standing_position=standing_position,

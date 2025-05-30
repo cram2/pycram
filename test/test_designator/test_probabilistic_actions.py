@@ -10,6 +10,7 @@ from pycram.datastructures.pose import PoseStamped
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators.action_designator import MoveAndPickUpActionDescription, MoveAndPickUpAction
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUpParameterizer
+from pycram.failures import PlanFailure
 from pycram.orm.logging_hooks import insert
 from pycram.plan import Plan, ResolvedActionNode, PlanNode
 from pycram.process_module import simulated_robot
@@ -50,7 +51,7 @@ class MoveAndPickUpTestCase(EmptyBulletWorldTestCase):
         with simulated_robot:
             try:
                 plan.perform()
-            except Exception as e:
+            except PlanFailure as e:
                 ...
 
         insert(plan, self.session)

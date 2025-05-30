@@ -1,7 +1,5 @@
-from pycram.orm.casts import StringType
-
 from ormatic.custom_types import TypeType
-from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, MetaData, String, Table
+from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, MetaData,String, Table
 from sqlalchemy.orm import RelationshipProperty, registry, relationship
 import pycram.datastructures.dataclasses
 import pycram.datastructures.grasp
@@ -26,7 +24,7 @@ t_DesignatorNode = Table(
     Column('status', Enum(pycram.datastructures.enums.TaskStatus), nullable=False),
     Column('start_time', DateTime),
     Column('end_time', DateTime),
-    Column('polymorphic_type', String)
+    Column('polymorphic_type',String(50))
 )
 
 t_GraspDescription = Table(
@@ -40,7 +38,7 @@ t_GraspDescription = Table(
 t_Header = Table(
     'Header', metadata,
     Column('id', Integer, primary_key=True),
-    Column('frame_id', String, nullable=False),
+    Column('frame_id',String(50), nullable=False),
     Column('stamp', DateTime, nullable=False),
     Column('sequence', Integer, nullable=False)
 )
@@ -90,7 +88,7 @@ t_SequentialNode = Table(
     Column('start_time', DateTime),
     Column('end_time', DateTime),
     Column('action', TypeType),
-    Column('polymorphic_type', String)
+    Column('polymorphic_type',String(50))
 )
 
 t_TryAllNode = Table(
@@ -124,7 +122,7 @@ t_Pose = Table(
     Column('id', Integer, primary_key=True),
     Column('position_id', ForeignKey('Vector3.id'), nullable=False),
     Column('orientation_id', ForeignKey('Quaternion.id'), nullable=False),
-    Column('polymorphic_type', String)
+    Column('polymorphic_type',String(50))
 )
 
 t_RepeatNode = Table(
@@ -138,7 +136,7 @@ t_PoseStamped = Table(
     Column('id', Integer, primary_key=True),
     Column('pose_id', ForeignKey('Pose.id'), nullable=False),
     Column('header_id', ForeignKey('Header.id'), nullable=False),
-    Column('polymorphic_type', String)
+    Column('polymorphic_type',String(50))
 )
 
 t_Transform = Table(
@@ -152,14 +150,14 @@ t_ActionDescription = Table(
     Column('robot_position_id', ForeignKey('PoseStamped.id'), nullable=False),
     Column('robot_torso_height', Float, nullable=False),
     Column('robot_type', TypeType),
-    Column('polymorphic_type', String)
+    Column('polymorphic_type',String(50))
 )
 
 t_FrozenObject = Table(
     'FrozenObject', metadata,
     Column('id', Integer, primary_key=True),
-    Column('name', String, nullable=False),
-    Column('concept', StringType, nullable=False),
+    Column('name',String(50), nullable=False),
+    Column('concept', TypeType),
     Column('pose_id', ForeignKey('PoseStamped.id'))
 )
 
@@ -174,7 +172,7 @@ t_TransformStamped = Table(
     'TransformStamped', metadata,
     Column('id', ForeignKey('PoseStamped.id'), primary_key=True),
     Column('pose_id', ForeignKey('Transform.id'), nullable=False),
-    Column('child_frame_id', String, nullable=False)
+    Column('child_frame_id',String(50), nullable=False)
 )
 
 t_CloseAction = Table(
@@ -328,98 +326,98 @@ t_TransportAction = Table(
 
 mapper_registry = registry(metadata=metadata)
 
-m_Vector3 = mapper_registry.map_imperatively(pycram.datastructures.pose.Vector3, t_Vector3, )
+m_Pose = mapper_registry.map_imperatively(pycram.datastructures.pose.Pose, t_Pose, properties = dict(position=relationship('Vector3',foreign_keys=[t_Pose.c.position_id]), 
+orientation=relationship('Quaternion',foreign_keys=[t_Pose.c.orientation_id])), polymorphic_on = "polymorphic_type", polymorphic_identity = "Pose")
 
 m_ActionDescription = mapper_registry.map_imperatively(pycram.designator.ActionDescription, t_ActionDescription, properties = dict(robot_position=relationship('PoseStamped',foreign_keys=[t_ActionDescription.c.robot_position_id]), 
 robot_type=t_ActionDescription.c.robot_type), polymorphic_on = "polymorphic_type", polymorphic_identity = "ActionDescription")
 
-m_CodeNode = mapper_registry.map_imperatively(pycram.language.CodeNode, t_CodeNode, )
-
-m_ResolvedActionNode = mapper_registry.map_imperatively(pycram.plan.ResolvedActionNode, t_ResolvedActionNode, properties = dict(designator_ref=relationship('ActionDescription',foreign_keys=[t_ResolvedActionNode.c.designator_ref_id])))
-
-m_FrozenObject = mapper_registry.map_imperatively(pycram.datastructures.dataclasses.FrozenObject, t_FrozenObject, properties = dict(pose=relationship('PoseStamped',foreign_keys=[t_FrozenObject.c.pose_id]), 
-concept=t_FrozenObject.c.concept))
-
-m_TryAllNode = mapper_registry.map_imperatively(pycram.language.TryAllNode, t_TryAllNode, )
-
 m_PlanNode = mapper_registry.map_imperatively(pycram.plan.PlanNode, t_PlanNode, )
 
-m_Pose = mapper_registry.map_imperatively(pycram.datastructures.pose.Pose, t_Pose, properties = dict(position=relationship('Vector3',foreign_keys=[t_Pose.c.position_id]), 
-orientation=relationship('Quaternion',foreign_keys=[t_Pose.c.orientation_id])), polymorphic_on = "polymorphic_type", polymorphic_identity = "Pose")
+m_DesignatorNode = mapper_registry.map_imperatively(pycram.plan.DesignatorNode, t_DesignatorNode, polymorphic_on = "polymorphic_type", polymorphic_identity = "DesignatorNode")
 
-m_PoseStamped = mapper_registry.map_imperatively(pycram.datastructures.pose.PoseStamped, t_PoseStamped, properties = dict(pose=relationship('Pose',foreign_keys=[t_PoseStamped.c.pose_id]), 
-header=relationship('Header',foreign_keys=[t_PoseStamped.c.header_id])), polymorphic_on = "polymorphic_type", polymorphic_identity = "PoseStamped")
+m_Header = mapper_registry.map_imperatively(pycram.datastructures.pose.Header, t_Header, )
 
 m_MotionNode = mapper_registry.map_imperatively(pycram.plan.MotionNode, t_MotionNode, )
 
 m_ParallelNode = mapper_registry.map_imperatively(pycram.language.ParallelNode, t_ParallelNode, )
 
-m_SequentialNode = mapper_registry.map_imperatively(pycram.language.SequentialNode, t_SequentialNode, properties = dict(action=t_SequentialNode.c.action), polymorphic_on = "polymorphic_type", polymorphic_identity = "SequentialNode")
+m_PreferredGraspAlignment = mapper_registry.map_imperatively(pycram.datastructures.grasp.PreferredGraspAlignment, t_PreferredGraspAlignment, )
 
-m_Quaternion = mapper_registry.map_imperatively(pycram.datastructures.pose.Quaternion, t_Quaternion, )
+m_PoseStamped = mapper_registry.map_imperatively(pycram.datastructures.pose.PoseStamped, t_PoseStamped, properties = dict(pose=relationship('Pose',foreign_keys=[t_PoseStamped.c.pose_id]), 
+header=relationship('Header',foreign_keys=[t_PoseStamped.c.header_id])), polymorphic_on = "polymorphic_type", polymorphic_identity = "PoseStamped")
 
 m_TryInOrderNode = mapper_registry.map_imperatively(pycram.language.TryInOrderNode, t_TryInOrderNode, )
 
-m_DesignatorNode = mapper_registry.map_imperatively(pycram.plan.DesignatorNode, t_DesignatorNode, polymorphic_on = "polymorphic_type", polymorphic_identity = "DesignatorNode")
+m_Quaternion = mapper_registry.map_imperatively(pycram.datastructures.pose.Quaternion, t_Quaternion, )
+
+m_ResolvedActionNode = mapper_registry.map_imperatively(pycram.plan.ResolvedActionNode, t_ResolvedActionNode, properties = dict(designator_ref=relationship('ActionDescription',foreign_keys=[t_ResolvedActionNode.c.designator_ref_id])))
+
+m_SequentialNode = mapper_registry.map_imperatively(pycram.language.SequentialNode, t_SequentialNode, properties = dict(action=t_SequentialNode.c.action), polymorphic_on = "polymorphic_type", polymorphic_identity = "SequentialNode")
+
+m_Vector3 = mapper_registry.map_imperatively(pycram.datastructures.pose.Vector3, t_Vector3, )
+
+m_FrozenObject = mapper_registry.map_imperatively(pycram.datastructures.dataclasses.FrozenObject, t_FrozenObject, properties = dict(pose=relationship('PoseStamped',foreign_keys=[t_FrozenObject.c.pose_id]), 
+concept=t_FrozenObject.c.concept))
 
 m_GraspDescription = mapper_registry.map_imperatively(pycram.datastructures.grasp.GraspDescription, t_GraspDescription, )
 
-m_Header = mapper_registry.map_imperatively(pycram.datastructures.pose.Header, t_Header, )
+m_CodeNode = mapper_registry.map_imperatively(pycram.language.CodeNode, t_CodeNode, )
 
-m_PreferredGraspAlignment = mapper_registry.map_imperatively(pycram.datastructures.grasp.PreferredGraspAlignment, t_PreferredGraspAlignment, )
+m_TryAllNode = mapper_registry.map_imperatively(pycram.language.TryAllNode, t_TryAllNode, )
+
+m_Transform = mapper_registry.map_imperatively(pycram.datastructures.pose.Transform, t_Transform, polymorphic_identity = "Transform", inherits = m_Pose)
 
 m_ReleaseAction = mapper_registry.map_imperatively(pycram.designators.action_designator.ReleaseAction, t_ReleaseAction, properties = dict(object_at_execution=relationship('FrozenObject',foreign_keys=[t_ReleaseAction.c.object_at_execution_id])), polymorphic_identity = "ReleaseAction", inherits = m_ActionDescription)
 
-m_GraspingAction = mapper_registry.map_imperatively(pycram.designators.action_designator.GraspingAction, t_GraspingAction, polymorphic_identity = "GraspingAction", inherits = m_ActionDescription)
-
-m_PlaceAction = mapper_registry.map_imperatively(pycram.designators.action_designator.PlaceAction, t_PlaceAction, properties = dict(target_location=relationship('PoseStamped',foreign_keys=[t_PlaceAction.c.target_location_id]), 
-object_at_execution=relationship('FrozenObject',foreign_keys=[t_PlaceAction.c.object_at_execution_id])), polymorphic_identity = "PlaceAction", inherits = m_ActionDescription)
-
 m_CloseAction = mapper_registry.map_imperatively(pycram.designators.action_designator.CloseAction, t_CloseAction, polymorphic_identity = "CloseAction", inherits = m_ActionDescription)
+
+m_SetGripperAction = mapper_registry.map_imperatively(pycram.designators.action_designator.SetGripperAction, t_SetGripperAction, polymorphic_identity = "SetGripperAction", inherits = m_ActionDescription)
+
+m_LookAtAction = mapper_registry.map_imperatively(pycram.designators.action_designator.LookAtAction, t_LookAtAction, properties = dict(target=relationship('PoseStamped',foreign_keys=[t_LookAtAction.c.target_id])), polymorphic_identity = "LookAtAction", inherits = m_ActionDescription)
+
+m_PickUpAction = mapper_registry.map_imperatively(pycram.designators.action_designator.PickUpAction, t_PickUpAction, properties = dict(grasp_description=relationship('GraspDescription',foreign_keys=[t_PickUpAction.c.grasp_description_id]), 
+object_at_execution=relationship('FrozenObject',foreign_keys=[t_PickUpAction.c.object_at_execution_id])), polymorphic_identity = "PickUpAction", inherits = m_ActionDescription)
+
+m_FaceAtAction = mapper_registry.map_imperatively(pycram.designators.action_designator.FaceAtAction, t_FaceAtAction, properties = dict(pose=relationship('PoseStamped',foreign_keys=[t_FaceAtAction.c.pose_id])), polymorphic_identity = "FaceAtAction", inherits = m_ActionDescription)
+
+m_SearchAction = mapper_registry.map_imperatively(pycram.designators.action_designator.SearchAction, t_SearchAction, properties = dict(target_location=relationship('PoseStamped',foreign_keys=[t_SearchAction.c.target_location_id]), 
+object_type=t_SearchAction.c.object_type), polymorphic_identity = "SearchAction", inherits = m_ActionDescription)
+
+m_TransportAction = mapper_registry.map_imperatively(pycram.designators.action_designator.TransportAction, t_TransportAction, properties = dict(target_location=relationship('PoseStamped',foreign_keys=[t_TransportAction.c.target_location_id]), 
+object_at_execution=relationship('FrozenObject',foreign_keys=[t_TransportAction.c.object_at_execution_id])), polymorphic_identity = "TransportAction", inherits = m_ActionDescription)
+
+m_OpenAction = mapper_registry.map_imperatively(pycram.designators.action_designator.OpenAction, t_OpenAction, polymorphic_identity = "OpenAction", inherits = m_ActionDescription)
+
+m_DetectAction = mapper_registry.map_imperatively(pycram.designators.action_designator.DetectAction, t_DetectAction, polymorphic_identity = "DetectAction", inherits = m_ActionDescription)
 
 m_MoveAndPlaceAction = mapper_registry.map_imperatively(pycram.designators.action_designator.MoveAndPlaceAction, t_MoveAndPlaceAction, properties = dict(standing_position=relationship('PoseStamped',foreign_keys=[t_MoveAndPlaceAction.c.standing_position_id]), 
 target_location=relationship('PoseStamped',foreign_keys=[t_MoveAndPlaceAction.c.target_location_id])), polymorphic_identity = "MoveAndPlaceAction", inherits = m_ActionDescription)
+
+m_NavigateAction = mapper_registry.map_imperatively(pycram.designators.action_designator.NavigateAction, t_NavigateAction, properties = dict(target_location=relationship('PoseStamped',foreign_keys=[t_NavigateAction.c.target_location_id])), polymorphic_identity = "NavigateAction", inherits = m_ActionDescription)
+
+m_ReachToPickUpAction = mapper_registry.map_imperatively(pycram.designators.action_designator.ReachToPickUpAction, t_ReachToPickUpAction, properties = dict(grasp_description=relationship('GraspDescription',foreign_keys=[t_ReachToPickUpAction.c.grasp_description_id]), 
+object_at_execution=relationship('FrozenObject',foreign_keys=[t_ReachToPickUpAction.c.object_at_execution_id])), polymorphic_identity = "ReachToPickUpAction", inherits = m_ActionDescription)
+
+m_PlaceAction = mapper_registry.map_imperatively(pycram.designators.action_designator.PlaceAction, t_PlaceAction, properties = dict(target_location=relationship('PoseStamped',foreign_keys=[t_PlaceAction.c.target_location_id]), 
+object_at_execution=relationship('FrozenObject',foreign_keys=[t_PlaceAction.c.object_at_execution_id])), polymorphic_identity = "PlaceAction", inherits = m_ActionDescription)
 
 m_MoveAndPickUpAction = mapper_registry.map_imperatively(pycram.designators.action_designator.MoveAndPickUpAction, t_MoveAndPickUpAction, properties = dict(standing_position=relationship('PoseStamped',foreign_keys=[t_MoveAndPickUpAction.c.standing_position_id]), 
 grasp_description=relationship('GraspDescription',foreign_keys=[t_MoveAndPickUpAction.c.grasp_description_id]), 
 object_at_execution=relationship('FrozenObject',foreign_keys=[t_MoveAndPickUpAction.c.object_at_execution_id])), polymorphic_identity = "MoveAndPickUpAction", inherits = m_ActionDescription)
 
-m_MoveTorsoAction = mapper_registry.map_imperatively(pycram.designators.action_designator.MoveTorsoAction, t_MoveTorsoAction, polymorphic_identity = "MoveTorsoAction", inherits = m_ActionDescription)
-
-m_NavigateAction = mapper_registry.map_imperatively(pycram.designators.action_designator.NavigateAction, t_NavigateAction, properties = dict(target_location=relationship('PoseStamped',foreign_keys=[t_NavigateAction.c.target_location_id])), polymorphic_identity = "NavigateAction", inherits = m_ActionDescription)
-
-m_FaceAtAction = mapper_registry.map_imperatively(pycram.designators.action_designator.FaceAtAction, t_FaceAtAction, properties = dict(pose=relationship('PoseStamped',foreign_keys=[t_FaceAtAction.c.pose_id])), polymorphic_identity = "FaceAtAction", inherits = m_ActionDescription)
-
-m_DetectAction = mapper_registry.map_imperatively(pycram.designators.action_designator.DetectAction, t_DetectAction, polymorphic_identity = "DetectAction", inherits = m_ActionDescription)
-
-m_ReachToPickUpAction = mapper_registry.map_imperatively(pycram.designators.action_designator.ReachToPickUpAction, t_ReachToPickUpAction, properties = dict(grasp_description=relationship('GraspDescription',foreign_keys=[t_ReachToPickUpAction.c.grasp_description_id]), 
-object_at_execution=relationship('FrozenObject',foreign_keys=[t_ReachToPickUpAction.c.object_at_execution_id])), polymorphic_identity = "ReachToPickUpAction", inherits = m_ActionDescription)
-
-m_LookAtAction = mapper_registry.map_imperatively(pycram.designators.action_designator.LookAtAction, t_LookAtAction, properties = dict(target=relationship('PoseStamped',foreign_keys=[t_LookAtAction.c.target_id])), polymorphic_identity = "LookAtAction", inherits = m_ActionDescription)
-
-m_SetGripperAction = mapper_registry.map_imperatively(pycram.designators.action_designator.SetGripperAction, t_SetGripperAction, polymorphic_identity = "SetGripperAction", inherits = m_ActionDescription)
-
 m_ParkArmsAction = mapper_registry.map_imperatively(pycram.designators.action_designator.ParkArmsAction, t_ParkArmsAction, polymorphic_identity = "ParkArmsAction", inherits = m_ActionDescription)
 
-m_TransportAction = mapper_registry.map_imperatively(pycram.designators.action_designator.TransportAction, t_TransportAction, properties = dict(target_location=relationship('PoseStamped',foreign_keys=[t_TransportAction.c.target_location_id]), 
-object_at_execution=relationship('FrozenObject',foreign_keys=[t_TransportAction.c.object_at_execution_id])), polymorphic_identity = "TransportAction", inherits = m_ActionDescription)
-
-m_PickUpAction = mapper_registry.map_imperatively(pycram.designators.action_designator.PickUpAction, t_PickUpAction, properties = dict(grasp_description=relationship('GraspDescription',foreign_keys=[t_PickUpAction.c.grasp_description_id]), 
-object_at_execution=relationship('FrozenObject',foreign_keys=[t_PickUpAction.c.object_at_execution_id])), polymorphic_identity = "PickUpAction", inherits = m_ActionDescription)
+m_MoveTorsoAction = mapper_registry.map_imperatively(pycram.designators.action_designator.MoveTorsoAction, t_MoveTorsoAction, polymorphic_identity = "MoveTorsoAction", inherits = m_ActionDescription)
 
 m_GripAction = mapper_registry.map_imperatively(pycram.designators.action_designator.GripAction, t_GripAction, properties = dict(object_at_execution=relationship('FrozenObject',foreign_keys=[t_GripAction.c.object_at_execution_id])), polymorphic_identity = "GripAction", inherits = m_ActionDescription)
 
-m_SearchAction = mapper_registry.map_imperatively(pycram.designators.action_designator.SearchAction, t_SearchAction, properties = dict(target_location=relationship('PoseStamped',foreign_keys=[t_SearchAction.c.target_location_id]), 
-object_type=t_SearchAction.c.object_type), polymorphic_identity = "SearchAction", inherits = m_ActionDescription)
+m_GraspingAction = mapper_registry.map_imperatively(pycram.designators.action_designator.GraspingAction, t_GraspingAction, polymorphic_identity = "GraspingAction", inherits = m_ActionDescription)
 
-m_OpenAction = mapper_registry.map_imperatively(pycram.designators.action_designator.OpenAction, t_OpenAction, polymorphic_identity = "OpenAction", inherits = m_ActionDescription)
-
-m_Transform = mapper_registry.map_imperatively(pycram.datastructures.pose.Transform, t_Transform, polymorphic_identity = "Transform", inherits = m_Pose)
+m_ActionNode = mapper_registry.map_imperatively(pycram.plan.ActionNode, t_ActionNode, polymorphic_identity = "ActionNode", inherits = m_DesignatorNode)
 
 m_GraspPose = mapper_registry.map_imperatively(pycram.datastructures.pose.GraspPose, t_GraspPose, properties = dict(grasp_description=relationship('GraspDescription',foreign_keys=[t_GraspPose.c.grasp_description_id])), polymorphic_identity = "GraspPose", inherits = m_PoseStamped)
 
 m_TransformStamped = mapper_registry.map_imperatively(pycram.datastructures.pose.TransformStamped, t_TransformStamped, properties = dict(pose=relationship('Transform',foreign_keys=[t_TransformStamped.c.pose_id])), polymorphic_identity = "TransformStamped", inherits = m_PoseStamped)
 
 m_RepeatNode = mapper_registry.map_imperatively(pycram.language.RepeatNode, t_RepeatNode, polymorphic_identity = "RepeatNode", inherits = m_SequentialNode)
-
-m_ActionNode = mapper_registry.map_imperatively(pycram.plan.ActionNode, t_ActionNode, polymorphic_identity = "ActionNode", inherits = m_DesignatorNode)
