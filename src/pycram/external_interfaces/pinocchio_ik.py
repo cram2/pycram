@@ -157,7 +157,7 @@ def parse_configuration_vector_to_joint_positions(configuration: np.ndarray[floa
     for joint in model.joints:
         if joint.idx_q == -1:
             continue
-        if joint.shortname() in ["JointModelRUBX", "JointModelRUBY", "JointModelRUBZ"]:
+        if joint.shortname() in ["JointModelRUBX", "JointModelRUBY", "JointModelRUBZ", "JointModelRevoluteUnboundedUnaligned"]:
             # Continuous Joints are represented as sin(theta) and cos(theta) of the joint value, so we use arctan2 to
             # get the joint value
             joint_value = np.arctan2(configuration[joint.idx_q + 1], configuration[joint.idx_q])
