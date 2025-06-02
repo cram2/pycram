@@ -106,15 +106,6 @@ right_gripper.add_static_joint_states(GripperState.CLOSE, {
     'right_robotiq_85_right_finger_tip_joint': 0.8,
 })
 
-#  right_robotiq_85_left_knuckle_joint
-# - right_robotiq_85_right_knuckle_joint
-# - right_robotiq_85_left_inner_knuckle_joint
-# - right_robotiq_85_right_inner_knuckle_joint
-# - right_robotiq_85_left_finger_tip_joint
-# - right_robotiq_85_right_finger_tip_joint
-
-
-
 right_gripper.end_effector_type = GripperType.PARALLEL
 right_gripper.opening_distance = 0.085 * meter
 
