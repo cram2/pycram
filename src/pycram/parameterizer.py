@@ -16,7 +16,7 @@ from random_events.variable import Symbolic, Integer, Variable, Continuous
 from sortedcontainers import SortedSet
 
 from pycrap.ontologies import PhysicalObject
-from . import World
+from .datastructures.world import World
 from .datastructures.dataclasses import BoundingBox
 from .datastructures.partial_designator import PartialDesignator
 from .graph_of_convex_sets import GraphOfConvexSets

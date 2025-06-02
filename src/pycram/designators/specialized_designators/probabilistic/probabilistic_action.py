@@ -7,20 +7,19 @@ from probabilistic_model.probabilistic_circuit.nx.helper import fully_factorized
 from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit, SumUnit, \
     ProductUnit
 from probabilistic_model.utils import MissingDict
+from random_events.product_algebra import SimpleEvent
 from random_events.set import Set
 from random_events.variable import Symbolic, Continuous
-from random_events.product_algebra import SimpleEvent
 from sqlalchemy import select
 from typing_extensions import Optional, List
 
 from ...action_designator import MoveAndPickUpAction
-from .... import World
 from ....datastructures.dataclasses import BoundingBox
 from ....datastructures.enums import Arms, Grasp
 from ....datastructures.grasp import GraspDescription
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
-from ....designators.action_designator import ActionDescription
+from ....datastructures.world import World
 from ....parameterizer import collision_free_event
 from ....utils import classproperty
 from ....world_concepts.world_object import Object
@@ -108,25 +107,21 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
         new_root.add_subcircuit(root)
 
         # move model to position of the object
-        model.translate({self.variables.x.value: obj.pose.position.x,
-                         self.variables.y.value: obj.pose.position.y})
+        model.translate({self.variables.x.value: obj.pose.position.x, self.variables.y.value: obj.pose.position.y})
 
         # apply collision-free condition
         condition = self.collision_free_condition_for_object(obj)
         condition.fill_missing_variables(model.variables)
 
         # apply grasp conditions
-        grasp_condition = SimpleEvent({
-            self.variables.approach_direction.value: [Grasp.FRONT, Grasp.BACK, Grasp.LEFT, Grasp.RIGHT],
-            self.variables.vertical_alignment.value: [Grasp.TOP, Grasp.BOTTOM],
-        }).as_composite_set()
+        grasp_condition = SimpleEvent(
+            {self.variables.approach_direction.value: [Grasp.FRONT, Grasp.BACK, Grasp.LEFT, Grasp.RIGHT],
+                self.variables.vertical_alignment.value: [Grasp.TOP, Grasp.BOTTOM], }).as_composite_set()
         grasp_condition.fill_missing_variables(model.variables)
         condition &= grasp_condition
 
         # apply arm condition
-        arm_condition = SimpleEvent({
-            self.variables.arm.value: [Arms.LEFT, Arms.RIGHT],
-        }).as_composite_set()
+        arm_condition = SimpleEvent({self.variables.arm.value: [Arms.LEFT, Arms.RIGHT], }).as_composite_set()
         arm_condition.fill_missing_variables(model.variables)
         condition &= arm_condition
 
@@ -161,28 +156,22 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
 
         return [self.sample_to_action(sample, model) for sample in samples]
 
-
     def sample_to_action(self, sample: List, model: ProbabilisticCircuit) -> MoveAndPickUpAction:
         sample_dict = {variable: value for variable, value in zip(model.variables, sample)}
         obj = World.current_world.get_object_by_id(sample_dict[self.object_variable])
 
-        standing_position = PoseStamped.from_list([sample_dict[self.variables.x.value],
-                                                   sample_dict[self.variables.y.value],
-                                                   0.])
+        standing_position = PoseStamped.from_list(
+            [sample_dict[self.variables.x.value], sample_dict[self.variables.y.value], 0.])
 
         grasp_description = GraspDescription(
             approach_direction=list(Grasp)[int(sample_dict[self.variables.approach_direction.value])],
             rotate_gripper=sample_dict[self.variables.rotate_gripper.value],
-            vertical_alignment=list(Grasp)[int(sample_dict[self.variables.vertical_alignment.value])],
-        )
+            vertical_alignment=list(Grasp)[int(sample_dict[self.variables.vertical_alignment.value])], )
 
-        return MoveAndPickUpAction(standing_position=standing_position,
-                                   object_designator=obj,
+        return MoveAndPickUpAction(standing_position=standing_position, object_designator=obj,
                                    arm=Arms(int(sample_dict[self.variables.arm.value])),
                                    grasp_description=grasp_description,
-                                   keep_joint_states=sample_dict[self.variables.keep_joint_states.value]
-                                   )
-
+                                   keep_joint_states=sample_dict[self.variables.keep_joint_states.value])
 
     def create_action(self):
         return self.create_actions(100)[0]
