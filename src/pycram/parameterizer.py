@@ -137,6 +137,12 @@ class Parameterizer:
         return result
 
 def collision_free_event(world: World, search_space: Optional[BoundingBox] = None) -> Event:
+        """
+        Create an event that describes the free space of the world.
+        :param world: The world to create the event from.
+        :param search_space: The search space to limit the collision free event to.
+        :return: An event that describes the free space.
+        """
 
         xy = SortedSet([BoundingBox.x_variable, BoundingBox.y_variable])
 

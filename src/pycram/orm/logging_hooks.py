@@ -25,8 +25,6 @@ def insert(plan: Plan, session: Session, use_progress_bar: bool = True,
 
     # convert self to orm object
     for node in plan.nodes:
-        # if isinstance(node, LanguageNode):
-        #     continue
         session.add(node)
 
         if use_progress_bar:
