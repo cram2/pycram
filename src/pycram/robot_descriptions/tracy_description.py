@@ -1,8 +1,8 @@
-from pycram.robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, CameraDescription
-from pycram.datastructures.enums import Arms, GripperState, GripperType, StaticJointState
-from pycram.ros import get_ros_package_path
-from pycram.robot_description import RobotDescriptionManager
-from pycram.units import meter
+from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, CameraDescription
+from ..datastructures.enums import Arms, GripperState, GripperType, StaticJointState
+from ..ros import get_ros_package_path
+from ..robot_description import RobotDescriptionManager
+from ..units import meter
 
 filename = get_ros_package_path('pycram') + '/resources/robots/tracy.urdf'
 tracy_description = RobotDescription(
