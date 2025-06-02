@@ -14,7 +14,7 @@ owlready2>=0.45
 dm_control # MJCF
 trimesh==4.6.0
 deprecated
-probabilistic_model>=6.0.2
+probabilistic_model>=6.2.1
 random_events>=4.1.0
 pint>=0.21.1
 gymnasium

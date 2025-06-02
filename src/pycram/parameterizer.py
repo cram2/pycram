@@ -2,17 +2,24 @@ import copy
 import itertools
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, Any, Type, List
+from typing import Dict, Any, Type, List, Optional
 
 import numpy as np
 from probabilistic_model.probabilistic_circuit.nx.helper import fully_factorized
 from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
 from probabilistic_model.probabilistic_model import ProbabilisticModel
+from random_events.interval import singleton
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.set import Set
+from random_events.utils import recursive_subclasses
 from random_events.variable import Symbolic, Integer, Variable, Continuous
+from sortedcontainers import SortedSet
 
+from pycrap.ontologies import PhysicalObject
+from .datastructures.world import World
+from .datastructures.dataclasses import BoundingBox
 from .datastructures.partial_designator import PartialDesignator
+from .graph_of_convex_sets import GraphOfConvexSets
 from .language import SequentialPlan
 from .plan import Plan, DesignatorNode, ActionNode
 
@@ -129,6 +136,45 @@ class Parameterizer:
         result.fill_missing_variables(self.variables)
         return result
 
+def collision_free_event(world: World, search_space: Optional[BoundingBox] = None) -> Event:
+        """
+        Create an event that describes the free space of the world.
+        :param world: The world to create the event from.
+        :param search_space: The search space to limit the collision free event to.
+        :return: An event that describes the free space.
+        """
+
+        xy = SortedSet([BoundingBox.x_variable, BoundingBox.y_variable])
+
+        # create search space for calculations
+        if search_space is None:
+            search_space = BoundingBox(-np.inf, -np.inf, -np.inf,
+                                       np.inf, np.inf, np.inf)
+
+        # remove the z axis
+        search_event = search_space.simple_event.as_composite_set()
+
+        # get obstacles
+        obstacles = GraphOfConvexSets.obstacles_of_world(world, search_space)
+
+        free_space = search_event - obstacles
+        free_space = free_space.marginal(xy)
+
+        # create floor level
+        z_event = SimpleEvent({BoundingBox.z_variable: singleton(0.)}).as_composite_set()
+        z_event.fill_missing_variables(xy)
+        free_space.fill_missing_variables(SortedSet([BoundingBox.z_variable]))
+        free_space &= z_event
+
+        return free_space
+
+def update_variables_of_simple_event(event: SimpleEvent, new_variables: Dict[Variable, Variable]) -> SimpleEvent:
+    return SimpleEvent({
+        new_variables.get(variable, variable): value for variable, value in event.items()
+    })
+
+def update_variables_of_event(event: Event, new_variables: Dict[Variable, Variable]) -> Event:
+    return Event([update_variables_of_simple_event(simple_event, new_variables) for simple_event in event.simple_sets])
 
 def leaf_type_to_variable(name: str, leaf_type: Type) -> Variable:
     """
@@ -145,5 +191,9 @@ def leaf_type_to_variable(name: str, leaf_type: Type) -> Variable:
         return Integer(name)
     elif issubclass(leaf_type, float):
         return Continuous(name)
+    elif issubclass(leaf_type, PhysicalObject):
+        all_subclasses = recursive_subclasses(PhysicalObject)
+        leaf_subclasses = [cls for cls in all_subclasses if cls.__subclasses__() == []]
+        return Symbolic(name, Set.from_iterable(leaf_subclasses))
     else:
         raise NotImplementedError(f"No conversion between {leaf_type} and random_events.Variable is known.")

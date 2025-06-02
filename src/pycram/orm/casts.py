@@ -7,7 +7,7 @@ class StringType(types.TypeDecorator):
     The database representation of this is a string while the in memory type is the instance of PhysicalObject.
     """
     cache_ok = True
-    impl = types.String
+    impl = types.String(50)
 
     def process_bind_param(self, value, dialect):
         return value.__class__.__name__

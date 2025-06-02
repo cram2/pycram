@@ -642,6 +642,13 @@ class TransportAction(ActionDescription):
     """
     Arm that should be used
     """
+
+    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
+    """
+    The object at the time this Action got created. It is used to be a static, information holding entity. It is
+    not updated when the BulletWorld object is changed.
+    """
+
     _pre_perform_callbacks = []
     """
     List to save the callbacks which should be called before performing the action.
@@ -748,7 +755,7 @@ class DetectAction(ActionDescription):
     """
     The technique that should be used for detection
     """
-    state: DetectionState = None
+    state: Optional[DetectionState] = None
     """
     The state of the detection, e.g Start Stop for continues perception
     """
@@ -756,7 +763,7 @@ class DetectAction(ActionDescription):
     """
     The type of the object that should be detected, only considered if technique is equal to Type
     """
-    region: Location = None
+    region: Optional[Location] = None
     """
     The region in which the object should be detected
     """
@@ -928,7 +935,7 @@ class GraspingAction(ActionDescription):
     """
     Grasps an object described by the given Object Designator description
     """
-    object_designator: Union[Object, ObjectDescription.Link]
+    object_designator: Object# Union[Object, ObjectDescription.Link]
     """
     Object Designator for the object that should be grasped
     """
@@ -1044,7 +1051,7 @@ class MoveAndPickUpAction(ActionDescription):
     The arm to use
     """
 
-    grasp: Grasp
+    grasp_description: GraspDescription
     """
     The grasp to use
     """
@@ -1054,14 +1061,27 @@ class MoveAndPickUpAction(ActionDescription):
     Keep the joint states of the robot the same during the navigation.
     """
 
+    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
+    """
+    The object at the time this Action got created. It is used to be a static, information holding entity. It is
+    not updated when the BulletWorld object is changed.
+    """
+
+    _pre_perform_callbacks = []
+    """
+    List to save the callbacks which should be called before performing the action.
+    """
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # Store the object's data copy at execution
+        self.pre_perform(record_object_pre_perform)
+
     def plan(self):
-        if self.grasp == Grasp.TOP:
-            grasp = GraspDescription(Grasp.FRONT, self.grasp, False)
-        else:
-            grasp = GraspDescription(self.grasp, None, False)
         NavigateAction(self.standing_position, self.keep_joint_states).perform()
         FaceAtAction(self.object_designator.pose, self.keep_joint_states).perform()
-        PickUpAction(self.object_designator, self.arm, grasp).perform()
+        PickUpAction(self.object_designator, self.arm, self.grasp_description).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in each of the atomic action perform methods so no need to validate here.
@@ -1072,15 +1092,15 @@ class MoveAndPickUpAction(ActionDescription):
     def description(cls, standing_position: Union[Iterable[PoseStamped], PoseStamped],
                     object_designator: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None,
-                    grasp: Union[Iterable[Grasp], Grasp] = None,
+                    grasp_description: Union[Iterable[Grasp], Grasp] = None,
                     keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states) -> \
             PartialDesignator[Type[MoveAndPickUpAction]]:
         return PartialDesignator(MoveAndPickUpAction,
                                  standing_position=standing_position,
                                  object_designator=object_designator,
                                  arm=arm,
-                                 grasp=grasp)
-
+                                 grasp_description=grasp_description,
+                                 keep_joint_states=keep_joint_states)
 
 @has_parameters
 @dataclass
