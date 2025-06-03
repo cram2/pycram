@@ -1,6 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from queue import Queue
 from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence, Type, \
@@ -391,6 +392,7 @@ class MonitorNode(SequentialNode):
 
         :param condition: The condition upon which the Monitor should interrupt the attached language expression.
         """
+        super().__init__()
         self.kill_event = threading.Event()
         self.exception_queue = Queue()
         if callable(condition):
@@ -417,7 +419,7 @@ class MonitorNode(SequentialNode):
         while not self.kill_event.is_set():
             if self.condition.get_value():
                 self.interrupt()
-            sleep(0.1)
+            time.sleep(0.1)
 
     def __hash__(self):
         return id(self)
@@ -495,6 +497,7 @@ class CodeNode(LanguageNode):
         :param function: The function that was called
         :param kwargs: The keyword arguments of the function as dict
         """
+        super().__init__()
         self.function: Callable = function
 
         if kwargs is None:
@@ -504,6 +507,8 @@ class CodeNode(LanguageNode):
         self.performable = self.__class__
         self.action = self.__class__
 
+
+
     @managed_node
     def execute(self) -> Any:
         """
@@ -511,6 +516,7 @@ class CodeNode(LanguageNode):
 
         :returns: Anything that the function associated with this object will return.
         """
+
         ret_val = self.function(**self.kwargs)
         if isinstance(ret_val, tuple):
             child_state, child_result = ret_val
