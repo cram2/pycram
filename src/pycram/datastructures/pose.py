@@ -359,6 +359,49 @@ class Header:
         stamp = ROSTime(int(split_time[0]), int(split_time[1]))
         return ROSHeader(frame_id=self.frame_id, stamp=stamp, seq=self.sequence)
 
+@has_parameters
+@dataclass
+class Vector3Stamped(Vector3):
+    """
+    A Vector3 with an attached ROS Header (timestamp and frame).
+    Inherits all vector operations and adds frame/time metadata.
+    """
+    header: Header = field(default_factory=Header)
+
+    @property
+    def frame_id(self):
+        return self.header.frame_id
+
+    @frame_id.setter
+    def frame_id(self, value: str):
+        self.header.frame_id = value
+
+    def __repr__(self):
+        return f"Vector3: {[round(v, 3) for v in [self.x, self.y, self.z]]} in frame_id {self.frame_id}"
+
+    def ros_message(self):
+        """
+        Convert to a ROS Vector3Stamped message.
+
+        :return: The ROS message.
+        """
+        from geometry_msgs.msg import Vector3Stamped as ROSVector3Stamped
+        from geometry_msgs.msg import Vector3 as ROSVector3
+        return ROSVector3Stamped(
+            vector=ROSVector3(x=self.x, y=self.y, z=self.z),
+            header=self.header.ros_message()
+        )
+
+    @classmethod
+    def from_ros_message(cls, message):
+        """
+        Create a Vector3Stamped from a ROS message.
+
+        :param message: The Vector3Stamped ROS message.
+        :return: A new Vector3Stamped object.
+        """
+        header = Header(frame_id=message.header.frame_id, stamp=message.header.stamp)
+        return cls(x=message.vector.x, y=message.vector.y, z=message.vector.z, header=header)
 
 @has_parameters
 @dataclass
