@@ -6,7 +6,6 @@ from ..ros import  create_action_client
 from ..ros import  logwarn, loginfo, loginfo_once
 from ..ros import  get_node_names
 
-from geometry_msgs.msg import PointStamped
 from typing_extensions import List, Callable, Optional
 
 from ..datastructures.pose import PoseStamped
@@ -53,6 +52,8 @@ def init_robokudo_interface(func: Callable) -> Callable:
 
         from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjectDesignator
         from robokudo_msgs.msg import QueryAction, QueryGoal, QueryResult
+        from geometry_msgs.msg import PointStamped
+
         robokudo_found = True
 
         global is_init
@@ -143,7 +144,7 @@ def query_object(obj_desc: ObjectDesignatorDescription) -> dict:
 
 
 @init_robokudo_interface
-def query_human() -> PointStamped:
+def query_human() -> 'PointStamped':
     """Query RoboKudo for human detection and return the detected human's pose."""
     result = send_query(obj_type='human')
     if result:

@@ -1,9 +1,14 @@
 import unittest
+import os
 from unittest.mock import patch, MagicMock
-from pycram.ros_utils.force_torque_sensor import ForceTorqueSensor, ForceTorqueSensorSimulated
 from pycram.datastructures.enums import FilterConfig
-from geometry_msgs.msg import WrenchStamped
+try:
+    from geometry_msgs.msg import WrenchStamped
+    from pycram.ros_utils.force_torque_sensor import ForceTorqueSensor, ForceTorqueSensorSimulated
+except ImportError:
+    pass
 
+@unittest.skipIf("ROS_VERSION" not in os.environ, "ROS is not available")
 class ForceTorqueSensorTestCase(unittest.TestCase):
 
     @patch('pycram.ros_utils.force_torque_sensor.World')

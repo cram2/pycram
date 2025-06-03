@@ -605,3 +605,6 @@ class DefaultManager(ProcessModuleManager):
             return DefaultMoveTCPWaypoints(self._move_tcp_waypoints_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return DefaultMoveTCPWaypointsReal(self._move_tcp_waypoints_lock)
+
+# Initialize the default manager and register it with the ProcessModuleManager
+DefaultManager()

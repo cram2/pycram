@@ -139,3 +139,5 @@ class StretchManager(DefaultManager):
             return DefaultMoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return StretchMoveGripperReal(self._move_gripper_lock)
+
+StretchManager()

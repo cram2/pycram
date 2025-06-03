@@ -6,11 +6,7 @@ import math
 from dataclasses import dataclass, field, fields
 
 import numpy as np
-from geometry_msgs.msg import (Vector3 as ROSVector3, Quaternion as ROSQuaternion, Point as ROSPoint, Pose as ROSPose,
-                               PoseStamped as ROSPoseStamped, Transform as ROSTransform,
-                               TransformStamped as ROSTransformStamped)
 from scipy.spatial.transform import Rotation as R
-from std_msgs.msg import Header as ROSHeader
 from typing_extensions import Self, Tuple, Optional, List, TYPE_CHECKING, Any
 
 from .enums import AxisIdentifier, Arms, Grasp
@@ -44,7 +40,7 @@ class Vector3(HasParameters):
         """
         return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2 + (self.z - other.z) ** 2) ** 0.5
 
-    def ros_message(self) -> ROSVector3:
+    def ros_message(self):
         """
         Convert the vector to a ROS message of type Vector3.
 
@@ -178,7 +174,7 @@ class Quaternion(HasParameters):
         object.__setattr__(self, "z", self.z / norm)
         object.__setattr__(self, "w", self.w / norm)
 
-    def ros_message(self) -> ROSQuaternion:
+    def ros_message(self):
         from geometry_msgs.msg import Quaternion as ROSQuaternion
         return ROSQuaternion(x=float(self.x), y=float(self.y), z=float(self.z), w=float(self.w))
 
@@ -257,7 +253,7 @@ class Pose(HasParameters):
         return (f"Pose: {[round(v, 3) for v in [self.position.x, self.position.y, self.position.z]]}, "
                 f"{[round(v, 3) for v in [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]]}")
 
-    def ros_message(self) -> ROSPose:
+    def ros_message(self):
         """
         Convert the pose to a ROS message of type Pose.
 
@@ -348,7 +344,7 @@ class Header:
     stamp: datetime.datetime = field(default_factory=datetime.datetime.now, compare=False)
     sequence: int = field(default=0, compare=False)
 
-    def ros_message(self) -> ROSHeader:
+    def ros_message(self):
         """
         Convert the header to a ROS message of type Header.
 
@@ -441,7 +437,7 @@ class PoseStamped(HasParameters):
                 f"{[round(v, 3) for v in [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]]} "
                 f"in frame_id {self.frame_id}")
 
-    def ros_message(self) -> ROSPoseStamped:
+    def ros_message(self):
         """
         Convert the pose to a ROS message of type PoseStamped.
 
@@ -451,7 +447,7 @@ class PoseStamped(HasParameters):
         return ROSPoseStamped(pose=self.pose.ros_message(), header=self.header.ros_message())
 
     @classmethod
-    def from_ros_message(cls, message: ROSPoseStamped) -> Self:
+    def from_ros_message(cls, message: 'ROSPoseStamped') -> Self:
         """
         Create a PoseStamped from a ROS message.
 
@@ -717,7 +713,7 @@ class Transform(Pose):
         """
         return cls(pose.position, pose.orientation)
 
-    def ros_message(self) -> ROSTransform:
+    def ros_message(self):
         """
         Convert the transform to a ROS message of type Transform.
 
@@ -805,7 +801,7 @@ class TransformStamped(PoseStamped):
                    header=Header(frame_id=frame, stamp=datetime.datetime.now()),
                    child_frame_id=child_frame_id)
 
-    def ros_message(self) -> ROSTransformStamped:
+    def ros_message(self):
         """
         Convert the TransformStamped to a ROS message of type TransformStamped.
 
