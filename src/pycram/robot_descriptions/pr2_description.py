@@ -1,3 +1,5 @@
+import numpy as np
+
 from ..datastructures.dataclasses import VirtualMobileBaseJoints
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
@@ -27,7 +29,7 @@ left_arm.add_static_joint_states(StaticJointState.Park, {'l_shoulder_pan_joint':
                                           'l_shoulder_lift_joint': -0.264,
                                           'l_upper_arm_roll_joint': 1.38,
                                           'l_elbow_flex_joint': -2.12,
-                                          'l_forearm_roll_joint': 16.996,
+                                          'l_forearm_roll_joint': 16.996+np.pi,
                                           'l_wrist_flex_joint': -0.073,
                                           'l_wrist_roll_joint': 0.0})
 pr2_description.add_kinematic_chain_description(left_arm)
@@ -51,7 +53,7 @@ right_arm.add_static_joint_states(StaticJointState.Park, {'r_shoulder_pan_joint'
                                            'r_shoulder_lift_joint': -0.256,
                                            'r_upper_arm_roll_joint': -1.463,
                                            'r_elbow_flex_joint': -2.12,
-                                           'r_forearm_roll_joint': 1.766,
+                                           'r_forearm_roll_joint': 1.766+np.pi,
                                            'r_wrist_flex_joint': -0.07,
                                            'r_wrist_roll_joint': 0.051})
 pr2_description.add_kinematic_chain_description(right_arm)
