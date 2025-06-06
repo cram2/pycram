@@ -1,19 +1,26 @@
 import itertools
+import time
 
 import networkx as nx
 import numpy as np
 import plotly.graph_objects as go
-from random_events.interval import SimpleInterval, Bound, singleton
+from random_events.interval import SimpleInterval, Bound, singleton, reals
 from random_events.product_algebra import SimpleEvent, Event
+from random_events.variable import Continuous
+from rtree import index
+from scipy.spatial import ConvexHull, QhullError
 from sortedcontainers import SortedSet
 from tqdm import tqdm
 from typing_extensions import Self, Optional, List
 
 from .datastructures.world import World
-from .datastructures.dataclasses import BoundingBox
-from .datastructures.pose import PoseStamped
+from .datastructures.dataclasses import BoundingBox, BoundingBoxCollection, AxisAlignedBoundingBox
+from .datastructures.pose import PoseStamped, TransformStamped
+from .description import Link
 from .failures import PlanFailure
-from .ros_utils.viz_marker_publisher import TrajectoryPublisher
+from .ros_utils.viz_marker_publisher import TrajectoryPublisher, BoundingBoxPublisher
+from scipy.spatial.transform import Rotation
+from random_events.polytope import Polytope
 
 
 class PoseOccupiedError(PlanFailure):
@@ -39,47 +46,93 @@ class GraphOfConvexSets(nx.Graph):
     Furthermore, the adjacency is saved in and edge attribute called "intersection".
     """
 
-    search_space: BoundingBox
+    search_space: BoundingBoxCollection
     """
     The bounding box of the search space. Defaults to the entire three dimensional space.
     """
 
-    def __init__(self, search_space: Optional[BoundingBox] = None):
+    def __init__(self, search_space: Optional[BoundingBoxCollection] = None):
         super().__init__()
         self.search_space = self._make_search_space(search_space)
 
-    def calculate_connectivity(self, tolerance=.001):
+
+    def calculate_connectivity(self, tolerance=0.001):
         """
-        Generate the edges for this graph.
-
-        :param tolerance: The tolerance for the intersection.
-        This value enlarges the boxes before the intersection to account for numeric imprecision.
+        Faster connectivity:
+        - No in-place node enlargement.
+        - Uses precomputed tuples for R-tree queries.
+        - Manual intersection test on original bounds.
         """
 
-        number_of_nodes = len(self.nodes)
+        # Build an R-tree in 3D
+        p = index.Property()
+        p.dimension = 3
+        rtree_index = index.Index(properties=p)
 
-        # make the bounding boxes a bit larger
-        [node.enlarge_all(tolerance) for node in self.nodes]
+        node_list = list(self.nodes)
+        N = len(node_list)
 
-        def check_connectivity(node1: BoundingBox, node2: BoundingBox):
-            """
-            Check the connectivity between two nodes.
-            Add an edge if they are connected.
-            :param node1: The first node.
-            :param node2: The second node.
-            """
-            intersection = node1.intersection_with(node2)
-            if intersection:
-                intersection.enlarge_all(-tolerance)
-                self.add_edge(node1, node2, intersection=intersection)
+        # Pre-extract original bounds (min/max in x,y,z) as tuples
+        orig_mins = [None] * N
+        orig_maxs = [None] * N
+        expanded_bounds = [None] * N  # to insert into R-tree
 
-        # calculate the connectivity for each edge pair
-        [check_connectivity(n1, n2) for n1, n2 in tqdm(itertools.combinations(self.nodes, 2),
-                                                       desc="Calculating connectivity",
-                                                       total=number_of_nodes * (number_of_nodes - 1) // 2)]
+        for i, node in enumerate(node_list):
+            # Assume each BoundingBox has attributes .min_x,.min_y,.min_z,.max_x,.max_y,.max_z
+            minx, miny, minz = node.min_x, node.min_y, node.min_z
+            maxx, maxy, maxz = node.max_x, node.max_y, node.max_z
 
-        # recreate the original bounding boxes
-        [node.enlarge_all(-tolerance) for node in self.nodes]
+            orig_mins[i] = (minx, miny, minz)
+            orig_maxs[i] = (maxx, maxy, maxz)
+
+            # Expand by tolerance on all sides (for candidate search)
+            ex_minx = minx - tolerance
+            ex_miny = miny - tolerance
+            ex_minz = minz - tolerance
+            ex_maxx = maxx + tolerance
+            ex_maxy = maxy + tolerance
+            ex_maxz = maxz + tolerance
+
+            expanded_bounds[i] = (ex_minx, ex_miny, ex_minz, ex_maxx, ex_maxy, ex_maxz)
+            rtree_index.insert(i, expanded_bounds[i])
+
+        # Now, for each node, query overlaps in the R-tree using the expanded box
+        for i in tqdm(range(N), desc="Calculating connectivity via R-tree (fast)"):
+            min_i = orig_mins[i]
+            max_i = orig_maxs[i]
+            ex_bounds_i = expanded_bounds[i]
+
+            # rtree returns indices j whose expanded bounds overlap ex_bounds_i
+            for j in rtree_index.intersection(ex_bounds_i):
+                if j <= i:
+                    continue
+
+                min_j = orig_mins[j]
+                max_j = orig_maxs[j]
+
+                # Manual AABB intersection test on original coords:
+                # They intersect if they overlap in all three dimensions.
+                if (
+                        min_i[0] <= max_j[0] and min_j[0] <= max_i[0] and  # X overlap
+                        min_i[1] <= max_j[1] and min_j[1] <= max_i[1] and  # Y overlap
+                        min_i[2] <= max_j[2] and min_j[2] <= max_i[2]  # Z overlap
+                ):
+                    # Compute exact intersection bounds (original boxes, no tol-shift)
+                    inter_min_x = max(min_i[0], min_j[0])
+                    inter_min_y = max(min_i[1], min_j[1])
+                    inter_min_z = max(min_i[2], min_j[2])
+
+                    inter_max_x = min(max_i[0], max_j[0])
+                    inter_max_y = min(max_i[1], max_j[1])
+                    inter_max_z = min(max_i[2], max_j[2])
+
+                    intersection_box = BoundingBox(
+                        inter_min_x, inter_min_y, inter_min_z,
+                        inter_max_x, inter_max_y, inter_max_z
+                    )
+
+                    # Add an edge: node_list[i] <--> node_list[j]
+                    self.add_edge(node_list[i], node_list[j], intersection=intersection_box)
 
     def plot_free_space(self) -> List[go.Mesh3d]:
         """
@@ -95,7 +148,7 @@ class GraphOfConvexSets(nx.Graph):
         :return: A list of traces that can be put into a plotly figure.
         """
         free_space = Event(*[node.simple_event for node in self.nodes])
-        occupied_space = ~free_space & self.search_space.simple_event.as_composite_set()
+        occupied_space = ~free_space & self.search_space.event
         return occupied_space.plot(color="red")
 
     def node_of_pose(self, x, y, z) -> Optional[BoundingBox]:
@@ -155,24 +208,23 @@ class GraphOfConvexSets(nx.Graph):
         return result
 
     @classmethod
-    def _make_search_space(cls, search_space: Optional[BoundingBox] = None):
+    def _make_search_space(cls, search_space: Optional[BoundingBoxCollection] = None):
         """
         Create the default search space if it is not given.
         """
         if search_space is None:
-            search_space = BoundingBox(-np.inf, -np.inf, -np.inf,
-                                       np.inf, np.inf, np.inf)
+            search_space = BoundingBox(-np.inf, -np.inf, -np.inf, np.inf, np.inf, np.inf).as_collection()
         return search_space
 
     @classmethod
-    def obstacles_of_world(cls, world: World, search_space: Optional[BoundingBox] = None) -> Event:
+    def obstacles_of_world(cls, world: World, search_space: Optional[BoundingBoxCollection] = None, bloat_obstacles: float = 0.) -> Event:
         """
         Get all obstacles of the world besides the robot as a random event.
         """
 
         # create search space for calculations
         search_space = cls._make_search_space(search_space)
-        search_event = search_space.simple_event.as_composite_set()
+        search_event = search_space.event
 
         # initialize obstacles
         obstacles = None
@@ -185,26 +237,69 @@ class GraphOfConvexSets(nx.Graph):
                 continue
 
             # get the bounding box of every link in the object description
-            for link in obj.link_name_to_id.keys():
-                bb = obj.get_link_axis_aligned_bounding_box(link)
+            for link in (obj.link_name_to_id.keys()):
 
-                # limit bounding box to search space
-                bb_event = bb.simple_event.as_composite_set() & search_event
+                bbs = list(obj.get_link_bounding_box_collection(link))
 
-                # skip bounding boxes that are outside the search space
-                if bb_event.is_empty():
-                    continue
+                # plot_bounding_boxes_in_rviz(bbs)
 
-                # update obstacles
-                if obstacles is None:
-                    obstacles = bb_event
-                else:
-                    obstacles |= bb_event
+                for bb in tqdm(bbs):
 
+                    bb = bb.bloat(bloat_obstacles, bloat_obstacles, 0.01)
+                    event = bb.simple_event.as_composite_set()
+                    bb_event = event & search_event
+
+                    # skip bounding boxes that are outside the search space
+                    if bb_event.is_empty():
+                        continue
+
+                    # update obstacles
+                    if obstacles is None:
+                        obstacles = bb_event
+                    else:
+                        obstacles |= bb_event
         return obstacles
 
+    # @staticmethod
+    # def get_bounding_box(bb: AxisAlignedBoundingBox, link: Link) -> Event:
+    #
+    #     if link.origin is None:
+    #         origin = TransformStamped()
+    #     else:
+    #         origin = link.origin.to_transform_stamped(link.name)
+    #
+    #     bb.get_rotated_box(origin)
+    #
+    #     corners = np.array([corner.to_list() for corner in bb.get_points()])
+    #     corners += np.array(origin.position.to_list())
+    #
+    #     quat = link.pose.orientation.to_list()
+    #     # rotate array to match the orientation of the link
+    #     rotation_matrix = Rotation.from_quat(quat, scalar_first=False).as_matrix()
+    #
+    #     rotated = corners @ rotation_matrix.T
+    #
+    #     # Apply translation
+    #     translated = rotated #+ corners
+    #
+    #     try:
+    #         hull = ConvexHull(translated)
+    #     except QhullError:
+    #         variances = np.var(translated, axis=0)
+    #         drop_dim = np.argmin(variances)
+    #         # Project to 2D by removing the least informative axis
+    #         reduced = np.delete(translated, drop_dim, axis=1)
+    #         hull = ConvexHull(reduced)
+    #
+    #     A = hull.equations[:, :-1]
+    #     b = -hull.equations[:, -1]
+    #
+    #     result = Polytope(A, b).outer_box_approximation(minimum_volume=np.inf)
+    #     return result
+    #
+
     @classmethod
-    def free_space_from_world(cls, world: World, tolerance=.001, search_space: Optional[BoundingBox] = None) -> Self:
+    def free_space_from_world(cls, world: World, tolerance=.001, search_space: Optional[BoundingBoxCollection] = None, bloat_obstacles: float = 0.) -> Self:
         """
         Create a connectivity graph from the free space in the belief state of the robot.
 
@@ -216,32 +311,35 @@ class GraphOfConvexSets(nx.Graph):
 
         # create search space for calculations
         search_space = cls._make_search_space(search_space)
-        search_event = search_space.simple_event.as_composite_set()
+        search_event = search_space.event
 
         # get obstacles
-        obstacles = cls.obstacles_of_world(world, search_space)
+        obstacles = cls.obstacles_of_world(world, search_space, bloat_obstacles)
 
+        start_time = time.time_ns()
         # calculate the free space and limit it to the searching space
-        free_space = ~obstacles & search_event
+        free_space = search_event - obstacles
+        print(f"Obstacles calculated in {(time.time_ns() - start_time) / 1e6} ms")
 
         # create a connectivity graph from the free space and calculate the edges
         result = cls(search_space=search_space)
         result.add_nodes_from(BoundingBox.from_event(free_space))
+
+        start_time = time.time_ns()
         result.calculate_connectivity(tolerance)
+        print(f"Connectivity calculated in {(time.time_ns() - start_time) / 1e6} ms")
 
         return result
 
     @classmethod
     def navigation_map_from_world(cls, world: World, tolerance=.001,
-                                  search_space: Optional[BoundingBox] = None) -> Self:
+                                  search_space: Optional[BoundingBoxCollection] = None, bloat_obstacles: float = 0.) -> Self:
         """
         Create a GCS from the free space in the belief state of the robot for navigation.
         The resulting GCS describes the paths for navigation, meaning that changing the z-axis position is not
         possible.
         Furthermore, it is taken into account that the robot has to fit through the entire space and not just
         through the floor level obstacles.
-
-        TODO: i think explicitly 2d boxes would help here.
 
         :param world: The belief state.
         :param tolerance: The tolerance for the intersection when calculating the connectivity.
@@ -255,24 +353,57 @@ class GraphOfConvexSets(nx.Graph):
         search_space = cls._make_search_space(search_space)
 
         # remove the z axis
-        search_event = search_space.simple_event.as_composite_set()
-        search_event = search_event.marginal(xy)
+        og_search_event = search_space.event
+        search_event = og_search_event.marginal(xy)
 
-        # get obstacles
-        obstacles = cls.obstacles_of_world(world, search_space)
+        # initialize obstacles
+        obstacles = None
+
+        # create an event that describes the obstacles in the belief state of the robot
+        for obj in world.objects:
+
+            # don't take self-collision into account
+            if obj.is_a_robot or obj.name == "floor":
+                continue
+
+            # get the bounding box of every link in the object description
+            for link in (obj.link_name_to_id.keys()):
+                bbs = list(obj.get_link_bounding_box_collection(link))
+
+                for bb in tqdm(bbs):
+
+                    bb = bb.bloat(bloat_obstacles, bloat_obstacles, 0.)
+
+                    event = bb.simple_event.as_composite_set()
+
+                    bb_event = event & search_event
+
+                    # skip bounding boxes that are outside the search space
+                    if bb_event.is_empty():
+                        continue
+
+                    bb_event = bb_event.marginal(xy)
+
+                    # update obstacles
+                    if obstacles is None:
+                        obstacles = bb_event
+                    else:
+                        obstacles |= bb_event
+
 
         # get the 2d map from the obstacles
-        obstacles = obstacles.marginal(xy)
-        free_space = ~obstacles & search_event
+        search_event = search_event.marginal(xy)
+        free_space = search_event - obstacles
 
         # create floor level
-        z_event = SimpleEvent({BoundingBox.z_variable: singleton(0.)}).as_composite_set()
+        z_event = SimpleEvent({BoundingBox.z_variable: reals()}).as_composite_set()
         z_event.fill_missing_variables(xy)
         free_space.fill_missing_variables(SortedSet([BoundingBox.z_variable]))
         free_space &= z_event
+        free_space &= og_search_event
 
-        # update z for search space
-        search_space.z = SimpleInterval(0., 0., Bound.CLOSED, Bound.CLOSED)
+        # # update z for search space
+        # search_space.z = SimpleInterval(0., 0., Bound.CLOSED, Bound.CLOSED)
 
         # create a connectivity graph from the free space and calculate the edges
         result = cls(search_space=search_space)
@@ -294,3 +425,10 @@ def plot_path_in_rviz(path: List[PoseStamped]):
 
     publisher = make_publisher()
     publisher.visualize_trajectory(path)
+
+def plot_bounding_boxes_in_rviz(boxes: BoundingBoxCollection):
+    def make_publisher():
+        return BoundingBoxPublisher()
+
+    publisher = make_publisher()
+    publisher.visualize(boxes)

@@ -5,11 +5,12 @@ from functools import cached_property
 from typing import List, Optional, Tuple
 
 import numpy as np
-from geometry_msgs.msg import Vector3, Point
+from geometry_msgs.msg import Vector3, Point, Pose
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
-from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape
+from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape, \
+    BoundingBox, BoundingBoxCollection
 from ..datastructures.pose import PoseStamped, TransformStamped
 from ..datastructures.world import World
 from ..designator import ObjectDesignatorDescription
@@ -86,50 +87,51 @@ class VizMarkerPublisher:
                     geoms = obj.get_link_geometry(link)
                 if not isinstance(geoms, list):
                     geoms = [geoms]
-                geom = geoms[0] if len(geoms) > 0 else None
-                if not geom:
+                if len(geoms) < 1:
                     continue
-                msg = Marker()
-                msg.header.frame_id = self.reference_frame
-                msg.ns = obj.name
-                msg.id = obj.link_name_to_id[link]
-                msg.type = Marker.MESH_RESOURCE
-                msg.action = Marker.ADD
-                link_pose = obj.get_link_transform(link)
-                if obj.get_link_origin(link) is not None:
-                    link_origin = obj.get_link_origin_transform(link)
-                else:
-                    link_origin = TransformStamped.from_list()
-                link_pose_with_origin = link_pose * link_origin
-                msg.pose = link_pose_with_origin.to_pose_stamped().pose
 
-                color = obj.get_link_color(link).get_rgba()
-
-                msg.color = ColorRGBA(**dict(zip(["r", "g", "b","a"], color)))
-                if self.use_prospection_world:
-                    msg.color.a = 0.5
-                msg.lifetime = Duration(1)
-
-                if isinstance(geom, MeshVisualShape):
+                for i, geom in enumerate(geoms):
+                    msg = Marker()
+                    msg.header.frame_id = self.reference_frame
+                    msg.ns = obj.name
+                    msg.id = obj.link_name_to_id[link] * 10000 + i
                     msg.type = Marker.MESH_RESOURCE
-                    msg.mesh_resource = "file://" + geom.file_name
-                    if hasattr(geom, "scale") and geom.scale is not None:
-                        msg.scale = Vector3(**dict(zip(["x", "y", "z"], geom.scale)))
+                    msg.action = Marker.ADD
+                    link_pose = obj.get_link_transform(link)
+                    if obj.get_link_origin(link) is not None:
+                        link_origin = obj.get_link_origin_transform(link)
                     else:
-                        msg.scale = Vector3(x=1.0, y=1.0, z=1.0)
-                    msg.mesh_use_embedded_materials = True
-                elif isinstance(geom, CylinderVisualShape):
-                    msg.type = Marker.CYLINDER
-                    msg.scale = Vector3(x=geom.radius * 2, y=geom.radius * 2, z=geom.length)
-                elif isinstance(geom, BoxVisualShape):
-                    msg.type = Marker.CUBE
-                    size = np.array(geom.size) * 2
-                    msg.scale = Vector3(x=float(size[0]), y=float(size[1]), z=float(size[2]))
-                elif isinstance(geom, SphereVisualShape):
-                    msg.type = Marker.SPHERE
-                    msg.scale = Vector3(x=geom.radius * 2, y=geom.radius * 2, z=geom.radius * 2)
+                        link_origin = TransformStamped.from_list()
+                    link_pose_with_origin = link_pose * link_origin
+                    msg.pose = link_pose_with_origin.to_pose_stamped().pose
 
-                marker_array.markers.append(msg)
+                    color = obj.get_link_color(link).get_rgba()
+
+                    msg.color = ColorRGBA(**dict(zip(["r", "g", "b","a"], color)))
+                    if self.use_prospection_world:
+                        msg.color.a = 0.5
+                    msg.lifetime = Duration(5)
+
+                    if isinstance(geom, MeshVisualShape):
+                        msg.type = Marker.MESH_RESOURCE
+                        msg.mesh_resource = "file://" + geom.file_name
+                        if hasattr(geom, "scale") and geom.scale is not None:
+                            msg.scale = Vector3(**dict(zip(["x", "y", "z"], geom.scale)))
+                        else:
+                            msg.scale = Vector3(x=1.0, y=1.0, z=1.0)
+                        msg.mesh_use_embedded_materials = True
+                    elif isinstance(geom, CylinderVisualShape):
+                        msg.type = Marker.CYLINDER
+                        msg.scale = Vector3(x=geom.radius * 2, y=geom.radius * 2, z=geom.length)
+                    elif isinstance(geom, BoxVisualShape):
+                        msg.type = Marker.CUBE
+                        size = np.array(geom.size) * 2
+                        msg.scale = Vector3(x=float(size[0]), y=float(size[1]), z=float(size[2]))
+                    elif isinstance(geom, SphereVisualShape):
+                        msg.type = Marker.SPHERE
+                        msg.scale = Vector3(x=geom.radius * 2, y=geom.radius * 2, z=geom.radius * 2)
+
+                    marker_array.markers.append(msg)
         return marker_array
 
     def _stop_publishing(self) -> None:
@@ -404,5 +406,51 @@ class TrajectoryPublisher:
             marker.color.a = 1.0
 
             marker_array.markers.append(marker)
+        self.publisher.publish(marker_array)
+
+
+class BoundingBoxPublisher:
+    """
+    Publishes a trajectory as a MarkerArray to visualize it in rviz.
+    """
+
+    id_counter = 0
+
+    @cached_property
+    def publisher(self):
+        pub = create_publisher("/pycram/bounding_boxes", MarkerArray)
+        time.sleep(0.5) # this is needed to synchronize the publisher creation thread
+        return pub
+
+    def visualize(self, boxes: BoundingBoxCollection):
+        """
+        """
+        marker_array = MarkerArray()
+        for box in boxes:
+
+            origin = box.transform.position
+
+            marker = Marker()
+            marker.header.frame_id = box.transform.frame_id
+            marker.id = self.id_counter
+            marker.ns = "bounding_boxes"
+            marker.action = Marker.ADD
+            marker.type = Marker.CUBE
+            marker.lifetime = Duration(60)
+
+            marker.pose = Pose()
+            marker.pose.position = origin
+
+            marker.scale.x = box.depth
+            marker.scale.y = box.width
+            marker.scale.z = box.height
+
+            marker.color.r = 1.0
+            marker.color.g = 0.0
+            marker.color.b = 1.0
+            marker.color.a = .5
+
+            marker_array.markers.append(marker)
+            self.id_counter += 1
         self.publisher.publish(marker_array)
 

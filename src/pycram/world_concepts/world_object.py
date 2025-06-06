@@ -5,13 +5,14 @@ from pathlib import Path
 
 import numpy as np
 from deprecated import deprecated
+from scipy.spatial.transform import Rotation
 from trimesh.parent import Geometry3D
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union, Any
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList, RotatedBoundingBox, VirtualJoint, FrozenObject, FrozenLink,
-                                          FrozenJoint)
+                                          FrozenJoint, BoundingBoxCollection)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import PoseStamped, TransformStamped, Point, Quaternion, Vector3
 from ..datastructures.world import World
@@ -581,6 +582,44 @@ class Object(PhysicalBody, HasParameters):
         :return: The axis aligned bounding box of the link.
         """
         return self.links[link_name].get_axis_aligned_bounding_box(transform_to_link_pose)
+
+    def get_link_bounding_box_collection(self, link_name: str) -> BoundingBoxCollection:
+        link = self.links[link_name]
+        geometry_list = link.geometry if isinstance(link.geometry, list) else [link.geometry]
+
+        link_pose = self.get_link_transform(link_name)
+        if self.get_link_origin(link_name) is not None:
+            link_origin = self.get_link_origin_transform(link_name)
+        else:
+            link_origin = TransformStamped.from_list()
+        link_pose_with_origin = link_pose * link_origin
+        link_pose = link_pose_with_origin.to_pose_stamped().pose
+
+        # link_pose = link.origin if isinstance(link.origin, PoseStamped) else link.pose
+
+        link_pos = np.array(link_pose.position.to_list())
+        link_quat = link_pose.orientation.to_list()
+        rotation_matrix = Rotation.from_quat(link_quat, scalar_first=False).as_matrix()
+
+        world_bboxes = []
+
+        for geom in geometry_list:
+            local_bb: AxisAlignedBoundingBox = geom.get_axis_aligned_bounding_box()
+
+            # Get all 8 corners of the AABB in link-local space
+            corners = np.array([corner.to_list() for corner in local_bb.get_points()])  # shape (8, 3)
+
+            # Transform each corner to world space: R * corner + T
+            transformed_corners = (corners @ rotation_matrix.T) + link_pos
+
+            # Compute world-space axis-aligned bounding box from transformed corners
+            min_corner = np.min(transformed_corners, axis=0)
+            max_corner = np.max(transformed_corners, axis=0)
+
+            world_bb = AxisAlignedBoundingBox.from_min_max(min_corner, max_corner)
+            world_bboxes.append(world_bb)
+
+        return BoundingBoxCollection(world_bboxes)
 
     def get_transform_between_links(self, from_link: str, to_link: str) -> TransformStamped:
         """
