@@ -78,6 +78,76 @@ class MoveTCPMotion(BaseMotion):
 
 @with_plan
 @dataclass
+class MoveTCPWiggleMotion(BaseMotion):
+    """
+    Moves the Tool center point (TCP) of the robot
+    """
+
+    target: PoseStamped
+    """
+    Target pose to which the TCP should be moved
+    """
+    arm: Arms
+    """
+    Arm with the TCP that should be moved to the target
+    """
+    allow_gripper_collision: Optional[bool] = None
+    """
+    If the gripper can collide with something
+    """
+    movement_type: Optional[MovementType] = MovementType.CARTESIAN
+    """
+    The type of movement that should be performed.
+    """
+
+    def perform(self):
+        pm_manager = ProcessModuleManager.get_manager()
+        try_motion(pm_manager.wiggle(), self, ToolPoseNotReachedError)
+
+    def __str__(self):
+        return (f"MoveTCPWiggleMotion:\n"
+                f"Target: {self.target}\n"
+                f"Arm: {self.arm}\n"
+                f"AllowGripperCollision: {self.allow_gripper_collision}\n"
+                f"MovementType: {self.movement_type}")
+
+    def __repr__(self):
+        return self.__str__()
+
+@with_plan
+@dataclass
+class MoveToolMotion(BaseMotion):
+    tool: Object
+    """
+    Tool that is the TCP in this case
+    """
+    move: bool
+    "If robot is allowed to move during the movement"
+
+    target: PoseStamped
+    """
+    Target pose to which the TCP should be moved
+    """
+    arm: Arms
+    """
+    Arm with the TCP that should be moved to the target
+    """
+    allow_gripper_collision: Optional[bool] = None
+    """
+    If the gripper can collide with something
+    """
+    movement_type: Optional[MovementType] = MovementType.CARTESIAN
+    """
+    The type of movement that should be performed.
+    """
+    def perform(self):
+        pm_manager = ProcessModuleManager.get_manager()
+        motion = pm_manager.get_manager()
+        try_motion(pm_manager.move_tool(), self, ToolPoseNotReachedError)
+
+
+@with_plan
+@dataclass
 class LookingMotion(BaseMotion):
     """
     Lets the robot look at a point
@@ -304,4 +374,9 @@ class MoveTCPWaypointsMotion(BaseMotion):
                 f"MovementType: {self.movement_type}")
 
     def __repr__(self):
+<<<<<<< HEAD
         return self.__str__()
+=======
+        return self.__str__()
+
+>>>>>>> 760b381e... Insert Action Wiggle

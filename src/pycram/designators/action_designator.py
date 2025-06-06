@@ -27,7 +27,7 @@ from typing_extensions import List, Union, Optional, Type, Dict, Any, Iterable
 from pycrap.ontologies import Location, PhysicalObject
 from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveTCPMotion, MoveMotion, \
-    LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
+    LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion, MoveTCPWiggleMotion
 from ..datastructures.grasp import GraspDescription
 from ..datastructures.world import World, UseProspectionWorld
 from ..description import Joint, Link, ObjectDescription
@@ -514,6 +514,11 @@ class PlaceAction(ActionDescription):
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
     not updated when the BulletWorld object is changed.
     """
+    insert: Optional[bool] = False
+    """
+    Attempts to insert the robot's end effector into a hole or slot using micro-corrective
+    motions ("wiggle") to handle alignment errors or contact uncertainty.
+    """
     _pre_perform_callbacks = []
     """
     List to save the callbacks which should be called before performing the action.
@@ -528,8 +533,10 @@ class PlaceAction(ActionDescription):
     def plan(self) -> None:
         target_pose = self.object_designator.attachments[
             World.robot].get_child_link_target_pose_given_parent(self.target_location)
-        MoveTCPMotion(target_pose, self.arm).perform()
-
+        if self.insert is True:
+            MoveTCPWiggleMotion(target_pose, self.arm).perform()
+        else:
+            MoveTCPMotion(target_pose, self.arm).perform()
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()
         World.robot.detach(self.object_designator)
 
@@ -582,10 +589,11 @@ class PlaceAction(ActionDescription):
     @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
-                    arm: Union[Iterable[Arms], Arms] = None) -> PartialDesignator[Type[PlaceAction]]:
+                    arm: Union[Iterable[Arms], Arms] = None, insert: bool = False) -> PartialDesignator[
+        Type[PlaceAction]]:
         return PartialDesignator(PlaceAction, object_designator=object_designator,
                                  target_location=target_location,
-                                 arm=arm)
+                                 arm=arm, insert=insert)
 
 
 @has_parameters
@@ -622,6 +630,8 @@ class NavigateAction(ActionDescription):
         return PartialDesignator(NavigateAction, target_location=target_location,
                                  keep_joint_states=keep_joint_states)
 
+        PlaceActionDescription(self.object_designator, self.target_location, self.arm).perform()
+
 
 @has_parameters
 @dataclass
@@ -654,6 +664,12 @@ class TransportAction(ActionDescription):
     List to save the callbacks which should be called before performing the action.
     """
 
+    insert: Optional[bool] = None
+    """
+     Attempts to insert the robot's end effector into a hole or slot using micro-corrective
+     motions ("wiggle") to handle alignment errors or contact uncertainty. Only supported via giskard.
+    """
+
     def __post_init__(self):
         super().__post_init__()
 
@@ -674,7 +690,7 @@ class TransportAction(ActionDescription):
 
         NavigateActionDescription(pickup_pose, True).perform()
         PickUpActionDescription(self.object_designator, pickup_pose.arm,
-                     grasp_description=pickup_pose.grasp_description).perform()
+                                grasp_description=pickup_pose.grasp_description).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()
         try:
             place_loc = CostmapLocation(
@@ -688,11 +704,19 @@ class TransportAction(ActionDescription):
             raise ReachabilityFailure(
                 f"No location found from where the robot can reach the target location: {self.target_location}")
         NavigateActionDescription(place_loc, True).perform()
-        PlaceActionDescription(self.object_designator, self.target_location, self.arm).perform()
+        PlaceActionDescription(self.object_designator, self.target_location, self.arm, insert=self.insert).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation of each atomic action is done in the action itself, so no more validation needed here.
+        pass
+
+    @abc.abstractmethod
+    def place_object(self):
+        """
+        Abstract method that defines how the object is placed at the target location.
+        Must be implemented by subclasses.
+        """
         pass
 
     @classmethod
@@ -935,7 +959,7 @@ class GraspingAction(ActionDescription):
     """
     Grasps an object described by the given Object Designator description
     """
-    object_designator: Object# Union[Object, ObjectDescription.Link]
+    object_designator: Object  # Union[Object, ObjectDescription.Link]
     """
     Object Designator for the object that should be grasped
     """
@@ -1101,6 +1125,7 @@ class MoveAndPickUpAction(ActionDescription):
                                  arm=arm,
                                  grasp_description=grasp_description,
                                  keep_joint_states=keep_joint_states)
+
 
 @has_parameters
 @dataclass

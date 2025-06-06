@@ -1,4 +1,5 @@
 import inspect
+import time
 
 import numpy as np
 from typing_extensions import List, TYPE_CHECKING
@@ -336,8 +337,10 @@ class DefaultDetectingReal(ProcessModule):
                 print(obj_name)
                 gen_obj_desc = GenericObjectDescription(obj_name, [0, 0, 0], hsize)
                 print("1")
-                if obj_color is not None: color = Colors.from_string(obj_color)
-                else: color = Colors.PINK
+                if obj_color is not None:
+                    color = Colors.from_string(obj_color)
+                else:
+                    color = Colors.PINK
                 print("2")
                 generic_obj = Object(name=obj_name, concept=type_concept, path=None, description=gen_obj_desc,
                                      color=color)
@@ -448,7 +451,7 @@ class DefaultMoveTCPReal(ProcessModule):
             print("i think i spider")
             giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
                                            grippers_that_can_collide=gripper_that_can_collide,
-                                          )
+                                           )
         if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.01, 3):
             raise ToolPoseNotReachedError(World.current_world.robot.get_link_pose(tip_link), designator.target)
 
@@ -508,6 +511,30 @@ class DefaultCloseReal(ProcessModule):
         giskard.achieve_close_container_goal(
             RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
             designator.object_part.name)
+
+
+class DefaultWiggleReal(ProcessModule):
+    """
+       Attempts to insert an object into a target slot using small corrective motions
+    to overcome misalignment or minor physical resistance.
+    """
+
+    def _execute(self, designator: MoveTCPMotion):
+        lt = LocalTransformer()
+        pose_in_map = lt.transform_pose(designator.target, "map")
+
+        tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
+        root_link = RobotDescription.current_robot_description.base_link
+
+        gripper_that_can_collide = designator.arm if designator.allow_gripper_collision else None
+        if designator.allow_gripper_collision:
+            giskard.allow_gripper_collision(designator.arm)
+
+        giskard.achieve_insert_w_wiggle(pose_in_map.position, tip_link, root_link,
+                                        grippers_that_can_collide=gripper_that_can_collide)
+        time.sleep(2)
+        if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.3, 3):
+            raise ToolPoseNotReachedError(World.current_world.robot.get_link_pose(tip_link), designator.target)
 
 
 class DefaultMoveTCPWaypointsReal(ProcessModule):
@@ -599,6 +626,11 @@ class DefaultManager(ProcessModuleManager):
             return DefaultMoveTCPWaypoints(self._move_tcp_waypoints_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return DefaultMoveTCPWaypointsReal(self._move_tcp_waypoints_lock)
+
+    def wiggle(self):
+        if ProcessModuleManager.execution_type == ExecutionType.REAL:
+            return DefaultWiggleReal(self._move_tcp_waypoints_lock)
+
 
 # Initialize the default manager and register it with the ProcessModuleManager
 DefaultManager()

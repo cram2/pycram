@@ -8,7 +8,7 @@ from ..ros import logwarn, loginfo_once, loginfo
 from ..ros import get_node_names
 
 from ..datastructures.enums import JointType, ObjectType, Arms
-from ..datastructures.pose import PoseStamped
+from ..datastructures.pose import PoseStamped, Vector3
 from ..datastructures.world import World
 from ..datastructures.dataclasses import MeshVisualShape
 from ..ros import get_service_proxy
@@ -326,8 +326,105 @@ def set_joint_goal(goal_poses: Dict[str, float]) -> None:
     par_return = _manage_par_motion_goals(giskard_wrapper.set_joint_goal, goal_poses)
     if par_return:
         return par_return
-
     giskard_wrapper.set_joint_goal(goal_poses)
+
+@init_giskard_interface
+@thread_safe
+def achieve_insert_w_wiggle(hole_point: Vector3,  tip_link: str, root_link: str,
+                            grippers_that_can_collide: Optional[Arms] = None,
+                            down_velocity: float = 0.2, noise_translation: float = 0.5, noise_angle: float = 10,
+                            random_walk: bool = True, vector_momentum_factor: float = 0.9,
+                            angular_momentum_factor: float = 0.9, center_pull_strength_angle: float = 0.1,
+                            center_pull_strength_vector: float = 0.25,):
+    """
+       Press down while wiggling the end effector.
+        This will run in an endless loop and needs to be interrupted from a monitor within pycram.
+        :param root_link:
+        :param tip_link:
+        :param hole_point: Center point of the hole
+        :param hole_normal: Vector perpendicular to the hole. default = z-axis of map
+        :param threshold: threshold for distance to hole_point to end task
+        :param noise_translation: describes how strong the translation wiggle is.
+        :param noise_angle: describes how strong the angular wiggle is.
+        :param random_walk: determines if random walk or random sample strategy is used
+        :param vector_momentum_factor: (only when random_walk=True) Higher value increases influence of momentum,
+                                                                    creating smoother but less random translation movement
+        :param angular_momentum_factor: (only when random_walk=True) Higher value increases influence of momentum,
+                                                                     creating smoother but less random angular movement
+        :param center_pull_strength_angle: (only when random_walk=True) Forces angular movement faster back towards
+                                                                        starting angle
+        :param center_pull_strength_vector: (only when random_walk=True) Forces translation movement faster back towards
+                                                                         hole_point
+    """
+    pstamped = make_point_stamped(hole_point.to_list())
+    giskard_wrapper.motion_goals.add_wiggle_insert(root_link=root_link, tip_link=tip_link,
+                                                   hole_point=pstamped,
+                                                   name="g1", down_velocity=down_velocity,
+                                                   noise_translation=noise_translation, noise_angle=noise_angle,
+                                                   random_walk=random_walk,
+                                                   vector_momentum_factor=vector_momentum_factor,
+                                                   angular_momentum_factor=angular_momentum_factor,
+                                                   center_pull_strength_angle=center_pull_strength_angle,
+                                                   center_pull_strength_vector=center_pull_strength_vector)
+    giskard_wrapper.monitors.add_end_motion(start_condition="g1")
+    if grippers_that_can_collide is not None:
+        allow_gripper_collision(grippers_that_can_collide)
+    return giskard_wrapper.execute()
+
+
+@init_giskard_interface
+@thread_safe
+def achieve_cartesian_goal_sequence(goal_poses: [PoseStamped],
+                                    tip_link: str,
+                                    root_link: str,
+                                    grippers_that_can_collide: Optional[Arms] = None) -> 'MoveResult':
+    """
+    Takes a cartesian position and tries to move the tip_link to this position using the chain defined by
+    tip_link and root_link.
+
+    :param goal_pose: The position which should be achieved with tip_link
+    :param tip_link: The end link of the chain as well as the link which should achieve the goal_pose
+    :param root_link: The starting link of the chain which should be used to achieve this goal
+    :param position_threshold: Position distance at which the goal is successfully reached
+    :param orientation_threshold: Orientation distance at which the goal is successfully reached
+    :param use_monitor: Whether to use a monitor for this goal or not.
+    :param grippers_that_can_collide: The gripper(s) that should be allowed to collide.
+    :return: MoveResult message for this goal
+    """
+
+    sync_worlds()
+    goals = goal_poses
+
+    giskard_wrapper.motion_goals.add_cartesian_pose(
+        name='g0',
+        root_link=root_link,
+        tip_link=tip_link,
+        goal_pose=goals[0].ros_message(),
+        end_condition='g0',
+    )
+
+    cart_monitor1 = giskard_wrapper.monitors.add_cartesian_pose(root_link=root_link, tip_link=tip_link,
+                                                                goal_pose=goals[len(goals) - 1].ros_message(),
+                                                                name='cart goal 1')
+    # Remaining goals
+    end_monitor = None
+    for i in range(1, len(goals)):
+        giskard_wrapper.motion_goals.add_cartesian_pose(
+            name=f'g{i}',
+            root_link=root_link,
+            tip_link=tip_link,
+            goal_pose=goals[i].ros_message(),
+            start_condition=f'g{i - 1}',
+            end_condition=f'g{i}',
+        )
+
+    giskard_wrapper.monitors.add_end_motion(start_condition=cart_monitor1)
+    giskard_wrapper.motion_goals.avoid_all_collisions()
+    if grippers_that_can_collide is not None:
+        allow_gripper_collision(grippers_that_can_collide)
+    # giskard_wrapper.motion_goals.allow_collision(group1=tip_link, group2="zuc")
+    return giskard_wrapper.execute()
+
 
 
 @init_giskard_interface
