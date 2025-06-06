@@ -23,7 +23,8 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           SphereVisualShape,
                                           CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                           ObjectState, WorldState, ClosestPointsList,
-                                          ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox, RayResult)
+                                          ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox, RayResult,
+                                          BoundingBoxCollection)
 from ..datastructures.enums import JointType, WorldMode, Arms, AdjacentBodyMethod as ABM
 from ..datastructures.pose import PoseStamped, TransformStamped
 from ..datastructures.world_entity import PhysicalBody, WorldEntity
@@ -982,6 +983,9 @@ class World(WorldEntity, ABC):
         :return: The axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
+        raise NotImplementedError()
+
+    def get_link_bounding_box_collection(self, link: Link) -> BoundingBoxCollection:
         raise NotImplementedError()
 
     def get_link_rotated_bounding_box(self, link: Link) -> RotatedBoundingBox:
