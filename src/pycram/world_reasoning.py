@@ -499,6 +499,8 @@ def is_body_in_region(body: PhysicalBody, region: Trimesh, step_size_in_meters: 
     elif method == FindBodyInRegionMethod.MultiRay:
         # cast multiple rays with small steps starting from min_bound to max_bound
         rays = get_rays_from_min_max(min_bound, max_bound, step_size_in_meters)
+        inv_rays = get_rays_from_min_max(max_bound, min_bound, step_size_in_meters)
+        rays = np.concatenate((rays, inv_rays), axis=0)
         max_batch_size = World.current_world.conf.max_batch_size_for_rays
         max_batch_size = max_batch_size if max_batch_size is not None else rays.shape[0]
         for n in chunks(rays, max_batch_size):
