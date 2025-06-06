@@ -115,7 +115,7 @@ class WorldConfig:
     The maximum batch size for the rays when using the ray test batch.
     """
 
-    execution_delay: timedelta = timedelta(seconds=0)
+    execution_delay: timedelta = timedelta(seconds=1)
     """
     The delay between the execution of actions/motions to imitate real world execution time.
     """

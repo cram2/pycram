@@ -1,4 +1,7 @@
 # Funky MonkeyPatching for ROS2 compatability
+import atexit
+import signal
+
 import builtin_interfaces.msg
 def to_sec(self):
     """
@@ -16,7 +19,10 @@ from rclpy.node import Node
 
 rclpy.init()
 node = Node('pycram')
+atexit.register(rclpy.shutdown)
 threading.Thread(target=rclpy.spin, args=(node,), daemon=True).start()
+
+
 
 from .data_types import *
 from .ros_tools import  *

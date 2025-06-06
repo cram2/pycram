@@ -1,7 +1,9 @@
 import os
+import threading
 import time
 import unittest
 from datetime import timedelta
+
 
 from .datastructures.world import UseProspectionWorld
 from .worlds.bullet_world import BulletWorld
@@ -53,7 +55,6 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
         if "ROS_VERSION" in os.environ:
             cls.viz_marker_publisher._stop_publishing()
         cls.world.exit()
-
 
 class BulletWorldTestCase(EmptyBulletWorldTestCase):
     """

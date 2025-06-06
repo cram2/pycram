@@ -122,7 +122,7 @@ def visibility_validator(robot: Object,
     robot_pose = robot.get_pose()
 
     if isinstance(object_or_pose, PoseStamped):
-        gen_obj_desc = ObjectDescription("viz_object", [0, 0, 0], [0.02, 0.02, 0.02])
+        gen_obj_desc = ObjectDescription("viz_object", [0, 0, 0], [0.1, 0.1, 0.1])
         obj = Object("viz_object", PhysicalObject, pose=object_or_pose, description=gen_obj_desc)
     else:
         obj = object_or_pose

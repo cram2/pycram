@@ -1,6 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import atexit
 from dataclasses import dataclass, field
 from queue import Queue
 from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence, Type, \
@@ -409,7 +410,7 @@ class MonitorNode(SequentialNode):
             self.condition = condition
         else:
             raise AttributeError("The condition of a Monitor has to be a Callable or a Fluent")
-        self.monitor_thread = threading.Thread(target=self.monitor)
+        self.monitor_thread = threading.Thread(target=self.monitor, name=f"MonitorThread-{id(self)}")
         self.monitor_thread.start()
 
     @managed_node
@@ -425,14 +426,18 @@ class MonitorNode(SequentialNode):
         self.monitor_thread.join()
 
     def monitor(self):
+        atexit.register(self.kill_event.set)
         while not self.kill_event.is_set():
             if self.condition.get_value():
                 if self.behavior == MonitorBehavior.INTERRUPT:
                     self.interrupt()
+                    self.kill_event.set()
                 elif self.behavior == MonitorBehavior.PAUSE:
                     self.pause()
+                    self.kill_event.set()
                 elif self.behavior == MonitorBehavior.RESUME:
                     self.resume()
+                    self.kill_event.set()
             sleep(0.1)
 
     def __hash__(self):
