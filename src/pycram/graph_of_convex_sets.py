@@ -97,7 +97,7 @@ class GraphOfConvexSets(nx.Graph):
             rtree_index.insert(i, expanded_bounds[i])
 
         # Now, for each node, query overlaps in the R-tree using the expanded box
-        for i in tqdm(range(N), desc="Calculating connectivity via R-tree (fast)"):
+        for i in tqdm(range(N), desc="Calculating connectivity"):
             min_i = orig_mins[i]
             max_i = orig_maxs[i]
             ex_bounds_i = expanded_bounds[i]
