@@ -535,7 +535,12 @@ class VisibilityCostmap(Costmap):
         self.origin: PoseStamped = PoseStamped.from_list() if not origin else origin
         self.target_object: Optional[Object] = target_object
         self.robot: Optional[Object] = robot
+        if robot:
+            current_pose = robot.get_pose()
+            robot.world.robot.set_pose(PoseStamped.from_list([current_pose.position.x, current_pose.position.y+1000, current_pose.position.z]))
         self._generate_map()
+        if robot:
+            robot.world.robot.set_pose(current_pose)
         Costmap.__init__(self, resolution, size, size, self.origin, self.map)
 
     @property
