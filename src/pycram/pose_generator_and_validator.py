@@ -1,3 +1,6 @@
+import functools
+import random
+
 import numpy as np
 
 from pycrap.ontologies import PhysicalObject
@@ -6,7 +9,7 @@ from .tf_transformations import quaternion_from_euler
 from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional, Iterator
 
 from .datastructures.enums import Arms
-from .costmaps import Costmap
+from .costmaps import Costmap, SemanticCostmap
 from .datastructures.pose import PoseStamped, TransformStamped, GraspDescription
 from .datastructures.world import World
 from .external_interfaces.ik import request_ik
@@ -17,6 +20,38 @@ from .ros import logdebug
 from .world_concepts.world_object import Object
 from .world_reasoning import contact
 
+
+class OrientationGenerator:
+
+    @staticmethod
+    def generate_origin_orientation(position: List[float], origin: PoseStamped) -> List[float]:
+        """
+        Generates an orientation such that the robot faces the origin of the costmap.
+
+        :param position: The position in the costmap, already converted to the world coordinate frame.
+        :param origin: The origin of the costmap, the point which the robot should face.
+        :return: A quaternion of the calculated orientation.
+        """
+        angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi
+        quaternion = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
+        return quaternion
+
+    @staticmethod
+    def generate_random_orientation(*_, rng: random.Random = random.Random(42)) -> List[float]:
+        """
+        Generates a random orientation rotated around the z-axis (yaw).
+        A random angle is sampled using a provided RNG instance to ensure reproducibility.
+
+        Args:
+            *_: Ignored parameters to maintain compatibility with other orientation generators.
+            rng (random.Random): Random number generator instance for reproducible sampling.
+
+        Returns:
+            List[float]: A quaternion representing the random orientation.
+        """
+        random_yaw = rng.uniform(0, 2 * np.pi)
+        quaternion = list(quaternion_from_euler(0, 0, random_yaw, axes="sxyz"))
+        return quaternion
 
 class PoseGenerator(Iterable[PoseStamped]):
     """
@@ -35,7 +70,7 @@ class PoseGenerator(Iterable[PoseStamped]):
     Override the orientation generator with a custom generator, which will be used regardless of the current_orientation_generator.
     """
 
-    def __init__(self, costmap: Costmap, number_of_samples=100, orientation_generator=None):
+    def __init__(self, costmap: Costmap, number_of_samples=100, orientation_generator=None, randomize=False):
         """
         :param costmap: The costmap from which poses should be sampled.
         :param number_of_samples: The number of samples from the costmap that should be returned at max
@@ -43,8 +78,9 @@ class PoseGenerator(Iterable[PoseStamped]):
         """
 
         if not PoseGenerator.current_orientation_generator:
-            PoseGenerator.current_orientation_generator = PoseGenerator.generate_orientation
+            PoseGenerator.current_orientation_generator = OrientationGenerator.generate_origin_orientation
 
+        self.randomize = randomize
         self.costmap = costmap
         self.number_of_samples = number_of_samples
         self.orientation_generator = orientation_generator if orientation_generator else PoseGenerator.current_orientation_generator
@@ -63,7 +99,11 @@ class PoseGenerator(Iterable[PoseStamped]):
         # Determines how many positions should be sampled from the costmap
         if self.number_of_samples == -1 or self.number_of_samples > self.costmap.map.flatten().shape[0]:
             self.number_of_samples = self.costmap.map.flatten().shape[0]
-        indices = np.argpartition(self.costmap.map.flatten(), -self.number_of_samples)[-self.number_of_samples:]
+        if self.randomize:
+            indices = np.random.choice(self.costmap.map.size, self.number_of_samples, replace=False)
+        else:
+            indices = np.argpartition(self.costmap.map.flatten(), -self.number_of_samples)[-self.number_of_samples:]
+
         indices = np.dstack(np.unravel_index(indices, self.costmap.map.shape)).reshape(self.number_of_samples, 2)
 
         height = self.costmap.map.shape[0]
@@ -122,7 +162,7 @@ def visibility_validator(robot: Object,
     robot_pose = robot.get_pose()
 
     if isinstance(object_or_pose, PoseStamped):
-        gen_obj_desc = ObjectDescription("viz_object", [0, 0, 0], [0.02, 0.02, 0.02])
+        gen_obj_desc = ObjectDescription("viz_object", [0, 0, 0], [0.05, 0.05, 0.05])
         obj = Object("viz_object", PhysicalObject, pose=object_or_pose, description=gen_obj_desc)
     else:
         obj = object_or_pose
