@@ -50,7 +50,7 @@ def compute_ik(target_link: str, target_pose: PoseStamped, robot: Object) -> Dic
 
     JOINT_ID = model.frames[model.getFrameId(target_link)].parent
     # Object to destination transformation
-    oMdes = pinocchio.XYZQUATToSE3(np.array(target_pose.position.to_list() + target_pose.orientation.to_list()))
+    oMdes = pinocchio.XYZQUATToSE3(target_pose.position.to_list() + target_pose.orientation.to_list())
 
     # Initial joint configuration
     # The configuration vector for all joints of the robot, created from the current joint states of the robot
@@ -93,6 +93,9 @@ def inverse_kinematics_logarithmic(model, configuration, data, target_joint_id, 
         iMd = data.oMi[target_joint_id].actInv(target_transformation)
         # Error between the current pose and the target pose, this should be minimized
         err = pinocchio.log(iMd).vector  # in joint frame
+        if np.isnan(err).any():
+            q += 0.001
+            continue
         if norm(err) < eps:
             success = True
             break
