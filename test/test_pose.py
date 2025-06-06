@@ -1,6 +1,8 @@
 import math
 import unittest
 
+import numpy as np
+
 from pycram.datastructures.pose import PoseStamped, TransformStamped, Quaternion, Vector3, AxisIdentifier
 
 
@@ -107,3 +109,67 @@ class TestPose(unittest.TestCase):
         # reverse direction
         b.position.x = -1
         self.assertFalse(a.is_facing_x_or_y(b))
+
+class TransformMultiplicationTest(unittest.TestCase):
+    def test_transform_multiplication(self):
+        t1 = TransformStamped.from_list([1, 2, 3], [0, 0, 0, 1], "map", "frame1")
+        t2 = TransformStamped.from_list([4, 5, 6], [0, 0, 0, 1], "frame1", "frame2")
+
+        result = t1 * t2
+
+        self.assertEqual(result.translation.to_list(), [5, 7, 9])
+        self.assertEqual(result.frame_id, "map")
+        self.assertEqual(result.child_frame_id, "frame2")
+
+    def test_transform_multiplication_inverse(self):
+        t1 = TransformStamped.from_list([1, 2, 3], [0, 0, 0, 1], "map", "frame1")
+        t2 = TransformStamped.from_list([4, 5, 6], [0, 0, 0, 1], "frame1", "frame2")
+
+        result = t1 * t2
+        inverse_result = ~result
+
+        self.assertEqual(inverse_result.translation.to_list(), [-5, -7, -9])
+        self.assertEqual(inverse_result.frame_id, "frame2")
+        self.assertEqual(inverse_result.child_frame_id, "map")
+
+    def test_transform_multiplication_roration(self):
+        t1 = TransformStamped.from_list([1, 1, 1], [0, 0, 1, 1], "map", "frame1")
+        t2 = TransformStamped.from_list([1, 0, 0], [0, 0, 0, 1], "frame1", "frame2")
+
+        result = t1 * t2
+
+        self.assertEqual(result.frame_id, "map")
+        np.testing.assert_almost_equal(result.rotation.to_list(), [0, 0, 0.707, 0.707], decimal=3)
+        self.assertEqual([1, 2, 1], result.translation.to_list())
+
+
+    def test_transform_multiplication_translation_inverse(self):
+        t1 = TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], "map", "frame1")
+        t2 = TransformStamped.from_list([1, 0, 0], [0, 0, 0, 1], "map", "frame2")
+
+        result = ~t1 * t2
+
+        self.assertEqual(result.frame_id, "frame1")
+        np.testing.assert_almost_equal(result.rotation.to_list(), [0, 0, 0, 1], decimal=3)
+        self.assertEqual([0, -1, -1], result.translation.to_list())
+
+    def test_transform_multiplication_with_inverse(self):
+        t1 = TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], "map", "frame1")
+        t2 = TransformStamped.from_list([2, 2, 1], [0, 0, -1, 1], "map", "frame2")
+
+        result = ~t1 * t2
+
+        self.assertEqual(result.frame_id, "frame1")
+        self.assertEqual(result.child_frame_id, "frame2")
+        np.testing.assert_almost_equal(result.translation.to_list(), [1, 1, 0], decimal=3)
+        np.testing.assert_almost_equal(result.rotation.to_list(), [0, 0, -0.707, 0.707], decimal=3)
+
+
+    def test_rotation_multiplication(self):
+        t1 = TransformStamped.from_list([0, 0, 0], [0, 0, 1, 1], "map", "frame1")
+        t2 = TransformStamped.from_list([0, 0, 0], [0, 0, 1, 0], "frame1", "frame2")
+
+        result = t1 * t2
+        self.assertEqual(result.frame_id, "map")
+        np.testing.assert_almost_equal(result.rotation.to_list(), [0, 0, -0.707, 0.707], decimal=3)
+        self.assertEqual(result.translation.to_list(), [0, 0, 0])
