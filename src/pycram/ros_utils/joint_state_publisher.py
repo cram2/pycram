@@ -38,13 +38,11 @@ class JointStatePublisher:
         """
         robot = World.robot
         joint_names = [joint_name for joint_name in robot.joint_name_to_id.keys()]
-        seq = 0
 
         while not self.kill_event.is_set():
             current_joint_states = [robot.get_joint_position(joint_name) for joint_name in joint_names]
             h = Header()
             h.stamp = Time().now()
-            h.seq = seq
             h.frame_id = ""
             joint_state_msg = JointState()
             joint_state_msg.header = h
@@ -52,7 +50,6 @@ class JointStatePublisher:
             joint_state_msg.position = current_joint_states
             # joint_state_msg.velocity = [joint_state[1] for joint_state in current_joint_states]
             self.joint_state_pub.publish(joint_state_msg)
-            seq += 1
             time.sleep(self.interval)
 
     def _stop_publishing(self) -> None:
