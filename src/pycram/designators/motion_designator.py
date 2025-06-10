@@ -374,9 +374,4 @@ class MoveTCPWaypointsMotion(BaseMotion):
                 f"MovementType: {self.movement_type}")
 
     def __repr__(self):
-<<<<<<< HEAD
         return self.__str__()
-=======
-        return self.__str__()
-
->>>>>>> 760b381e... Insert Action Wiggle
