@@ -1214,6 +1214,63 @@ class SearchAction(ActionDescription):
         Type[SearchAction]]:
         return PartialDesignator(SearchAction, target_location=target_location, object_type=object_type)
 
+@has_parameters
+@dataclass
+class PickAndPlaceAction(ActionDescription):
+    """
+    Transports an object to a position using an arm without moving the base of the robot
+    """
+
+    object_designator: Object
+    """
+    Object designator_description describing the object that should be transported.
+    """
+    target_location: PoseStamped
+    """
+    Target Location to which the object should be transported
+    """
+    arm: Arms
+    """
+    Arm that should be used
+    """
+    _pre_perform_callbacks = []
+    """
+    List to save the callbacks which should be called before performing the action.
+    """
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # Store the object's data copy at execution
+        self.pre_perform(record_object_pre_perform)
+
+    def plan(self) -> None:
+        robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
+        ParkArmsActionDescription(Arms.BOTH).perform()
+        pickup_loc = CostmapLocation(target=self.object_designator,
+                                     reachable_for=robot_desig_resolved,
+                                     reachable_arm=[self.arm])
+        # Tries to find a pick-up position for the robot that uses the given arm
+        pickup_pose = pickup_loc.resolve()
+
+        PickUpActionDescription(self.object_designator, pickup_pose.arm,
+                     grasp_description=pickup_pose.grasp_description).perform()
+        ParkArmsActionDescription(Arms.BOTH).perform()
+        PlaceActionDescription(self.object_designator, self.target_location, self.arm).perform()
+        ParkArmsActionDescription(Arms.BOTH).perform()
+
+    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+        # The validation of each atomic action is done in the action itself, so no more validation needed here.
+        pass
+
+    @classmethod
+    @with_plan
+    def description(cls, object_designator: Union[Iterable[Object], Object],
+                    target_location: Union[Iterable[PoseStamped], PoseStamped],
+                    arm: Union[Iterable[Arms], Arms] = None) -> PartialDesignator[Type[PickAndPlaceAction]]:
+        return PartialDesignator(PickAndPlaceAction, object_designator=object_designator,
+                                 target_location=target_location,
+                                 arm=arm)
 
 MoveTorsoActionDescription = MoveTorsoAction.description
 SetGripperActionDescription = SetGripperAction.description
@@ -1234,3 +1291,4 @@ MoveAndPlaceActionDescription = MoveAndPlaceAction.description
 ReleaseActionDescription = ReleaseAction.description
 GripActionDescription = GripAction.description
 SearchActionDescription = SearchAction.description
+PickAndPlaceActionDescription = PickAndPlaceAction.description
