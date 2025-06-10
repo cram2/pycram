@@ -433,7 +433,7 @@ class DefaultMoveTCPReal(ProcessModule):
         lt = LocalTransformer()
         pose_in_map = lt.transform_pose(designator.target, "map")
         tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
-        root_link = "base_link"
+        root_link = "map"
 
         gripper_that_can_collide = designator.arm if designator.allow_gripper_collision else None
         if designator.allow_gripper_collision:
