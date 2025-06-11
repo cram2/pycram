@@ -11,7 +11,6 @@ from typing import Iterator
 import numpy as np
 import plotly.graph_objects as go
 import trimesh
-from evdev.ecodes import KEY_T
 from matplotlib import pyplot as plt
 
 from random_events.interval import closed, SimpleInterval, Bound
@@ -21,10 +20,9 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
     deprecated, Type
 
 from pycrap.ontologies import PhysicalObject
-from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp, AxisIdentifier
+from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp
 from .pose import PoseStamped, Point, TransformStamped
 from ..ros import logwarn, logwarn_once
-from ..utils import classproperty
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
 if TYPE_CHECKING:
