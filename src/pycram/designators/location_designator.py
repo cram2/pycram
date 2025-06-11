@@ -1,5 +1,7 @@
 import dataclasses
+from functools import reduce
 
+import plotly.graph_objects as go
 import networkx as nx
 import numpy as np
 import tqdm
@@ -20,18 +22,19 @@ from typing_extensions import List, Union, Iterable, Optional, Iterator, Dict
 
 from ..config.action_conf import ActionConfig
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap, Costmap
-from ..datastructures.dataclasses import BoundingBox, AxisAlignedBoundingBox
+from ..datastructures.dataclasses import BoundingBox, AxisAlignedBoundingBox, Color
 from ..datastructures.enums import JointType, Arms, Grasp
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.pose import PoseStamped, GraspDescription, GraspPose, Vector3
 from ..datastructures.world import World, UseProspectionWorld
 from ..designator import LocationDesignatorDescription
 from ..failures import RobotInCollision
-from ..graph_of_convex_sets import GraphOfConvexSets
+from ..graph_of_convex_sets import GraphOfConvexSets, plot_bounding_boxes_in_rviz
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, pose_sequence_reachability_validator, \
     collision_check, OrientationGenerator
+from ..ros_utils.viz_marker_publisher import AxisMarkerPublisher
 from ..world_concepts.world_object import Object, Link
 from ..world_reasoning import link_pose_for_joint_config
 
@@ -523,10 +526,20 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         :yield: An instance of ProbabilisticSemanticLocation.Location with the found valid position of the Costmap.
         """
         for params in self.generate_permutations():
+            marker = AxisMarkerPublisher()
+
             params_box = Box(params)
             test_robot = World.current_world.get_prospection_object_for_object(World.current_world.robot)
 
             links: List[Link] = [params_box.part_of.links[link_name] for link_name in params_box.link_names]
+            link_bbs = [params_box.part_of.get_link_bounding_box_collection(link.name) for link in links]
+
+            old_colors = [params_box.part_of.get_link_color(link).get_rgb() for link in params_box.link_names]
+            [params_box.part_of.set_link_color(link, [1., 0., 1.]) for link in params_box.link_names]
+
+            # merge bb collections
+            merged_bb = reduce(lambda a, b: a.merge(b) or a, link_bbs)
+
             link_ids = [link.id for link in links]
             world = World.current_world
 
@@ -540,27 +553,43 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
                 variables = [BoundingBox.x_variable, BoundingBox.y_variable]
 
-                stand_on_ground = SimpleEvent({BoundingBox.z_variable: (0, 0.05)}).as_composite_set()
-                stand_on_ground.fill_missing_variables(variables)
-
-                event = params_box.part_of.get_link_bounding_box_collection(link.name).event
-
-                event = event.marginal(variables)
-                p_target = uniform_measure_of_event(event)
-
-                surface_samples = p_target.sample(100)
-                p_target.log_likelihood(surface_samples)
-
                 link_searchspace = link.get_axis_aligned_bounding_box().bloat(1, 1, 1).as_collection()
 
                 if self.with_2d_obstacles:
                     free_space = GraphOfConvexSets.navigation_map_from_world(world, search_space=link_searchspace)
                 else:
-                    free_space = GraphOfConvexSets.free_space_from_world(world, search_space=link_searchspace, bloat_obstacles=0.1)
+                    free_space = GraphOfConvexSets.free_space_from_world(world, search_space=link_searchspace, bloat_obstacles=0.02, bloat_walls=.3)
+
+                stand_on_ground = SimpleEvent({BoundingBox.z_variable: (0, 0.05)}).as_composite_set()
+                stand_on_ground.fill_missing_variables(variables)
+
+                event = params_box.part_of.get_link_bounding_box_collection(link.name).event
+
+                target_node = free_space.node_of_pose(link.pose.position.x, link.pose.position.y,
+                                                      link.pose.position.z + (
+                                                                  link.get_axis_aligned_bounding_box().height / 2) + 0.1)
+                sub_gcs: GraphOfConvexSets = nx.subgraph(free_space, nx.shortest_path(free_space, target_node))
+                condition = Event(*[node.simple_event for node in sub_gcs.nodes])
+
+                condition.fill_missing_variables([target_x, target_y])
+
+                walls = GraphOfConvexSets.get_doors_and_walls_of_world(world, search_space=link_searchspace, bloat_walls=.3)
+                event -= walls
+
+                event = event.marginal(variables)
+
+                condition &= stand_on_ground
+                condition = condition.marginal(variables)
+
+                condition -= event
+
+                p_target = uniform_measure_of_event(event)
+
+                surface_samples = p_target.sample(1000)
+                p_target.log_likelihood(surface_samples)
 
                 prob_circuit = ProbabilisticCircuit()
                 circuit_root = SumUnit(prob_circuit)
-
                 scale = 1.
 
                 for surface_sample in surface_samples[:100]:
@@ -580,35 +609,27 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
                     p_point_root.add_subcircuit(leaf(y_p, prob_circuit))
 
                 prob_circuit.normalize()
+
                 event.fill_missing_variables(prob_circuit.variables)
 
-                target_node = free_space.node_of_pose(link.pose.position.x, link.pose.position.y, link.pose.position.z + (link.get_axis_aligned_bounding_box().height / 2) + 0.1)
-                sub_gcs: GraphOfConvexSets = nx.subgraph(free_space, nx.shortest_path(free_space, target_node))
-                condition = Event(*[node.simple_event for node in sub_gcs.nodes])
-
-                condition.fill_missing_variables([target_x, target_y])
-
-                condition &= stand_on_ground
-                condition = condition.marginal(variables)
-
-                condition -= event
-
-                prob_circuit_conditioned, p_condition = prob_circuit.conditional(condition)
+                prob_circuit_conditioned, p_condition = prob_circuit.truncated(condition)
 
                 if prob_circuit_conditioned is None:
                     continue
 
-
-                final_discribution.add_subcircuit(prob_circuit_conditioned.root, np.log(p_condition))
+                # final_discribution.add_subcircuit(prob_circuit_conditioned.root, np.log(p_condition))
                 # alles gleich
-                #final_discribution.add_subcircuit(prob_circuit_conditioned.root, np.log(1.))
+                final_discribution.add_subcircuit(prob_circuit_conditioned.root, np.log(1.))
 
             final_discribution.probabilistic_circuit.normalize()
 
             # go.Figure(final_discribution.probabilistic_circuit.marginal(variables).plot()).show()
 
             samples = final_discribution.probabilistic_circuit.sample(100)
+            np.random.shuffle(samples)
             # samples = samples[np.argsort(final_discribution.probabilistic_circuit.log_likelihood(samples))[::-1]]
+
+            [params_box.part_of.set_link_color(link, old_color) for link, old_color in zip(params_box.link_names, old_colors)]
 
             # with UseProspectionWorld():
             # TODO: Use Prospection World here in the future, but currently there is annoying context management, causing
@@ -628,6 +649,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
                 target_quat = OrientationGenerator.generate_random_orientation()
                 target_pose = PoseStamped.from_list([target_x, target_y, hit_pos], target_quat, 'map')
+                marker.publish([target_pose], length=0.3)
 
                 nav_quat = OrientationGenerator.generate_origin_orientation([nav_x, nav_y], target_pose)
                 nav_pose = PoseStamped.from_list([nav_x, nav_y, 0], nav_quat, 'map')
@@ -777,6 +799,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
         :yield: An instance of ProbabilisticSemanticLocation.Location with the found valid position of the Costmap.
         """
         for params in self.generate_permutations():
+            marker = AxisMarkerPublisher()
             params_box = Box(params)
 
             target = params_box.target.copy() if isinstance(params_box.target, PoseStamped) else params_box.target
@@ -804,7 +827,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
 
             free_space_nav = GraphOfConvexSets.navigation_map_from_world(world, search_space=link_searchspace, bloat_obstacles=0.3)
 
-            free_space = GraphOfConvexSets.free_space_from_world(world, search_space=link_searchspace, bloat_obstacles=0.01)
+            free_space = GraphOfConvexSets.free_space_from_world(world, search_space=link_searchspace, bloat_obstacles=0.01, bloat_walls=.2)
 
             target_node = free_space.node_of_pose(target_pose.position.x, target_pose.position.y, target_pose.position.z + 0.2)
             sub_gcs: GraphOfConvexSets = nx.subgraph(free_space, nx.shortest_path(free_space, target_node))
@@ -843,8 +866,13 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
 
             condition &= room_event
 
+            condition &= condition2
+
             target_x = Continuous('target_x')
             target_y = Continuous('target_y')
+
+            condition.fill_missing_variables([target_x, target_y])
+
             prob_circuit = ProbabilisticCircuit()
             circuit_root = SumUnit(prob_circuit)
 
@@ -864,11 +892,9 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
             p_point_root.add_subcircuit(leaf(y_p, prob_circuit))
 
             prob_circuit.normalize()
-            condition.fill_missing_variables([target_x, target_y])
-            condition &= condition2
 
 
-            prob_circuit_conditioned, p_condition = prob_circuit.conditional(condition)
+            prob_circuit_conditioned, p_condition = prob_circuit.truncated(condition)
 
             if prob_circuit_conditioned is None:
                 continue
@@ -878,10 +904,10 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
             #     json.dump(prob_circuit_conditioned.to_json(), f, indent=4)
 
             # go.Figure(prob_circuit_conditioned.marginal(variables).plot()).show()
+            marker.publish([target_pose], length=0.3, duration=30)
 
             with UseProspectionWorld():
                 samples = prob_circuit_conditioned.sample(10000)
-                print(f"Agnostic rotation: {params_box.rotation_agnostic}")
 
                 event: Optional[SimpleEvent] = None
                 samples = samples[np.argsort(prob_circuit_conditioned.log_likelihood(samples))[::-1]]

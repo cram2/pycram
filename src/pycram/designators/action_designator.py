@@ -657,7 +657,7 @@ class TransportAction(ActionDescription):
         ParkArmsAction(Arms.BOTH).perform()
         pickup_loc = ProbabilisticCostmapLocation(target=self.object_designator,
                                      reachable_for=robot_desig_resolved,
-                                     reachable_arm=[self.arm])
+                                     reachable_arm=self.arm)
         # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = pickup_loc.resolve()
         if not pickup_pose:

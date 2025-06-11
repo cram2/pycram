@@ -632,6 +632,18 @@ class BoundingBox:
         """
         return BoundingBoxCollection([self])
 
+    def bloat(self, x_amount: float = 0., y_amount: float = 0, z_amount: float = 0) -> BoundingBox:
+        """
+        Bloat the axis-aligned bounding box by a given amount in all dimensions.
+
+        :param x_amount: The amount to bloat the x-coordinate
+        :param y_amount: The amount to bloat the y-coordinate
+        :param z_amount: The amount to bloat the z-coordinate
+        :return: The bloated axis-aligned bounding box
+        """
+        return BoundingBox(self.min_x - x_amount, self.min_y - y_amount, self.min_z - z_amount,
+                           self.max_x + x_amount, self.max_y + y_amount, self.max_z + z_amount)
+
 @dataclass
 class AxisAlignedBoundingBox(BoundingBox):
 
@@ -767,14 +779,18 @@ class BoundingBoxCollection:
         """
         return BoundingBoxCollection(self.bounding_boxes + other.bounding_boxes)
 
-    def bloat(self, amount: float) -> BoundingBoxCollection:
+    def bloat(self, x_amount: float = 0., y_amount: float = 0, z_amount: float = 0) -> BoundingBoxCollection:
         """
         Bloat all bounding boxes in the collection by a given amount in all dimensions.
 
-        :param amount: The amount to bloat the bounding boxes
+        :param x_amount: The amount to bloat the x-coordinate
+        :param y_amount: The amount to bloat the y-coordinate
+        :param z_amount: The amount to bloat the z-coordinate
+
         :return: The bloated bounding box collection
         """
-        return BoundingBoxCollection([box.bloat(amount, amount, amount) for box in self.bounding_boxes])
+        return BoundingBoxCollection([box.bloat(x_amount, y_amount, z_amount) for box in self.bounding_boxes])
+
 
 @dataclass
 class CollisionCallbacks:

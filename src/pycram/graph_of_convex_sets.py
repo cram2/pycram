@@ -217,7 +217,8 @@ class GraphOfConvexSets(nx.Graph):
         return search_space
 
     @classmethod
-    def obstacles_of_world(cls, world: World, search_space: Optional[BoundingBoxCollection] = None, bloat_obstacles: float = 0.) -> Event:
+    def obstacles_of_world(cls, world: World, search_space: Optional[BoundingBoxCollection] = None, bloat_obstacles: float = 0.,
+                           bloat_walls: float = 0.) -> Event:
         """
         Get all obstacles of the world besides the robot as a random event.
         """
@@ -245,7 +246,13 @@ class GraphOfConvexSets(nx.Graph):
 
                 for bb in tqdm(bbs):
 
-                    bb = bb.bloat(bloat_obstacles, bloat_obstacles, 0.01)
+                    if "wall" in link.lower():
+                        if bb.width > bb.depth:
+                            bb = bb.bloat(bloat_walls, 0, 0.01)
+                        else:
+                            bb = bb.bloat(0, bloat_walls, 0.01)
+                    else:
+                        bb = bb.bloat(bloat_obstacles, bloat_obstacles, 0.01)
                     event = bb.simple_event.as_composite_set()
                     bb_event = event & search_event
 
@@ -299,7 +306,65 @@ class GraphOfConvexSets(nx.Graph):
     #
 
     @classmethod
-    def free_space_from_world(cls, world: World, tolerance=.001, search_space: Optional[BoundingBoxCollection] = None, bloat_obstacles: float = 0.) -> Self:
+    def get_doors_and_walls_of_world(cls, world: World, search_space: Optional[BoundingBoxCollection] = None,
+                             bloat_walls: float = 0.) -> Event:
+        """
+        Get all walls (and doors) of the world as a random event.
+        :param world: The world to get the walls from.
+        :param search_space: The search space to limit the walls to.
+        :param bloat_walls: The amount to bloat the walls.
+        :return: An event that describes the walls in the world.
+        """
+        # create search space for calculations
+        search_space = cls._make_search_space(search_space)
+        search_event = search_space.event
+
+        # initialize obstacles
+        obstacles = None
+
+        # create an event that describes the obstacles in the belief state of the robot
+        for obj in world.objects:
+
+            # don't take self-collision into account
+            if obj.is_a_robot:
+                continue
+
+            # get the bounding box of every link in the object description
+            for link in (obj.link_name_to_id.keys()):
+
+                bbs = list(obj.get_link_bounding_box_collection(link))
+
+                # plot_bounding_boxes_in_rviz(bbs)
+
+                for bb in tqdm(bbs):
+
+
+                    if any(x in link.lower() for x in ["wall", "door"]):
+                        if bb.width > bb.depth:
+                            bb = bb.bloat(bloat_walls, 0, 0.01)
+                        else:
+                            bb = bb.bloat(0, bloat_walls, 0.01)
+                    else:
+                        continue
+
+                    event = bb.simple_event.as_composite_set()
+                    bb_event = event & search_event
+
+                    # skip bounding boxes that are outside the search space
+                    if bb_event.is_empty():
+                        continue
+
+                    # update obstacles
+                    if obstacles is None:
+                        obstacles = bb_event
+                    else:
+                        obstacles |= bb_event
+        return obstacles
+
+
+    @classmethod
+    def free_space_from_world(cls, world: World, tolerance=.001, search_space: Optional[BoundingBoxCollection] = None,
+                              bloat_obstacles: float = 0., bloat_walls: float = 0.) -> Self:
         """
         Create a connectivity graph from the free space in the belief state of the robot.
 
@@ -314,7 +379,7 @@ class GraphOfConvexSets(nx.Graph):
         search_event = search_space.event
 
         # get obstacles
-        obstacles = cls.obstacles_of_world(world, search_space, bloat_obstacles)
+        obstacles = cls.obstacles_of_world(world, search_space, bloat_obstacles, bloat_walls)
 
         start_time = time.time_ns()
         # calculate the free space and limit it to the searching space
@@ -426,9 +491,9 @@ def plot_path_in_rviz(path: List[PoseStamped]):
     publisher = make_publisher()
     publisher.visualize_trajectory(path)
 
-def plot_bounding_boxes_in_rviz(boxes: BoundingBoxCollection):
+def plot_bounding_boxes_in_rviz(boxes: BoundingBoxCollection, duration=60.0):
     def make_publisher():
         return BoundingBoxPublisher()
 
     publisher = make_publisher()
-    publisher.visualize(boxes)
+    publisher.visualize(boxes, duration)
