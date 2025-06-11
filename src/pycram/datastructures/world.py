@@ -4,11 +4,11 @@ from __future__ import annotations
 import os
 import threading
 import time
+import signal
 from abc import ABC, abstractmethod
 from copy import copy
 
 import numpy as np
-from geometry_msgs.msg import Point
 from trimesh import Trimesh
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type, deprecated
 
@@ -26,7 +26,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox, RayResult,
                                           BoundingBoxCollection)
 from ..datastructures.enums import JointType, WorldMode, Arms, AdjacentBodyMethod as ABM
-from ..datastructures.pose import PoseStamped, TransformStamped
+from ..datastructures.pose import PoseStamped, TransformStamped, Point
 from ..datastructures.world_entity import PhysicalBody, WorldEntity
 from ..failures import ProspectionObjectNotFound, ObjectNotFound
 from ..local_transformer import LocalTransformer
@@ -142,6 +142,8 @@ class World(WorldEntity, ABC):
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
 
         self._set_world_rules()
+
+        signal.signal(signal.SIGINT, self.signal_handler)
 
     def _set_world_rules(self):
         """
@@ -1067,6 +1069,14 @@ class World(WorldEntity, ABC):
         if self.prospection_world:
             self.terminate_world_sync()
             self.prospection_world.exit()
+
+    def signal_handler(self, sig, frame) -> None:
+        """
+        Signal handler for graceful exit of the world when a signal is received (e.g., SIGINT).
+        """
+        self.exit()
+        print("Exiting World ...")
+        exit(0)
 
     @abstractmethod
     def disconnect_from_physics_server(self) -> None:

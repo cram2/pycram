@@ -1,6 +1,5 @@
 from typing import Optional, Tuple
 
-from geometry_msgs.msg import Point
 from trimesh import Trimesh
 from typing_extensions import List, Any, Union, Dict, Self, TYPE_CHECKING
 
@@ -9,7 +8,7 @@ from ..config.world_conf import WorldConfig
 from ..datastructures.dataclasses import VisualShape, BoxVisualShape, Color, AxisAlignedBoundingBox, RotatedBoundingBox, \
     BoundingBox
 from ..datastructures.enums import JointType
-from ..datastructures.pose import PoseStamped
+from ..datastructures.pose import PoseStamped, Point
 from ..description import JointDescription as AbstractJointDescription, LinkDescription as AbstractLinkDescription, \
     ObjectDescription as AbstractObjectDescription, ObjectDescription
 

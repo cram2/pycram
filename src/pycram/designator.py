@@ -3,28 +3,22 @@ from __future__ import annotations
 
 import inspect
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from datetime import timedelta
+from typing import get_type_hints
+
+from typing_extensions import Type, List, Dict, Any, Optional, Callable, Self, Iterator
 
 from pycrap.ontologies import PhysicalObject, Agent
 from .datastructures.enums import ObjectType
-from .datastructures.pose import PoseStamped, GraspDescription
-from .failures import PlanFailure
-
-from .datastructures.world import World
 from .datastructures.partial_designator import PartialDesignator
-from typing_extensions import Type, List, Dict, Any, Optional, Union, Callable, Iterable, TYPE_CHECKING, ForwardRef, \
-    Self, Iterator
-from typing import get_type_hints
-
+from .datastructures.pose import PoseStamped
+from .datastructures.world import World
+from .failures import PlanFailure
 from .has_parameters import HasParameters
-from .language import LanguageMixin
-from .local_transformer import LocalTransformer
 from .robot_description import RobotDescription
-from .ros import loginfo
-from .utils import bcolors, is_iterable
+from .utils import bcolors
 from .world_concepts.world_object import Object as WorldObject, Object
-from .plan import Plan
 
 
 class DesignatorError(Exception):
@@ -114,6 +108,7 @@ class DesignatorDescription:
         Returns a list of all parameter names of this designator_description description.
         """
         return [param_name for param_name, param in inspect.signature(self.__init__).parameters.items()]
+
     @classmethod
     def get_type_hints(cls) -> Dict[str, Any]:
         """
@@ -122,6 +117,7 @@ class DesignatorDescription:
         :return:
         """
         return get_type_hints(cls.__init__)
+
 
 @dataclass
 class ActionDescription(HasParameters):
@@ -137,7 +133,7 @@ class ActionDescription(HasParameters):
     The torso height of the robot at the start of the action.
     """
 
-    _robot_type: Type[Agent] = field(init=False)
+    robot_type: Type[Agent] = field(init=False)
     """
     The type of the robot at the start of the action.
     """
@@ -152,13 +148,7 @@ class ActionDescription(HasParameters):
     """
 
     def __post_init__(self):
-        self.robot_position = World.robot.get_pose()
-        if RobotDescription.current_robot_description.torso_joint != "":
-            self.robot_torso_height = World.robot.get_joint_position(
-                RobotDescription.current_robot_description.torso_joint)
-        else:
-            self.robot_torso_height = 0.0
-        self._robot_type = World.robot.obj_type
+        self._pre_perform_callbacks.append(self._update_robot_params)
 
     def perform(self) -> Any:
         """
@@ -256,6 +246,12 @@ class ActionDescription(HasParameters):
     def __repr__(self):
         return self.__str__()
 
+    def _update_robot_params(self, action: ActionDescription):
+        action.robot_position = World.robot.pose
+        action.robot_torso_height = World.robot.get_joint_position(
+            RobotDescription.current_robot_description.torso_joint)
+        action.robot_type = World.robot.obj_type
+
 
 class LocationDesignatorDescription(DesignatorDescription, PartialDesignator):
     """
@@ -277,6 +273,7 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
     Class for object designator_description descriptions.
     Descriptions hold possible parameter ranges for object designators.
     """
+
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None):
         """
         Base of all object designator_description descriptions. Every object designator_description has the name and type of the object.
@@ -318,6 +315,11 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
 
                 # yield self.Object(obj.name, obj.obj_type, obj)
                 yield obj
+
+    def flatten(self) -> List:
+        res = [None] * 7
+        res.append(self.types[0])
+        return res
 
 
 @dataclass

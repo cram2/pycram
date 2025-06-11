@@ -19,17 +19,16 @@ defaults:
 jobs:
   test-and-build:
     name: Build Jupyter-Book  documentation
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
 
       - name: Checkout 🛎
         uses: actions/checkout@v3
 
-      - name: Install PyCRAM dependencies 🍼
-        uses: py-actions/py-dependency-install@v4
-        with:
-          path: "requirements-setuptools.txt"
+      - name: Update pip and setuptools 🍼
+        run: |
+          pip install -U pip setuptools
 
       # ----------------------------------------------------------------------------------------------------------------
 

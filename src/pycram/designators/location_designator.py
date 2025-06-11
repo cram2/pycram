@@ -585,7 +585,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
                 p_target = uniform_measure_of_event(event)
 
-                surface_samples = p_target.sample(1000)
+                surface_samples = p_target.sample(100)
                 p_target.log_likelihood(surface_samples)
 
                 prob_circuit = ProbabilisticCircuit()
@@ -625,7 +625,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
             # go.Figure(final_discribution.probabilistic_circuit.marginal(variables).plot()).show()
 
-            samples = final_discribution.probabilistic_circuit.sample(100)
+            samples = final_discribution.probabilistic_circuit.sample(1000)
             np.random.shuffle(samples)
             # samples = samples[np.argsort(final_discribution.probabilistic_circuit.log_likelihood(samples))[::-1]]
 

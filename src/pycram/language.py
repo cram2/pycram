@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from queue import Queue
-from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence, Type
+from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence, Type, \
+    TYPE_CHECKING
 
 from .datastructures.enums import TaskStatus
 import threading
@@ -13,6 +14,9 @@ from .failures import PlanFailure
 from .external_interfaces import giskard
 from .ros import sleep, loginfo
 from .plan import PlanNode, Plan, managed_node
+
+if TYPE_CHECKING:
+    from .designator import ActionDescription
 
 
 class LanguageMixin:
@@ -221,16 +225,17 @@ class CodePlan(Plan):
 
 @dataclass
 class LanguageNode(PlanNode):
-    action: Type = None
+
+    action: Type[LanguageNode] = field(default_factory=lambda : LanguageNode)
     """
     Superclass for language nodes in a plan. Used to distinguish language nodes from other types of nodes.
     """
-    def __init__(self):
-        self.action = self.__class__
+
 
 
 @dataclass
 class SequentialNode(LanguageNode):
+    action: Type[SequentialNode] = field(default_factory=lambda: SequentialNode)
     """
     Executes all children sequentially, an exception while executing a child does not terminate the whole process.
     Instead, the exception is saved to a list of all exceptions thrown during execution and returned.
@@ -480,6 +485,7 @@ class CodeNode(LanguageNode):
     :ivar function: The function (plan) that was called
     :ivar kwargs: Dictionary holding the keyword arguments of the function
     """
+    action: LanguageNode = field(default_factory=lambda : LanguageNode)
 
     def __init__(self, function: Optional[Callable] = None,
                  kwargs: Optional[Dict] = None):
@@ -496,6 +502,7 @@ class CodeNode(LanguageNode):
         self.kwargs: Dict[str, Any] = kwargs
         self.perform = self.execute
         self.performable = self.__class__
+        self.action = self.__class__
 
     @managed_node
     def execute(self) -> Any:

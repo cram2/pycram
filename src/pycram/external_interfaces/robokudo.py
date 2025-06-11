@@ -6,19 +6,12 @@ from ..ros import  create_action_client
 from ..ros import  logwarn, loginfo, loginfo_once
 from ..ros import  get_node_names
 
-from geometry_msgs.msg import PointStamped
 from typing_extensions import List, Callable, Optional
 
 from ..datastructures.pose import PoseStamped
 from ..designator import ObjectDesignatorDescription
 
 robokudo_found = False
-try:
-    from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjectDesignator
-    from robokudo_msgs.msg import QueryAction, QueryGoal, QueryResult
-    robokudo_found = True
-except ModuleNotFoundError as e:
-    logwarn("Failed to import Robokudo messages, the real robot will not be available")
 
 is_init = False
 client = None
@@ -56,6 +49,13 @@ def init_robokudo_interface(func: Callable) -> Callable:
     """
 
     def wrapper(*args, **kwargs):
+
+        from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjectDesignator
+        from robokudo_msgs.msg import QueryAction, QueryGoal, QueryResult
+        from geometry_msgs.msg import PointStamped
+
+        robokudo_found = True
+
         global is_init
         global client
         if is_init and "/robokudo" in get_node_names():
@@ -144,7 +144,7 @@ def query_object(obj_desc: ObjectDesignatorDescription) -> dict:
 
 
 @init_robokudo_interface
-def query_human() -> PointStamped:
+def query_human() -> 'PointStamped':
     """Query RoboKudo for human detection and return the detected human's pose."""
     result = send_query(obj_type='human')
     if result:

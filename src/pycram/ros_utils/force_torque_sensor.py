@@ -56,7 +56,6 @@ class ForceTorqueSensorSimulated:
         while not self.kill_event.is_set():
             joint_ft = self.world.get_joint_reaction_force_torque(self.world.robot, self.fts_joint_idx)
             h = Header()
-            h.seq = seq
             h.stamp = Time().now()
             h.frame_id = self.joint_name
 
@@ -233,18 +232,23 @@ class ForceTorqueSensor:
         if dt == 0:
             return WrenchStamped()
 
-        derivative.wrench.force.x = (after.wrench.force.x - before.wrench.force.x) / dt
-        derivative.wrench.force.y = (after.wrench.force.y - before.wrench.force.y) / dt
-        derivative.wrench.force.z = (after.wrench.force.z - before.wrench.force.z) / dt
-        derivative.wrench.torque.x = (after.wrench.torque.x - before.wrench.torque.x) / dt
-        derivative.wrench.torque.y = (after.wrench.torque.y - before.wrench.torque.y) / dt
-        derivative.wrench.torque.z = (after.wrench.torque.z - before.wrench.torque.z) / dt
+        derivative.wrench.force.x = float((after.wrench.force.x - before.wrench.force.x) / dt)
+        derivative.wrench.force.y = float((after.wrench.force.y - before.wrench.force.y) / dt)
+        derivative.wrench.force.z = float((after.wrench.force.z - before.wrench.force.z) / dt)
+        derivative.wrench.torque.x = float((after.wrench.torque.x - before.wrench.torque.x) / dt)
+        derivative.wrench.torque.y = float((after.wrench.torque.y - before.wrench.torque.y) / dt)
+        derivative.wrench.torque.z = float((after.wrench.torque.z - before.wrench.torque.z) / dt)
 
         return derivative
 
-    def human_touch_monitoring(self):
-        loginfo_once("Now monitoring for human touch")
-        if self.robot_name == 'pr2':
-            der = self.get_derivative()
-            if abs(der.wrench.torque.x) > 3:
-                return SensorMonitoringCondition
+    def human_touch_monitoring(self, plan):
+        while True:
+            loginfo_once("Now monitoring for human touch")
+            if self.robot_name == 'pr2':
+                der = self.get_derivative()
+                if abs(der.wrench.torque.x) > 4:
+                    plan.root.resume()
+                    break
+        return False
+
+

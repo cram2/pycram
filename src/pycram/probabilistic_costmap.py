@@ -2,17 +2,15 @@ from enum import Enum, auto
 from functools import cached_property
 
 import numpy as np
-from std_msgs.msg import ColorRGBA
 from .tf_transformations import quaternion_from_euler
 from random_events.interval import closed_open
 from typing_extensions import Optional, Type
-from visualization_msgs.msg import Marker, MarkerArray
 
 from .datastructures.world import World
 from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
 import matplotlib.colorbar
 from .datastructures.pose import PoseStamped
-from .ros import create_publisher, Duration
+from .ros import create_publisher, Duration, loginfo
 from .units import meter
 
 from pint import Quantity
@@ -20,6 +18,14 @@ from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_
 from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
+
+try:
+    from std_msgs.msg import ColorRGBA
+    from visualization_msgs.msg import Marker, MarkerArray
+except ImportError:
+    loginfo("Could not import visualization_msgs.msg.Marker and std_msgs.msg.ColorRGBA. "
+            "This is probably because you are not running ROS.")
+
 
 
 class Filter(Enum):

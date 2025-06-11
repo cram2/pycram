@@ -4,13 +4,7 @@ from ..ros import  create_action_client
 from ..ros import  logwarn, loginfo
 from ..ros import  get_node_names
 
-from geometry_msgs.msg import PoseStamped
 from typing import Callable
-
-try:
-    from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-except ModuleNotFoundError as e:
-    logwarn(f"Could not import MoveBase messages, Navigation interface could not be initialized")
 
 
 # Global variables for shared resources
@@ -30,6 +24,10 @@ def init_nav_interface(func: Callable) -> Callable:
     """Ensures initialization of the navigation interface before function execution."""
 
     def wrapper(*args, **kwargs):
+        from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+        from geometry_msgs.msg import PoseStamped
+
+
         global is_init
         global nav_action_client
 
@@ -54,7 +52,7 @@ def init_nav_interface(func: Callable) -> Callable:
 
 
 @init_nav_interface
-def query_pose_nav(navpose: PoseStamped):
+def query_pose_nav(navpose: 'PoseStamped'):
     """Sends a goal to the move_base service, initiating robot navigation to a given pose."""
     global nav_action_client
     global query_result

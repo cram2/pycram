@@ -107,3 +107,5 @@ class BoxyManager(DefaultManager):
     def detecting(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return BoxyDetecting(self._detecting_lock)
+
+BoxyManager()

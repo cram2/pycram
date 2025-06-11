@@ -2,14 +2,11 @@ from __future__ import annotations
 
 import copy
 import datetime
+import math
 from dataclasses import dataclass, field, fields
 
 import numpy as np
-from geometry_msgs.msg import (Vector3 as ROSVector3, Quaternion as ROSQuaternion, Point as ROSPoint, Pose as ROSPose,
-                               PoseStamped as ROSPoseStamped, Transform as ROSTransform,
-                               TransformStamped as ROSTransformStamped)
 from scipy.spatial.transform import Rotation as R
-from std_msgs.msg import Header as ROSHeader
 from typing_extensions import Self, Tuple, Optional, List, TYPE_CHECKING, Any
 
 from .enums import AxisIdentifier, Arms, Grasp
@@ -43,14 +40,14 @@ class Vector3(HasParameters):
         """
         return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2 + (self.z - other.z) ** 2) ** 0.5
 
-    def ros_message(self) -> ROSVector3:
+    def ros_message(self):
         """
         Convert the vector to a ROS message of type Vector3.
 
         :return: The ROS message.
         """
         from geometry_msgs.msg import Vector3 as ROSVector3
-        return ROSVector3(x=self.x, y=self.y, z=self.z)
+        return ROSVector3(x=float(self.x), y=float(self.y), z=float(self.z))
 
     def to_list(self) -> List[float]:
         """
@@ -177,9 +174,9 @@ class Quaternion(HasParameters):
         object.__setattr__(self, "z", self.z / norm)
         object.__setattr__(self, "w", self.w / norm)
 
-    def ros_message(self) -> ROSQuaternion:
+    def ros_message(self):
         from geometry_msgs.msg import Quaternion as ROSQuaternion
-        return ROSQuaternion(x=self.x, y=self.y, z=self.z, w=self.w)
+        return ROSQuaternion(x=float(self.x), y=float(self.y), z=float(self.z), w=float(self.w))
 
     def to_list(self) -> List[float]:
         """
@@ -256,7 +253,7 @@ class Pose(HasParameters):
         return (f"Pose: {[round(v, 3) for v in [self.position.x, self.position.y, self.position.z]]}, "
                 f"{[round(v, 3) for v in [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]]}")
 
-    def ros_message(self) -> ROSPose:
+    def ros_message(self):
         """
         Convert the pose to a ROS message of type Pose.
 
@@ -264,7 +261,7 @@ class Pose(HasParameters):
         """
         from geometry_msgs.msg import Point as ROSPoint
         from geometry_msgs.msg import Pose as ROSPose
-        point = ROSPoint(x=self.position.x, y=self.position.y, z=self.position.z)
+        point = ROSPoint(x=float(self.position.x), y=float(self.position.y), z=float(self.position.z))
         return ROSPose(position=point, orientation=self.orientation.ros_message())
 
     def to_list(self):
@@ -347,7 +344,7 @@ class Header:
     stamp: datetime.datetime = field(default_factory=datetime.datetime.now, compare=False)
     sequence: int = field(default=0, compare=False)
 
-    def ros_message(self) -> ROSHeader:
+    def ros_message(self):
         """
         Convert the header to a ROS message of type Header.
 
@@ -397,7 +394,7 @@ class PoseStamped(HasParameters):
                 f"{[round(v, 3) for v in [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]]} "
                 f"in frame_id {self.frame_id}")
 
-    def ros_message(self) -> ROSPoseStamped:
+    def ros_message(self):
         """
         Convert the pose to a ROS message of type PoseStamped.
 
@@ -407,7 +404,7 @@ class PoseStamped(HasParameters):
         return ROSPoseStamped(pose=self.pose.ros_message(), header=self.header.ros_message())
 
     @classmethod
-    def from_ros_message(cls, message: ROSPoseStamped) -> Self:
+    def from_ros_message(cls, message: 'ROSPoseStamped') -> Self:
         """
         Create a PoseStamped from a ROS message.
 
@@ -443,7 +440,9 @@ class PoseStamped(HasParameters):
         :param child_link_id: Frame to which the transform is pointing.
         :return: A TransformStamped object.
         """
-        return TransformStamped(header=self.header, pose=Transform.from_list(self.position.to_list(), self.orientation.to_list()), child_frame_id=child_link_id)
+        return TransformStamped(header=self.header,
+                                pose=Transform.from_list(self.position.to_list(), self.orientation.to_list()),
+                                child_frame_id=child_link_id)
 
     def round(self, decimals: int = 4):
         """
@@ -517,7 +516,7 @@ class PoseStamped(HasParameters):
         return primary_face, secondary_face
 
     def calculate_grasp_descriptions(self, robot: Object, grasp_alignment: Optional[PreferredGraspAlignment] = None) -> \
-    List[GraspDescription]:
+            List[GraspDescription]:
         """
         This method determines the possible grasp configurations (approach axis and vertical alignment) of the self,
         taking into account the self's orientation, position, and whether the gripper should be rotated by 90°.
@@ -582,6 +581,41 @@ class PoseStamped(HasParameters):
         """
         self.orientation = self.orientation * Quaternion.from_list(quaternion)
 
+    def is_facing_2d_axis(self, pose_b: PoseStamped, axis: Optional[AxisIdentifier] = AxisIdentifier.X,
+                          threshold_deg=82) -> \
+            Tuple[bool, float]:
+        """
+         Check if this pose is facing another pose along a specific axis (X or Y) within a given angular threshold.
+
+         :param pose_b: The target pose to compare against.
+         :param axis: The axis to check alignment with ('x' or 'y'). Defaults to 'x'.
+         :param threshold_deg: The maximum angular difference in degrees to consider as 'facing'. Defaults to 82 degrees.
+         :return: Tuple of (True/False if facing, signed angular difference in radians).
+         """
+
+        a_pos = np.array([self.position.x, self.position.y])
+        b_pos = np.array([pose_b.position.x, pose_b.position.y])
+        target_angle = math.atan2(*(b_pos - a_pos)[::-1])
+
+        q = self.orientation
+        yaw = math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y ** 2 + q.z ** 2))
+        if axis == AxisIdentifier.Y:
+            yaw += math.pi / 2
+        diff = math.atan2(math.sin(target_angle - yaw), math.cos(target_angle - yaw))
+        return abs(diff) < math.radians(threshold_deg), diff
+
+    def is_facing_x_or_y(self, pose_b: PoseStamped) -> bool:
+        """
+        Check if this pose is facing another pose along either the X or Y axis within a default angular threshold.
+
+        :param pose_b: The target pose to compare against.
+        :return: True if this pose is facing the target along either X or Y axis, False otherwise.
+        """
+
+        result = {a: self.is_facing_2d_axis(pose_b, axis=a) for a in (AxisIdentifier.X, AxisIdentifier.Y)}
+        return any(r[0] for r in result.values())
+
+
 
 @dataclass
 class Transform(Pose):
@@ -636,7 +670,7 @@ class Transform(Pose):
         """
         return cls(pose.position, pose.orientation)
 
-    def ros_message(self) -> ROSTransform:
+    def ros_message(self):
         """
         Convert the transform to a ROS message of type Transform.
 
@@ -724,7 +758,7 @@ class TransformStamped(PoseStamped):
                    header=Header(frame_id=frame, stamp=datetime.datetime.now()),
                    child_frame_id=child_frame_id)
 
-    def ros_message(self) -> ROSTransformStamped:
+    def ros_message(self):
         """
         Convert the TransformStamped to a ROS message of type TransformStamped.
 
@@ -740,7 +774,8 @@ class TransformStamped(PoseStamped):
 
         :return: A PoseStamped object created from the TransformStamped.
         """
-        return PoseStamped(self.pose, self.header)
+        p = Pose(self.pose.position, self.pose.orientation)
+        return PoseStamped(p, self.header)
 
     def inverse_times(self, other: TransformStamped) -> Self:
         """

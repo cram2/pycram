@@ -66,7 +66,7 @@ from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms
 
 with simulated_robot:
-    motion_description = MoveTCPMotion(target=Pose([0.5, 0.6, 0.6], [0, 0, 0, 1]), arm=Arms.LEFT)
+    motion_description = MoveTCPMotion(target=PoseStamped.from_list([0.5, 0.6, 0.6], [0, 0, 0, 1]), arm=Arms.LEFT)
 
     motion_description.perform()
 ```
@@ -81,7 +81,7 @@ from pycram.designators.motion_designator import LookingMotion
 from pycram.process_module import simulated_robot
 
 with simulated_robot:
-    motion_description = LookingMotion(target=Pose([1, 1, 1], [0, 0, 0, 1]))
+    motion_description = LookingMotion(target=PoseStamped.from_list([1, 1, 1], [0, 0, 0, 1]))
 
     motion_description.perform()
 ```

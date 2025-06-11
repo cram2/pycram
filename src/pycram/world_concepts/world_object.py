@@ -60,6 +60,7 @@ class Object(PhysicalBody, HasParameters):
                  pose: Optional[PoseStamped] = None,
                  world: Optional[World] = None,
                  color: Optional[Color] = None,
+                 size: Optional[List[float]] = None,
                  ignore_cached_files: bool = False,
                  scale_mesh: Optional[float] = None,
                  mesh_transform: Optional[TransformStamped] = None):
@@ -78,6 +79,7 @@ class Object(PhysicalBody, HasParameters):
         :param world: The World in which the object should be spawned, if no world is specified the
          :py:attr:`~World.current_world` will be used.
         :param color: The rgba_color with which the object should be spawned.
+        :param size: The dimensions of the object in float as a list.
         :param ignore_cached_files: If true the file will be spawned while ignoring cached files.
         :param scale_mesh: The scale of the mesh.
         """
@@ -124,6 +126,8 @@ class Object(PhysicalBody, HasParameters):
 
         if color is not None:
             self.color: Color = color
+
+        self.size_ = size
 
         self._init_joints()
 
@@ -181,6 +185,10 @@ class Object(PhysicalBody, HasParameters):
             else:
                 for link_name, color in rgba_color.items():
                     self.links[link_name].color = color
+
+    @property
+    def size(self) -> List[float]:
+        return self.size_
 
     def get_mesh_path(self) -> List[str]:
         """
@@ -764,7 +772,6 @@ class Object(PhysicalBody, HasParameters):
         :return: True if the object is of type PhysicalObject , False otherwise.
         """
         return issubclass(self.obj_type, PhysicalObject)
-
 
     @property
     def is_a_robot(self) -> bool:

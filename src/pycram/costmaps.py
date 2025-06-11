@@ -8,7 +8,6 @@ import numpy as np
 import psutil
 import random_events
 from matplotlib import colors
-from nav_msgs.msg import OccupancyGrid, MapMetaData
 from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event
 from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
 from random_events.interval import Interval, reals, closed_open, closed
@@ -29,6 +28,11 @@ from .local_transformer import LocalTransformer
 from .ros import wait_for_message
 from .utils import chunks
 from .world_concepts.world_object import Object
+
+try:
+    from nav_msgs.msg import OccupancyGrid, MapMetaData
+except ImportError:
+    pass
 
 
 @dataclass
@@ -125,10 +129,12 @@ class Costmap:
         # Set to 127 for since this is the maximal amount of links in a multibody
         for cell_parts in self._chunks(cells, 127):
             offset = [[-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05], [0, 0, 0, 1]]
-            origin_transform = TransformStamped.from_list(self.origin.position.to_list(), self.origin.orientation.to_list())
+            origin_transform = TransformStamped.from_list(self.origin.position.to_list(),
+                                                          self.origin.orientation.to_list())
             offset_transform = TransformStamped.from_list(offset[0], offset[1])
             new_pose_transform = origin_transform * offset_transform
-            new_pose = PoseStamped.from_list(new_pose_transform.translation.to_list(), new_pose_transform.rotation.to_list())
+            new_pose = PoseStamped.from_list(new_pose_transform.translation.to_list(),
+                                             new_pose_transform.rotation.to_list())
             map_obj = self.world.create_multi_body_from_visual_shapes(cell_parts, new_pose)
             self.vis_ids.append(map_obj)
 
@@ -572,12 +578,12 @@ class VisibilityCostmap(Costmap):
     def move_target_and_robot_far_away(self):
         if self.target_object is not None:
             self.target_object.set_pose(PoseStamped.from_list([self.origin.position.x + self.size * self.resolution * 2,
-                                                     self.origin.position.y + self.size * self.resolution * 2,
-                                                     self.target_original_pose.position.z]))
+                                                               self.origin.position.y + self.size * self.resolution * 2,
+                                                               self.target_original_pose.position.z]))
         if self.robot is not None:
             self.robot.set_pose(PoseStamped.from_list([self.origin.position.x + self.size * self.resolution * 3,
-                                             self.origin.position.y + self.size * self.resolution * 3,
-                                             self.robot_original_pose.position.z]))
+                                                       self.origin.position.y + self.size * self.resolution * 3,
+                                                       self.robot_original_pose.position.z]))
 
     def return_target_and_robot_to_their_original_position(self):
         if self.target_original_pose is not None:
@@ -965,7 +971,7 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
             # rectangle.scale(1/self.resolution, 1/self.resolution)
             rectangle.translate(self.origin.position.x, self.origin.position.y)
             rectangle_event = SimpleEvent({self.x: closed(rectangle.x_lower, rectangle.x_upper),
-                                                    self.y: closed(rectangle.y_lower, rectangle.y_upper)}).as_composite_set()
+                                           self.y: closed(rectangle.y_lower, rectangle.y_upper)}).as_composite_set()
             if valid_area is None:
                 valid_area = rectangle_event
             else:

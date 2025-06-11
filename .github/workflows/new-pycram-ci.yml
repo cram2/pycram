@@ -1,4 +1,4 @@
-name: pycram_docker_ci
+name: Python Tests
 defaults:
   run:
     shell: bash -ieo pipefail {0}

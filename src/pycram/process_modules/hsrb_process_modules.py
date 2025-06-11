@@ -243,3 +243,5 @@ class HSRBManager(DefaultManager):
             return HSRBTalkReal(self._talk_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBTalkSemiReal(self._talk_lock)
+
+HSRBManager()

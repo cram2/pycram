@@ -1,3 +1,4 @@
+import os
 import time
 import unittest
 
@@ -6,14 +7,18 @@ from matplotlib import pyplot as plt
 from random_events.interval import SimpleInterval
 from random_events.product_algebra import SimpleEvent
 
+from pycram.ros import loginfo
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.dataclasses import BoundingBox, BoundingBoxCollection
 from pycram.failures import PlanFailure
 from pycram.graph_of_convex_sets import GraphOfConvexSets, PoseOccupiedError
-from pycram.ros_utils.viz_marker_publisher import TrajectoryPublisher
 from pycram.testing import BulletWorldTestCase
 import plotly.graph_objects as go
 
+try:
+    from pycram.ros_utils.viz_marker_publisher import TrajectoryPublisher
+except ImportError:
+    loginfo("Could not import TrajectoryPublisher. This is probably because you are not running ROS.")
 
 class GCSTestCase(unittest.TestCase):
     """
@@ -79,8 +84,9 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
 
         path = gcs.path_from_to(start, target)
 
-        pub = TrajectoryPublisher()
-        pub.visualize_trajectory(path)
+        if "ROS_VERSION" in os.environ:
+            pub = TrajectoryPublisher()
+            pub.visualize_trajectory(path)
 
         self.assertIsNotNone(path)
         self.assertGreater(len(path), 1)

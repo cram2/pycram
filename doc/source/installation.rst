@@ -111,7 +111,7 @@ Now you can install PyCRAM into your ROS workspace.
 .. code-block:: shell
 
     cd ~/workspace/ros/src
-    vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram-ros2.rosinstall --recursive
+    vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/rosinstall/pycram-ros2.rosinstall --recursive
     cd ..
     colcon build --symlink-install
     source install/setup.bash
@@ -150,7 +150,7 @@ Now you can install PyCRAM into your ROS workspace.
 .. code-block:: shell
 
     cd ~/workspace/ros/src
-    vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram.rosinstall --recursive
+    vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/rosinstall/pycram.rosinstall --recursive
     rosdep update
     rosdep install --ignore-src --from-paths . -r
     cd ..

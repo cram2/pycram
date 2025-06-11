@@ -294,10 +294,10 @@ from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import TorsoState
 from pycram.language import SequentialPlan, RepeatPlan
 
-move_torso_up = MoveTorsoActionDescription([TorsoState.HIGH])
-move_torso_down = MoveTorsoActionDescription([TorsoState.LOW])
+move_torso_up = MoveTorsoActionDescription([TorsoState.HIGH, TorsoState.MID, TorsoState.LOW])
+move_torso_down = MoveTorsoActionDescription([TorsoState.LOW, TorsoState.MID, TorsoState.HIGH])
 
-plan = RepeatPlan(5, SequentialPlan(move_torso_up, move_torso_down))
+plan = RepeatPlan(3, SequentialPlan(move_torso_up, move_torso_down))
 
 with simulated_robot:
     plan.perform()
@@ -305,13 +305,13 @@ with simulated_robot:
 
 ## Monitor
 
-Monitor allows to monitor the execution of a language expression and interrupt it as soon as a given condition is
-fulfilled. The condition can either be a Callable which returns a boolean or a Fluent.
-When executed the Monitor will create a separate thread which will check if the condition is satisfied with a frequency
-of 10 Hz. If the condition is satisfied the execution of the monitored plan will be interrupted and the state
+Monitor allows monitoring the execution of a language expression and interrupting it as soon as a given condition is
+fulfilled. The condition can either be a Callable that returns a boolean or a Fluent.
+When executed, the Monitor will create a separate thread which will check if the condition is satisfied with a frequency
+of 10 Hz. If the condition is satisfied, the execution of the monitored plan will be interrupted and the state
 of the node will be set to INTERUPTED.
 
-For the example on how Monitors work we will use the previous example with the robot moving up and down. We will use a
+For the example on how Monitors work, we will use the previous example with the robot moving up and down. We will use a
 Monitor to interrupt the execution after 2 seconds instead of executing the whole plan 5 times.
 
 ```python
@@ -321,8 +321,8 @@ from pycram.language import MonitorPlan, RepeatPlan, SequentialPlan
 import time
 from pycram.datastructures.enums import TorsoState
 
-move_torso_up = MoveTorsoActionDescription([TorsoState.HIGH])
-move_torso_down = MoveTorsoActionDescription([TorsoState.LOW])
+move_torso_up = MoveTorsoActionDescription([TorsoState.HIGH, TorsoState.MID, TorsoState.LOW])
+move_torso_down = MoveTorsoActionDescription([TorsoState.LOW, TorsoState.MID, TorsoState.HIGH])
 
 
 def monitor_func():
@@ -330,7 +330,7 @@ def monitor_func():
     return True
 
 
-plan = MonitorPlan(monitor_func, RepeatPlan(5, SequentialPlan(move_torso_up, move_torso_down)))
+plan = MonitorPlan(monitor_func, RepeatPlan(3, SequentialPlan(move_torso_up, move_torso_down)))
 
 with simulated_robot:
     plan.perform()

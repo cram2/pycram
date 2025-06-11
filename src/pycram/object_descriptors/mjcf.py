@@ -5,13 +5,12 @@ from xml.etree import ElementTree as ET
 
 import numpy as np
 from dm_control import mjcf
-from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional, Dict, Tuple, Self
 
 from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
     SphereVisualShape, MeshVisualShape, VisualShapeUnion
 from ..datastructures.enums import JointType, MJCFGeomType, MJCFJointType, Shape
-from ..datastructures.pose import PoseStamped
+from ..datastructures.pose import PoseStamped, Point
 from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription, ObjectDescription
 from ..failures import MultiplePossibleTipLinks

@@ -68,6 +68,13 @@ of Action Designators.
 
 ```python
 from pycram.process_module import simulated_robot
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object
+from pycrap.ontologies import Robot
+
+world = BulletWorld()
+
+pr2 = Object("pr2", Robot, "pr2.urdf")
 
 with simulated_robot:
     plan.perform()

@@ -5,7 +5,11 @@ ProcessModule -- implementation of process modules.
 """
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
+
+import glob
+import importlib
 import inspect
+from os.path import dirname, basename, isfile, join
 from dataclasses import field
 from datetime import timedelta
 from threading import Lock, get_ident
@@ -283,6 +287,7 @@ class ProcessModuleManager(ABC):
         self._close_lock = Lock()
         self._move_tcp_waypoints_lock = Lock()
         self.available_pms = []
+        self.register_all_process_modules()
 
     @staticmethod
     def get_manager() -> Union[ProcessModuleManager, None]:
@@ -291,18 +296,19 @@ class ProcessModuleManager(ABC):
 
         :return: ProcessModuleManager instance of the current robot
         """
+        ProcessModuleManager.register_all_process_modules()
         manager = None
         _default_manager = None
         if not ProcessModuleManager.execution_type:
-            logerr(
+            raise RuntimeError(
                 f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
-            return None
 
         robot_description = RobotDescription.current_robot_description
         chains = robot_description.get_manipulator_chains()
         gripper_name = [chain.end_effector.gripper_object_name for chain in chains
                         if chain.end_effector.gripper_object_name]
         gripper_name = gripper_name[0] if len(gripper_name) > 0 else None
+
         for pm_manager in ProcessModuleManager.available_pms:
             if pm_manager.robot_name == robot_description.name or\
                     ((pm_manager.robot_name == gripper_name) and gripper_name):
@@ -320,6 +326,17 @@ class ProcessModuleManager(ABC):
             logerr(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
                          f", and no default process modules available")
             return None
+
+    @staticmethod
+    def register_all_process_modules():
+        modules = glob.glob(join(dirname(__file__) + "/process_modules", "*.py"))
+        __all__ = [basename(f)[:-3] for f in modules if isfile(f) and not f.endswith('__init__.py')]
+
+        for module_name in __all__:
+            try:
+                importlib.import_module(f".{module_name}", package="pycram.process_modules")
+            except Exception as e:
+                print(f"Error loading module {module_name}: {e}")
 
     def navigate(self) -> ProcessModule:
         """

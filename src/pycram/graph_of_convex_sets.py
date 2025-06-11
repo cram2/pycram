@@ -1,27 +1,25 @@
-import itertools
 import time
 
 import networkx as nx
 import numpy as np
 import plotly.graph_objects as go
-from random_events.interval import SimpleInterval, Bound, singleton, reals
+from random_events.interval import reals
 from random_events.product_algebra import SimpleEvent, Event
-from random_events.variable import Continuous
 from rtree import index
-from scipy.spatial import ConvexHull, QhullError
 from sortedcontainers import SortedSet
 from tqdm import tqdm
 from typing_extensions import Self, Optional, List
 
+from .datastructures.dataclasses import BoundingBox, BoundingBoxCollection
+from .datastructures.pose import PoseStamped
 from .datastructures.world import World
-from .datastructures.dataclasses import BoundingBox, BoundingBoxCollection, AxisAlignedBoundingBox
-from .datastructures.pose import PoseStamped, TransformStamped
-from .description import Link
 from .failures import PlanFailure
-from .ros_utils.viz_marker_publisher import TrajectoryPublisher, BoundingBoxPublisher
-from scipy.spatial.transform import Rotation
-from random_events.polytope import Polytope
+from .ros import loginfo
 
+try:
+    from .ros_utils.viz_marker_publisher import TrajectoryPublisher, BoundingBoxPublisher
+except ImportError:
+    loginfo("Could not import TrajectoryPublisher. This is probably because you are not running ROS.")
 
 class PoseOccupiedError(PlanFailure):
     """

@@ -1,50 +1,47 @@
 import logging
 import os
 import sys
+from enum import Enum
+
+from ormatic.ormatic import logger, ORMatic
+from ormatic.utils import recursive_subclasses, classes_of_module, ORMaticExplicitMapping
 from sqlacodegen.generators import TablesGenerator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import registry, Session
 import pycram.datastructures.pose
-import pycram.datastructures.grasp
-import pycram.language
-import pycram.plan
-import pycram.designator
-from ormatic.ormatic import logger, ORMatic
-from pycram.orm.model import self_mapped_classes, explicitly_mapped_classes, type_mappings
+from pycram.datastructures import grasp
+from pycram.designator import ActionDescription
+from pycram.designators import action_designator
+from pycram.orm.casts import StringType
+from pycrap.ontologies import PhysicalObject
+from pycram.orm.model import *
 
 # ----------------------------------------------------------------------------------------------------------------------
-# This script generates the ORM classes for the pycram package. Dataclasses can be mapped automatically to the ORM model
-# using the ORMatic library, they just have to be registered in the classes list.
+# This script generates the ORM classes for the pycram package
 # Classes that are self_mapped and explicitly_mapped are already mapped in the model.py file. Look there for more
 # information on how to map them.
 # ----------------------------------------------------------------------------------------------------------------------
 
+# create of classes that should be mapped
+classes = set(recursive_subclasses(ORMaticExplicitMapping))
+classes |= set(classes_of_module(pycram.datastructures.pose))
+classes |= set(classes_of_module(action_designator)) | {ActionDescription}
+classes |= set(classes_of_module(grasp))
+classes |= {PlanNode, SequentialNode, RepeatNode}
 
-"""
-List of standard classes that are to be mapped to the database.
-"""
-pycram.plan.ResolvedActionNode.__annotations__.update({"designator_ref": pycram.designator.ActionDescription})
-pycram.plan.MotionNode.__annotations__.update({"designator_ref": pycram.designator.BaseMotion})
+# remove classes that should not be mapped
+classes -= set(recursive_subclasses(Enum))
 
-classes = [pycram.datastructures.grasp.GraspDescription,
-           pycram.datastructures.pose.Vector3,
-           pycram.datastructures.pose.Quaternion,
-           pycram.datastructures.pose.Pose,
-           pycram.datastructures.pose.Header,
-           pycram.datastructures.pose.PoseStamped,
-           pycram.datastructures.pose.Transform,
-           pycram.datastructures.pose.TransformStamped,
-           pycram.datastructures.pose.GraspPose,
-           pycram.designator.ActionDescription,
-           pycram.plan.PlanNode,
-           pycram.language.SequentialNode,
-           pycram.language.ParallelNode,
-           pycram.language.TryInOrderNode,
-           pycram.language.TryAllNode,
-           pycram.language.MonitorNode,
-           pycram.language.CodeNode,
-           pycram.language.RepeatNode,
-           ]
+# specify custom type mappings
+type_mappings = {
+    PhysicalObject: StringType(),
+}
+
+
+# self_mapped_classes += [PlanNode,
+#                         SequentialNode,
+#                         RepeatNode,
+
 
 
 def generate_orm():
@@ -63,7 +60,7 @@ def generate_orm():
     session = Session(engine)
 
     # Create an ORMatic object with the classes to be mapped
-    ormatic = ORMatic(classes + self_mapped_classes + explicitly_mapped_classes, mapper_registry, type_mappings)
+    ormatic = ORMatic(list(classes), mapper_registry, type_mappings)
 
     # Generate the ORM classes
     ormatic.make_all_tables()

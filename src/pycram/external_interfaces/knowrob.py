@@ -1,126 +1,177 @@
-import logging
-import os
-import sys
-import rosservice
+from datetime import datetime
+from functools import lru_cache
 
-from typing_extensions import Dict, List, Union
+from ..designators.action_designator import *
+from ..designators.object_designator import *
+from ..plan import ActionNode, DesignatorNode, ResolvedActionNode, PlanNode
+from ..ros import create_publisher
+from ..ros import Time as ROSTime
 
-SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
-sys.path.append(os.path.join(SCRIPT_DIR, os.pardir, os.pardir, "neem-interface", "src"))
+try:
+    from knowrob_designator.msg import DesignatorExecutionFinished, DesignatorExecutionStart, DesignatorInit, \
+        DesignatorResolutionFinished, DesignatorResolutionStart, ObjectDesignator
+except ImportError:
+    loginfo("Could not import knowrob_designator.msg")
 
-if 'rosprolog/query' in rosservice.get_service_list():
-    from neem_interface_python.neem_interface import NEEMInterface
-    from neem_interface_python.rosprolog_client import Prolog, PrologException, atom
+desig_execution_start = create_publisher("knowrob/designator_execution_started", DesignatorExecutionStart)
+desig_execution_finished = create_publisher("knowrob/designator_execution_finished", DesignatorExecutionFinished)
+desig_resolution_start = create_publisher("knowrob/designator_resolving_started", DesignatorResolutionStart)
+desig_resolution_finished = create_publisher("knowrob/designator_resolving_finished", DesignatorResolutionFinished)
+desig_init = create_publisher("knowrob/designator_init", DesignatorInit)
+object_desig = create_publisher("knowrob/object_designator", ObjectDesignator)
 
-    neem_interface = NEEMInterface()
-    prolog = Prolog()
-
-else:
-    logging.warning("No KnowRob services found, knowrob is not available")
-
-
-#logging.setLoggerClass(logging.Logger)
-logger = logging.getLogger(__name__)
-from pycram import ch
-
-logger.addHandler(ch)
-logger.setLevel(logging.DEBUG)
-
-
-def all_solutions(q):
-    logging.info(q)
-    r = prolog.all_solutions(q)
-    return r
-
-
-def once(q) -> Union[List, Dict]:
-    r = all_solutions(q)
-    if len(r) == 0:
-        return []
-    return r[0]
-
-
-def load_beliefstate(path: str):
-    logging.info(f"Restoring beliefstate from {path}")
-    once(f"remember('{path}')")
-
-
-def clear_beliefstate():
-    logging.info("Clearing beliefstate")
-    once("mem_clear_memory")
-
-
-def load_owl(path, ns_alias=None, ns_url=None):
+@lru_cache(maxsize=None)
+def init_object_state():
     """
-    Example: load_owl("package://external_interfaces/owl/maps/iai_room_v1.owl", "map", "http://knowrob.org/kb/v1/IAI-Kitchen.owl#")
-    :param str path: path to log folder
-    :rtype: bool
+    Publishes the initial state of the objects in the world to Knowrob. Because of the lru_cache decorator, this function
+    will only be called once, and the result will be cached for future calls.
     """
-    if ns_alias is None or ns_url is None:            # Load without namespace
-        q = "load_owl('{}')".format(path)
+    for obj in World.current_world.objects:
+        obj_json = {"anObject": {"type": str(obj.obj_type)}}
+
+        msg = ObjectDesignator()
+        msg.json_designator = str(obj_json)
+        split_time = str(datetime.now().timestamp()).split(".")
+        msg.start = ROSTime(int(split_time[0]), int(split_time[1]))
+        object_desig.publish(msg)
+
+
+def pose_to_json(pose: PoseStamped) -> Dict[str, Union[float, str]]:
+    """
+    Converts a PoseStamped object to a JSON-like dictionary.
+
+    :return : A dictionary representation of the pose.
+    """
+    return {"px": pose.position.x, "py": pose.position.y, "pz": pose.position.z, "rx": pose.orientation.x,
+            "ry": pose.orientation.y, "rz": pose.orientation.z, "rw": pose.orientation.w, "frame": pose.header.frame_id}
+
+
+def object_to_json(obj: Union[ObjectDesignator, Object]) -> Dict[str, Dict[str, str]]:
+    """
+    Converts an object or object designator to a JSON-like dictionary containing its type.
+
+    :param obj: The object or object designator to convert.
+    :return: A dictionary representation of the object.
+    """
+    if isinstance(obj, ObjectDesignatorDescription):
+        return {"anObject": {"type": str(obj.types[0])}}
     else:
-        q = "load_owl('{0}', [namespace({1},'{2}')])".format(path, ns_alias, ns_url)
-    try:
-        once(q)
-        return True
-    except PrologException as e:
-        logging.warning(e)
-        return False
+        return {"anObject": {"type": str(obj.obj_type)}}
 
 
-def new_iri(owl_class: str):
-    res = once(f"kb_call(new_iri(IRI, {owl_class}))")
-    return res["IRI"]
-
-
-def object_type(object_iri: str) -> str:
+def grasp_description_to_json(grasp: GraspDescription) -> Dict[str, Union[float, str]]:
     """
-    :param object_iri: The name (identifier) of the object individual in the KnowRob knowledge base
+    Converts a GraspDescription object to a JSON-like dictionary.
+
+    :param grasp: The GraspDescription object to convert.
+    :return: A dictionary representation of the grasp.
     """
-    res = once(f"kb_call(instance_of({atom(object_iri)}, Class))")
-    return res["Class"]
+    return {"approach_direction": grasp.approach_direction, "vertical_alignment": grasp.vertical_alignment,
+            "rotate_gripper": grasp.rotate_gripper}
 
 
-def instances_of(type_: str) -> List[str]:
+def kwargs_to_json(kwargs: Dict) -> dict:
     """
-    :param type_: An object type (i.e. class)
+    Converts the keyword arguments of a DesignatorNode to a JSON-like dictionary, calls the appropriate conversion function
+    for each value based on its type.
+
+    :param kwargs: The keyword arguments to convert.
+    :return: A dictionary representation of the keyword arguments.
     """
-    all_sols = all_solutions(f"kb_call(instance_of(Individual, {atom(type_)}))")
-    return [sol["Individual"] for sol in all_sols]
+    res = {}
+    for name, value in kwargs.items():
+        if isinstance(value, PoseStamped):
+            res[name] = pose_to_json(value)
+        elif isinstance(value, Object) or isinstance(value, ObjectDesignatorDescription):
+            res[name] = object_to_json(value)
+        elif isinstance(value, GraspDescription):
+            res[name] = grasp_description_to_json(value)
+        else:
+            res[name] = value
+    return res
 
 
-def object_pose(object_iri: str, reference_cs: str = "world", timestamp=None) -> List[float]:
+def designator_to_json(node: DesignatorNode) -> str:
     """
-    :param object_iri: The name (identifier) of the object individual in the KnowRob knowledge base
-    :param reference_cs: The coordinate system relative to which the pose should be defined
+    Converts a DesignatorNode to a JSON-like string representation uses the kwargs of the node for conversion.
+
+    :param node: The DesignatorNode to convert.
+    :return: A JSON-like string representation of the DesignatorNode.
     """
-    if timestamp is None:
-        res = once(f"mem_tf_get({atom(object_iri)}, {atom(reference_cs)}, Pos, Ori)")
-    else:
-        res = once(f"mem_tf_get({atom(object_iri)}, {atom(reference_cs)}, Pos, Ori, {timestamp})")
-    pos = res["Pos"]
-    ori = res["Ori"]
-    return pos + ori
+    params = {"type": str(node.action.__name__)}
+    params.update(kwargs_to_json(node.kwargs))
+    params = {"anAction": params}
+    return str(params)
 
-
-def grasp_pose(object_iri: str) -> List[float]:
-    query = f"""
-    kb_call(has_grasp_point({atom(object_iri)}, GraspPointName)),
-    mem_tf_get(GraspPointName, world, Pos, Ori)
+def get_current_ros_time() -> ROSTime:
     """
-    res = once(query)
-    pos = res["Pos"]
-    ori = res["Ori"]
-    return pos + ori
+    Returns the ROS time as a ROSTime object.
+
+    :return: The current ROS time.
+    """
+    split_time = str(datetime.now().timestamp()).split(".")
+    return ROSTime(int(split_time[0]), int(split_time[1]))
 
 
-def knowrob_string_to_pose(pose_as_string: str) -> List[float]:
-    reference_frame = ""
-    for i, char in enumerate(pose_as_string[1:-1]):
-        if char == ",":
-            break
-        reference_frame += char
-    pos, ori = pose_as_string[1+i+2:-2].split("],[")
-    xyz = list(map(float, pos.split(",")))
-    qxyzw = list(map(float, ori.split(",")))
-    return xyz + qxyzw
+def execution_start_callback(node: PlanNode):
+    """
+    Callback function that is called when the execution of a designator starts. It publishes a message to Knowrob
+    containing the designator that is executed.
+    """
+    msg = DesignatorExecutionStart()
+    msg.designator_id = str(hash(node))
+    msg.json_designator = designator_to_json(node)
+    msg.stamp = get_current_ros_time()
+
+    desig_execution_start.publish(msg)
+
+
+def execution_finished_callback(node: PlanNode):
+    """
+    Callback function that is called when the execution of a designator finishes. It publishes a message to Knowrob
+    containing the designator that has just finished executing.
+    """
+    msg = DesignatorExecutionFinished()
+    msg.designator_id = str(hash(node))
+    msg.json_designator = designator_to_json(node)
+    msg.stamp = get_current_ros_time()
+
+    desig_execution_finished.publish(msg)
+
+
+def resolution_start_callback(node: PlanNode):
+    """
+    Callback function that is called when the resolution of a designator starts. It publishes a message to Knowrob
+    containing the designator that is being resolved. It also sends the initial state of the objects in the world.
+    """
+    init_object_state()
+
+    msg = DesignatorResolutionStart()
+    msg.designator_id = str(hash(node))
+    msg.json_designator = designator_to_json(node)
+    msg.stamp = get_current_ros_time()
+
+    desig_resolution_start.publish(msg)
+
+
+def resolution_finished_callback(node: PlanNode):
+    """
+    Callback function that is called when the resolution of a designator finishes. It publishes a message to Knowrob
+    containing the designator that has just finished resolving.
+    """
+    msg = DesignatorResolutionFinished()
+    msg.designator_id = str(hash(node.children[-1]))
+    msg.json_designator = designator_to_json(node)
+    msg.stamp = get_current_ros_time()
+    msg.resolved_from_id = str(hash(node))
+
+    desig_resolution_finished.publish(msg)
+
+
+# Registers the callback to the Type of Action
+
+Plan.add_on_start_callback(resolution_start_callback, ActionNode)
+Plan.add_on_start_callback(execution_start_callback, ResolvedActionNode)
+
+Plan.add_on_end_callback(resolution_finished_callback, ActionNode)
+Plan.add_on_end_callback(execution_finished_callback, ResolvedActionNode)

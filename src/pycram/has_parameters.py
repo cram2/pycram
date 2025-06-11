@@ -110,7 +110,6 @@ class HasParameters(metaclass=HasParametersMeta):
         """
         flat_fields = {}
         for field_name, field_type in cls._parameters.items():
-            print(field_type)
             if issubclass(field_type, HasParameters):
                 sub_flat_fields = field_type.flattened_parameters()
                 for sub_field_name, sub_field_type in sub_flat_fields.items():
