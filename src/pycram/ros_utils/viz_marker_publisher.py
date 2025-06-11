@@ -12,13 +12,14 @@ from visualization_msgs.msg import Marker, MarkerArray
 from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape, \
     BoundingBox, BoundingBoxCollection, Color
 from ..datastructures.enums import AxisIdentifier
-from ..datastructures.pose import PoseStamped, TransformStamped
+from ..datastructures.pose import PoseStamped, TransformStamped, Quaternion
 from ..datastructures.world import World
 from ..designator import ObjectDesignatorDescription
 from ..ros import  Duration, Time
 from ..ros import  loginfo, logwarn, logerr
 from ..ros import  create_publisher
 from ..ros import  sleep
+from ..tf_transformations import quaternion_multiply
 
 
 class VizMarkerPublisher:
@@ -425,6 +426,7 @@ class BoundingBoxPublisher:
 
     def visualize(self, boxes: BoundingBoxCollection, duration: Optional[float] = 60):
         """
+        Visualize a collection of bounding boxes in rviz as a series of cubes.
         """
         marker_array = MarkerArray()
         for box in boxes:
@@ -455,81 +457,40 @@ class BoundingBoxPublisher:
             self.id_counter += 1
         self.publisher.publish(marker_array)
 
-class AxisMarkerPublisher:
-    def __init__(self, topic='/pycram/axis_marker', frame_id='map'):
+class CoordinateAxisPublisher:
+    """
+    Publishes coordinate axes as a MarkerArray to visualize them in rviz.
+    """
 
-        self.marker_pub = create_publisher(topic, MarkerArray, queue_size=10)
+    id_counter = 10000
 
-        self.marker_array = MarkerArray()
-        self.marker_overview = {}
-        self.current_id = 0
-        self.frame_id = frame_id
+    @cached_property
+    def publisher(self):
+        pub = create_publisher("/pycram/coordinate_axis", MarkerArray)
+        time.sleep(0.5) # this is needed to synchronize the publisher creation thread
+        return pub
 
-        self.length = None
-        self.duration = None
-        self.poses = None
-        self.axis = None
-        self.colorclass = ColorRGBA()
-        self.color = None
-
-        self.thread = threading.Thread(target=self._publish)
-
-    def publish(self, poses: List[PoseStamped], duration=15.0, length=0.1, name=None):
+    def visualize(self, poses: List[PoseStamped], duration: Optional[float] = 60, length: float = 0.1):
         """
-        Publish a MarkerArray with given pose and axis.
-        Duration, length and color of the line are optional.
-
-        :param poses: List of Poses to be visualized
-        :param axis: Orientation for the Line
-        :param duration: Duration of the marker
-        :param length: Length of the line
-        :param color: Color of the line if it should be personalized
+        Visualize coordinate axes in rviz to topic '/pycram/coordinate_axis'
         """
-        self.clear_all_markers()
-        self.name = name
-        self.poses = poses
-        self.duration = duration
-        self.length = length
-        color = self.colorclass
+        marker_array = MarkerArray()
+        for pose in poses:
 
-        for pose in self.poses:
-            self._create_line(pose, AxisIdentifier.X.value, self.duration, self.length,
-                              Color.from_rgb([1, 0, 0]))
-            self._create_line(pose, AxisIdentifier.Y.value, self.duration, self.length,
-                              Color.from_rgb([0, 1, 0]))
-            self._create_line(pose, AxisIdentifier.Z.value, self.duration, self.length,
-                              Color.from_rgb([0, 0, 1]))
+            x_axis = self._create_line(pose, AxisIdentifier.X.value, duration, length,
+                                       Color.from_rgb([1, 0, 0]))
+            y_axis = self._create_line(pose, AxisIdentifier.Y.value, duration, length,
+                                       Color.from_rgb([0, 1, 0]))
+            z_axis = self._create_line(pose, AxisIdentifier.Z.value, duration, length,
+                                       Color.from_rgb([0, 0, 1]))
+            marker_array.markers.append(x_axis)
+            marker_array.markers.append(y_axis)
+            marker_array.markers.append(z_axis)
 
-        if self.thread.is_alive():
-            self.thread.join()
 
-        self.thread = threading.Thread(target=self._publish)
+        self.publisher.publish(marker_array)
 
-        self.thread.start()
-        # rospy.loginfo("Publishing axis visualization")
-        self.thread.join()
-        # rospy.logdebug("Stopped Axis visualization")
-
-    def _publish(self):
-        if self.name in self.marker_overview.keys():
-            self._update_marker(self.marker_overview[self.name], new_pose=self.pose)
-            return
-
-        stop_thread = False
-        duration = 1
-        frequency = 0.2
-        start_time = time.time()
-
-        while not stop_thread:
-            if time.time() - start_time > duration:
-                stop_thread = True
-
-            # Publish the MarkerArray
-            self.marker_pub.publish(self.marker_array)
-
-            sleep(frequency)
-
-    def _create_line(self, pose, axis, duration, length, color):
+    def _create_line(self, pose: PoseStamped, axis, duration, length, color):
         """
         Create a line marker to add to the marker array.
 
@@ -540,47 +501,28 @@ class AxisMarkerPublisher:
         :param color: Optional color for the Line
         """
 
-        def normalize_quaternion(q):
-            norm = np.sqrt(q.x ** 2 + q.y ** 2 + q.z ** 2 + q.w ** 2)
-            if norm > 0:
-                return q.x / norm, q.y / norm, q.z / norm, q.w / norm
-            return q.x, q.y, q.z, q.w
-
-        def quaternion_multiply(q1, q2):
-            x1, y1, z1, w1 = q1
-            x2, y2, z2, w2 = q2
-            return (
-                w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-                w1 * y2 + y1 * w2 + z1 * x2 - x1 * z2,
-                w1 * z2 + z1 * w2 + x1 * y2 - y1 * x2,
-                w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2,
-            )
-
         def rotate_axis_by_quaternion(axis, quaternion):
-            # Normalize the quaternion to avoid distortions
-            qx, qy, qz, qw = normalize_quaternion(quaternion)
+
+            qx, qy, qz, qw = quaternion.to_list()
 
             # Represent axis as quaternion (x, y, z, 0)
             axis_quat = (*axis, 0)
 
-            # Quaternion components
             q = (qx, qy, qz, qw)
-
-            # Compute the inverse (conjugate for unit quaternion)
-            q_conjugate = (-qx, -qy, -qz, qw)
+            q_inverse = (-qx, -qy, -qz, qw)
 
             # Rotate the vector
-            rotated_quat = quaternion_multiply(quaternion_multiply(q, axis_quat), q_conjugate)
+            rotated_quat = quaternion_multiply(quaternion_multiply(q, axis_quat), q_inverse)
 
             # The rotated vector is the vector part of the resulting quaternion
             return rotated_quat[:3]
 
         # Create a line marker for the axis
         line_marker = Marker()
-        line_marker.header.frame_id = self.frame_id
+        line_marker.header.frame_id = pose.frame_id
         line_marker.header.stamp = Time().now()
-        line_marker.ns = f'axis_visualization_{self.current_id}'
-        line_marker.id = 9999 * self.current_id
+        line_marker.ns = f'axis_visualization_{self.id_counter}'
+        line_marker.id = self.id_counter
         line_marker.type = Marker.LINE_LIST
         line_marker.action = Marker.ADD
         line_marker.scale.x = 0.02  # Line width
@@ -606,41 +548,12 @@ class AxisMarkerPublisher:
         line_marker.points.append(end_point)
 
         # Add the line marker to the MarkerArray
-        self.marker_array.markers.append(line_marker)
-        self.marker_overview[f"{self.name}_{self.current_id}"] = line_marker.id
-        self.current_id += 1
+        self.id_counter += 1
+        return line_marker
 
-    def _update_marker(self, marker_id, new_pose):
-        """
-        Update an existing marker to a new pose
+def plot_axis_in_rviz(poses: List[PoseStamped], duration: Optional[float] = 60, length: float = 0.3):
+    def make_publisher():
+        return CoordinateAxisPublisher()
 
-        :param marker_id: id of the marker that should be updated
-        :param new_pose: Pose where the updated marker is set
-        """
-
-        # Find the marker with the specified ID
-        for marker in self.marker_array.markers:
-            if marker.id == marker_id:
-                # Update successful
-                marker.pose = new_pose
-                # rospy.logdebug(f"Marker {marker_id} updated")
-                self.marker_pub.publish(self.marker_array)
-                return True
-
-        # Update was not successful
-        # rospy.logwarn(f"Marker {marker_id} not found for update")
-        return False
-
-    def clear_all_markers(self):
-        """
-        Clears all markers in the MarkerArray and resets the current ID counter.
-        """
-        for marker in self.marker_array.markers:
-            marker.action = Marker.DELETE  # Set action to DELETE for each marker
-
-        # Publish the deletion
-        self.marker_pub.publish(self.marker_array)
-
-        # Clear the MarkerArray and reset ID
-        self.marker_array.markers.clear()
-        self.current_id = 0
+    publisher = make_publisher()
+    publisher.visualize(poses, duration, length)

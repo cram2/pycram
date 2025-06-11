@@ -988,6 +988,10 @@ class World(WorldEntity, ABC):
         raise NotImplementedError()
 
     def get_link_bounding_box_collection(self, link: Link) -> BoundingBoxCollection:
+        """
+        :param link: The link for which the bounding box collection should be returned.
+        :return: The bounding box collection of the link
+        """
         raise NotImplementedError()
 
     def get_link_rotated_bounding_box(self, link: Link) -> RotatedBoundingBox:

@@ -682,7 +682,7 @@ class TransportAction(ActionDescription):
                 target=self.target_location,
                 reachable_for=robot_desig_resolved,
                 visible_for=robot_desig_resolved,
-                reachable_arm=[pickup_pose.arm],
+                reachable_arm=pickup_pose.arm,
                 grasp_descriptions=[pickup_pose.grasp_description],
                 object_in_hand=self.object_designator,
                 rotation_agnostic=rotation_agnostic,
@@ -693,10 +693,14 @@ class TransportAction(ActionDescription):
         NavigateActionDescription(place_loc, True).perform()
 
         if rotation_agnostic:
+            # Placing rotation agnostic currently means that the robot will position its gripper in the same orientation
+            # as it is itself, no matter how the object was grasped
             robot_rotation = robot_desig_resolved.get_pose().orientation
             self.target_location.orientation = robot_rotation
             approach_direction = GraspDescription(pickup_pose.grasp_description.approach_direction, None, False)
             side_grasp = robot_desig_resolved.robot_description.get_arm_chain(pickup_pose.arm).end_effector.grasps[approach_direction]
+            # Inverting the quaternion for the used grasp to cancel it out during placing, since placing considers the
+            # object orientation relative to the gripper )
             side_grasp = [(-x, -y, -z, w) for x, y, z, w in zip(*[iter(side_grasp)] * 4)]
             side_grasp = [elem for quat in side_grasp for elem in quat]
             self.target_location.rotate_by_quaternion(side_grasp)

@@ -22,6 +22,9 @@ from .world_reasoning import contact
 
 
 class OrientationGenerator:
+    """
+    Provides methods to generate orientations for pose candidates.
+    """
 
     @staticmethod
     def generate_origin_orientation(position: List[float], origin: PoseStamped) -> List[float]:
@@ -42,12 +45,10 @@ class OrientationGenerator:
         Generates a random orientation rotated around the z-axis (yaw).
         A random angle is sampled using a provided RNG instance to ensure reproducibility.
 
-        Args:
-            *_: Ignored parameters to maintain compatibility with other orientation generators.
-            rng (random.Random): Random number generator instance for reproducible sampling.
+        :param _: Ignored parameters to maintain compatibility with other orientation generators.
+        :param rng: Random number generator instance for reproducible sampling.
 
-        Returns:
-            List[float]: A quaternion representing the random orientation.
+        :return: A quaternion of the randomly generated orientation.
         """
         random_yaw = rng.uniform(0, 2 * np.pi)
         quaternion = list(quaternion_from_euler(0, 0, random_yaw, axes="sxyz"))

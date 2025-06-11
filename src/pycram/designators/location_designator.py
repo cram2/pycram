@@ -34,7 +34,7 @@ from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, pose_sequence_reachability_validator, \
     collision_check, OrientationGenerator
-from ..ros_utils.viz_marker_publisher import AxisMarkerPublisher
+from ..ros_utils.viz_marker_publisher import plot_axis_in_rviz
 from ..world_concepts.world_object import Object, Link
 from ..world_reasoning import link_pose_for_joint_config
 
@@ -526,7 +526,6 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         :yield: An instance of ProbabilisticSemanticLocation.Location with the found valid position of the Costmap.
         """
         for params in self.generate_permutations():
-            marker = AxisMarkerPublisher()
 
             params_box = Box(params)
             test_robot = World.current_world.get_prospection_object_for_object(World.current_world.robot)
@@ -649,7 +648,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
                 target_quat = OrientationGenerator.generate_random_orientation()
                 target_pose = PoseStamped.from_list([target_x, target_y, hit_pos], target_quat, 'map')
-                marker.publish([target_pose], length=0.3)
+                plot_axis_in_rviz([target_pose])
 
                 nav_quat = OrientationGenerator.generate_origin_orientation([nav_x, nav_y], target_pose)
                 nav_pose = PoseStamped.from_list([nav_x, nav_y, 0], nav_quat, 'map')
@@ -799,7 +798,6 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
         :yield: An instance of ProbabilisticSemanticLocation.Location with the found valid position of the Costmap.
         """
         for params in self.generate_permutations():
-            marker = AxisMarkerPublisher()
             params_box = Box(params)
 
             target = params_box.target.copy() if isinstance(params_box.target, PoseStamped) else params_box.target
@@ -904,7 +902,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
             #     json.dump(prob_circuit_conditioned.to_json(), f, indent=4)
 
             # go.Figure(prob_circuit_conditioned.marginal(variables).plot()).show()
-            marker.publish([target_pose], length=0.3, duration=30)
+            plot_axis_in_rviz([target_pose], duration=30)
 
             with UseProspectionWorld():
                 samples = prob_circuit_conditioned.sample(10000)

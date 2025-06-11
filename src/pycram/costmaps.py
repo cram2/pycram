@@ -542,6 +542,7 @@ class VisibilityCostmap(Costmap):
         self.target_object: Optional[Object] = target_object
         self.robot: Optional[Object] = robot
         if robot:
+            # this is done because otherwise the robot would interfere with the costmap
             current_pose = robot.get_pose()
             robot.world.robot.set_pose(PoseStamped.from_list([current_pose.position.x, current_pose.position.y+1000, current_pose.position.z]))
         self._generate_map()

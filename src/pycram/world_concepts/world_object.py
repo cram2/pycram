@@ -592,18 +592,26 @@ class Object(PhysicalBody, HasParameters):
         return self.links[link_name].get_axis_aligned_bounding_box(transform_to_link_pose)
 
     def get_link_bounding_box_collection(self, link_name: str) -> BoundingBoxCollection:
+        """
+        Return the bounding box collection of the link with the given name.
+        This method computes the bounding box of the link in world coordinates by transforming the local axis-aligned
+        bounding boxes of the link's geometry to world coordinates.
+
+        :param link_name: The name of the link.
+        :return: A BoundingBoxCollection containing the bounding boxes of the link's geometry in world
+        """
         link = self.links[link_name]
         geometry_list = link.geometry if isinstance(link.geometry, list) else [link.geometry]
 
         link_pose = self.get_link_transform(link_name)
+
+        #
         if self.get_link_origin(link_name) is not None:
             link_origin = self.get_link_origin_transform(link_name)
         else:
             link_origin = TransformStamped.from_list()
         link_pose_with_origin = link_pose * link_origin
         link_pose = link_pose_with_origin.to_pose_stamped().pose
-
-        # link_pose = link.origin if isinstance(link.origin, PoseStamped) else link.pose
 
         link_pos = np.array(link_pose.position.to_list())
         link_quat = link_pose.orientation.to_list()
