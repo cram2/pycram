@@ -34,7 +34,7 @@ class MoveMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.navigate().execute(self)
 
 @with_plan
@@ -62,7 +62,7 @@ class MoveTCPMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         try_motion(pm_manager.move_tcp(), self, ToolPoseNotReachedError)
 
 
@@ -85,7 +85,7 @@ class LookingMotion(BaseMotion):
     target: PoseStamped
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.looking().execute(self)
 
 
@@ -110,7 +110,7 @@ class MoveGripperMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.move_gripper().execute(self)
 
 
@@ -150,7 +150,7 @@ class DetectingMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         obj_dict = pm_manager.detecting().execute(self)
         return obj_dict
 
@@ -172,7 +172,7 @@ class MoveArmJointsMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.move_arm_joints().execute(self)
 
 @with_plan
@@ -188,7 +188,7 @@ class WorldStateDetectingMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.world_state_detecting().execute(self)
 
 @with_plan
@@ -208,7 +208,7 @@ class MoveJointsMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.move_joints().execute(self)
 
 @with_plan
@@ -228,7 +228,7 @@ class OpeningMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.open().execute(self)
 
 @with_plan
@@ -248,7 +248,7 @@ class ClosingMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.close().execute(self)
 
 @with_plan
@@ -264,7 +264,7 @@ class TalkingMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.talk().execute(self)
 
 
@@ -293,7 +293,7 @@ class MoveTCPWaypointsMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         pm_manager.move_tcp_waypoints().execute(self)
 
     def __str__(self):

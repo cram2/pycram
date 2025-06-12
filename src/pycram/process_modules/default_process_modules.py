@@ -16,7 +16,7 @@ from ..external_interfaces.robokudo import query_all_objects, query_object, quer
 from ..failures import NavigationGoalNotReachedError
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
-from ..process_module import ProcessModule
+from ..process_module import ProcessModule, ManagerBase
 from ..robot_description import RobotDescription
 from ..ros import get_time
 from ..ros import logdebug, loginfo
@@ -530,7 +530,7 @@ class DefaultMoveTCPWaypointsReal(ProcessModule):
                                                  enforce_final_orientation=True if designator.movement_type == WaypointsMovementType.ENFORCE_ORIENTATION_FINAL_POINT else False)
 
 
-class DefaultManager(ProcessModuleManager):
+class DefaultManager(ManagerBase):
 
     def __init__(self):
         super().__init__("default")
