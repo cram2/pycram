@@ -448,7 +448,6 @@ class DefaultMoveTCPReal(ProcessModule):
         elif designator.movement_type == MovementType.CARTESIAN:
             giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
                                            grippers_that_can_collide=gripper_that_can_collide)
-        time.sleep(2)
         if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.3, 3):
             raise ToolPoseNotReachedError(World.current_world.robot.get_link_pose(tip_link), designator.target)
 
