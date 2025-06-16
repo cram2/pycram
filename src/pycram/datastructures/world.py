@@ -1,10 +1,10 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
+import rospy
 
 import os
 import threading
 import time
-import signal
 from abc import ABC, abstractmethod
 from copy import copy
 
@@ -142,7 +142,11 @@ class World(WorldEntity, ABC):
 
         self._set_world_rules()
 
-        signal.signal(signal.SIGINT, self.signal_handler)
+        if not is_prospection:
+            rospy.core.add_shutdown_hook(self.on_shutdown)
+
+    def on_shutdown(self, *args, **kwargs):
+        self.exit()
 
     def _set_world_rules(self):
         """
@@ -1065,14 +1069,6 @@ class World(WorldEntity, ABC):
         if self.prospection_world:
             self.terminate_world_sync()
             self.prospection_world.exit()
-
-    def signal_handler(self, sig, frame) -> None:
-        """
-        Signal handler for graceful exit of the world when a signal is received (e.g., SIGINT).
-        """
-        self.exit()
-        print("Exiting World ...")
-        exit(0)
 
     @abstractmethod
     def disconnect_from_physics_server(self) -> None:
