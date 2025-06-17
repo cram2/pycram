@@ -77,8 +77,14 @@ class Pr2MoveGripperReal(ProcessModule):
             pass
 
         goal = Pr2GripperCommandGoal()
-        goal.command.position = 0.0 if designator.motion == GripperState.CLOSE else 0.1
-        goal.command.max_effort = 50.0
+
+        position_map = {
+            GripperState.CLOSE: 0.0,
+            GripperState.MEDIUM: 0.015,
+            GripperState.OPEN: 0.1  # or whatever default fits
+        }
+        goal.command.position = position_map.get(designator.motion, 0.1)
+        goal.command.max_effort = -1
         if designator.gripper == Arms.RIGHT:
             controller_topic = "r_gripper_controller/gripper_action"
         else:

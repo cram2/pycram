@@ -14,7 +14,7 @@ from dataclasses import field
 from datetime import timedelta
 from threading import Lock, get_ident
 import time
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing_extensions import Callable, Any, Union, Optional, List
 
 from .robot_description import RobotDescription
@@ -241,7 +241,7 @@ class ProcessModuleManager(ABC):
     """
     Whether the robot for which the process module is intended for is real or a simulated one
     """
-    available_pms: List[ProcessModuleManager] = []
+    available_pms: List[ManagerBase] = []
     """
     List of all available Process Module Managers
     """
@@ -249,6 +249,7 @@ class ProcessModuleManager(ABC):
     """
     Singelton instance of this Process Module Manager
     """
+    _initialized: bool = False
 
     def __new__(cls, *args, **kwargs):
         """
@@ -263,43 +264,40 @@ class ProcessModuleManager(ABC):
         else:
             return cls._instance
 
-    def __init__(self, robot_name: str):
+    def __init__(self):
         """
         Registers the Process modules for this robot. The name of the robot has to match the name given in the robot
         description.
 
         :param robot_name: Name of the robot for which these Process Modules are intended
         """
-
-        self.robot_name = robot_name
-        self.available_pms.append(self)
-        self._navigate_lock = Lock()
-        self._pick_up_lock = Lock()
-        self._place_lock = Lock()
-        self._looking_lock = Lock()
-        self._detecting_lock = Lock()
-        self._move_tcp_lock = Lock()
-        self._move_arm_joints_lock = Lock()
-        self._world_state_detecting_lock = Lock()
-        self._move_joints_lock = Lock()
-        self._move_gripper_lock = Lock()
-        self._open_lock = Lock()
-        self._close_lock = Lock()
-        self._move_tcp_waypoints_lock = Lock()
+        if self._initialized:
+            return
         self.available_pms = []
         self.register_all_process_modules()
+        self._initialized = True
 
-    @staticmethod
-    def get_manager() -> Union[ProcessModuleManager, None]:
+    def register_manager(self, manager: ManagerBase):
+        """
+        Register a new Process Module Manager for the given robot name.
+
+        :param manager: The Process Module Manager to register
+        """
+        if not isinstance(manager, ManagerBase):
+            raise TypeError(f"Expected ProcessModuleManager, got {type(manager)}")
+        self.available_pms.append(manager)
+
+
+    def get_manager(self) -> Union[ManagerBase, None]:
         """
         Returns the Process Module manager for the currently loaded robot or None if there is no Manager.
 
         :return: ProcessModuleManager instance of the current robot
         """
-        ProcessModuleManager.register_all_process_modules()
+        self.register_all_process_modules()
         manager = None
         _default_manager = None
-        if not ProcessModuleManager.execution_type:
+        if not self.execution_type:
             raise RuntimeError(
                 f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
 
@@ -309,7 +307,7 @@ class ProcessModuleManager(ABC):
                         if chain.end_effector.gripper_object_name]
         gripper_name = gripper_name[0] if len(gripper_name) > 0 else None
 
-        for pm_manager in ProcessModuleManager.available_pms:
+        for pm_manager in self.available_pms:
             if pm_manager.robot_name == robot_description.name or\
                     ((pm_manager.robot_name == gripper_name) and gripper_name):
                 manager = pm_manager
@@ -338,6 +336,31 @@ class ProcessModuleManager(ABC):
             except Exception as e:
                 print(f"Error loading module {module_name}: {e}")
 
+
+class ManagerBase(ABC):
+    """
+    Base class for all Process Module Managers. This class is used to register the Process Modules for the robot.
+    It is intended to be used as a base class for all Process Module Managers.
+    """
+
+    def __init__(self, robot_name: str):
+        self.robot_name = robot_name
+        self._navigate_lock = Lock()
+        self._pick_up_lock = Lock()
+        self._place_lock = Lock()
+        self._looking_lock = Lock()
+        self._detecting_lock = Lock()
+        self._move_tcp_lock = Lock()
+        self._move_arm_joints_lock = Lock()
+        self._world_state_detecting_lock = Lock()
+        self._move_joints_lock = Lock()
+        self._move_gripper_lock = Lock()
+        self._open_lock = Lock()
+        self._close_lock = Lock()
+        self._move_tcp_waypoints_lock = Lock()
+        ProcessModuleManager().register_manager(self)
+
+    @abstractmethod
     def navigate(self) -> ProcessModule:
         """
         Get the Process Module for navigating the robot with respect to
@@ -345,37 +368,18 @@ class ProcessModuleManager(ABC):
 
         :return: The Process Module for navigating
         """
-        raise NotImplementedError(
-            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+        pass
 
-    def pick_up(self) -> ProcessModule:
-        """
-        Get the Process Module for picking up with respect to the :py:attr:`~ProcessModuleManager.execution_type`
-
-        :return: The Process Module for picking up an object
-        """
-        raise NotImplementedError(
-            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
-
-    def place(self) -> ProcessModule:
-        """
-        Get the Process Module for placing with respect to the :py:attr:`~ProcessModuleManager.execution_type`
-
-        :return: The Process Module for placing an Object
-        """
-        raise NotImplementedError(
-            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
-
+    @abstractmethod
     def looking(self) -> ProcessModule:
         """
         Get the Process Module for looking at a point with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
-
-        :return: The Process Module for looking at a specific point
+        :return:
         """
-        raise NotImplementedError(
-            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+        pass
 
+    @abstractmethod
     def detecting(self) -> ProcessModule:
         """
         Get the Process Module for detecting an object with respect to
@@ -383,9 +387,9 @@ class ProcessModuleManager(ABC):
 
         :return: The Process Module for detecting an object
         """
-        raise NotImplementedError(
-            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+        pass
 
+    @abstractmethod
     def move_tcp(self) -> ProcessModule:
         """
         Get the Process Module for moving the Tool Center Point with respect to
@@ -393,9 +397,9 @@ class ProcessModuleManager(ABC):
 
         :return: The Process Module for moving the TCP
         """
-        raise NotImplementedError(
-            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+        pass
 
+    @abstractmethod
     def move_arm_joints(self) -> ProcessModule:
         """
         Get the Process Module for moving the joints of the robot arm
@@ -403,9 +407,9 @@ class ProcessModuleManager(ABC):
 
         :return: The Process Module for moving the arm joints
         """
-        raise NotImplementedError(
-            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+        pass
 
+    @abstractmethod
     def world_state_detecting(self) -> ProcessModule:
         """
         Get the Process Module for detecting an object using the world state with respect to the
@@ -413,9 +417,9 @@ class ProcessModuleManager(ABC):
 
         :return: The Process Module for world state detecting
         """
-        raise NotImplementedError(
-            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+        pass
 
+    @abstractmethod
     def move_joints(self) -> ProcessModule:
         """
         Get the Process Module for moving any joint of the robot with respect to the
@@ -423,9 +427,9 @@ class ProcessModuleManager(ABC):
 
         :return: The Process Module for moving joints
         """
-        raise NotImplementedError(
-            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+        pass
 
+    @abstractmethod
     def move_gripper(self) -> ProcessModule:
         """
         Get the Process Module for moving the gripper with respect to
@@ -433,9 +437,9 @@ class ProcessModuleManager(ABC):
 
         :return: The Process Module for moving the gripper
         """
-        raise NotImplementedError(
-            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+        pass
 
+    @abstractmethod
     def open(self) -> ProcessModule:
         """
         Get the Process Module for opening drawers with respect to
@@ -443,9 +447,9 @@ class ProcessModuleManager(ABC):
 
         :return: The Process Module for opening drawers
         """
-        raise NotImplementedError(
-            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+        pass
 
+    @abstractmethod
     def close(self) -> ProcessModule:
         """
         Get the Process Module for closing drawers with respect to
@@ -453,9 +457,9 @@ class ProcessModuleManager(ABC):
 
         :return: The Process Module for closing drawers
         """
-        raise NotImplementedError(
-            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+        pass
 
+    @abstractmethod
     def move_tcp_waypoints(self) -> ProcessModule:
         """
         Get the Process Module for moving the Tool Center Point along a list of waypoints with respect to
@@ -463,5 +467,4 @@ class ProcessModuleManager(ABC):
 
         :return: The Process Module for moving the TCP along a list of waypoints
         """
-        raise NotImplementedError(
-            f"There are no Process Modules for '{inspect.currentframe().f_code.co_name}' for robot '{self.robot_name}'")
+        pass
