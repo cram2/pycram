@@ -403,7 +403,7 @@ class ObjectNotPlacedAtTargetLocation(ObjectPlacingError):
 
     def __init__(self, obj: Object, placing_pose: PoseStamped, robot: Object, arm: Arms, *args, **kwargs):
         super().__init__(obj, placing_pose, robot, arm,
-                         "Object {obj.name} was not placed at target pose {placing_pose.position.to_list()}"
+                         f"Object {obj.name} was not placed at target pose {placing_pose.position.to_list()}"
                          f"{placing_pose.orientation.to_list()} using {arm.name} arm of {robot.name}", *args, **kwargs)
 
 
