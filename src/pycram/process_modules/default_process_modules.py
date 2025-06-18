@@ -1,4 +1,5 @@
 import inspect
+import time
 
 import numpy as np
 from typing_extensions import List, TYPE_CHECKING
@@ -16,7 +17,7 @@ from ..external_interfaces.robokudo import query_all_objects, query_object, quer
 from ..failures import NavigationGoalNotReachedError
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
-from ..process_module import ProcessModule
+from ..process_module import ProcessModule, ManagerBase
 from ..robot_description import RobotDescription
 from ..ros import get_time
 from ..ros import logdebug, loginfo
@@ -331,20 +332,20 @@ class DefaultDetectingReal(ProcessModule):
                 if type_concept is None:
                     loginfo(f"No class name contains the string '{obj_type}'")
                     type_concept = PhysicalObject
-                print(type_concept)
+
                 obj_name = obj_type + "" + str(get_time())
-                print(obj_name)
+
                 gen_obj_desc = GenericObjectDescription(obj_name, [0, 0, 0], hsize)
-                print("1")
+
                 if obj_color is not None: color = Colors.from_string(obj_color)
                 else: color = Colors.PINK
-                print("2")
+
                 generic_obj = Object(name=obj_name, concept=type_concept, path=None, description=gen_obj_desc,
                                      color=color)
-                print("3")
+
 
                 generic_obj.set_pose(obj_pose)
-                print("4")
+
 
                 perceived_objects.append(generic_obj)
 
@@ -436,7 +437,7 @@ class DefaultMoveTCPReal(ProcessModule):
 
         gripper_that_can_collide = designator.arm if designator.allow_gripper_collision else None
         if designator.allow_gripper_collision:
-            giskard.allow_gripper_collision(designator.arm.name.lower())
+            giskard.allow_gripper_collision(designator.arm)
 
         if designator.movement_type == MovementType.STRAIGHT_TRANSLATION:
             giskard.achieve_straight_translation_goal(pose_in_map.position.to_list(), tip_link, root_link)
@@ -445,11 +446,9 @@ class DefaultMoveTCPReal(ProcessModule):
         elif designator.movement_type == MovementType.TRANSLATION:
             giskard.achieve_translation_goal(pose_in_map.position.to_list(), tip_link, root_link)
         elif designator.movement_type == MovementType.CARTESIAN:
-            print("i think i spider")
             giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
-                                           grippers_that_can_collide=gripper_that_can_collide,
-                                          )
-        if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.01, 3):
+                                           grippers_that_can_collide=gripper_that_can_collide)
+        if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.3, 3):
             raise ToolPoseNotReachedError(World.current_world.robot.get_link_pose(tip_link), designator.target)
 
 
@@ -475,8 +474,14 @@ class DefaultMoveJointsReal(ProcessModule):
 
     def _execute(self, designator: MoveJointsMotion):
         name_to_position = dict(zip(designator.names, designator.positions))
+        align = designator.align
+        tip_link = designator.tip_link
+        tip_normal = designator.tip_normal
+        root_normal = designator.root_normal
+        root_link = designator.root_link
         giskard.avoid_all_collisions()
-        giskard.achieve_joint_goal(name_to_position)
+        giskard.achieve_joint_goal(name_to_position, align=align, tip_link=tip_link, tip_normal=tip_normal,
+                                   root_link=root_link, root_normal=root_normal)
 
 
 class DefaultMoveGripperReal(ProcessModule):
@@ -530,7 +535,7 @@ class DefaultMoveTCPWaypointsReal(ProcessModule):
                                                  enforce_final_orientation=True if designator.movement_type == WaypointsMovementType.ENFORCE_ORIENTATION_FINAL_POINT else False)
 
 
-class DefaultManager(ProcessModuleManager):
+class DefaultManager(ManagerBase):
 
     def __init__(self):
         super().__init__("default")
