@@ -1247,21 +1247,21 @@ class PickAndPlaceAction(ActionDescription):
     def plan(self) -> None:
         robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
         ParkArmsActionDescription(Arms.BOTH).perform()
-        pickup_loc = CostmapLocation(target=self.object_designator,
-                                     reachable_for=robot_desig_resolved,
-                                     reachable_arm=[self.arm])
-        # Tries to find a pick-up position for the robot that uses the given arm
-        pickup_pose = pickup_loc.resolve()
-
-        PickUpActionDescription(self.object_designator, pickup_pose.arm,
-                     grasp_description=pickup_pose.grasp_description).perform()
+        grasp_description = GraspDescription(Grasp.FRONT)
+        pickup_pose = World.robot.get_grasp_pose(self.arm, grasp_description)
+        MoveTCPMotion(pickup_pose, self.arm)
+        PickUpActionDescription(self.object_designator, self.arm,
+                     grasp_description=grasp_description).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()
         PlaceActionDescription(self.object_designator, self.target_location, self.arm).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation of each atomic action is done in the action itself, so no more validation needed here.
-        pass
+        if self.object_designator.pose.__eq__(self.target_location):
+            pass
+        else:
+            raise ValueError
 
     @classmethod
     @with_plan
