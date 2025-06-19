@@ -783,6 +783,78 @@ class TransportAction(ActionDescription):
         return PartialDesignator(TransportAction, object_designator=object_designator,
                                  target_location=target_location,
                                  arm=arm)
+    
+
+@has_parameters
+@dataclass
+class EfficientTransportAction(ActionDescription):
+    """
+    Transports an object to a position using the most efficient arm (left or right),
+    based on object proximity and arm availability. It prioritizes minimal distance
+    to reduce energy and motion.
+    """
+    object_designator: Object
+    target_location: PoseStamped
+
+    def plan(self) -> None:
+        # Resolve robot and compute object pose
+        robot = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
+        try:
+            obj_pose = self.object_designator.pose
+        except Exception:
+            raise ConfigurationNotReached(f"Cannot get pose for {self.object_designator}")
+
+        # Determine preferred arm by object Y coordinate (positive = left side, negative = right side)
+        preferred_arm = Arms.LEFT if obj_pose.position.y >= 0 else Arms.RIGHT
+        other_arm = Arms.RIGHT if preferred_arm == Arms.LEFT else Arms.LEFT
+
+        # Helper: attempt to find a reachable pick-up pose for a given arm
+        def try_arm(arm):
+            pick_loc = CostmapLocation(
+                target=self.object_designator,
+                reachable_for=robot,
+                reachable_arm=arm
+            )
+            return pick_loc.resolve()
+
+        # Try preferred arm first
+        pickup_pose = try_arm(preferred_arm)
+        chosen_arm = preferred_arm
+        if not pickup_pose:
+            # Try the other arm if preferred fails
+            pickup_pose = try_arm(other_arm)
+            chosen_arm = other_arm
+        if not pickup_pose:
+            raise ObjectUnfetchable(f"No pick-up pose for {self.object_designator} on either arm.")
+
+        # Execute pick-up with chosen arm
+        ParkArmsActionDescription(Arms.BOTH).perform()
+        NavigateActionDescription(pickup_pose, True).perform()
+        PickUpActionDescription(self.object_designator, chosen_arm, grasp_description=pickup_pose.grasp_description).perform()
+        ParkArmsActionDescription(Arms.BOTH).perform()
+
+        # Compute place location reachable with chosen arm
+        try:
+            place_loc = CostmapLocation(
+                target=self.target_location,
+                reachable_for=robot,
+                reachable_arm=[chosen_arm],
+                grasp_descriptions=[pickup_pose.grasp_description],
+                object_in_hand=self.object_designator
+            ).resolve()
+        except StopIteration:
+            raise ReachabilityFailure(f"Target not reachable with {chosen_arm} for {self.object_designator}.")
+        NavigateActionDescription(place_loc, True).perform()
+        PlaceActionDescription(self.object_designator, self.target_location, chosen_arm).perform()
+        ParkArmsActionDescription(Arms.BOTH).perform()
+
+    @with_plan
+    @classmethod
+    def description(cls, object_designator: Union[Iterable[Object], Object],
+                    target_location: Union[Iterable[PoseStamped], PoseStamped]
+                   ) -> PartialDesignator[Type[EfficientTransportAction]]:
+        # No arm parameter: the class will pick the best arm internally
+        return PartialDesignator(EfficientTransportAction, object_designator=object_designator, target_location=target_location)
 
 
 @has_parameters
