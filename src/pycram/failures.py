@@ -3,7 +3,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from typing_extensions import TYPE_CHECKING, List, Optional
+from typing_extensions import TYPE_CHECKING, List, Optional, Type
+
+from pycrap.ontologies import PhysicalObject
 
 if TYPE_CHECKING:
     from .datastructures.pose import PoseStamped
@@ -261,12 +263,14 @@ class IKError(PlanFailure):
     The robot tip frame that should reach the pose.
     """
 
-    def __init__(self, pose, base_frame, tip_frame):
+    def __init__(self, pose, base_frame, tip_frame, robot_pose, joint_positions=None):
         self.pose = pose
         self.base_frame = base_frame
         self.tip_frame = tip_frame
-        self.message = "Position {} in frame '{}' is not reachable for end effector: '{}'".format(pose, base_frame,
-                                                                                                  tip_frame)
+        self.robot_pose = robot_pose
+        self.message = ("Position {} in frame '{}' is not reachable for end effector: '{}'. \n"
+                        "Robot pose was: {}. \n"
+                        "Its joint positions were: {}").format(pose, base_frame, tip_frame, robot_pose, joint_positions)
         super(IKError, self).__init__(self.message)
 
 
@@ -448,10 +452,10 @@ class PerceptionObjectNotFound(PerceptionLowLevelFailure):
     """Thrown when an attempt to find an object by perception fails -- and this can still be interpreted as the robot
     not looking in the right direction, as opposed to the object being absent."""
 
-    def __init__(self, obj_desc: ObjectDesignatorDescription, technique: DetectionTechnique, region: Location,
+    def __init__(self, obj_type: Type[PhysicalObject], technique: DetectionTechnique, region: PoseStamped,
                  *args, **kwargs):
-        super().__init__(obj_desc, technique, region,
-                         f"object described by {obj_desc} not found using {technique.name} technique in region"
+        super().__init__(obj_type, technique, region,
+                         f"object of type {obj_type} not found using {technique.name} technique in region"
                          f" {region}", *args, **kwargs)
 
 

@@ -41,7 +41,7 @@ def compute_ik(target_link: str, target_pose: PoseStamped, robot: Object) -> Dic
     :param target_link: The target link.
     :param target_pose: The target pose.
     :param robot: The robot object.
-    :return: The joint configuration as a dictionary with joint names and joint values.
+    :return: The joint configuration as a dictionary with joint names and joint values. If the computation fails, an empty dictionary is returned.
     """
     # Kinematic model of the robot, created form the URDF file
     model = pinocchio.buildModelFromUrdf(robot.path)
@@ -64,8 +64,7 @@ def compute_ik(target_link: str, target_pose: PoseStamped, robot: Object) -> Dic
 
     if success:
         return parse_configuration_vector_to_joint_positions(q, model)
-    else:
-        raise IKError(pinocchio.SE3ToXYZQUAT(oMdes), robot.tf_frame, target_link)
+    return {}
 
 
 def inverse_kinematics_logarithmic(model, configuration, data, target_joint_id, target_transformation, eps=1e-4,
