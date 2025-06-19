@@ -26,3 +26,4 @@ python-box
 urdf_parser_py
 networkx
 bs4 # ProcThor
+polytope==0.2.5

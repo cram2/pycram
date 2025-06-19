@@ -34,6 +34,7 @@ from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, pose_sequence_reachability_validator, \
     collision_check, OrientationGenerator
+from ..ros import logwarn
 from ..ros_utils.viz_marker_publisher import plot_axis_in_rviz
 from ..world_concepts.world_object import Object, Link
 from ..world_reasoning import link_pose_for_joint_config
@@ -554,10 +555,17 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
                 link_searchspace = link.get_axis_aligned_bounding_box().bloat(1, 1, 1).as_collection()
 
+                link_width = link.get_axis_aligned_bounding_box().width
+                link_depth = link.get_axis_aligned_bounding_box().depth
+
+                link_min_dim = link_width if link_width < link_depth else link_depth
+
+                wall_bloat = 0.3 if link_min_dim > 0.65 else link_min_dim / 2.5
+
                 if self.with_2d_obstacles:
                     free_space = GraphOfConvexSets.navigation_map_from_world(world, search_space=link_searchspace)
                 else:
-                    free_space = GraphOfConvexSets.free_space_from_world(world, search_space=link_searchspace, bloat_obstacles=0.02, bloat_walls=.3)
+                    free_space = GraphOfConvexSets.free_space_from_world(world, search_space=link_searchspace, bloat_obstacles=0.02, bloat_walls=wall_bloat)
 
                 stand_on_ground = SimpleEvent({BoundingBox.z_variable: (0, 0.05)}).as_composite_set()
                 stand_on_ground.fill_missing_variables(variables)
@@ -571,16 +579,23 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
                 condition = Event(*[node.simple_event for node in sub_gcs.nodes])
 
                 condition.fill_missing_variables([target_x, target_y])
+                walls = GraphOfConvexSets.get_doors_and_walls_of_world(world, search_space=link_searchspace, bloat_walls=wall_bloat)
 
-                walls = GraphOfConvexSets.get_doors_and_walls_of_world(world, search_space=link_searchspace, bloat_walls=.3)
-                event -= walls
+                if walls is not None:
+                    # fig = go.Figure(walls.plot(color="red"))
+                    # fig.add_traces(event.plot(color="blue"))
+                    # fig.add_traces((event - walls).plot(color="green"))
+                    # fig.show()
+                    event = ~walls & event
+
+                if event.is_empty():
+                    continue
 
                 event = event.marginal(variables)
-
                 condition &= stand_on_ground
                 condition = condition.marginal(variables)
 
-                condition -= event
+                condition = ~event & condition
 
                 p_target = uniform_measure_of_event(event)
 
@@ -624,7 +639,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
             # go.Figure(final_discribution.probabilistic_circuit.marginal(variables).plot()).show()
 
-            samples = final_discribution.probabilistic_circuit.sample(1000)
+            samples = final_discribution.probabilistic_circuit.sample(1005)
             np.random.shuffle(samples)
             # samples = samples[np.argsort(final_discribution.probabilistic_circuit.log_likelihood(samples))[::-1]]
 
@@ -633,7 +648,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
             # with UseProspectionWorld():
             # TODO: Use Prospection World here in the future, but currently there is annoying context management, causing
             #       subsequent actions to be executed in the Prospection World, causing problems with detecting etc
-            for sample in tqdm.tqdm(samples):
+            for sample in samples:
                 sample_dict = {var.name: val for var, val in zip(final_discribution.probabilistic_circuit.variables, sample)}
                 link_id, target_x, target_y, nav_x, nav_y = sample
 
@@ -648,10 +663,11 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
                 target_quat = OrientationGenerator.generate_random_orientation()
                 target_pose = PoseStamped.from_list([target_x, target_y, hit_pos], target_quat, 'map')
-                plot_axis_in_rviz([target_pose])
 
                 nav_quat = OrientationGenerator.generate_origin_orientation([nav_x, nav_y], target_pose)
                 nav_pose = PoseStamped.from_list([nav_x, nav_y, 0], nav_quat, 'map')
+                # print('Semantic Costmap Location')
+                # plot_axis_in_rviz([target_pose, nav_pose], duration=300)
 
                 test_robot.set_pose(nav_pose)
                 try:
@@ -857,7 +873,15 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
             hull = ConvexHull(successful_hits)
             A = hull.equations[:, :-1]
             b = -hull.equations[:, -1]
-            room_event = Polytope(A, b).inner_box_approximation(minimum_volume=0.1)
+
+            # reason for this is the error
+            # "E0000 00:00:1750253132.517928 1146896 linear_solver.cc:2026] No solution exists. MPSolverInterface::result_status_ = MPSOLVER_ABNORMAL"
+            # this is not a great way to handle this i think, so we should find out in which situations this occurs @TODO
+            try:
+                room_event = Polytope(A, b).inner_box_approximation(minimum_volume=0.1)
+            except RuntimeError as e:
+                print('Polytope: ', Polytope(A, b))
+                room_event = Polytope(A, b).to_simple_event().as_composite_set()
             room_event = room_event.update_variables({Continuous("x_0"): BoundingBox.x_variable,
                                                       Continuous("x_1"): BoundingBox.y_variable})
             room_event.fill_missing_variables(SortedSet([BoundingBox.z_variable]))
@@ -891,7 +915,6 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
 
             prob_circuit.normalize()
 
-
             prob_circuit_conditioned, p_condition = prob_circuit.truncated(condition)
 
             if prob_circuit_conditioned is None:
@@ -902,10 +925,9 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
             #     json.dump(prob_circuit_conditioned.to_json(), f, indent=4)
 
             # go.Figure(prob_circuit_conditioned.marginal(variables).plot()).show()
-            plot_axis_in_rviz([target_pose], duration=30)
 
             with UseProspectionWorld():
-                samples = prob_circuit_conditioned.sample(10000)
+                samples = prob_circuit_conditioned.sample(300)
 
                 event: Optional[SimpleEvent] = None
                 samples = samples[np.argsort(prob_circuit_conditioned.log_likelihood(samples))[::-1]]
@@ -919,6 +941,9 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
                     pose_candidate = PoseStamped.from_list([nav_x, nav_y, 0], nav_quat, 'map')
 
                     test_robot.set_pose(pose_candidate)
+                    # print('Costmap Location')
+                    # plot_axis_in_rviz([pose_candidate, target_pose], duration=300)
+
                     event = SimpleEvent({BoundingBox.x_variable: closed(nav_x - 0.1, nav_x + 0.1),
                                          BoundingBox.y_variable: closed(nav_y - 0.1, nav_y + 0.1)})
                     try:
@@ -952,5 +977,6 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
                                                                             arm=params_box.reachable_arm,
                                                                             allowed_collision=allowed_collision)
                         if is_reachable:
+                            # print(f'Accepted target sequence: {target_sequence}')
                             yield GraspPose(pose_candidate.pose, pose_candidate.header,
                                             arm=params_box.reachable_arm, grasp_description=grasp_desc)
