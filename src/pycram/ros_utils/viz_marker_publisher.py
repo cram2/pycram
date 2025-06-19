@@ -105,7 +105,7 @@ class VizMarkerPublisher:
                     else:
                         link_origin = TransformStamped.from_list()
                     link_pose_with_origin = link_pose * link_origin
-                    msg.pose = link_pose_with_origin.to_pose_stamped().pose
+                    msg.pose = link_pose_with_origin.to_pose_stamped().pose.ros_message()
 
                     color = obj.get_link_color(link).get_rgba()
 
@@ -442,7 +442,7 @@ class BoundingBoxPublisher:
             marker.lifetime = Duration(duration)
 
             marker.pose = Pose()
-            marker.pose.position = origin
+            marker.pose.position = origin.ros_message()
 
             marker.scale.x = box.depth
             marker.scale.y = box.width
@@ -478,11 +478,11 @@ class CoordinateAxisPublisher:
         for pose in poses:
 
             x_axis = self._create_line(pose, AxisIdentifier.X.value, duration, length,
-                                       Color.from_rgb([1, 0, 0]))
+                                       Color.from_rgb([1., 0., 0.]))
             y_axis = self._create_line(pose, AxisIdentifier.Y.value, duration, length,
-                                       Color.from_rgb([0, 1, 0]))
+                                       Color.from_rgb([0., 1., 0.]))
             z_axis = self._create_line(pose, AxisIdentifier.Z.value, duration, length,
-                                       Color.from_rgb([0, 0, 1]))
+                                       Color.from_rgb([0., 0., 1.]))
             marker_array.markers.append(x_axis)
             marker_array.markers.append(y_axis)
             marker_array.markers.append(z_axis)
