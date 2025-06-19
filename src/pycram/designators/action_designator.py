@@ -630,7 +630,7 @@ class TransportAction(ActionDescription):
     Transports an object to a position using an arm
     """
 
-    object_designator: Object
+    object_designator: Object = field(repr=False)
     """
     Object designator_description describing the object that should be transported.
     """
@@ -638,7 +638,7 @@ class TransportAction(ActionDescription):
     """
     Target Location to which the object should be transported
     """
-    arm: Arms
+    arm: Optional[Arms]
     """
     Arm that should be used
     """
@@ -1219,7 +1219,10 @@ class SearchAction(ActionDescription):
                 DetectActionDescription(DetectionTechnique.TYPES,
                                         object_designator=BelieveObject(types=[self.object_type]))))
 
-        return plan.perform()
+        obj = plan.perform()
+        if obj is not None:
+            return obj
+        raise PerceptionObjectNotFound(self.object_type, DetectionTechnique.TYPES, self.target_location)
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         pass
