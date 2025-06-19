@@ -2,7 +2,7 @@ import atexit
 from datetime import timedelta
 import time
 
-import tf
+from tf2_ros import Buffer, TransformListener
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
 from typing_extensions import Optional
@@ -11,7 +11,7 @@ from ..datastructures.world import World
 from ..robot_description import RobotDescription
 from ..datastructures.pose import PoseStamped
 from ..ros import  Time, Duration
-from ..ros import  wait_for_message, create_timer
+from ..ros import  wait_for_message, create_timer, node
 
 
 class WorldStateUpdater:
@@ -31,13 +31,15 @@ class WorldStateUpdater:
         :param tf_topic: Name of the TF topic, needs to publish geometry_msgs/TransformStamped
         :param joint_state_topic: Name of the joint state topic, needs to publish sensor_msgs/JointState
         """
-        self.tf_listener = tf.TransformListener()
+        self.node = node
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, node)
         time.sleep(1)
         self.tf_topic = tf_topic
         self.joint_state_topic = joint_state_topic
         self.world: Optional[World] = world
-        self.tf_timer = create_timer(Duration().from_sec(update_rate.total_seconds()), self._subscribe_tf)
-        self.joint_state_timer = create_timer(Duration().from_sec(update_rate.total_seconds()),
+        self.tf_timer = create_timer(Duration(update_rate.total_seconds()), self._subscribe_tf)
+        self.joint_state_timer = create_timer(Duration(update_rate.total_seconds()),
                                               self._subscribe_joint_state)
 
         atexit.register(self._stop_subscription)
@@ -62,7 +64,7 @@ class WorldStateUpdater:
                 continue
             else:
                 tf_frame = obj.tf_frame
-            trans, rot = self.tf_listener.lookupTransform("/map", tf_frame, Time(0))
+            trans, rot = self.tf_buffer.lookup_transform("/map", tf_frame, Time(0.0))
             obj.set_pose(PoseStamped.from_list(trans, rot))
 
     def _subscribe_joint_state(self, msg: JointState) -> None:
