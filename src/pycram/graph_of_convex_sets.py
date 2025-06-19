@@ -56,10 +56,10 @@ class GraphOfConvexSets(nx.Graph):
 
     def calculate_connectivity(self, tolerance=0.001):
         """
-        Faster connectivity:
-        - No in-place node enlargement.
-        - Uses precomputed tuples for R-tree queries.
-        - Manual intersection test on original bounds.
+        Calculate the connectivity of the graph by checking for intersections between the bounding boxes of the nodes.
+        This uses an R-tree for efficient spatial indexing and intersection queries.
+
+        :param tolerance: The tolerance for the intersection when calculating the connectivity.
         """
 
         # Build an R-tree in 3D
@@ -95,7 +95,7 @@ class GraphOfConvexSets(nx.Graph):
             rtree_index.insert(i, expanded_bounds[i])
 
         # Now, for each node, query overlaps in the R-tree using the expanded box
-        for i in tqdm(range(N), desc="Calculating connectivity"):
+        for i in range(N):
             min_i = orig_mins[i]
             max_i = orig_maxs[i]
             ex_bounds_i = expanded_bounds[i]
@@ -238,11 +238,7 @@ class GraphOfConvexSets(nx.Graph):
             # get the bounding box of every link in the object description
             for link in (obj.link_name_to_id.keys()):
 
-                bbs = list(obj.get_link_bounding_box_collection(link))
-
-                # plot_bounding_boxes_in_rviz(bbs)
-
-                for bb in tqdm(bbs):
+                for bb in obj.get_link_bounding_box_collection(link):
 
                     if "wall" in link.lower():
                         if bb.width > bb.depth:
@@ -264,44 +260,6 @@ class GraphOfConvexSets(nx.Graph):
                     else:
                         obstacles |= bb_event
         return obstacles
-
-    # @staticmethod
-    # def get_bounding_box(bb: AxisAlignedBoundingBox, link: Link) -> Event:
-    #
-    #     if link.origin is None:
-    #         origin = TransformStamped()
-    #     else:
-    #         origin = link.origin.to_transform_stamped(link.name)
-    #
-    #     bb.get_rotated_box(origin)
-    #
-    #     corners = np.array([corner.to_list() for corner in bb.get_points()])
-    #     corners += np.array(origin.position.to_list())
-    #
-    #     quat = link.pose.orientation.to_list()
-    #     # rotate array to match the orientation of the link
-    #     rotation_matrix = Rotation.from_quat(quat, scalar_first=False).as_matrix()
-    #
-    #     rotated = corners @ rotation_matrix.T
-    #
-    #     # Apply translation
-    #     translated = rotated #+ corners
-    #
-    #     try:
-    #         hull = ConvexHull(translated)
-    #     except QhullError:
-    #         variances = np.var(translated, axis=0)
-    #         drop_dim = np.argmin(variances)
-    #         # Project to 2D by removing the least informative axis
-    #         reduced = np.delete(translated, drop_dim, axis=1)
-    #         hull = ConvexHull(reduced)
-    #
-    #     A = hull.equations[:, :-1]
-    #     b = -hull.equations[:, -1]
-    #
-    #     result = Polytope(A, b).outer_box_approximation(minimum_volume=np.inf)
-    #     return result
-    #
 
     @classmethod
     def get_doors_and_walls_of_world(cls, world: World, search_space: Optional[BoundingBoxCollection] = None,
@@ -330,13 +288,7 @@ class GraphOfConvexSets(nx.Graph):
             # get the bounding box of every link in the object description
             for link in (obj.link_name_to_id.keys()):
 
-                bbs = list(obj.get_link_bounding_box_collection(link))
-
-                # plot_bounding_boxes_in_rviz(bbs)
-
-                for bb in tqdm(bbs):
-
-
+                for bb in obj.get_link_bounding_box_collection(link):
                     if any(x in link.lower() for x in ["wall", "door"]):
                         if bb.width > bb.depth:
                             bb = bb.bloat(bloat_walls, 0, 0.01)
@@ -381,8 +333,8 @@ class GraphOfConvexSets(nx.Graph):
 
         start_time = time.time_ns()
         # calculate the free space and limit it to the searching space
-        free_space = search_event - obstacles
-        print(f"Obstacles calculated in {(time.time_ns() - start_time) / 1e6} ms")
+        free_space = ~obstacles & search_event
+        print(f"Free space calculated in {(time.time_ns() - start_time) / 1e6} ms")
 
         # create a connectivity graph from the free space and calculate the edges
         result = cls(search_space=search_space)
@@ -431,9 +383,7 @@ class GraphOfConvexSets(nx.Graph):
 
             # get the bounding box of every link in the object description
             for link in (obj.link_name_to_id.keys()):
-                bbs = list(obj.get_link_bounding_box_collection(link))
-
-                for bb in tqdm(bbs):
+                for bb in obj.get_link_bounding_box_collection(link):
 
                     bb = bb.bloat(bloat_obstacles, bloat_obstacles, 0.)
 
@@ -456,7 +406,7 @@ class GraphOfConvexSets(nx.Graph):
 
         # get the 2d map from the obstacles
         search_event = search_event.marginal(xy)
-        free_space = search_event - obstacles
+        free_space = ~obstacles & search_event
 
         # create floor level
         z_event = SimpleEvent({BoundingBox.z_variable: reals()}).as_composite_set()
