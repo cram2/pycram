@@ -467,7 +467,7 @@ class CoordinateAxisPublisher:
     @cached_property
     def publisher(self):
         pub = create_publisher("/pycram/coordinate_axis", MarkerArray)
-        time.sleep(0.5) # this is needed to synchronize the publisher creation thread
+        time.sleep(1) # this is needed to synchronize the publisher creation thread
         return pub
 
     def visualize(self, poses: List[PoseStamped], duration: Optional[float] = 60, length: float = 0.1):
