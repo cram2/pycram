@@ -30,3 +30,4 @@ pillow
 polytope
 ortools
 scipy
+rtree==1.4.0
