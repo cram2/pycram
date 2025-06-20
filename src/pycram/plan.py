@@ -126,7 +126,7 @@ class Plan(nx.DiGraph):
         """
         previous_plan = Plan.current_plan
         Plan.current_plan = self
-        result = self.current_node.perform()
+        result = self.root.perform()
         Plan.current_plan = previous_plan
         return result
 
@@ -666,8 +666,8 @@ def with_plan(func: Callable) -> Callable:
         plan = Plan(root=node)
         if Plan.current_plan:
             Plan.current_plan.mount(plan, Plan.current_plan.current_node)
-            Plan.current_plan.current_node = node
-            return Plan.current_plan
+            # Plan.current_plan.current_node = node
+            # return Plan.current_plan
         return plan
 
     return wrapper
