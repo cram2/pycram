@@ -1313,6 +1313,10 @@ class PickAndPlaceAction(ActionDescription):
     """
     Arm that should be used
     """
+    grasp_description: GraspDescription
+    """
+    Description of the grasp to pick up the target
+    """
     _pre_perform_callbacks = []
     """
     List to save the callbacks which should be called before performing the action.
@@ -1325,32 +1329,29 @@ class PickAndPlaceAction(ActionDescription):
         self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
-        robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
         ParkArmsActionDescription(Arms.BOTH).perform()
-        grasp_description = GraspDescription(Grasp.FRONT)
-        pickup_pose = World.robot.get_grasp_pose(self.arm, grasp_description)
-        MoveTCPMotion(pickup_pose, self.arm)
         PickUpActionDescription(self.object_designator, self.arm,
-                     grasp_description=grasp_description).perform()
+                     grasp_description=self.grasp_description).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()
         PlaceActionDescription(self.object_designator, self.target_location, self.arm).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        # The validation of each atomic action is done in the action itself, so no more validation needed here.
         if self.object_designator.pose.__eq__(self.target_location):
             pass
         else:
-            raise ValueError
+            raise ValueError("Object not moved to the target location")
 
     @classmethod
     @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
-                    arm: Union[Iterable[Arms], Arms] = None) -> PartialDesignator[Type[PickAndPlaceAction]]:
+                    arm: Union[Iterable[Arms], Arms] = None,
+                    grasp_description = GraspDescription) -> PartialDesignator[Type[PickAndPlaceAction]]:
         return PartialDesignator(PickAndPlaceAction, object_designator=object_designator,
                                  target_location=target_location,
-                                 arm=arm)
+                                 arm=arm,
+                                 grasp_description=grasp_description)
 
 MoveTorsoActionDescription = MoveTorsoAction.description
 SetGripperActionDescription = SetGripperAction.description
