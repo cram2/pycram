@@ -781,12 +781,11 @@ class TransportAction(ActionDescription):
             robot_rotation = robot_desig_resolved.get_pose().orientation
             self.target_location.orientation = robot_rotation
             approach_direction = GraspDescription(pickup_pose.grasp_description.approach_direction, None, False)
-            side_grasp = robot_desig_resolved.robot_description.get_arm_chain(pickup_pose.arm).end_effector.grasps[approach_direction]
+            side_grasp = np.array(robot_desig_resolved.robot_description.get_arm_chain(pickup_pose.arm).end_effector.grasps[approach_direction])
             # Inverting the quaternion for the used grasp to cancel it out during placing, since placing considers the
             # object orientation relative to the gripper )
-            side_grasp = [(-x, -y, -z, w) for x, y, z, w in zip(*[iter(side_grasp)] * 4)]
-            side_grasp = [elem for quat in side_grasp for elem in quat]
-            self.target_location.rotate_by_quaternion(side_grasp)
+            side_grasp *= np.array([-1, -1, -1, 1])
+            self.target_location.rotate_by_quaternion(side_grasp.tolist())
 
         PlaceActionDescription(self.object_designator, self.target_location, pickup_pose.arm).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()

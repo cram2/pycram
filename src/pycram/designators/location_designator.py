@@ -11,6 +11,7 @@ from probabilistic_model.distributions.helper import make_dirac
 from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event, leaf
 from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import SumUnit, ProbabilisticCircuit, \
     ProductUnit
+from probabilistic_model.probabilistic_model import ProbabilisticModel
 from random_events.interval import closed
 from random_events.polytope import Polytope
 from random_events.product_algebra import Event, SimpleEvent
@@ -18,7 +19,7 @@ from random_events.set import Set
 from random_events.variable import Continuous, Symbolic
 from scipy.spatial import ConvexHull
 from sortedcontainers import SortedSet
-from typing_extensions import List, Union, Iterable, Optional, Iterator, Dict
+from typing_extensions import List, Union, Iterable, Optional, Iterator, Dict, Tuple
 
 from ..config.action_conf import ActionConfig
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap, Costmap
@@ -120,7 +121,8 @@ class CostmapLocation(LocationDesignatorDescription):
 
         """
         target_pose = PoseStamped.from_list([target.position.x, target.position.y, target.position.z],
-                                  [target.orientation.x, target.orientation.y, target.orientation.z, target.orientation.w])
+                                            [target.orientation.x, target.orientation.y, target.orientation.z,
+                                             target.orientation.w])
         ground_pose = PoseStamped.from_list(target_pose.position.to_list())
         ground_pose.position.z = 0
 
@@ -130,7 +132,8 @@ class CostmapLocation(LocationDesignatorDescription):
         if visible_for:
             camera = robot.robot_description.get_default_camera()
             visible = VisibilityCostmap(camera.minimal_height, camera.maximal_height, 200, 0.02,
-                                        PoseStamped.from_list(target_pose.position.to_list()), target_object=target, robot=robot)
+                                        PoseStamped.from_list(target_pose.position.to_list()), target_object=target,
+                                        robot=robot)
             final_map += visible
 
         if reachable_for:
@@ -266,6 +269,7 @@ class AccessingLocation(LocationDesignatorDescription):
     """
     Location designator which describes poses used for opening drawers
     """
+
     def __init__(self, handle: Union[ObjectDescription.Link, Iterable[ObjectDescription.Link]],
                  robot_desig: Union[Object, Iterable[Object]],
                  arm: Union[List[Arms], Arms] = None,
@@ -475,39 +479,31 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
                 maybe_pose.position.z += height_offset
                 yield maybe_pose
 
+
 class ProbabilisticSemanticLocation(LocationDesignatorDescription):
     """
     Location designator which samples poses from a semantic costmap with a probability distribution.
     """
 
-    def __init__(self, link_names, part_of, for_object=None, edges_only: bool = False,
-                 horizontal_edges_only: bool = False, edge_size_in_meters: float = 0.06, height_offset: float = 0.0,
-                 link_is_center_link: bool = False, with_2d_obstacles: bool = False):
+    def __init__(self, link_names, part_of, for_object=None, link_is_center_link: bool = False):
         """
         Creates a distribution over a link to sample poses which are on this link. Can be used, for example, to find
         poses that are on a table. Optionally an object can be given for which poses should be calculated, in that case
         the poses are calculated such that the bottom of the object is on the link.
 
-        :param link_name: Name of the link for which a distribution should be calculated
+        :param link_names: Name of the link for which a distribution should be calculated. Can be a single name or a list of names.
         :param part_of: Object of which the urdf link is a part
         :param for_object: Optional object that should be placed at the found location
-        :param edges_only: If True, only the edges of the link are considered
-        :param horizontal_edges_only: If True, only the horizontal edges of the link are considered
-        :param edge_size_in_meters: Size of the edges in meters.
+        :param link_is_center_link: If True, the link is considered the center link of the object, otherwise it is
+        considered the surface link. This is important as some urdf models only model the center link and not the surface link.
         """
         super().__init__()
         PartialDesignator.__init__(self, ProbabilisticSemanticLocation, link_names=[link_names], part_of=part_of,
-                                   for_object=for_object, edges_only=edges_only,
-                                   horizontal_edges_only=horizontal_edges_only, edge_size_in_meters=edge_size_in_meters,
-                                   height_offset=height_offset)
+                                   for_object=for_object)
         self.link_names: list = link_names
         self.link_is_center_link: bool = link_is_center_link
         self.part_of: Object = part_of
         self.for_object: Optional[Object] = for_object
-        self.edges_only: bool = edges_only
-        self.horizontal_edges_only: bool = horizontal_edges_only
-        self.edge_size_in_meters: float = edge_size_in_meters
-        self.with_2d_obstacles: bool = with_2d_obstacles
 
     def ground(self) -> PoseStamped:
         """
@@ -517,6 +513,215 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         """
         return next(iter(self))
 
+    @staticmethod
+    def _create_link_circuit(surface_samples, surface_coords, link_id_symbol, link_id) -> ProbabilisticCircuit:
+        """
+        Creates a probabilistic circuit that samples navigation poses on a surface defined by the given surface samples.
+        The circuit will sample poses that are close to the surface samples and have the given link id as true.
+        The circuit will also sample the x and y coordinates of the poses from a Gaussian distribution centered around
+        the surface samples with a scale of 1.0.
+
+        :param surface_samples: A list of surface samples, each sample is a tuple of (x, y) coordinates.
+        :param surface_coords: A tuple of (x, y) coordinates that define the surface.
+        :param link_id_symbol: A symbolic variable that represents the link id.
+        :param link_id: The id of the link that should be true for the sampled poses.
+
+        :return: A ProbabilisticCircuit that samples navigation poses on the surface defined by the surface samples.
+        """
+        link_circuit = ProbabilisticCircuit()
+        link_circuit_root = SumUnit(probabilistic_circuit=link_circuit)
+        scale = 1.
+
+        for surface_sample in surface_samples[:100]:
+            p_point_root = ProductUnit(probabilistic_circuit=link_circuit)
+            link_circuit_root.add_subcircuit(p_point_root, 1.)
+
+            # We are looking for a navigation sample, for which the surface sample and the link id are true (reachable)
+            surface_x_p = make_dirac(surface_coords[0], surface_sample[0])
+            surface_y_p = make_dirac(surface_coords[1], surface_sample[1])
+            target_link_id_p = make_dirac(link_id_symbol, link_id)
+
+            # We create a Gaussian distribution around the surface sample, which is used to sample the
+            # navigation poses.
+            x_p = GaussianDistribution(BoundingBox.x_variable, surface_sample[0], scale)
+            y_p = GaussianDistribution(BoundingBox.y_variable, surface_sample[1], scale)
+
+            # Add all the variables to the circuit
+            p_point_root.add_subcircuit(leaf(surface_x_p, link_circuit))
+            p_point_root.add_subcircuit(leaf(surface_y_p, link_circuit))
+            p_point_root.add_subcircuit(leaf(target_link_id_p, link_circuit))
+            p_point_root.add_subcircuit(leaf(x_p, link_circuit))
+            p_point_root.add_subcircuit(leaf(y_p, link_circuit))
+
+        link_circuit.normalize()
+
+        return link_circuit
+
+    @staticmethod
+    def _create_surface_event(params_box, world, link, search_space, wall_bloat, xy_variables) -> Optional[Event]:
+        """
+        Creates an event that describes the surface of the link we want to sample from.
+        The surface event is constructed from the bounding box of the link, and the walls and doors are cut out to
+        ensure that the target poses are not too close to walls or doors.
+
+        :param params_box: The parameters box containing the link and other parameters.
+        :param world: The current world.
+        :param link: The link for which the surface event should be created.
+        :param search_space: The search space in which the surface event should be created.
+        :param wall_bloat: The amount by which the walls should be bloated to ensure the target poses are not too close
+        to walls or doors.
+        :param xy_variables: The variables that should be used for the x and y coordinates of the surface event.
+
+        :return: An Event that describes the surface of the link, or None if the surface event is empty.
+        """
+        # Construct the surface event, which is the event that describes the surface of the link we want to
+        # sample from.
+        # We cut out the walls and doors from the surface event, to ensure the target poses are not too close
+        # to walls or doors, since they are harder to reach.
+        surface_event = params_box.part_of.get_link_bounding_box_collection(link.name).event
+        walls = GraphOfConvexSets.obstacles_of_world(world, search_space=search_space,
+                                                     bloat_walls=wall_bloat,
+                                                     filter_links=lambda link: any(
+                                                         k in link.lower() for k in {"wall", "door"}))
+        if walls is not None:
+            surface_event = ~walls & surface_event
+
+        if surface_event.is_empty():
+            return None
+
+        surface_event = surface_event.marginal(xy_variables)
+
+        return surface_event
+
+    @staticmethod
+    def _create_navigation_space_event(params_box, free_space, link, surface_variables, xy_variables) -> Event:
+        """
+        Creates an event that describes the navigation space for the link we want to sample from.
+        The navigation space is the free space around the link, which is used to sample navigation poses.
+        The navigation space is constructed from the free space graph, which is a subgraph of the free space that is
+        reachable from the target node, which is the node in the free space graph that is above the link.
+
+        :param params_box: The parameters box containing the link and other parameters.
+        :param free_space: The free space graph that is used to sample navigation poses.
+        :param link: The link for which the navigation space event should be created.
+        :param surface_variables: The variables that should be used for the surface event.
+        :param xy_variables: The variables that should be used for the x and y coordinates of the navigation space event.
+
+        :return: An Event that describes the navigation space for the link, or an empty event if the navigation space
+        """
+        # Event that describes the robot standing on the ground
+        stand_on_ground = SimpleEvent({BoundingBox.z_variable: (0, 0.05)}).as_composite_set()
+        stand_on_ground.fill_missing_variables(xy_variables)
+
+        # target_node is the node in the free space graph that is above the link
+        # We add a small offset to the z-coordinate to ensure that we are above the link even with a small bloat
+        # The target node is used classify which parts of the free space graph are relevant for the link
+        # (the navigation_space_graph), and which parts we can discard (for example because there is a wall
+        # cutting through the search space)
+        z_offset = (
+                           link.get_axis_aligned_bounding_box().height / 2) + 0.1 if params_box.link_is_center_link else 0.1
+        target_node = free_space.node_of_pose(link.pose.position.x, link.pose.position.y,
+                                              link.pose.position.z + z_offset)
+        navigation_space_graph: GraphOfConvexSets = nx.subgraph(free_space,
+                                                                nx.shortest_path(free_space, target_node))
+        navigation_space_event = Event(*[node.simple_event for node in navigation_space_graph.nodes])
+        navigation_space_event.fill_missing_variables(surface_variables)
+
+        # We want to sample from the navigation space, but only if the robot is standing on the ground
+        navigation_space_event &= stand_on_ground
+
+        if navigation_space_event.is_empty():
+            return navigation_space_event
+
+        navigation_space_event = navigation_space_event.marginal(xy_variables)
+        return navigation_space_event
+
+    def _create_distribution_for_link(self, params_box, world, link, xy_variables, surface_variables, link_id_symbol) -> Tuple[Optional[ProbabilisticCircuit], float]:
+        """
+        Creates a distribution for the given link, which is a probabilistic circuit that samples navigation poses on the
+        surface of the link. The distribution is conditioned on the navigation space event, which is the free space
+        around the link, and the surface event, which is the surface of the link we want to sample from.
+
+        :param params_box: The parameters box containing the link and other parameters.
+        :param world: The current world.
+        :param link: The link for which the distribution should be created.
+        :param xy_variables: The variables that should be used for the x and y coordinates of the navigation poses.
+        :param surface_variables: The variables that should be used for the surface event.
+        :param link_id_symbol: A symbolic variable that represents the link id.
+
+        :return: A tuple containing the conditioned link circuit and the probability of the condition.
+        """
+
+        # Create a search space around the link, which is the axis aligned bounding box of the link, bloated by
+        # 1 meter in all directions
+        link_searchspace = link.get_axis_aligned_bounding_box().bloat(1, 1, 1).as_collection()
+
+        # Calculate the minimal maximum bloat we can apply to the walls of the link
+        # since our target node is above the link, bloating the walls too much causes the target node to be
+        # unreachable
+        link_width = link.get_axis_aligned_bounding_box().width
+        link_depth = link.get_axis_aligned_bounding_box().depth
+        link_min_dim = link_width if link_width < link_depth else link_depth
+        wall_bloat = 0.3 if link_min_dim > 0.65 else link_min_dim / 2.5
+
+        # Create the free space graph for the link, which is the free space around the link
+        # The obstacles are bloated by 0.02 meters in x and y, and 0.01 meters in z, to close any unintended gaps
+        # in the urdf.
+        # The walls are bloated to ensure that the navigation poses are not too close to the walls
+        free_space = GraphOfConvexSets.free_space_from_world(world, search_space=link_searchspace,
+                                                             bloat_obstacles=0.02, bloat_walls=wall_bloat)
+
+        surface_event = self._create_surface_event(params_box, world, link, link_searchspace, wall_bloat,
+                                                   xy_variables)
+        if surface_event is None:
+            return None, 0.0
+
+        navigation_space_event = self._create_navigation_space_event(params_box, free_space, link,
+                                                                     surface_variables, xy_variables)
+        if navigation_space_event is None:
+            return None, 0.0
+
+        # We don't want to navigate into the surface, so we cut out the surface event from the navigation_space_event
+        navigation_space_event = ~surface_event & navigation_space_event
+
+        surface_measure = uniform_measure_of_event(surface_event)
+
+        surface_samples = surface_measure.sample(100)
+        surface_measure.log_likelihood(surface_samples)
+
+        link_circuit = self._create_link_circuit(surface_samples[:100], surface_variables, link_id_symbol,
+                                                 link.id)
+
+        surface_event.fill_missing_variables(link_circuit.variables)
+
+        # Condition the circuit on the navigation space event
+        return link_circuit.truncated(navigation_space_event)
+
+    @staticmethod
+    def _calculate_surface_z_coord(test_robot, surface_coords, link_id) -> Optional[float]:
+        """
+        Calculates the z-coordinate of the surface at the given surface coordinates on the link.
+
+        :param test_robot: The robot that is used to test the surface coordinates.
+        :param surface_coords: The coordinates on the surface where the z-coordinate should be calculated.
+        :param link_id: The id of the link that should be tested.
+
+        :return: The z-coordinate of the surface at the given surface coordinates, or None if the link is not hit.
+        """
+        # Use a raytest to check if the sampled point is on the target link. This is necessary because the
+        # bounding boxes are not perfect, so the sampled point may be slightly off the link.
+        # Furthermore we can use the ray test to get the correct height of the link at the sampled point.
+        surface_x_coord, surface_y_coord = surface_coords
+        ray_start = [surface_x_coord, surface_y_coord, 2]
+        ray_end = [surface_x_coord, surface_y_coord, - 2.0]
+        result = test_robot.world.ray_test(ray_start, ray_end)
+        hit_body = result.link_id
+        hit_pos = result.hit_position[2]
+
+        if hit_body != link_id:
+            return None
+        return hit_pos
+
     def __iter__(self) -> Iterator[PoseStamped]:
 
         """
@@ -524,165 +729,99 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         which the position should be found, a height offset will be calculated which ensures that the bottom of the Object
         is at the position in the Costmap and not the origin of the Object which is usually in the centre of the Object.
 
-        :yield: An instance of ProbabilisticSemanticLocation.Location with the found valid position of the Costmap.
+        :yield: A PoseStamped with the found valid position of the Costmap.
         """
         for params in self.generate_permutations():
 
             params_box = Box(params)
             test_robot = World.current_world.get_prospection_object_for_object(World.current_world.robot)
-
-            links: List[Link] = [params_box.part_of.links[link_name] for link_name in params_box.link_names]
-            link_bbs = [params_box.part_of.get_link_bounding_box_collection(link.name) for link in links]
-
-            old_colors = [params_box.part_of.get_link_color(link).get_rgb() for link in params_box.link_names]
-            [params_box.part_of.set_link_color(link, [1., 0., 1.]) for link in params_box.link_names]
-
-            # merge bb collections
-            merged_bb = reduce(lambda a, b: a.merge(b) or a, link_bbs)
-
-            link_ids = [link.id for link in links]
             world = World.current_world
 
-            link_id_symbol = Symbolic("link", Set.from_iterable(link_ids))
-            target_x = Continuous('target_x')
-            target_y = Continuous('target_y')
+            links: List[Link] = [params_box.part_of.links[link_name] for link_name in params_box.link_names]
 
-            final_discribution = SumUnit(probabilistic_circuit=ProbabilisticCircuit())
+            # Highlight the links we are sampling from
+            old_colors = [params_box.part_of.get_link_color(link).get_rgb() for link in params_box.link_names]
+            HIGHLIGHT_COLOUR = [1.0, 0.0, 1.0]
+            for name in params_box.link_names:
+                params_box.part_of.set_link_color(name, HIGHLIGHT_COLOUR)
+
+            link_ids = [link.id for link in links]
+            link_id_symbol = Symbolic("link", Set.from_iterable(link_ids))
+
+            surface_x = Continuous('surface_x')
+            surface_y = Continuous('surface_y')
+            surface_variables = [surface_x, surface_y]
+            xy_variables = [BoundingBox.x_variable, BoundingBox.y_variable]
+
+            world_distribution = SumUnit(probabilistic_circuit=ProbabilisticCircuit())
 
             for link in links:
 
-                variables = [BoundingBox.x_variable, BoundingBox.y_variable]
+                conditioned_link_circuit, p_condition = self._create_distribution_for_link(params_box, world, link,
+                                                                                           xy_variables,
+                                                                                           surface_variables,
+                                                                                           link_id_symbol)
 
-                link_searchspace = link.get_axis_aligned_bounding_box().bloat(1, 1, 1).as_collection()
-
-                link_width = link.get_axis_aligned_bounding_box().width
-                link_depth = link.get_axis_aligned_bounding_box().depth
-
-                link_min_dim = link_width if link_width < link_depth else link_depth
-
-                wall_bloat = 0.3 if link_min_dim > 0.65 else link_min_dim / 2.5
-
-                if self.with_2d_obstacles:
-                    free_space = GraphOfConvexSets.navigation_map_from_world(world, search_space=link_searchspace)
-                else:
-                    free_space = GraphOfConvexSets.free_space_from_world(world, search_space=link_searchspace, bloat_obstacles=0.02, bloat_walls=wall_bloat)
-
-                stand_on_ground = SimpleEvent({BoundingBox.z_variable: (0, 0.05)}).as_composite_set()
-                stand_on_ground.fill_missing_variables(variables)
-
-                event = params_box.part_of.get_link_bounding_box_collection(link.name).event
-
-                target_node = free_space.node_of_pose(link.pose.position.x, link.pose.position.y,
-                                                      link.pose.position.z + (
-                                                                  link.get_axis_aligned_bounding_box().height / 2) + 0.1)
-                sub_gcs: GraphOfConvexSets = nx.subgraph(free_space, nx.shortest_path(free_space, target_node))
-                condition = Event(*[node.simple_event for node in sub_gcs.nodes])
-
-                condition.fill_missing_variables([target_x, target_y])
-
-                walls = GraphOfConvexSets.obstacles_of_world(world, search_space=link_searchspace, bloat_walls=wall_bloat,
-                                                             filter_links=lambda link: any(k in link.lower() for k in {"wall", "door"}))
-
-                if walls is not None:
-                    # fig = go.Figure(walls.plot(color="red"))
-                    # fig.add_traces(event.plot(color="blue"))
-                    # fig.add_traces((event - walls).plot(color="green"))
-                    # fig.show()
-                    event = ~walls & event
-
-                if event.is_empty():
+                if conditioned_link_circuit is None:
                     continue
+                # Choose one of the following lines depending on whether you want to use the probabilities or not:
+                #
+                # set probabilities to the log likelihood of the event, so that the samples are weighted by their probability
+                # world_distribution.add_subcircuit(conditioned_link_circuit.root, np.log(p_condition))
+                #
+                # set all probabilities to the same value, since we are not interested in the probabilities, but only in the samples
+                world_distribution.add_subcircuit(conditioned_link_circuit.root, np.log(1.))
 
-                event = event.marginal(variables)
-                condition &= stand_on_ground
-                condition = condition.marginal(variables)
+            world_distribution.probabilistic_circuit.normalize()
 
-                condition = ~event & condition
-
-                p_target = uniform_measure_of_event(event)
-
-                surface_samples = p_target.sample(100)
-                p_target.log_likelihood(surface_samples)
-
-                prob_circuit = ProbabilisticCircuit()
-                circuit_root = SumUnit(probabilistic_circuit=prob_circuit)
-                scale = 1.
-
-                for surface_sample in surface_samples[:100]:
-                    p_point_root = ProductUnit(probabilistic_circuit=prob_circuit)
-                    circuit_root.add_subcircuit(p_point_root, 1.)
-                    target_x_p = make_dirac(target_x, surface_sample[0])
-                    target_y_p = make_dirac(target_y, surface_sample[1])
-                    target_link_id_p = make_dirac(link_id_symbol, link.id)
-
-                    x_p = GaussianDistribution(BoundingBox.x_variable, surface_sample[0], scale)
-                    y_p = GaussianDistribution(BoundingBox.y_variable, surface_sample[1], scale)
-
-                    p_point_root.add_subcircuit(leaf(target_x_p, prob_circuit))
-                    p_point_root.add_subcircuit(leaf(target_y_p, prob_circuit))
-                    p_point_root.add_subcircuit(leaf(target_link_id_p, prob_circuit))
-                    p_point_root.add_subcircuit(leaf(x_p, prob_circuit))
-                    p_point_root.add_subcircuit(leaf(y_p, prob_circuit))
-
-                prob_circuit.normalize()
-
-                event.fill_missing_variables(prob_circuit.variables)
-
-                prob_circuit_conditioned, p_condition = prob_circuit.truncated(condition)
-
-                if prob_circuit_conditioned is None:
-                    continue
-
-                # final_discribution.add_subcircuit(prob_circuit_conditioned.root, np.log(p_condition))
-                # alles gleich
-                final_discribution.add_subcircuit(prob_circuit_conditioned.root, np.log(1.))
-
-            final_discribution.probabilistic_circuit.normalize()
-
-            # go.Figure(final_discribution.probabilistic_circuit.marginal(variables).plot()).show()
-
-            samples = final_discribution.probabilistic_circuit.sample(1005)
+            samples = world_distribution.probabilistic_circuit.sample(1005)
+            # Choose one of the following lines depending on whether you want to use the probabilities or not:
+            # Shuffle the samples to get a random order
             np.random.shuffle(samples)
-            # samples = samples[np.argsort(final_discribution.probabilistic_circuit.log_likelihood(samples))[::-1]]
+            # Sort the samples by their probability, so that the most probable samples are at the beginning
+            # samples = samples[np.argsort(world_distribution.probabilistic_circuit.log_likelihood(samples))[::-1]]
 
-            [params_box.part_of.set_link_color(link, old_color) for link, old_color in zip(params_box.link_names, old_colors)]
+            for name, old_color in zip(params_box.link_names, old_colors):
+                params_box.part_of.set_link_color(name, old_color)
 
             # with UseProspectionWorld():
             # TODO: Use Prospection World here in the future, but currently there is annoying context management, causing
             #       subsequent actions to be executed in the Prospection World, causing problems with detecting etc
             for sample in samples:
-                sample_dict = {var.name: val for var, val in zip(final_discribution.probabilistic_circuit.variables, sample)}
-                link_id, target_x, target_y, nav_x, nav_y = sample
+                sample_dict = {var.name: val for var, val in
+                               zip(world_distribution.probabilistic_circuit.variables, sample)}
+                link_id = sample_dict[link_id_symbol.name]
+                surface_x_coord = sample_dict[surface_x.name]
+                surface_y_coord = sample_dict[surface_y.name]
+                nav_x = sample_dict[BoundingBox.x_variable.name]
+                nav_y = sample_dict[BoundingBox.y_variable.name]
 
-                ray_start = [target_x, target_y, 2]
-                ray_end = [target_x, target_y, - 2.0]
-                result = test_robot.world.ray_test(ray_start, ray_end)
-                hit_body = result.link_id
-                hit_pos = result.hit_position[2]
-
-                if hit_body != link_id:
+                surface_z_coord = self._calculate_surface_z_coord(test_robot, (surface_x_coord, surface_y_coord), link_id)
+                if surface_z_coord is None:
                     continue
 
                 target_quat = OrientationGenerator.generate_random_orientation()
-                target_pose = PoseStamped.from_list([target_x, target_y, hit_pos], target_quat, 'map')
+                target_pose = PoseStamped.from_list([surface_x_coord, surface_y_coord, surface_z_coord], target_quat, 'map')
 
                 nav_quat = OrientationGenerator.generate_origin_orientation([nav_x, nav_y], target_pose)
                 nav_pose = PoseStamped.from_list([nav_x, nav_y, 0], nav_quat, 'map')
-                # print('Semantic Costmap Location')
-                # plot_axis_in_rviz([target_pose, nav_pose], duration=300)
 
+                # Reject samples in which the robot is in collision with the environment despite the bloated obstacles,
+                # for example with the arms
                 test_robot.set_pose(nav_pose)
                 try:
                     collision_check(test_robot, {})
                 except RobotInCollision:
                     continue
 
+                # Adjust the target pose if an object is given, so that the bottom of the object is on the link
                 if params_box.for_object:
                     min_p, max_p = params_box.for_object.get_axis_aligned_bounding_box().get_min_max_points()
                     final_height_offset = (max_p.z - min_p.z) / 2
                     target_pose.position.z += final_height_offset
 
                 yield target_pose
+
 
 @dataclasses.dataclass
 class ProbabilisticCostmapLocation(LocationDesignatorDescription):
@@ -755,7 +894,8 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
 
     @staticmethod
     def create_target_sequence(grasp_description: GraspDescription, target: Union[PoseStamped, Object], robot: Object,
-                               object_in_hand: Object, reachable_arm: Arms, rotation_agnostic: bool) -> List[PoseStamped]:
+                               object_in_hand: Object, reachable_arm: Arms, rotation_agnostic: bool) -> List[
+        PoseStamped]:
         """
         Creates a sequence of poses which need to be reachable in this order
 
@@ -773,18 +913,15 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
         target_pose = target.copy() if isinstance(target, PoseStamped) else \
             target.get_grasp_pose(end_effector, grasp_description)
 
-
-
         if object_in_hand:
             if rotation_agnostic:
                 robot_rotation = robot.get_pose().orientation
                 target_pose.orientation = robot_rotation
                 approach_direction = GraspDescription(grasp_description.approach_direction, None, False)
-                side_grasp = robot.robot_description.get_arm_chain(reachable_arm).end_effector.grasps[
-                    approach_direction]
-                side_grasp = [(-x, -y, -z, w) for x, y, z, w in zip(*[iter(side_grasp)]*4)]
-                side_grasp = [elem for quat in side_grasp for elem in quat]
-                target_pose.rotate_by_quaternion(side_grasp)
+                side_grasp = np.array(robot.robot_description.get_arm_chain(reachable_arm).end_effector.grasps[
+                    approach_direction])
+                side_grasp *= np.array([-1, -1, -1, 1])
+                target_pose.rotate_by_quaternion(side_grasp.tolist())
 
             target_pose = object_in_hand.attachments[
                 World.robot].get_child_link_target_pose_given_parent(target_pose)
@@ -839,13 +976,17 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
 
             search_distance = 1.5
             link_searchspace = AxisAlignedBoundingBox(target_pos.x - search_distance, target_pos.y - search_distance, 0,
-                                                      target_pos.x + search_distance, target_pos.y + search_distance, target_pos.z + 0.35).as_collection()
+                                                      target_pos.x + search_distance, target_pos.y + search_distance,
+                                                      target_pos.z + 0.35).as_collection()
 
-            free_space_nav = GraphOfConvexSets.navigation_map_from_world(world, search_space=link_searchspace, bloat_obstacles=0.3)
+            free_space_nav = GraphOfConvexSets.navigation_map_from_world(world, search_space=link_searchspace,
+                                                                         bloat_obstacles=0.3)
 
-            free_space = GraphOfConvexSets.free_space_from_world(world, search_space=link_searchspace, bloat_obstacles=0.01, bloat_walls=.2)
+            free_space = GraphOfConvexSets.free_space_from_world(world, search_space=link_searchspace,
+                                                                 bloat_obstacles=0.01, bloat_walls=.2)
 
-            target_node = free_space.node_of_pose(target_pose.position.x, target_pose.position.y, target_pose.position.z + 0.2)
+            target_node = free_space.node_of_pose(target_pose.position.x, target_pose.position.y,
+                                                  target_pose.position.z + 0.2)
             sub_gcs: GraphOfConvexSets = nx.subgraph(free_space, nx.shortest_path(free_space, target_node))
 
             condition = Event(*[node.simple_event for node in sub_gcs.nodes])
@@ -863,7 +1004,8 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
 
             robot = World.robot
             robot_pose = robot.get_pose()
-            robot.set_pose(PoseStamped.from_list([robot_pose.position.x, robot_pose.position.y, robot_pose.position.z+100]))
+            robot.set_pose(
+                PoseStamped.from_list([robot_pose.position.x, robot_pose.position.y, robot_pose.position.z + 100]))
             test = world.ray_test_batch(rays_start, rays_end)
             robot.set_pose(robot_pose)
 
@@ -959,7 +1101,6 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
 
                     if params_box.visible_for and not visibility_validator(test_robot, target):
                         continue
-
 
                     if not params_box.reachable_for:
                         yield pose_candidate
