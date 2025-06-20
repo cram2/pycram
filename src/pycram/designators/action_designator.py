@@ -722,6 +722,10 @@ class TransportAction(ActionDescription):
     """
     Arm that should be used
     """
+    place_rotation_agnostic: Optional[bool] = False
+    """
+    If True, the robot will place the object in the same orientation as it is itself, no matter how the object was grasped.
+    """
 
     object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
     """
@@ -755,7 +759,6 @@ class TransportAction(ActionDescription):
         NavigateActionDescription(pickup_pose, True).perform()
         PickUpActionDescription(self.object_designator, pickup_pose.arm,
                                 grasp_description=pickup_pose.grasp_description).perform()
-        rotation_agnostic = True
         ParkArmsActionDescription(Arms.BOTH).perform()
         try:
             place_loc = ProbabilisticCostmapLocation(
@@ -765,14 +768,14 @@ class TransportAction(ActionDescription):
                 reachable_arm=pickup_pose.arm,
                 grasp_descriptions=[pickup_pose.grasp_description],
                 object_in_hand=self.object_designator,
-                rotation_agnostic=rotation_agnostic,
+                rotation_agnostic=self.place_rotation_agnostic,
             ).resolve()
         except StopIteration:
             raise ReachabilityFailure(
                 self.object_designator, robot_desig_resolved, pickup_pose.arm, pickup_pose.grasp_description)
         NavigateActionDescription(place_loc, True).perform()
 
-        if rotation_agnostic:
+        if self.place_rotation_agnostic:
             # Placing rotation agnostic currently means that the robot will position its gripper in the same orientation
             # as it is itself, no matter how the object was grasped
             robot_rotation = robot_desig_resolved.get_pose().orientation
@@ -796,10 +799,10 @@ class TransportAction(ActionDescription):
     @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
-                    arm: Union[Iterable[Arms], Arms] = None) -> PartialDesignator[Type[TransportAction]]:
+                    arm: Union[Iterable[Arms], Arms] = None, place_rotation_agnostic: Optional[bool] = False) -> PartialDesignator[Type[TransportAction]]:
         return PartialDesignator(TransportAction, object_designator=object_designator,
                                  target_location=target_location,
-                                 arm=arm)
+                                 arm=arm, place_rotation_agnostic=place_rotation_agnostic)
 
 
 @has_parameters
