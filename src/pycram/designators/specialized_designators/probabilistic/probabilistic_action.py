@@ -102,7 +102,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
         # add object distribution her
         p_object = SymbolicDistribution(object_variable, MissingDict(float, {obj.id: 1.}))
         root = model.root
-        new_root = ProductUnit(model)
+        new_root = ProductUnit(probabilistic_circuit=model)
         new_root.add_subcircuit(leaf(p_object, model))
         new_root.add_subcircuit(root)
 
@@ -136,7 +136,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
     def create_distribution(self):
 
         result = ProbabilisticCircuit()
-        root = SumUnit(result)
+        root = SumUnit(probabilistic_circuit=result)
 
         for obj in self.partial.kwargs["object_designator"]:
             model = self.accessing_distribution_for_object(obj, self.object_variable)

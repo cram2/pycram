@@ -547,7 +547,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
             target_x = Continuous('target_x')
             target_y = Continuous('target_y')
 
-            final_discribution = SumUnit(ProbabilisticCircuit())
+            final_discribution = SumUnit(probabilistic_circuit=ProbabilisticCircuit())
 
             for link in links:
 
@@ -579,7 +579,9 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
                 condition = Event(*[node.simple_event for node in sub_gcs.nodes])
 
                 condition.fill_missing_variables([target_x, target_y])
-                walls = GraphOfConvexSets.get_doors_and_walls_of_world(world, search_space=link_searchspace, bloat_walls=wall_bloat)
+
+                walls = GraphOfConvexSets.obstacles_of_world(world, search_space=link_searchspace, bloat_walls=wall_bloat,
+                                                             filter_links=lambda link: any(k in link.lower() for k in {"wall", "door"}))
 
                 if walls is not None:
                     # fig = go.Figure(walls.plot(color="red"))
@@ -603,11 +605,11 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
                 p_target.log_likelihood(surface_samples)
 
                 prob_circuit = ProbabilisticCircuit()
-                circuit_root = SumUnit(prob_circuit)
+                circuit_root = SumUnit(probabilistic_circuit=prob_circuit)
                 scale = 1.
 
                 for surface_sample in surface_samples[:100]:
-                    p_point_root = ProductUnit(prob_circuit)
+                    p_point_root = ProductUnit(probabilistic_circuit=prob_circuit)
                     circuit_root.add_subcircuit(p_point_root, 1.)
                     target_x_p = make_dirac(target_x, surface_sample[0])
                     target_y_p = make_dirac(target_y, surface_sample[1])
@@ -896,11 +898,11 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
             condition.fill_missing_variables([target_x, target_y])
 
             prob_circuit = ProbabilisticCircuit()
-            circuit_root = SumUnit(prob_circuit)
+            circuit_root = SumUnit(probabilistic_circuit=prob_circuit)
 
             scale = 1.
 
-            p_point_root = ProductUnit(prob_circuit)
+            p_point_root = ProductUnit(probabilistic_circuit=prob_circuit)
             circuit_root.add_subcircuit(p_point_root, 1.)
             target_x_p = DiracDeltaDistribution(target_x, target_pos.x, 1.)
             target_y_p = DiracDeltaDistribution(target_y, target_pos.y, 1.)

@@ -1,4 +1,6 @@
 import time
+from functools import reduce
+from operator import or_
 
 import networkx as nx
 import numpy as np
@@ -9,7 +11,6 @@ from rtree import index
 from sortedcontainers import SortedSet
 from tqdm import tqdm
 from typing_extensions import Self, Optional, List
-
 from .datastructures.dataclasses import BoundingBox, BoundingBoxCollection
 from .datastructures.pose import PoseStamped
 from .datastructures.world import World
@@ -33,7 +34,6 @@ class PoseOccupiedError(PlanFailure):
         """
         super().__init__(f"The pose {pose} is occupied.")
         self.pose = pose
-
 
 class GraphOfConvexSets(nx.Graph):
     """
@@ -62,75 +62,47 @@ class GraphOfConvexSets(nx.Graph):
         :param tolerance: The tolerance for the intersection when calculating the connectivity.
         """
 
-        # Build an R-tree in 3D
-        p = index.Property()
-        p.dimension = 3
-        rtree_index = index.Index(properties=p)
+        def _overlap(a_min, a_max, b_min, b_max) -> bool:
+            return (a_min[0] <= b_max[0] and b_min[0] <= a_max[0] and
+                    a_min[1] <= b_max[1] and b_min[1] <= a_max[1] and
+                    a_min[2] <= b_max[2] and b_min[2] <= a_max[2])
+
+        def _intersection_box(a_min, a_max, b_min, b_max):
+            return BoundingBox(
+                max(a_min[0], b_min[0]), max(a_min[1], b_min[1]), max(a_min[2], b_min[2]),
+                min(a_max[0], b_max[0]), min(a_max[1], b_max[1]), min(a_max[2], b_max[2]),
+            )
+
+        # Build a 3-D R-tree
+        prop = index.Property()
+        prop.dimension = 3
+        rtree_idx = index.Index(properties=prop)
 
         node_list = list(self.nodes)
-        N = len(node_list)
+        orig_mins, orig_maxs, expanded = [], [], []
 
-        # Pre-extract original bounds (min/max in x,y,z) as tuples
-        orig_mins = [None] * N
-        orig_maxs = [None] * N
-        expanded_bounds = [None] * N  # to insert into R-tree
+        # Record every node once, insert it into the index
+        for n in node_list:
+            mn = (n.min_x, n.min_y, n.min_z)
+            mx = (n.max_x, n.max_y, n.max_z)
+            ex = (mn[0] - tolerance, mn[1] - tolerance, mn[2] - tolerance,
+                  mx[0] + tolerance, mx[1] + tolerance, mx[2] + tolerance)
 
-        for i, node in enumerate(node_list):
-            # Assume each BoundingBox has attributes .min_x,.min_y,.min_z,.max_x,.max_y,.max_z
-            minx, miny, minz = node.min_x, node.min_y, node.min_z
-            maxx, maxy, maxz = node.max_x, node.max_y, node.max_z
+            orig_mins.append(mn)
+            orig_maxs.append(mx)
+            expanded.append(ex)
+            rtree_idx.insert(len(orig_mins) - 1, ex)
 
-            orig_mins[i] = (minx, miny, minz)
-            orig_maxs[i] = (maxx, maxy, maxz)
-
-            # Expand by tolerance on all sides (for candidate search)
-            ex_minx = minx - tolerance
-            ex_miny = miny - tolerance
-            ex_minz = minz - tolerance
-            ex_maxx = maxx + tolerance
-            ex_maxy = maxy + tolerance
-            ex_maxz = maxz + tolerance
-
-            expanded_bounds[i] = (ex_minx, ex_miny, ex_minz, ex_maxx, ex_maxy, ex_maxz)
-            rtree_index.insert(i, expanded_bounds[i])
-
-        # Now, for each node, query overlaps in the R-tree using the expanded box
-        for i in range(N):
-            min_i = orig_mins[i]
-            max_i = orig_maxs[i]
-            ex_bounds_i = expanded_bounds[i]
-
-            # rtree returns indices j whose expanded bounds overlap ex_bounds_i
-            for j in rtree_index.intersection(ex_bounds_i):
-                if j <= i:
+        # Query & link, skip self-loops and symmetric pairs
+        for i, (mn_i, mx_i, ex_i) in enumerate(zip(orig_mins, orig_maxs, expanded)):
+            for j in rtree_idx.intersection(ex_i):
+                if j <= i:  # symmetry → skip
                     continue
-
-                min_j = orig_mins[j]
-                max_j = orig_maxs[j]
-
-                # Manual AABB intersection test on original coords:
-                # They intersect if they overlap in all three dimensions.
-                if (
-                        min_i[0] <= max_j[0] and min_j[0] <= max_i[0] and  # X overlap
-                        min_i[1] <= max_j[1] and min_j[1] <= max_i[1] and  # Y overlap
-                        min_i[2] <= max_j[2] and min_j[2] <= max_i[2]  # Z overlap
-                ):
-                    # Compute exact intersection bounds (original boxes, no tol-shift)
-                    inter_min_x = max(min_i[0], min_j[0])
-                    inter_min_y = max(min_i[1], min_j[1])
-                    inter_min_z = max(min_i[2], min_j[2])
-
-                    inter_max_x = min(max_i[0], max_j[0])
-                    inter_max_y = min(max_i[1], max_j[1])
-                    inter_max_z = min(max_i[2], max_j[2])
-
-                    intersection_box = BoundingBox(
-                        inter_min_x, inter_min_y, inter_min_z,
-                        inter_max_x, inter_max_y, inter_max_z
-                    )
-
-                    # Add an edge: node_list[i] <--> node_list[j]
-                    self.add_edge(node_list[i], node_list[j], intersection=intersection_box)
+                mn_j, mx_j = orig_mins[j], orig_maxs[j]
+                if not _overlap(mn_i, mx_i, mn_j, mx_j):
+                    continue  # no true overlap
+                box = _intersection_box(mn_i, mx_i, mn_j, mx_j)
+                self.add_edge(node_list[i], node_list[j], intersection=box)
 
     def plot_free_space(self) -> List[go.Mesh3d]:
         """
@@ -215,101 +187,76 @@ class GraphOfConvexSets(nx.Graph):
         return search_space
 
     @classmethod
-    def obstacles_of_world(cls, world: World, search_space: Optional[BoundingBoxCollection] = None, bloat_obstacles: float = 0.,
-                           bloat_walls: float = 0.) -> Event:
+    def obstacles_of_world(cls, world: World, search_space: Optional[BoundingBoxCollection] = None,
+                           bloat_obstacles: float = 0., bloat_walls: float = 0.,
+                           filter_links: Optional[callable] = None) -> Event:
         """
         Get all obstacles of the world besides the robot as a random event.
+
+        :param world: The world to get the obstacles from.
+        :param search_space: The search space for the connectivity graph.
+        :param bloat_obstacles: The amount to bloat the obstacles.
+        :param bloat_walls: The amount to bloat the walls.
+        :param filter_links: A function that filters the links to consider for obstacles.
+                             If None, all links are considered.
         """
+        if filter_links is None:
+            filter_links = lambda link: True
 
-        # create search space for calculations
+        def bloat_bb(bb, link):
+            if any(k in link.lower() for k in {"wall", "door"}):
+                # bloat only the thickness of the wall or door, not the height or width
+                if bb.width > bb.depth:
+                    return bb.bloat(bloat_walls, 0, 0.01)
+                else:
+                    return bb.bloat(0, bloat_walls, 0.01)
+            else:
+                return bb.bloat(bloat_obstacles, bloat_obstacles, 0.01)
+
+        bloated_bbs = (
+            # bloat the bb
+            bloat_bb(bb, link)
+            # for all objects that are not robots
+            for obj in world.objects if not obj.is_a_robot
+            # if the link of the object is either a wall or a door, and skip if not
+            for link in obj.link_name_to_id.keys() if filter_links(link)
+            for bb in obj.get_link_bounding_box_collection(link)
+        )
+
         search_space = cls._make_search_space(search_space)
-        search_event = search_space.event
-
-        # initialize obstacles
-        obstacles = None
-
-        # create an event that describes the obstacles in the belief state of the robot
-        for obj in world.objects:
-
-            # don't take self-collision into account
-            if obj.is_a_robot:
-                continue
-
-            # get the bounding box of every link in the object description
-            for link in (obj.link_name_to_id.keys()):
-
-                for bb in obj.get_link_bounding_box_collection(link):
-
-                    if "wall" in link.lower():
-                        if bb.width > bb.depth:
-                            bb = bb.bloat(bloat_walls, 0, 0.01)
-                        else:
-                            bb = bb.bloat(0, bloat_walls, 0.01)
-                    else:
-                        bb = bb.bloat(bloat_obstacles, bloat_obstacles, 0.01)
-                    event = bb.simple_event.as_composite_set()
-                    bb_event = event & search_event
-
-                    # skip bounding boxes that are outside the search space
-                    if bb_event.is_empty():
-                        continue
-
-                    # update obstacles
-                    if obstacles is None:
-                        obstacles = bb_event
-                    else:
-                        obstacles |= bb_event
-        return obstacles
+        return cls.obstacles_from_bounding_boxes(list(bloated_bbs), search_space.event)
 
     @classmethod
-    def get_doors_and_walls_of_world(cls, world: World, search_space: Optional[BoundingBoxCollection] = None,
-                             bloat_walls: float = 0.) -> Event:
+    def obstacles_from_bounding_boxes(cls, bounding_boxes: List[BoundingBox], search_space_event: Event,
+                                      marginalize_over: Optional[SortedSet] = None) -> Optional[Event]:
         """
-        Get all walls (and doors) of the world as a random event.
-        :param world: The world to get the walls from.
-        :param search_space: The search space to limit the walls to.
-        :param bloat_walls: The amount to bloat the walls.
-        :return: An event that describes the walls in the world.
+        Create a connectivity graph from a list of bounding boxes.
+
+        :param bounding_boxes: The list of bounding boxes to create the connectivity graph from.
+        :param search_space_event: The search space event to limit the connectivity graph to.
+        :param marginalize_over: Variables to marginalize over in the resulting event.
+
+        :return: An event representing the obstacles in the search space, or None if no obstacles are found.
         """
-        # create search space for calculations
-        search_space = cls._make_search_space(search_space)
-        search_event = search_space.event
 
-        # initialize obstacles
-        obstacles = None
+        if marginalize_over:
+            search_space_event = search_space_event.marginal(marginalize_over)
 
-        # create an event that describes the obstacles in the belief state of the robot
-        for obj in world.objects:
+        events = (
+            bb.simple_event.as_composite_set() & search_space_event
+            for bb in bounding_boxes
+        )
 
-            # don't take self-collision into account
-            if obj.is_a_robot:
-                continue
+        # skip bbs outside the search space
+        events = (event for event in events if not event.is_empty())
 
-            # get the bounding box of every link in the object description
-            for link in (obj.link_name_to_id.keys()):
+        if marginalize_over:
+            events = (event.marginal(marginalize_over) for event in events)
 
-                for bb in obj.get_link_bounding_box_collection(link):
-                    if any(x in link.lower() for x in ["wall", "door"]):
-                        if bb.width > bb.depth:
-                            bb = bb.bloat(bloat_walls, 0, 0.01)
-                        else:
-                            bb = bb.bloat(0, bloat_walls, 0.01)
-                    else:
-                        continue
-
-                    event = bb.simple_event.as_composite_set()
-                    bb_event = event & search_event
-
-                    # skip bounding boxes that are outside the search space
-                    if bb_event.is_empty():
-                        continue
-
-                    # update obstacles
-                    if obstacles is None:
-                        obstacles = bb_event
-                    else:
-                        obstacles |= bb_event
-        return obstacles
+        try:
+            return reduce(or_, events)
+        except TypeError:
+            return None
 
 
     @classmethod
@@ -371,41 +318,18 @@ class GraphOfConvexSets(nx.Graph):
         og_search_event = search_space.event
         search_event = og_search_event.marginal(xy)
 
-        # initialize obstacles
-        obstacles = None
+        bloated_bbs = (
+            # bloat the bb
+            bb.bloat(bloat_obstacles, bloat_obstacles, 0.)
+            # for all objects that are not robots or the floor
+            for obj in world.objects if not (obj.is_a_robot or obj.name == "floor")
+            # if the link of the object is either a wall or a door, and skip if not
+            for link in obj.link_name_to_id.keys()
+            for bb in obj.get_link_bounding_box_collection(link)
+        )
 
-        # create an event that describes the obstacles in the belief state of the robot
-        for obj in world.objects:
+        obstacles = cls.obstacles_from_bounding_boxes(list(bloated_bbs), og_search_event, marginalize_over=xy)
 
-            # don't take self-collision into account
-            if obj.is_a_robot or obj.name == "floor":
-                continue
-
-            # get the bounding box of every link in the object description
-            for link in (obj.link_name_to_id.keys()):
-                for bb in obj.get_link_bounding_box_collection(link):
-
-                    bb = bb.bloat(bloat_obstacles, bloat_obstacles, 0.)
-
-                    event = bb.simple_event.as_composite_set()
-
-                    bb_event = event & search_event
-
-                    # skip bounding boxes that are outside the search space
-                    if bb_event.is_empty():
-                        continue
-
-                    bb_event = bb_event.marginal(xy)
-
-                    # update obstacles
-                    if obstacles is None:
-                        obstacles = bb_event
-                    else:
-                        obstacles |= bb_event
-
-
-        # get the 2d map from the obstacles
-        search_event = search_event.marginal(xy)
         free_space = ~obstacles & search_event
 
         # create floor level
@@ -414,9 +338,6 @@ class GraphOfConvexSets(nx.Graph):
         free_space.fill_missing_variables(SortedSet([BoundingBox.z_variable]))
         free_space &= z_event
         free_space &= og_search_event
-
-        # # update z for search space
-        # search_space.z = SimpleInterval(0., 0., Bound.CLOSED, Bound.CLOSED)
 
         # create a connectivity graph from the free space and calculate the edges
         result = cls(search_space=search_space)
