@@ -852,6 +852,16 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
     links in the world.
     """
 
+    target_x = Continuous('target_x')
+    """
+    Variable representing the x coordinate of the target pose
+    """
+
+    target_y = Continuous('target_y')
+    """
+    Variable representing the y coordinate of the target pose
+    """
+
     def __init__(self, target: Union[PoseStamped, Object],
                  reachable_for: Optional[Union[Iterable[Object], Object]] = None,
                  visible_for: Optional[Union[Iterable[Object], Object]] = None,
@@ -859,7 +869,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
                  ignore_collision_with: Optional[Union[Iterable[Object], Object]] = None,
                  grasp_descriptions: Optional[Union[Iterable[GraspDescription], GraspDescription]] = None,
                  object_in_hand: Optional[Union[Iterable[Object], Object]] = None,
-                 rotation_agnostic: bool = False):
+                 rotation_agnostic: bool = False, number_of_samples: int = 300, costmap_resolution: float = 0.1):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
         visible. In case of reachable the resolved location contains a list of arms with which the location is reachable.
@@ -872,6 +882,8 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
         :param grasp_descriptions: List of grasps that should be tried to reach the target pose
         :param object_in_hand: Object that is currently in the hand of the robot
         :param rotation_agnostic: If True, the target pose is adjusted so that it is pointing to the robot
+        :param number_of_samples: Number of samples to be generated from the costmap
+        :param costmap_resolution: The edge length of the costmap cells in meters, defaults to 0.1 meters.
         """
         super().__init__()
         PartialDesignator.__init__(self, ProbabilisticCostmapLocation, target=target, reachable_for=reachable_for,
@@ -881,7 +893,11 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
                                    ignore_collision_with=ignore_collision_with if ignore_collision_with is not None else [
                                        []],
                                    grasp_descriptions=grasp_descriptions if grasp_descriptions is not None else [None],
-                                   object_in_hand=object_in_hand, rotation_agnostic=rotation_agnostic)
+                                   object_in_hand=object_in_hand, rotation_agnostic=rotation_agnostic,
+                                   number_of_samples=number_of_samples, costmap_resolution=costmap_resolution)
+        self.number_of_samples = number_of_samples
+        # The resolution is divided by 2, since each sampled point is a center of a cell in the costmap
+        self.costmap_resolution = costmap_resolution / 2
         self.target: Union[PoseStamped, Object] = target
         self.reachable_for: Object = reachable_for
         self.visible_for: Object = visible_for
@@ -915,6 +931,112 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
             allowed_collision.update({prospection_object: prospection_object.link_id_to_name[-1]})
         return allowed_collision
 
+    @staticmethod
+    def _calculate_room_event(world, free_space_graph, target_position) -> Event:
+        """
+        Calculates an event for the free space inside the room around the target position is located in, in 2d.
+
+        :param world: The current world
+        :param free_space_graph: The free space graph that is used as basis for the room calculation
+        :param target_position: The position of the target in the world
+
+        :return: An Event that describes the room around the target position in 2d
+        """
+
+        rays_end = [[node.origin[0], node.origin[1], target_position.z + 0.2] for node in free_space_graph.nodes]
+        rays_start = [[target_position.x, target_position.y, target_position.z + 0.2]] * len(rays_end)
+
+        robot = World.robot
+        robot_pose = robot.get_pose()
+        robot.set_pose(
+            PoseStamped.from_list([robot_pose.position.x, robot_pose.position.y, robot_pose.position.z + 100]))
+        test = world.ray_test_batch(rays_start, rays_end)
+        robot.set_pose(robot_pose)
+
+        hit_positions = [[result.hit_position[0], result.hit_position[1]] for result in test]
+        successful_hits = [
+            [hx, hy] if (hx, hy) != (0.0, 0.0) else [rx, ry]
+            for (hx, hy), (rx, ry, _) in zip(hit_positions, rays_end)
+        ]
+        hull = ConvexHull(successful_hits)
+        A = hull.equations[:, :-1]
+        b = -hull.equations[:, -1]
+
+        # reason for this is the error
+        # "E0000 00:00:1750253132.517928 1146896 linear_solver.cc:2026] No solution exists. MPSolverInterface::result_status_ = MPSOLVER_ABNORMAL"
+        # this is not a great way to handle this i think, so we should find out in which situations this occurs @TODO
+        poly = Polytope(A, b)
+        try:
+            room_event = poly.inner_box_approximation(minimum_volume=0.1)
+        except NoOptimalSolutionError as e:
+            logerr(f'No optimal solution found for Polytope: {poly}')
+            room_event = poly.to_simple_event().as_composite_set()
+        room_event = room_event.update_variables({Continuous("x_0"): BoundingBox.x_variable,
+                                                  Continuous("x_1"): BoundingBox.y_variable})
+        room_event.fill_missing_variables(SortedSet([BoundingBox.z_variable]))
+
+        return room_event
+
+    def _create_free_space_conditions(self, world, target_position, search_distance: float = 1.5) -> Tuple[Event, Event, Event]:
+        """
+        Creates the conditions for the free space around the target position.
+        1. reachable_space_condition: The condition that describes the reachable space around the target position in 3d
+        2. navigation_space_condition: The condition that describes the navigation space around the target position in 2d
+        3. room_condition: The condition that describes the room around the target position in 2d
+
+        :param world: The current world
+        :param target_position: The position of the target in the world
+        :param search_distance: The distance around the target position to search for free space, defaults to 1.5 meters
+
+        :return: A tuple containing the reachable space condition, navigation space condition and room condition
+        """
+        link_searchspace = AxisAlignedBoundingBox(target_position.x - search_distance, target_position.y - search_distance, 0,
+                                                  target_position.x + search_distance, target_position.y + search_distance,
+                                                  target_position.z + 0.35).as_collection()
+
+        free_space_nav = GraphOfConvexSets.navigation_map_from_world(world, search_space=link_searchspace,
+                                                                     bloat_obstacles=0.3)
+
+        free_space = GraphOfConvexSets.free_space_from_world(world, search_space=link_searchspace,
+                                                             bloat_obstacles=0.01, bloat_walls=.2)
+
+        target_node = free_space.node_of_pose(target_position.x, target_position.y,
+                                              target_position.z + 0.2)
+        free_space_graph: GraphOfConvexSets = nx.subgraph(free_space, nx.shortest_path(free_space, target_node))
+
+        room_condition = self._calculate_room_event(world, free_space_graph, target_position)
+
+        reachable_space_condition = Event(*[node.simple_event for node in free_space_graph.nodes])
+        navigation_space_condition = Event(*[node.simple_event for node in free_space_nav.nodes])
+
+        return reachable_space_condition, navigation_space_condition, room_condition
+
+    def _create_navigation_circuit(self, target_position: Vector3) -> ProbabilisticCircuit:
+        """
+        Creates a probabilistic circuit that samples navigation poses around the target position.
+        """
+        navigation_circuit = ProbabilisticCircuit()
+        circuit_root = SumUnit(probabilistic_circuit=navigation_circuit)
+
+        scale = 1.
+
+        p_point_root = ProductUnit(probabilistic_circuit=navigation_circuit)
+        circuit_root.add_subcircuit(p_point_root, 1.)
+        target_x_p = DiracDeltaDistribution(self.target_x, target_position.x, 1.)
+        target_y_p = DiracDeltaDistribution(self.target_y, target_position.y, 1.)
+
+        nav_x_p = GaussianDistribution(BoundingBox.x_variable, target_position.x, scale)
+        nav_y_p = GaussianDistribution(BoundingBox.y_variable, target_position.y, scale)
+
+        p_point_root.add_subcircuit(leaf(target_x_p, navigation_circuit))
+        p_point_root.add_subcircuit(leaf(target_y_p, navigation_circuit))
+        p_point_root.add_subcircuit(leaf(nav_x_p, navigation_circuit))
+        p_point_root.add_subcircuit(leaf(nav_y_p, navigation_circuit))
+
+        navigation_circuit.normalize()
+
+        return navigation_circuit
+
     def __iter__(self) -> Iterator[PoseStamped]:
 
         """
@@ -926,135 +1048,55 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
         """
         for params in self.generate_permutations():
             params_box = Box(params)
-
+            world = World.current_world
             target = params_box.target.copy() if isinstance(params_box.target, PoseStamped) else params_box.target
+            target_pose: PoseStamped = target.copy() if isinstance(target, PoseStamped) else target.get_pose()
+            target_position: Vector3 = target_pose.position
 
             if params_box.visible_for or params_box.reachable_for:
                 robot_object = params_box.visible_for if params_box.visible_for else params_box.reachable_for
-                test_robot = World.current_world.get_prospection_object_for_object(robot_object)
+                test_robot = world.get_prospection_object_for_object(robot_object)
             else:
-                test_robot = World.current_world.robot
-
-            # links: List[Link] = [params_box.part_of.links[link_name] for link_name in params_box.link_names]
-            # link_ids = [link.id for link in links]
-            world = World.current_world
+                test_robot = world.robot
 
             allowed_collision = self.create_allowed_collisions(params_box.ignore_collision_with,
                                                                params_box.object_in_hand)
 
-            target_pose: PoseStamped = target.copy() if isinstance(target, PoseStamped) else target.get_pose()
-
-            target_pos: Vector3 = target_pose.position
-
-            search_distance = 1.5
-            link_searchspace = AxisAlignedBoundingBox(target_pos.x - search_distance, target_pos.y - search_distance, 0,
-                                                      target_pos.x + search_distance, target_pos.y + search_distance,
-                                                      target_pos.z + 0.35).as_collection()
-
-            free_space_nav = GraphOfConvexSets.navigation_map_from_world(world, search_space=link_searchspace,
-                                                                         bloat_obstacles=0.3)
-
-            free_space = GraphOfConvexSets.free_space_from_world(world, search_space=link_searchspace,
-                                                                 bloat_obstacles=0.01, bloat_walls=.2)
-
-            target_node = free_space.node_of_pose(target_pose.position.x, target_pose.position.y,
-                                                  target_pose.position.z + 0.2)
-            sub_gcs: GraphOfConvexSets = nx.subgraph(free_space, nx.shortest_path(free_space, target_node))
-
-            condition = Event(*[node.simple_event for node in sub_gcs.nodes])
-            condition2 = Event(*[node.simple_event for node in free_space_nav.nodes])
-
-            variables = [BoundingBox.x_variable, BoundingBox.y_variable]
+            # Calculate the conditions for the free space around the target position and combine them into one event
+            reachable_space_condition, navigation_space_condition, room_condition = self._create_free_space_conditions(world, target_position)
 
             stand_on_ground = SimpleEvent({BoundingBox.z_variable: (0, 0.05)}).as_composite_set()
-            stand_on_ground.fill_missing_variables(variables)
+            stand_on_ground.fill_missing_variables([BoundingBox.x_variable, BoundingBox.y_variable])
 
-            condition &= stand_on_ground
+            reachable_space_condition &= stand_on_ground
+            reachable_space_condition &= room_condition
+            reachable_space_condition &= navigation_space_condition
 
-            rays_end = [[node.origin[0], node.origin[1], target_pos.z + 0.2] for node in sub_gcs.nodes]
-            rays_start = [[target_pos.x, target_pos.y, target_pos.z + 0.2]] * len(rays_end)
+            reachable_space_condition.fill_missing_variables([self.target_x, self.target_y])
 
-            robot = World.robot
-            robot_pose = robot.get_pose()
-            robot.set_pose(
-                PoseStamped.from_list([robot_pose.position.x, robot_pose.position.y, robot_pose.position.z + 100]))
-            test = world.ray_test_batch(rays_start, rays_end)
-            robot.set_pose(robot_pose)
+            # Create the circuit that samples navigation poses around the target position
+            navigation_circuit = self._create_navigation_circuit(target_position)
+            navigation_circuit_conditioned, navigation_circuit_p_condition = navigation_circuit.truncated(reachable_space_condition)
 
-            hit_positions = [[result.hit_position[0], result.hit_position[1]] for result in test]
-            successful_hits = [
-                [hx, hy] if (hx, hy) != (0.0, 0.0) else [rx, ry]
-                for (hx, hy), (rx, ry, _) in zip(hit_positions, rays_end)
-            ]
-            hull = ConvexHull(successful_hits)
-            A = hull.equations[:, :-1]
-            b = -hull.equations[:, -1]
-
-            # reason for this is the error
-            # "E0000 00:00:1750253132.517928 1146896 linear_solver.cc:2026] No solution exists. MPSolverInterface::result_status_ = MPSOLVER_ABNORMAL"
-            # this is not a great way to handle this i think, so we should find out in which situations this occurs @TODO
-            poly = Polytope(A, b)
-            try:
-                room_event = poly.inner_box_approximation(minimum_volume=0.1)
-            except NoOptimalSolutionError as e:
-                logerr(f'No optimal solution found for Polytope: {poly}')
-                room_event = poly.to_simple_event().as_composite_set()
-            room_event = room_event.update_variables({Continuous("x_0"): BoundingBox.x_variable,
-                                                      Continuous("x_1"): BoundingBox.y_variable})
-            room_event.fill_missing_variables(SortedSet([BoundingBox.z_variable]))
-
-            condition &= room_event
-
-            condition &= condition2
-
-            target_x = Continuous('target_x')
-            target_y = Continuous('target_y')
-
-            condition.fill_missing_variables([target_x, target_y])
-
-            prob_circuit = ProbabilisticCircuit()
-            circuit_root = SumUnit(probabilistic_circuit=prob_circuit)
-
-            scale = 1.
-
-            p_point_root = ProductUnit(probabilistic_circuit=prob_circuit)
-            circuit_root.add_subcircuit(p_point_root, 1.)
-            target_x_p = DiracDeltaDistribution(target_x, target_pos.x, 1.)
-            target_y_p = DiracDeltaDistribution(target_y, target_pos.y, 1.)
-
-            x_p = GaussianDistribution(BoundingBox.x_variable, target_pos.x, scale)
-            y_p = GaussianDistribution(BoundingBox.y_variable, target_pos.y, scale)
-
-            p_point_root.add_subcircuit(leaf(target_x_p, prob_circuit))
-            p_point_root.add_subcircuit(leaf(target_y_p, prob_circuit))
-            p_point_root.add_subcircuit(leaf(x_p, prob_circuit))
-            p_point_root.add_subcircuit(leaf(y_p, prob_circuit))
-
-            prob_circuit.normalize()
-
-            prob_circuit_conditioned, p_condition = prob_circuit.truncated(condition)
-
-            if prob_circuit_conditioned is None:
+            if navigation_circuit_conditioned is None:
                 continue
 
             with UseProspectionWorld():
-                samples = prob_circuit_conditioned.sample(300)
+                samples = navigation_circuit_conditioned.sample(params_box.number_of_samples)
 
-                event: Optional[SimpleEvent] = None
-                samples = samples[np.argsort(prob_circuit_conditioned.log_likelihood(samples))[::-1]]
+                samples = samples[np.argsort(navigation_circuit_conditioned.log_likelihood(samples))[::-1]]
 
                 while len(samples) > 0:
+                    # Unpack the first sample, and cut out all surrounding samples that are within the costmap resolution
                     _, _, nav_x, nav_y = samples[0]
-                    if event:
-                        samples = np.array([s for s in samples if not event.contains((s[2], s[3]))])
+                    event = SimpleEvent({BoundingBox.x_variable: closed(nav_x - params_box.costmap_resolution, nav_x + params_box.costmap_resolution),
+                                         BoundingBox.y_variable: closed(nav_y - params_box.costmap_resolution, nav_y + params_box.costmap_resolution)})
+                    samples = np.array([s for s in samples if not event.contains((s[2], s[3]))])
 
                     nav_quat = OrientationGenerator.generate_origin_orientation([nav_x, nav_y], target_pose)
                     pose_candidate = PoseStamped.from_list([nav_x, nav_y, 0], nav_quat, 'map')
-
                     test_robot.set_pose(pose_candidate)
 
-                    event = SimpleEvent({BoundingBox.x_variable: closed(nav_x - 0.1, nav_x + 0.1),
-                                         BoundingBox.y_variable: closed(nav_y - 0.1, nav_y + 0.1)})
                     try:
                         collision_check(test_robot, allowed_collision)
                     except RobotInCollision:
