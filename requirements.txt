@@ -15,7 +15,7 @@ dm_control # MJCF
 trimesh==4.6.0
 deprecated
 probabilistic_model>=7.0.1
-random_events>=4.1.17
+random_events>=4.1.18
 pint>=0.21.1
 gymnasium
 pin==2.7.0
