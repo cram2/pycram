@@ -591,7 +591,7 @@ class Object(PhysicalBody, HasParameters):
         """
         return self.links[link_name].get_axis_aligned_bounding_box(transform_to_link_pose)
 
-    def get_link_bounding_box_collection(self, link_name: str) -> BoundingBoxCollection:
+    def get_link_axis_aligned_bounding_box_collection(self, link_name: str) -> BoundingBoxCollection:
         """
         Return the bounding box collection of the link with the given name.
         This method computes the bounding box of the link in world coordinates by transforming the local axis-aligned

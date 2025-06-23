@@ -13,7 +13,7 @@ from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import S
     ProductUnit
 from probabilistic_model.probabilistic_model import ProbabilisticModel
 from random_events.interval import closed
-from random_events.polytope import Polytope
+from random_events.polytope import Polytope, NoOptimalSolutionError
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.set import Set
 from random_events.variable import Continuous, Symbolic
@@ -35,7 +35,7 @@ from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, pose_sequence_reachability_validator, \
     collision_check, OrientationGenerator
-from ..ros import logwarn
+from ..ros import logwarn, logerr
 from ..ros_utils.viz_marker_publisher import plot_axis_in_rviz
 from ..world_concepts.world_object import Object, Link
 from ..world_reasoning import link_pose_for_joint_config
@@ -62,6 +62,59 @@ class Location(LocationDesignatorDescription):
         :return: A resolved designator
         """
         return self.pose
+
+def _create_target_sequence(grasp_description: GraspDescription, target: Union[PoseStamped, Object], robot: Object,
+                           object_in_hand: Object, reachable_arm: Arms, rotation_agnostic: bool = False) -> List[
+    PoseStamped]:
+    """
+    Creates the sequence of poses that need to be reachable for the robot to grasp the target.
+    For pickup this would be retract pose, target pose and lift pose.
+    For place this would be lift pose, target pose and retract pose.
+
+
+    :param grasp_description: Grasp description to be used for grasping
+    :param target: The target of reachability, either a pose or an object
+    :param robot: The robot that should be checked for reachability
+    :param object_in_hand: An object that is held if any
+    :param reachable_arm: The arm which should be checked for reachability
+    :return: A list of poses that need to be reachable in this order
+    """
+    end_effector = robot.robot_description.get_arm_chain(reachable_arm).end_effector
+    grasp_quaternion = end_effector.grasps[grasp_description]
+    approach_axis = end_effector.get_approach_axis()
+
+    target_pose = target.copy() if isinstance(target, PoseStamped) else \
+        target.get_grasp_pose(end_effector, grasp_description)
+
+    if object_in_hand:
+        if rotation_agnostic:
+            robot_rotation = robot.get_pose().orientation
+            target_pose.orientation = robot_rotation
+            approach_direction = GraspDescription(grasp_description.approach_direction, None, False)
+            side_grasp = np.array(robot.robot_description.get_arm_chain(reachable_arm).end_effector.grasps[
+                                      approach_direction])
+            side_grasp *= np.array([-1, -1, -1, 1])
+            target_pose.rotate_by_quaternion(side_grasp.tolist())
+
+        target_pose = object_in_hand.attachments[
+            World.robot].get_child_link_target_pose_given_parent(target_pose)
+        approach_offset_cm = object_in_hand.get_approach_offset()
+    else:
+
+        target_pose.rotate_by_quaternion(grasp_quaternion)
+        approach_offset_cm = 0.1 if isinstance(target, PoseStamped) else target.get_approach_offset()
+
+    lift_pose = target_pose.copy()
+    lift_pose.position.z += 0.1
+
+    retract_pose = LocalTransformer().translate_pose_along_local_axis(target_pose,
+                                                                      approach_axis,
+                                                                      -approach_offset_cm)
+
+    target_sequence = ([lift_pose, target_pose, retract_pose] if object_in_hand
+                       else [retract_pose, target_pose, lift_pose])
+
+    return target_sequence
 
 
 @dataclasses.dataclass
@@ -142,43 +195,6 @@ class CostmapLocation(LocationDesignatorDescription):
 
         return final_map
 
-    @staticmethod
-    def create_target_sequence(grasp_description: GraspDescription, target: Union[PoseStamped, Object], robot: Object,
-                               object_in_hand: Object, reachable_arm: Arms) -> List[PoseStamped]:
-        """
-        Creates a sequence of poses which need to be reachable in this order
-
-        :param grasp_description: Grasp description to be used for grasping
-        :param target: The target of reachability, either a pose or an object
-        :param robot: The robot that should be checked for reachability
-        :param object_in_hand: An object that is held if any
-        :param reachable_arm: The arm which should be checked for reachability
-        :return: A list of poses that need to be reachable in this order
-        """
-        end_effector = robot.robot_description.get_arm_chain(reachable_arm).end_effector
-        grasp_quaternion = end_effector.grasps[grasp_description]
-        approach_axis = end_effector.get_approach_axis()
-        if object_in_hand:
-            current_target_pose = object_in_hand.attachments[
-                World.robot].get_child_link_target_pose_given_parent(target)
-            approach_offset_cm = object_in_hand.get_approach_offset()
-        else:
-            current_target_pose = target.copy() if isinstance(target, PoseStamped) else \
-                target.get_grasp_pose(end_effector, grasp_description)
-            current_target_pose.rotate_by_quaternion(grasp_quaternion)
-            approach_offset_cm = 0.1 if isinstance(target, PoseStamped) else target.get_approach_offset()
-
-        lift_pose = current_target_pose.copy()
-        lift_pose.position.z += 0.1
-
-        retract_pose = LocalTransformer().translate_pose_along_local_axis(current_target_pose,
-                                                                          approach_axis,
-                                                                          -approach_offset_cm)
-
-        target_sequence = ([lift_pose, current_target_pose, retract_pose] if object_in_hand
-                           else [retract_pose, current_target_pose, lift_pose])
-
-        return target_sequence
 
     @staticmethod
     def create_allowed_collisions(ignore_collision_with: List[Object], object_in_hand: Object) -> Dict[Object, str]:
@@ -253,7 +269,7 @@ class CostmapLocation(LocationDesignatorDescription):
 
                     for grasp_desc in grasp_descriptions:
 
-                        target_sequence = self.create_target_sequence(grasp_desc, target, test_robot,
+                        target_sequence = _create_target_sequence(grasp_desc, target, test_robot,
                                                                       params_box.object_in_hand,
                                                                       params_box.reachable_arm)
 
@@ -483,9 +499,23 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
 class ProbabilisticSemanticLocation(LocationDesignatorDescription):
     """
     Location designator which samples poses from a semantic costmap with a probability distribution.
+    The construction of the probabilistic circuit can be quite time-consuming, but the majority of the computational load
+    is done during the first iteration only. In this case the exact time is highly dependent on the number of
+    links in the world, and the number of links we are sampling from.
     """
 
-    def __init__(self, link_names, part_of, for_object=None, link_is_center_link: bool = False):
+    surface_x = Continuous('surface_x')
+    """
+    Variable representing the x coordinate on a surface
+    """
+
+    surface_y = Continuous('surface_y')
+    """
+    Variable representing the y coordinate on a surface
+    """
+
+    def __init__(self, link_names, part_of, for_object=None, link_is_center_link: bool = False, number_of_samples = 1000,
+                    sort_sampels: bool = False, uniform_sampling: bool = False, highlight_used_surfaces: bool = False):
         """
         Creates a distribution over a link to sample poses which are on this link. Can be used, for example, to find
         poses that are on a table. Optionally an object can be given for which poses should be calculated, in that case
@@ -496,14 +526,23 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         :param for_object: Optional object that should be placed at the found location
         :param link_is_center_link: If True, the link is considered the center link of the object, otherwise it is
         considered the surface link. This is important as some urdf models only model the center link and not the surface link.
+        :param number_of_samples: Number of samples to be generated from the surface
+        :param sort_sampels: If True, the samples are sorted by their probability
+        :param uniform_sampling: If True, the samples are uniformly distributed over the surface, otherwise they are
+        sampled from a Gaussian distribution centered around the surface samples.
+        :param highlight_used_surfaces: If True, the surfaces used for sampling temporarily have their color changed
         """
         super().__init__()
         PartialDesignator.__init__(self, ProbabilisticSemanticLocation, link_names=[link_names], part_of=part_of,
                                    for_object=for_object)
+        self.sort_samples = sort_sampels
+        self.uniform_sampling = uniform_sampling
+        self.number_of_samples = number_of_samples
         self.link_names: list = link_names
         self.link_is_center_link: bool = link_is_center_link
         self.part_of: Object = part_of
         self.for_object: Optional[Object] = for_object
+        self.highlight_used_surfaces: bool = highlight_used_surfaces
 
     def ground(self) -> PoseStamped:
         """
@@ -513,8 +552,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         """
         return next(iter(self))
 
-    @staticmethod
-    def _create_link_circuit(surface_samples, surface_coords, link_id_symbol, link_id) -> ProbabilisticCircuit:
+    def _create_link_circuit(self, surface_samples, link_id_symbol, link_id) -> ProbabilisticCircuit:
         """
         Creates a probabilistic circuit that samples navigation poses on a surface defined by the given surface samples.
         The circuit will sample poses that are close to the surface samples and have the given link id as true.
@@ -522,7 +560,6 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         the surface samples with a scale of 1.0.
 
         :param surface_samples: A list of surface samples, each sample is a tuple of (x, y) coordinates.
-        :param surface_coords: A tuple of (x, y) coordinates that define the surface.
         :param link_id_symbol: A symbolic variable that represents the link id.
         :param link_id: The id of the link that should be true for the sampled poses.
 
@@ -537,8 +574,8 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
             link_circuit_root.add_subcircuit(p_point_root, 1.)
 
             # We are looking for a navigation sample, for which the surface sample and the link id are true (reachable)
-            surface_x_p = make_dirac(surface_coords[0], surface_sample[0])
-            surface_y_p = make_dirac(surface_coords[1], surface_sample[1])
+            surface_x_p = make_dirac(self.surface_x, surface_sample[0])
+            surface_y_p = make_dirac(self.surface_y, surface_sample[1])
             target_link_id_p = make_dirac(link_id_symbol, link_id)
 
             # We create a Gaussian distribution around the surface sample, which is used to sample the
@@ -558,7 +595,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         return link_circuit
 
     @staticmethod
-    def _create_surface_event(params_box, world, link, search_space, wall_bloat, xy_variables) -> Optional[Event]:
+    def _create_surface_event(params_box, world, link, search_space, wall_bloat) -> Optional[Event]:
         """
         Creates an event that describes the surface of the link we want to sample from.
         The surface event is constructed from the bounding box of the link, and the walls and doors are cut out to
@@ -570,7 +607,6 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         :param search_space: The search space in which the surface event should be created.
         :param wall_bloat: The amount by which the walls should be bloated to ensure the target poses are not too close
         to walls or doors.
-        :param xy_variables: The variables that should be used for the x and y coordinates of the surface event.
 
         :return: An Event that describes the surface of the link, or None if the surface event is empty.
         """
@@ -578,7 +614,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         # sample from.
         # We cut out the walls and doors from the surface event, to ensure the target poses are not too close
         # to walls or doors, since they are harder to reach.
-        surface_event = params_box.part_of.get_link_bounding_box_collection(link.name).event
+        surface_event = params_box.part_of.get_link_axis_aligned_bounding_box_collection(link.name).event
         walls = GraphOfConvexSets.obstacles_of_world(world, search_space=search_space,
                                                      bloat_walls=wall_bloat,
                                                      filter_links=lambda link: any(
@@ -589,12 +625,11 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         if surface_event.is_empty():
             return None
 
-        surface_event = surface_event.marginal(xy_variables)
+        surface_event = surface_event.marginal(SortedSet([BoundingBox.x_variable, BoundingBox.y_variable]))
 
         return surface_event
 
-    @staticmethod
-    def _create_navigation_space_event(params_box, free_space, link, surface_variables, xy_variables) -> Event:
+    def _create_navigation_space_event(self, params_box, free_space, link) -> Event:
         """
         Creates an event that describes the navigation space for the link we want to sample from.
         The navigation space is the free space around the link, which is used to sample navigation poses.
@@ -604,28 +639,25 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         :param params_box: The parameters box containing the link and other parameters.
         :param free_space: The free space graph that is used to sample navigation poses.
         :param link: The link for which the navigation space event should be created.
-        :param surface_variables: The variables that should be used for the surface event.
-        :param xy_variables: The variables that should be used for the x and y coordinates of the navigation space event.
 
         :return: An Event that describes the navigation space for the link, or an empty event if the navigation space
         """
         # Event that describes the robot standing on the ground
         stand_on_ground = SimpleEvent({BoundingBox.z_variable: (0, 0.05)}).as_composite_set()
-        stand_on_ground.fill_missing_variables(xy_variables)
+        stand_on_ground.fill_missing_variables(SortedSet([BoundingBox.x_variable, BoundingBox.y_variable]))
 
         # target_node is the node in the free space graph that is above the link
         # We add a small offset to the z-coordinate to ensure that we are above the link even with a small bloat
         # The target node is used classify which parts of the free space graph are relevant for the link
         # (the navigation_space_graph), and which parts we can discard (for example because there is a wall
         # cutting through the search space)
-        z_offset = (
-                           link.get_axis_aligned_bounding_box().height / 2) + 0.1 if params_box.link_is_center_link else 0.1
+        z_offset = (link.get_axis_aligned_bounding_box().height / 2) + 0.1 if params_box.link_is_center_link else 0.1
         target_node = free_space.node_of_pose(link.pose.position.x, link.pose.position.y,
                                               link.pose.position.z + z_offset)
         navigation_space_graph: GraphOfConvexSets = nx.subgraph(free_space,
                                                                 nx.shortest_path(free_space, target_node))
         navigation_space_event = Event(*[node.simple_event for node in navigation_space_graph.nodes])
-        navigation_space_event.fill_missing_variables(surface_variables)
+        navigation_space_event.fill_missing_variables(SortedSet([self.surface_x, self.surface_y]))
 
         # We want to sample from the navigation space, but only if the robot is standing on the ground
         navigation_space_event &= stand_on_ground
@@ -633,10 +665,10 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         if navigation_space_event.is_empty():
             return navigation_space_event
 
-        navigation_space_event = navigation_space_event.marginal(xy_variables)
+        navigation_space_event = navigation_space_event.marginal(SortedSet([BoundingBox.x_variable, BoundingBox.y_variable]))
         return navigation_space_event
 
-    def _create_distribution_for_link(self, params_box, world, link, xy_variables, surface_variables, link_id_symbol) -> Tuple[Optional[ProbabilisticCircuit], float]:
+    def _create_distribution_for_link(self, params_box, world, link, link_id_symbol) -> Tuple[Optional[ProbabilisticCircuit], float]:
         """
         Creates a distribution for the given link, which is a probabilistic circuit that samples navigation poses on the
         surface of the link. The distribution is conditioned on the navigation space event, which is the free space
@@ -645,8 +677,6 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         :param params_box: The parameters box containing the link and other parameters.
         :param world: The current world.
         :param link: The link for which the distribution should be created.
-        :param xy_variables: The variables that should be used for the x and y coordinates of the navigation poses.
-        :param surface_variables: The variables that should be used for the surface event.
         :param link_id_symbol: A symbolic variable that represents the link id.
 
         :return: A tuple containing the conditioned link circuit and the probability of the condition.
@@ -671,13 +701,11 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         free_space = GraphOfConvexSets.free_space_from_world(world, search_space=link_searchspace,
                                                              bloat_obstacles=0.02, bloat_walls=wall_bloat)
 
-        surface_event = self._create_surface_event(params_box, world, link, link_searchspace, wall_bloat,
-                                                   xy_variables)
+        surface_event = self._create_surface_event(params_box, world, link, link_searchspace, wall_bloat)
         if surface_event is None:
             return None, 0.0
 
-        navigation_space_event = self._create_navigation_space_event(params_box, free_space, link,
-                                                                     surface_variables, xy_variables)
+        navigation_space_event = self._create_navigation_space_event(params_box, free_space, link)
         if navigation_space_event is None:
             return None, 0.0
 
@@ -689,8 +717,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         surface_samples = surface_measure.sample(100)
         surface_measure.log_likelihood(surface_samples)
 
-        link_circuit = self._create_link_circuit(surface_samples[:100], surface_variables, link_id_symbol,
-                                                 link.id)
+        link_circuit = self._create_link_circuit(surface_samples[:100], link_id_symbol, link.id)
 
         surface_event.fill_missing_variables(link_circuit.variables)
 
@@ -713,7 +740,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         # Furthermore we can use the ray test to get the correct height of the link at the sampled point.
         surface_x_coord, surface_y_coord = surface_coords
         ray_start = [surface_x_coord, surface_y_coord, 2]
-        ray_end = [surface_x_coord, surface_y_coord, - 2.0]
+        ray_end = [surface_x_coord, surface_y_coord, -2.0]
         result = test_robot.world.ray_test(ray_start, ray_end)
         hit_body = result.link_id
         hit_pos = result.hit_position[2]
@@ -739,50 +766,43 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
             links: List[Link] = [params_box.part_of.links[link_name] for link_name in params_box.link_names]
 
-            # Highlight the links we are sampling from
-            old_colors = [params_box.part_of.get_link_color(link).get_rgb() for link in params_box.link_names]
-            HIGHLIGHT_COLOUR = [1.0, 0.0, 1.0]
-            for name in params_box.link_names:
-                params_box.part_of.set_link_color(name, HIGHLIGHT_COLOUR)
+            if self.highlight_used_surfaces:
+                # Highlight the links we are sampling from
+                old_colors = [params_box.part_of.get_link_color(link).get_rgb() for link in params_box.link_names]
+                HIGHLIGHT_COLOUR = [1.0, 0.0, 1.0]
+                for name in params_box.link_names:
+                    params_box.part_of.set_link_color(name, HIGHLIGHT_COLOUR)
 
             link_ids = [link.id for link in links]
             link_id_symbol = Symbolic("link", Set.from_iterable(link_ids))
-
-            surface_x = Continuous('surface_x')
-            surface_y = Continuous('surface_y')
-            surface_variables = [surface_x, surface_y]
-            xy_variables = [BoundingBox.x_variable, BoundingBox.y_variable]
 
             world_distribution = SumUnit(probabilistic_circuit=ProbabilisticCircuit())
 
             for link in links:
 
                 conditioned_link_circuit, p_condition = self._create_distribution_for_link(params_box, world, link,
-                                                                                           xy_variables,
-                                                                                           surface_variables,
                                                                                            link_id_symbol)
 
                 if conditioned_link_circuit is None:
                     continue
-                # Choose one of the following lines depending on whether you want to use the probabilities or not:
-                #
-                # set probabilities to the log likelihood of the event, so that the samples are weighted by their probability
-                # world_distribution.add_subcircuit(conditioned_link_circuit.root, np.log(p_condition))
-                #
-                # set all probabilities to the same value, since we are not interested in the probabilities, but only in the samples
-                world_distribution.add_subcircuit(conditioned_link_circuit.root, np.log(1.))
+
+                if self.uniform_sampling:
+                    world_distribution.add_subcircuit(conditioned_link_circuit.root, np.log(1.))
+                else:
+                    world_distribution.add_subcircuit(conditioned_link_circuit.root, np.log(p_condition))
 
             world_distribution.probabilistic_circuit.normalize()
 
-            samples = world_distribution.probabilistic_circuit.sample(1005)
-            # Choose one of the following lines depending on whether you want to use the probabilities or not:
-            # Shuffle the samples to get a random order
-            np.random.shuffle(samples)
-            # Sort the samples by their probability, so that the most probable samples are at the beginning
-            # samples = samples[np.argsort(world_distribution.probabilistic_circuit.log_likelihood(samples))[::-1]]
+            samples = world_distribution.probabilistic_circuit.sample(self.number_of_samples)
 
-            for name, old_color in zip(params_box.link_names, old_colors):
-                params_box.part_of.set_link_color(name, old_color)
+            if self.sort_samples:
+                samples = samples[np.argsort(world_distribution.probabilistic_circuit.log_likelihood(samples))[::-1]]
+            else:
+                np.random.shuffle(samples)
+
+            if self.highlight_used_surfaces:
+                for name, old_color in zip(params_box.link_names, old_colors):
+                    params_box.part_of.set_link_color(name, old_color)
 
             # with UseProspectionWorld():
             # TODO: Use Prospection World here in the future, but currently there is annoying context management, causing
@@ -791,8 +811,8 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
                 sample_dict = {var.name: val for var, val in
                                zip(world_distribution.probabilistic_circuit.variables, sample)}
                 link_id = sample_dict[link_id_symbol.name]
-                surface_x_coord = sample_dict[surface_x.name]
-                surface_y_coord = sample_dict[surface_y.name]
+                surface_x_coord = sample_dict[self.surface_x.name]
+                surface_y_coord = sample_dict[self.surface_y.name]
                 nav_x = sample_dict[BoundingBox.x_variable.name]
                 nav_y = sample_dict[BoundingBox.y_variable.name]
 
@@ -826,7 +846,10 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 @dataclasses.dataclass
 class ProbabilisticCostmapLocation(LocationDesignatorDescription):
     """
-    Uses Costmaps to create locations for complex constrains
+    Uses Costmaps to create locations for complex constrains.
+    The construction of the probabilistic circuit can be quite time-consuming, but the majority of the computational load
+    is done during the first iteration only. In this case the exact time is highly dependent on the number of
+    links in the world.
     """
 
     def __init__(self, target: Union[PoseStamped, Object],
@@ -891,57 +914,6 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
             prospection_object = World.current_world.get_prospection_object_for_object(object_in_hand)
             allowed_collision.update({prospection_object: prospection_object.link_id_to_name[-1]})
         return allowed_collision
-
-    @staticmethod
-    def create_target_sequence(grasp_description: GraspDescription, target: Union[PoseStamped, Object], robot: Object,
-                               object_in_hand: Object, reachable_arm: Arms, rotation_agnostic: bool) -> List[
-        PoseStamped]:
-        """
-        Creates a sequence of poses which need to be reachable in this order
-
-        :param grasp_description: Grasp description to be used for grasping
-        :param target: The target of reachability, either a pose or an object
-        :param robot: The robot that should be checked for reachability
-        :param object_in_hand: An object that is held if any
-        :param reachable_arm: The arm which should be checked for reachability
-        :return: A list of poses that need to be reachable in this order
-        """
-        end_effector = robot.robot_description.get_arm_chain(reachable_arm).end_effector
-        grasp_quaternion = end_effector.grasps[grasp_description]
-        approach_axis = end_effector.get_approach_axis()
-
-        target_pose = target.copy() if isinstance(target, PoseStamped) else \
-            target.get_grasp_pose(end_effector, grasp_description)
-
-        if object_in_hand:
-            if rotation_agnostic:
-                robot_rotation = robot.get_pose().orientation
-                target_pose.orientation = robot_rotation
-                approach_direction = GraspDescription(grasp_description.approach_direction, None, False)
-                side_grasp = np.array(robot.robot_description.get_arm_chain(reachable_arm).end_effector.grasps[
-                    approach_direction])
-                side_grasp *= np.array([-1, -1, -1, 1])
-                target_pose.rotate_by_quaternion(side_grasp.tolist())
-
-            target_pose = object_in_hand.attachments[
-                World.robot].get_child_link_target_pose_given_parent(target_pose)
-            approach_offset_cm = object_in_hand.get_approach_offset()
-        else:
-
-            target_pose.rotate_by_quaternion(grasp_quaternion)
-            approach_offset_cm = 0.1 if isinstance(target, PoseStamped) else target.get_approach_offset()
-
-        lift_pose = target_pose.copy()
-        lift_pose.position.z += 0.1
-
-        retract_pose = LocalTransformer().translate_pose_along_local_axis(target_pose,
-                                                                          approach_axis,
-                                                                          -approach_offset_cm)
-
-        target_sequence = ([lift_pose, target_pose, retract_pose] if object_in_hand
-                           else [retract_pose, target_pose, lift_pose])
-
-        return target_sequence
 
     def __iter__(self) -> Iterator[PoseStamped]:
 
@@ -1021,11 +993,12 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
             # reason for this is the error
             # "E0000 00:00:1750253132.517928 1146896 linear_solver.cc:2026] No solution exists. MPSolverInterface::result_status_ = MPSOLVER_ABNORMAL"
             # this is not a great way to handle this i think, so we should find out in which situations this occurs @TODO
+            poly = Polytope(A, b)
             try:
-                room_event = Polytope(A, b).inner_box_approximation(minimum_volume=0.1)
-            except RuntimeError as e:
-                print('Polytope: ', Polytope(A, b))
-                room_event = Polytope(A, b).to_simple_event().as_composite_set()
+                room_event = poly.inner_box_approximation(minimum_volume=0.1)
+            except NoOptimalSolutionError as e:
+                logerr(f'No optimal solution found for Polytope: {poly}')
+                room_event = poly.to_simple_event().as_composite_set()
             room_event = room_event.update_variables({Continuous("x_0"): BoundingBox.x_variable,
                                                       Continuous("x_1"): BoundingBox.y_variable})
             room_event.fill_missing_variables(SortedSet([BoundingBox.z_variable]))
@@ -1064,12 +1037,6 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
             if prob_circuit_conditioned is None:
                 continue
 
-            #dump to json
-            # with open('prob_circuit_conditioned.json', 'w') as f:
-            #     json.dump(prob_circuit_conditioned.to_json(), f, indent=4)
-
-            # go.Figure(prob_circuit_conditioned.marginal(variables).plot()).show()
-
             with UseProspectionWorld():
                 samples = prob_circuit_conditioned.sample(300)
 
@@ -1085,8 +1052,6 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
                     pose_candidate = PoseStamped.from_list([nav_x, nav_y, 0], nav_quat, 'map')
 
                     test_robot.set_pose(pose_candidate)
-                    # print('Costmap Location')
-                    # plot_axis_in_rviz([pose_candidate, target_pose], duration=300)
 
                     event = SimpleEvent({BoundingBox.x_variable: closed(nav_x - 0.1, nav_x + 0.1),
                                          BoundingBox.y_variable: closed(nav_y - 0.1, nav_y + 0.1)})
@@ -1112,7 +1077,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
 
                     for grasp_desc in grasp_descriptions:
 
-                        target_sequence = self.create_target_sequence(grasp_desc, target, test_robot,
+                        target_sequence = _create_target_sequence(grasp_desc, target, test_robot,
                                                                       params_box.object_in_hand,
                                                                       params_box.reachable_arm,
                                                                       params_box.rotation_agnostic)
@@ -1120,6 +1085,5 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
                                                                             arm=params_box.reachable_arm,
                                                                             allowed_collision=allowed_collision)
                         if is_reachable:
-                            # print(f'Accepted target sequence: {target_sequence}')
                             yield GraspPose(pose_candidate.pose, pose_candidate.header,
                                             arm=params_box.reachable_arm, grasp_description=grasp_desc)

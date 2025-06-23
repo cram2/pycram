@@ -49,6 +49,11 @@ class GraphOfConvexSets(nx.Graph):
     The bounding box of the search space. Defaults to the entire three dimensional space.
     """
 
+    xy_variable = SortedSet([BoundingBox.x_variable, BoundingBox.y_variable])
+    """
+    The x and y variables used in our events
+    """
+
     def __init__(self, search_space: Optional[BoundingBoxCollection] = None):
         super().__init__()
         self.search_space = self._make_search_space(search_space)
@@ -220,7 +225,7 @@ class GraphOfConvexSets(nx.Graph):
             for obj in world.objects if not obj.is_a_robot
             # if the link of the object is either a wall or a door, and skip if not
             for link in obj.link_name_to_id.keys() if filter_links(link)
-            for bb in obj.get_link_bounding_box_collection(link)
+            for bb in obj.get_link_axis_aligned_bounding_box_collection(link)
         )
 
         search_space = cls._make_search_space(search_space)
@@ -228,19 +233,19 @@ class GraphOfConvexSets(nx.Graph):
 
     @classmethod
     def obstacles_from_bounding_boxes(cls, bounding_boxes: List[BoundingBox], search_space_event: Event,
-                                      marginalize_over: Optional[SortedSet] = None) -> Optional[Event]:
+                                      keep_z: bool = True) -> Optional[Event]:
         """
         Create a connectivity graph from a list of bounding boxes.
 
         :param bounding_boxes: The list of bounding boxes to create the connectivity graph from.
         :param search_space_event: The search space event to limit the connectivity graph to.
-        :param marginalize_over: Variables to marginalize over in the resulting event.
+        :param keep_z: If True, the z-axis is kept in the resulting event. Default is True.
 
         :return: An event representing the obstacles in the search space, or None if no obstacles are found.
         """
 
-        if marginalize_over:
-            search_space_event = search_space_event.marginal(marginalize_over)
+        if not keep_z:
+            search_space_event = search_space_event.marginal(cls.xy_variable)
 
         events = (
             bb.simple_event.as_composite_set() & search_space_event
@@ -250,8 +255,8 @@ class GraphOfConvexSets(nx.Graph):
         # skip bbs outside the search space
         events = (event for event in events if not event.is_empty())
 
-        if marginalize_over:
-            events = (event.marginal(marginalize_over) for event in events)
+        if not keep_z:
+            events = (event.marginal(cls.xy_variable) for event in events)
 
         try:
             return reduce(or_, events)
@@ -281,7 +286,7 @@ class GraphOfConvexSets(nx.Graph):
         start_time = time.time_ns()
         # calculate the free space and limit it to the searching space
         free_space = ~obstacles & search_event
-        print(f"Free space calculated in {(time.time_ns() - start_time) / 1e6} ms")
+        loginfo(f"Free space calculated in {(time.time_ns() - start_time) / 1e6} ms")
 
         # create a connectivity graph from the free space and calculate the edges
         result = cls(search_space=search_space)
@@ -289,7 +294,7 @@ class GraphOfConvexSets(nx.Graph):
 
         start_time = time.time_ns()
         result.calculate_connectivity(tolerance)
-        print(f"Connectivity calculated in {(time.time_ns() - start_time) / 1e6} ms")
+        loginfo(f"Connectivity calculated in {(time.time_ns() - start_time) / 1e6} ms")
 
         return result
 
@@ -309,14 +314,12 @@ class GraphOfConvexSets(nx.Graph):
         :return: The connectivity graph.
         """
 
-        xy = SortedSet([BoundingBox.x_variable, BoundingBox.y_variable])
-
         # create search space for calculations
         search_space = cls._make_search_space(search_space)
 
         # remove the z axis
         og_search_event = search_space.event
-        search_event = og_search_event.marginal(xy)
+        search_event = og_search_event.marginal(cls.xy_variable)
 
         bloated_bbs = (
             # bloat the bb
@@ -325,16 +328,16 @@ class GraphOfConvexSets(nx.Graph):
             for obj in world.objects if not (obj.is_a_robot or obj.name == "floor")
             # if the link of the object is either a wall or a door, and skip if not
             for link in obj.link_name_to_id.keys()
-            for bb in obj.get_link_bounding_box_collection(link)
+            for bb in obj.get_link_axis_aligned_bounding_box_collection(link)
         )
 
-        obstacles = cls.obstacles_from_bounding_boxes(list(bloated_bbs), og_search_event, marginalize_over=xy)
+        obstacles = cls.obstacles_from_bounding_boxes(list(bloated_bbs), og_search_event, keep_z=False)
 
         free_space = ~obstacles & search_event
 
         # create floor level
         z_event = SimpleEvent({BoundingBox.z_variable: reals()}).as_composite_set()
-        z_event.fill_missing_variables(xy)
+        z_event.fill_missing_variables(cls.xy_variable)
         free_space.fill_missing_variables(SortedSet([BoundingBox.z_variable]))
         free_space &= z_event
         free_space &= og_search_event

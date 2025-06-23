@@ -631,12 +631,12 @@ class BoundingBox:
 
     def bloat(self, x_amount: float = 0., y_amount: float = 0, z_amount: float = 0) -> BoundingBox:
         """
-        Bloat the bounding box by a given amount in all dimensions.
+        Enlarges the bounding box by a given amount in all dimensions.
 
         :param x_amount: The amount to adjust minimum and maximum x-coordinates
         :param y_amount: The amount to adjust minimum and maximum y-coordinates
         :param z_amount: The amount to adjust minimum and maximum z-coordinates
-        :return: New bloated bounding box
+        :return: New enlarged bounding box
         """
         return self.__class__(self.min_x - x_amount, self.min_y - y_amount, self.min_z - z_amount,
                               self.max_x + x_amount, self.max_y + y_amount, self.max_z + z_amount)
@@ -766,13 +766,13 @@ class BoundingBoxCollection:
 
     def bloat(self, x_amount: float = 0., y_amount: float = 0, z_amount: float = 0) -> BoundingBoxCollection:
         """
-        Bloat all bounding boxes in the collection by a given amount in all dimensions.
+        Enlarges all bounding boxes in the collection by a given amount in all dimensions.
 
         :param x_amount: The amount to adjust the x-coordinates
         :param y_amount: The amount to adjust the y-coordinates
         :param z_amount: The amount to adjust the z-coordinates
 
-        :return: The bloated bounding box collection
+        :return: The enlarged bounding box collection
         """
         return BoundingBoxCollection([box.bloat(x_amount, y_amount, z_amount) for box in self.bounding_boxes])
 
