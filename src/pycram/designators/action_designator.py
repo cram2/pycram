@@ -785,76 +785,132 @@ class TransportAction(ActionDescription):
                                  arm=arm)
     
 
-@has_parameters
+from dataclasses import dataclass
+from pycram.designators.action_designator import ActionDescription, with_plan
+from pycram.designators.object_designator import ObjectDesignatorDescription
+from pycram.designators.location_designator import CostmapLocation
+from pycram.designators.action_designator import (
+    PickUpActionDescription,
+    PlaceActionDescription,
+    ParkArmsActionDescription
+)
+from pycram.datastructures.enums import Arms
+from pycram.world_concepts.belief_world import BelieveObject
+from pycram.robot_descriptions import RobotDescription
+from pycram.errors import ConfigurationNotReached, ReachabilityFailure
+from pycram.datastructures.pose import PoseStamped
+from pycram.designators import PartialDesignator
+
+
+@with_plan
 @dataclass
 class EfficientTransportAction(ActionDescription):
     """
-    Transports an object to a position using the most efficient arm (left or right),
-    based on object proximity and arm availability. It prioritizes minimal distance
-    to reduce energy and motion.
+    This action transports an object to a target location by choosing the closest
+    available arm using simple Euclidean distance.
     """
-    object_designator: Object
+    object_designator: ObjectDesignatorDescription
     target_location: PoseStamped
 
     def plan(self) -> None:
-        # Resolve robot and compute object pose
+        # Get the robot and object from the belief world
         robot = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
-        try:
-            obj_pose = self.object_designator.pose
-        except Exception:
-            raise ConfigurationNotReached(f"Cannot get pose for {self.object_designator}")
+        obj = self.object_designator.resolve()
 
-        # Determine preferred arm by object Y coordinate (positive = left side, negative = right side)
-        preferred_arm = Arms.LEFT if obj_pose.position.y >= 0 else Arms.RIGHT
-        other_arm = Arms.RIGHT if preferred_arm == Arms.LEFT else Arms.LEFT
+        if not obj or not obj.pose:
+            raise ConfigurationNotReached(f"Couldn't resolve the pose for the object: {self.object_designator}")
 
-        # Helper: attempt to find a reachable pick-up pose for a given arm
-        def try_arm(arm):
-            pick_loc = CostmapLocation(
-                target=self.object_designator,
-                reachable_for=robot,
-                reachable_arm=arm
-            )
-            return pick_loc.resolve()
+        object_position = obj.pose.position  # (x, y, z)
 
-        # Try preferred arm first
-        pickup_pose = try_arm(preferred_arm)
-        chosen_arm = preferred_arm
-        if not pickup_pose:
-            # Try the other arm if preferred fails
-            pickup_pose = try_arm(other_arm)
-            chosen_arm = other_arm
-        if not pickup_pose:
-            raise ObjectUnfetchable(f"No pick-up pose for {self.object_designator} on either arm.")
+        # The gripper positions for arms
+        left_tip = robot.get_link_position("left_gripper")
+        right_tip = robot.get_link_position("right_gripper")
 
-        # Execute pick-up with chosen arm
+        # Euclidean distances from each gripper to the object
+        def euclidean(p, q):
+            return ((p[0] - q.x)**2 + (p[1] - q.y)**2 + (p[2] - q.z)**2) ** 0.5
+
+        left_dist = euclidean(left_tip, object_position)
+        right_dist = euclidean(right_tip, object_position)
+
+        # Check arms availability
+        left_free = True
+        right_free = True
+        for attached in robot._attached_objects.keys():
+            if "left" in attached.lower():
+                left_free = False
+            if "right" in attached.lower():
+                right_free = False
+
+        # The closest free arm
+        if left_free and (not right_free or left_dist <= right_dist):
+            chosen_arm = Arms.LEFT
+        elif right_free and (not left_free or right_dist < left_dist):
+            chosen_arm = Arms.RIGHT
+        else:
+            raise ConfigurationNotReached("No free arm available to grasp the object.")
+
         ParkArmsActionDescription(Arms.BOTH).perform()
-        NavigateActionDescription(pickup_pose, True).perform()
-        PickUpActionDescription(self.object_designator, chosen_arm, grasp_description=pickup_pose.grasp_description).perform()
-        ParkArmsActionDescription(Arms.BOTH).perform()
 
-        # Compute place location reachable with chosen arm
+        # Finding a reachable pose for picking the object by the selected arm
+        pickup_location = CostmapLocation(
+            target=self.object_designator,
+            reachable_for=robot,
+            reachable_arm=chosen_arm,
+            object_in_hand=None
+        )
         try:
-            place_loc = CostmapLocation(
-                target=self.target_location,
-                reachable_for=robot,
-                reachable_arm=[chosen_arm],
-                grasp_descriptions=[pickup_pose.grasp_description],
-                object_in_hand=self.object_designator
-            ).resolve()
+            pickup_pose = next(iter(pickup_location.resolve()))
         except StopIteration:
-            raise ReachabilityFailure(f"Target not reachable with {chosen_arm} for {self.object_designator}.")
-        NavigateActionDescription(place_loc, True).perform()
-        PlaceActionDescription(self.object_designator, self.target_location, chosen_arm).perform()
+            raise ReachabilityFailure(f"No reachable pickup pose for object using {chosen_arm.name} arm.")
+
+        # Pick up the object
+        PickUpActionDescription(
+            object_designator=self.object_designator,
+            arm=chosen_arm,
+            grasp=pickup_pose.grasp_description
+        ).perform()
+
+        # Park arms again
         ParkArmsActionDescription(Arms.BOTH).perform()
 
-    @with_plan
+        # Finding a reachable position to place the object at the target location
+        place_location = CostmapLocation(
+            target=self.target_location,
+            reachable_for=robot,
+            reachable_arm=chosen_arm,
+            object_in_hand=self.object_designator,
+            grasp_descriptions=[pickup_pose.grasp_description]
+        )
+        try:
+            place_pose = next(iter(place_location.resolve()))
+        except StopIteration:
+            raise ReachabilityFailure(f"Target not reachable for placing with {chosen_arm.name} arm.")
+
+        # Place the object
+        PlaceActionDescription(
+            object_designator=self.object_designator,
+            target_location=self.target_location,
+            arm=chosen_arm
+        ).perform()
+
+        # Final park for cleanliness
+        ParkArmsActionDescription(Arms.BOTH).perform()
+
     @classmethod
-    def description(cls, object_designator: Union[Iterable[Object], Object],
-                    target_location: Union[Iterable[PoseStamped], PoseStamped]
-                   ) -> PartialDesignator[Type[EfficientTransportAction]]:
-        # No arm parameter: the class will pick the best arm internally
-        return PartialDesignator(EfficientTransportAction, object_designator=object_designator, target_location=target_location)
+    @with_plan
+    def description(cls, object_designator, target_location):
+        """
+        This creates a designator for EfficientTransportAction, which automatically
+        picks the best free arm based on proximity — no need to specify the arm manually.
+        """
+        return PartialDesignator(
+            cls,
+            {
+                "object_designator": object_designator,
+                "target_location": target_location
+            }
+        )
 
 
 @has_parameters
