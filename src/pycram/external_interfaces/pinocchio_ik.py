@@ -64,7 +64,8 @@ def compute_ik(target_link: str, target_pose: PoseStamped, robot: Object) -> Dic
 
     if success:
         return parse_configuration_vector_to_joint_positions(q, model)
-    return {}
+    else:
+        raise IKError(pinocchio.SE3ToXYZQUAT(oMdes), robot.tf_frame, target_link)
 
 
 def inverse_kinematics_logarithmic(model, configuration, data, target_joint_id, target_transformation, eps=1e-4,

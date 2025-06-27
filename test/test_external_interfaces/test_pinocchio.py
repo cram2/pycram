@@ -54,6 +54,4 @@ class PinocchioTest(BulletWorldTestCase):
     def test_ik_computation_error(self):
         target_link = "r_gripper_tool_frame"
         target_pose = PoseStamped.from_list([5, 0.2, 0.6])
-        result_configuration = compute_ik(target_link, target_pose, self.robot)
-
-        self.assertFalse(np.any(result_configuration))
+        self.assertRaises(IKError, compute_ik, target_link, target_pose, self.robot)
