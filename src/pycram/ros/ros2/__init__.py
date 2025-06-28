@@ -19,7 +19,6 @@ from rclpy.node import Node
 
 rclpy.init()
 node = Node('pycram')
-atexit.register(rclpy.shutdown)
 threading.Thread(target=rclpy.spin, args=(node,), daemon=True).start()
 
 

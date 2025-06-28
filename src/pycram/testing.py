@@ -4,6 +4,7 @@ import time
 import unittest
 from datetime import timedelta
 
+import pytest
 
 from .datastructures.world import UseProspectionWorld
 from .worlds.bullet_world import BulletWorld
@@ -42,6 +43,17 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
         Plan.current_plan = None
         with UseProspectionWorld():
             pass
+
+    @pytest.fixture(autouse=True, scope="session")
+    def cleanup_ros(self):
+        """
+        Fixture to ensure that ROS is properly cleaned up after all tests.
+        """
+        yield
+        if os.environ.get('ROS_VERSION') == '2':
+            import rclpy
+            rclpy.shutdown()
+            time.sleep(0.1)
 
 
     def tearDown(self):
