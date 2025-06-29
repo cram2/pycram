@@ -667,7 +667,7 @@ def lazy_product(*iterables: Iterable) -> Iterable[Tuple]:
         try:
             current_value.append(next(consumable_iterable))
         except StopIteration as e:
-            raise StopIteration(f"No values in the iterable: {consumable_iterable} with attributes: {iterables[i].__dict__}")
+            raise StopIteration(f"No values in the iterable: {consumable_iterable} with attributes: {iterables[i].__dict__ if hasattr(iterables[i], '__dict__') else ''}")
 
     while True:
         yield tuple(current_value)

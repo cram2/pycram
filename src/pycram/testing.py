@@ -15,7 +15,7 @@ from .process_module import ProcessModule
 from .datastructures.enums import WorldMode
 from .object_descriptors.urdf import ObjectDescription
 from .plan import Plan
-from .ros import loginfo
+from .ros import loginfo, get_node_names
 from pycrap.ontologies import Milk, Robot, Kitchen, Cereal
 try:
     from .ros_utils.viz_marker_publisher import VizMarkerPublisher
@@ -52,8 +52,8 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
         yield
         if os.environ.get('ROS_VERSION') == '2':
             import rclpy
-            rclpy.shutdown()
-            time.sleep(0.1)
+            if rclpy.ok():
+                rclpy.shutdown()
 
 
     def tearDown(self):
