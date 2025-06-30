@@ -6,6 +6,7 @@ from dataclasses import field, dataclass
 from datetime import datetime
 
 import networkx as nx
+from networkx.classes.reportviews import NodeView, OutEdgeView
 from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 from random_events.product_algebra import Event
 
@@ -38,6 +39,7 @@ class Plan(nx.DiGraph):
         self.current_node: PlanNode = self.root
         self.on_start_callback = {}
         self.on_end_callback = {}
+        self.super_plan: Plan = self
 
     def mount(self, other: Plan, mount_node: PlanNode = None):
         """
@@ -52,6 +54,8 @@ class Plan(nx.DiGraph):
         self.add_edge(mount_node, other.root)
         for node in self.nodes:
             node.plan = self
+        if isinstance(other, SubPlan):
+            other.super_plan = self
 
     def merge_nodes(self, node1: PlanNode, node2: PlanNode):
         """
@@ -323,6 +327,41 @@ class Plan(nx.DiGraph):
         labels= LabelSet(x='x', y='y', text='names',
                           x_offset=-55, y_offset=10, source=data_source)
         return labels
+
+class SubPlan(Plan):
+    """
+    A subplan is a plan which is mounted to another plan. It reflects changes and properties of the super plan
+    """
+    def __init__(self, root: PlanNode, super_plan: Plan = None):
+        self.super_plan: Plan = super_plan
+        super().__init__(root)
+
+
+    @property
+    def nodes(self) -> NodeView:
+        return self.root.subtree.nodes
+
+    @property
+    def edges(self) -> OutEdgeView:
+        return self.root.subtree.edges
+
+    def mount(self, other: Plan, mount_node: PlanNode = None):
+        super().mount(other, mount_node)
+
+    def perform(self) -> Any:
+        self.root.perform()
+
+    def add_node(self, node_for_adding: PlanNode, **attr):
+        self.super_plan.add_node(node_for_adding, **attr)
+
+    def add_edge(self, u_of_edge, v_of_edge, **attr):
+        self.super_plan.add_edge(u_of_edge, v_of_edge, **attr)
+
+    def add_edges_from(self, ebunch_to_add: Iterable[Tuple[PlanNode, PlanNode]], **attr):
+        self.super_plan.add_edges_from(ebunch_to_add, **attr)
+
+    def add_nodes_from(self, nodes_for_adding: Iterable[PlanNode], **attr):
+        self.super_plan.add_nodes_from(nodes_for_adding, **attr)
 
 
 def managed_node(func: Callable) -> Callable:
@@ -663,11 +702,9 @@ def with_plan(func: Callable) -> Callable:
         else:
             kwargs = dict(inspect.signature(func).bind(*args, **kwargs).arguments)
             node = MotionNode(designator_ref=designator, action=designator.__class__, kwargs=kwargs)
-        plan = Plan(root=node)
+        plan = Plan(root=node) if not Plan.current_plan else SubPlan(root=node, super_plan=Plan.current_plan)
         if Plan.current_plan:
             Plan.current_plan.mount(plan, Plan.current_plan.current_node)
-            Plan.current_plan.current_node = node
-            return Plan.current_plan
         return plan
 
     return wrapper
