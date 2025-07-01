@@ -23,7 +23,7 @@ from typing_extensions import List, Union, Iterable, Optional, Iterator, Dict, T
 
 from ..config.action_conf import ActionConfig
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap, Costmap
-from ..datastructures.dataclasses import BoundingBox, AxisAlignedBoundingBox, Color
+from ..datastructures.dataclasses import BoundingBox, AxisAlignedBoundingBox, Color, BoundingBoxCollection
 from ..datastructures.enums import JointType, Arms, Grasp
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.pose import PoseStamped, GraspDescription, GraspPose, Vector3
@@ -517,7 +517,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
     Variable representing the y coordinate on a surface
     """
 
-    def __init__(self, link_names, part_of, for_object=None, link_is_center_link: bool = False, number_of_samples = 1000,
+    def __init__(self, link_names: Iterator[str], part_of: Object, for_object: Object=None, link_is_center_link: bool = False, number_of_samples: int = 1000,
                     sort_sampels: bool = False, uniform_sampling: bool = False, highlight_used_surfaces: bool = False):
         """
         Creates a distribution over a link to sample poses which are on this link. Can be used, for example, to find
@@ -555,7 +555,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         """
         return next(iter(self))
 
-    def _create_link_circuit(self, surface_samples, link_id_symbol, link_id) -> ProbabilisticCircuit:
+    def _create_link_circuit(self, surface_samples: Iterator[Tuple[float, float]], link_id_symbol: Symbolic, link_id: str) -> ProbabilisticCircuit:
         """
         Creates a probabilistic circuit that samples navigation poses on a surface defined by the given surface samples.
         The circuit will sample poses that are close to the surface samples and have the given link id as true.
@@ -598,7 +598,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         return link_circuit
 
     @staticmethod
-    def _create_surface_event(params_box, world, link, search_space, wall_bloat) -> Optional[Event]:
+    def _create_surface_event(params_box, world: World, link: Link, search_space: BoundingBoxCollection, wall_bloat: float) -> Optional[Event]:
         """
         Creates an event that describes the surface of the link we want to sample from.
         The surface event is constructed from the bounding box of the link, and the walls and doors are cut out to
@@ -632,7 +632,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
         return surface_event
 
-    def _create_navigation_space_event(self, params_box, free_space, link) -> Event:
+    def _create_navigation_space_event(self, params_box, free_space: GraphOfConvexSets, link: Link) -> Event:
         """
         Creates an event that describes the navigation space for the link we want to sample from.
         The navigation space is the free space around the link, which is used to sample navigation poses.
@@ -671,7 +671,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         navigation_space_event = navigation_space_event.marginal(SortedSet([BoundingBox.x_variable, BoundingBox.y_variable]))
         return navigation_space_event
 
-    def _create_distribution_for_link(self, params_box, world, link, link_id_symbol) -> Tuple[Optional[ProbabilisticCircuit], float]:
+    def _create_distribution_for_link(self, params_box, world: World, link: Link, link_id_symbol: Symbolic) -> Tuple[Optional[ProbabilisticCircuit], float]:
         """
         Creates a distribution for the given link, which is a probabilistic circuit that samples navigation poses on the
         surface of the link. The distribution is conditioned on the navigation space event, which is the free space
@@ -728,7 +728,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         return link_circuit.truncated(navigation_space_event)
 
     @staticmethod
-    def _calculate_surface_z_coord(test_robot, surface_coords, link_id) -> Optional[float]:
+    def _calculate_surface_z_coord(test_robot, surface_coords: Tuple[float, float], link_id: str) -> Optional[float]:
         """
         Calculates the z-coordinate of the surface at the given surface coordinates on the link.
 
@@ -740,7 +740,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         """
         # Use a raytest to check if the sampled point is on the target link. This is necessary because the
         # bounding boxes are not perfect, so the sampled point may be slightly off the link.
-        # Furthermore we can use the ray test to get the correct height of the link at the sampled point.
+        # Furthermore, we can use the ray test to get the correct height of the link at the sampled point.
         surface_x_coord, surface_y_coord = surface_coords
         ray_start = [surface_x_coord, surface_y_coord, 2]
         ray_end = [surface_x_coord, surface_y_coord, -2.0]
@@ -935,7 +935,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
         return allowed_collision
 
     @staticmethod
-    def _calculate_room_event(world, free_space_graph, target_position) -> Event:
+    def _calculate_room_event(world, free_space_graph: GraphOfConvexSets, target_position: Vector3) -> Event:
         """
         Calculates an event for the free space inside the room around the target position is located in, in 2d.
 
@@ -980,7 +980,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
 
         return room_event
 
-    def _create_free_space_conditions(self, world, target_position, search_distance: float = 1.5) -> Tuple[Event, Event, Event]:
+    def _create_free_space_conditions(self, world: World, target_position: Vector3, search_distance: float = 1.5) -> Tuple[Event, Event, Event]:
         """
         Creates the conditions for the free space around the target position.
         1. reachable_space_condition: The condition that describes the reachable space around the target position in 3d
