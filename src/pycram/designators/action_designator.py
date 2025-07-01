@@ -748,8 +748,8 @@ class TransportAction(ActionDescription):
         robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
         ParkArmsActionDescription(Arms.BOTH).perform()
         pickup_loc = ProbabilisticCostmapLocation(target=self.object_designator,
-                                     reachable_for=robot_desig_resolved,
-                                     reachable_arm=self.arm)
+                                                  reachable_for=robot_desig_resolved,
+                                                  reachable_arm=self.arm)
         # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = pickup_loc.resolve()
         if not pickup_pose:
@@ -764,7 +764,6 @@ class TransportAction(ActionDescription):
             place_loc = ProbabilisticCostmapLocation(
                 target=self.target_location,
                 reachable_for=robot_desig_resolved,
-                visible_for=robot_desig_resolved,
                 reachable_arm=pickup_pose.arm,
                 grasp_descriptions=[pickup_pose.grasp_description],
                 object_in_hand=self.object_designator,
