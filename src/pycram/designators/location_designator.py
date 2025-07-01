@@ -129,7 +129,8 @@ class CostmapLocation(LocationDesignatorDescription):
                  reachable_arm: Optional[Union[Iterable[Arms], Arms]] = None,
                  ignore_collision_with: Optional[Union[Iterable[Object], Object]] = None,
                  grasp_descriptions: Optional[Union[Iterable[GraspDescription], GraspDescription]] = None,
-                 object_in_hand: Optional[Union[Iterable[Object], Object]] = None):
+                 object_in_hand: Optional[Union[Iterable[Object], Object]] = None,
+                 rotation_agnostic: bool = False,):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
         visible. In case of reachable the resolved location contains a list of arms with which the location is reachable.
@@ -141,6 +142,7 @@ class CostmapLocation(LocationDesignatorDescription):
         :param ignore_collision_with: List of objects that should be ignored for collision checking.
         :param grasp_descriptions: List of grasps that should be tried to reach the target pose
         :param object_in_hand: Object that is currently in the hand of the robot
+        :param rotation_agnostic: If True, the target pose is adjusted so that it is pointing to the robot
         """
         super().__init__()
         PartialDesignator.__init__(self, CostmapLocation, target=target, reachable_for=reachable_for,
@@ -150,7 +152,7 @@ class CostmapLocation(LocationDesignatorDescription):
                                    ignore_collision_with=ignore_collision_with if ignore_collision_with is not None else [
                                        []],
                                    grasp_descriptions=grasp_descriptions if grasp_descriptions is not None else [None],
-                                   object_in_hand=object_in_hand)
+                                   object_in_hand=object_in_hand, rotation_agnostic=rotation_agnostic)
         self.target: Union[PoseStamped, Object] = target
         self.reachable_for: Object = reachable_for
         self.visible_for: Object = visible_for
@@ -270,8 +272,9 @@ class CostmapLocation(LocationDesignatorDescription):
                     for grasp_desc in grasp_descriptions:
 
                         target_sequence = _create_target_sequence(grasp_desc, target, test_robot,
-                                                                      params_box.object_in_hand,
-                                                                      params_box.reachable_arm)
+                                                                  params_box.object_in_hand,
+                                                                  params_box.reachable_arm,
+                                                                  params_box.rotation_agnostic)
 
                         is_reachable = pose_sequence_reachability_validator(test_robot, target_sequence,
                                                                             arm=params_box.reachable_arm,
