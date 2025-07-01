@@ -172,6 +172,6 @@ def request_pinocchio_ik(target_pose: PoseStamped, robot: Object, target_link: s
     try:
         res = compute_ik(wrist_link, target_diff, robot)
     except IKError:
-        raise IKError(target_pose_map, 'map', target_link, World.robot.get_pose(), robot.get_positions_of_all_joints())
+        raise IKError(target_pose_map, 'map', target_link, robot.get_pose(), robot.get_positions_of_all_joints())
 
     return res

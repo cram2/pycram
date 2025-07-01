@@ -555,7 +555,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         """
         return next(iter(self))
 
-    def _create_link_circuit(self, surface_samples: Iterator[Tuple[float, float]], link_id_symbol: Symbolic, link_id: int) -> ProbabilisticCircuit:
+    def _create_link_circuit(self, surface_samples: List[Tuple[float, float]], link_id_symbol: Symbolic, link_id: int) -> ProbabilisticCircuit:
         """
         Creates a probabilistic circuit that samples navigation poses on a surface defined by the given surface samples.
         The circuit will sample poses that are close to the surface samples and have the given link id as true.
@@ -1130,5 +1130,6 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
                                                                             arm=params_box.reachable_arm,
                                                                             allowed_collision=allowed_collision)
                         if is_reachable:
+                            print(f"Succeeded costmap with pose {pose_candidate}")
                             yield GraspPose(pose_candidate.pose, pose_candidate.header,
                                             arm=params_box.reachable_arm, grasp_description=grasp_desc)
