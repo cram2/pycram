@@ -424,7 +424,7 @@ class BoundingBoxPublisher:
         time.sleep(0.5) # this is needed to synchronize the publisher creation thread
         return pub
 
-    def visualize(self, boxes: BoundingBoxCollection, duration: Optional[float] = 60):
+    def visualize(self, boxes: BoundingBoxCollection, duration: Optional[int] = 60):
         """
         Visualize a collection of bounding boxes in rviz as a series of cubes.
         """
@@ -442,7 +442,7 @@ class BoundingBoxPublisher:
             marker.lifetime = Duration(duration)
 
             marker.pose = Pose()
-            marker.pose.position = origin.ros_message()
+            marker.pose.position = Point(x=origin.x, y=origin.y, z=origin.z)
 
             marker.scale.x = box.depth
             marker.scale.y = box.width

@@ -517,7 +517,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
     Variable representing the y coordinate on a surface
     """
 
-    def __init__(self, link_names: Iterator[str], part_of: Object, for_object: Object=None, link_is_center_link: bool = False, number_of_samples: int = 1000,
+    def __init__(self, link_names: List[str], part_of: Object, for_object: Object=None, link_is_center_link: bool = False, number_of_samples: int = 1000,
                     sort_sampels: bool = False, uniform_sampling: bool = False, highlight_used_surfaces: bool = False):
         """
         Creates a distribution over a link to sample poses which are on this link. Can be used, for example, to find
@@ -555,7 +555,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         """
         return next(iter(self))
 
-    def _create_link_circuit(self, surface_samples: Iterator[Tuple[float, float]], link_id_symbol: Symbolic, link_id: str) -> ProbabilisticCircuit:
+    def _create_link_circuit(self, surface_samples: Iterator[Tuple[float, float]], link_id_symbol: Symbolic, link_id: int) -> ProbabilisticCircuit:
         """
         Creates a probabilistic circuit that samples navigation poses on a surface defined by the given surface samples.
         The circuit will sample poses that are close to the surface samples and have the given link id as true.
@@ -728,7 +728,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         return link_circuit.truncated(navigation_space_event)
 
     @staticmethod
-    def _calculate_surface_z_coord(test_robot, surface_coords: Tuple[float, float], link_id: str) -> Optional[float]:
+    def _calculate_surface_z_coord(test_robot, surface_coords: Tuple[float, float], link_id: int) -> Optional[float]:
         """
         Calculates the z-coordinate of the surface at the given surface coordinates on the link.
 

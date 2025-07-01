@@ -363,7 +363,7 @@ def plot_path_in_rviz(path: List[PoseStamped]):
     publisher = make_publisher()
     publisher.visualize_trajectory(path)
 
-def plot_bounding_boxes_in_rviz(boxes: BoundingBoxCollection, duration=60.0):
+def plot_bounding_boxes_in_rviz(boxes: BoundingBoxCollection, duration:int=60):
     def make_publisher():
         return BoundingBoxPublisher()
 

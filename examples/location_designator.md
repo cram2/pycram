@@ -163,6 +163,22 @@ location_description = SemanticCostmapLocation(link_name=counter_name,
 print(location_description.resolve())
 ```
 
+ProbabilisticSemanticLocation fulfills te same purpose as the SemanticCostmapLocation, but it uses probabilistic
+circuits and random events to build the costmap and sample from it. This allows more control over the sample space
+as well as overall better quality of samples. One difference to the SemanticCostmapLocation is that it takes a list
+of link names instead of a single link name, which allows us to sample from multiple links at once.
+
+```python
+from pycram.designators.location_designator import ProbabilisticSemanticLocation
+
+counter_name = "counter_sink_stove" if use_multiverse else "island_countertop"
+location_description = ProbabilisticSemanticLocation(link_names=[counter_name],
+                                                    part_of=kitchen_desig,
+                                                    for_object=milk_desig)
+
+print(location_description.resolve())
+```
+
 ## Location Designator as Generator
 
 Location designator descriptions implement an iter method, so they can be used as generators which generate valid poses
@@ -179,6 +195,23 @@ target = BelieveObject(names=["milk"]).resolve()
 robot_desig = BelieveObject(names=["pr2"]).resolve()
 
 location_description = CostmapLocation(target=target, visible_for=robot_desig)
+
+for pose in location_description:
+    print(pose)
+```
+
+Similar to the ProbabilisticSemanticLocation, the ProbabilisticCostmapLocation can be used as an alternative to the
+CostmapLocation. It uses probabilistic circuits and random events to build the costmap and sample from it, but has the
+same interface as the CostmapLocation. 
+
+```python
+from pycram.designators.location_designator import ProbabilisticCostmapLocation
+from pycram.designators.object_designator import BelieveObject
+
+target = BelieveObject(names=["milk"]).resolve()
+robot_desig = BelieveObject(names=["pr2"]).resolve()
+
+location_description = ProbabilisticCostmapLocation(target=target, visible_for=robot_desig)
 
 for pose in location_description:
     print(pose)
