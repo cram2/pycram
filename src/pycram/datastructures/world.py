@@ -1305,15 +1305,6 @@ class World(WorldEntity, ABC):
         """
         cls.cache_manager.cache_dir = os.path.join(path, cls.conf.cache_dir_name)
 
-    @classmethod
-    def add_data_directory(cls, path: str) -> None:
-        """
-        Add a data directory to the list of data directories.
-
-        :param path: The path to add.
-        """
-        cls.cache_manager.data_directories.append(path)
-
     def get_prospection_object_for_object(self, obj: Object) -> Object:
         """
         Return the corresponding object from the prospection world for a given object in the main world.
