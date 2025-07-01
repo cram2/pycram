@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pycrap.ontologies import PhysicalObject, Location
 from .object_designator import ObjectDesignatorDescription, ObjectPart
-from ..datastructures.enums import MovementType,WaypointsMovementType
+from ..datastructures.enums import MovementType, WaypointsMovementType
 from ..failure_handling import try_motion
 from ..failures import PerceptionObjectNotFound, ToolPoseNotReachedError
 from ..object_descriptors.urdf import LinkDescription, ObjectDescription
@@ -10,7 +10,7 @@ from ..process_module import ProcessModuleManager
 from ..datastructures.enums import ObjectType, Arms, GripperState, ExecutionType, DetectionTechnique, DetectionState
 
 from typing_extensions import Dict, Optional, Type, List
-from ..datastructures.pose import PoseStamped
+from ..datastructures.pose import PoseStamped, Vector3Stamped
 from ..designator import BaseMotion
 from ..world_concepts.world_object import Object
 from ..external_interfaces.robokudo import robokudo_found
@@ -34,8 +34,9 @@ class MoveMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.navigate().execute(self)
+
 
 @with_plan
 @dataclass
@@ -62,9 +63,8 @@ class MoveTCPMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         try_motion(pm_manager.move_tcp(), self, ToolPoseNotReachedError)
-
 
     def __str__(self):
         return (f"MoveTCPMotion:\n"
@@ -76,6 +76,7 @@ class MoveTCPMotion(BaseMotion):
     def __repr__(self):
         return self.__str__()
 
+
 @with_plan
 @dataclass
 class LookingMotion(BaseMotion):
@@ -85,7 +86,7 @@ class LookingMotion(BaseMotion):
     target: PoseStamped
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.looking().execute(self)
 
 
@@ -110,9 +111,8 @@ class MoveGripperMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.move_gripper().execute(self)
-
 
     def __str__(self):
         return (f"MoveGripperMotion:\n"
@@ -122,6 +122,7 @@ class MoveGripperMotion(BaseMotion):
 
     def __repr__(self):
         return self.__str__()
+
 
 @with_plan
 @dataclass
@@ -150,7 +151,7 @@ class DetectingMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         obj_dict = pm_manager.detecting().execute(self)
         return obj_dict
 
@@ -172,8 +173,9 @@ class MoveArmJointsMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.move_arm_joints().execute(self)
+
 
 @with_plan
 @dataclass
@@ -188,8 +190,9 @@ class WorldStateDetectingMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.world_state_detecting().execute(self)
+
 
 @with_plan
 @dataclass
@@ -206,10 +209,31 @@ class MoveJointsMotion(BaseMotion):
     """
     Target positions of joints, should correspond to the list of names
     """
+    align: Optional[bool] = False
+    """
+    If True, aligns the end-effector with a specified axis (optional).
+    """
+    tip_link: Optional[str] = None
+    """
+    Name of the tip link to align with, e.g the object (optional).
+    """
+    tip_normal: Optional[Vector3Stamped] = None
+    """
+    Normalized vector representing the current orientation axis of the end-effector (optional).
+    """
+    root_link: Optional[str] = None
+    """
+    Base link of the robot; typically set to the torso (optional).
+    """
+    root_normal: Optional[Vector3Stamped] = None
+    """
+    Normalized vector representing the desired orientation axis to align with (optional).
+    """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.move_joints().execute(self)
+
 
 @with_plan
 @dataclass
@@ -228,8 +252,9 @@ class OpeningMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.open().execute(self)
+
 
 @with_plan
 @dataclass
@@ -248,8 +273,9 @@ class ClosingMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.close().execute(self)
+
 
 @with_plan
 @dataclass
@@ -264,7 +290,7 @@ class TalkingMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.talk().execute(self)
 
 
@@ -293,7 +319,7 @@ class MoveTCPWaypointsMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
+        pm_manager = ProcessModuleManager().get_manager()
         pm_manager.move_tcp_waypoints().execute(self)
 
     def __str__(self):

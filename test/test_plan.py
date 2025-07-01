@@ -86,7 +86,7 @@ class TestPlanNode(unittest.TestCase):
         self.assertIsInstance(node, PlanNode)
         self.assertEqual(node.status, TaskStatus.CREATED)
         self.assertEqual(node.plan, None)
-        self.assertLessEqual(node.start_time, datetime.now())
+        self.assertLessEqual(node.start_time, datetime.datetime.now())
 
     def test_plan_node_parent(self):
         node = PlanNode()

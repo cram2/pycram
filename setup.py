@@ -1,6 +1,6 @@
 import os
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
@@ -23,6 +23,16 @@ try:
 except Exception:
     long_description = ''
 
+
+# Iterate through all the files and subdirectories
+# to build the data files array
+def generate_data_files(share_path, dir):
+    data_files = []
+    for path, _, files in os.walk(dir):
+        list_entry = (share_path + path, [os.path.join(path, f) for f in files if not f.startswith('.')])
+        data_files.append(list_entry)
+    return data_files
+
 if os.environ.get('ROS_VERSION') == "1":
     ## ! DO NOT MANUALLY INVOKE THIS setup.py, USE CATKIN INSTEAD
 
@@ -39,19 +49,6 @@ if os.environ.get('ROS_VERSION') == "1":
 elif os.environ.get('ROS_VERSION') == "2":
 
     package_name = 'pycram'
-
-
-    # Iterate through all the files and subdirectories
-    # to build the data files array
-    def generate_data_files(share_path, dir):
-        data_files = []
-
-        for path, _, files in os.walk(dir):
-            list_entry = (share_path + path, [os.path.join(path, f) for f in files if not f.startswith('.')])
-            data_files.append(list_entry)
-
-        return data_files
-
 
     setup(
         name=package_name,
@@ -85,9 +82,10 @@ else:
     setup(
         name="pycram-robotics",
         version=get_version(),
-        # packages=find_packages(exclude=['test'], include=['pycram', 'pycrap']),
+        packages=find_packages(where='src'),
         package_dir={"": "src"},  # Optional
-        packages=["pycram", "pycrap"],
+        data_files=generate_data_files("lib/python3.10/site-packages/pycram/", 'resources'),
+        # packages=["pycram", "pycrap"],
         install_requires=['setuptools', 'pycram_bullet', 'numpy', 'pytransform3d', 'typing_extensions>=4.10.0',
                           'trimesh==4.6.0', 'random_events>=4.1.0', 'pin==2.7.0', 'transforms3d', 'python-box',
                           'urdf_parser_py', 'networkx', 'pint', 'owlready2>=0.45', 'psutil', 'deprecated', "plotly", "sortedcontainers", "probabilistic_model", "manifold3d"],

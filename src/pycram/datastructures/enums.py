@@ -142,6 +142,9 @@ class Grasp(Enum):
     TOP = (AxisIdentifier.Z, -1)
     BOTTOM = (AxisIdentifier.Z, 1)
 
+    def __hash__(self):
+        return [index for index, value in enumerate(self.__class__) if self == value][0]
+
     @classmethod
     def from_axis_direction(cls, axis: AxisIdentifier, direction: int):
         """Get the Grasp face from an axis-index tuple"""
@@ -202,6 +205,7 @@ class GripperState(Enum):
     """
     OPEN = auto()
     CLOSE = auto()
+    MEDIUM = auto()
 
     def __str__(self):
         return self.name

@@ -241,9 +241,14 @@ class ForceTorqueSensor:
 
         return derivative
 
-    def human_touch_monitoring(self):
-        loginfo_once("Now monitoring for human touch")
-        if self.robot_name == 'pr2':
-            der = self.get_derivative()
-            if abs(der.wrench.torque.x) > 3:
-                return SensorMonitoringCondition
+    def human_touch_monitoring(self, plan):
+        while True:
+            loginfo_once("Now monitoring for human touch")
+            if self.robot_name == 'pr2':
+                der = self.get_derivative()
+                if abs(der.wrench.torque.x) > 4:
+                    plan.root.resume()
+                    break
+        return False
+
+
