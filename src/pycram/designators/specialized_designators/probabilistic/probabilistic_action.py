@@ -92,7 +92,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
                                    min_z=obj.pose.position.z - search_space_size,
                                    max_x=obj.pose.position.x + search_space_size,
                                    max_y=obj.pose.position.y + search_space_size,
-                                   max_z=obj.pose.position.z + search_space_size)
+                                   max_z=obj.pose.position.z + search_space_size).as_collection()
         navigate_conditions = collision_free_event(obj.world, search_space)
         return navigate_conditions
 
@@ -102,7 +102,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
         # add object distribution her
         p_object = SymbolicDistribution(object_variable, MissingDict(float, {obj.id: 1.}))
         root = model.root
-        new_root = ProductUnit(model)
+        new_root = ProductUnit(probabilistic_circuit=model)
         new_root.add_subcircuit(leaf(p_object, model))
         new_root.add_subcircuit(root)
 
@@ -125,7 +125,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
         arm_condition.fill_missing_variables(model.variables)
         condition &= arm_condition
 
-        conditional, prob = model.conditional(condition)
+        conditional, prob = model.truncated(condition)
 
         return conditional
 
@@ -136,7 +136,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
     def create_distribution(self):
 
         result = ProbabilisticCircuit()
-        root = SumUnit(result)
+        root = SumUnit(probabilistic_circuit=result)
 
         for obj in self.partial.kwargs["object_designator"]:
             model = self.accessing_distribution_for_object(obj, self.object_variable)

@@ -60,7 +60,7 @@ from pycram.datastructures.dataclasses import BoundingBox
 
 search_space = BoundingBox(min_x=-1, max_x=1,
                            min_y=-1, max_y=1,
-                           min_z=0.1, max_z=0.2)
+                           min_z=0.1, max_z=0.2).as_collection()
 gcs = GraphOfConvexSets.free_space_from_world(world, search_space=search_space)
 ```
 
@@ -103,7 +103,7 @@ kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
 
 search_space = BoundingBox(min_x=-2, max_x=2,
                            min_y=-2, max_y=2,
-                           min_z=0., max_z=2)
+                           min_z=0., max_z=2).as_collection()
 gcs = GraphOfConvexSets.free_space_from_world(world, search_space=search_space)
 ```
 

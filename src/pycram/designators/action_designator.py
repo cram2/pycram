@@ -26,7 +26,7 @@ from ..tf_transformations import quaternion_from_euler
 from typing_extensions import List, Union, Optional, Type, Dict, Any, Iterable
 
 from pycrap.ontologies import Location, PhysicalObject
-from .location_designator import CostmapLocation
+from .location_designator import CostmapLocation, ProbabilisticCostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from ..datastructures.grasp import GraspDescription
@@ -608,6 +608,10 @@ class PlaceAction(ActionDescription):
     def plan(self) -> None:
         target_pose = self.object_designator.attachments[
             World.robot].get_child_link_target_pose_given_parent(self.target_location)
+        pre_place_pose = target_pose.copy()
+        pre_place_pose.position.z += 0.1
+        MoveTCPMotion(pre_place_pose, self.arm).perform()
+
         MoveTCPMotion(target_pose, self.arm).perform()
 
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()
@@ -710,7 +714,7 @@ class TransportAction(ActionDescription):
     Transports an object to a position using an arm
     """
 
-    object_designator: Object
+    object_designator: Object = field(repr=False)
     """
     Object designator_description describing the object that should be transported.
     """
@@ -718,9 +722,13 @@ class TransportAction(ActionDescription):
     """
     Target Location to which the object should be transported
     """
-    arm: Arms
+    arm: Optional[Arms]
     """
     Arm that should be used
+    """
+    place_rotation_agnostic: Optional[bool] = False
+    """
+    If True, the robot will place the object in the same orientation as it is itself, no matter how the object was grasped.
     """
 
     object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
@@ -743,9 +751,9 @@ class TransportAction(ActionDescription):
     def plan(self) -> None:
         robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
         ParkArmsActionDescription(Arms.BOTH).perform()
-        pickup_loc = CostmapLocation(target=self.object_designator,
-                                     reachable_for=robot_desig_resolved,
-                                     reachable_arm=self.arm)
+        pickup_loc = ProbabilisticCostmapLocation(target=self.object_designator,
+                                                  reachable_for=robot_desig_resolved,
+                                                  reachable_arm=self.arm)
         # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = pickup_loc.resolve()
         if not pickup_pose:
@@ -757,17 +765,31 @@ class TransportAction(ActionDescription):
                                 grasp_description=pickup_pose.grasp_description).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()
         try:
-            place_loc = CostmapLocation(
+            place_loc = ProbabilisticCostmapLocation(
                 target=self.target_location,
                 reachable_for=robot_desig_resolved,
-                reachable_arm=[pickup_pose.arm],
+                reachable_arm=pickup_pose.arm,
                 grasp_descriptions=[pickup_pose.grasp_description],
-                object_in_hand=self.object_designator
+                object_in_hand=self.object_designator,
+                rotation_agnostic=self.place_rotation_agnostic,
             ).resolve()
         except StopIteration:
             raise ReachabilityFailure(
-                f"No location found from where the robot can reach the target location: {self.target_location}")
+                self.object_designator, robot_desig_resolved, pickup_pose.arm, pickup_pose.grasp_description)
         NavigateActionDescription(place_loc, True).perform()
+
+        if self.place_rotation_agnostic:
+            # Placing rotation agnostic currently means that the robot will position its gripper in the same orientation
+            # as it is itself, no matter how the object was grasped
+            robot_rotation = robot_desig_resolved.get_pose().orientation
+            self.target_location.orientation = robot_rotation
+            approach_direction = GraspDescription(pickup_pose.grasp_description.approach_direction, None, False)
+            side_grasp = np.array(robot_desig_resolved.robot_description.get_arm_chain(pickup_pose.arm).end_effector.grasps[approach_direction])
+            # Inverting the quaternion for the used grasp to cancel it out during placing, since placing considers the
+            # object orientation relative to the gripper )
+            side_grasp *= np.array([-1, -1, -1, 1])
+            self.target_location.rotate_by_quaternion(side_grasp.tolist())
+
         PlaceActionDescription(self.object_designator, self.target_location, pickup_pose.arm).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()
 
@@ -779,10 +801,10 @@ class TransportAction(ActionDescription):
     @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
-                    arm: Union[Iterable[Arms], Arms] = None) -> PartialDesignator[Type[TransportAction]]:
+                    arm: Union[Iterable[Arms], Arms] = None, place_rotation_agnostic: Optional[bool] = False) -> PartialDesignator[Type[TransportAction]]:
         return PartialDesignator(TransportAction, object_designator=object_designator,
                                  target_location=target_location,
-                                 arm=arm)
+                                 arm=arm, place_rotation_agnostic=place_rotation_agnostic)
 
 
 @has_parameters
@@ -1282,7 +1304,10 @@ class SearchAction(ActionDescription):
                 DetectActionDescription(DetectionTechnique.TYPES,
                                         object_designator=BelieveObject(types=[self.object_type]))))
 
-        return plan.perform()
+        obj = plan.perform()
+        if obj is not None:
+            return obj
+        raise PerceptionObjectNotFound(self.object_type, DetectionTechnique.TYPES, self.target_location)
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         pass

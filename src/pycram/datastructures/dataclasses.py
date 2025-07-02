@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy, copy
 from dataclasses import dataclass, fields, field
 from enum import Enum
+from typing import Iterator
 
 import numpy as np
 import plotly.graph_objects as go
@@ -19,10 +20,9 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
     deprecated, Type
 
 from pycrap.ontologies import PhysicalObject
-from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp, AxisIdentifier
+from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp
 from .pose import PoseStamped, Point, TransformStamped
 from ..ros import logwarn, logwarn_once
-from ..utils import classproperty
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
 if TYPE_CHECKING:
@@ -600,7 +600,7 @@ class BoundingBox:
         """
         if self.width > self.depth:
             logwarn_once("The width of the bounding box is greater than the depth. This means the object's"
-                         "axis alignment is potentially going against IAI conventions.")
+                         " axis alignment is potentially going against IAI conventions.")
         return [self.depth, self.width, self.height]
 
     @staticmethod
@@ -621,6 +621,25 @@ class BoundingBox:
 
         plt.show()
 
+    def as_collection(self) -> BoundingBoxCollection:
+        """
+        Convert the bounding box to a collection of bounding boxes.
+
+        :return: The bounding box as a collection
+        """
+        return BoundingBoxCollection([self])
+
+    def bloat(self, x_amount: float = 0., y_amount: float = 0, z_amount: float = 0) -> BoundingBox:
+        """
+        Enlarges the bounding box by a given amount in all dimensions.
+
+        :param x_amount: The amount to adjust minimum and maximum x-coordinates
+        :param y_amount: The amount to adjust minimum and maximum y-coordinates
+        :param z_amount: The amount to adjust minimum and maximum z-coordinates
+        :return: New enlarged bounding box
+        """
+        return self.__class__(self.min_x - x_amount, self.min_y - y_amount, self.min_z - z_amount,
+                              self.max_x + x_amount, self.max_y + y_amount, self.max_z + z_amount)
 
 @dataclass
 class AxisAlignedBoundingBox(BoundingBox):
@@ -675,6 +694,7 @@ class AxisAlignedBoundingBox(BoundingBox):
                                       self.max_x + shift.x, self.max_y + shift.y, self.max_z + shift.z)
 
 
+
 @dataclass
 class RotatedBoundingBox(BoundingBox):
     """
@@ -717,6 +737,44 @@ class RotatedBoundingBox(BoundingBox):
             transformed_points = self.transform.apply_transform_to_array_of_points(points_array).tolist()
             self._points = [Point(**dict(zip(["x", "y", "z"], point))) for point in transformed_points]
         return self._points
+
+@dataclass
+class BoundingBoxCollection:
+    """
+    Dataclass for storing a collection of bounding boxes.
+    """
+    bounding_boxes: List[BoundingBox] = field(default_factory=list)
+
+    def __iter__(self) -> Iterator[BoundingBox]:
+        return iter(self.bounding_boxes)
+
+    @property
+    def event(self) -> Event:
+        """
+        :return: The bounding boxes as a random event.
+        """
+        return Event(*[box.simple_event for box in self.bounding_boxes])
+
+    def merge(self, other: BoundingBoxCollection) -> BoundingBoxCollection:
+        """
+        Merge another bounding box collection into this one.
+
+        :param other: The other bounding box collection.
+        :return: The merged bounding box collection.
+        """
+        return BoundingBoxCollection(self.bounding_boxes + other.bounding_boxes)
+
+    def bloat(self, x_amount: float = 0., y_amount: float = 0, z_amount: float = 0) -> BoundingBoxCollection:
+        """
+        Enlarges all bounding boxes in the collection by a given amount in all dimensions.
+
+        :param x_amount: The amount to adjust the x-coordinates
+        :param y_amount: The amount to adjust the y-coordinates
+        :param z_amount: The amount to adjust the z-coordinates
+
+        :return: The enlarged bounding box collection
+        """
+        return BoundingBoxCollection([box.bloat(x_amount, y_amount, z_amount) for box in self.bounding_boxes])
 
 
 @dataclass
