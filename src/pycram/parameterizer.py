@@ -5,8 +5,8 @@ from enum import Enum
 from typing import Dict, Any, Type, List, Optional
 
 import numpy as np
-from probabilistic_model.probabilistic_circuit.nx.helper import fully_factorized
-from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
+from probabilistic_model.probabilistic_circuit.rx.helper import fully_factorized
+from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import ProbabilisticCircuit
 from probabilistic_model.probabilistic_model import ProbabilisticModel
 from random_events.interval import singleton
 from random_events.product_algebra import Event, SimpleEvent

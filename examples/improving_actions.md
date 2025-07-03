@@ -33,7 +33,7 @@ import pandas as pd
 import sqlalchemy.orm
 
 import plotly
-from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
+from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import ProbabilisticCircuit
 
 plotly.offline.init_notebook_mode()
 import plotly.graph_objects as go

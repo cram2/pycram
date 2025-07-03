@@ -14,8 +14,8 @@ from .ros import create_publisher, Duration, loginfo
 from .units import meter
 
 from pint import Quantity
-from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event
-from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
+from probabilistic_model.probabilistic_circuit.rx.helper import uniform_measure_of_event
+from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import ProbabilisticCircuit
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
 

@@ -8,8 +8,8 @@ import tqdm
 from box import Box
 from probabilistic_model.distributions import DiracDeltaDistribution, GaussianDistribution
 from probabilistic_model.distributions.helper import make_dirac
-from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event, leaf
-from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import SumUnit, ProbabilisticCircuit, \
+from probabilistic_model.probabilistic_circuit.rx.helper import uniform_measure_of_event, leaf
+from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import SumUnit, ProbabilisticCircuit, \
     ProductUnit
 from probabilistic_model.probabilistic_model import ProbabilisticModel
 from random_events.interval import closed

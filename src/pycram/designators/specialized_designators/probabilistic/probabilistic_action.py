@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from typing import Type
 
 from probabilistic_model.distributions import SymbolicDistribution
-from probabilistic_model.probabilistic_circuit.nx.helper import fully_factorized, leaf
-from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit, SumUnit, \
+from probabilistic_model.probabilistic_circuit.rx.helper import fully_factorized, leaf
+from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import ProbabilisticCircuit, SumUnit, \
     ProductUnit
 from probabilistic_model.utils import MissingDict
 from random_events.product_algebra import SimpleEvent
