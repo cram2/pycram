@@ -448,7 +448,7 @@ class BoundingBox:
         intervals = [value.simple_sets for simple_event in event.simple_sets for _, value in simple_event.items()]
         simple_events = list(itertools.product(*intervals))
 
-        # for every atomic interval
+        # for every core interval
         all_vertices = []
         all_faces = []
         for i, simple_event in enumerate(simple_events):
