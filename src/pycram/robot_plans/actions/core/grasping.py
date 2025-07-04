@@ -13,7 +13,7 @@ from pycram.datastructures.dataclasses import FrozenObject
 
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
-from pycram.designators.motion_designator import MoveGripperMotion, MoveTCPMotion
+from pycram.robot_plans.motions.motion_designator import MoveGripperMotion, MoveTCPMotion
 from pycram.datastructures.grasp import GraspDescription
 from pycram.designator import ObjectDesignatorDescription
 from pycram.failures import ObjectNotInGraspingArea

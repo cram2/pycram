@@ -11,7 +11,7 @@ from pycram.datastructures.partial_designator import PartialDesignator
 
 from typing_extensions import Union, Optional, Iterable
 
-from pycram.designators.motion_designator import MoveTCPMotion
+from pycram.robot_plans.motions.motion_designator import MoveTCPMotion
 from pycram.local_transformer import LocalTransformer
 
 from pycram.datastructures.enums import Arms

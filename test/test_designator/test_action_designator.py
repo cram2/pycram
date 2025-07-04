@@ -1,4 +1,3 @@
-import time
 import unittest
 from copy import deepcopy
 from datetime import timedelta
@@ -9,15 +8,15 @@ from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import PickUpAction, \
     NavigateAction, FaceAtAction, MoveTorsoAction, MoveTorsoActionDescription, SearchActionDescription, \
     ParkArmsActionDescription
-from pycram.designators.motion_designator import MoveGripperMotion, MoveTCPWaypointsMotion
+from pycram.robot_plans.motions.motion_designator import MoveGripperMotion, MoveTCPWaypointsMotion
 from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError, \
-    ObjectNotInGraspingArea, ObjectStillInContact, GripperIsNotOpen, NavigationGoalNotReachedError, \
-    LookAtGoalNotReached, PerceptionObjectNotFound, ContainerManipulationError
+    ObjectNotInGraspingArea, ObjectStillInContact, NavigationGoalNotReachedError, \
+    PerceptionObjectNotFound, ContainerManipulationError
 from pycram.local_transformer import LocalTransformer
 from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import PoseStamped
-from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp, DetectionTechnique, TorsoState, \
+from pycram.datastructures.enums import Arms, GripperState, Grasp, DetectionTechnique, TorsoState, \
     StaticJointState
 from pycram.testing import  BulletWorldTestCase
 import numpy as np

@@ -1,8 +1,8 @@
 from typing_extensions import Optional
 
 from ..datastructures.enums import GripperState
-from ..designators.motion_designator import MoveGripperMotion, TalkingMotion
-from ..ros import  loginfo, logwarn
+from pycram.robot_plans.motions.motion_designator import MoveGripperMotion, TalkingMotion
+from ..ros import  loginfo
 from ..ros import  create_publisher
 from ..ros import  Rate
 

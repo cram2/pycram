@@ -12,7 +12,7 @@ from pycram.datastructures.partial_designator import PartialDesignator
 
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
-from pycram.designators.motion_designator import MoveGripperMotion, OpeningMotion, ClosingMotion
+from pycram.robot_plans.motions.motion_designator import MoveGripperMotion, OpeningMotion, ClosingMotion
 from pycram.description import Joint, Link, ObjectDescription
 from pycram.failures import ContainerManipulationError
 from pycram.config.action_conf import ActionConfig

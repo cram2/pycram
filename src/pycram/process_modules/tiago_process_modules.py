@@ -1,18 +1,13 @@
-from threading import Lock
-
-import numpy as np
 from .default_process_modules import *
 
 from ..datastructures.world import World
 from ..datastructures.enums import ExecutionType, ObjectType
 from ..designator import ObjectDesignatorDescription
-from ..designators.motion_designator import MoveMotion, DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, \
-    MoveJointsMotion, MoveGripperMotion, OpeningMotion, ClosingMotion
+from pycram.robot_plans.motions.motion_designator import MoveMotion, DetectingMotion, MoveTCPMotion
 from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModuleManager, ProcessModule
-from .default_process_modules import DefaultOpen, DefaultClose, DefaultMoveGripper, DefaultMoveJoints, DefaultMoveTCP, \
-    DefaultNavigation, DefaultMoveHead, DefaultDetecting, DefaultMoveArmJoints, DefaultWorldStateDetecting, \
-    DefaultDetectingReal
+from .default_process_modules import DefaultMoveGripper, DefaultMoveTCP, \
+    DefaultNavigation, DefaultMoveHead, DefaultWorldStateDetecting
 from ..robot_description import RobotDescription
 from ..ros import logdebug
 from ..external_interfaces import giskard

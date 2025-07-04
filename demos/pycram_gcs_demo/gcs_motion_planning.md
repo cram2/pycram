@@ -32,7 +32,7 @@ from pycram.designators.action_designator import *
 from pycram.process_module import real_robot
 from pycram.external_interfaces.giskard import sync_worlds
 
-from pycram.designators.motion_designator import MoveTCPWaypointsMotion
+from pycram.robot_plans.motions import MoveTCPWaypointsMotion
 from geometry_msgs.msg import Quaternion
 
 world = BulletWorld(mode=WorldMode.GUI)

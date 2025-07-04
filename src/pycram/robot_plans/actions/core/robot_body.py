@@ -12,7 +12,7 @@ from pycram.datastructures.partial_designator import PartialDesignator
 
 from typing_extensions import Union, Optional, Type, Dict, Any, Iterable
 
-from pycram.designators.motion_designator import MoveJointsMotion, MoveGripperMotion
+from pycram.robot_plans.motions.motion_designator import MoveJointsMotion, MoveGripperMotion
 from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached
 
 from pycram.datastructures.enums import Arms, GripperState, TorsoState, StaticJointState, AxisIdentifier

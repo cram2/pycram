@@ -12,7 +12,7 @@ from pycram.datastructures.partial_designator import PartialDesignator
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from pycrap.ontologies import Location
-from pycram.designators.motion_designator import DetectingMotion
+from pycram.robot_plans.motions.motion_designator import DetectingMotion
 from pycram.failure_handling import try_action
 from pycram.failures import PerceptionObjectNotFound
 

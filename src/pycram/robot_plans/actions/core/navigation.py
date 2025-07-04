@@ -19,7 +19,7 @@ from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from pycrap.ontologies import PhysicalObject
 from pycram.designators.location_designator import CostmapLocation
-from pycram.designators.motion_designator import MoveMotion, \
+from pycram.robot_plans.motions.motion_designator import MoveMotion, \
     LookingMotion
 from pycram.datastructures.world import UseProspectionWorld
 from pycram.failure_handling import try_action

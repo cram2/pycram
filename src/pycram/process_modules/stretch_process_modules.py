@@ -1,8 +1,6 @@
 from .default_process_modules import *
-from ..datastructures.enums import JointType
 from ..datastructures.world import World
-from ..designators.motion_designator import *
-from ..external_interfaces.ik import request_giskard_ik
+from pycram.robot_plans.motions.motion_designator import *
 from ..external_interfaces.robokudo import *
 from ..robot_description import RobotDescription
 

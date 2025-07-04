@@ -14,7 +14,7 @@ from pycram.datastructures.dataclasses import FrozenObject
 
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
-from pycram.designators.motion_designator import MoveGripperMotion, MoveTCPMotion
+from pycram.robot_plans.motions.motion_designator import MoveGripperMotion, MoveTCPMotion
 from pycram.description import Link
 from pycram.failures import ObjectNotPlacedAtTargetLocation, ObjectStillInContact
 from pycram.local_transformer import LocalTransformer
