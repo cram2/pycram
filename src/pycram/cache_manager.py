@@ -61,8 +61,12 @@ class CacheManager:
                                      color: Optional[Color] = None) -> str:
         """
         Check if the file is already in the cache directory, if not preprocess and save in the cache.
+        
+        If the provided path is absolute, the file will be loaded directly from that path.
+        If the path is relative, the file will be searched for in the data directories.
 
-        :param path: The path of the file to preprocess and save in the cache directory.
+        :param path: The path of the file to preprocess and save in the cache directory. 
+                    If absolute, the file will be loaded directly. If relative, it will be searched in data directories.
         :param ignore_cached_files: If True, the file will be preprocessed and saved in the cache directory even if it
          is already cached.
         :param object_description: The object description of the file.
@@ -82,9 +86,17 @@ class CacheManager:
 
         if not self.is_cached(path, object_description) or ignore_cached_files:
             # if file is not yet cached preprocess the description file and save it in the cache directory.
-            path = self.look_for_file_in_data_dir(path_object)
-            object_description.original_path = path
-            object_description.generate_description_from_file(path, object_name, extension, cache_path,
+            if path_object.is_absolute():
+                # If the path is absolute, use it directly
+                if not path_object.exists():
+                    raise FileNotFoundError(f"File {path} does not exist")
+                file_path = str(path_object)
+            else:
+                # If the path is relative, look for it in the data directories
+                file_path = self.look_for_file_in_data_dir(path_object)
+            
+            object_description.original_path = file_path
+            object_description.generate_description_from_file(file_path, object_name, extension, cache_path,
                                                               scale_mesh, mesh_transform, color)
 
         return cache_path

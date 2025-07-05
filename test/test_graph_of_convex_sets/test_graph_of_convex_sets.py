@@ -9,7 +9,7 @@ from random_events.product_algebra import SimpleEvent
 
 from pycram.ros import loginfo
 from pycram.datastructures.pose import PoseStamped
-from pycram.datastructures.dataclasses import BoundingBox
+from pycram.datastructures.dataclasses import BoundingBox, BoundingBoxCollection
 from pycram.failures import PlanFailure
 from pycram.graph_of_convex_sets import GraphOfConvexSets, PoseOccupiedError
 from pycram.testing import BulletWorldTestCase
@@ -73,7 +73,7 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
     def test_from_world(self):
         search_space = BoundingBox(min_x=-1, max_x=1,
                                    min_y=-1, max_y=1,
-                                   min_z=0.1, max_z=1)
+                                   min_z=0.1, max_z=1).as_collection()
         gcs = GraphOfConvexSets.free_space_from_world(self.world, search_space=search_space)
         self.assertIsNotNone(gcs)
         self.assertGreater(len(gcs.nodes), 0)
@@ -100,7 +100,7 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
         search_space = BoundingBox(min_x=-1, max_x=1,
                                    min_y=-1, max_y=1,
                                    min_z=0.1, max_z=1)
-        gcs = GraphOfConvexSets.navigation_map_from_world(self.world, search_space=search_space)
+        gcs = GraphOfConvexSets.navigation_map_from_world(self.world, search_space=BoundingBoxCollection([search_space]))
         self.assertGreater(len(gcs.nodes), 0)
         self.assertGreater(len(gcs.edges), 0)
 
