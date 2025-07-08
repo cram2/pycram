@@ -1,23 +1,17 @@
 from __future__ import annotations
 
-import inspect
-from abc import ABC, abstractmethod
+import abc
 from dataclasses import dataclass, field
-from datetime import timedelta
-from typing import get_type_hints
 
-from typing_extensions import Type, List, Dict, Any, Optional, Callable, Self, Iterator
+from typing_extensions import Type, Any, Optional, Callable
 
-from pycrap.ontologies import PhysicalObject, Agent
-from pycram.datastructures.enums import ObjectType
-from pycram.datastructures.partial_designator import PartialDesignator
-from pycram.datastructures.pose import PoseStamped
-from pycram.datastructures.world import World
-from pycram.failures import PlanFailure
-from pycram.has_parameters import HasParameters
-from pycram.robot_description import RobotDescription
-from pycram.utils import bcolors
-from pycram.world_concepts.world_object import Object as WorldObject, Object
+from ...datastructures.pose import PoseStamped
+from ...datastructures.world import World
+from ...failures import PlanFailure
+from ...has_parameters import HasParameters
+from ...robot_description import RobotDescription
+from pycrap.ontologies import Agent
+
 
 def record_object_pre_perform(action):
     """
@@ -28,7 +22,6 @@ def record_object_pre_perform(action):
     # for every field in the action that is an object
     # write it to a dict mapping the OG field name to the frozen copy
     action.object_at_execution = action.object_designator.frozen_copy()
-
 
 
 @dataclass
@@ -101,4 +94,3 @@ class ActionDescription(HasParameters):
         action.robot_torso_height = World.robot.get_joint_position(
             RobotDescription.current_robot_description.torso_joint)
         action.robot_type = World.robot.obj_type
-

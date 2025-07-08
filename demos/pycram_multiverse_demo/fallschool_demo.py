@@ -10,8 +10,7 @@ from pycram.datastructures.dataclasses import Color
 from pycram.datastructures.enums import Arms
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.world import UseProspectionWorld, World
-from pycram.designators.action_designator import ParkArmsAction, MoveTorsoAction, TransportAction, NavigateAction, \
-    LookAtAction, DetectAction
+from pycram.robot_plans import *
 from pycram.designators.object_designator import BelieveObject
 from pycram.process_module import simulated_robot, with_simulated_robot, real_robot
 from pycram.ros_utils.robot_state_updater import WorldStateUpdater

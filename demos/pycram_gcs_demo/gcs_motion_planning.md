@@ -28,10 +28,10 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.ros_utils.robot_state_updater import WorldStateUpdater
 from tf.transformations import quaternion_from_matrix
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.process_module import real_robot
 from pycram.external_interfaces.giskard import sync_worlds
-
+from pycram.robot_plans import *
 from pycram.robot_plans.motions import MoveTCPWaypointsMotion
 from geometry_msgs.msg import Quaternion
 

@@ -312,7 +312,7 @@ Action Designators are used to describe high-level actions. Action Designators a
 to describe the high-level action in detail.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.datastructures.enums import Arms
 
 with simulated_robot:

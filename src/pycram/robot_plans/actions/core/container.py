@@ -1,25 +1,22 @@
-from pycram.robot_plans.actions.base import ActionDescription
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
 
-from .grasping import GraspingAction
-from pycram.has_parameters import has_parameters
-from pycram.plan import with_plan
-
-from pycram.datastructures.partial_designator import PartialDesignator
-
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
-from pycram.robot_plans.motions.motion_designator import MoveGripperMotion, OpeningMotion, ClosingMotion
-from pycram.description import Joint, Link, ObjectDescription
-from pycram.failures import ContainerManipulationError
-from pycram.config.action_conf import ActionConfig
-
-from pycram.datastructures.enums import Arms, GripperState, ContainerManipulationType
-
-from pycram.datastructures.world import World
+from .grasping import GraspingActionDescription
+from ... import OpeningMotion, ClosingMotion
+from ...motions.gripper import MoveGripperMotion
+from ....config.action_conf import ActionConfig
+from ....datastructures.enums import Arms, GripperState, ContainerManipulationType
+from ....datastructures.partial_designator import PartialDesignator
+from ....datastructures.world import World
+from ....description import Joint, Link, ObjectDescription
+from ....failures import ContainerManipulationError
+from ....has_parameters import has_parameters
+from ....plan import with_plan
+from ....robot_plans.actions.base import ActionDescription
 
 
 @has_parameters
@@ -43,7 +40,7 @@ class OpenAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        GraspingAction(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
+        GraspingActionDescription(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
         OpeningMotion(self.object_designator, self.arm).perform()
 
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
@@ -66,6 +63,7 @@ class OpenAction(ActionDescription):
                                  arm=arm,
                                  grasping_prepose_distance=grasping_prepose_distance)
 
+
 @has_parameters
 @dataclass
 class CloseAction(ActionDescription):
@@ -87,7 +85,7 @@ class CloseAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        GraspingAction(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
+        GraspingActionDescription(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
         ClosingMotion(self.object_designator, self.arm).perform()
         MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
 
@@ -143,6 +141,6 @@ def check_closed(joint_obj: Joint, obj_part: Link, arm: Arms, lower_limit: float
         raise ContainerManipulationError(World.robot, [arm], obj_part, joint_obj,
                                          ContainerManipulationType.Closing)
 
-
 OpenActionDescription = OpenAction.description
 CloseActionDescription = CloseAction.description
+

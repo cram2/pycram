@@ -22,7 +22,7 @@ Next we will create a bullet world with a PR2 in a kitchen containing milk and c
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.robot_description import RobotDescription
 from pycram.datastructures.enums import Arms, ObjectType
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.designators.object_designator import *

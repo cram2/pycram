@@ -1,1 +1,2 @@
-from motions.gripper import MoveTCPWaypointsMotion as MoveTCPWaypointsMotion
+from .actions import *
+from .motions import *

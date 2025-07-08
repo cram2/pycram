@@ -8,7 +8,7 @@ from sqlalchemy import select
 from pycram.datastructures.enums import TaskStatus
 from pycram.datastructures.pose import PoseStamped
 from pycram.designator import ObjectDesignatorDescription
-from pycram.designators.action_designator import MoveAndPickUpActionDescription, MoveAndPickUpAction
+from pycram.robot_plans import MoveAndPickUpActionDescription, MoveAndPickUpAction
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUpParameterizer
 from pycram.failures import PlanFailure
 from pycram.orm.logging_hooks import insert

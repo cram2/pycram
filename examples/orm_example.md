@@ -36,7 +36,7 @@ pycram.orm.ormatic_interface.metadata.create_all(engine)
 Next, we will write a simple plan where the robot parks its arms, moves somewhere, picks up an object, navigates somewhere else, and places it. 
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms, ObjectType, Grasp, WorldMode, TorsoState
@@ -81,7 +81,7 @@ Now we can query the database to see what we have logged. Let's say we want to s
 
 ```python
 from sqlalchemy import select
-from pycram.designators.action_designator import NavigateAction
+from pycram.robot_plans import NavigateAction
 
 navigations = session.scalars(select(NavigateAction)).all()
 print(*navigations, sep="\n")
@@ -112,7 +112,7 @@ In practice, the join would look like this:
 ```python
 from pycram.datastructures.pose import Vector3, Pose, PoseStamped
 from pycram.datastructures.dataclasses import FrozenObject
-from pycram.designators.action_designator import PickUpAction
+from pycram.robot_plans import PickUpAction
 
 object_actions = (session.scalars(select(Vector3)
                                       .join(PickUpAction.object_at_execution)
@@ -166,7 +166,7 @@ from dataclasses import dataclass
 from ormatic.utils import ORMaticExplicitMapping, classproperty
 from pycram.datastructures.enums import Arms
 from pycram.datastructures.grasp import GraspDescription
-from pycram.designators.action_designator import PickUpAction as PickUpActionDesignator
+from pycram.robot_plans import PickUpAction as PickUpActionDesignator
 from typing_extensions import Optional
 from pycram.datastructures.dataclasses import FrozenObject
 

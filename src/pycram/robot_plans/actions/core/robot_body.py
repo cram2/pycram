@@ -1,27 +1,23 @@
-from pycram.robot_plans.actions.base import ActionDescription
 from __future__ import annotations
 
 import datetime
 from dataclasses import dataclass
 from datetime import timedelta
 
-from pycram.has_parameters import has_parameters
-from pycram.plan import with_plan
-
-from pycram.datastructures.partial_designator import PartialDesignator
-
 from typing_extensions import Union, Optional, Type, Dict, Any, Iterable
 
-from pycram.robot_plans.motions.motion_designator import MoveJointsMotion, MoveGripperMotion
-from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached
-
-from pycram.datastructures.enums import Arms, GripperState, TorsoState, StaticJointState, AxisIdentifier
-
-from pycram.datastructures.pose import Vector3Stamped
-from pycram.datastructures.world import World
-
-from pycram.robot_description import RobotDescription
-from pycram.validation.goal_validator import create_multiple_joint_goal_validator
+from ....datastructures.enums import Arms, GripperState, TorsoState, StaticJointState, AxisIdentifier
+from ....datastructures.partial_designator import PartialDesignator
+from ....datastructures.pose import Vector3Stamped
+from ....datastructures.world import World
+from ....failures import TorsoGoalNotReached, ConfigurationNotReached
+from ....has_parameters import has_parameters
+from ....plan import with_plan
+from ....robot_description import RobotDescription
+from ....robot_plans.actions.base import ActionDescription
+from ....robot_plans.motions.gripper import MoveGripperMotion
+from ....robot_plans.motions.robot_body import MoveJointsMotion
+from ....validation.goal_validator import create_multiple_joint_goal_validator
 
 
 @has_parameters
@@ -59,6 +55,7 @@ class MoveTorsoAction(ActionDescription):
         Type[MoveTorsoAction]]:
         return PartialDesignator(MoveTorsoAction, torso_state=torso_state)
 
+
 @has_parameters
 @dataclass
 class SetGripperAction(ActionDescription):
@@ -95,6 +92,7 @@ class SetGripperAction(ActionDescription):
                     motion: Union[Iterable[GripperState], GripperState] = None) -> PartialDesignator[
         Type[SetGripperAction]]:
         return PartialDesignator(SetGripperAction, gripper=gripper, motion=motion)
+
 
 @has_parameters
 @dataclass
@@ -141,6 +139,7 @@ class ParkArmsAction(ActionDescription):
     @with_plan
     def description(cls, arm: Union[Iterable[Arms], Arms]) -> PartialDesignator[Type[ParkArmsAction]]:
         return PartialDesignator(cls, arm=arm)
+
 
 @has_parameters
 @dataclass
@@ -231,8 +230,8 @@ class CarryAction(ActionDescription):
         return PartialDesignator(cls, arm=arm, align=align, tip_link=tip_link, tip_axis=tip_axis,
                                  root_link=root_link, root_axis=root_axis)
 
+
 MoveTorsoActionDescription = MoveTorsoAction.description
 SetGripperActionDescription = SetGripperAction.description
 ParkArmsActionDescription = ParkArmsAction.description
-
 CarryActionDescription = CarryAction.description

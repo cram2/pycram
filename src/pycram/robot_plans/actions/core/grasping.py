@@ -1,131 +1,32 @@
-from pycram.robot_plans.actions.base import ActionDescription, record_object_pre_perform
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import timedelta
 from functools import cached_property
 
-from pycram.has_parameters import has_parameters
-from pycram.plan import with_plan
-
-from pycram.datastructures.partial_designator import PartialDesignator
-from pycram.datastructures.dataclasses import FrozenObject
-
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
-from pycram.robot_plans.motions.motion_designator import MoveGripperMotion, MoveTCPMotion
-from pycram.datastructures.grasp import GraspDescription
-from pycram.designator import ObjectDesignatorDescription
-from pycram.failures import ObjectNotInGraspingArea
-from pycram.local_transformer import LocalTransformer
-from pycram.failures import ObjectNotGraspedError
-from pycram.robot_description import EndEffectorDescription
-from pycram.config.action_conf import ActionConfig
-
-from pycram.datastructures.enums import Arms, Grasp, GripperState, MovementType, \
+from ...motions.gripper import MoveGripperMotion, MoveTCPMotion
+from ....config.action_conf import ActionConfig
+from ....datastructures.dataclasses import FrozenObject
+from ....datastructures.enums import Arms, Grasp, GripperState, MovementType, \
     Frame, FindBodyInRegionMethod
-
-from pycram.datastructures.pose import PoseStamped
-from pycram.datastructures.world import World
-
-from pycram.robot_description import RobotDescription, KinematicChainDescription
-from pycram.ros import logwarn
-from pycram.world_concepts.world_object import Object
-from pycram.world_reasoning import has_gripper_grasped_body, is_body_between_fingers
-
-
-@has_parameters
-@dataclass
-class ReleaseAction(ActionDescription):
-    """
-    Releases an Object from the robot.
-
-    Note: This action can not ve used yet.
-    """
-    object_designator: Object
-    """
-    The object that should be released
-    """
-
-    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
-    """
-    The object at the time this Action got created. It is used to be a static, information holding entity
-    """
-
-    gripper: Arms
-    """
-    The gripper that should be used to release the object
-    """
-
-    _pre_perform_callbacks = []
-    """
-    List to save the callbacks which should be called before performing the action.
-    """
-
-    def __post_init__(self):
-        super().__post_init__()
-
-        # Store the object's data copy at execution
-        self.pre_perform(record_object_pre_perform)
-
-    def plan(self) -> None:
-        raise NotImplementedError
-
-    @classmethod
-    def description(cls, object_designator: ObjectDesignatorDescription,
-                    gripper: Optional[Union[Iterable[Arms], Arms]] = None) -> PartialDesignator[
-        Type[ReleaseAction]]:
-        return PartialDesignator(ReleaseAction, object_designator=object_designator, gripper=gripper)
-
-@has_parameters
-@dataclass
-class GripAction(ActionDescription):
-    """
-    Grip an object with the robot.
-
-    Note: This action can not be used yet.
-    """
-    object_designator: Object
-    """
-    The object that should be gripped
-    """
-
-    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
-    """
-    The object at the time this Action got created. It is used to be a static, information holding entity
-    """
-
-    gripper: Arms
-    """
-    The gripper that should be used to grip the object
-    """
-
-    effort: float = None
-    """
-    The effort that should be used to grip the object
-    """
-
-    _pre_perform_callbacks = []
-    """
-    List to save the callbacks which should be called before performing the action.
-    """
-
-    def __post_init__(self):
-        super().__post_init__()
-
-        # Store the object's data copy at execution
-        self.pre_perform(record_object_pre_perform)
-
-    def plan(self) -> None:
-        raise NotImplementedError()
-
-    @classmethod
-    @with_plan
-    def description(cls, object_designator: Union[Iterable[Object], Object],
-                    gripper: Union[Iterable[Arms], Arms] = None, effort: Union[Iterable[float], float] = None, ) -> \
-            PartialDesignator[Type[GripAction]]:
-        return PartialDesignator(GripAction, object_designator=object_designator,
-                                 gripper=gripper, effort=effort)
+from ....datastructures.grasp import GraspDescription
+from ....datastructures.partial_designator import PartialDesignator
+from ....datastructures.pose import PoseStamped
+from ....datastructures.world import World
+from ....designator import ObjectDesignatorDescription
+from ....failures import ObjectNotGraspedError
+from ....failures import ObjectNotInGraspingArea
+from ....has_parameters import has_parameters
+from ....local_transformer import LocalTransformer
+from ....plan import with_plan
+from ....robot_description import EndEffectorDescription
+from ....robot_description import RobotDescription, KinematicChainDescription
+from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
+from ....ros import logwarn
+from ....world_concepts.world_object import Object
+from ....world_reasoning import has_gripper_grasped_body, is_body_between_fingers
 
 @has_parameters
 @dataclass
@@ -230,6 +131,7 @@ class ReachToPickUpAction(ActionDescription):
                                  arm=arm,
                                  grasp=grasp)
 
+
 @has_parameters
 @dataclass
 class PickUpAction(ActionDescription):
@@ -316,13 +218,14 @@ class PickUpAction(ActionDescription):
         return PartialDesignator(PickUpAction, object_designator=object_designator, arm=arm,
                                  grasp_description=grasp_description)
 
+
 @has_parameters
 @dataclass
 class GraspingAction(ActionDescription):
     """
     Grasps an object described by the given Object Designator description
     """
-    object_designator: Object# Union[Object, ObjectDescription.Link]
+    object_designator: Object  # Union[Object, ObjectDescription.Link]
     """
     Object Designator for the object that should be grasped
     """
@@ -369,9 +272,7 @@ class GraspingAction(ActionDescription):
         return PartialDesignator(GraspingAction, object_designator=object_designator, arm=arm,
                                  prepose_distance=prepose_distance)
 
-
-GraspingActionDescription = GraspingAction.description
 ReachToPickUpActionDescription = ReachToPickUpAction.description
 PickUpActionDescription = PickUpAction.description
-ReleaseActionDescription = ReleaseAction.description
-GripActionDescription = GripAction.description
+GraspingActionDescription = GraspingAction.description
+

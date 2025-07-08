@@ -10,7 +10,7 @@ from pycram.datastructures.enums import TorsoState, Arms, Grasp, DetectionTechni
 from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.pose import Vector3, Pose, PoseStamped
 from pycram.designator import ObjectDesignatorDescription, ActionDescription
-from pycram.designators.action_designator import MoveTorsoActionDescription, ParkArmsAction, \
+from pycram.robot_plans import MoveTorsoActionDescription, ParkArmsAction, \
     MoveTorsoAction, NavigateAction, PickUpAction, DetectActionDescription, DetectAction, \
     PlaceActionDescription, TransportAction, PlaceAction, LookAtAction, SetGripperAction, OpenAction, CloseAction, \
     ParkArmsActionDescription, TransportActionDescription, LookAtActionDescription, NavigateActionDescription, \

@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import registry, Session
 import pycram.datastructures.pose
 from pycram.datastructures import grasp
-from pycram.designator import ActionDescription
+from pycram.robot_plans import *
 from pycram.designators import action_designator
 from pycram.orm.casts import StringType
 from pycrap.ontologies import PhysicalObject

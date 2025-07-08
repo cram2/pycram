@@ -1,42 +1,34 @@
-from pycram.robot_plans.actions.base import ActionDescription
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
 
 import numpy as np
-
-from .misc import DetectActionDescription
-from pycram.designators.object_designator import BelieveObject
-from pycram.has_parameters import has_parameters
-from pycram.language import SequentialPlan, TryInOrderPlan
-from pycram.plan import with_plan
-
-from pycram.datastructures.partial_designator import PartialDesignator
-
-from pycram.tf_transformations import quaternion_from_euler
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
-from pycrap.ontologies import PhysicalObject
-from pycram.designators.location_designator import CostmapLocation
-from pycram.robot_plans.motions.motion_designator import MoveMotion, \
-    LookingMotion
-from pycram.datastructures.world import UseProspectionWorld
-from pycram.failure_handling import try_action
-from pycram.failures import LookAtGoalNotReached
-from pycram.local_transformer import LocalTransformer
-from pycram.failures import NavigationGoalNotReachedError, PerceptionObjectNotFound
-from pycram.config.action_conf import ActionConfig
-
-from pycram.datastructures.enums import DetectionTechnique
-
-from pycram.datastructures.pose import PoseStamped
-from pycram.datastructures.world import World
-
-from pycram.validation.error_checkers import PoseErrorChecker
-from pycram.world_reasoning import move_away_all_objects_to_create_empty_space, generate_object_at_target, \
+from ..base import ActionDescription
+from ... import LookAtActionDescription, DetectActionDescription, NavigateActionDescription
+from ...motions.navigation import MoveMotion, LookingMotion
+from ....config.action_conf import ActionConfig
+from ....datastructures.enums import DetectionTechnique
+from ....datastructures.partial_designator import PartialDesignator
+from ....datastructures.pose import PoseStamped
+from ....datastructures.world import UseProspectionWorld
+from ....datastructures.world import World
+from ....designators.location_designator import CostmapLocation
+from ....designators.object_designator import BelieveObject
+from ....failure_handling import try_action
+from ....failures import LookAtGoalNotReached
+from ....failures import NavigationGoalNotReachedError, PerceptionObjectNotFound
+from ....has_parameters import has_parameters
+from ....language import SequentialPlan, TryInOrderPlan
+from ....local_transformer import LocalTransformer
+from ....plan import with_plan
+from ....tf_transformations import quaternion_from_euler
+from ....validation.error_checkers import PoseErrorChecker
+from ....world_reasoning import move_away_all_objects_to_create_empty_space, generate_object_at_target, \
     cast_a_ray_from_camera
-
+from pycrap.ontologies import PhysicalObject
 
 @has_parameters
 @dataclass
@@ -71,6 +63,7 @@ class NavigateAction(ActionDescription):
             PartialDesignator[Type[NavigateAction]]:
         return PartialDesignator(NavigateAction, target_location=target_location,
                                  keep_joint_states=keep_joint_states)
+
 
 @has_parameters
 @dataclass
@@ -108,114 +101,13 @@ class LookAtAction(ActionDescription):
     def description(cls, target: Union[Iterable[PoseStamped], PoseStamped]) -> PartialDesignator[Type[LookAtAction]]:
         return PartialDesignator(LookAtAction, target=target)
 
-@has_parameters
-@dataclass
-class FaceAtAction(ActionDescription):
-    """
-    Turn the robot chassis such that is faces the ``pose`` and after that perform a look at action.
-    """
 
-    pose: PoseStamped
-    """
-    The pose to face 
-    """
-    keep_joint_states: bool = ActionConfig.face_at_keep_joint_states
-    """
-    Keep the joint states of the robot the same during the navigation.
-    """
 
-    def plan(self) -> None:
-        # get the robot position
-        robot_position = World.robot.pose
 
-        # calculate orientation for robot to face the object
-        angle = np.arctan2(robot_position.position.y - self.pose.position.y,
-                           robot_position.position.x - self.pose.position.x) + np.pi
-        orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
-
-        # create new robot pose
-        new_robot_pose = PoseStamped.from_list(robot_position.position.to_list(), orientation)
-
-        # turn robot
-        NavigateAction(new_robot_pose, self.keep_joint_states).perform()
-
-        # look at target
-        LookAtAction(self.pose).perform()
-
-    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        # The validation will be done in the LookAtActionPerformable.perform() method so no need to validate here.
-        pass
-
-    @classmethod
-    @with_plan
-    def description(cls, pose: Union[Iterable[PoseStamped], PoseStamped],
-                    keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.face_at_keep_joint_states) -> \
-            PartialDesignator[Type[FaceAtAction]]:
-        return PartialDesignator(FaceAtAction, pose=pose, keep_joint_states=keep_joint_states)
-
-@has_parameters
-@dataclass
-class SearchAction(ActionDescription):
-    """
-    Searches for a target object around the given location.
-    """
-
-    target_location: PoseStamped
-    """
-    Location around which to look for a target object.
-    """
-
-    object_type: Type[PhysicalObject]
-    """
-    Type of the object which is searched for.
-    """
-
-    def plan(self) -> None:
-        NavigateActionDescription(
-            CostmapLocation(target=self.target_location, visible_for=World.robot)).resolve().perform()
-
-        lt = LocalTransformer()
-        target_base = lt.transform_pose(self.target_location, World.robot.tf_frame)
-
-        target_base_left = target_base.copy()
-        target_base_left.pose.position.y -= 0.5
-
-        target_base_right = target_base.copy()
-        target_base_right.pose.position.y += 0.5
-
-        plan = TryInOrderPlan(
-            SequentialPlan(
-                LookAtActionDescription(target_base_left),
-                DetectActionDescription(DetectionTechnique.TYPES,
-                                        object_designator=BelieveObject(types=[self.object_type]))),
-            SequentialPlan(
-                LookAtActionDescription(target_base_right),
-                DetectActionDescription(DetectionTechnique.TYPES,
-                                        object_designator=BelieveObject(types=[self.object_type]))),
-            SequentialPlan(
-                LookAtActionDescription(target_base),
-                DetectActionDescription(DetectionTechnique.TYPES,
-                                        object_designator=BelieveObject(types=[self.object_type]))))
-
-        obj = plan.perform()
-        if obj is not None:
-            return obj
-        raise PerceptionObjectNotFound(self.object_type, DetectionTechnique.TYPES, self.target_location)
-
-    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        pass
-
-    @classmethod
-    @with_plan
-    def description(cls, target_location: Union[Iterable[PoseStamped], PoseStamped],
-                    object_type: Union[Iterable[PhysicalObject], PhysicalObject]) -> PartialDesignator[
-        Type[SearchAction]]:
-        return PartialDesignator(SearchAction, target_location=target_location, object_type=object_type)
 
 
 NavigateActionDescription = NavigateAction.description
-
 LookAtActionDescription = LookAtAction.description
-FaceAtActionDescription = FaceAtAction.description
 
-SearchActionDescription = SearchAction.description
+
+

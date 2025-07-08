@@ -1,34 +1,29 @@
-from pycram.robot_plans.actions.base import ActionDescription, record_object_pre_perform
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import timedelta
 from functools import cached_property
 
-from ...designators.actions_refactored.navigation import NavigateAction, FaceAtAction
-from pycram.has_parameters import has_parameters
-from pycram.plan import with_plan
-
-from pycram.datastructures.partial_designator import PartialDesignator
-from pycram.datastructures.dataclasses import FrozenObject
-
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
-from pycram.robot_plans.motions.motion_designator import MoveGripperMotion, MoveTCPMotion
-from pycram.description import Link
-from pycram.failures import ObjectNotPlacedAtTargetLocation, ObjectStillInContact
-from pycram.local_transformer import LocalTransformer
-from pycram.robot_description import EndEffectorDescription
-from pycram.config.action_conf import ActionConfig
-
-from pycram.datastructures.enums import Arms, GripperState
-
-from pycram.datastructures.pose import PoseStamped
-from pycram.datastructures.world import World
-
-from pycram.robot_description import RobotDescription, KinematicChainDescription
-from pycram.validation.error_checkers import PoseErrorChecker
-from pycram.world_concepts.world_object import Object
+from ... import MoveAndPlaceActionDescription, NavigateActionDescription, FaceAtActionDescription
+from ...motions.gripper import MoveTCPMotion, MoveGripperMotion
+from ....config.action_conf import ActionConfig
+from ....datastructures.dataclasses import FrozenObject
+from ....datastructures.enums import Arms, GripperState
+from ....datastructures.partial_designator import PartialDesignator
+from ....datastructures.pose import PoseStamped
+from ....datastructures.world import World
+from ....description import Link
+from ....failures import ObjectNotPlacedAtTargetLocation, ObjectStillInContact
+from ....has_parameters import has_parameters
+from ....local_transformer import LocalTransformer
+from ....plan import with_plan
+from ....robot_description import EndEffectorDescription
+from ....robot_description import RobotDescription, KinematicChainDescription
+from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
+from ....validation.error_checkers import PoseErrorChecker
+from ....world_concepts.world_object import Object
 
 
 @has_parameters
@@ -132,60 +127,6 @@ class PlaceAction(ActionDescription):
                                  target_location=target_location,
                                  arm=arm)
 
-@has_parameters
-@dataclass
-class MoveAndPlaceAction(ActionDescription):
-    """
-    Navigate to `standing_position`, then turn towards the object and pick it up.
-    """
 
-    standing_position: PoseStamped
-    """
-    The pose to stand before trying to pick up the object
-    """
-
-    object_designator: Object
-    """
-    The object to pick up
-    """
-
-    target_location: PoseStamped
-    """
-    The location to place the object.
-    """
-
-    arm: Arms
-    """
-    The arm to use
-    """
-
-    keep_joint_states: bool = ActionConfig.navigate_keep_joint_states
-    """
-    Keep the joint states of the robot the same during the navigation.
-    """
-
-    def plan(self):
-        NavigateAction(self.standing_position, self.keep_joint_states).perform()
-        FaceAtAction(self.target_location, self.keep_joint_states).perform()
-        PlaceAction(self.object_designator, self.target_location, self.arm).perform()
-
-    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        # The validation will be done in each of the core action perform methods so no need to validate here.
-        pass
-
-    @classmethod
-    @with_plan
-    def description(cls, standing_position: Union[Iterable[PoseStamped], PoseStamped],
-                    object_designator: Union[Iterable[Object], Object],
-                    target_location: Union[Iterable[PoseStamped], PoseStamped],
-                    arm: Union[Iterable[Arms], Arms] = None,
-                    keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states, ) -> \
-            PartialDesignator[Type[MoveAndPlaceAction]]:
-        return PartialDesignator(MoveAndPlaceAction,
-                                 standing_position=standing_position,
-                                 object_designator=object_designator,
-                                 target_location=target_location,
-                                 arm=arm)
 
 PlaceActionDescription = PlaceAction.description
-MoveAndPlaceActionDescription = MoveAndPlaceAction.description

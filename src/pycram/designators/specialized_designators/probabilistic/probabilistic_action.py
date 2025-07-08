@@ -13,7 +13,7 @@ from random_events.variable import Symbolic, Continuous
 from sqlalchemy import select
 from typing_extensions import Optional, List
 
-from ...action_designator import MoveAndPickUpAction
+from ....robot_plans import MoveAndPickUpAction
 from ....datastructures.dataclasses import BoundingBox
 from ....datastructures.enums import Arms, Grasp
 from ....datastructures.grasp import GraspDescription

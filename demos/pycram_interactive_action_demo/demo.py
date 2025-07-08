@@ -5,11 +5,10 @@ from pycram.failures import PlanFailure
 from pycram.process_module import simulated_robot
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
-from pycram.designators.action_designator import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import WorldMode
 from pycrap.ontologies import Apartment, Robot, Milk
-
+from pycram.robot_plans import *
 world = BulletWorld(WorldMode.GUI)
 
 pr2 = Object("pr2", Robot, "pr2.urdf", pose=PoseStamped.from_list([1, 2, 0]))

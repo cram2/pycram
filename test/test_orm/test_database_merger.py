@@ -5,7 +5,7 @@ import sqlalchemy
 # import pycram.orm.base
 import pycram.orm.utils
 
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms, ObjectType, WorldMode

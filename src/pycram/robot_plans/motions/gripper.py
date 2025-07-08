@@ -1,20 +1,13 @@
 from dataclasses import dataclass
-from pycrap.ontologies import PhysicalObject, Location
-from pycram.designators.object_designator import ObjectDesignatorDescription, ObjectPart
-from pycram.datastructures.enums import MovementType, WaypointsMovementType
-from pycram.failure_handling import try_motion
-from pycram.failures import PerceptionObjectNotFound, ToolPoseNotReachedError
-from pycram.object_descriptors.urdf import LinkDescription, ObjectDescription
-from pycram.plan import with_plan
-from pycram.process_module import ProcessModuleManager
-from pycram.datastructures.enums import ObjectType, Arms, GripperState, ExecutionType, DetectionTechnique, DetectionState
+from typing import Optional, Dict, List
 
-from typing_extensions import Dict, Optional, Type, List
-from pycram.datastructures.pose import PoseStamped, Vector3Stamped
-from pycram.designator import BaseMotion
-from pycram.world_concepts.world_object import Object
-from pycram.external_interfaces.robokudo import robokudo_found
-
+from .base import BaseMotion
+from ...datastructures.enums import Arms, GripperState, MovementType, WaypointsMovementType
+from ...datastructures.pose import PoseStamped
+from ...failure_handling import try_motion
+from ...failures import ToolPoseNotReachedError
+from ...plan import with_plan
+from ...process_module import ProcessModuleManager
 
 
 @with_plan
@@ -36,6 +29,7 @@ class MoveArmJointsMotion(BaseMotion):
     def perform(self):
         pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.move_arm_joints().execute(self)
+
 
 @with_plan
 @dataclass
@@ -60,15 +54,6 @@ class MoveGripperMotion(BaseMotion):
     def perform(self):
         pm_manager = ProcessModuleManager().get_manager()
         return pm_manager.move_gripper().execute(self)
-
-    def __str__(self):
-        return (f"MoveGripperMotion:\n"
-                f"Motion: {self.motion}\n"
-                f"Gripper: {self.gripper}\n"
-                f"AllowGripperCollision: {self.allow_gripper_collision}")
-
-    def __repr__(self):
-        return self.__str__()
 
 
 @with_plan
@@ -99,16 +84,6 @@ class MoveTCPMotion(BaseMotion):
         pm_manager = ProcessModuleManager().get_manager()
         try_motion(pm_manager.move_tcp(), self, ToolPoseNotReachedError)
 
-    def __str__(self):
-        return (f"MoveTCPMotion:\n"
-                f"Target: {self.target}\n"
-                f"Arm: {self.arm}\n"
-                f"AllowGripperCollision: {self.allow_gripper_collision}\n"
-                f"MovementType: {self.movement_type}")
-
-    def __repr__(self):
-        return self.__str__()
-
 
 @with_plan
 @dataclass
@@ -137,13 +112,3 @@ class MoveTCPWaypointsMotion(BaseMotion):
     def perform(self):
         pm_manager = ProcessModuleManager().get_manager()
         pm_manager.move_tcp_waypoints().execute(self)
-
-    def __str__(self):
-        return (f"MoveTCPWaypointsMotion:\n"
-                f"Waypoints: {self.waypoints}\n"
-                f"Arm: {self.arm}\n"
-                f"AllowGripperCollision: {self.allow_gripper_collision}\n"
-                f"MovementType: {self.movement_type}")
-
-    def __repr__(self):
-        return self.__str__()
