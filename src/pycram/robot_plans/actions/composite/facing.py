@@ -3,14 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
 
+import numpy as np
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from config.action_conf import ActionConfig
-from pycrap.ontologies import World
-from ..core.navigation import LookAtActionDescription
-from ... import NavigateActionDescription
+
+from ..core.navigation import LookAtActionDescription,NavigateActionDescription
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
+from ....datastructures.world import World
 from ....has_parameters import has_parameters
 from ....plan import with_plan
 from ....robot_plans.actions.base import ActionDescription

@@ -7,28 +7,20 @@ import numpy as np
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from ..base import ActionDescription
-from ... import LookAtActionDescription, DetectActionDescription, NavigateActionDescription
 from ...motions.navigation import MoveMotion, LookingMotion
 from ....config.action_conf import ActionConfig
-from ....datastructures.enums import DetectionTechnique
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
 from ....datastructures.world import UseProspectionWorld
 from ....datastructures.world import World
-from ....designators.location_designator import CostmapLocation
-from ....designators.object_designator import BelieveObject
 from ....failure_handling import try_action
 from ....failures import LookAtGoalNotReached
-from ....failures import NavigationGoalNotReachedError, PerceptionObjectNotFound
+from ....failures import NavigationGoalNotReachedError
 from ....has_parameters import has_parameters
-from ....language import SequentialPlan, TryInOrderPlan
-from ....local_transformer import LocalTransformer
 from ....plan import with_plan
-from ....tf_transformations import quaternion_from_euler
 from ....validation.error_checkers import PoseErrorChecker
 from ....world_reasoning import move_away_all_objects_to_create_empty_space, generate_object_at_target, \
     cast_a_ray_from_camera
-from pycrap.ontologies import PhysicalObject
 
 @has_parameters
 @dataclass

@@ -6,9 +6,7 @@ from functools import cached_property
 
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
-from ... import MoveAndPlaceActionDescription, NavigateActionDescription, FaceAtActionDescription
 from ...motions.gripper import MoveTCPMotion, MoveGripperMotion
-from ....config.action_conf import ActionConfig
 from ....datastructures.dataclasses import FrozenObject
 from ....datastructures.enums import Arms, GripperState
 from ....datastructures.partial_designator import PartialDesignator

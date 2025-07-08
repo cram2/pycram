@@ -8,7 +8,7 @@ from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from config.action_conf import ActionConfig
 from .facing import FaceAtActionDescription
-from ... import ParkArmsActionDescription, NavigateActionDescription, PickUpActionDescription, PlaceActionDescription, \
+from ..core import ParkArmsActionDescription, NavigateActionDescription, PickUpActionDescription, PlaceActionDescription, \
     PlaceAction
 from ....datastructures.dataclasses import FrozenObject
 from ....datastructures.enums import Arms, Grasp
@@ -23,6 +23,7 @@ from ....plan import with_plan
 from ....robot_description import RobotDescription
 from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
 from ....world_concepts.world_object import Object
+from ....datastructures.world import World
 
 
 @has_parameters

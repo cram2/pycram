@@ -7,8 +7,7 @@ from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from pycrap.ontologies import PhysicalObject
 from ..core.misc import DetectActionDescription
-from ..core.navigation import LookAtActionDescription
-from ... import  NavigateActionDescription
+from ..core.navigation import LookAtActionDescription, NavigateActionDescription
 from ....datastructures.enums import DetectionTechnique
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
@@ -20,6 +19,7 @@ from ....language import TryInOrderPlan, SequentialPlan
 from ....local_transformer import LocalTransformer
 from ....plan import with_plan
 from ....robot_plans.actions.base import ActionDescription
+from ....datastructures.world import World
 
 
 @has_parameters
