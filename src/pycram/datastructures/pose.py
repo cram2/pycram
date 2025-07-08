@@ -515,7 +515,7 @@ class PoseStamped(HasParameters):
 
     @staticmethod
     def calculate_closest_faces(pose_to_robot_vector: Vector3,
-                                specified_grasp_axis: Optional[AxisIdentifier] = None) \
+                                specified_grasp_axis: AxisIdentifier = AxisIdentifier.Undefined) \
             -> Union[Tuple[ApproachDirection, ApproachDirection], Tuple[VerticalAlignment, VerticalAlignment]]:
         """
         Determines the faces of the object based on the input vector.

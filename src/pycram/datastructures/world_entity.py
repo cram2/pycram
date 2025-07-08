@@ -12,7 +12,7 @@ from typing_extensions import TYPE_CHECKING, Dict, Optional, List, deprecated, U
 from pycrap.ontologies import PhysicalObject, Room, Location, Robot, Floor
 from .dataclasses import State, ContactPointsList, ClosestPointsList, Color, PhysicalBodyState, \
     AxisAlignedBoundingBox, RotatedBoundingBox, RayResult
-from .enums import AdjacentBodyMethod, AxisIdentifier, Arms, Grasp
+from .enums import AdjacentBodyMethod, AxisIdentifier, Arms, Grasp, VerticalAlignment
 from .mixins import HasConcept
 from ..local_transformer import LocalTransformer
 from ..ros import Time, logdebug
@@ -605,7 +605,7 @@ class PhysicalBody(WorldEntity):
         if self.ontology_concept.has_preferred_alignment[0].has_rim_grasp[0].value:
             approach_axis = end_effector.get_approach_axis()
             approach_direction = grasp.approach_direction
-            rim_direction = GraspDescription(approach_direction, None, False)
+            rim_direction = GraspDescription(approach_direction, VerticalAlignment.NoAlignment, False)
             rim_direction_index = approach_direction.value[0].value.index(1)
             rim_offset = self.get_rotated_bounding_box().dimensions[rim_direction_index] / 2
             grasp_pose.rotate_by_quaternion(end_effector.grasps[rim_direction])
