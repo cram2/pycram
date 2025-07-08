@@ -6,7 +6,7 @@ from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
 from ..robot_description import RobotDescription
 from ..process_module import ProcessModule
 from ..local_transformer import LocalTransformer
-from pycram.robot_plans.motions.motion_designator import *
+from pycram.robot_plans import *
 from ..external_interfaces import giskard
 from ..ros import  logdebug
 try:

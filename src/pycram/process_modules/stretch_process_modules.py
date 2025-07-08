@@ -1,6 +1,6 @@
 from .default_process_modules import *
 from ..datastructures.world import World
-from pycram.robot_plans.motions.motion_designator import *
+from pycram.robot_plans import *
 from ..external_interfaces.robokudo import *
 from ..robot_description import RobotDescription
 

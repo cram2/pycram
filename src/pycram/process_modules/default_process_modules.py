@@ -4,8 +4,9 @@ from scipy.spatial.transform import Rotation as R
 
 from pycrap.urdf_parser import parse_furniture
 from ..datastructures.dataclasses import Colors
+from ..datastructures.enums import ExecutionType
 from ..datastructures.world import World
-from pycram.robot_plans.motions.motion_designator import *
+from pycram.robot_plans import *
 from ..external_interfaces import giskard
 from ..external_interfaces.ik import request_ik
 from ..external_interfaces.robokudo import query_all_objects, query_object, query_human, query_specific_region, \

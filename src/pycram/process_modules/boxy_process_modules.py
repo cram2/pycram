@@ -1,6 +1,6 @@
 from .default_process_modules import *
 from .. import world_reasoning as btr
-from pycram.robot_plans.motions.motion_designator import *
+from pycram.robot_plans import *
 from ..datastructures.enums import StaticJointState
 
 from ..datastructures.world import World

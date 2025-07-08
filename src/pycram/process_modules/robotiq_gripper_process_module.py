@@ -3,7 +3,7 @@ from typing_extensions import Any
 from .default_process_modules import *
 from ..datastructures.enums import GripperState, ExecutionType
 from ..datastructures.world import World
-from pycram.robot_plans.motions.motion_designator import MoveGripperMotion
+from pycram.robot_plans import MoveGripperMotion
 from ..process_module import ProcessModuleManager
 from ..robot_descriptions.ur5e_controlled_description import data as ur5e_data
 from ..ros import create_publisher
