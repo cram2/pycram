@@ -24,7 +24,7 @@ from typing_extensions import List, Union, Iterable, Optional, Iterator, Dict, T
 from ..config.action_conf import ActionConfig
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap, Costmap
 from ..datastructures.dataclasses import BoundingBox, AxisAlignedBoundingBox, Color, BoundingBoxCollection
-from ..datastructures.enums import JointType, Arms, Grasp
+from ..datastructures.enums import JointType, Arms, Grasp, ApproachDirection, VerticalAlignment
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.pose import PoseStamped, GraspDescription, GraspPose, Vector3
 from ..datastructures.world import World, UseProspectionWorld
@@ -425,7 +425,7 @@ class AccessingLocation(LocationDesignatorDescription):
                         continue
 
                     for arm_chain in test_robot.robot_description.get_manipulator_chains():
-                        grasp = arm_chain.end_effector.grasps[GraspDescription(Grasp.FRONT, None, False)]
+                        grasp = arm_chain.end_effector.grasps[GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)]
                         current_target_sequence = [pose.copy() for pose in target_sequence]
                         [pose.rotate_by_quaternion(grasp) for pose in current_target_sequence]
 

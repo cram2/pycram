@@ -18,7 +18,7 @@ from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp, DetectionTechnique, TorsoState, \
-    StaticJointState
+    StaticJointState, ApproachDirection, VerticalAlignment
 from pycram.testing import  BulletWorldTestCase
 import numpy as np
 from pycrap.ontologies import Milk
@@ -83,7 +83,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_reach_to_pick_up(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        grasp_description = GraspDescription(Grasp.FRONT, None, False)
+        grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
         performable = action_designator.ReachToPickUpAction(object_description.resolve(),
                                                                   Arms.LEFT, grasp_description)
         self.assertEqual(performable.object_designator.name, "milk")
@@ -97,7 +97,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_pick_up(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        grasp_description = GraspDescription(Grasp.FRONT, None, False)
+        grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
         description = action_designator.PickUpActionDescription(object_description, [Arms.LEFT], [grasp_description])
         self.assertEqual(description.resolve().object_designator.name, "milk")
         with simulated_robot:
@@ -116,7 +116,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
             MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
-            grasp_description = GraspDescription(Grasp.FRONT, None, False)
+            grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
             PickUpAction(object_description.resolve(), Arms.LEFT, grasp_description).perform()
             self._test_validate_action_pre_perform(description, ObjectStillInContact)
             description.resolve().perform()

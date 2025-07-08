@@ -7,7 +7,7 @@ from pycram.testing import BulletWorldTestCase
 from pycram.designators.action_designator import PickUpAction, PickUpAction, SetGripperAction, \
     MoveTorsoAction, NavigateAction, MoveTorsoActionDescription, NavigateActionDescription, PickUpActionDescription
 from pycram.designators.object_designator import BelieveObject
-from pycram.datastructures.enums import Arms, Grasp, GripperState, TorsoState
+from pycram.datastructures.enums import Arms, Grasp, GripperState, TorsoState, ApproachDirection, VerticalAlignment
 from pycrap.ontologies import Milk
 from pycram.utils import is_iterable, lazy_product
 from pycram.process_module import simulated_robot
@@ -28,7 +28,7 @@ class TestPartialDesignator(BulletWorldTestCase):
 
     def test_partial_desig_call(self):
         partial_desig =  PartialDesignator(PickUpAction, None, arm=Arms.RIGHT)
-        grasp_description = GraspDescription(Grasp.FRONT, None, False)
+        grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
         new_partial_desig = partial_desig(grasp_description=grasp_description)
         self.assertEqual(new_partial_desig.performable, PickUpAction)
         self.assertEqual({"arm": Arms.RIGHT, "grasp_description": grasp_description, "object_designator": None}, new_partial_desig.kwargs)
@@ -38,7 +38,7 @@ class TestPartialDesignator(BulletWorldTestCase):
         missing_params = partial_desig.missing_parameter()
         self.assertTrue("object_designator" in missing_params and "grasp_description" in missing_params)
 
-        grasp_description = GraspDescription(Grasp.FRONT, None, False)
+        grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
         new_partial = partial_desig(grasp_description=grasp_description)
         missing_params = new_partial.missing_parameter()
         self.assertEqual(['object_designator'], missing_params)
@@ -62,8 +62,8 @@ class TestPartialDesignator(BulletWorldTestCase):
         test_object = BelieveObject(names=["milk"])
         test_object_resolved = test_object.resolve()
         partial_desig =  PartialDesignator(PickUpAction, test_object, arm=[Arms.RIGHT, Arms.LEFT])
-        grasp_description_front = GraspDescription(Grasp.FRONT, None, False)
-        grasp_description_top = GraspDescription(Grasp.FRONT, None, False)
+        grasp_description_front = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
+        grasp_description_top = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
         performables = list(partial_desig(grasp_description=[grasp_description_front,grasp_description_top]))
         self.assertEqual(4, len(performables))
         self.assertTrue(all([isinstance(p, PickUpAction) for p in performables]))
@@ -95,7 +95,7 @@ class TestPartialActions(BulletWorldTestCase):
 
     def test_partial_pickup_action(self):
         milk_desig = BelieveObject(names=["milk"])
-        grasp_description = GraspDescription(Grasp.FRONT, None, False)
+        grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
         pick = PickUpActionDescription(milk_desig, [Arms.LEFT, Arms.RIGHT], grasp_description)
         pick_action = pick.resolve()
         self.assertEqual(pick_action.object_designator.obj_type, Milk)
@@ -104,7 +104,7 @@ class TestPartialActions(BulletWorldTestCase):
 
     def test_partial_pickup_action_insert_param(self):
         milk_desig = BelieveObject(names=["milk"])
-        grasp_description = GraspDescription(Grasp.FRONT, None, False)
+        grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
         pick = PickUpActionDescription(milk_desig, [Arms.LEFT, Arms.RIGHT]).root.designator_ref
         pick_action = pick(grasp_description=grasp_description).resolve()
         self.assertEqual(pick_action.grasp_description, grasp_description)

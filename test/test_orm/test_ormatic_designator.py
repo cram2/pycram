@@ -6,7 +6,7 @@ from sqlalchemy.orm import registry, Session
 
 from pycram.datastructures.dataclasses import FrozenObject, Color
 from pycram.datastructures.enums import TorsoState, Arms, Grasp, DetectionTechnique, DetectionState, GripperState, \
-    WorldMode
+    WorldMode, ApproachDirection, VerticalAlignment
 from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.pose import Vector3, Pose, PoseStamped
 from pycram.designator import ObjectDesignatorDescription, ActionDescription
@@ -63,7 +63,7 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
             plan = SequentialPlan(
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
                 MoveTorsoActionDescription(TorsoState.HIGH),
-                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(Grasp.FRONT, None, False)),
+                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)),
                 description)
             plan.perform()
         return plan
@@ -139,7 +139,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
                 ParkArmsActionDescription(Arms.BOTH),
                 PickUpActionDescription(object_description.resolve(), Arms.LEFT,
-                                        GraspDescription(Grasp.FRONT, None, False)),
+                                        GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)),
                 NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1]), True),
                 PlaceActionDescription(object_description.resolve(),
                                        PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
@@ -178,7 +178,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
             sp = SequentialPlan(
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
                 ParkArmsActionDescription(Arms.BOTH),
-                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(Grasp.FRONT, None, False)),
+                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)),
                 NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1]), True),
                 PlaceActionDescription(object_description.resolve(), PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
                             Arms.LEFT))
@@ -273,7 +273,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
     def test_type_casting(self):
         object_description = ObjectDesignatorDescription(names=["milk"], types=[Milk])
         action = PickUpActionDescription(object_description.resolve(), Arms.LEFT,
-                                GraspDescription(Grasp.FRONT, None, False))
+                                GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False))
         with simulated_robot:
             sp = SequentialPlan(
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
@@ -297,7 +297,7 @@ class RelationalAlgebraTestCase(ORMaticBaseTestCaseMixin):
             sp = SequentialPlan(
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
                 ParkArmsActionDescription(Arms.BOTH),
-                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(Grasp.FRONT, None, False)),
+                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)),
                 NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1]), True),
                 PlaceActionDescription(object_description.resolve(), PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
                                        Arms.LEFT))

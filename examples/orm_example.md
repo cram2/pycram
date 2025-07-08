@@ -61,7 +61,7 @@ with simulated_robot:
     sp = SequentialPlan(
         NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
         ParkArmsActionDescription(Arms.BOTH),
-        PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(Grasp.FRONT, None, False)),
+        PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)),
         NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1]), True),
         PlaceActionDescription(object_description.resolve(), PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
                                Arms.LEFT))
