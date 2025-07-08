@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from .grasping import GraspingActionDescription
-from ... import OpeningMotion, ClosingMotion
+from ...motions.container import OpeningMotion, ClosingMotion
 from ...motions.gripper import MoveGripperMotion
 from ....config.action_conf import ActionConfig
 from ....datastructures.enums import Arms, GripperState, ContainerManipulationType
