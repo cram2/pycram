@@ -12,7 +12,7 @@ from typing_extensions import Any
 
 from .. import utils
 from .motion_designator import MoveTCPMotion
-from ..datastructures.enums import Arms, Grasp, AxisIdentifier
+from ..datastructures.enums import Arms, AxisIdentifier, ApproachDirection, VerticalAlignment
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.pose import PoseStamped
 from ..datastructures.world import World
@@ -161,7 +161,7 @@ class PouringAction(GAP):
         lt = LocalTransformer()
         gripper_frame = World.robot.get_link_tf_frame("base_link")
         grasp_rot = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.get_grasp(
-            Grasp.FRONT, None, False)
+            ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
 
         pose = lt.transform_pose(self.object_.pose, gripper_frame)
         pose.pose.position.x += 0.009

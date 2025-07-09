@@ -4,12 +4,13 @@ import copy
 import datetime
 import math
 from dataclasses import dataclass, field, fields
+from typing import Union
 
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from typing_extensions import Self, Tuple, Optional, List, TYPE_CHECKING, Any
 
-from .enums import AxisIdentifier, Arms, Grasp
+from .enums import AxisIdentifier, Arms, Grasp, ApproachDirection, VerticalAlignment
 from .grasp import GraspDescription, PreferredGraspAlignment
 from ..has_parameters import has_parameters, HasParameters
 from ..ros import Time as ROSTime
@@ -514,8 +515,8 @@ class PoseStamped(HasParameters):
 
     @staticmethod
     def calculate_closest_faces(pose_to_robot_vector: Vector3,
-                                specified_grasp_axis: Optional[AxisIdentifier] = None) -> Tuple[
-        GraspDescription, GraspDescription]:
+                                specified_grasp_axis: AxisIdentifier = AxisIdentifier.Undefined) \
+            -> Union[Tuple[ApproachDirection, ApproachDirection], Tuple[VerticalAlignment, VerticalAlignment]]:
         """
         Determines the faces of the object based on the input vector.
 
@@ -533,7 +534,7 @@ class PoseStamped(HasParameters):
         """
         all_axes = [AxisIdentifier.X, AxisIdentifier.Y, AxisIdentifier.Z]
 
-        if specified_grasp_axis:
+        if not specified_grasp_axis == AxisIdentifier.Undefined:
             valid_axes = [specified_grasp_axis]
         else:
             valid_axes = [axis for axis in all_axes if
@@ -543,18 +544,24 @@ class PoseStamped(HasParameters):
         sorted_axes = sorted(valid_axes, key=lambda axis: abs(object_to_robot_vector[axis.value.index(1)]),
                              reverse=True)
 
-        primary_axis = sorted_axes[0]
+        primary_axis: AxisIdentifier = sorted_axes[0]
         primary_sign = int(np.sign(object_to_robot_vector[primary_axis.value.index(1)]))
-        primary_face = Grasp.from_axis_direction(primary_axis, primary_sign)
+        if primary_axis == AxisIdentifier.Z:
+            primary_face = VerticalAlignment.from_axis_direction(primary_axis, primary_sign)
+        else:
+            primary_face = ApproachDirection.from_axis_direction(primary_axis, primary_sign)
 
         if len(sorted_axes) > 1:
-            secondary_axis = sorted_axes[1]
+            secondary_axis: AxisIdentifier = sorted_axes[1]
             secondary_sign = int(np.sign(object_to_robot_vector[secondary_axis.value.index(1)]))
-            secondary_face = Grasp.from_axis_direction(secondary_axis, secondary_sign)
         else:
+            secondary_axis: AxisIdentifier = primary_axis
             secondary_sign = -primary_sign
-            secondary_axis = primary_axis
-            secondary_face = Grasp.from_axis_direction(secondary_axis, secondary_sign)
+
+        if secondary_axis == AxisIdentifier.Z:
+            secondary_face = VerticalAlignment.from_axis_direction(secondary_axis, secondary_sign)
+        else:
+            secondary_face = ApproachDirection.from_axis_direction(secondary_axis, secondary_sign)
 
         return primary_face, secondary_face
 
@@ -565,6 +572,7 @@ class PoseStamped(HasParameters):
         taking into account the self's orientation, position, and whether the gripper should be rotated by 90°.
 
         :param robot: The robot for which the grasp configurations are being calculated.
+        :param grasp_alignment: An optional PreferredGraspAlignment object that specifies preferred grasp axis,
 
         :return: A sorted list of GraspDescription instances representing all grasp permutations.
         """
@@ -577,7 +585,7 @@ class PoseStamped(HasParameters):
             vertical = grasp_alignment.with_vertical_alignment
             rotated_gripper = grasp_alignment.with_rotated_gripper
         else:
-            side_axis, vertical, rotated_gripper = None, False, False
+            side_axis, vertical, rotated_gripper = AxisIdentifier.Undefined, False, False
 
         object_to_robot_vector_world = objectTmap.position.vector_to_position(robot_pose.position)
         orientation = objectTmap.orientation.to_list()
@@ -592,7 +600,10 @@ class PoseStamped(HasParameters):
         side_faces = self.calculate_closest_faces(vector_side, side_axis)
 
         vector_vertical = Vector3(np.nan, np.nan, vector_z)
-        vertical_faces = self.calculate_closest_faces(vector_vertical) if vertical else [None]
+        if vertical:
+            vertical_faces = self.calculate_closest_faces(vector_vertical)
+        else:
+            vertical_faces = [VerticalAlignment.NoAlignment]
 
         grasp_configs = [
             GraspDescription(approach_direction=side, vertical_alignment=top_face, rotate_gripper=rotated_gripper)

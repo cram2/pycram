@@ -1,4 +1,4 @@
----
+from pycram.datastructures.enums import ApproachDirectionfrom pycram.datastructures.enums import VerticalAlignmentfrom pycram.datastructures.enums import VerticalAlignment---
 jupyter:
   jupytext:
     text_representation:
@@ -53,7 +53,7 @@ from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import PoseStamped
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.process_module import ProcessModule, simulated_robot
-from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUp, Arms, Grasp
+from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUp, Arms, ApproachDirection
 from datetime import timedelta
 
 np.random.seed(69)
@@ -90,7 +90,7 @@ The default policy tries to pick up the object by standing close to it, but not 
 
 ```python
 fpa = MoveAndPickUp(milk_description, arms=[Arms.LEFT, Arms.RIGHT],
-                    grasps=[Grasp.FRONT.value, Grasp.LEFT.value, Grasp.RIGHT.value, Grasp.TOP.value])
+                    grasps=[ApproachDirection.FRONT.value, ApproachDirection.LEFT.value, ApproachDirection.RIGHT.value, VerticalAlignment.TOP.value])
 p_xy = fpa.policy.marginal([fpa.variables.relative_x, fpa.variables.relative_y])
 fig = go.Figure(p_xy.plot(), p_xy.plotly_layout())
 fig.update_layout(title="Marginal View of relative x and y position of the robot with respect to the object.")
@@ -139,7 +139,7 @@ Let's have a look at how the model looks like. We will visualize the model densi
 object from the front with the left arm.
 
 ```python
-event = SimpleEvent({arm: Arms.LEFT, grasp: Grasp.FRONT}).as_composite_set()
+event = SimpleEvent({arm: Arms.LEFT, grasp: ApproachDirection.FRONT}).as_composite_set()
 conditional_model, conditional_probability = model.conditional(event)
 p_xy = conditional_model.marginal([relative_x, relative_y])
 fig = go.Figure(p_xy.plot(), p_xy.plotly_layout())
@@ -168,7 +168,7 @@ kitchen = Object("apartment", Apartment, "apartment.urdf")
 milk.set_pose(Pose([0.5, 3.15, 1.04]))
 milk_description = ObjectDesignatorDescription(types=[Milk]).ground()
 fpa = MoveAndPickUp(milk_description, arms=[Arms.LEFT, Arms.RIGHT],
-                    grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP], policy=model)
+                    grasps=[ApproachDirection.FRONT, ApproachDirection.LEFT, ApproachDirection.RIGHT, VerticalAlignment.TOP], policy=model)
 fpa.sample_amount = 200
 
 ```

@@ -161,7 +161,7 @@ world.reset_world()
 from pycram.designators.action_designator import PickUpActionDescription, PlaceActionDescription, ParkArmsActionDescription, MoveTorsoActionDescription, NavigateActionDescription
 from pycram.designators.object_designator import BelieveObject
 from pycram.process_module import simulated_robot
-from pycram.datastructures.enums import Arms, Grasp, TorsoState
+from pycram.datastructures.enums import Arms, ApproachDirection, TorsoState, VerticalAlignment
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.grasp import GraspDescription
 
@@ -174,16 +174,16 @@ with simulated_robot:
     MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
 
     NavigateActionDescription([PoseStamped.from_list([1.8, 2, 0.0],
-                                           [0.0, 0.0, 0., 1])]).resolve().perform()
+                                                     [0.0, 0.0, 0., 1])]).resolve().perform()
 
-    grasp = GraspDescription(Grasp.FRONT, None, False)
+    grasp = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
     PickUpActionDescription(object_designator=milk_desig,
                             arm=[arm],
                             grasp_description=grasp).resolve().perform()
 
     PlaceActionDescription(object_designator=milk_desig,
                            target_location=[PoseStamped.from_list([2.4, 1.8, 1],
-                                                        [0, 0, 0, 1])],
+                                                                  [0, 0, 0, 1])],
                            arm=arm).resolve().perform()
 ```
 

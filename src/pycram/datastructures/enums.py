@@ -125,22 +125,16 @@ class AxisIdentifier(Enum):
     X = (1, 0, 0)
     Y = (0, 1, 0)
     Z = (0, 0, 1)
+    Undefined = (0, 0, 0)
 
     @classmethod
     def from_tuple(cls, axis_tuple):
         return next((axis for axis in cls if axis.value == axis_tuple), None)
 
-
-class Grasp(Enum):
+class Grasp:
     """
-    Enum for Grasp orientations.
+    Base class for grasp enums.
     """
-    FRONT = (AxisIdentifier.X, -1)
-    BACK = (AxisIdentifier.X, 1)
-    RIGHT = (AxisIdentifier.Y, -1)
-    LEFT = (AxisIdentifier.Y, 1)
-    TOP = (AxisIdentifier.Z, -1)
-    BOTTOM = (AxisIdentifier.Z, 1)
 
     def __hash__(self):
         return [index for index, value in enumerate(self.__class__) if self == value][0]
@@ -149,6 +143,23 @@ class Grasp(Enum):
     def from_axis_direction(cls, axis: AxisIdentifier, direction: int):
         """Get the Grasp face from an axis-index tuple"""
         return next((grasp for grasp in cls if grasp.value == (axis, direction)), None)
+
+class ApproachDirection(Grasp, Enum):
+    """
+    Enum for the approach direction of a gripper.
+    """
+    FRONT = (AxisIdentifier.X, -1)
+    BACK = (AxisIdentifier.X, 1)
+    RIGHT = (AxisIdentifier.Y, -1)
+    LEFT = (AxisIdentifier.Y, 1)
+
+class VerticalAlignment(Grasp, Enum):
+    """
+    Enum for the vertical alignment of a gripper.
+    """
+    TOP = (AxisIdentifier.Z, -1)
+    BOTTOM = (AxisIdentifier.Z, 1)
+    NoAlignment = (AxisIdentifier.Undefined, 0)
 
 
 class ObjectType(int, Enum):
