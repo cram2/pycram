@@ -6,6 +6,7 @@ from datetime import timedelta
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from .grasping import GraspingActionDescription
+from ...actions.core.robot_body import SetGripperActionDescription
 from ...motions.container import OpeningMotion, ClosingMotion
 from ...motions.gripper import MoveGripperMotion
 from ....config.action_conf import ActionConfig
@@ -44,7 +45,7 @@ class OpenAction(ActionDescription):
         GraspingActionDescription(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
         OpeningMotion(self.object_designator, self.arm).perform()
 
-        MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
+        SetGripperActionDescription(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """
@@ -88,7 +89,7 @@ class CloseAction(ActionDescription):
     def plan(self) -> None:
         GraspingActionDescription(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
         ClosingMotion(self.object_designator, self.arm).perform()
-        MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
+        SetGripperActionDescription(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """

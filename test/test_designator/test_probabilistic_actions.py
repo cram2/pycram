@@ -18,7 +18,6 @@ from pycram.robot_description import RobotDescriptionManager, RobotDescription
 from pycram.testing import EmptyBulletWorldTestCase
 from pycram.world_concepts.world_object import Object
 from pycrap.ontologies import Robot, Milk
-from pycram.orm.ormatic_interface import mapper_registry
 
 
 class MoveAndPickUpTestCase(EmptyBulletWorldTestCase):

@@ -2,12 +2,48 @@ from dataclasses import dataclass
 from typing import Optional, Dict, List
 
 from .base import BaseMotion
-from ...datastructures.enums import Arms, GripperState, MovementType, WaypointsMovementType
+from ...datastructures.enums import Arms, GripperState, MovementType, WaypointsMovementType, Frame
+from ...datastructures.grasp import GraspDescription
 from ...datastructures.pose import PoseStamped
 from ...failure_handling import try_motion
 from ...failures import ToolPoseNotReachedError
+from ...local_transformer import LocalTransformer
 from ...plan import with_plan
 from ...process_module import ProcessModuleManager
+from ...world_concepts.world_object import Object
+
+
+# class ReachMotion(BaseMotion):
+#     """
+#     """
+#     object_designator: Object
+#     """
+#     Object designator_description describing the object that should be picked up
+#     """
+#     arm: Arms
+#     """
+#     The arm that should be used for pick up
+#     """
+#     grasp_description: GraspDescription
+#     """
+#     The grasp description that should be used for picking up the object
+#     """
+#     movement_type: MovementType = MovementType.CARTESIAN
+#     """
+#     The type of movement that should be performed.
+#     """
+#
+#     def perform(self):
+#         target_pose = self.object_designator.get_grasp_pose(self.end_effector, self.grasp_description)
+#         target_pose.rotate_by_quaternion(self.end_effector.grasps[self.grasp_description])
+#         #todo: Symantic World- LocalTransformer
+#         target_pre_pose = LocalTransformer().translate_pose_along_local_axis(target_pose,
+#                                                                              self.end_effector.get_approach_axis(),
+#                                                                              -self.object_designator.get_approach_offset())
+#
+#         pose = self.local_transformer.transform_pose(target_pre_pose, Frame.Map.value)
+#
+#         MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=self.movement_type).perform()
 
 
 @with_plan
