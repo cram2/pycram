@@ -1,7 +1,7 @@
 from threading import Lock
 
 from .default_process_modules import *
-from pycram.robot_plans import *
+from ..robot_plans import *
 
 
 class KevinMoveArmJoints(DefaultMoveArmJoints):
