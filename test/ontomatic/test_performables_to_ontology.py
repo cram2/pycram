@@ -7,6 +7,7 @@ import owlready2
 import unittest
 import os
 
+# Skipping so Manuel Scheibl can fix this later
 @unittest.skip
 class TestOntologyCreation(unittest.TestCase):
     def test_Performables_parsed(self):
