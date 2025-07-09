@@ -6,7 +6,7 @@ from datetime import timedelta
 import numpy as np
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
-from config.action_conf import ActionConfig
+from ....config.action_conf import ActionConfig
 from .facing import FaceAtActionDescription
 from ..core import ParkArmsActionDescription, NavigateActionDescription, PickUpActionDescription, PlaceActionDescription, \
     PlaceAction
