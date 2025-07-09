@@ -3,7 +3,7 @@ from .default_process_modules import *
 from ..datastructures.world import World
 from ..datastructures.enums import ExecutionType, ObjectType
 from ..designator import ObjectDesignatorDescription
-from pycram.robot_plans import MoveMotion, DetectingMotion, MoveTCPMotion
+from ..robot_plans import MoveMotion, DetectingMotion, MoveTCPMotion
 from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModuleManager, ProcessModule
 from .default_process_modules import DefaultMoveGripper, DefaultMoveTCP, \
