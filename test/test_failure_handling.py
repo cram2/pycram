@@ -2,8 +2,8 @@ import unittest
 from datetime import timedelta
 
 from pycram.worlds.bullet_world import BulletWorld, Object
-from pycram.designator import ActionDescription
-from pycram.designators.action_designator import ParkArmsAction, ParkArmsActionDescription
+from pycram.robot_plans  import ActionDescription
+from pycram.robot_plans import ParkArmsAction, ParkArmsActionDescription
 from pycram.datastructures.enums import ObjectType, Arms, WorldMode
 from pycram.failure_handling import Retry
 from pycram.failures import PlanFailure

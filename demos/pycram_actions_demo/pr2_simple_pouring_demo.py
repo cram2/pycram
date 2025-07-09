@@ -1,6 +1,5 @@
 from pycram.helper import perform, an
 from pycram.worlds.bullet_world import BulletWorld
-from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
 from pycram.datastructures.enums import WorldMode
@@ -10,7 +9,7 @@ from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycrap.ontologies import Robot, Apartment, Milk, Cereal, Spoon, Bowl, PouringTool
-
+from pycram.robot_plans *
 
 
 extension = ObjectDescription.get_file_extension()

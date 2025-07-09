@@ -6,7 +6,7 @@ from random_events.interval import closed
 from random_events.product_algebra import SimpleEvent, Event
 
 from pycram.datastructures.enums import TaskStatus
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.language import SequentialPlan, ParallelPlan, CodeNode
 from pycram.parameterizer import Parameterizer
 from pycram.plan import PlanNode, Plan

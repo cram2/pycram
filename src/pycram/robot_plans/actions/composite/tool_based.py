@@ -1,47 +1,34 @@
 from __future__ import annotations
 
 import math
-import numpy as np
-from abc import abstractmethod
 from dataclasses import dataclass
-from datetime import timedelta
 from time import sleep
-from typing import Optional, Union, Iterable, Tuple
+from typing import Tuple
 
-from typing_extensions import Any
+from typing_extensions import Union, Optional, Iterable
 
-from .. import utils
-from .motion_designator import MoveTCPMotion
-from ..datastructures.enums import Arms, AxisIdentifier, ApproachDirection, VerticalAlignment
-from ..datastructures.partial_designator import PartialDesignator
-from ..datastructures.pose import PoseStamped
-from ..datastructures.world import World
-from ..designator import ActionDescription
-from ..has_parameters import has_parameters
-from ..local_transformer import LocalTransformer
-from ..plan import with_plan
-from ..robot_description import RobotDescription
-from ..world_concepts.world_object import Object
+from ...motions.gripper import MoveTCPMotion
+from .... import utils
+from ....datastructures.pose import PoseStamped
+from ....has_parameters import has_parameters
+from ....plan import with_plan
+from ....datastructures.partial_designator import PartialDesignator
+from ....local_transformer import LocalTransformer
+from ....datastructures.enums import Arms, AxisIdentifier, Grasp, ApproachDirection, VerticalAlignment
+from ....datastructures.world import World
+from ....robot_description import RobotDescription
+from ....world_concepts.world_object import Object
+from ....robot_plans.actions.base import ActionDescription
 
 
+@has_parameters
 @dataclass
-class GAP(ActionDescription):
+class MixingAction(ActionDescription):
     object_: Object
     tool: Object
     arm: Arms
     technique: Optional[str] = None
 
-    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
-        pass
-
-    @abstractmethod
-    def plan(self) -> None:
-        ...
-
-
-@has_parameters
-@dataclass
-class MixingAction(GAP):
     def plan(self) -> None:
         lt = LocalTransformer()
         obj = self.object_
@@ -70,8 +57,59 @@ class MixingAction(GAP):
         return PartialDesignator(cls, object_=object_, tool=tool, arm=arm, technique=technique)
 
 
+
+
 @dataclass
-class CuttingAction(GAP):
+class PouringAction(ActionDescription):
+    object_: Object
+    tool: Object
+    arm: Arms
+    technique: Optional[str] = None
+    angle: Optional[float] = 90
+
+    def plan(self) -> None:
+        lt = LocalTransformer()
+        gripper_frame = World.robot.get_link_tf_frame("base_link")
+        grasp_rot = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.get_grasp(
+            ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
+
+        pose = lt.transform_pose(self.object_.pose, gripper_frame)
+        pose.pose.position.x += 0.009
+        pose.pose.position.y -= 0.125
+        pose.pose.position.z += 0.17
+
+        pose = lt.transform_pose(lt.transform_pose(pose, "map"), gripper_frame)
+        pose.orientation = grasp_rot
+        pose = lt.transform_pose(pose, "map")
+
+        World.current_world.add_vis_axis(pose)
+        # MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=MovementType.CARTESIAN).perform()
+
+        pour_pose = pose.copy()
+        pour_pose.rotate_by_quaternion(utils.axis_angle_to_quaternion([1, 0, 0], -self.angle))
+        World.current_world.add_vis_axis(pour_pose)
+
+        # MoveTCPMotion(pour_pose, self.arm, allow_gripper_collision=False,movement_type=MovementType.CARTESIAN).perform()
+        sleep(3)
+        # MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=MovementType.CARTESIAN).perform()
+
+        World.current_world.remove_vis_axis()
+
+    @classmethod
+    @with_plan
+    def description(cls, object_: Union[Iterable[Object], Object], tool: Union[Iterable[Object], Object],
+                    arm: Optional[Union[Iterable[Arms], Arms]] = None,
+                    technique: Optional[Union[Iterable[str], str]] = None,
+                    angle: Optional[Union[Iterable[float], float]] = 90):
+        return PartialDesignator(cls, object_=object_, tool=tool, arm=arm, technique=technique, angle=angle)
+
+
+@dataclass
+class CuttingAction(ActionDescription):
+    object_: Object
+    tool: Object
+    arm: Arms
+    technique: Optional[str] = None
     slice_thickness: Optional[float] = 0.03
 
     def plan(self) -> None:
@@ -151,49 +189,6 @@ class CuttingAction(GAP):
         return (-90 if abs(ax) > abs(ay) else 90), ay
 
 
-
-
-@dataclass
-class PouringAction(GAP):
-    angle: Optional[float] = 90
-
-    def plan(self) -> None:
-        lt = LocalTransformer()
-        gripper_frame = World.robot.get_link_tf_frame("base_link")
-        grasp_rot = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.get_grasp(
-            ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
-
-        pose = lt.transform_pose(self.object_.pose, gripper_frame)
-        pose.pose.position.x += 0.009
-        pose.pose.position.y -= 0.125
-        pose.pose.position.z += 0.17
-
-        pose = lt.transform_pose(lt.transform_pose(pose, "map"), gripper_frame)
-        pose.orientation = grasp_rot
-        pose = lt.transform_pose(pose, "map")
-
-        World.current_world.add_vis_axis(pose)
-        # MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=MovementType.CARTESIAN).perform()
-
-        pour_pose = pose.copy()
-        pour_pose.rotate_by_quaternion(utils.axis_angle_to_quaternion([1, 0, 0], -self.angle))
-        World.current_world.add_vis_axis(pour_pose)
-
-        # MoveTCPMotion(pour_pose, self.arm, allow_gripper_collision=False,movement_type=MovementType.CARTESIAN).perform()
-        sleep(3)
-        # MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=MovementType.CARTESIAN).perform()
-
-        World.current_world.remove_vis_axis()
-
-    @classmethod
-    @with_plan
-    def description(cls, object_: Union[Iterable[Object], Object], tool: Union[Iterable[Object], Object],
-                    arm: Optional[Union[Iterable[Arms], Arms]] = None,
-                    technique: Optional[Union[Iterable[str], str]] = None,
-                    angle: Optional[Union[Iterable[float], float]] = 90):
-        return PartialDesignator(cls, object_=object_, tool=tool, arm=arm, technique=technique, angle=angle)
-
-
+CuttingActionDescription = CuttingAction.description
 PouringActionDescription = PouringAction.description
 MixingActionDescription = MixingAction.description
-CuttingActionDescription = CuttingAction.description
