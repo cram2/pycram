@@ -2,7 +2,7 @@ from threading import Lock
 from typing_extensions import Any
 
 from .default_process_modules import *
-from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
+# from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
 from ..robot_description import RobotDescription
 from ..process_module import ProcessModule
 from ..local_transformer import LocalTransformer
@@ -87,13 +87,13 @@ class HSRBMoveJointsReal(ProcessModule):
         giskard.achieve_joint_goal(name_to_position)
 
 
-class HSRBMoveGripperReal(ProcessModule):
-    """
-     Opens or closes the gripper of the real HSRB with the help of giskard.
-     """
-
-    def _execute(self, designator: MoveGripperMotion) -> Any:
-        tmc_gripper_control(designator)
+# class HSRBMoveGripperReal(ProcessModule):
+#     """
+#      Opens or closes the gripper of the real HSRB with the help of giskard.
+#      """
+#
+#     def _execute(self, designator: MoveGripperMotion) -> Any:
+#         tmc_gripper_control(designator)
 
 
 class HSRBOpenReal(ProcessModule):
@@ -118,13 +118,13 @@ class HSRBCloseReal(ProcessModule):
             designator.object_part.name)
 
 
-class HSRBTalkReal(ProcessModule):
-    """
-    Let the robot speak over tmc interface.
-    """
-
-    def _execute(self, designator: TalkingMotion) -> Any:
-        tmc_talk(designator)
+# class HSRBTalkReal(ProcessModule):
+#     """
+#     Let the robot speak over tmc interface.
+#     """
+#
+#     def _execute(self, designator: TalkingMotion) -> Any:
+#         tmc_talk(designator)
 
 
 ###########################################################
@@ -140,32 +140,32 @@ class HSRBNavigationSemiReal(ProcessModule):
         giskard.teleport_robot(designator.target)
 
 
-class HSRBTalkSemiReal(ProcessModule):
-    """
-    Low Level implementation to let the robot talk using gTTS and pydub.
-    """
-
-    def _execute(self, designator: TalkingMotion) -> Any:
-        """
-        Convert text to speech using gTTS, modify the pitch and play it without saving to disk.
-        """
-        sentence = designator.cmd
-        # Create a gTTS object
-        tts = gTTS(text=sentence, lang='en', slow=False)
-
-        # Save the speech to an in-memory file
-        mp3_fp = io.BytesIO()
-        tts.write_to_fp(mp3_fp)
-        mp3_fp.seek(0)
-
-        # Load the audio into pydub from the in-memory file
-        audio = AudioSegment.from_file(mp3_fp, format="mp3")
-
-        # Speed up the audio slightly
-        faster_audio = audio.speedup(playback_speed=1.2)
-
-        # Play the modified audio
-        play(faster_audio)
+# class HSRBTalkSemiReal(ProcessModule):
+#     """
+#     Low Level implementation to let the robot talk using gTTS and pydub.
+#     """
+#
+#     def _execute(self, designator: TalkingMotion) -> Any:
+#         """
+#         Convert text to speech using gTTS, modify the pitch and play it without saving to disk.
+#         """
+#         sentence = designator.cmd
+#         # Create a gTTS object
+#         tts = gTTS(text=sentence, lang='en', slow=False)
+#
+#         # Save the speech to an in-memory file
+#         mp3_fp = io.BytesIO()
+#         tts.write_to_fp(mp3_fp)
+#         mp3_fp.seek(0)
+#
+#         # Load the audio into pydub from the in-memory file
+#         audio = AudioSegment.from_file(mp3_fp, format="mp3")
+#
+#         # Speed up the audio slightly
+#         faster_audio = audio.speedup(playback_speed=1.2)
+#
+#         # Play the modified audio
+#         play(faster_audio)
 
 
 ###########################################################
@@ -217,11 +217,11 @@ class HSRBManager(DefaultManager):
         elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBMoveJointsReal(self._move_joints_lock)
 
-    def move_gripper(self):
-        if ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return HSRBMoveGripperReal(self._move_gripper_lock)
-        elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
-            return HSRBMoveGripperReal(self._move_gripper_lock)
+    # def move_gripper(self):
+    #     if ProcessModuleManager.execution_type == ExecutionType.REAL:
+    #         return HSRBMoveGripperReal(self._move_gripper_lock)
+    #     elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
+    #         return HSRBMoveGripperReal(self._move_gripper_lock)
 
     def open(self):
         if ProcessModuleManager.execution_type == ExecutionType.REAL:
@@ -235,10 +235,10 @@ class HSRBManager(DefaultManager):
         elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBCloseReal(self._close_lock)
 
-    def talk(self):
-        if ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return HSRBTalkReal(self._talk_lock)
-        elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
-            return HSRBTalkSemiReal(self._talk_lock)
+    # def talk(self):
+    #     if ProcessModuleManager.execution_type == ExecutionType.REAL:
+    #         return HSRBTalkReal(self._talk_lock)
+    #     elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
+    #         return HSRBTalkSemiReal(self._talk_lock)
 
 HSRBManager()
