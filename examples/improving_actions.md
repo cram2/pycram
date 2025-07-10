@@ -1,4 +1,3 @@
-from pycram.datastructures.enums import ApproachDirectionfrom pycram.datastructures.enums import VerticalAlignmentfrom pycram.datastructures.enums import VerticalAlignment---
 jupyter:
   jupytext:
     text_representation:

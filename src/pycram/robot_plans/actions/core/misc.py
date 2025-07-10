@@ -43,11 +43,6 @@ class DetectAction(ActionDescription):
     The region in which the object should be detected
     """
 
-    # object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
-    # """
-    # The object at the time this Action got created. It is used to be a static, information holding entity
-    # """
-
     _pre_perform_callbacks = []
     """
     List to save the callbacks which should be called before performing the action.
@@ -56,8 +51,6 @@ class DetectAction(ActionDescription):
     def __post_init__(self):
         super().__post_init__()
 
-        # # Store the object's data copy at execution
-        # self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
         return try_action(DetectingMotion(technique=self.technique, state=self.state,

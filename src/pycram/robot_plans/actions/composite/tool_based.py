@@ -24,11 +24,25 @@ from ....robot_plans.actions.base import ActionDescription
 @has_parameters
 @dataclass
 class MixingAction(ActionDescription):
+    """
+    Mixes contents of an object using a tool in a spiral motion.
+    """
     object_: Object
+    """
+    The object to be mixed.
+    """
     tool: Object
+    """
+    The tool to be used for mixing.
+    """
     arm: Arms
+    """
+    The arm to be used for the mixing action.
+    """
     technique: Optional[str] = None
-
+    """
+    The technique to be used for mixing, e.g. 'Spiral Mixing'.
+    """
     def plan(self) -> None:
         lt = LocalTransformer()
         obj = self.object_
@@ -61,12 +75,29 @@ class MixingAction(ActionDescription):
 
 @dataclass
 class PouringAction(ActionDescription):
+    """
+    Performs a pouring action with a tool over an object, typically used for liquids.
+    """
     object_: Object
+    """
+    The object over which the pouring action is performed.
+    """
     tool: Object
+    """
+    The tool used for pouring, e.g., a jug or a bottle.
+    """
     arm: Arms
+    """
+    The arm to be used for the pouring action.
+    """
     technique: Optional[str] = None
+    """
+    The technique to be used for pouring, e.g., 'Pouring'.
+    """
     angle: Optional[float] = 90
-
+    """
+    The angle at which the tool is tilted during the pouring action, in degrees.
+    """
     def plan(self) -> None:
         lt = LocalTransformer()
         gripper_frame = World.robot.get_link_tf_frame("base_link")
@@ -83,15 +114,15 @@ class PouringAction(ActionDescription):
         pose = lt.transform_pose(pose, "map")
 
         World.current_world.add_vis_axis(pose)
-        # MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=MovementType.CARTESIAN).perform()
+        MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=MovementType.CARTESIAN).perform()
 
         pour_pose = pose.copy()
         pour_pose.rotate_by_quaternion(utils.axis_angle_to_quaternion([1, 0, 0], -self.angle))
         World.current_world.add_vis_axis(pour_pose)
 
-        # MoveTCPMotion(pour_pose, self.arm, allow_gripper_collision=False,movement_type=MovementType.CARTESIAN).perform()
+        MoveTCPMotion(pour_pose, self.arm, allow_gripper_collision=False,movement_type=MovementType.CARTESIAN).perform()
         sleep(3)
-        # MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=MovementType.CARTESIAN).perform()
+        MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=MovementType.CARTESIAN).perform()
 
         World.current_world.remove_vis_axis()
 
@@ -106,11 +137,29 @@ class PouringAction(ActionDescription):
 
 @dataclass
 class CuttingAction(ActionDescription):
+    """
+    Performs a cutting action on an object using a specified tool.
+    """
     object_: Object
+    """
+    The object to be cut.
+    """
     tool: Object
+    """
+    The tool used for cutting, e.g., a knife or a saw.
+    """
     arm: Arms
+    """
+    The arm to be used for the cutting action.
+    """
     technique: Optional[str] = None
+    """
+    The technique to be used for cutting, e.g., 'Slicing', 'Halving', etc.
+    """
     slice_thickness: Optional[float] = 0.03
+    """
+    The thickness of each slice to be cut from the object, in meters.
+    """
 
     def plan(self) -> None:
         if self.technique is None:

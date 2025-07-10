@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
-from .grasping import GraspingActionDescription
+from .pick_up import GraspingActionDescription
 from ...actions.core.robot_body import SetGripperActionDescription
 from ...motions.container import OpeningMotion, ClosingMotion
 from ...motions.gripper import MoveGripperMotion

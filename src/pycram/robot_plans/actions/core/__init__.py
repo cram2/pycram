@@ -1,5 +1,5 @@
 from .container import *
-from .grasping import *
+from .pick_up import *
 from .misc import *
 from .navigation import *
 from .placing import *

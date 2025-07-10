@@ -6,7 +6,7 @@ from enum import Enum
 from ormatic.dao import AlternativeMapping
 from ormatic.ormatic import logger, ORMatic
 from ormatic.utils import recursive_subclasses, classes_of_module
-from pycram.robot_plans.actions.core import container, grasping, misc, navigation, placing, robot_body
+from pycram.robot_plans.actions.core import container, pick_up, misc, navigation, placing, robot_body
 from sqlalchemy import create_engine
 from sqlalchemy.orm import registry, Session
 import pycram.datastructures.pose
@@ -32,7 +32,7 @@ classes |= set(classes_of_module(searching))
 classes |= set(classes_of_module(tool_based))
 classes |= set(classes_of_module(transporting))
 classes |= set(classes_of_module(container))
-classes |= set(classes_of_module(grasping))
+classes |= set(classes_of_module(pick_up))
 classes |= set(classes_of_module(misc))
 classes |= set(classes_of_module(navigation))
 classes |= set(classes_of_module(placing))

@@ -20,7 +20,7 @@ from pycram.helper import perform, an
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
-from pycram.robot_plansimport *
+from pycram.robot_plans import *
 from pycram.datastructures.enums import WorldMode
 from pycram.datastructures.pose import PoseStamped
 from pycram.process_module import simulated_robot
