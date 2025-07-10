@@ -83,7 +83,7 @@ Now we can query the database to see what we have logged. Let's say we want to s
 from sqlalchemy import select
 from pycram.robot_plans import NavigateAction
 
-navigations = session.scalars(select(NavigateAction)).all()
+navigations = session.scalars(select(NavigateActionDAO)).all()
 print(*navigations, sep="\n")
 ```
 
