@@ -42,7 +42,7 @@ designator.
 
 ```python
 from pycram.datastructures.pose import PoseStamped
-from pycram.robot_plans.motions.motion_designator import MoveMotion
+from pycram.robot_plans.motions import MoveMotion
 from pycram.process_module import simulated_robot
 
 with simulated_robot:

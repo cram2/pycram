@@ -30,7 +30,7 @@ Next, we need a mapper_registry to map our classes to the database tables. We wi
 import pycram.orm.ormatic_interface
 from pycram.orm.ormatic_interface import *
 
-pycram.orm.ormatic_interface.metadata.create_all(engine)
+pycram.orm.ormatic_interface.Base.metadata.create_all(engine)
 ```
 
 Next, we will write a simple plan where the robot parks its arms, moves somewhere, picks up an object, navigates somewhere else, and places it. 
