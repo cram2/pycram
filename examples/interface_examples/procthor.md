@@ -86,8 +86,7 @@ cereal.set_pose(next(prob_costmap_iter))
 Lastly we will execute a simple Transporting Plan with the PR2 robot in our randomly chosen environment.
 
 ```python
-from pycram.designators.action_designator import SearchActionDescription, TransportActionDescription, ParkArmsActionDescription, \
-    MoveTorsoActionDescription
+from pycram.robot_plans.actions import *
 from pycram.language import ParallelPlan, CodePlan, SequentialPlan
 from pycram.datastructures.enums import TorsoState, Arms
 from pycram.designators.object_designator import ResolutionStrategyObject

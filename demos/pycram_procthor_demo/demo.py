@@ -5,7 +5,7 @@ import shutil
 import time
 
 from pycram.datastructures.enums import WorldMode
-from pycram.designators.action_designator import *
+from pycram.robot_plans.actions import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
 from pycram.external_interfaces.procthor import ProcTHORInterface
