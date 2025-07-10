@@ -30,7 +30,7 @@ Next, we need a mapper_registry to map our classes to the database tables. We wi
 import pycram.orm.ormatic_interface
 from pycram.orm.ormatic_interface import *
 
-pycram.orm.ormatic_interface.metadata.create_all(engine)
+pycram.orm.ormatic_interface.Base.metadata.create_all(engine)
 ```
 
 Next, we will write a simple plan where the robot parks its arms, moves somewhere, picks up an object, navigates somewhere else, and places it. 
@@ -83,7 +83,7 @@ Now we can query the database to see what we have logged. Let's say we want to s
 from sqlalchemy import select
 from pycram.robot_plans import NavigateAction
 
-navigations = session.scalars(select(NavigateAction)).all()
+navigations = session.scalars(select(NavigateActionDAO)).all()
 print(*navigations, sep="\n")
 ```
 
@@ -92,7 +92,7 @@ This should print all the pick up actions that occurred during the plan executio
 Due to the inheritance mapped in the ORM package, we can also get all executed actions with just one query.
 
 ```python
-from pycram.designator import ActionDescription
+from pycram.robot_plans.actions.base import ActionDescription
 
 actions = session.scalars(select(ActionDescription)).all()
 print(*actions, sep="\n")

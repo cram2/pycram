@@ -45,7 +45,7 @@ class OpenAction(ActionDescription):
         GraspingActionDescription(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
         OpeningMotion(self.object_designator, self.arm).perform()
 
-        SetGripperActionDescription(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
+        MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """
@@ -89,7 +89,7 @@ class CloseAction(ActionDescription):
     def plan(self) -> None:
         GraspingActionDescription(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
         ClosingMotion(self.object_designator, self.arm).perform()
-        SetGripperActionDescription(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
+        MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """
