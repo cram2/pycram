@@ -10,7 +10,7 @@ import ast
 import os
 import re
 
-from ..designator import ActionDescription
+from ..robot_plans.actions.base import ActionDescription
 
 
 @dataclass

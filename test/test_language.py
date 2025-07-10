@@ -1,7 +1,7 @@
 import threading
 import time
 import unittest
-from pycram.designators.action_designator import *
+from pycram.robot_plans  import *
 from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import ObjectType, DetectionTechnique, TaskStatus
 from pycram.failure_handling import RetryMonitor

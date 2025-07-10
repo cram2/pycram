@@ -230,7 +230,7 @@ These two ways can also be combined, you could write a function which should be 
 function contains a "with" scope which executes something on the simulated robot for reasoning purposes.
 
 ```python
-from pycram.designators.motion_designator import *
+from pycram.robot_plans.motions import *
 from pycram.process_module import simulated_robot, with_simulated_robot
 
 description = MoveMotion(target=PoseStamped.from_list([1, 0, 0], [0, 0, 0, 1]))
@@ -312,7 +312,7 @@ Action Designators are used to describe high-level actions. Action Designators a
 to describe the high-level action in detail.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.datastructures.enums import Arms
 
 with simulated_robot:

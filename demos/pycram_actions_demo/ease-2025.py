@@ -4,8 +4,7 @@ import rospkg
 
 from pycram.datastructures.dataclasses import Color
 from pycram.datastructures.enums import WorldMode
-from pycram.designators.GAP import *
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.external_interfaces import giskard
 from pycram.helper import perform, an
 from pycram.perception import detect
@@ -16,13 +15,12 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycrap.ontologies import PouringTool
 from pycrap.ontologies import Robot, Environment, Bowl
 
-from pycram.perception import detect
+# from pycram.perception import detect
 from pycram.helper import perform, an
 from pycram.worlds.bullet_world import BulletWorld
-from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
-from pycram.designators.GAP import *
+from pycram.robot_plans import *
 from pycram.datastructures.enums import WorldMode
 from pycram.datastructures.pose import PoseStamped
 from pycram.process_module import simulated_robot

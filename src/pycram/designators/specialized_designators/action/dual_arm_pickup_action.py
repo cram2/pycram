@@ -5,7 +5,7 @@ from geometry_msgs.msg import Vector3
 
 from owlready2 import Thing
 
-from ...action_designator import PickUpAction, PickUpAction
+from ....robot_plans import PickUpAction, PickUpAction
 from ....local_transformer import LocalTransformer
 from ....datastructures.world import World
 from ....datastructures.pose import PoseStamped, TransformStamped
