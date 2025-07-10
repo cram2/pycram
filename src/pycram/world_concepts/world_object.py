@@ -208,6 +208,7 @@ class Object(PhysicalBody, HasParameters):
         :param path: The path to the source file.
         :param description: The ObjectDescription of the object.
         """
+
         if description is not None:
             self.description = description
             return
