@@ -7,7 +7,6 @@ from ormatic.dao import AlternativeMapping
 from ormatic.ormatic import logger, ORMatic
 from ormatic.utils import recursive_subclasses, classes_of_module
 from pycram.robot_plans.actions.core import container, grasping, misc, navigation, placing, robot_body
-from sqlacodegen.generators import TablesGenerator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import registry, Session
 import pycram.datastructures.pose
@@ -43,6 +42,7 @@ classes |= {PlanNode, SequentialNode, RepeatNode}
 
 # remove classes that should not be mapped
 classes -= set(recursive_subclasses(Enum))
+classes -= {m.original_class() for m in recursive_subclasses(AlternativeMapping)}
 
 # specify custom type mappings
 type_mappings = {
@@ -54,25 +54,11 @@ def generate_orm():
     """
     Generate the ORM classes for the pycram package.
     """
-    # Set up logging
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-
-    logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
-
-    mapper_registry = registry()
-    engine = create_engine('sqlite:///:memory:')
-    session = Session(engine)
-
     # Create an ORMatic object with the classes to be mapped
     ormatic = ORMatic(list(classes))
 
     # Generate the ORM classes
     ormatic.make_all_tables()
-
-    # Create the tables in the database
-    mapper_registry.metadata.create_all(session.bind)
 
     path = os.path.abspath(os.path.join(os.getcwd(), '../src/pycram/orm/'))
     with open(os.path.join(path, 'ormatic_interface.py'), 'w') as f:

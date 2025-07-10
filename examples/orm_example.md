@@ -116,7 +116,7 @@ from pycram.robot_plans import PickUpAction
 
 object_actions = (session.scalars(select(Vector3DAO)
     .join(PickUpActionDAO.object_at_execution)
-    .join(FrozenObjectDAO.pose)
+    .join(FrozenObjectMappingDAO.pose)
     .join(PoseStampedDAO.pose)
     .join(PoseDAO.position)).all())
 print(*object_actions, sep="\n")
