@@ -142,7 +142,7 @@ Make sure to check out the other examples of ORM querying.
 If we want to filter for all successful tasks we can just add the filter operator:
 
 ```python
-filtered_navigate_results = session.scalars(select(NavigateAction).where(NavigateAction.id == 1)).all()
+filtered_navigate_results = session.scalars(select(NavigateActionDAO).where(NavigateActionDAO.id == 1)).all()
 print(*filtered_navigate_results, sep="\n")
 ```
 
@@ -163,7 +163,7 @@ The new class has to follow this pattern:
 
 ```python
 from dataclasses import dataclass
-from ormatic.utils import ORMaticExplicitMapping, classproperty
+from ormatic.dao import AlternativeMapping
 from pycram.datastructures.enums import Arms
 from pycram.datastructures.grasp import GraspDescription
 from pycram.robot_plans import PickUpAction as PickUpActionDesignator
@@ -173,17 +173,13 @@ from pycram.datastructures.dataclasses import FrozenObject
 
 # create new dataclass, it has to inherit from ORMaticExplicitMapping
 @dataclass
-class PickUpAction(ActionDescription, ORMaticExplicitMapping):
+class PickUpActionDesignatorMapping(ActionDescription, AlternativeMapping[PickUpActionDesignator]):
   # add all attributes that we want to log to the database (must be the same names as in the action designator)
   arm: Arms
   prepose_distance: float
   grasp_description: GraspDescription
   object_at_execution: Optional[FrozenObject]
 
-  # the explicit_mapping has to return the class of the action designator we want to map
-  @classproperty
-  def explicit_mapping(cls):
-    return PickUpActionDesignator
 ```
 
 Once we have updated the orm structure, we have to build the ORM package again.
