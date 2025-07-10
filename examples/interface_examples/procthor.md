@@ -1,122 +1,107 @@
 # Procthor Interface - Creating a Manager for testing multible robots in mutliple enviromnents
 
 This Notebook aims to provide an overview of the ProcThor Interface, by giving an easy-to-understand example on how to 
-use it. We will be executing a simple pick and place plan with hard coded values and store the NEEMs of these 
-experiments within a local memory database. 
+use it. We will be executing a simple Transporting Plan in a randomly chosen environment with a PR2 robot.
 
-Please be aware that this Notebook (currently) works only when you are connected to the network at the university in 
-Bremen, otherwise we will not be able to connect to the REST service and the webserver itself.
+We will start to set up our ProcThorInterface.
+The base URL is the server where the environments are stored. The ProcTHOR interface expects the environments to be
+stored as tar.gz files, where each file contains a single environment with all its assets.
+When sampling an environment, we can choose to keep the environment or not. If we keep it, it will be stored in the
+"resources/procthor_environments" folder, otherwise it will be stored in the "tmp" folder and deleted after the run.
 
-If you want to check if you are able to run the Notebook simply try to ping the following server.
-
-```batch
-
-ping procthor.informatik.uni-bremen.de
-
-```
-
-If you get a positive answer back from the server everything seems to be all right. 
-
-Now we need to set up the local memory database.
-```python
-import sqlalchemy
-import pycram.orm.base
-
-engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
-session_maker = sqlalchemy.orm.sessionmaker(bind=engine)
-session = session_maker()
-pycram.orm.base.Base.metadata.create_all(engine)
-session.commit()
-```
-Time for some more setup, while we can technically use multiple robots  in the different environments we for now stick 
-with only PR2. Afterwards, we will start to set up our ProcThorInterface. Our example will work with 5 different 
-environments.
-```python
-from pycram.external_interfaces.procthor import ProcThorInterface
-from pycram.ros import ros_tools
-pycram_path=ros_tools.get_ros_package_path('pycram')
-
-robots =[]
-robot_name="pr2.urdf"
-robots.append(robot_name)
-
-
-procthor_rest_endpoint = "http://procthor.informatik.uni-bremen.de:5000/"
-source_folder = pycram_path + "resources/tmp/"
-procThorInterface=ProcThorInterface(base_url=procthor_rest_endpoint,source_folder=source_folder)
-number_of_test_environment=5
-```
-First let us check how many different environments are already known.
+The "resources/procthor_environments" folder is excluded from the git repository, since hosting all environments in this
+repository would be too large.
 
 ```python
-number_of_known_environment = len(
-    procThorInterface.get_all_environments_stored_below_directory(procThorInterface.source_folder))
-log.loginfo("Number of known Environments:{}".format(number_of_known_environment))
-log.loginfo("Number of needed Testenvironments:{}".format(number_of_test_environment))
+from pycram.external_interfaces.procthor import ProcTHORInterface
+
+procthor_interface = ProcTHORInterface(base_url="https://user.informatik.uni-bremen.de/~luc_kro/procthor_environments/")
+resource_path, sampled_world = procthor_interface.sample_environment(keep_environment=True)
+
+print(f"Resource path: {resource_path}")
+print(f"Sampled world: {sampled_world}")
 ```
 
-Now depending on if we have to get some more, we will download some additional:
-```python
-if number_of_known_environment < number_of_test_environment:
-    log.loginfo("Downloading missing environments...")
-    procThorInterface.download_num_random_environment(number_of_test_environment - number_of_known_environment)
-```
-
-Now that the preparations are met we can start to run our plan for each robot (even though it is only one) and each
-environment we know:
+Next, we will set up our simulation environment using the BulletWorld. To ensure our sampled environment is loaded correctly,
+we need to add the resource path to our bullet world.
 
 ```python
-from pycram.external_interfaces.pycramgym import PyCRAMGym  
-    counter = 0
-    works = 0
-    fails = 0
-    known_environments = procThorInterface.get_all_environments_stored_below_directory(procThorInterface.source_folder)
-    world = BulletWorld(WorldMode.GUI) # If we spawn and despawn the bulletworld in quick sucession we will have missing object references
-    milk_pos = Pose([1, -1.78, 0.55], [1, 0, 0, 0])
-    milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, -1.78, 0.55], [1, 0, 0, 0]),
-                  color=Color(1, 0, 0, 1))
-    for robot in robots:
-        for environment in known_environments:
-            counter += 1
-            log.loginfo("Trying plan: {} with robot: {} in: {}".format("param_plan", robot, environment["name"]))
-            try:
-                # apartment = Object(environment["name"], ObjectType.ENVIRONMENT, environment["storage_place"])
-                setupNr1=PyCRAMGym(environment["name"], robot, Code(language_plan_test))
+from pycram.object_descriptors.urdf import ObjectDescription
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.datastructures.enums import WorldMode
+from pycram.world_concepts.world_object import Object
+from pycrap.ontologies import Robot, Apartment, Cereal
+from pycram.datastructures.pose import PoseStamped
+from pycram.datastructures.dataclasses import Color
+from pycram.designators.object_designator import BelieveObject
+from pycram.robot_description import RobotDescription
 
-                setupNr1.plan.perform()
-                works += 1
-                log.loginfo("Successfully!\n Overall successful tries: {}".format(works))
+extension = ObjectDescription.get_file_extension()
 
-            except PlanFailure as e:
-                traceback.print_exc()
-                fails += 1
-                log.loginfo("Plan Fail!\n Overall failed tries: {}".format(fails))
+world = BulletWorld(WorldMode.GUI)
+world.add_resource_path(resource_path)
 
-            except FileNotFoundError as e2:
-                traceback.print_exc()
-                fails += 1
-                log.loginfo("Fail!\n Overall failed tries: {}".format(fails))
+robot = Object("pr2", Robot, f"pr2{extension}", pose=PoseStamped.from_list([1, 2, 0]))
 
-            finally:
-                try:
-                    process_meta_data = pycram.orm.base.ProcessMetaData()
-                    process_meta_data.description = "CEO Test run number {} robot:{} enviroment:{}".format(counter,
-                                                                                                           robot,
-                                                                                                           environment)
-                    process_meta_data.insert(session)
-                    task_tree.root.insert(session)
-                except Exception as e:
-                    traceback.print_exc()
-                    log.logerr("Error while storing the NEEM. This should not happen.")
-                task_tree.reset_tree()
-                if World.current_world is not None:
-                    setupNr1.close()
-                    log.loginfo("reseting world")
-    # if World.current_world is None:
-    #     world.remove_object(robot_obj)
+cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
+                pose=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]), color=Color(0, 1, 0, 1))
+apartment = Object(sampled_world, Apartment, sampled_world+extension)
+robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
 
-    log.loginfo("Resume:\nOverall successful tries: {}\nOverall failed tries: {}".format(works, fails))
-    World.current_world.exit()
 ```
 
+Afterwards, we will define a few known substrings that are used to identify potential surfaces in our world. 
+In the future this will be replaced by a more robust way of identifying surfaces, e.g. by using RippleDownRules.
+
+For large environments, we won't use all surfaces, since the computation load would be too high. Instead, we will 
+sample a maximum of 3 surfaces.
+
+```python
+import random
+potential_surfaces_procthor = ["table_", "countertop_", "desk_", 'deskgustav_', 'tvstand_', 'dresser_']
+known_obj_names_procthor = ['wall_', 'kitchen_', 'bathroom_', 'livingroom_', 'bedroom_'] + potential_surfaces_procthor
+potential_surfaces = ['table_area_main', 'kitchen_island', 'coffee_table', 'bedside_table', 'island_countertop'] + potential_surfaces_procthor
+
+apartment_links = apartment.link_names
+available_surfaces = [link for link in apartment_links if any(surf in link.lower() for surf in potential_surfaces)]
+used_surfaces = random.sample(available_surfaces, k=min(len(available_surfaces), 3))
+```
+
+Now we will create ProbabilisticSemanticLocation, which will sample poses for the used surfaces. We then access its iterator
+and sample a starting pose for our cereal object. 
+
+The `link_is_center_link` parameter is set to 'True', since ProcTHOR environments currently don"t have any links on the
+surfaces of objects, so we need to use the center link of the object as the bases for our calculations.
+
+```python
+from pycram.designators.location_designator import ProbabilisticSemanticLocation
+
+prob_costmap = ProbabilisticSemanticLocation(used_surfaces, apartment, for_object=cereal, link_is_center_link=True)
+
+prob_costmap_iter = iter(prob_costmap)
+
+cereal.set_pose(next(prob_costmap_iter))
+```
+
+Lastly we will execute a simple Transporting Plan with the PR2 robot in our randomly chosen environment.
+
+```python
+from pycram.designators.action_designator import SearchActionDescription, TransportActionDescription, ParkArmsActionDescription, \
+    MoveTorsoActionDescription
+from pycram.language import ParallelPlan, CodePlan, SequentialPlan
+from pycram.datastructures.enums import TorsoState, Arms
+from pycram.designators.object_designator import ResolutionStrategyObject
+from pycram.process_module import simulated_robot
+
+with simulated_robot:
+    sp = SequentialPlan(
+        ParallelPlan(MoveTorsoActionDescription(TorsoState.MID),
+                     ParkArmsActionDescription(Arms.BOTH)).perform(),
+        TransportActionDescription(ResolutionStrategyObject(
+            strategy=SearchActionDescription(CodePlan(cereal.get_pose).perform(), Cereal)),
+            prob_costmap_iter,place_rotation_agnostic=True)
+    )
+    sp.perform()
+
+```
 

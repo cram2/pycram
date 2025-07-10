@@ -36,13 +36,13 @@ with simulated_robot:
     sp = SequentialPlan(
         ParallelPlan(MoveTorsoActionDescription(TorsoState.HIGH),
                      ParkArmsActionDescription(Arms.BOTH)),
-
-        TransportActionDescription(ResolutionStrategyObject(
-            strategy=SearchActionDescription(PoseStamped.from_list([2.4, 1.5, 1]), Milk)),
-            PoseStamped.from_list([4.8, 3.55, 0.8]), Arms.LEFT),
-        TransportActionDescription(ResolutionStrategyObject(
-            strategy=SearchActionDescription(PoseStamped.from_list([2.4, 1.5, 1]), Cereal)),
-            PoseStamped.from_list([5.2, 3.4, 0.8], [0, 0, 1, 1]), Arms.LEFT),
+        #
+        # TransportActionDescription(ResolutionStrategyObject(
+        #     strategy=SearchActionDescription(PoseStamped.from_list([2.4, 1.5, 1]), Milk)),
+        #     PoseStamped.from_list([4.8, 3.55, 0.8]), Arms.LEFT),
+        # TransportActionDescription(ResolutionStrategyObject(
+        #     strategy=SearchActionDescription(PoseStamped.from_list([2.4, 1.5, 1]), Cereal)),
+        #     PoseStamped.from_list([5.2, 3.4, 0.8], [0, 0, 1, 1]), Arms.LEFT),
         TransportActionDescription(ResolutionStrategyObject(
             strategy=SearchActionDescription(PoseStamped.from_list([2.4, 1.5, 1]), Bowl)),
             PoseStamped.from_list([5, 3.3, 0.8], [0, 0, 1, 1]), Arms.LEFT))

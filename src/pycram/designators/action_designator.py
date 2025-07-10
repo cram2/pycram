@@ -45,7 +45,8 @@ from ..ros import sleep
 from ..config.action_conf import ActionConfig
 
 from ..datastructures.enums import Arms, Grasp, GripperState, DetectionTechnique, DetectionState, MovementType, \
-    TorsoState, StaticJointState, Frame, FindBodyInRegionMethod, ContainerManipulationType, AxisIdentifier
+    TorsoState, StaticJointState, Frame, FindBodyInRegionMethod, ContainerManipulationType, AxisIdentifier, \
+    VerticalAlignment
 
 from ..datastructures.pose import PoseStamped, Vector3Stamped
 from ..datastructures.world import World
@@ -783,7 +784,7 @@ class TransportAction(ActionDescription):
             # as it is itself, no matter how the object was grasped
             robot_rotation = robot_desig_resolved.get_pose().orientation
             self.target_location.orientation = robot_rotation
-            approach_direction = GraspDescription(pickup_pose.grasp_description.approach_direction, None, False)
+            approach_direction = GraspDescription(pickup_pose.grasp_description.approach_direction, VerticalAlignment.NoAlignment, False)
             side_grasp = np.array(robot_desig_resolved.robot_description.get_arm_chain(pickup_pose.arm).end_effector.grasps[approach_direction])
             # Inverting the quaternion for the used grasp to cancel it out during placing, since placing considers the
             # object orientation relative to the gripper )

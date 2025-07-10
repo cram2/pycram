@@ -35,6 +35,7 @@ from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, pose_sequence_reachability_validator, \
     collision_check, OrientationGenerator
+from ..process_module import real_robot
 from ..ros import logwarn, logerr
 from ..ros_utils.viz_marker_publisher import plot_axis_in_rviz
 from ..world_concepts.world_object import Object, Link
@@ -90,7 +91,7 @@ def _create_target_sequence(grasp_description: GraspDescription, target: Union[P
         if rotation_agnostic:
             robot_rotation = robot.get_pose().orientation
             target_pose.orientation = robot_rotation
-            approach_direction = GraspDescription(grasp_description.approach_direction, None, False)
+            approach_direction = GraspDescription(grasp_description.approach_direction, VerticalAlignment.NoAlignment, False)
             side_grasp = np.array(robot.robot_description.get_arm_chain(reachable_arm).end_effector.grasps[
                                       approach_direction])
             side_grasp *= np.array([-1, -1, -1, 1])
@@ -632,18 +633,17 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
         return surface_event
 
-    def _create_navigation_space_event(self, params_box, free_space: GraphOfConvexSets, link: Link) -> Event:
+    def _create_navigation_space_event(self, free_space: GraphOfConvexSets, link: Link) -> Optional[Event]:
         """
         Creates an event that describes the navigation space for the link we want to sample from.
         The navigation space is the free space around the link, which is used to sample navigation poses.
         The navigation space is constructed from the free space graph, which is a subgraph of the free space that is
         reachable from the target node, which is the node in the free space graph that is above the link.
 
-        :param params_box: The parameters box containing the link and other parameters.
         :param free_space: The free space graph that is used to sample navigation poses.
         :param link: The link for which the navigation space event should be created.
 
-        :return: An Event that describes the navigation space for the link, or an empty event if the navigation space
+        :return: An Event that describes the navigation space for the link, or None if the navigation space event is empty.
         """
         # Event that describes the robot standing on the ground
         stand_on_ground = SimpleEvent({BoundingBox.z_variable: (0, 0.05)}).as_composite_set()
@@ -654,9 +654,10 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         # The target node is used classify which parts of the free space graph are relevant for the link
         # (the navigation_space_graph), and which parts we can discard (for example because there is a wall
         # cutting through the search space)
-        z_offset = (link.get_axis_aligned_bounding_box().height / 2) + 0.1 if params_box.link_is_center_link else 0.1
-        target_node = free_space.node_of_pose(link.pose.position.x, link.pose.position.y,
-                                              link.pose.position.z + z_offset)
+        z_offset = (link.get_axis_aligned_bounding_box().height / 2) + 0.1 if self.link_is_center_link else 0.1
+        target_node = free_space.node_of_pose(link.pose.position.x, link.pose.position.y, link.pose.position.z + z_offset)
+        if target_node is None:
+            return None
         navigation_space_graph: GraphOfConvexSets = nx.subgraph(free_space,
                                                                 nx.shortest_path(free_space, target_node))
         navigation_space_event = Event(*[node.simple_event for node in navigation_space_graph.nodes])
@@ -695,7 +696,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         link_width = link.get_axis_aligned_bounding_box().width
         link_depth = link.get_axis_aligned_bounding_box().depth
         link_min_dim = link_width if link_width < link_depth else link_depth
-        wall_bloat = 0.3 if link_min_dim > 0.65 else link_min_dim / 2.5
+        wall_bloat = 0.3 if link_min_dim > 0.8 else link_min_dim / 2.5
 
         # Create the free space graph for the link, which is the free space around the link
         # The obstacles are bloated by 0.02 meters in x and y, and 0.01 meters in z, to close any unintended gaps
@@ -708,7 +709,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         if surface_event is None:
             return None, 0.0
 
-        navigation_space_event = self._create_navigation_space_event(params_box, free_space, link)
+        navigation_space_event = self._create_navigation_space_event(free_space, link)
         if navigation_space_event is None:
             return None, 0.0
 
@@ -765,6 +766,8 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
             params_box = Box(params)
             test_robot = World.current_world.get_prospection_object_for_object(World.current_world.robot)
+            # Using normal robot here because of prospection world bug that will be irrelevant after semantic world integration
+            test_robot = World.current_world.robot
             world = World.current_world
 
             links: List[Link] = [params_box.part_of.links[link_name] for link_name in params_box.link_names]
