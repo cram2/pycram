@@ -114,11 +114,11 @@ from pycram.datastructures.pose import Vector3, Pose, PoseStamped
 from pycram.datastructures.dataclasses import FrozenObject
 from pycram.robot_plans import PickUpAction
 
-object_actions = (session.scalars(select(Vector3)
-                                      .join(PickUpAction.object_at_execution)
-                                      .join(FrozenObject.pose)
-                                      .join(PoseStamped.pose)
-                                      .join(Pose.position)).all())
+object_actions = (session.scalars(select(Vector3DAO)
+    .join(PickUpActionDAO.object_at_execution)
+    .join(FrozenObjectDAO.pose)
+    .join(PoseStampedDAO.pose)
+    .join(PoseDAO.position)).all())
 print(*object_actions, sep="\n")
 ```
 
