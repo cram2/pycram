@@ -92,7 +92,7 @@ This should print all the pick up actions that occurred during the plan executio
 Due to the inheritance mapped in the ORM package, we can also get all executed actions with just one query.
 
 ```python
-from pycram.designator import ActionDescription
+from pycram.robot_plans.actions.base import ActionDescription
 
 actions = session.scalars(select(ActionDescription)).all()
 print(*actions, sep="\n")
