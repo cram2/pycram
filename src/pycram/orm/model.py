@@ -39,7 +39,7 @@ class PlanNodeMapping(AlternativeMapping[PlanNode]):
     reason: Optional[PlanFailure] = None
 
     @classmethod
-    def to_dao(cls, obj: PlanNode, memo: Dict[Type, Any] = None):
+    def create_instance(cls, obj: PlanNode):
         """
         Convert a PlanNode to a PlanNodeDAO.
         """
@@ -59,7 +59,7 @@ class DesignatorNodeMapping(AlternativeMapping[DesignatorNode]):
     reason: Optional[PlanFailure] = None
 
     @classmethod
-    def to_dao(cls, obj: DesignatorNode, memo: Dict[Type, Any] = None):
+    def create_instance(cls, obj: DesignatorNode):
         """
         Convert a DesignatorNode to a DesignatorNodeDAO.
         """
@@ -79,6 +79,18 @@ class ActionNodeMapping(AlternativeMapping[ActionNode]):
     end_time: Optional[datetime] = None
     reason: Optional[PlanFailure] = None
 
+    @classmethod
+    def create_instance(cls, obj: ActionNode):
+        """
+        Convert an ActionNode to an ActionNodeDAO.
+        """
+        return cls(
+            status=obj.status,
+            start_time=obj.start_time,
+            end_time=obj.end_time,
+            reason=obj.reason
+        )
+
 
 @dataclass
 class MotionNodeMapping(AlternativeMapping[MotionNode]):
@@ -88,7 +100,7 @@ class MotionNodeMapping(AlternativeMapping[MotionNode]):
     reason: Optional[PlanFailure] = None
 
     @classmethod
-    def to_dao(cls, obj: MotionNode, memo: Dict[Type, Any] = None):
+    def create_instance(cls, obj: MotionNode):
         """
         Convert a MotionNode to a MotionNodeDAO.
         """
@@ -99,17 +111,6 @@ class MotionNodeMapping(AlternativeMapping[MotionNode]):
             reason=obj.reason
         )
 
-    @classmethod
-    def to_dao(cls, obj: ActionNode, memo: Dict[Type, Any] = None):
-        """
-        Convert an ActionNode to an ActionNodeDAO.
-        """
-        return cls(
-            status=obj.status,
-            start_time=obj.start_time,
-            end_time=obj.end_time,
-            reason=obj.reason
-        )
 
 @dataclass
 class ResolvedActionNodeMapping(AlternativeMapping[ResolvedActionNode]):
@@ -122,7 +123,7 @@ class ResolvedActionNodeMapping(AlternativeMapping[ResolvedActionNode]):
     reason: Optional[PlanFailure] = None
 
     @classmethod
-    def to_dao(cls, obj: ResolvedActionNode, memo: Dict[Type, Any] = None):
+    def create_instance(cls, obj: ResolvedActionNode):
         """
         Convert a ResolvedActionNode to a ResolvedActionNodeDAO.
         """
@@ -138,7 +139,7 @@ class ResolvedActionNodeMapping(AlternativeMapping[ResolvedActionNode]):
 class TryInOrderMapping(AlternativeMapping[TryInOrderNode]):
 
     @classmethod
-    def to_dao(cls, obj: TryInOrderNode, memo: Dict[Type, Any] = None):
+    def create_instance(cls, obj: TryInOrderNode):
         """
         Convert a TryInOrderNode to a TryInOrderNodeDAO.
         """
@@ -148,7 +149,7 @@ class TryInOrderMapping(AlternativeMapping[TryInOrderNode]):
 class ParallelNodeMapping(AlternativeMapping[ParallelNode]):
 
     @classmethod
-    def to_dao(cls, obj: ParallelNode, memo: Dict[Type, Any] = None):
+    def create_instance(cls, obj: ParallelNode):
         """
         Convert a ParallelNode to a ParallelNodeDAO.
         """
@@ -159,7 +160,7 @@ class ParallelNodeMapping(AlternativeMapping[ParallelNode]):
 class TryAllNodeMapping(AlternativeMapping[TryAllNode]):
 
     @classmethod
-    def to_dao(cls, obj: TryAllNode, memo: Dict[Type, Any] = None):
+    def create_instance(cls, obj: TryAllNode):
         """
         Convert a TryAllNode to a TryAllNodeDAO.
         """
@@ -170,7 +171,7 @@ class TryAllNodeMapping(AlternativeMapping[TryAllNode]):
 class CodeNodeMapping(AlternativeMapping[CodeNode]):
 
     @classmethod
-    def to_dao(cls, obj: CodeNode, memo: Dict[Type, Any] = None):
+    def create_instance(cls, obj: CodeNode):
         """
         Convert a CodeNode to a CodeNodeDAO.
         """
@@ -185,7 +186,7 @@ class FrozenObjectMapping(AlternativeMapping[FrozenObject]):
     pose: Optional[PoseStamped]
 
     @classmethod
-    def to_dao(cls, obj: FrozenObject, memo: Dict[Type, Any] = None):
+    def create_instance(cls, obj: FrozenObject):
         """
         Convert a FrozenObject to a FrozenObjectDAO.
         """
@@ -200,7 +201,7 @@ class FrozenObjectMapping(AlternativeMapping[FrozenObject]):
 class MonitorNodeMapping(AlternativeMapping[MonitorNode]):
 
     @classmethod
-    def to_dao(cls, obj: MonitorNode, memo: Dict[Type, Any] = None):
+    def create_instance(cls, obj: MonitorNode):
         """
         Convert a MonitorNode to a MonitorNodeDAO.
         """
