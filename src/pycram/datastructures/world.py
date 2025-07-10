@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import threading
 import time
+import signal
 from abc import ABC, abstractmethod
 from copy import copy
 
@@ -140,6 +141,8 @@ class World(WorldEntity, ABC):
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
 
         self._set_world_rules()
+
+        signal.signal(signal.SIGINT, self.signal_handler)
 
     def _set_world_rules(self):
         """
@@ -1062,6 +1065,14 @@ class World(WorldEntity, ABC):
         if self.prospection_world:
             self.terminate_world_sync()
             self.prospection_world.exit()
+
+    def signal_handler(self, sig, frame) -> None:
+        """
+        Signal handler for graceful exit of the world when a signal is received (e.g., SIGINT).
+        """
+        self.exit()
+        print("Exiting World ...")
+        exit(0)
 
     @abstractmethod
     def disconnect_from_physics_server(self) -> None:

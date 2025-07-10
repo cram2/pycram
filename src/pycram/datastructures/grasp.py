@@ -50,7 +50,7 @@ class GraspDescription(HasParameters):
         return [self.approach_direction, self.vertical_alignment, self.rotate_gripper]
 
 
-@dataclass(frozen=True)
+@dataclass
 class PreferredGraspAlignment:
     """
     Description of the preferred grasp alignment for an object.
