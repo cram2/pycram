@@ -61,7 +61,7 @@ MoveTCP is used to move the tool center point (TCP) of the given arm to the targ
 Like any designator we start by creating a description and then resolving and performing it.
 
 ```python
-from pycram.robot_plans.motions.motion_designator import MoveTCPMotion
+from pycram.robot_plans.motions import MoveTCPMotion
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms
 
@@ -77,7 +77,7 @@ Looking motion designator adjusts the robot state such that the cameras point to
 motion designator takes the target as position and orientation, in reality only the position is used.
 
 ```python
-from pycram.robot_plans.motions.motion_designator import LookingMotion
+from pycram.robot_plans.motions import LookingMotion
 from pycram.process_module import simulated_robot
 
 with simulated_robot:
@@ -92,7 +92,7 @@ Move gripper moves the gripper of an arm to one of two states. The states can be
 and close the gripper respectively.
 
 ```python
-from pycram.robot_plans.motions.motion_designator import MoveGripperMotion
+from pycram.robot_plans.motions import MoveGripperMotion
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms, GripperState
 
@@ -112,7 +112,7 @@ technique and state of the detection. You can also optional specify a region in 
 Since we need an object that we can detect, we will spawn a milk for this.
 
 ```python
-from pycram.robot_plans.motions.motion_designator import DetectingMotion, LookingMotion
+from pycram.robot_plans.motions import DetectingMotion, LookingMotion
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import DetectionTechnique, DetectionState
@@ -137,7 +137,7 @@ This motion designator moves one or both arms. Movement targets are a dictionary
 as value.
 
 ```python
-from pycram.robot_plans.motions.motion_designator import MoveArmJointsMotion
+from pycram.robot_plans.motions import MoveArmJointsMotion
 from pycram.process_module import simulated_robot
 
 with simulated_robot:
@@ -155,7 +155,7 @@ Sine we want to detect something we will spawn an object that we can detect. If 
 previous example, you can skip this step.
 
 ```python
-from pycram.robot_plans.motions.motion_designator import WorldStateDetectingMotion
+from pycram.robot_plans.motions import WorldStateDetectingMotion
 from pycram.process_module import simulated_robot
 
 with simulated_robot:
@@ -172,7 +172,7 @@ Move joints can move any number of joints of the robot, the designator takes two
 the names of all joints that should be moved and the second list are the positions to which the joints should be moved.
 
 ```python
-from pycram.robot_plans.motions.motion_designator import MoveJointsMotion
+from pycram.robot_plans.motions import MoveJointsMotion
 from pycram.process_module import simulated_robot
 
 with simulated_robot:
