@@ -32,7 +32,7 @@ class MoveAndPickUpTestCase(EmptyBulletWorldTestCase):
         pycrorm_uri = "sqlite:///:memory:"
         # pycrorm_uri = "mysql+pymysql://" + "pycrorm@localhost:3306/pycrorm"
         engine = sqlalchemy.create_engine(pycrorm_uri)
-        Base.metadata.create_all(bind=enginge)
+        mapper_registry.metadata.create_all(bind=engine)
         cls.session = sqlalchemy.orm.sessionmaker(bind=engine)()
 
         rdm = RobotDescriptionManager()
