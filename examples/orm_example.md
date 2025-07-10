@@ -94,7 +94,7 @@ Due to the inheritance mapped in the ORM package, we can also get all executed a
 ```python
 from pycram.robot_plans.actions.base import ActionDescription
 
-actions = session.scalars(select(ActionDescription)).all()
+actions = session.scalars(select(ActionDescriptionDAO)).all()
 print(*actions, sep="\n")
 ```
 
