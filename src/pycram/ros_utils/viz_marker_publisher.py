@@ -93,6 +93,9 @@ class VizMarkerPublisher:
                     continue
 
                 for i, geom in enumerate(geoms):
+                    if geom is None:
+                        continue
+
                     msg = Marker()
                     msg.header.frame_id = self.reference_frame
                     msg.ns = obj.name

@@ -89,12 +89,12 @@ class TestObjectStateUpdater(unittest.TestCase):
 
         self.mock_robot_desc.current_robot_description.base_link = "base_link"
 
-        world_mock = MagicMock()
-        world_mock.is_prospection_world = False
-        world_mock.objects = [mock_robot]
-        world_mock.robot = mock_robot
+        mock_world = MagicMock()
+        mock_world.is_prospection_world = False
+        mock_world.objects = [mock_robot]
+        mock_world.robot = mock_robot
 
-        with patch("pycram.ros_utils.robot_state_updater.World.current_world", world_mock):
+        with patch("pycram.ros_utils.robot_state_updater.World.current_world", mock_world):
             world_state_updater = WorldStateUpdater("/tf", "/joint_states")
             world_state_updater.tf_buffer = self.mock_buffer
 
