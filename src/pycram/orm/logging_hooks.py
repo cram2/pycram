@@ -1,5 +1,5 @@
 import tqdm
-from ormatic.dao import get_dao_class, get_dao_class_of_mapped
+from ormatic.dao import get_dao_class
 from sqlalchemy.orm import Session
 from typing_extensions import Optional
 from . import ormatic_interface # don't remove, this fetches the necessary bindings

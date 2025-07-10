@@ -8,6 +8,7 @@ from sqlalchemy import select
 from pycram.datastructures.enums import TaskStatus
 from pycram.datastructures.pose import PoseStamped
 from pycram.designator import ObjectDesignatorDescription
+from pycram.orm.ormatic_interface import Base, ResolvedActionNodeMappingDAO
 from pycram.robot_plans import MoveAndPickUpActionDescription, MoveAndPickUpAction
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUpParameterizer
 from pycram.failures import PlanFailure
@@ -19,8 +20,6 @@ from pycram.testing import EmptyBulletWorldTestCase
 from pycram.world_concepts.world_object import Object
 from pycrap.ontologies import Robot, Milk
 
-#the base from the new orm interface needs to be in here @tom
-@unittest.skip
 class MoveAndPickUpTestCase(EmptyBulletWorldTestCase):
 
     @classmethod
@@ -30,9 +29,8 @@ class MoveAndPickUpTestCase(EmptyBulletWorldTestCase):
         random.seed(69)
 
         pycrorm_uri = "sqlite:///:memory:"
-        # pycrorm_uri = "mysql+pymysql://" + "pycrorm@localhost:3306/pycrorm"
         engine = sqlalchemy.create_engine(pycrorm_uri)
-        mapper_registry.metadata.create_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
         cls.session = sqlalchemy.orm.sessionmaker(bind=engine)()
 
         rdm = RobotDescriptionManager()
@@ -56,7 +54,7 @@ class MoveAndPickUpTestCase(EmptyBulletWorldTestCase):
 
         insert(plan, self.session)
 
-        result = self.session.scalars(select(ResolvedActionNode)).one()
+        result = self.session.scalars(select(ResolvedActionNodeMappingDAO)).first()
         self.assertEqual(result.status, TaskStatus.FAILED)
 
 
