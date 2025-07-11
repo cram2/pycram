@@ -2,7 +2,6 @@ import unittest
 
 from unittest.mock import patch, MagicMock
 from tf2_msgs.msg import TFMessage
-
 from pycram.datastructures.enums import ExecutionType
 from pycram.ros_utils.tf_broadcaster import TFBroadcaster
 

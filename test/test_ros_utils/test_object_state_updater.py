@@ -4,7 +4,6 @@ from unittest.mock import patch, MagicMock
 
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
-
 from pycram.ros import Time
 from pycram.ros_utils.object_state_updater import RobotStateUpdater, EnvironmentStateUpdater
 from pycram.datastructures.pose import PoseStamped, Pose, Header
@@ -113,7 +112,6 @@ class TestObjectStateUpdater(unittest.TestCase):
             'joint1': 1.0, 'joint2': 2.0
         }[name]
 
-        # Now your assertions will work
         position1 = self.mock_get_joint_position('joint1')
         position2 = self.mock_get_joint_position('joint2')
         self.assertEqual(position1, 1.0)
@@ -187,7 +185,6 @@ class TestObjectStateUpdater(unittest.TestCase):
             'joint1': 1.0, 'joint2': 2.0
         }[name]
 
-        # Now your assertions will work
         position1 = self.mock_get_joint_position('joint1')
         position2 = self.mock_get_joint_position('joint2')
         self.assertEqual(position1, 1.0)

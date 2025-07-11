@@ -2,10 +2,8 @@ import unittest
 
 from datetime import timedelta
 from unittest.mock import patch, MagicMock
-
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
-
 from pycram.ros_utils.robot_state_updater import WorldStateUpdater
 
 class TestObjectStateUpdater(unittest.TestCase):

@@ -2,7 +2,6 @@ import unittest
 
 from unittest.mock import patch, MagicMock
 from sensor_msgs.msg import JointState
-
 from pycram.ros_utils.joint_state_publisher import JointStatePublisher
 
 

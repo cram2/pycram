@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import MarkerArray, Marker
-from pycram.datastructures.dataclasses import MeshVisualShape, BoundingBoxCollection, BoundingBox
+from pycram.datastructures.dataclasses import MeshVisualShape, BoundingBoxCollection, AxisAlignedBoundingBox
 from pycram.datastructures.pose import PoseStamped
 from pycram.ros import Duration
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher, ManualMarkerPublisher, TrajectoryPublisher, \
@@ -61,7 +61,7 @@ class TestVizMarkerPublisher(unittest.TestCase):
         viz = VizMarkerPublisher()
 
         # Patch kill_event to stop loop after one iteration
-        # We'll patch the is_set method to return True immediately after the first call
+        # patch the is_set method to return True immediately after the first call
         call_count = 0
 
         def is_set_side_effect():
@@ -71,22 +71,18 @@ class TestVizMarkerPublisher(unittest.TestCase):
 
         viz.kill_event.is_set = MagicMock(side_effect=is_set_side_effect)
 
-        # Patch _make_marker_array to return a dummy MarkerArray
         dummy_marker_array = MarkerArray()
         viz._make_marker_array = MagicMock(return_value=dummy_marker_array)
 
-        # Patch lock acquire and release to just be mocks
         viz.lock.acquire = MagicMock()
         viz.lock.release = MagicMock()
 
-        # Patch pub.publish to spy on calls
         viz.pub.publish = MagicMock()
 
         # Patch time.sleep to avoid delay
         with patch("time.sleep", return_value=None):
             viz._publish()  # call the method directly (runs one loop then stops)
 
-        # Assert that the lock was acquired and released
         viz.lock.acquire.assert_called_once()
         viz.lock.release.assert_called_once()
 
@@ -132,7 +128,6 @@ class TestVizMarkerPublisher(unittest.TestCase):
 
         marker_array = viz_pub._make_marker_array()
 
-        # Assertions
         self.assertIsInstance(marker_array, MarkerArray)
         self.assertEqual(len(marker_array.markers), 1)
 
@@ -409,8 +404,8 @@ class TestBoundingBoxPublisher(unittest.TestCase):
             mock_publisher = MagicMock()
             mock_create_publisher.return_value = mock_publisher
 
-            box_1 = BoundingBox(min_x=0.1, min_y=0.2, min_z=0.3, max_x=0.4, max_y=0.5, max_z=0.6)
-            box_2 = BoundingBox(min_x=0.3, min_y=0.4, min_z=0.5, max_x=0.7, max_y=0.8, max_z=0.9)
+            box_1 = AxisAlignedBoundingBox(min_x=0.1, min_y=0.2, min_z=0.3, max_x=0.4, max_y=0.5, max_z=0.6)
+            box_2 = AxisAlignedBoundingBox(min_x=0.3, min_y=0.4, min_z=0.5, max_x=0.7, max_y=0.8, max_z=0.9)
 
             boxes = BoundingBoxCollection([box_1, box_2])
 
