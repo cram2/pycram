@@ -5,26 +5,26 @@ from sqlalchemy import Column, ForeignKey, Integer, String, Float, Boolean, Date
 from sqlalchemy.orm import relationship, Mapped, mapped_column, DeclarativeBase
 from typing_extensions import Optional, List, Type
 
-import pycram.datastructures.dataclasses
-import pycram.language
-import pycram.robot_plans.actions.composite.searching
-import pycram.robot_plans.actions.core.navigation
-import pycram.robot_plans.actions.composite.facing
 import pycram.datastructures.grasp
-import pycram.robot_plans.actions.core.pick_up
-import pycram.robot_plans.actions.core.placing
-import pycram.plan
-import pycram.robot_plans.actions.core.robot_body
-import pycram.robot_plans.actions.base
-import pycram.orm.model
-import pycram.robot_plans.actions.core.misc
-import pycram.datastructures.pose
-import pycram.robot_plans.actions.composite.transporting
 import pycram.robot_plans.actions.composite.tool_based
+import pycram.robot_plans.actions.core.misc
+import pycram.robot_plans.actions.base
+import pycram.robot_plans.actions.core.pick_up
 import datetime
-import pycram.datastructures.enums
+import pycram.language
+import pycram.plan
+import pycram.datastructures.dataclasses
+import pycram.robot_plans.actions.composite.searching
 import pycram.robot_plans.actions.core.container
-from pycram.datastructures.enums import AxisIdentifier, ApproachDirection, TaskStatus, VerticalAlignment, Arms, DetectionTechnique, DetectionState, TorsoState, GripperState
+import pycram.datastructures.enums
+import pycram.robot_plans.actions.core.robot_body
+import pycram.orm.model
+import pycram.robot_plans.actions.core.placing
+import pycram.datastructures.pose
+import pycram.robot_plans.actions.composite.facing
+import pycram.robot_plans.actions.composite.transporting
+import pycram.robot_plans.actions.core.navigation
+from pycram.datastructures.enums import DetectionState, AxisIdentifier, VerticalAlignment, ApproachDirection, TaskStatus, TorsoState, DetectionTechnique, GripperState, Arms
 
 from ormatic.dao import DataAccessObject
 from ormatic.custom_types import TypeType
@@ -34,24 +34,6 @@ class Base(DeclarativeBase):
         Type: TypeType,
     }
 
-
-class Vector3DAO(Base, DataAccessObject[pycram.datastructures.pose.Vector3]):
-    __tablename__ = 'Vector3DAO'
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-
-    x: Mapped[float]
-    y: Mapped[float]
-    z: Mapped[float]
-    polymorphic_type: Mapped[str]
-
-
-
-
-    __mapper_args__ = {
-        'polymorphic_on': 'polymorphic_type',
-        'polymorphic_identity': 'Vector3DAO',
-    }
 
 class ActionDescriptionDAO(Base, DataAccessObject[pycram.robot_plans.actions.base.ActionDescription]):
     __tablename__ = 'ActionDescriptionDAO'
@@ -70,6 +52,58 @@ class ActionDescriptionDAO(Base, DataAccessObject[pycram.robot_plans.actions.bas
     __mapper_args__ = {
         'polymorphic_on': 'polymorphic_type',
         'polymorphic_identity': 'ActionDescriptionDAO',
+    }
+
+class ParallelNodeMappingDAO(Base, DataAccessObject[pycram.orm.model.ParallelNodeMapping]):
+    __tablename__ = 'ParallelNodeMappingDAO'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    polymorphic_type: Mapped[str]
+
+
+
+
+    __mapper_args__ = {
+        'polymorphic_on': 'polymorphic_type',
+        'polymorphic_identity': 'ParallelNodeMappingDAO',
+    }
+
+class PoseDAO(Base, DataAccessObject[pycram.datastructures.pose.Pose]):
+    __tablename__ = 'PoseDAO'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    polymorphic_type: Mapped[str]
+
+
+    position_id: Mapped[int] = mapped_column(ForeignKey('Vector3DAO.id'), nullable=False)
+    orientation_id: Mapped[int] = mapped_column(ForeignKey('QuaternionDAO.id'), nullable=False)
+
+    position: Mapped[Vector3DAO] = relationship('Vector3DAO', uselist=False, foreign_keys=[position_id])
+    orientation: Mapped[QuaternionDAO] = relationship('QuaternionDAO', uselist=False, foreign_keys=[orientation_id])
+
+    __mapper_args__ = {
+        'polymorphic_on': 'polymorphic_type',
+        'polymorphic_identity': 'PoseDAO',
+    }
+
+class Vector3DAO(Base, DataAccessObject[pycram.datastructures.pose.Vector3]):
+    __tablename__ = 'Vector3DAO'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    x: Mapped[float]
+    y: Mapped[float]
+    z: Mapped[float]
+    polymorphic_type: Mapped[str]
+
+
+
+
+    __mapper_args__ = {
+        'polymorphic_on': 'polymorphic_type',
+        'polymorphic_identity': 'Vector3DAO',
     }
 
 class SequentialNodeDAO(Base, DataAccessObject[pycram.language.SequentialNode]):
@@ -91,30 +125,6 @@ class SequentialNodeDAO(Base, DataAccessObject[pycram.language.SequentialNode]):
         'polymorphic_identity': 'SequentialNodeDAO',
     }
 
-class CodeNodeMappingDAO(Base, DataAccessObject[pycram.orm.model.CodeNodeMapping]):
-    __tablename__ = 'CodeNodeMappingDAO'
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-
-
-
-
-
-
-class FrozenObjectMappingDAO(Base, DataAccessObject[pycram.orm.model.FrozenObjectMapping]):
-    __tablename__ = 'FrozenObjectMappingDAO'
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-
-    name: Mapped[str]
-
-    concept: Mapped[TypeType] = mapped_column(TypeType, nullable=False)
-
-    pose_id: Mapped[Optional[int]] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=True)
-
-    pose: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[pose_id])
-
-
 class PoseStampedDAO(Base, DataAccessObject[pycram.datastructures.pose.PoseStamped]):
     __tablename__ = 'PoseStampedDAO'
 
@@ -134,52 +144,28 @@ class PoseStampedDAO(Base, DataAccessObject[pycram.datastructures.pose.PoseStamp
         'polymorphic_identity': 'PoseStampedDAO',
     }
 
-class ParallelNodeMappingDAO(Base, DataAccessObject[pycram.orm.model.ParallelNodeMapping]):
-    __tablename__ = 'ParallelNodeMappingDAO'
+class CodeNodeMappingDAO(Base, DataAccessObject[pycram.orm.model.CodeNodeMapping]):
+    __tablename__ = 'CodeNodeMappingDAO'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    polymorphic_type: Mapped[str]
 
 
 
 
-    __mapper_args__ = {
-        'polymorphic_on': 'polymorphic_type',
-        'polymorphic_identity': 'ParallelNodeMappingDAO',
-    }
 
-class PreferredGraspAlignmentDAO(Base, DataAccessObject[pycram.datastructures.grasp.PreferredGraspAlignment]):
-    __tablename__ = 'PreferredGraspAlignmentDAO'
+class GraspDescriptionDAO(Base, DataAccessObject[pycram.datastructures.grasp.GraspDescription]):
+    __tablename__ = 'GraspDescriptionDAO'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    preferred_axis: Mapped[Optional[pycram.datastructures.enums.AxisIdentifier]]
-    with_vertical_alignment: Mapped[bool]
-    with_rotated_gripper: Mapped[bool]
+    approach_direction: Mapped[pycram.datastructures.enums.ApproachDirection]
+    vertical_alignment: Mapped[pycram.datastructures.enums.VerticalAlignment]
+    rotate_gripper: Mapped[bool]
 
 
 
 
-
-class PoseDAO(Base, DataAccessObject[pycram.datastructures.pose.Pose]):
-    __tablename__ = 'PoseDAO'
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-
-    polymorphic_type: Mapped[str]
-
-
-    position_id: Mapped[int] = mapped_column(ForeignKey('Vector3DAO.id'), nullable=False)
-    orientation_id: Mapped[int] = mapped_column(ForeignKey('QuaternionDAO.id'), nullable=False)
-
-    position: Mapped[Vector3DAO] = relationship('Vector3DAO', uselist=False, foreign_keys=[position_id])
-    orientation: Mapped[QuaternionDAO] = relationship('QuaternionDAO', uselist=False, foreign_keys=[orientation_id])
-
-    __mapper_args__ = {
-        'polymorphic_on': 'polymorphic_type',
-        'polymorphic_identity': 'PoseDAO',
-    }
 
 class PlanNodeMappingDAO(Base, DataAccessObject[pycram.orm.model.PlanNodeMapping]):
     __tablename__ = 'PlanNodeMappingDAO'
@@ -199,14 +185,42 @@ class PlanNodeMappingDAO(Base, DataAccessObject[pycram.orm.model.PlanNodeMapping
         'polymorphic_identity': 'PlanNodeMappingDAO',
     }
 
-class GraspDescriptionDAO(Base, DataAccessObject[pycram.datastructures.grasp.GraspDescription]):
-    __tablename__ = 'GraspDescriptionDAO'
+class PreferredGraspAlignmentDAO(Base, DataAccessObject[pycram.datastructures.grasp.PreferredGraspAlignment]):
+    __tablename__ = 'PreferredGraspAlignmentDAO'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    approach_direction: Mapped[pycram.datastructures.enums.ApproachDirection]
-    vertical_alignment: Mapped[pycram.datastructures.enums.VerticalAlignment]
-    rotate_gripper: Mapped[bool]
+    preferred_axis: Mapped[Optional[pycram.datastructures.enums.AxisIdentifier]]
+    with_vertical_alignment: Mapped[bool]
+    with_rotated_gripper: Mapped[bool]
+
+
+
+
+
+class FrozenObjectMappingDAO(Base, DataAccessObject[pycram.orm.model.FrozenObjectMapping]):
+    __tablename__ = 'FrozenObjectMappingDAO'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    name: Mapped[str]
+
+    concept: Mapped[TypeType] = mapped_column(TypeType, nullable=False)
+
+    pose_id: Mapped[Optional[int]] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=True)
+
+    pose: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[pose_id])
+
+
+class QuaternionDAO(Base, DataAccessObject[pycram.datastructures.pose.Quaternion]):
+    __tablename__ = 'QuaternionDAO'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    x: Mapped[float]
+    y: Mapped[float]
+    z: Mapped[float]
+    w: Mapped[float]
 
 
 
@@ -225,55 +239,6 @@ class HeaderDAO(Base, DataAccessObject[pycram.datastructures.pose.Header]):
 
 
 
-class QuaternionDAO(Base, DataAccessObject[pycram.datastructures.pose.Quaternion]):
-    __tablename__ = 'QuaternionDAO'
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-
-    x: Mapped[float]
-    y: Mapped[float]
-    z: Mapped[float]
-    w: Mapped[float]
-
-
-
-
-
-class Vector3StampedDAO(Vector3DAO, DataAccessObject[pycram.datastructures.pose.Vector3Stamped]):
-    __tablename__ = 'Vector3StampedDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(Vector3DAO.id), primary_key=True)
-
-
-
-    header_id: Mapped[int] = mapped_column(ForeignKey('HeaderDAO.id'), nullable=False)
-
-    header: Mapped[HeaderDAO] = relationship('HeaderDAO', uselist=False, foreign_keys=[header_id])
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'Vector3StampedDAO',
-        'inherit_condition': id == Vector3DAO.id,
-    }
-
-class PickAndPlaceActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.composite.transporting.PickAndPlaceAction]):
-    __tablename__ = 'PickAndPlaceActionDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
-
-    arm: Mapped[pycram.datastructures.enums.Arms]
-
-
-    target_location_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
-    grasp_description_id: Mapped[int] = mapped_column(ForeignKey('GraspDescriptionDAO.id'), nullable=False)
-
-    target_location: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[target_location_id])
-    grasp_description: Mapped[GraspDescriptionDAO] = relationship('GraspDescriptionDAO', uselist=False, foreign_keys=[grasp_description_id])
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'PickAndPlaceActionDAO',
-        'inherit_condition': id == ActionDescriptionDAO.id,
-    }
-
 class FaceAtActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.composite.facing.FaceAtAction]):
     __tablename__ = 'FaceAtActionDAO'
 
@@ -291,39 +256,20 @@ class FaceAtActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.
         'inherit_condition': id == ActionDescriptionDAO.id,
     }
 
-class ReachToPickUpActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.pick_up.ReachToPickUpAction]):
-    __tablename__ = 'ReachToPickUpActionDAO'
+class SearchActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.composite.searching.SearchAction]):
+    __tablename__ = 'SearchActionDAO'
 
     id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
 
-    arm: Mapped[pycram.datastructures.enums.Arms]
 
+    object_type: Mapped[TypeType] = mapped_column(TypeType, nullable=False)
 
-    grasp_description_id: Mapped[int] = mapped_column(ForeignKey('GraspDescriptionDAO.id'), nullable=False)
-    object_at_execution_id: Mapped[Optional[int]] = mapped_column(ForeignKey('FrozenObjectMappingDAO.id'), nullable=True)
+    target_location_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
 
-    grasp_description: Mapped[GraspDescriptionDAO] = relationship('GraspDescriptionDAO', uselist=False, foreign_keys=[grasp_description_id])
-    object_at_execution: Mapped[FrozenObjectMappingDAO] = relationship('FrozenObjectMappingDAO', uselist=False, foreign_keys=[object_at_execution_id])
+    target_location: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[target_location_id])
 
     __mapper_args__ = {
-        'polymorphic_identity': 'ReachToPickUpActionDAO',
-        'inherit_condition': id == ActionDescriptionDAO.id,
-    }
-
-class PouringActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.composite.tool_based.PouringAction]):
-    __tablename__ = 'PouringActionDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
-
-    arm: Mapped[pycram.datastructures.enums.Arms]
-    technique: Mapped[Optional[str]]
-    angle: Mapped[Optional[float]]
-
-
-
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'PouringActionDAO',
+        'polymorphic_identity': 'SearchActionDAO',
         'inherit_condition': id == ActionDescriptionDAO.id,
     }
 
@@ -340,70 +286,6 @@ class SetGripperActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_pl
 
     __mapper_args__ = {
         'polymorphic_identity': 'SetGripperActionDAO',
-        'inherit_condition': id == ActionDescriptionDAO.id,
-    }
-
-class MoveTorsoActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.robot_body.MoveTorsoAction]):
-    __tablename__ = 'MoveTorsoActionDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
-
-    torso_state: Mapped[pycram.datastructures.enums.TorsoState]
-
-
-
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'MoveTorsoActionDAO',
-        'inherit_condition': id == ActionDescriptionDAO.id,
-    }
-
-class CuttingActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.composite.tool_based.CuttingAction]):
-    __tablename__ = 'CuttingActionDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
-
-    arm: Mapped[pycram.datastructures.enums.Arms]
-    technique: Mapped[Optional[str]]
-    slice_thickness: Mapped[Optional[float]]
-
-
-
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'CuttingActionDAO',
-        'inherit_condition': id == ActionDescriptionDAO.id,
-    }
-
-class DetectActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.misc.DetectAction]):
-    __tablename__ = 'DetectActionDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
-
-    technique: Mapped[pycram.datastructures.enums.DetectionTechnique]
-    state: Mapped[Optional[pycram.datastructures.enums.DetectionState]]
-
-
-
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'DetectActionDAO',
-        'inherit_condition': id == ActionDescriptionDAO.id,
-    }
-
-class OpenActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.container.OpenAction]):
-    __tablename__ = 'OpenActionDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
-
-    arm: Mapped[pycram.datastructures.enums.Arms]
-    grasping_prepose_distance: Mapped[float]
-
-
-
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'OpenActionDAO',
         'inherit_condition': id == ActionDescriptionDAO.id,
     }
 
@@ -426,20 +308,141 @@ class PickUpActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.
         'inherit_condition': id == ActionDescriptionDAO.id,
     }
 
-class SearchActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.composite.searching.SearchAction]):
-    __tablename__ = 'SearchActionDAO'
+class ParkArmsActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.robot_body.ParkArmsAction]):
+    __tablename__ = 'ParkArmsActionDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
+
+    arm: Mapped[pycram.datastructures.enums.Arms]
+
+
+
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'ParkArmsActionDAO',
+        'inherit_condition': id == ActionDescriptionDAO.id,
+    }
+
+class MixingActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.composite.tool_based.MixingAction]):
+    __tablename__ = 'MixingActionDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
+
+    arm: Mapped[pycram.datastructures.enums.Arms]
+    technique: Mapped[Optional[str]]
+
+
+
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'MixingActionDAO',
+        'inherit_condition': id == ActionDescriptionDAO.id,
+    }
+
+class CuttingActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.composite.tool_based.CuttingAction]):
+    __tablename__ = 'CuttingActionDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
+
+    arm: Mapped[pycram.datastructures.enums.Arms]
+    technique: Mapped[Optional[str]]
+    slice_thickness: Mapped[Optional[float]]
+
+
+
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'CuttingActionDAO',
+        'inherit_condition': id == ActionDescriptionDAO.id,
+    }
+
+class GraspingActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.pick_up.GraspingAction]):
+    __tablename__ = 'GraspingActionDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
+
+    arm: Mapped[pycram.datastructures.enums.Arms]
+    prepose_distance: Mapped[float]
+
+
+
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'GraspingActionDAO',
+        'inherit_condition': id == ActionDescriptionDAO.id,
+    }
+
+class CarryActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.robot_body.CarryAction]):
+    __tablename__ = 'CarryActionDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
+
+    arm: Mapped[pycram.datastructures.enums.Arms]
+    align: Mapped[Optional[bool]]
+    tip_link: Mapped[Optional[str]]
+    tip_axis: Mapped[Optional[pycram.datastructures.enums.AxisIdentifier]]
+    root_link: Mapped[Optional[str]]
+    root_axis: Mapped[Optional[pycram.datastructures.enums.AxisIdentifier]]
+
+
+
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'CarryActionDAO',
+        'inherit_condition': id == ActionDescriptionDAO.id,
+    }
+
+class PlaceActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.placing.PlaceAction]):
+    __tablename__ = 'PlaceActionDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
+
+    arm: Mapped[pycram.datastructures.enums.Arms]
+
+
+    target_location_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
+    object_at_execution_id: Mapped[Optional[int]] = mapped_column(ForeignKey('FrozenObjectMappingDAO.id'), nullable=True)
+
+    target_location: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[target_location_id])
+    object_at_execution: Mapped[FrozenObjectMappingDAO] = relationship('FrozenObjectMappingDAO', uselist=False, foreign_keys=[object_at_execution_id])
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'PlaceActionDAO',
+        'inherit_condition': id == ActionDescriptionDAO.id,
+    }
+
+class ReachToPickUpActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.pick_up.ReachToPickUpAction]):
+    __tablename__ = 'ReachToPickUpActionDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
+
+    arm: Mapped[pycram.datastructures.enums.Arms]
+
+
+    grasp_description_id: Mapped[int] = mapped_column(ForeignKey('GraspDescriptionDAO.id'), nullable=False)
+    object_at_execution_id: Mapped[Optional[int]] = mapped_column(ForeignKey('FrozenObjectMappingDAO.id'), nullable=True)
+
+    grasp_description: Mapped[GraspDescriptionDAO] = relationship('GraspDescriptionDAO', uselist=False, foreign_keys=[grasp_description_id])
+    object_at_execution: Mapped[FrozenObjectMappingDAO] = relationship('FrozenObjectMappingDAO', uselist=False, foreign_keys=[object_at_execution_id])
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'ReachToPickUpActionDAO',
+        'inherit_condition': id == ActionDescriptionDAO.id,
+    }
+
+class LookAtActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.navigation.LookAtAction]):
+    __tablename__ = 'LookAtActionDAO'
 
     id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
 
 
-    object_type: Mapped[TypeType] = mapped_column(TypeType, nullable=False)
 
-    target_location_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
+    target_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
 
-    target_location: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[target_location_id])
+    target: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[target_id])
 
     __mapper_args__ = {
-        'polymorphic_identity': 'SearchActionDAO',
+        'polymorphic_identity': 'LookAtActionDAO',
         'inherit_condition': id == ActionDescriptionDAO.id,
     }
 
@@ -465,87 +468,50 @@ class MoveAndPickUpActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot
         'inherit_condition': id == ActionDescriptionDAO.id,
     }
 
-class MoveAndPlaceActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.composite.transporting.MoveAndPlaceAction]):
-    __tablename__ = 'MoveAndPlaceActionDAO'
+class MoveTorsoActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.robot_body.MoveTorsoAction]):
+    __tablename__ = 'MoveTorsoActionDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
+
+    torso_state: Mapped[pycram.datastructures.enums.TorsoState]
+
+
+
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'MoveTorsoActionDAO',
+        'inherit_condition': id == ActionDescriptionDAO.id,
+    }
+
+class OpenActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.container.OpenAction]):
+    __tablename__ = 'OpenActionDAO'
 
     id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
 
     arm: Mapped[pycram.datastructures.enums.Arms]
-    keep_joint_states: Mapped[bool]
+    grasping_prepose_distance: Mapped[float]
 
 
-    standing_position_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
-    target_location_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
 
-    standing_position: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[standing_position_id])
-    target_location: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[target_location_id])
 
     __mapper_args__ = {
-        'polymorphic_identity': 'MoveAndPlaceActionDAO',
+        'polymorphic_identity': 'OpenActionDAO',
         'inherit_condition': id == ActionDescriptionDAO.id,
     }
 
-class MixingActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.composite.tool_based.MixingAction]):
-    __tablename__ = 'MixingActionDAO'
+class DetectActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.misc.DetectAction]):
+    __tablename__ = 'DetectActionDAO'
 
     id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
 
-    arm: Mapped[pycram.datastructures.enums.Arms]
-    technique: Mapped[Optional[str]]
+    technique: Mapped[pycram.datastructures.enums.DetectionTechnique]
+    state: Mapped[Optional[pycram.datastructures.enums.DetectionState]]
 
 
 
 
     __mapper_args__ = {
-        'polymorphic_identity': 'MixingActionDAO',
-        'inherit_condition': id == ActionDescriptionDAO.id,
-    }
-
-class NavigateActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.navigation.NavigateAction]):
-    __tablename__ = 'NavigateActionDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
-
-    keep_joint_states: Mapped[bool]
-
-
-    target_location_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
-
-    target_location: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[target_location_id])
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'NavigateActionDAO',
-        'inherit_condition': id == ActionDescriptionDAO.id,
-    }
-
-class ParkArmsActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.robot_body.ParkArmsAction]):
-    __tablename__ = 'ParkArmsActionDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
-
-    arm: Mapped[pycram.datastructures.enums.Arms]
-
-
-
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'ParkArmsActionDAO',
-        'inherit_condition': id == ActionDescriptionDAO.id,
-    }
-
-class GraspingActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.pick_up.GraspingAction]):
-    __tablename__ = 'GraspingActionDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
-
-    arm: Mapped[pycram.datastructures.enums.Arms]
-    prepose_distance: Mapped[float]
-
-
-
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'GraspingActionDAO',
+        'polymorphic_identity': 'DetectActionDAO',
         'inherit_condition': id == ActionDescriptionDAO.id,
     }
 
@@ -562,25 +528,6 @@ class CloseActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.a
 
     __mapper_args__ = {
         'polymorphic_identity': 'CloseActionDAO',
-        'inherit_condition': id == ActionDescriptionDAO.id,
-    }
-
-class PlaceActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.placing.PlaceAction]):
-    __tablename__ = 'PlaceActionDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
-
-    arm: Mapped[pycram.datastructures.enums.Arms]
-
-
-    target_location_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
-    object_at_execution_id: Mapped[Optional[int]] = mapped_column(ForeignKey('FrozenObjectMappingDAO.id'), nullable=True)
-
-    target_location: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[target_location_id])
-    object_at_execution: Mapped[FrozenObjectMappingDAO] = relationship('FrozenObjectMappingDAO', uselist=False, foreign_keys=[object_at_execution_id])
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'PlaceActionDAO',
         'inherit_condition': id == ActionDescriptionDAO.id,
     }
 
@@ -604,40 +551,121 @@ class TransportActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_pla
         'inherit_condition': id == ActionDescriptionDAO.id,
     }
 
-class LookAtActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.navigation.LookAtAction]):
-    __tablename__ = 'LookAtActionDAO'
+class NavigateActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.navigation.NavigateAction]):
+    __tablename__ = 'NavigateActionDAO'
 
     id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
 
+    keep_joint_states: Mapped[bool]
 
 
-    target_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
+    target_location_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
 
-    target: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[target_id])
+    target_location: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[target_location_id])
 
     __mapper_args__ = {
-        'polymorphic_identity': 'LookAtActionDAO',
+        'polymorphic_identity': 'NavigateActionDAO',
         'inherit_condition': id == ActionDescriptionDAO.id,
     }
 
-class CarryActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.core.robot_body.CarryAction]):
-    __tablename__ = 'CarryActionDAO'
+class PouringActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.composite.tool_based.PouringAction]):
+    __tablename__ = 'PouringActionDAO'
 
     id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
 
     arm: Mapped[pycram.datastructures.enums.Arms]
-    align: Mapped[Optional[bool]]
-    tip_link: Mapped[Optional[str]]
-    tip_axis: Mapped[Optional[pycram.datastructures.enums.AxisIdentifier]]
-    root_link: Mapped[Optional[str]]
-    root_axis: Mapped[Optional[pycram.datastructures.enums.AxisIdentifier]]
+    technique: Mapped[Optional[str]]
+    angle: Mapped[Optional[float]]
 
 
 
 
     __mapper_args__ = {
-        'polymorphic_identity': 'CarryActionDAO',
+        'polymorphic_identity': 'PouringActionDAO',
         'inherit_condition': id == ActionDescriptionDAO.id,
+    }
+
+class PickAndPlaceActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.composite.transporting.PickAndPlaceAction]):
+    __tablename__ = 'PickAndPlaceActionDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
+
+    arm: Mapped[pycram.datastructures.enums.Arms]
+
+
+    target_location_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
+    grasp_description_id: Mapped[int] = mapped_column(ForeignKey('GraspDescriptionDAO.id'), nullable=False)
+
+    target_location: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[target_location_id])
+    grasp_description: Mapped[GraspDescriptionDAO] = relationship('GraspDescriptionDAO', uselist=False, foreign_keys=[grasp_description_id])
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'PickAndPlaceActionDAO',
+        'inherit_condition': id == ActionDescriptionDAO.id,
+    }
+
+class MoveAndPlaceActionDAO(ActionDescriptionDAO, DataAccessObject[pycram.robot_plans.actions.composite.transporting.MoveAndPlaceAction]):
+    __tablename__ = 'MoveAndPlaceActionDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(ActionDescriptionDAO.id), primary_key=True)
+
+    arm: Mapped[pycram.datastructures.enums.Arms]
+    keep_joint_states: Mapped[bool]
+
+
+    standing_position_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
+    target_location_id: Mapped[int] = mapped_column(ForeignKey('PoseStampedDAO.id'), nullable=False)
+
+    standing_position: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[standing_position_id])
+    target_location: Mapped[PoseStampedDAO] = relationship('PoseStampedDAO', uselist=False, foreign_keys=[target_location_id])
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'MoveAndPlaceActionDAO',
+        'inherit_condition': id == ActionDescriptionDAO.id,
+    }
+
+class TryAllNodeMappingDAO(ParallelNodeMappingDAO, DataAccessObject[pycram.orm.model.TryAllNodeMapping]):
+    __tablename__ = 'TryAllNodeMappingDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(ParallelNodeMappingDAO.id), primary_key=True)
+
+
+
+
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'TryAllNodeMappingDAO',
+        'inherit_condition': id == ParallelNodeMappingDAO.id,
+    }
+
+class TransformDAO(PoseDAO, DataAccessObject[pycram.datastructures.pose.Transform]):
+    __tablename__ = 'TransformDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(PoseDAO.id), primary_key=True)
+
+
+
+
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'TransformDAO',
+        'inherit_condition': id == PoseDAO.id,
+    }
+
+class Vector3StampedDAO(Vector3DAO, DataAccessObject[pycram.datastructures.pose.Vector3Stamped]):
+    __tablename__ = 'Vector3StampedDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(Vector3DAO.id), primary_key=True)
+
+
+
+    header_id: Mapped[int] = mapped_column(ForeignKey('HeaderDAO.id'), nullable=False)
+
+    header: Mapped[HeaderDAO] = relationship('HeaderDAO', uselist=False, foreign_keys=[header_id])
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'Vector3StampedDAO',
+        'inherit_condition': id == Vector3DAO.id,
     }
 
 class RepeatNodeDAO(SequentialNodeDAO, DataAccessObject[pycram.language.RepeatNode]):
@@ -655,20 +683,6 @@ class RepeatNodeDAO(SequentialNodeDAO, DataAccessObject[pycram.language.RepeatNo
         'inherit_condition': id == SequentialNodeDAO.id,
     }
 
-class TryInOrderMappingDAO(SequentialNodeDAO, DataAccessObject[pycram.orm.model.TryInOrderMapping]):
-    __tablename__ = 'TryInOrderMappingDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(SequentialNodeDAO.id), primary_key=True)
-
-
-
-
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'TryInOrderMappingDAO',
-        'inherit_condition': id == SequentialNodeDAO.id,
-    }
-
 class MonitorNodeMappingDAO(SequentialNodeDAO, DataAccessObject[pycram.orm.model.MonitorNodeMapping]):
     __tablename__ = 'MonitorNodeMappingDAO'
 
@@ -680,6 +694,20 @@ class MonitorNodeMappingDAO(SequentialNodeDAO, DataAccessObject[pycram.orm.model
 
     __mapper_args__ = {
         'polymorphic_identity': 'MonitorNodeMappingDAO',
+        'inherit_condition': id == SequentialNodeDAO.id,
+    }
+
+class TryInOrderMappingDAO(SequentialNodeDAO, DataAccessObject[pycram.orm.model.TryInOrderMapping]):
+    __tablename__ = 'TryInOrderMappingDAO'
+
+    id: Mapped[int] = mapped_column(ForeignKey(SequentialNodeDAO.id), primary_key=True)
+
+
+
+
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'TryInOrderMappingDAO',
         'inherit_condition': id == SequentialNodeDAO.id,
     }
 
@@ -715,34 +743,6 @@ class GraspPoseDAO(PoseStampedDAO, DataAccessObject[pycram.datastructures.pose.G
     __mapper_args__ = {
         'polymorphic_identity': 'GraspPoseDAO',
         'inherit_condition': id == PoseStampedDAO.id,
-    }
-
-class TryAllNodeMappingDAO(ParallelNodeMappingDAO, DataAccessObject[pycram.orm.model.TryAllNodeMapping]):
-    __tablename__ = 'TryAllNodeMappingDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(ParallelNodeMappingDAO.id), primary_key=True)
-
-
-
-
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'TryAllNodeMappingDAO',
-        'inherit_condition': id == ParallelNodeMappingDAO.id,
-    }
-
-class TransformDAO(PoseDAO, DataAccessObject[pycram.datastructures.pose.Transform]):
-    __tablename__ = 'TransformDAO'
-
-    id: Mapped[int] = mapped_column(ForeignKey(PoseDAO.id), primary_key=True)
-
-
-
-
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'TransformDAO',
-        'inherit_condition': id == PoseDAO.id,
     }
 
 class DesignatorNodeMappingDAO(PlanNodeMappingDAO, DataAccessObject[pycram.orm.model.DesignatorNodeMapping]):

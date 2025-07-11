@@ -546,10 +546,9 @@ class PoseStamped(HasParameters):
 
         primary_axis: AxisIdentifier = sorted_axes[0]
         primary_sign = int(np.sign(object_to_robot_vector[primary_axis.value.index(1)]))
-        if primary_axis == AxisIdentifier.Z:
-            primary_face = VerticalAlignment.from_axis_direction(primary_axis, primary_sign)
-        else:
-            primary_face = ApproachDirection.from_axis_direction(primary_axis, primary_sign)
+
+        primary_axis_class = VerticalAlignment if primary_axis == AxisIdentifier.Z else ApproachDirection
+        primary_face = primary_axis_class.from_axis_direction(primary_axis, primary_sign)
 
         if len(sorted_axes) > 1:
             secondary_axis: AxisIdentifier = sorted_axes[1]
@@ -558,10 +557,9 @@ class PoseStamped(HasParameters):
             secondary_axis: AxisIdentifier = primary_axis
             secondary_sign = -primary_sign
 
-        if secondary_axis == AxisIdentifier.Z:
-            secondary_face = VerticalAlignment.from_axis_direction(secondary_axis, secondary_sign)
-        else:
-            secondary_face = ApproachDirection.from_axis_direction(secondary_axis, secondary_sign)
+        secondary_axis_class = VerticalAlignment if secondary_axis == AxisIdentifier.Z else ApproachDirection
+        secondary_face = secondary_axis_class.from_axis_direction(secondary_axis, secondary_sign)
+
 
         return primary_face, secondary_face
 

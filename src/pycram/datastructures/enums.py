@@ -147,6 +147,8 @@ class Grasp:
 class ApproachDirection(Grasp, Enum):
     """
     Enum for the approach direction of a gripper.
+    The AxisIdentifier is used to identify the axis of the gripper, and the int is used to identify the direction along
+     that axis.
     """
     FRONT = (AxisIdentifier.X, -1)
     BACK = (AxisIdentifier.X, 1)
@@ -156,6 +158,8 @@ class ApproachDirection(Grasp, Enum):
 class VerticalAlignment(Grasp, Enum):
     """
     Enum for the vertical alignment of a gripper.
+    The AxisIdentifier is used to identify the axis of the gripper, and the int is used to identify the direction along
+     that axis.
     """
     TOP = (AxisIdentifier.Z, -1)
     BOTTOM = (AxisIdentifier.Z, 1)
