@@ -51,8 +51,9 @@ class ProcTHORInterface:
         :param filename: The name of the file to save as.
         """
         response = requests.get(url, stream=True)
-
-        with open(os.path.join(self.project_root, "tmp", filename), "wb") as f:
+        tmp_folder = os.path.join(self.project_root, "tmp")
+        os.makedirs(tmp_folder, exist_ok=True)
+        with open(os.path.join(tmp_folder, filename), "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
