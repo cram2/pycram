@@ -11,7 +11,7 @@ from .facing import FaceAtActionDescription
 from ..core import ParkArmsActionDescription, NavigateActionDescription, PickUpActionDescription, PlaceActionDescription, \
     PlaceAction
 from ....datastructures.dataclasses import FrozenObject
-from ....datastructures.enums import Arms, Grasp
+from ....datastructures.enums import Arms, Grasp, VerticalAlignment
 from ....datastructures.grasp import GraspDescription
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
@@ -102,7 +102,7 @@ class TransportAction(ActionDescription):
             # as it is itself, no matter how the object was grasped
             robot_rotation = robot_desig_resolved.get_pose().orientation
             self.target_location.orientation = robot_rotation
-            approach_direction = GraspDescription(pickup_pose.grasp_description.approach_direction, None, False)
+            approach_direction = GraspDescription(pickup_pose.grasp_description.approach_direction, VerticalAlignment.NoAlignment, False)
             side_grasp = np.array(
                 robot_desig_resolved.robot_description.get_arm_chain(pickup_pose.arm).end_effector.grasps[
                     approach_direction])
