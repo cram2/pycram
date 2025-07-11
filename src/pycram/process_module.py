@@ -8,11 +8,9 @@ from __future__ import annotations
 
 import glob
 import importlib
-import inspect
 from os.path import dirname, basename, isfile, join
-from dataclasses import field
 from datetime import timedelta
-from threading import Lock, get_ident
+from threading import Lock
 import time
 from abc import ABC, abstractmethod
 from typing_extensions import Callable, Any, Union, Optional, List
@@ -24,7 +22,7 @@ from .datastructures.enums import ExecutionType
 from .ros import logerr, logwarn_once
 
 if TYPE_CHECKING:
-    from .designators.motion_designator import BaseMotion
+    from pycram.robot_plans.motions.motion_designator import BaseMotion
 
 
 class ProcessModule:

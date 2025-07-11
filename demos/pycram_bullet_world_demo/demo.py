@@ -1,21 +1,20 @@
 from pycram.language import SequentialPlan, ParallelPlan, CodePlan
 from pycram.worlds.bullet_world import BulletWorld
-from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
 from pycram.datastructures.enums import WorldMode
 from pycram.datastructures.pose import PoseStamped
 from pycram.process_module import simulated_robot, with_simulated_robot, ProcessModule
-from pycram.object_descriptors.urdf import ObjectDescription
+from pycram.object_descriptors.urdf import ObjectDescription as URDFObjectDescription
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.dataclasses import Color
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycrap.ontologies import Robot, Apartment, Milk, Cereal, Spoon, Bowl
 import numpy as np
+from pycram.robot_plans import *
 
 np.random.seed(420)
-extension = ObjectDescription.get_file_extension()
-
+extension = URDFObjectDescription.get_file_extension()
 world = BulletWorld(WorldMode.GUI)
 viz = VizMarkerPublisher()
 

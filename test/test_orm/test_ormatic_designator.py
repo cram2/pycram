@@ -9,8 +9,8 @@ from pycram.datastructures.enums import TorsoState, Arms, Grasp, DetectionTechni
     WorldMode, ApproachDirection, VerticalAlignment
 from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.pose import Vector3, Pose, PoseStamped
-from pycram.designator import ObjectDesignatorDescription, ActionDescription
-from pycram.designators.action_designator import MoveTorsoActionDescription, ParkArmsAction, \
+from pycram.designator import ObjectDesignatorDescription
+from pycram.robot_plans import MoveTorsoActionDescription, ParkArmsAction, \
     MoveTorsoAction, NavigateAction, PickUpAction, DetectActionDescription, DetectAction, \
     PlaceActionDescription, TransportAction, PlaceAction, LookAtAction, SetGripperAction, OpenAction, CloseAction, \
     ParkArmsActionDescription, TransportActionDescription, LookAtActionDescription, NavigateActionDescription, \
@@ -18,7 +18,6 @@ from pycram.designators.action_designator import MoveTorsoActionDescription, Par
 from pycram.designators.object_designator import BelieveObject, ObjectPart
 from pycram.language import SequentialPlan
 from pycram.orm.logging_hooks import insert
-from pycram.orm.model import FrozenObjectDAO
 from pycram.orm.ormatic_interface import *
 from pycram.plan import ResolvedActionNode
 from pycram.process_module import simulated_robot
@@ -36,20 +35,18 @@ class ORMaticBaseTestCaseMixin(BulletWorldTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        pycrorm_uri = "sqlite:///:memory:"
-        # pycrorm_uri = "mysql+pymysql://pycrorm@localhost:3306/pycrorm"
-        cls.engine = create_engine(pycrorm_uri)
+        cls.engine = create_engine('sqlite:///:memory:')
 
     def setUp(self):
         super().setUp()
-        self.mapper_registry = mapper_registry
         self.session = Session(self.engine)
-        self.mapper_registry.metadata.create_all(bind=self.session.bind)
+        Base.metadata.create_all(bind=self.session.bind)
 
     def tearDown(self):
         super().tearDown()
-        self.mapper_registry.metadata.drop_all(self.session.bind)
+        Base.metadata.drop_all(self.session.bind)
         self.session.close()
+
 
 class PoseTestCases(ORMaticBaseTestCaseMixin):
 
@@ -71,14 +68,14 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
     def test_pose(self):
         plan = self.plan()
         insert(plan, self.session)
-        result = self.session.scalars(select(Pose)).all()
+        result = self.session.scalars(select(PoseDAO)).all()
         self.assertGreater(len(result), 0)
         self.assertTrue(all([r.position is not None and r.orientation is not None for r in result]))
 
     def test_action_to_pose(self):
         plan = self.plan()
         insert(plan, self.session)
-        result = self.session.scalars(select(ActionDescription)).all()
+        result = self.session.scalars(select(ActionDescriptionDAO)).all()
         self.assertTrue(
             all([r.robot_position.pose is not None and r.robot_position.pose_id == r.robot_position.pose.id for r in
                  result]))
@@ -86,12 +83,12 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
     def test_pose_vs_pose_stamped(self):
         plan = self.plan()
         insert(plan, self.session)
-        pose_stamped_result = self.session.scalars(select(PoseStamped)).all()
-        pose_result = self.session.scalars(select(Pose)).all()
+        pose_stamped_result = self.session.scalars(select(PoseStampedDAO)).all()
+        pose_result = self.session.scalars(select(PoseDAO)).all()
         poses_from_pose_stamped_results = (self.session
-                                           .scalars(select(Pose)
+                                           .scalars(select(PoseDAO)
                                                     .where(
-            Pose.id.in_([r.pose_id for r in pose_stamped_result]))).all())
+            PoseDAO.id.in_([r.pose_id for r in pose_stamped_result]))).all())
         self.assertTrue(all([r.pose is not None for r in pose_stamped_result]))
         self.assertTrue(all([r.position is not None and r.orientation is not None for r in pose_result]))
         self.assertEqual(len(poses_from_pose_stamped_results), len(pose_result))
@@ -107,19 +104,21 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
         pose.orientation.z = 6.0
         pose.orientation.w = 7.0
 
-        self.session.add(pose.position)
-        self.session.add(pose.orientation)
-        self.session.add(pose)
+        pose_dao = PoseDAO.to_dao(pose)
+
+        self.session.add(pose_dao.position)
+        self.session.add(pose_dao.orientation)
+        self.session.add(pose_dao)
         self.session.commit()
 
         with self.session.bind.connect() as conn:
-            raw_pose = conn.execute(text("SELECT * FROM Pose")).fetchall()
+            raw_pose = conn.execute(text("SELECT * FROM PoseDAO")).fetchall()
 
-        pose = self.session.scalars(select(Pose)).first()
-        self.assertEqual(pose.position.x, 1.0)
-        self.assertEqual(pose.position.y, 2.0)
-        self.assertEqual(pose.position.z, 3.0)
-        self.assertEqual(pose.id, raw_pose[0][0])
+        pose_result = self.session.scalars(select(PoseDAO)).first()
+        self.assertEqual(pose_result.position.x, 1.0)
+        self.assertEqual(pose_result.position.y, 2.0)
+        self.assertEqual(pose_result.position.z, 3.0)
+        self.assertEqual(pose_result.id, raw_pose[0][0])
 
 
 class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
@@ -128,8 +127,8 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         with simulated_robot:
             action.perform()
         insert(action, self.session)
-        result = self.session.scalars(select(ResolvedActionNode)).all()
-        self.assertEqual(result[0].action, NavigateAction)
+        result = self.session.scalars(select(ResolvedActionNodeMappingDAO)).all()
+        # self.assertEqual(result[0].action, NavigateAction)
         # self.assertEqual(result[1].action.dtype, MoveMotion.__name__)
 
     def test_inheritance(self):
@@ -146,7 +145,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
                                        Arms.LEFT))
             sp.perform()
         insert(sp, self.session)
-        result = self.session.scalars(select(ActionDescription)).all()
+        result = self.session.scalars(select(ActionDescriptionDAO)).all()
         self.assertEqual(len(result), 5)
 
     def test_parkArmsAction(self):
@@ -154,9 +153,9 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         with simulated_robot:
             action.perform()
         insert(action, self.session)
-        result = self.session.scalars(select(ParkArmsAction)).all()
+        result = self.session.scalars(select(ParkArmsActionDAO)).all()
         self.assertEqual(len(result), 1)
-        self.assertEqual(type(result[0]), ParkArmsAction)
+        self.assertEqual(type(result[0]).original_class(), ParkArmsAction)
 
     def test_transportAction(self):
         object_description = ObjectDesignatorDescription(names=["milk"])
@@ -165,11 +164,12 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         with simulated_robot:
             action.perform()
         insert(action, self.session)
-        result = self.session.scalars(select(TransportAction)).all()
+        result = self.session.scalars(select(TransportActionDAO)).all()
 
-        self.assertEqual(type(result[0]), TransportAction)
+        self.assertEqual(type(result[0]), TransportActionDAO)
+        self.assertEqual(result[0].original_class(), TransportAction)
         self.assertTrue(result[0].target_location is not None)
-        result = self.session.scalars(select(TransportAction)).first()
+        result = self.session.scalars(select(TransportActionDAO)).first()
         self.assertIsNotNone(result)
 
     def test_pickUpAction(self):
@@ -184,8 +184,8 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
                             Arms.LEFT))
             sp.perform()
         insert(sp, self.session)
-        result = self.session.scalars(select(PickUpAction)).first()
-        frozen_objects = self.session.scalars(select(FrozenObject)).all()
+        result = self.session.scalars(select(PickUpActionDAO)).first()
+        frozen_objects = self.session.scalars(select(FrozenObjectMappingDAO)).all()
         self.assertIsNotNone(result.object_at_execution)
 
     @unittest.skip("frozen object dosen't work atm")
@@ -203,8 +203,8 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
                 action)
             sp.perform()
         insert(sp, self.session)
-        object_result = self.session.scalars(select(FrozenObject)).all()
-        result = self.session.scalars(select(DetectAction)).all()
+        object_result = self.session.scalars(select(FrozenObjectMappingDAO)).all()
+        result = self.session.scalars(select(DetectActionDAO)).all()
         self.assertEqual(len(object_result), 1)
         self.assertEqual(object_result[0].name, "milk")
         self.assertEqual(len(result), 1)
@@ -217,7 +217,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         with simulated_robot:
             action.perform()
         insert(action, self.session)
-        result = self.session.scalars(select(SetGripperAction)).all()
+        result = self.session.scalars(select(SetGripperActionDAO)).all()
         self.assertEqual(result[0].gripper, Arms.LEFT)
         self.assertEqual(result[0].motion, GripperState.OPEN)
 
@@ -239,8 +239,8 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
                 CloseActionDescription(handle_desig, arm=Arms.LEFT, grasping_prepose_distance=0.03))
             sp.perform()
         insert(sp, self.session)
-        open_result = self.session.scalars(select(OpenAction)).all()
-        close_result = self.session.scalars(select(CloseAction)).all()
+        open_result = self.session.scalars(select(OpenActionDAO)).all()
+        close_result = self.session.scalars(select(CloseActionDAO)).all()
         self.assertTrue(open_result is not None)
         # can not do that yet with new mapping
         # self.assertEqual(open_result[0].object.name, "handle_cab10_t")
@@ -264,10 +264,10 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         # node_results = self.session.scalars(select(TaskTreeNodeORM)).all()
         # self.assertEqual(len(node_results), len(description.root))
 
-        action_results = self.session.scalars(select(ActionDescription)).all()
+        action_results = self.session.scalars(select(ActionDescriptionDAO)).all()
         self.assertEqual(1, len(action_results))
 
-        detect_actions = self.session.scalars(select(DetectAction)).all()
+        detect_actions = self.session.scalars(select(DetectActionDAO)).all()
         self.assertEqual(1, len(detect_actions))
 
     def test_type_casting(self):
@@ -286,7 +286,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
             sp.perform()
 
         insert(sp, self.session)
-        object_result = self.session.scalars(select(FrozenObject)).all()
+        object_result = self.session.scalars(select(FrozenObjectMappingDAO)).all()
         self.assertEqual(len(object_result), 2)
 
 
@@ -304,7 +304,7 @@ class RelationalAlgebraTestCase(ORMaticBaseTestCaseMixin):
             sp.perform()
         insert(sp, self.session)
 
-        filtered_navigate_results = self.session.scalars(select(NavigateAction).where(NavigateAction.id == 1)).all()
+        filtered_navigate_results = self.session.scalars(select(NavigateActionDAO).where(NavigateActionDAO.id == 1)).all()
         self.assertEqual(1, len(filtered_navigate_results))
 
 

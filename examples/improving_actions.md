@@ -1,4 +1,3 @@
-from pycram.datastructures.enums import ApproachDirectionfrom pycram.datastructures.enums import VerticalAlignmentfrom pycram.datastructures.enums import VerticalAlignment---
 jupyter:
   jupytext:
     text_representation:
@@ -43,7 +42,7 @@ from probabilistic_model.learning.jpt.jpt import JPT
 from probabilistic_model.learning.jpt.variables import infer_variables_from_dataframe
 from random_events.product_algebra import Event, SimpleEvent
 
-from pycram.designators.action_designator import MoveTorsoAction
+from pycram.robot_plans import MoveTorsoAction
 from pycram.failures import PlanFailure
 from pycram.designators.object_designator import ObjectDesignatorDescription
 from pycram.worlds.bullet_world import BulletWorld
@@ -194,7 +193,7 @@ fig.show()
 Finally, we observe our improved plan in action.
 
 ```python
-from pycram.designators.action_designator import ParkArmsAction
+from pycram.robot_plans import ParkArmsAction
 
 world.reset_world()
 milk.set_pose(Pose([0.5, 3.15, 1.04]))

@@ -4,7 +4,7 @@ from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.partial_designator import PartialDesignator
 from pycram.datastructures.pose import PoseStamped
 from pycram.testing import BulletWorldTestCase
-from pycram.designators.action_designator import PickUpAction, PickUpAction, SetGripperAction, \
+from pycram.robot_plans import PickUpAction, PickUpAction, SetGripperAction, \
     MoveTorsoAction, NavigateAction, MoveTorsoActionDescription, NavigateActionDescription, PickUpActionDescription
 from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import Arms, Grasp, GripperState, TorsoState, ApproachDirection, VerticalAlignment

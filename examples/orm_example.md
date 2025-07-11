@@ -30,13 +30,13 @@ Next, we need a mapper_registry to map our classes to the database tables. We wi
 import pycram.orm.ormatic_interface
 from pycram.orm.ormatic_interface import *
 
-pycram.orm.ormatic_interface.metadata.create_all(engine)
+pycram.orm.ormatic_interface.Base.metadata.create_all(engine)
 ```
 
 Next, we will write a simple plan where the robot parks its arms, moves somewhere, picks up an object, navigates somewhere else, and places it. 
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms, ObjectType, Grasp, WorldMode, TorsoState
@@ -81,9 +81,9 @@ Now we can query the database to see what we have logged. Let's say we want to s
 
 ```python
 from sqlalchemy import select
-from pycram.designators.action_designator import NavigateAction
+from pycram.robot_plans import NavigateAction
 
-navigations = session.scalars(select(NavigateAction)).all()
+navigations = session.scalars(select(NavigateActionDAO)).all()
 print(*navigations, sep="\n")
 ```
 
@@ -92,9 +92,9 @@ This should print all the pick up actions that occurred during the plan executio
 Due to the inheritance mapped in the ORM package, we can also get all executed actions with just one query.
 
 ```python
-from pycram.designator import ActionDescription
+from pycram.robot_plans.actions.base import ActionDescription
 
-actions = session.scalars(select(ActionDescription)).all()
+actions = session.scalars(select(ActionDescriptionDAO)).all()
 print(*actions, sep="\n")
 ```
 
@@ -112,13 +112,13 @@ In practice, the join would look like this:
 ```python
 from pycram.datastructures.pose import Vector3, Pose, PoseStamped
 from pycram.datastructures.dataclasses import FrozenObject
-from pycram.designators.action_designator import PickUpAction
+from pycram.robot_plans import PickUpAction
 
-object_actions = (session.scalars(select(Vector3)
-                                      .join(PickUpAction.object_at_execution)
-                                      .join(FrozenObject.pose)
-                                      .join(PoseStamped.pose)
-                                      .join(Pose.position)).all())
+object_actions = (session.scalars(select(Vector3DAO)
+    .join(PickUpActionDAO.object_at_execution)
+    .join(FrozenObjectMappingDAO.pose)
+    .join(PoseStampedDAO.pose)
+    .join(PoseDAO.position)).all())
 print(*object_actions, sep="\n")
 ```
 
@@ -142,7 +142,7 @@ Make sure to check out the other examples of ORM querying.
 If we want to filter for all successful tasks we can just add the filter operator:
 
 ```python
-filtered_navigate_results = session.scalars(select(NavigateAction).where(NavigateAction.id == 1)).all()
+filtered_navigate_results = session.scalars(select(NavigateActionDAO).where(NavigateActionDAO.id == 1)).all()
 print(*filtered_navigate_results, sep="\n")
 ```
 
@@ -163,27 +163,23 @@ The new class has to follow this pattern:
 
 ```python
 from dataclasses import dataclass
-from ormatic.utils import ORMaticExplicitMapping, classproperty
+from ormatic.dao import AlternativeMapping
 from pycram.datastructures.enums import Arms
 from pycram.datastructures.grasp import GraspDescription
-from pycram.designators.action_designator import PickUpAction as PickUpActionDesignator
+from pycram.robot_plans import PickUpAction as PickUpActionDesignator
 from typing_extensions import Optional
 from pycram.datastructures.dataclasses import FrozenObject
 
 
 # create new dataclass, it has to inherit from ORMaticExplicitMapping
 @dataclass
-class PickUpAction(ActionDescription, ORMaticExplicitMapping):
+class PickUpActionDesignatorMapping(ActionDescription, AlternativeMapping[PickUpActionDesignator]):
   # add all attributes that we want to log to the database (must be the same names as in the action designator)
   arm: Arms
   prepose_distance: float
   grasp_description: GraspDescription
   object_at_execution: Optional[FrozenObject]
 
-  # the explicit_mapping has to return the class of the action designator we want to map
-  @classproperty
-  def explicit_mapping(cls):
-    return PickUpActionDesignator
 ```
 
 Once we have updated the orm structure, we have to build the ORM package again.

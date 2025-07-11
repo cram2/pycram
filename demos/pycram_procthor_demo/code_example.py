@@ -1,5 +1,5 @@
 import pycrap
-from pycram.designators.action_designator import NavigateAction,LookAtAction,ParkArmsAction,MoveTorsoAction,DetectAction,TransportAction
+from pycram.robot_plans import *
 from pycram.datastructures.enums import Arms, DetectionTechnique
 from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import ObjectType
