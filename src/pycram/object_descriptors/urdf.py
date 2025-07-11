@@ -597,6 +597,7 @@ class ObjectDescription(AbstractObjectDescription):
         """
         :return: The file extension of the URDF file.
         """
+
         return '.urdf'
 
     @property

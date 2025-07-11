@@ -20,7 +20,7 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
     deprecated, Type
 
 from pycrap.ontologies import PhysicalObject
-from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp
+from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp, ApproachDirection, VerticalAlignment
 from .pose import PoseStamped, Point, TransformStamped
 from ..ros import logwarn, logwarn_once
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
@@ -448,7 +448,7 @@ class BoundingBox:
         intervals = [value.simple_sets for simple_event in event.simple_sets for _, value in simple_event.items()]
         simple_events = list(itertools.product(*intervals))
 
-        # for every atomic interval
+        # for every core interval
         all_vertices = []
         all_faces = []
         for i, simple_event in enumerate(simple_events):
@@ -1425,16 +1425,16 @@ class Rotations(Dict[Optional[Union[Grasp, bool]], List[float]]):
     90°
     """
     SIDE_ROTATIONS = {
-        Grasp.FRONT: [0, 0, 0, 1],
-        Grasp.BACK: [0, 0, 1, 0],
-        Grasp.LEFT: [0, 0, -math.sqrt(2) / 2, math.sqrt(2) / 2],
-        Grasp.RIGHT: [0, 0, math.sqrt(2) / 2, math.sqrt(2) / 2],
+        ApproachDirection.FRONT: [0, 0, 0, 1],
+        ApproachDirection.BACK: [0, 0, 1, 0],
+        ApproachDirection.LEFT: [0, 0, -math.sqrt(2) / 2, math.sqrt(2) / 2],
+        ApproachDirection.RIGHT: [0, 0, math.sqrt(2) / 2, math.sqrt(2) / 2],
     }
 
     VERTICAL_ROTATIONS = {
-        None: [0, 0, 0, 1],
-        Grasp.TOP: [0, math.sqrt(2) / 2, 0, math.sqrt(2) / 2],
-        Grasp.BOTTOM: [0, -math.sqrt(2) / 2, 0, math.sqrt(2) / 2],
+        VerticalAlignment.NoAlignment: [0, 0, 0, 1],
+        VerticalAlignment.TOP: [0, math.sqrt(2) / 2, 0, math.sqrt(2) / 2],
+        VerticalAlignment.BOTTOM: [0, -math.sqrt(2) / 2, 0, math.sqrt(2) / 2],
     }
 
     HORIZONTAL_ROTATIONS = {

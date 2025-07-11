@@ -3,7 +3,7 @@ import numpy as np
 from ..datastructures.dataclasses import VirtualMobileBaseJoints
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState, StaticJointState
+from ..datastructures.enums import Arms, GripperState, GripperType, TorsoState, StaticJointState
 from ..ros import  get_ros_package_path
 from ..units import meter
 

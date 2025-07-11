@@ -68,7 +68,8 @@ venv/
 .idea/
 
 resources/cached/
-
+resources/procthor_environments/
+tmp/
 # Example checkpoints
 examples/.ipynb_checkpoints/
 */tmp/*

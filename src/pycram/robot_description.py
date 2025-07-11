@@ -15,7 +15,8 @@ from scipy.spatial.transform import Rotation as R
 from typing_extensions import List, Dict, Union, Optional, Tuple, TYPE_CHECKING
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, Rotations
-from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState
+from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState, \
+    ApproachDirection, VerticalAlignment
 from .datastructures.pose import GraspDescription, PoseStamped
 from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
     get_robot_description_path
@@ -898,7 +899,8 @@ class EndEffectorDescription:
 
             self.grasps[grasp_description] = orientation
 
-    def get_grasp(self, approach_direction: Grasp, vertical_alignment: Grasp = None, rotate_gripper: bool = False) -> List[float]:
+    def get_grasp(self, approach_direction: ApproachDirection, vertical_alignment: VerticalAlignment = VerticalAlignment.NoAlignment,
+                  rotate_gripper: bool = False) -> List[float]:
         """
         Retrieves the quaternion orientation of the end effector for a specific grasp.
 
@@ -926,7 +928,7 @@ class EndEffectorDescription:
         :return: A list representing the approach axis.
         """
         if self.approach_axis is None:
-            front_grasp = self.get_grasp(Grasp.FRONT, None, False)
+            front_grasp = self.get_grasp(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
             self.approach_axis = R.from_quat(front_grasp).as_matrix()[0]
         return self.approach_axis
 

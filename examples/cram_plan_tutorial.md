@@ -22,7 +22,7 @@ Next we will create a bullet world with a PR2 in a kitchen containing milk and c
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.robot_description import RobotDescription
 from pycram.datastructures.enums import Arms, ObjectType
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.designators.object_designator import *
@@ -142,84 +142,87 @@ execute the plan.
 
 ```python
 from pycram.external_interfaces.ik import IKError
-from pycram.datastructures.enums import Grasp
+from pycram.datastructures.enums import ApproachDirection, VerticalAlignment
 from pycram.datastructures.grasp import GraspDescription
 
 
 def plan(obj_desig: Object, torso=None, place=counter_name):
-    world.reset_world()
-    with simulated_robot:
-        ParkArmsAction(Arms.BOTH).perform()
-        if torso is None:
-            torso={"torso_lift_joint": 0.2}
-        MoveJointsMotion(list(torso.keys()), list(torso.values())).perform()
-        grasp = GraspDescription(Grasp.FRONT, Grasp.TOP if issubclass(obj_desig.obj_type, Spoon) else None,
-                                 False)        
-        pickup_arm = Arms.RIGHT
-        location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, grasp_descriptions=[grasp], reachable_arm=pickup_arm)
-        print()
-        NavigateActionDescription(location, True).resolve().perform()
-        ParkArmsAction(Arms.BOTH).perform()
-        good_torsos.append(torso)
+  world.reset_world()
+  with simulated_robot:
+    ParkArmsAction(Arms.BOTH).perform()
+    if torso is None:
+      torso = {"torso_lift_joint": 0.2}
+    MoveJointsMotion(list(torso.keys()), list(torso.values())).perform()
+    grasp = GraspDescription(ApproachDirection.FRONT,
+                             VerticalAlignment.TOP if issubclass(obj_desig.obj_type, Spoon) else VerticalAlignment.NoAlignment,
+                             False)
+    pickup_arm = Arms.RIGHT
+    location = CostmapLocation(target=obj_desig, reachable_for=robot_desig, grasp_descriptions=[grasp],
+                               reachable_arm=pickup_arm)
+    print()
+    NavigateActionDescription(location, True).resolve().perform()
+    ParkArmsAction(Arms.BOTH).perform()
+    good_torsos.append(torso)
 
-        PickUpAction(object_designator=obj_desig, arm=pickup_arm,  grasp_description=grasp).perform()
-        ParkArmsAction(Arms.BOTH).perform()
-        scm = SemanticCostmapLocation(place, apartment_desig, obj_desig, horizontal_edges_only=True,
-                                      edge_size_in_meters=0.08)
-        scm_iter = iter(scm)
-        n_retries = 0
-        found = False
-        while not found:
-            try:
-                print(f"Trying {n_retries} to find a place")
-                if n_retries == 0:
-                    pose_island = next(scm_iter)
-                    cost_map_size = len(np.where(scm.sem_costmap.map > 0)[0])
-                    print(f"cost_map_size: {cost_map_size}")
-                else:
-                    for _ in range(np.random.randint(100, 110)):
-                        pose_island = next(scm_iter)
-                print("found pose_island")
-                if pose_island.pose.position.x > counter_link.position.x:
-                    z_angle = np.pi
-                else:
-                    z_angle = 0
-                orientation = quaternion_from_euler(0, 0, z_angle)
-                pose_island = PoseStamped.from_list(pose_island.position.to_list(), orientation)
-                pose_island.position.z += 0.07
-                print(pose_island.position)
-                place_location = CostmapLocation(target=pose_island, reachable_for=robot_desig,  reachable_arm=[pickup_arm])
-                pose = place_location.resolve()
-                NavigateAction(pose, True).perform()
-                PlaceAction(object_designator=obj_desig, target_location=pose_island,
-                                       arm=pickup_arm).perform()
-                found = True
-            except (StopIteration, IKError) as e:
-                print("Retrying")
-                print(e)
-                n_retries += 1
-                if n_retries > 3:
-                    raise StopIteration("No place found")
+    PickUpAction(object_designator=obj_desig, arm=pickup_arm, grasp_description=grasp).perform()
+    ParkArmsAction(Arms.BOTH).perform()
+    scm = SemanticCostmapLocation(place, apartment_desig, obj_desig, horizontal_edges_only=True,
+                                  edge_size_in_meters=0.08)
+    scm_iter = iter(scm)
+    n_retries = 0
+    found = False
+    while not found:
+      try:
+        print(f"Trying {n_retries} to find a place")
+        if n_retries == 0:
+          pose_island = next(scm_iter)
+          cost_map_size = len(np.where(scm.sem_costmap.map > 0)[0])
+          print(f"cost_map_size: {cost_map_size}")
+        else:
+          for _ in range(np.random.randint(100, 110)):
+            pose_island = next(scm_iter)
+        print("found pose_island")
+        if pose_island.pose.position.x > counter_link.position.x:
+          z_angle = np.pi
+        else:
+          z_angle = 0
+        orientation = quaternion_from_euler(0, 0, z_angle)
+        pose_island = PoseStamped.from_list(pose_island.position.to_list(), orientation)
+        pose_island.position.z += 0.07
+        print(pose_island.position)
+        place_location = CostmapLocation(target=pose_island, reachable_for=robot_desig, reachable_arm=[pickup_arm])
+        pose = place_location.resolve()
+        NavigateAction(pose, True).perform()
+        PlaceAction(object_designator=obj_desig, target_location=pose_island,
+                    arm=pickup_arm).perform()
+        found = True
+      except (StopIteration, IKError) as e:
+        print("Retrying")
+        print(e)
+        n_retries += 1
+        if n_retries > 3:
+          raise StopIteration("No place found")
 
-        ParkArmsAction(Arms.BOTH).perform()
+    ParkArmsAction(Arms.BOTH).perform()
+
 
 good_torsos = []
 for obj_name in object_names:
-    done = False
-    torso = {"torso_lift_joint": 0.25} if len(good_torsos) == 0 else good_torsos[-1]
-    while not done:
-        try:
-            plan(object_desig[obj_name], torso=torso, place=counter_name)
-            done = True
-            print(f"Object {obj_name} placed")
-            objects[obj_name].original_pose = objects[obj_name].pose
-            world.update_original_state()
-        except (StopIteration, IKError) as e:
-            print(type(e))
-            print("no solution")
-            torso["torso_lift_joint"] += 0.05
-            if torso["torso_lift_joint"] > 0.3:
-                break
+  done = False
+  torso = {"torso_lift_joint": 0.25} if len(good_torsos) == 0 else good_torsos[-1]
+  while not done:
+    try:
+      plan(object_desig[obj_name], torso=torso, place=counter_name)
+      done = True
+      print(f"Object {obj_name} placed")
+      objects[obj_name].original_pose = objects[obj_name].pose
+      world.update_original_state()
+    except (StopIteration, IKError) as e:
+      print(type(e))
+      print("no solution")
+      torso["torso_lift_joint"] += 0.05
+      if torso["torso_lift_joint"] > 0.3:
+        break
 print(good_torsos)
 ```
 

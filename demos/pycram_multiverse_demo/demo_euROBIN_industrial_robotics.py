@@ -4,7 +4,7 @@ from pycram.process_module import real_robot
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.pose import PoseStamped
 from pycram.worlds.multiverse import Multiverse
-from pycram.designators.action_designator import SetGripperAction
+from pycram.robot_plans import *
 from pycram.ros_utils.robot_state_updater import WorldStateUpdater
 
 

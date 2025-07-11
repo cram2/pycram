@@ -25,7 +25,7 @@ need a language expression.
 ## Example Plan
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.language import SequentialPlan

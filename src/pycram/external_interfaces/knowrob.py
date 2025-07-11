@@ -1,7 +1,7 @@
 from datetime import datetime
 from functools import lru_cache
 
-from ..designators.action_designator import *
+from ..robot_plans import *
 from ..designators.object_designator import *
 from ..plan import ActionNode, DesignatorNode, ResolvedActionNode, PlanNode
 from ..ros import create_publisher
