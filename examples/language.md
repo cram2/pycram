@@ -45,7 +45,7 @@ the execution will be aborted and the state FAILED will be returned.
 We will start with a simple example that uses an action designator for moving the robot and parking its arms.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.language import SequentialPlan
@@ -98,7 +98,7 @@ be returned if all designator executions raise an error.
 Besides the described difference in behaviour this language expression can be used in the same way as Sequential.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
@@ -137,7 +137,7 @@ Designators that cannot be used in parallel and try all:
 Using the parallel expressions works like Sequential and TryInOrder.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
@@ -162,7 +162,7 @@ will return SUCCEEDED if at least one designator is executed without raising an 
 TryAll can be used like any other language expression.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
@@ -192,7 +192,7 @@ In this case 'park' and 'move_torso' would form a Sequential expression and 'nav
 with Sequential. You can try this yourself in the following cell.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
@@ -222,7 +222,7 @@ Although this expression is more intended for debugging and testing purposes sin
 other parts of the plan.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 from pycram.language import CodePlan, ParallelPlan
@@ -257,7 +257,7 @@ designators.
 We will see how exceptions are handled at a simple example.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.process_module import simulated_robot
 from pycram.language import CodePlan, ParallelPlan
 from pycram.failures import PlanFailure
@@ -289,7 +289,7 @@ parentheses to ensure the correct structure of your plan.
 You can see an example of how to use Repeat below.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import TorsoState
 from pycram.language import SequentialPlan, RepeatPlan
@@ -315,7 +315,7 @@ For the example on how Monitors work, we will use the previous example with the 
 Monitor to interrupt the execution after 2 seconds instead of executing the whole plan 5 times.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.process_module import simulated_robot
 from pycram.language import MonitorPlan, RepeatPlan, SequentialPlan
 import time

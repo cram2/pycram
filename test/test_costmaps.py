@@ -90,7 +90,7 @@ class SemanticCostmapTestCase(BulletWorldTestCase):
         costmap = AlgebraicSemanticCostmap(self.kitchen, "kitchen_island_surface")
         costmap.valid_area = costmap.valid_area.__deepcopy__() & costmap.right() & costmap.bottom() & costmap.border(0.2)
         model = costmap.as_distribution()
-        self.assertEqual(len(model.nodes), 7)
+        self.assertEqual(len(model.nodes()), 7)
         # fig = go.Figure(model.plot(), model.plotly_layout())
         # fig.show()
         # supp = model.support

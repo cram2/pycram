@@ -22,7 +22,7 @@ import pycram.orm.base
 from pycram.designators.object_designator import ObjectDesignatorDescription
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
-from pycram.datastructures.enums import WorldMode
+from pycram.datastructures.enums import WorldMode, ApproachDirection, VerticalAlignment
 from pycram.datastructures.pose import PoseStamped
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.process_module import ProcessModule, simulated_robot
@@ -50,7 +50,7 @@ def main():
     milk_description = ObjectDesignatorDescription(types=[Milk]).ground()
 
     fpa = MoveAndPickUp(milk_description, arms=[Arms.LEFT, Arms.RIGHT],
-                        grasps=[Grasp.FRONT.value, Grasp.LEFT.value, Grasp.RIGHT.value, Grasp.TOP.value])
+                        grasps=[ApproachDirection.FRONT.value, ApproachDirection.LEFT.value, ApproachDirection.RIGHT.value, VerticalAlignment.TOP.value])
 
     pycram.orm.base.ProcessMetaData().description = "Experimenting with Pick Up Actions"
     fpa.sample_amount = 100

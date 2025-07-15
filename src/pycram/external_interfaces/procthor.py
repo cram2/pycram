@@ -1,141 +1,91 @@
-import fnmatch
 import os
+import random
+import tarfile
+from dataclasses import dataclass
+from typing import List
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
-from ..ros import  ros_tools
-from typing_extensions import Dict, Set
-from ..ros import  logging as log
 
-filename = ros_tools.get_ros_package_path('pycram')
+from pycram.config.world_conf import WorldConfig
 
 
-class ProcThorInterface:
-    def __init__(self, base_url="http://procthor.informatik.uni-bremen.de:5000",
-                 source_folder=os.path.join(ros_tools.get_ros_package_path('pycram'), "resources/tmp/")):
-        self.base_url = base_url
-        self.source_folder = source_folder
-        self.stored_environments = []
-        self.stored_environments.extend(self.get_all_environments_stored_below_directory(self.source_folder))
+@dataclass
+class ProcTHORInterface:
+    """
+    Interface for interacting with the ProcThor environments.
+    This class provides methods to scrape, download, and extract .tar.gz files containing ProcThor environments.
+    Base URL defaults to 'https://user.informatik.uni-bremen.de/~luc_kro/procthor_environments/'
+    """
 
-    def _download_file(self, base_url: str, full_url: str, folder: str) -> str:
+    base_url: str = "https://user.informatik.uni-bremen.de/~luc_kro/procthor_environments/"
+    """
+    The base URL to scrape for .tar.gz files containing ProcThor environments.
+    """
+
+    project_root: str = WorldConfig.project_root
+    """
+    The root path of the project, used to find resources and other files.
+    """
+
+    def get_tarball_links(self) -> List[str]:
         """
-        Downloads the file given in full_url and stores it into folder. If necessary it will create the same folder
-        structure. For this purpose the base_url is necessary to decide what is folder structure and what is just url.
+        Scrape and return all .tar.gz file links from the specified base URL.
 
-
-        :param base_url: Base url as string from
-        :param full_url: Full url of the file to be downloaded
-        :param folder: Folder where the file should be stored
-        :return: The local file name of the downloaded file
+        :return: A list of URLs pointing to .tar.gz files.
         """
-        tree_structure = full_url.replace(base_url, '')
-        if tree_structure.startswith("/"):
-            tree_structure = tree_structure[1:]
-        full_storage_path = os.path.join(folder, tree_structure)
-        if not os.path.exists(full_storage_path[:full_storage_path.rfind('/') + 1]):
-            os.makedirs(full_storage_path[:full_storage_path.rfind('/') + 1], exist_ok=True)
-        local_filename = os.path.join(folder, full_url.split('/')[-1])
-        # Send HTTP GET request to fetch the file
-        with requests.get(full_url, stream=True) as r:
-            r.raise_for_status()
-            # Write the content to a file
-            with open(full_storage_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192):
+        response = requests.get(self.base_url)
+        soup = BeautifulSoup(response.text, "html.parser")
+        return [
+            urljoin(self.base_url, a["href"])
+            for a in soup.find_all("a", href=True)
+            if a["href"].endswith(".tar.gz")
+        ]
+
+    def download_file(self, url: str, filename: str):
+        """
+        Download a file from a URL to a destination path.
+
+        :param url: The URL of the file to download.
+        :param filename: The name of the file to save as.
+        """
+        response = requests.get(url, stream=True)
+        tmp_folder = os.path.join(self.project_root, "tmp")
+        os.makedirs(tmp_folder, exist_ok=True)
+        with open(os.path.join(tmp_folder, filename), "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
                     f.write(chunk)
-        return local_filename
 
-    # Function to get the list of files in a directory on the web server
-    def _get_files_list(self, base_url: str) -> Set[str]:
+    def extract_tar(self, filename: str, extract_to: str):
         """
-        Function to get the list of files in a directory on the web server.
+        Extract a .tar.gz archive to the specified directory.
 
-        :param base_url: Base url as string from
-        :return: Set of all files found below the given url
+        :param filename: The name of the .tar.gz file to extract.
+        :param extract_to: Directory where the contents should be extracted.
         """
-        # Send GET request to the URL
-        response = requests.get(base_url)
-        # Parse the HTML response
-        soup = BeautifulSoup(response.text, 'html.parser')
-        # Find all links on the page
-        links = soup.find_all('a')
-        file_list = set()
-        files_urls = set()
-        for link in links:
-            if link.get('href').endswith('/') and not link.get('href').startswith('/'):
-                files_urls = files_urls.union(self._get_files_list(os.path.join(base_url, link['href'])))
+        os.makedirs(extract_to, exist_ok=True)
+        mode = "r:gz" if filename.endswith(".gz") else "r:"
+        with tarfile.open(os.path.join(self.project_root, "tmp", filename), mode) as tar:
+            tar.extractall(path=extract_to)
 
-            elif link.get('href').endswith(('.usda', '.urdf', '.stl', '.usd', '.hdr')):
-                files_urls.add(os.path.join(base_url, link['href']))
-            else:
-                log.logwarn("Ignored File: {}".format(link.get('href')))
-        return files_urls
-
-    # Main function to download all files from a directory
-    def download_all_files_from_URL(self, base_url: str, folder: str) -> None:
+    def sample_environment(self, keep_environment: bool = False):
         """
-        Main function to download all files from a given path. Files will be stored in folder.
+        Fetch and extract a random selection of environments packed in .tar.gz files from a URL.
 
-        :param base_url: Base url as string from
-        :param folder: folder where the files should be stored
-        :return: None
+        :param keep_environment: If True, the environments will be kept in the resources directory, otherwise they will be
         """
-        # Ensure the folder exists
-        os.makedirs(folder, exist_ok=True)
-        # Get the list of files
-        files = self._get_files_list(base_url)
-        # create_folder_structure(base_url,folder,files)
-        # Download each file
-        for file_url in files:
-            log.loginfo(f"Downloading {file_url}...")
-            self._download_file(base_url, file_url, folder)
-        log.loginfo("All files downloaded.")
-        return None
+        links = self.get_tarball_links()
+        selected_link = random.choice(links)
+        if not keep_environment:
+            output_dir = os.path.join(self.project_root, "tmp")
+        else:
+            output_dir = os.path.join(self.project_root, "resources/procthor_environments")
 
-    # Returns a list of all the urdf files in a given folder structure if non is given uses the base_source_folder
-    # only look for urdf, but can be easly adapted
-    def get_all_environments_stored_below_directory(self, source_folder: str) -> list:
-        """
-        Returns a list of dictionaries that contains the name and the storage_place of all urdf files below a given
-        folder. Only looks for urdf.
-
-        :param source_folder: Base path as string from
-        :return: map from name to storage place
-        """
-        urdf_files = []
-        urdf_file = {}
-        for root, dirs, files in os.walk(source_folder):
-            for filename in fnmatch.filter(files, '*.urdf'):
-                urdf_file["name"] = filename.rsplit('.', 1)[0]
-                urdf_file["storage_place"] = os.path.join(root, filename)
-                urdf_files.append(urdf_file.copy())
-        return urdf_files
-
-    def download_one_random_environment(self) -> Dict[str, str]:
-        """
-        Downloads one random environment currently not present.
-
-        :param: None
-        :return: Dictionary of name and storage place
-        """
-        endpoint = "GetRandomEnvironment"
-        full_url = os.path.join(self.base_url, endpoint)
-        response = requests.get(full_url)
-        self.download_all_files_from_URL(response.json()["storage_place"], self.source_folder)
-        self.stored_environments.append(response.json())
-        return response.json()
-
-    def download_num_random_environment(self, num_of_environments: int) -> list:
-        """
-        Downloads given amount of  random environment currently not present.
-
-        :param num_of_environments: Amount of environments that get downloaded
-        :return: List of Dictionaries of name and storage place
-        """
-        endpoint = "GetNumEnvironment"
-        full_url = os.path.join(self.base_url, endpoint, str(num_of_environments))
-        response = requests.get(full_url)
-        for env in response.json():
-            self.download_all_files_from_URL(env["storage_place"], self.source_folder)
-            self.stored_environments.append(env)
-        return response.json()
+        filename = os.path.basename(selected_link)
+        environment_name = os.path.splitext(os.path.splitext(filename)[0])[0]
+        self.download_file(selected_link, filename)
+        self.extract_tar(filename, output_dir)
+        os.remove(os.path.join(self.project_root, "tmp", filename))
+        return output_dir, environment_name + "_decomposed"

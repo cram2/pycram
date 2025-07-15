@@ -4,7 +4,8 @@ import unittest
 from pycram.datastructures.pose import GraspDescription
 from pycram.robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     CameraDescription, RobotDescriptionManager
-from pycram.datastructures.enums import Arms, GripperState, StaticJointState, Grasp
+from pycram.datastructures.enums import Arms, GripperState, StaticJointState, Grasp, ApproachDirection, \
+    VerticalAlignment
 from pycram.object_descriptors.urdf import ObjectDescription as URDF
 
 
@@ -203,9 +204,9 @@ class TestRobotDescription(unittest.TestCase):
         self.assertEqual(len(robot_description.joints), 10)
 
     def test_grasp_descriptions(self):
-        grasp1 = GraspDescription(Grasp.LEFT, Grasp.TOP, True)
-        grasp2 = GraspDescription(Grasp.BACK, Grasp.BOTTOM, False)
-        grasp3 = GraspDescription(Grasp.RIGHT, None, True)
+        grasp1 = GraspDescription(ApproachDirection.LEFT, VerticalAlignment.TOP, True)
+        grasp2 = GraspDescription(ApproachDirection.BACK, VerticalAlignment.BOTTOM, False)
+        grasp3 = GraspDescription(ApproachDirection.RIGHT, VerticalAlignment.NoAlignment, True)
 
         grasp1_quat = [0.7071067811865476, 0.0, -0.7071067811865476, 0.0]
         grasp2_quat = [0.7071067811865476, 0.0, 0.7071067811865476, 0.0]
