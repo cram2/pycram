@@ -22,6 +22,18 @@ try:
 except ImportError:
     loginfo("Could not import VizMarkerPublisher. This is probably because you are not running ROS.")
 
+@pytest.fixture(autouse=True, scope="session")
+def cleanup_ros(self):
+    """
+    Fixture to ensure that ROS is properly cleaned up after all tests.
+    """
+    yield
+    if os.environ.get('ROS_VERSION') == '2':
+        import rclpy
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
 class EmptyBulletWorldTestCase(unittest.TestCase):
     """
     Base class for unit tests that require and ordinary setup and teardown of the empty bullet-world.
@@ -43,17 +55,6 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
         Plan.current_plan = None
         with UseProspectionWorld():
             pass
-
-    @pytest.fixture(autouse=True, scope="session")
-    def cleanup_ros(self):
-        """
-        Fixture to ensure that ROS is properly cleaned up after all tests.
-        """
-        yield
-        if os.environ.get('ROS_VERSION') == '2':
-            import rclpy
-            if rclpy.ok():
-                rclpy.shutdown()
 
 
     def tearDown(self):

@@ -1,7 +1,4 @@
 # Funky MonkeyPatching for ROS2 compatability
-import atexit
-import signal
-
 import builtin_interfaces.msg
 def to_sec(self):
     """

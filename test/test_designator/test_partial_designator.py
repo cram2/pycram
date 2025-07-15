@@ -147,5 +147,5 @@ class TestLazyProduct(unittest.TestCase):
 
         with self.assertRaises(RuntimeError) as cm:
             list(lazy_product(bad_generator()))
-            self.assertIn("bad_generator", str(cm.exception))
+        self.assertIn("bad_generator", str(cm.exception))
 
