@@ -140,9 +140,13 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
 
         for obj in self.partial.kwargs["object_designator"]:
             model = self.accessing_distribution_for_object(obj, self.object_variable)
+
             if model is None:
                 continue
-            root.add_subcircuit(model.root, 0.)
+
+            temp_root = model.root
+            remap = result.add_from_subgraph(model.graph)
+            root.add_subcircuit(remap[temp_root.index], 0.)
         root.normalize()
 
         return result
