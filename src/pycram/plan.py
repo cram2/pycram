@@ -346,7 +346,7 @@ class SubPlan(Plan):
 
     @property
     def nodes(self) -> List[PlanNode]:
-        return self.root.recursive_children
+        return [self.root] + self.root.recursive_children
 
     @property
     def edges(self) -> List[Tuple[PlanNode, PlanNode]]:
@@ -354,7 +354,7 @@ class SubPlan(Plan):
                                   self.super_plan.edges]))
 
     def mount(self, other: Plan, mount_node: PlanNode = None):
-        super().mount(other, mount_node)
+        self.super_plan.mount(other, mount_node)
 
     def perform(self) -> Any:
         self.root.perform()
@@ -490,17 +490,15 @@ class PlanNode:
 
         :return: A new plan
         """
-        copy_nodes = {node: copy(node) for node in self.plan.nodes}
+        # copy_nodes = {node: node for node in self.plan.nodes}
         graph = nx.DiGraph()
-        graph.add_nodes_from(list(copy_nodes.values()))
-        graph.add_edges_from([(copy_nodes[edge[0]], copy_nodes[edge[1]]) for edge in self.plan.edges])
+        graph.add_nodes_from(self.plan.nodes)
+        graph.add_edges_from(self.plan.edges)
         # The subgraph methods tries to create a new instance of the graph class it is give which in the case of Plan()
         # would fail because of the "root" param, that's the reason for this weird conversion.
-        sub_grap = nx.subgraph(graph, [self] + self.recursive_children)
-        plan = Plan(self)
-        plan.add_nodes_from(sub_grap.nodes)
-        plan.add_edges_from(sub_grap.edges)
-        return plan
+        sub_graph = nx.subgraph(graph, [self] + self.recursive_children)
+        sub_tree = SubPlan(root=self, super_plan=self.plan)
+        return sub_tree
 
     @property
     def all_parents(self) -> List[PlanNode]:

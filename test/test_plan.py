@@ -156,8 +156,8 @@ class TestPlanNode(unittest.TestCase):
 
         sub_tree = node2.subtree
         self.assertEqual(node2, sub_tree.root)
-        self.assertIn(node2, plan.nodes)
-        self.assertIn(node3, plan.nodes)
+        self.assertIn(node2, sub_tree.nodes)
+        self.assertIn(node3, sub_tree.nodes)
         self.assertEqual(len(sub_tree.edges), 1)
         self.assertIn((node2, node3), sub_tree.edges)
 
