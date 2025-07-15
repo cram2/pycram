@@ -15,9 +15,9 @@ from ....datastructures.enums import Arms, Grasp, VerticalAlignment
 from ....datastructures.grasp import GraspDescription
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
-from ....designators.location_designator import ProbabilisticCostmapLocation
+from ....designators.location_designator import ProbabilisticCostmapLocation, CostmapLocation
 from ....designators.object_designator import BelieveObject
-from ....failures import ObjectUnfetchable, ReachabilityFailure
+from ....failures import ObjectUnfetchable, ReachabilityFailure, ConfigurationNotReached
 from ....has_parameters import has_parameters
 from ....plan import with_plan
 from ....robot_description import RobotDescription
@@ -166,7 +166,7 @@ class PickAndPlaceAction(ActionDescription):
     def plan(self) -> None:
         ParkArmsActionDescription(Arms.BOTH).perform()
         PickUpActionDescription(self.object_designator, self.arm,
-                                grasp_description=self.grasp_description).perform()
+                     grasp_description=self.grasp_description).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()
         PlaceActionDescription(self.object_designator, self.target_location, self.arm).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()
@@ -182,7 +182,7 @@ class PickAndPlaceAction(ActionDescription):
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None,
-                    grasp_description=GraspDescription) -> PartialDesignator[Type[PickAndPlaceAction]]:
+                    grasp_description = GraspDescription) -> PartialDesignator[Type[PickAndPlaceAction]]:
         return PartialDesignator(PickAndPlaceAction, object_designator=object_designator,
                                  target_location=target_location,
                                  arm=arm,
@@ -318,7 +318,114 @@ class MoveAndPickUpAction(ActionDescription):
                                  grasp_description=grasp_description,
                                  keep_joint_states=keep_joint_states)
 
+
+
+@has_parameters
+@dataclass
+class EfficientTransportAction(ActionDescription):
+    """
+    This action transports an object to a target location by choosing the closest
+    available arm using simple Euclidean distance.
+    """
+    object_designator: Object
+    target_location: PoseStamped
+
+    def plan(self) -> None:
+        # Get the robot and object from the belief world
+        robot = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
+        obj = self.object_designator
+
+        if not obj or not obj.pose:
+            raise ConfigurationNotReached(f"Couldn't resolve the pose for the object: {self.object_designator}")
+
+        object_position = obj.pose.position
+
+        # Get the tool frames for the arms
+        rd = RobotDescription.current_robot_description
+        try:
+            left_tool_frame = rd.get_arm_chain(Arms.LEFT).get_tool_frame()
+            right_tool_frame = rd.get_arm_chain(Arms.RIGHT).get_tool_frame()
+            left_tip = robot.get_link_position(left_tool_frame)
+            right_tip = robot.get_link_position(right_tool_frame)
+        except Exception as e:
+            raise ConfigurationNotReached(f"Could not get tool frames or link positions for arms: {e}")
+
+        # Euclidean distances from each gripper to the object using numpy
+        object_pos_vec = np.array([object_position.x, object_position.y, object_position.z])
+        left_dist = np.linalg.norm(np.array(left_tip) - object_pos_vec)
+        right_dist = np.linalg.norm(np.array(right_tip) - object_pos_vec)
+
+        # Check arms availability
+        attached_links = robot._attached_objects.values() if hasattr(robot, '_attached_objects') else []
+        left_free = left_tool_frame not in attached_links
+        right_free = right_tool_frame not in attached_links
+
+        # The closest free arm
+        if left_free and (not right_free or left_dist <= right_dist):
+            chosen_arm = Arms.LEFT
+        elif right_free and (not left_free or right_dist < left_dist):
+            chosen_arm = Arms.RIGHT
+        else:
+            raise ConfigurationNotReached("No free arm available to grasp the object.")
+
+        ParkArmsActionDescription(Arms.BOTH).perform()
+
+        # Finding a reachable pose for picking the object by the selected arm
+        pickup_location = CostmapLocation(
+            target=self.object_designator,
+            reachable_for=robot,
+            reachable_arm=chosen_arm,
+        )
+        try:
+            pickup_pose = next(iter(pickup_location.resolve()))
+        except StopIteration:
+            raise ReachabilityFailure(f"No reachable pickup pose for object using {chosen_arm.name} arm.")
+
+        # Pick up the object
+        PickUpActionDescription(
+            object_designator=self.object_designator,
+            arm=chosen_arm,
+            grasp_description=pickup_pose.grasp_description
+        ).perform()
+
+        # Park arms again
+        ParkArmsActionDescription(Arms.BOTH).perform()
+
+        # Finding a reachable position to place the object at the target location
+        place_location = CostmapLocation(
+            target=self.target_location,
+            reachable_for=robot,
+            reachable_arm=chosen_arm,
+            object_in_hand=self.object_designator,
+            grasp_descriptions=[pickup_pose.grasp_description]
+        )
+        try:
+            place_pose = next(iter(place_location.resolve()))
+        except StopIteration:
+            raise ReachabilityFailure(f"Target not reachable for placing with {chosen_arm.name} arm.")
+
+        # Place the object
+        PlaceActionDescription(
+            object_designator=self.object_designator,
+            target_location=self.target_location,
+            arm=chosen_arm
+        ).perform()
+
+        # Final park for cleanliness
+        ParkArmsActionDescription(Arms.BOTH).perform()
+
+    @classmethod
+    @with_plan
+    def description(cls, object_designator: Union[Iterable[Object], Object],
+                    target_location: Union[Iterable[PoseStamped], PoseStamped]) -> PartialDesignator[Type['EfficientTransportAction']]:
+        return PartialDesignator(cls,
+                                 object_designator=object_designator,
+                                 target_location=target_location)
+
+
+
 TransportActionDescription = TransportAction.description
 PickAndPlaceActionDescription = PickAndPlaceAction.description
 MoveAndPlaceActionDescription = MoveAndPlaceAction.description
 MoveAndPickUpActionDescription = MoveAndPickUpAction.description
+EfficientTransportActionDescription = EfficientTransportAction.description
