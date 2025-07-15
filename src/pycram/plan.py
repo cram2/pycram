@@ -131,7 +131,7 @@ class Plan(nx.DiGraph):
         """
         previous_plan = Plan.current_plan
         Plan.current_plan = self
-        result = self.current_node.perform()
+        result = self.root.perform()
         Plan.current_plan = previous_plan
         return result
 
@@ -146,9 +146,9 @@ class Plan(nx.DiGraph):
 
     def flattened_parameters(self):
         """
-        The atomic parameter of this plan, as dict with paths as keys and the atomic type as value
+        The core parameter of this plan, as dict with paths as keys and the core type as value
 
-        :return: A dict of the atomic types
+        :return: A dict of the core types
         """
         result = {}
         for node in self.nodes:
@@ -520,7 +520,7 @@ class PlanNode:
 
     def flattened_parameters(self):
         """
-        The atomic types pf this node as dict
+        The core types pf this node as dict
 
         :return: The flattened parameter
         """
@@ -579,10 +579,10 @@ class DesignatorNode(PlanNode):
 
     def flattened_parameters(self) -> Dict[str, leaf_types]:
         """
-        The atomic types of the parameters of this node as dict with paths as keys and the atomic type as value.
+        The core types of the parameters of this node as dict with paths as keys and the core type as value.
         This resolves the parameters to its type not the actual value.
 
-        :return: The atomic types of this action
+        :return: The core types of this action
         """
         return self.designator_ref.performable.flattened_parameters()
 

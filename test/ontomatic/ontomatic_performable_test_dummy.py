@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from pycram.designator import ActionDescription
+from pycram.robot_plans.actions.base import ActionDescription
 
 
 class GripperState(Enum):

@@ -2,7 +2,7 @@ from .default_process_modules import *
 from ..worlds.bullet_world import World
 from ..process_module import ProcessModuleManager
 from ..robot_description import RobotDescription
-from ..datastructures.enums import Arms, ExecutionType, Grasp, StaticJointState
+from ..datastructures.enums import Arms, ExecutionType, Grasp, StaticJointState, ApproachDirection, VerticalAlignment
 from .default_process_modules import _move_arm_tcp
 
 
@@ -64,7 +64,7 @@ class DonbotMoveHead(DefaultMoveHead):
 
         # Get front grasp of gripper, apply it to the pose, and then roll 180°. This works for donbot, because
         # the camera has the same frame orientation, albeit, rotated by 180° around z (which is the "forward" axis of the frame)
-        side_grasp, top_grasp, horizontal = (Grasp.FRONT, None, False)
+        side_grasp, top_grasp, horizontal = (ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
         grasp_orientation = RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT).end_effector.get_grasp(
             side_grasp, top_grasp, horizontal)
         adjusted_pose.rotate_by_quaternion(grasp_orientation)

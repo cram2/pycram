@@ -145,7 +145,7 @@ pr2_description.add_camera_description(camera)
 ## Grasps
 
 Grasps define how a robot interacts with objects. The grasps defined in the robot description are set for each end-effector
-individually. The predefined grasp used is the Grasp.FRONT grasp of the robot. Based on this grasp, all other grasps are
+individually. The predefined grasp used is the ApproachDirection.FRONT grasp of the robot. Based on this grasp, all other grasps are
 generated.
 
 ```python

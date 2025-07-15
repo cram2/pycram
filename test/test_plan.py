@@ -6,7 +6,7 @@ from random_events.interval import closed
 from random_events.product_algebra import SimpleEvent, Event
 
 from pycram.datastructures.enums import TaskStatus
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.language import SequentialPlan, ParallelPlan, CodeNode
 from pycram.parameterizer import Parameterizer
 from pycram.plan import PlanNode, Plan, SubPlan
@@ -216,19 +216,19 @@ class AlgebraTest(BulletWorldTestCase):
         condition = Event(*conditions)
         condition.fill_missing_variables(p.variables)
 
-        navigate_condition = SimpleEvent({
+        navigate_condition = {
             p.get_variable("NavigateAction_1.target_location.pose.position.z"): 0,
             p.get_variable("NavigateAction_1.target_location.pose.orientation.x"): 0,
             p.get_variable("NavigateAction_1.target_location.pose.orientation.y"): 0,
             p.get_variable("NavigateAction_1.target_location.pose.orientation.z"): 0,
             p.get_variable("NavigateAction_1.target_location.pose.orientation.w"): 1
-        })
-        navigate_condition.fill_missing_variables(p.variables)
-        condition &= navigate_condition.as_composite_set()
+        }
+
+        distribution, _ = distribution.conditional(navigate_condition)
 
         condition &= p.create_restrictions().as_composite_set()
 
-        conditional, p_c = distribution.conditional(condition)
+        conditional, p_c = distribution.truncated(condition)
 
         for i in range(10):
             sample = conditional.sample(1)

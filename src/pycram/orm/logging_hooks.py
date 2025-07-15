@@ -1,4 +1,5 @@
 import tqdm
+from ormatic.dao import get_dao_class
 from sqlalchemy.orm import Session
 from typing_extensions import Optional
 from . import ormatic_interface # don't remove, this fetches the necessary bindings
@@ -25,7 +26,8 @@ def insert(plan: Plan, session: Session, use_progress_bar: bool = True,
 
     # convert self to orm object
     for node in plan.nodes:
-        session.add(node)
+        to_dao = get_dao_class(type(node)).to_dao(node)
+        session.add(to_dao)
 
         if use_progress_bar:
             progress_bar.update(1)

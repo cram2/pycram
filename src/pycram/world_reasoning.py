@@ -4,7 +4,7 @@ from typing_extensions import List, Tuple, Optional, Union, Dict
 
 from pycrap.ontologies import PhysicalObject
 from .datastructures.dataclasses import ContactPointsList, RayResult
-from .datastructures.enums import Frame, Arms, FindBodyInRegionMethod, Grasp
+from .datastructures.enums import Frame, Arms, FindBodyInRegionMethod, Grasp, ApproachDirection, VerticalAlignment
 from .datastructures.pose import PoseStamped, TransformStamped
 from .datastructures.world import World, UseProspectionWorld
 from .datastructures.world_entity import PhysicalBody
@@ -274,7 +274,7 @@ def blocking(
         pose_or_object: Union[Object, PoseStamped],
         robot: Object,
         gripper_chain: KinematicChainDescription,
-        grasp: Grasp = None) -> Union[List[Object], None]:
+        grasp: Optional[ApproachDirection] = None) -> Union[List[Object], None]:
     """
     Checks if any objects are blocking another object when a robot tries to pick it. This works
     similar to the reachable predicate. First the inverse kinematics between the robot and the object will be
@@ -291,7 +291,7 @@ def blocking(
     with UseProspectionWorld():
         prospection_robot = World.current_world.get_prospection_object_for_object(robot)
         if grasp:
-            grasp_orientation = gripper_chain.end_effector.get_grasp(grasp, None, False)
+            grasp_orientation = gripper_chain.end_effector.get_grasp(grasp, VerticalAlignment.NoAlignment, False)
             try_to_reach_with_grasp(pose_or_object, prospection_robot, gripper_chain.get_tool_frame(), grasp_orientation)
         else:
             try_to_reach(pose_or_object, prospection_robot, gripper_chain.get_tool_frame())
@@ -499,6 +499,8 @@ def is_body_in_region(body: PhysicalBody, region: Trimesh, step_size_in_meters: 
     elif method == FindBodyInRegionMethod.MultiRay:
         # cast multiple rays with small steps starting from min_bound to max_bound
         rays = get_rays_from_min_max(min_bound, max_bound, step_size_in_meters)
+        inv_rays = get_rays_from_min_max(max_bound, min_bound, step_size_in_meters)
+        rays = np.concatenate((rays, inv_rays), axis=0)
         max_batch_size = World.current_world.conf.max_batch_size_for_rays
         max_batch_size = max_batch_size if max_batch_size is not None else rays.shape[0]
         for n in chunks(rays, max_batch_size):

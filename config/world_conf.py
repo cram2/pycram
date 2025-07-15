@@ -21,6 +21,11 @@ class WorldConfig:
      the objects.
     """
 
+    project_root: str = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
+    """
+    The root path of the project, used to find resources and other files.
+    """
+
     cache_dir_name: str = 'cached'
     """
     The name of the cache directory.

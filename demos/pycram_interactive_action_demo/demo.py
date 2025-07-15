@@ -5,11 +5,10 @@ from pycram.failures import PlanFailure
 from pycram.process_module import simulated_robot
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
-from pycram.designators.action_designator import *
 from pycram.datastructures.pose import PoseStamped
-from pycram.datastructures.enums import WorldMode
+from pycram.datastructures.enums import WorldMode, ApproachDirection, VerticalAlignment
 from pycrap.ontologies import Apartment, Robot, Milk
-
+from pycram.robot_plans import *
 world = BulletWorld(WorldMode.GUI)
 
 pr2 = Object("pr2", Robot, "pr2.urdf", pose=PoseStamped.from_list([1, 2, 0]))
@@ -79,7 +78,7 @@ class ActionButtons(threading.Thread):
                 pick_up_button_value = p.readUserDebugParameter(self.pick_up_button, physicsClientId=self.world.id)
                 if pick_up_button_value != last_pick_up_button_value:
                     try:
-                        PickUpActionDescription(BelieveObject(types=[Milk]), Arms.LEFT, GraspDescription(Grasp.FRONT, None, False)).perform()
+                        PickUpActionDescription(BelieveObject(types=[Milk]), Arms.LEFT, GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)).perform()
                     except PlanFailure:
                         print("Pick up failed")
                     last_pick_up_button_value = pick_up_button_value

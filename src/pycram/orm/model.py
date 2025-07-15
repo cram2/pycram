@@ -4,10 +4,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Type, List
 
-from ormatic.ormatic import ORMaticExplicitMapping
-from ormatic.utils import classproperty
+from ormatic.dao import AlternativeMapping
 from random_events.utils import recursive_subclasses
-from typing_extensions import Optional
+from typing_extensions import Optional, Any, Dict
 
 from pycrap.ontologies import PhysicalObject
 from .casts import StringType
@@ -16,11 +15,11 @@ from ..datastructures import pose
 from ..datastructures.dataclasses import FrozenObject
 from ..datastructures.enums import TaskStatus
 from ..datastructures.pose import PoseStamped
-from ..designator import ActionDescription
-from ..designators import action_designator
 from ..failures import PlanFailure
-from ..language import LanguageNode, SequentialNode, RepeatNode, TryInOrderNode, ParallelNode, TryAllNode, CodeNode
+from ..language import LanguageNode, RepeatNode, TryInOrderNode, ParallelNode, TryAllNode, CodeNode, \
+    MonitorNode
 from ..plan import ActionNode, MotionNode, PlanNode, ResolvedActionNode, DesignatorNode
+from ..robot_plans import ActionDescription
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -32,57 +31,89 @@ from ..plan import ActionNode, MotionNode, PlanNode, ResolvedActionNode, Designa
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-
 @dataclass
-class PlanNodeDAO(ORMaticExplicitMapping):
+class PlanNodeMapping(AlternativeMapping[PlanNode]):
     status: TaskStatus = TaskStatus.CREATED
     start_time: Optional[datetime] = field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
     reason: Optional[PlanFailure] = None
 
-    @classproperty
-    def explicit_mapping(cls) -> Type:
-        return PlanNode
+    @classmethod
+    def create_instance(cls, obj: PlanNode):
+        """
+        Convert a PlanNode to a PlanNodeDAO.
+        """
+        return cls(
+            status=obj.status,
+            start_time=obj.start_time,
+            end_time=obj.end_time,
+            reason=obj.reason
+        )
 
 
 @dataclass
-class DesignatorNodeDAO(ORMaticExplicitMapping):
+class DesignatorNodeMapping(AlternativeMapping[DesignatorNode]):
     status: TaskStatus = TaskStatus.CREATED
     start_time: Optional[datetime] = field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
     reason: Optional[PlanFailure] = None
 
-    @classproperty
-    def explicit_mapping(cls) -> Type:
-        return DesignatorNode
+    @classmethod
+    def create_instance(cls, obj: DesignatorNode):
+        """
+        Convert a DesignatorNode to a DesignatorNodeDAO.
+        """
+        return cls(
+            status=obj.status,
+            start_time=obj.start_time,
+            end_time=obj.end_time,
+            reason=obj.reason
+        )
 
 
 @dataclass
-class ActionNodeDAO(DesignatorNodeDAO, ORMaticExplicitMapping):
+class ActionNodeMapping(AlternativeMapping[ActionNode]):
 
     status: TaskStatus = TaskStatus.CREATED
     start_time: Optional[datetime] = field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
     reason: Optional[PlanFailure] = None
-    @classproperty
-    def explicit_mapping(cls) -> Type:
-        return ActionNode
+
+    @classmethod
+    def create_instance(cls, obj: ActionNode):
+        """
+        Convert an ActionNode to an ActionNodeDAO.
+        """
+        return cls(
+            status=obj.status,
+            start_time=obj.start_time,
+            end_time=obj.end_time,
+            reason=obj.reason
+        )
 
 
 @dataclass
-class MotionNodeDAO(ORMaticExplicitMapping):
+class MotionNodeMapping(AlternativeMapping[MotionNode]):
     status: TaskStatus = TaskStatus.CREATED
     start_time: Optional[datetime] = field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
     reason: Optional[PlanFailure] = None
 
-    @classproperty
-    def explicit_mapping(cls) -> Type:
-        return MotionNode
+    @classmethod
+    def create_instance(cls, obj: MotionNode):
+        """
+        Convert a MotionNode to a MotionNodeDAO.
+        """
+        return cls(
+            status=obj.status,
+            start_time=obj.start_time,
+            end_time=obj.end_time,
+            reason=obj.reason
+        )
 
 
 @dataclass
-class ResolvedActionNodeDAO(ORMaticExplicitMapping):
+class ResolvedActionNodeMapping(AlternativeMapping[ResolvedActionNode]):
 
     designator_ref: ActionDescription
 
@@ -91,46 +122,88 @@ class ResolvedActionNodeDAO(ORMaticExplicitMapping):
     end_time: Optional[datetime] = None
     reason: Optional[PlanFailure] = None
 
-    @classproperty
-    def explicit_mapping(cls) -> Type:
-        return ResolvedActionNode
+    @classmethod
+    def create_instance(cls, obj: ResolvedActionNode):
+        """
+        Convert a ResolvedActionNode to a ResolvedActionNodeDAO.
+        """
+        return cls(
+            designator_ref=obj.designator_ref,
+            status=obj.status,
+            start_time=obj.start_time,
+            end_time=obj.end_time,
+            reason=obj.reason
+        )
 
 @dataclass
-class TryInOrderDAO(ORMaticExplicitMapping):
+class TryInOrderMapping(AlternativeMapping[TryInOrderNode]):
 
-    @classproperty
-    def explicit_mapping(cls) -> Type:
-        return TryInOrderNode
-
-@dataclass
-class ParallelNodeDAO(ORMaticExplicitMapping):
-
-    @classproperty
-    def explicit_mapping(cls):
-        return ParallelNode
-
+    @classmethod
+    def create_instance(cls, obj: TryInOrderNode):
+        """
+        Convert a TryInOrderNode to a TryInOrderNodeDAO.
+        """
+        return cls()
 
 @dataclass
-class TryAllNodeDAO(ORMaticExplicitMapping):
+class ParallelNodeMapping(AlternativeMapping[ParallelNode]):
 
-    @classproperty
-    def explicit_mapping(cls):
-        return TryAllNode
-
-class CodeNodeDAO(ORMaticExplicitMapping):
-
-    @classproperty
-    def explicit_mapping(cls):
-        return CodeNode
+    @classmethod
+    def create_instance(cls, obj: ParallelNode):
+        """
+        Convert a ParallelNode to a ParallelNodeDAO.
+        """
+        return cls()
 
 
 @dataclass
-class FrozenObjectDAO(ORMaticExplicitMapping):
+class TryAllNodeMapping(AlternativeMapping[TryAllNode]):
+
+    @classmethod
+    def create_instance(cls, obj: TryAllNode):
+        """
+        Convert a TryAllNode to a TryAllNodeDAO.
+        """
+        return cls()
+
+
+@dataclass
+class CodeNodeMapping(AlternativeMapping[CodeNode]):
+
+    @classmethod
+    def create_instance(cls, obj: CodeNode):
+        """
+        Convert a CodeNode to a CodeNodeDAO.
+        """
+        return cls(
+        )
+
+
+@dataclass
+class FrozenObjectMapping(AlternativeMapping[FrozenObject]):
     name: str
     concept: Type[PhysicalObject]
     pose: Optional[PoseStamped]
 
-    @classproperty
-    def explicit_mapping(cls):
-        return FrozenObject
+    @classmethod
+    def create_instance(cls, obj: FrozenObject):
+        """
+        Convert a FrozenObject to a FrozenObjectDAO.
+        """
+        return cls(
+            name=obj.name,
+            concept=obj.concept,
+            pose=obj.pose
+        )
+
+
+@dataclass
+class MonitorNodeMapping(AlternativeMapping[MonitorNode]):
+
+    @classmethod
+    def create_instance(cls, obj: MonitorNode):
+        """
+        Convert a MonitorNode to a MonitorNodeDAO.
+        """
+        return cls()
 

@@ -23,7 +23,7 @@ Action Designators are high-level descriptions of actions which the robot should
 Action Designators are created from an Action Designator Description, which describes the type of action as well as the
 parameter for this action. Parameter are given as a list of possible parameters.
 For example, if you want to describe the robot moving to a table you would need a
-{meth}`~pycram.designators.action_designator.NavigateActionDescription` and a list of poses that are near the table or a 
+{meth}`~pycram.robot_plans.NavigateActionDescription` and a list of poses that are near the table or a 
 LocationDesignator describing a pose near the table. The Action
 Designator Description will then pick one of the poses and return a performable Action Designator which contains the
 picked pose.
@@ -41,7 +41,7 @@ now the possible input arguments for a NavigateActionDescription are:
 
 ## Navigate Action
 
-We will start with a simple example of the {meth}`~pycram.designators.action_designator.NavigateAction`.
+We will start with a simple example of the {meth}`~pycram.robot_plans.NavigateAction`.
 
 First, we need a BulletWorld with a robot.
 
@@ -62,7 +62,7 @@ To move the robot we need to create a description and resolve it to an actual De
 only needs a list of possible poses.
 
 ```python
-from pycram.designators.action_designator import NavigateActionDescription
+from pycram.robot_plans import NavigateActionDescription
 from pycram.datastructures.pose import PoseStamped
 
 pose = PoseStamped.from_list([1.3, 2, 0], [0, 0, 0, 1])
@@ -100,7 +100,7 @@ We start again by creating a description and resolving it to a designator. After
 a {meth}`~pycram.process_module.simulated_robot` environment.
 
 ```python
-from pycram.designators.action_designator import MoveTorsoActionDescription
+from pycram.robot_plans import MoveTorsoActionDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import TorsoState
 
@@ -119,7 +119,7 @@ As the name implies, this action designator is used to open or close the gripper
 The procedure is similar to the last time, but this time we will shorten it a bit.
 
 ```python
-from pycram.designators.action_designator import SetGripperActionDescription
+from pycram.robot_plans import SetGripperActionDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import GripperState, Arms
 
@@ -135,7 +135,7 @@ with simulated_robot:
 Park arms is used to move one or both arms into the default parking position.
 
 ```python
-from pycram.designators.action_designator import ParkArmsActionDescription
+from pycram.robot_plans import ParkArmsActionDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms
 
@@ -158,10 +158,10 @@ world.reset_world()
 ```
 
 ```python
-from pycram.designators.action_designator import PickUpActionDescription, PlaceActionDescription, ParkArmsActionDescription, MoveTorsoActionDescription, NavigateActionDescription
+from pycram.robot_plans import PickUpActionDescription, PlaceActionDescription, ParkArmsActionDescription, MoveTorsoActionDescription, NavigateActionDescription
 from pycram.designators.object_designator import BelieveObject
 from pycram.process_module import simulated_robot
-from pycram.datastructures.enums import Arms, Grasp, TorsoState
+from pycram.datastructures.enums import Arms, ApproachDirection, TorsoState, VerticalAlignment
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.grasp import GraspDescription
 
@@ -174,16 +174,16 @@ with simulated_robot:
     MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
 
     NavigateActionDescription([PoseStamped.from_list([1.8, 2, 0.0],
-                                           [0.0, 0.0, 0., 1])]).resolve().perform()
+                                                     [0.0, 0.0, 0., 1])]).resolve().perform()
 
-    grasp = GraspDescription(Grasp.FRONT, None, False)
+    grasp = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
     PickUpActionDescription(object_designator=milk_desig,
                             arm=[arm],
                             grasp_description=grasp).resolve().perform()
 
     PlaceActionDescription(object_designator=milk_desig,
                            target_location=[PoseStamped.from_list([2.4, 1.8, 1],
-                                                        [0, 0, 0, 1])],
+                                                                  [0, 0, 0, 1])],
                            arm=arm).resolve().perform()
 ```
 
@@ -196,7 +196,7 @@ world.reset_world()
 ```
 
 ```python
-from pycram.designators.action_designator import LookAtActionDescription
+from pycram.robot_plans import LookAtActionDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import PoseStamped
 
@@ -216,7 +216,7 @@ world.reset_world()
 ```
 
 ```python
-from pycram.designators.action_designator import DetectActionDescription, LookAtActionDescription, ParkArmsActionDescription, NavigateActionDescription
+from pycram.robot_plans import DetectActionDescription, LookAtActionDescription, ParkArmsActionDescription, NavigateActionDescription
 from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
@@ -249,7 +249,7 @@ world.reset_world()
 ```
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.designators.object_designator import *
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import PoseStamped
@@ -279,7 +279,7 @@ world.reset_world()
 ```
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.designators.object_designator import *
 from pycram.datastructures.enums import Arms, TorsoState
 from pycram.process_module import simulated_robot
@@ -305,7 +305,7 @@ This action designator only works in the apartment environment for the moment, t
 the apartment. Additionally, we open the drawer such that we can close it with the action designator.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.designators.object_designator import *
 from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot

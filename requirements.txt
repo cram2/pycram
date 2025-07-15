@@ -4,7 +4,7 @@ scipy
 pytransform3d
 SQLAlchemy #orm
 sqlacodegen==3.0.0 #orm
-ormatic # orm
+ormatic>=1.1.1 # orm
 tqdm==4.66.3
 psutil~=5.9.0
 typing_extensions>=4.10.0
@@ -12,8 +12,8 @@ owlready2>=0.45
 dm_control # MJCF
 trimesh==4.6.0
 deprecated
-probabilistic_model>=6.2.1
-random_events>=4.1.0
+probabilistic_model==7.0.1 # just until semantic world is integrated
+random_events>=4.1.18
 pint>=0.21.1
 gymnasium
 pin==2.7.0
@@ -24,3 +24,8 @@ python-box
 urdf_parser_py
 networkx
 bs4 # ProcThor
+pillow
+polytope
+ortools
+scipy
+rtree==1.4.0
