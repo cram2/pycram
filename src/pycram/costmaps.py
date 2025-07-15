@@ -8,8 +8,8 @@ import numpy as np
 import psutil
 import random_events
 from matplotlib import colors
-from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event
-from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
+from probabilistic_model.probabilistic_circuit.rx.helper import uniform_measure_of_event
+from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import ProbabilisticCircuit
 from random_events.interval import Interval, reals, closed_open, closed
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
