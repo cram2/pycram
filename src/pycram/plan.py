@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import inspect
 import time
+from copy import copy
 from dataclasses import field, dataclass
 from datetime import datetime
 
 import networkx as nx
+from networkx.classes.reportviews import NodeView, OutEdgeView
 from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 from random_events.product_algebra import Event
 
@@ -31,9 +33,10 @@ class Plan(nx.DiGraph):
     on_start_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
     on_end_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
 
-    def __init__(self, root: PlanNode):
+    def __init__(self, root: PlanNode, super_plan: Plan = None):
         super().__init__()
         self.root: PlanNode = root
+        self.super_plan: Plan = super_plan
         self.add_node(self.root)
         self.current_node: PlanNode = self.root
         self.on_start_callback = {}
@@ -52,6 +55,8 @@ class Plan(nx.DiGraph):
         self.add_edge(mount_node, other.root)
         for node in self.nodes:
             node.plan = self
+        if isinstance(other, SubPlan):
+            other.super_plan = self
 
     def merge_nodes(self, node1: PlanNode, node2: PlanNode):
         """
@@ -260,9 +265,10 @@ class Plan(nx.DiGraph):
         graph = nx.DiGraph()
         graph.add_nodes_from(hash_nodes.keys())
         graph.add_edges_from(edges)
-        node_colors = {TaskStatus.CREATED: "lightgrey", TaskStatus.RUNNING: "lightblue", TaskStatus.SUCCEEDED: "lightgreen",
-                       TaskStatus.FAILED: "lightcoral", TaskStatus.INTERRUPTED: "lightpink", TaskStatus.SLEEPING: "lightyellow"}
-
+        node_colors = {TaskStatus.CREATED: "lightgrey", TaskStatus.RUNNING: "lightblue",
+                       TaskStatus.SUCCEEDED: "lightgreen",
+                       TaskStatus.FAILED: "lightcoral", TaskStatus.INTERRUPTED: "lightpink",
+                       TaskStatus.SLEEPING: "lightyellow"}
 
         for v in graph:
             for attr in attributes:
@@ -288,7 +294,8 @@ class Plan(nx.DiGraph):
                    width=1700, height=950,
                    x_axis_location=None, y_axis_location=None, toolbar_location="below",
                    title="Plan Visualization", background_fill_color="#efefef", )
-        node_hover_tool = HoverTool(tooltips= [("node_type", "@node_type")] + [(attr, "@" + attr) for attr in attributes])
+        node_hover_tool = HoverTool(
+            tooltips=[("node_type", "@node_type")] + [(attr, "@" + attr) for attr in attributes])
         p.add_tools(node_hover_tool)
 
         p.grid.grid_line_color = None
@@ -313,16 +320,56 @@ class Plan(nx.DiGraph):
         """
         from bokeh.models import ColumnDataSource, LabelSet
         hash_nodes = {hash(node): node for node in self.nodes}
-        layout=nx.drawing.bfs_layout(self._create_pure_networkx_graph([]), start=hash(self.root), align='horizontal')
+        layout = nx.drawing.bfs_layout(self._create_pure_networkx_graph([]), start=hash(self.root), align='horizontal')
         x = [pose[0] for pose in layout.values()]
         y = [pose[1] for pose in layout.values()]
         name = [str(hash_nodes[node].action.__name__) for node in layout.keys()]
         label_dict = {'x': x, 'y': y, 'names': name}
 
         data_source = ColumnDataSource(data=label_dict)
-        labels= LabelSet(x='x', y='y', text='names',
+        labels = LabelSet(x='x', y='y', text='names',
                           x_offset=-55, y_offset=10, source=data_source)
         return labels
+
+
+class SubPlan(Plan):
+    """
+    A subplan is a plan which is mounted to another plan. It reflects changes and properties of the super plan
+    """
+
+    def __init__(self, root: PlanNode, super_plan: Plan = None):
+        """
+        :param root: The root node of the subplan
+        :param super_plan: The plan to which this subplan is mounted. If None, the subplan is a standalone plan.
+        """
+        super().__init__(root, super_plan)
+
+    @property
+    def nodes(self) -> List[PlanNode]:
+        return [self.root] + self.root.recursive_children
+
+    @property
+    def edges(self) -> List[Tuple[PlanNode, PlanNode]]:
+        return list(filter(None, [edge if edge[0] in self.nodes and edge[1] in self.nodes else None for edge in
+                                  self.super_plan.edges]))
+
+    def mount(self, other: Plan, mount_node: PlanNode = None):
+        self.super_plan.mount(other, mount_node)
+
+    def perform(self) -> Any:
+        self.root.perform()
+
+    def add_node(self, node_for_adding: PlanNode, **attr):
+        self.super_plan.add_node(node_for_adding, **attr)
+
+    def add_edge(self, u_of_edge, v_of_edge, **attr):
+        self.super_plan.add_edge(u_of_edge, v_of_edge, **attr)
+
+    def add_edges_from(self, ebunch_to_add: Iterable[Tuple[PlanNode, PlanNode]], **attr):
+        self.super_plan.add_edges_from(ebunch_to_add, **attr)
+
+    def add_nodes_from(self, nodes_for_adding: Iterable[PlanNode], **attr):
+        self.super_plan.add_nodes_from(nodes_for_adding, **attr)
 
 
 def managed_node(func: Callable) -> Callable:
@@ -443,17 +490,15 @@ class PlanNode:
 
         :return: A new plan
         """
+        # copy_nodes = {node: node for node in self.plan.nodes}
         graph = nx.DiGraph()
         graph.add_nodes_from(self.plan.nodes)
         graph.add_edges_from(self.plan.edges)
         # The subgraph methods tries to create a new instance of the graph class it is give which in the case of Plan()
         # would fail because of the "root" param, that's the reason for this weird conversion.
-        sub_grap = nx.subgraph(graph, [self] +  self.recursive_children)
-        plan = Plan(self)
-        plan.add_nodes_from(sub_grap.nodes)
-        plan.add_edges_from(sub_grap.edges)
-        return plan
-
+        sub_graph = nx.subgraph(graph, [self] + self.recursive_children)
+        sub_tree = SubPlan(root=self, super_plan=self.plan)
+        return sub_tree
 
     @property
     def all_parents(self) -> List[PlanNode]:
@@ -612,7 +657,6 @@ class ResolvedActionNode(DesignatorNode):
         return f"<Resolved {self.designator_ref.__class__.__name__}>"
 
 
-
 @dataclass
 class MotionNode(DesignatorNode):
     """
@@ -625,7 +669,6 @@ class MotionNode(DesignatorNode):
 
     def __hash__(self):
         return id(self)
-
 
     @managed_node
     def perform(self):
@@ -663,11 +706,9 @@ def with_plan(func: Callable) -> Callable:
         else:
             kwargs = dict(inspect.signature(func).bind(*args, **kwargs).arguments)
             node = MotionNode(designator_ref=designator, action=designator.__class__, kwargs=kwargs)
-        plan = Plan(root=node)
+        plan = Plan(root=node) if not Plan.current_plan else SubPlan(root=node, super_plan=Plan.current_plan)
         if Plan.current_plan:
             Plan.current_plan.mount(plan, Plan.current_plan.current_node)
-            # Plan.current_plan.current_node = node
-            # return Plan.current_plan
         return plan
 
     return wrapper
