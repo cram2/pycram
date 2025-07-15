@@ -207,11 +207,11 @@ class MonitorNodeMapping(AlternativeMapping[MonitorNode]):
         """
         return cls()
 
-
-@dataclass
-class MonitorNodeDAO(ORMaticExplicitMapping):
-
-    @classproperty
-    def explicit_mapping(cls) -> Type:
-        return MonitorNode
+#
+# @dataclass
+# class MonitorNodeDAO(ORMaticExplicitMapping):
+#
+#     @classproperty
+#     def explicit_mapping(cls) -> Type:
+#         return MonitorNode
 
