@@ -342,7 +342,7 @@ pause and resume the execution of the monitored plan. This can be achieved with 
 If the `behavior` is set to `resume`, the plan will be launched in a paused state and will be resumed as soon as the condition is fulfilled.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans.actions.core import MoveTorsoActionDescription
 from pycram.process_module import simulated_robot
 from pycram.language import MonitorPlan, RepeatPlan, SequentialPlan
 from pycram.datastructures.enums import TorsoState
