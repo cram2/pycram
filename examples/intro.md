@@ -230,7 +230,7 @@ These two ways can also be combined, you could write a function which should be 
 function contains a "with" scope which executes something on the simulated robot for reasoning purposes.
 
 ```python
-from pycram.designators.motion_designator import *
+from pycram.robot_plans.motions import *
 from pycram.process_module import simulated_robot, with_simulated_robot
 
 description = MoveMotion(target=PoseStamped.from_list([1, 0, 0], [0, 0, 0, 1]))
@@ -312,7 +312,7 @@ Action Designators are used to describe high-level actions. Action Designators a
 to describe the high-level action in detail.
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.datastructures.enums import Arms
 
 with simulated_robot:
@@ -326,37 +326,39 @@ To get familiar with the PyCRAM Framework we will write a simple pick and place 
 a cereal box from the kitchen counter and place it on the kitchen island. This is a simple pick and place plan.
 
 ```python
-from pycram.datastructures.enums import Grasp, TorsoState, Arms
+from pycram.datastructures.enums import ApproachDirection, TorsoState, Arms, VerticalAlignment
 from pycram.datastructures.pose import GraspDescription
 
 cereal_desig = ObjectDesignatorDescription(names=["cereal"])
 kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
 robot_desig = ObjectDesignatorDescription(names=["pr2"])
 with simulated_robot:
-    ParkArmsActionDescription(Arms.BOTH).resolve().perform()
+  ParkArmsActionDescription(Arms.BOTH).resolve().perform()
 
-    MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
+  MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
 
-    pickup_arm = Arms.RIGHT
-    pickup_pose = CostmapLocation(target=cereal_desig, reachable_for=robot_desig, reachable_arm=pickup_arm)
-    
-    NavigateActionDescription(target_location=pickup_pose).resolve().perform()
-    
-    grasp_description = GraspDescription(Grasp.FRONT, None, False)
-    PickUpActionDescription(object_designator=cereal_desig, arm=[pickup_arm], grasp_description=grasp_description).resolve().perform()
+  pickup_arm = Arms.RIGHT
+  pickup_pose = CostmapLocation(target=cereal_desig, reachable_for=robot_desig, reachable_arm=pickup_arm)
 
-    ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
+  NavigateActionDescription(target_location=pickup_pose).resolve().perform()
 
-    place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(),
-                                           cereal_desig.resolve())
+  grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
+  PickUpActionDescription(object_designator=cereal_desig, arm=[pickup_arm],
+                          grasp_description=grasp_description).resolve().perform()
 
-    place_stand = CostmapLocation(place_island, reachable_for=robot_desig, reachable_arm=[pickup_arm], object_in_hand=cereal_desig.resolve())
+  ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
 
-    NavigateActionDescription(target_location=place_stand).resolve().perform()
+  place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(),
+                                         cereal_desig.resolve())
 
-    PlaceActionDescription(cereal_desig, target_location=place_island, arm=[pickup_arm]).resolve().perform()
+  place_stand = CostmapLocation(place_island, reachable_for=robot_desig, reachable_arm=[pickup_arm],
+                                object_in_hand=cereal_desig.resolve())
 
-    ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
+  NavigateActionDescription(target_location=place_stand).resolve().perform()
+
+  PlaceActionDescription(cereal_desig, target_location=place_island, arm=[pickup_arm]).resolve().perform()
+
+  ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
 
 
 

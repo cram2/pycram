@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from typing import Type
 
 from probabilistic_model.distributions import SymbolicDistribution
-from probabilistic_model.probabilistic_circuit.nx.helper import fully_factorized, leaf
-from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit, SumUnit, \
+from probabilistic_model.probabilistic_circuit.rx.helper import fully_factorized, leaf
+from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import ProbabilisticCircuit, SumUnit, \
     ProductUnit
 from probabilistic_model.utils import MissingDict
 from random_events.product_algebra import SimpleEvent
@@ -13,9 +13,9 @@ from random_events.variable import Symbolic, Continuous
 from sqlalchemy import select
 from typing_extensions import Optional, List
 
-from ...action_designator import MoveAndPickUpAction
+from ....robot_plans import MoveAndPickUpAction
 from ....datastructures.dataclasses import BoundingBox
-from ....datastructures.enums import Arms, Grasp
+from ....datastructures.enums import Arms, Grasp, VerticalAlignment, ApproachDirection
 from ....datastructures.grasp import GraspDescription
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
@@ -71,8 +71,8 @@ class MoveAndPickUpVariables(Variables):
     x = Continuous("x")
     y = Continuous("y")
 
-    approach_direction = Symbolic("approach_direction", Set.from_iterable(Grasp))
-    vertical_alignment = Symbolic("vertical_alignment", Set.from_iterable(Grasp))
+    approach_direction = Symbolic("approach_direction", Set.from_iterable(ApproachDirection))
+    vertical_alignment = Symbolic("vertical_alignment", Set.from_iterable(VerticalAlignment))
 
 
 @dataclass
@@ -92,7 +92,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
                                    min_z=obj.pose.position.z - search_space_size,
                                    max_x=obj.pose.position.x + search_space_size,
                                    max_y=obj.pose.position.y + search_space_size,
-                                   max_z=obj.pose.position.z + search_space_size)
+                                   max_z=obj.pose.position.z + search_space_size).as_collection()
         navigate_conditions = collision_free_event(obj.world, search_space)
         return navigate_conditions
 
@@ -102,7 +102,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
         # add object distribution her
         p_object = SymbolicDistribution(object_variable, MissingDict(float, {obj.id: 1.}))
         root = model.root
-        new_root = ProductUnit(model)
+        new_root = ProductUnit(probabilistic_circuit=model)
         new_root.add_subcircuit(leaf(p_object, model))
         new_root.add_subcircuit(root)
 
@@ -115,8 +115,8 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
 
         # apply grasp conditions
         grasp_condition = SimpleEvent(
-            {self.variables.approach_direction.value: [Grasp.FRONT, Grasp.BACK, Grasp.LEFT, Grasp.RIGHT],
-                self.variables.vertical_alignment.value: [Grasp.TOP, Grasp.BOTTOM], }).as_composite_set()
+            {self.variables.approach_direction.value: [ApproachDirection.FRONT, ApproachDirection.BACK, ApproachDirection.LEFT, ApproachDirection.RIGHT],
+                self.variables.vertical_alignment.value: [VerticalAlignment.TOP, VerticalAlignment.BOTTOM, VerticalAlignment.NoAlignment],}).as_composite_set()
         grasp_condition.fill_missing_variables(model.variables)
         condition &= grasp_condition
 
@@ -125,7 +125,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
         arm_condition.fill_missing_variables(model.variables)
         condition &= arm_condition
 
-        conditional, prob = model.conditional(condition)
+        conditional, prob = model.truncated(condition)
 
         return conditional
 
@@ -136,7 +136,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
     def create_distribution(self):
 
         result = ProbabilisticCircuit()
-        root = SumUnit(result)
+        root = SumUnit(probabilistic_circuit=result)
 
         for obj in self.partial.kwargs["object_designator"]:
             model = self.accessing_distribution_for_object(obj, self.object_variable)
@@ -164,9 +164,9 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
             [sample_dict[self.variables.x.value], sample_dict[self.variables.y.value], 0.])
 
         grasp_description = GraspDescription(
-            approach_direction=list(Grasp)[int(sample_dict[self.variables.approach_direction.value])],
+            approach_direction=list(ApproachDirection)[int(sample_dict[self.variables.approach_direction.value])],
             rotate_gripper=sample_dict[self.variables.rotate_gripper.value],
-            vertical_alignment=list(Grasp)[int(sample_dict[self.variables.vertical_alignment.value])], )
+            vertical_alignment=list(VerticalAlignment)[int(sample_dict[self.variables.vertical_alignment.value])], )
 
         return MoveAndPickUpAction(standing_position=standing_position, object_designator=obj,
                                    arm=Arms(int(sample_dict[self.variables.arm.value])),

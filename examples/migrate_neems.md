@@ -48,7 +48,7 @@ If you already have some data in your local database you can skip the next block
 some example data
 
 ```python
-from pycram.designators.action_designator import *
+from pycram.robot_plans import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.tasktree import with_tree

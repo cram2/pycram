@@ -1,10 +1,10 @@
 
 class PinocchioConfig:
-    error_threshold: float = 1e-4
+    error_threshold: float = 5e-4
     """
     The error threshold which needs to be reached for the goal to be considered as reached.
     """
-    max_iterations: int = 10000
+    max_iterations: int = 5000
     """
     The maximum number of iterations for the inverse kinematics computation.
     """

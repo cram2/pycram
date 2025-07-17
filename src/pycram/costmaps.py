@@ -8,8 +8,8 @@ import numpy as np
 import psutil
 import random_events
 from matplotlib import colors
-from probabilistic_model.probabilistic_circuit.nx.helper import uniform_measure_of_event
-from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
+from probabilistic_model.probabilistic_circuit.rx.helper import uniform_measure_of_event
+from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import ProbabilisticCircuit
 from random_events.interval import Interval, reals, closed_open, closed
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
@@ -541,7 +541,13 @@ class VisibilityCostmap(Costmap):
         self.origin: PoseStamped = PoseStamped.from_list() if not origin else origin
         self.target_object: Optional[Object] = target_object
         self.robot: Optional[Object] = robot
+        if robot:
+            # this is done because otherwise the robot would interfere with the costmap
+            current_pose = robot.get_pose()
+            robot.world.robot.set_pose(PoseStamped.from_list([current_pose.position.x, current_pose.position.y+1000, current_pose.position.z]))
         self._generate_map()
+        if robot:
+            robot.world.robot.set_pose(current_pose)
         Costmap.__init__(self, resolution, size, size, self.origin, self.map)
 
     @property

@@ -2,13 +2,14 @@ import atexit
 
 import time
 
+from tf2_ros import Buffer, TransformListener
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
 from ..datastructures.world import World
 from ..robot_description import RobotDescription
 from ..datastructures.pose import PoseStamped
 from ..ros import  Time, Duration, sleep
-from ..ros import  wait_for_message, create_timer
+from ..ros import  wait_for_message, create_timer, node
 
 
 class RobotStateUpdater:
@@ -29,14 +30,16 @@ class RobotStateUpdater:
         :param tf_topic: Name of the TF topic, needs to publish geometry_msgs/TransformStamped
         :param joint_state_topic: Name of the joint state topic, needs to publish sensor_msgs/JointState
         """
-        self.tf_listener = tf.TransformListener()
-        self.tf_listener.clear()
+        self.node = node
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, node)
+        self.tf_buffer.clear()
 
         sleep(1)
         self.tf_topic = tf_topic
         self.joint_state_topic = joint_state_topic
-        self.tf_timer = create_timer(Duration().from_sec(0.1), self._subscribe_tf)
-        self.joint_state_timer = create_timer(Duration().from_sec(0.1), self._subscribe_joint_state)
+        self.tf_timer = create_timer(Duration(0.1), self._subscribe_tf)
+        self.joint_state_timer = create_timer(Duration(0.1), self._subscribe_joint_state)
 
         atexit.register(self._stop_subscription)
 
@@ -46,8 +49,11 @@ class RobotStateUpdater:
 
         :param msg: TransformStamped message published to the topic
         """
-        self.tf_listener.waitForTransform("map", RobotDescription.current_robot_description.base_link, Time(0.0), Duration(5))
-        trans, rot = self.tf_listener.lookupTransform("map", RobotDescription.current_robot_description.base_link, Time(0.0))
+        self.tf_buffer.wait_for_transform_async("map", RobotDescription.current_robot_description.base_link,
+                                                Time(0.0))
+        trans, rot = self.tf_buffer.lookup_transform("map",
+                                                     RobotDescription.current_robot_description.base_link,
+                                                     Time(0.0), Duration(5))
         World.robot.set_pose(PoseStamped(trans, rot))
 
     def _subscribe_joint_state(self, msg: JointState) -> None:
@@ -91,7 +97,9 @@ class EnvironmentStateUpdater:
         :param tf_topic: Name of the TF topic, needs to publish geometry_msgs/TransformStamped
         :param joint_state_topic: Name of the joint state topic, needs to publish sensor_msgs/JointState
         """
-        self.tf_listener = tf.TransformListener()
+        self.node = node
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, node)
         time.sleep(1)
         self.tf_topic = tf_topic
         self.joint_state_topic = joint_state_topic
@@ -113,10 +121,10 @@ class EnvironmentStateUpdater:
             for name, position in zip(msg.name, msg.position):
                 try:
                     # Attempt to get the joint state. This might throw a KeyError if the joint name doesn't exist
-                    if World.environment.get_joint_state(name) is None:
+                    if World.environment.get_joint_position(name) is None:
                         continue
                     # Set the joint state if the joint exists
-                    World.environment.set_joint_state(name, position)
+                    World.environment.set_joint_position(name, position)
                 except KeyError:
                     # Handle the case where the joint name does not exist
                     pass
@@ -127,5 +135,4 @@ class EnvironmentStateUpdater:
         """
         Stops the Timer for TF and joint states and therefore the updating of the environment in the world.
         """
-        self.joint_state_timer.shutdown()
         self.joint_state_timer.shutdown()

@@ -1,17 +1,14 @@
-import inspect
-import time
-
 import numpy as np
-from typing_extensions import List, TYPE_CHECKING
+from typing_extensions import TYPE_CHECKING
 from scipy.spatial.transform import Rotation as R
 
 from pycrap.urdf_parser import parse_furniture
 from ..datastructures.dataclasses import Colors
+from ..datastructures.enums import ExecutionType
 from ..datastructures.world import World
-from ..designators.motion_designator import *
+from ..robot_plans import *
 from ..external_interfaces import giskard
 from ..external_interfaces.ik import request_ik
-from ..external_interfaces.move_base import query_pose_nav
 from ..external_interfaces.robokudo import query_all_objects, query_object, query_human, query_specific_region, \
     query_human_attributes, query_waving_human
 from ..failures import NavigationGoalNotReachedError

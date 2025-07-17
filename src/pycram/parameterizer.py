@@ -5,8 +5,8 @@ from enum import Enum
 from typing import Dict, Any, Type, List, Optional
 
 import numpy as np
-from probabilistic_model.probabilistic_circuit.nx.helper import fully_factorized
-from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
+from probabilistic_model.probabilistic_circuit.rx.helper import fully_factorized
+from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import ProbabilisticCircuit
 from probabilistic_model.probabilistic_model import ProbabilisticModel
 from random_events.interval import singleton
 from random_events.product_algebra import Event, SimpleEvent
@@ -17,7 +17,7 @@ from sortedcontainers import SortedSet
 
 from pycrap.ontologies import PhysicalObject
 from .datastructures.world import World
-from .datastructures.dataclasses import BoundingBox
+from .datastructures.dataclasses import BoundingBox, BoundingBoxCollection
 from .datastructures.partial_designator import PartialDesignator
 from .graph_of_convex_sets import GraphOfConvexSets
 from .language import SequentialPlan
@@ -136,7 +136,7 @@ class Parameterizer:
         result.fill_missing_variables(self.variables)
         return result
 
-def collision_free_event(world: World, search_space: Optional[BoundingBox] = None) -> Event:
+def collision_free_event(world: World, search_space: Optional[BoundingBoxCollection] = None) -> Event:
         """
         Create an event that describes the free space of the world.
         :param world: The world to create the event from.
@@ -149,10 +149,10 @@ def collision_free_event(world: World, search_space: Optional[BoundingBox] = Non
         # create search space for calculations
         if search_space is None:
             search_space = BoundingBox(-np.inf, -np.inf, -np.inf,
-                                       np.inf, np.inf, np.inf)
+                                       np.inf, np.inf, np.inf).as_collection()
 
         # remove the z axis
-        search_event = search_space.simple_event.as_composite_set()
+        search_event = search_space.event
 
         # get obstacles
         obstacles = GraphOfConvexSets.obstacles_of_world(world, search_space)

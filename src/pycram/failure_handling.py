@@ -1,13 +1,18 @@
+from __future__ import annotations
 import logging
 
 from .datastructures.enums import TaskStatus
-from .designator import DesignatorDescription, BaseMotion
+from .designator import DesignatorDescription
 from .failures import PlanFailure
 from threading import Lock
-from typing_extensions import Union, Tuple, Any, List, Optional, Type, Callable
+from typing_extensions import Union, Tuple, Any, List, Optional, Type, Callable, TYPE_CHECKING
 from .language import LanguageMixin, MonitorNode, MonitorPlan
 from .plan import Plan
 from .process_module import ProcessModule
+if TYPE_CHECKING:
+    from .robot_plans import BaseMotion
+
+
 
 
 class FailureHandling(LanguageMixin):

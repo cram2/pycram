@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from typing_extensions import Optional, Union, List
 
-from .enums import Grasp, AxisIdentifier
+from .enums import Grasp, AxisIdentifier, ApproachDirection, VerticalAlignment
 from ..has_parameters import HasParameters, has_parameters
 
 
@@ -15,30 +15,20 @@ class GraspDescription(HasParameters):
     Represents a grasp description with a side grasp, top face, and orientation alignment.
     """
 
-    approach_direction: Grasp
+    approach_direction: ApproachDirection
     """
-    The primary approach direction. Must be one of {Grasp.FRONT, Grasp.BACK, Grasp.LEFT, Grasp.RIGHT}.
+    The primary approach direction. 
     """
 
-    vertical_alignment: Optional[Grasp] = None
+    vertical_alignment: VerticalAlignment = VerticalAlignment.NoAlignment
     """
-    The vertical alignment when grasping the pose, or None if not applicable. Must be one of {Grasp.TOP, Grasp.BOTTOM, None}.
+    The vertical alignment when grasping the pose
     """
 
     rotate_gripper: bool = False
     """
     Indicates if the gripper should be rotated by 90°. Must be a boolean.
     """
-
-    def __post_init__(self):
-        allowed_approach_direction = {Grasp.FRONT, Grasp.BACK, Grasp.LEFT, Grasp.RIGHT}
-        if self.approach_direction not in allowed_approach_direction:
-            raise ValueError(
-                f"Invalid value for side_face: {self.approach_direction}. Allowed values are {allowed_approach_direction}")
-        allowed_vertical_alignment = {Grasp.TOP, Grasp.BOTTOM, None}
-        if self.vertical_alignment not in allowed_vertical_alignment:
-            raise ValueError(
-                f"Invalid value for top_face: {self.vertical_alignment}. Allowed values are {allowed_vertical_alignment}")
 
     def __hash__(self):
         return hash((self.approach_direction, self.vertical_alignment, self.rotate_gripper))

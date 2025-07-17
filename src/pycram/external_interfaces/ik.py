@@ -27,83 +27,6 @@ except ImportError:
     pass
 
 
-
-def _make_request_msg(root_link: str, tip_link: str, target_pose: PoseStamped, robot_object: Object,
-                      joints: List[str]) -> 'PositionIKRequest':
-    """
-    Generates an ik request message for the kdl_ik_service. The message is
-    of the type moveit_msgs/PositionIKRequest and contains all information
-    contained in the parameter.
-
-    :param root_link: The first link of the chain of joints to be altered
-    :param tip_link: The last link of the chain of joints to be altered
-    :param target_pose: Target pose for which the message should be created
-    :param robot_object: The robot for which the ik should be generated
-    :param joints: A list of joint names between the root_link and tip_link that should be altered.
-    :return: A moveit_msgs/PositionIKRequest message containing all the information from the parameter
-    """
-    local_transformer = LocalTransformer()
-    target_pose = local_transformer.transform_pose(target_pose, robot_object.get_link_tf_frame(root_link))
-
-    robot_state = RobotState()
-    joint_state = JointState()
-    joint_state.name = joints
-    joint_state.position = [robot_object.get_joint_position(joint) for joint in joints]
-    # joint_state.velocity = [0.0 for x in range(len(joints))]
-    # joint_state.effort = [0.0 for x in range(len(joints))]
-    robot_state.joint_state = joint_state
-
-    msg_request = PositionIKRequest()
-    # msg_request.group_name = "arm"
-    msg_request.ik_link_name = tip_link
-    msg_request.pose_stamped = target_pose
-    msg_request.avoid_collisions = False
-    msg_request.robot_state = robot_state
-    msg_request.timeout = Duration(1000)
-    # msg_request.attempts = 1000
-
-    return msg_request
-
-
-def call_ik(root_link: str, tip_link: str, target_pose: PoseStamped, robot_object: Object, joints: List[str]) -> List[float]:
-    """
-   Sends a request to the kdl_ik_service and returns the solution.
-   Note that the robot in robot_object should be identical to the robot description
-   uploaded to the parameter server. Furthermore, note that the root_link and
-   tip_link are the links attached to the first and last joints in the joints list.
-
-   :param root_link: The first link of the chain of joints to be altered
-   :param tip_link: The last link in the chain of joints to be altered
-   :param target_pose: The target pose in frame of root link second is the orientation as quaternion in world coordinate frame
-   :param robot_object: The robot object for which the ik solution should be generated
-   :param joints: A list of joint name that should be altered
-   :return: The solution that was generated as a list of joint values corresponding to the order of joints given
-   """
-    if RobotDescription.current_robot_description.name == "pr2":
-        ik_service = "/pr2_right_arm_kinematics/get_ik" if "r_wrist" in tip_link else "/pr2_left_arm_kinematics/get_ik"
-    else:
-        ik_service = "/kdl_ik_service/get_ik"
-
-    loginfo_once(f"Waiting for IK service: {ik_service}")
-    wait_for_service(ik_service)
-
-    req = _make_request_msg(root_link, tip_link, target_pose, robot_object, joints)
-    req.pose_stamped.header.frame_id = root_link
-    ik = get_service_proxy(ik_service, GetPositionIK)
-    try:
-        resp = ik(req)
-    except ServiceException as e:
-        if RobotDescription.current_robot_description.name == "pr2":
-            raise IKError(target_pose, root_link, tip_link)
-        else:
-            raise e
-
-    if resp.error_code.val == -31:
-        raise IKError(target_pose, root_link, tip_link)
-
-    return resp.solution.joint_state.position
-
-
 def try_to_reach_with_grasp(pose_or_object: Union[PoseStamped, Object],
                             prospection_robot: Object, gripper_name: str,
                             grasp_quaternion: List[float]) -> Union[PoseStamped, None]:
@@ -183,35 +106,6 @@ def request_ik(target_pose: PoseStamped, robot: Object, joints: List[str], gripp
         # return robot.pose, request_kdl_ik(target_pose, robot, joints, gripper)
     return request_giskard_ik(target_pose, robot, gripper)
 
-
-def request_kdl_ik(target_pose: PoseStamped, robot: Object, joints: List[str], gripper: str) -> Dict[str, float]:
-    """
-    Top-level method to request ik solution for a given pose. Before calling the ik service the links directly before
-    and after the joint chain will be queried and the target_pose will be transformed into the frame of the root_link.
-    Afterward, the offset between the tip_link and end effector will be calculated and taken into account. Lastly the
-    ik service is called and the result returned
-
-    :param target_pose: Pose for which an ik solution should be found
-    :param robot: Robot object which should be used
-    :param joints: List of joints that should be used in computation
-    :param gripper: Name of the gripper which should grasp, this should be at the end of the given joint chain
-    :return: A list of joint values
-    """
-    local_transformer = LocalTransformer()
-    base_link = RobotDescription.current_robot_description.get_parent(joints[0])
-    # Get link after last joint in chain
-    end_effector = RobotDescription.current_robot_description.get_child(joints[-1])
-
-    target_torso = local_transformer.transform_pose(target_pose, robot.get_link_tf_frame(base_link))
-
-    wrist_tool_frame_offset = robot.get_transform_between_links(end_effector, gripper)
-    target_diff = target_torso.to_transform_stamped("target").inverse_times(wrist_tool_frame_offset).to_pose_stamped()
-
-    inv = call_ik(base_link, end_effector, target_diff, robot, joints)
-
-    return dict(zip(joints, inv))
-
-
 def request_giskard_ik(target_pose: PoseStamped, robot: Object, gripper: str) -> Tuple[PoseStamped, Dict[str, float]]:
     """
     Calls giskard in projection mode and queries the ik solution for a full body ik solution. This method will
@@ -251,7 +145,7 @@ def request_giskard_ik(target_pose: PoseStamped, robot: Object, gripper: str) ->
         dist = tip_pose.position.euclidean_distance(target_map.position)
 
         if dist > 0.01:
-            raise IKError(target_pose, "map", gripper)
+            raise IKError(target_map, 'map', gripper, World.robot.get_pose(), robot.get_positions_of_all_joints())
         return pose, robot_joint_states
 
 def request_pinocchio_ik(target_pose: PoseStamped, robot: Object, target_link: str, joints: List[str]) -> Dict[str, float]:
@@ -265,8 +159,8 @@ def request_pinocchio_ik(target_pose: PoseStamped, robot: Object, target_link: s
     :return: A dictionary containing the joint names and joint values
     """
     lt = LocalTransformer()
-    target_pose = lt.transform_pose(target_pose, "map")
-    target_pose = lt.transform_pose(target_pose, robot.tf_frame)
+    target_pose_map = lt.transform_pose(target_pose, "map")
+    target_pose = lt.transform_pose(target_pose_map, robot.tf_frame)
 
     # Get link after last joint in chain
     wrist_link = RobotDescription.current_robot_description.get_child(joints[-1])
@@ -275,7 +169,9 @@ def request_pinocchio_ik(target_pose: PoseStamped, robot: Object, target_link: s
     target_diff = target_pose.to_transform_stamped("target").inverse_times(wrist_tool_frame_offset).to_pose_stamped()
     target_diff.round()
 
-
-    res = compute_ik(wrist_link, target_diff, robot)
+    try:
+        res = compute_ik(wrist_link, target_diff, robot)
+    except IKError:
+        raise IKError(target_pose_map, 'map', target_link, robot.get_pose(), robot.get_positions_of_all_joints())
 
     return res
