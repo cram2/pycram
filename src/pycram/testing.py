@@ -1,7 +1,10 @@
 import os
+import threading
 import time
 import unittest
 from datetime import timedelta
+
+import pytest
 
 from .datastructures.world import UseProspectionWorld
 from .worlds.bullet_world import BulletWorld
@@ -12,12 +15,24 @@ from .process_module import ProcessModule
 from .datastructures.enums import WorldMode
 from .object_descriptors.urdf import ObjectDescription
 from .plan import Plan
-from .ros import loginfo
+from .ros import loginfo, get_node_names
 from pycrap.ontologies import Milk, Robot, Kitchen, Cereal
 try:
     from .ros_utils.viz_marker_publisher import VizMarkerPublisher
 except ImportError:
     loginfo("Could not import VizMarkerPublisher. This is probably because you are not running ROS.")
+
+@pytest.fixture(autouse=True, scope="session")
+def cleanup_ros(self):
+    """
+    Fixture to ensure that ROS is properly cleaned up after all tests.
+    """
+    yield
+    if os.environ.get('ROS_VERSION') == '2':
+        import rclpy
+        if rclpy.ok():
+            rclpy.shutdown()
+
 
 class EmptyBulletWorldTestCase(unittest.TestCase):
     """
@@ -53,7 +68,6 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
         if "ROS_VERSION" in os.environ:
             cls.viz_marker_publisher._stop_publishing()
         cls.world.exit()
-
 
 class BulletWorldTestCase(EmptyBulletWorldTestCase):
     """

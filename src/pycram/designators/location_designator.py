@@ -782,7 +782,8 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
             link_ids = [link.id for link in links]
             link_id_symbol = Symbolic("link", Set.from_iterable(link_ids))
 
-            world_distribution = SumUnit(probabilistic_circuit=ProbabilisticCircuit())
+            world_pc = ProbabilisticCircuit()
+            world_distribution = SumUnit(probabilistic_circuit=world_pc)
 
             for link in links:
 
@@ -793,9 +794,14 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
                     continue
 
                 if self.uniform_sampling:
-                    world_distribution.add_subcircuit(conditioned_link_circuit.root, np.log(1.))
+                    log_weight = 0.
+
                 else:
-                    world_distribution.add_subcircuit(conditioned_link_circuit.root, np.log(p_condition))
+                    log_weight = np.log(p_condition)
+
+                temp_root = conditioned_link_circuit.root
+                remap = world_pc.add_from_subgraph(conditioned_link_circuit.graph)
+                world_distribution.add_subcircuit(remap[temp_root.index], log_weight)
 
             world_distribution.probabilistic_circuit.normalize()
 

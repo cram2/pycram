@@ -662,7 +662,12 @@ def lazy_product(*iterables: Iterable) -> Iterable[Tuple]:
 
     consumable_iterables = [iter(iterable) for iterable in iterables]
 
-    current_value = [next(consumable_iterable) for consumable_iterable in consumable_iterables]
+    current_value = []
+    for i, consumable_iterable in enumerate(consumable_iterables):
+        try:
+            current_value.append(next(consumable_iterable))
+        except StopIteration as e:
+            raise RuntimeError(f"No values in the iterable: {consumable_iterable} with attributes: {iterables[i].__dict__ if hasattr(iterables[i], '__dict__') else ''}")
 
     while True:
         yield tuple(current_value)
@@ -677,4 +682,7 @@ def lazy_product(*iterables: Iterable) -> Iterable[Tuple]:
                 if index == 0:
                     return
                 consumable_iterables[index] = iter(iterables[index])
-                current_value[index] = next(consumable_iterables[index])
+                try:
+                    current_value[index] = next(consumable_iterables[index])
+                except StopIteration as e:
+                    raise StopIteration(f"No more values in the iterable: {iterables[index]}")

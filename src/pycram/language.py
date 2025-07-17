@@ -1,12 +1,13 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import atexit
 from dataclasses import dataclass, field
 from queue import Queue
 from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence, Type, \
     TYPE_CHECKING
 
-from .datastructures.enums import TaskStatus
+from .datastructures.enums import TaskStatus, MonitorBehavior
 import threading
 
 from .fluent import Fluent
@@ -206,11 +207,16 @@ class RepeatPlan(LanguagePlan):
 
 class MonitorPlan(LanguagePlan):
     """
-    A plan which monitors a condition and upon the condition becoming true interrupts all children
+    A plan which monitors a condition and upon the condition becoming true interrupts all children. Monitors can have
+    different behaviors, they can Interrupt, Pause or Resume the execution of the children. If the behavior is set to
+    resume the plan will be paused until the condition is met.
+
+    :param condition: A condition which should be monitored
+    :behavior: The behavior of the monitor, either :py:attr:`~MonitorBehavior.INTERRUPT`, :py:attr:`~MonitorBehavior.PAUSE` or :py:attr:`~MonitorBehavior.RESUME`
     """
 
-    def __init__(self, condition,  *children: Plan) -> None:
-        monitor = MonitorNode(condition=condition)
+    def __init__(self, condition,  *children: Plan, behavior=MonitorBehavior.INTERRUPT) -> None:
+        monitor = MonitorNode(condition=condition, behavior=behavior)
         super().__init__(monitor, *children)
 
 class CodePlan(Plan):
@@ -357,6 +363,7 @@ class RepeatNode(SequentialNode):
     """
     Executes all children a given number of times in sequential order.
     """
+    @managed_node
     def perform(self):
         """
         Behaviour of repeat, executes all children in a loop as often as stated on initialization.
@@ -380,26 +387,33 @@ class MonitorNode(SequentialNode):
     Monitors a Language Expression and interrupts it when the given condition is evaluated to True.
 
     Behaviour:
-        This Monitor is attached to a language expression, when perform on this Monitor is called it will start a new
-        thread which continuously checks if the condition is True. When the condition is True the interrupt function of
-        the child will be called.
+        Monitors start a new Thread which checks the condition while performing the nodes below it. Monitors can have
+        different behaviors, they can Interrupt, Pause or Resume the execution of the children.
+        If the behavior is set to Resume the plan will be paused until the condition is met.
     """
-    def __init__(self, condition: Union[Callable, Fluent] = None):
+    def __init__(self, condition: Union[Callable, Fluent] = None, behavior: Optional[MonitorBehavior] = MonitorBehavior.INTERRUPT ):
         """
         When initializing a Monitor a condition must be provided. The condition is a callable or a Fluent which returns \
         True or False.
 
         :param condition: The condition upon which the Monitor should interrupt the attached language expression.
         """
+        super().__init__()
         self.kill_event = threading.Event()
         self.exception_queue = Queue()
+        self.behavior = behavior
+        if self.behavior == MonitorBehavior.RESUME:
+            self.pause()
         if callable(condition):
             self.condition = Fluent(condition)
         elif isinstance(condition, Fluent):
             self.condition = condition
         else:
             raise AttributeError("The condition of a Monitor has to be a Callable or a Fluent")
+        self.monitor_thread = threading.Thread(target=self.monitor, name=f"MonitorThread-{id(self)}")
+        self.monitor_thread.start()
 
+    @managed_node
     def perform(self):
         """
         Behavior of the Monitor, starts a new Thread which checks the condition and then performs the attached language
@@ -407,16 +421,23 @@ class MonitorNode(SequentialNode):
 
         :return: The state of the attached language expression, as well as a list of the results of the children
         """
-        monitor_thread = threading.Thread(target=self.monitor)
-        monitor_thread.start()
         self.perform_sequential(self.children)
         self.kill_event.set()
-        monitor_thread.join()
+        self.monitor_thread.join()
 
     def monitor(self):
+        atexit.register(self.kill_event.set)
         while not self.kill_event.is_set():
             if self.condition.get_value():
-                self.interrupt()
+                if self.behavior == MonitorBehavior.INTERRUPT:
+                    self.interrupt()
+                    self.kill_event.set()
+                elif self.behavior == MonitorBehavior.PAUSE:
+                    self.pause()
+                    self.kill_event.set()
+                elif self.behavior == MonitorBehavior.RESUME:
+                    self.resume()
+                    self.kill_event.set()
             sleep(0.1)
 
     def __hash__(self):
@@ -434,6 +455,7 @@ class TryInOrderNode(SequentialNode):
         exception. In the case that all children could not be executed the State :py:attr:`~TaskStatus.FAILED` will be returned.
     """
 
+    @managed_node
     def perform(self):
         """
         Behaviour of TryInOrder, calls perform() on each child sequentially and catches raised exceptions.
