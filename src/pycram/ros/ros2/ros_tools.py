@@ -42,9 +42,10 @@ def wait_for_message(topic_name, msg_type):
     def sub_callback(msg):
         global last_message
         last_message = msg
-        sub.destroy()
+        #sub.destroy()
+        node.destroy_subscription(sub)
 
-    sub = node.create_subscription(msg_type, topic_name, sub_callback())
+    sub = node.create_subscription(msg_type, topic_name, sub_callback, 10)
     return last_message
 
 def is_master_online():
