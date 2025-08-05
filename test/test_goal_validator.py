@@ -1,11 +1,12 @@
 import numpy as np
+
+from pycram.multirobot import RobotManager
 from pycram.tf_transformations import quaternion_from_euler
 from typing_extensions import Optional, List
 
 from pycram.testing import BulletWorldTestCase
 from pycram.datastructures.enums import JointType
 from pycram.datastructures.pose import PoseStamped
-from pycram.robot_description import RobotDescription
 from pycram.validation.error_checkers import PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, RevoluteJointPositionErrorChecker, PrismaticJointPositionErrorChecker, \
     MultiJointPositionErrorChecker
@@ -119,7 +120,7 @@ class TestGoalValidator(BulletWorldTestCase):
 
     def validate_prismatic_joint_position_goal(self, goal_validator, joint_type: Optional[JointType] = None):
         goal_joint_position = 0.2
-        torso = RobotDescription.current_robot_description.torso_joint
+        torso = RobotManager.get_robot_description().torso_joint
         if joint_type is not None:
             goal_validator.register_goal(goal_joint_position, joint_type, torso)
         else:

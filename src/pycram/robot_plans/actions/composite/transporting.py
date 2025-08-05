@@ -19,6 +19,7 @@ from ....designators.location_designator import ProbabilisticCostmapLocation
 from ....designators.object_designator import BelieveObject
 from ....failures import ObjectUnfetchable, ReachabilityFailure
 from ....has_parameters import has_parameters
+from ....multirobot import RobotManager
 from ....plan import with_plan
 from ....robot_description import RobotDescription
 from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
@@ -68,7 +69,7 @@ class TransportAction(ActionDescription):
         self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
-        robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
+        robot_desig_resolved = BelieveObject(names=[RobotManager.get_active_robot().name]).resolve()
         ParkArmsActionDescription(Arms.BOTH).perform()
         pickup_loc = ProbabilisticCostmapLocation(target=self.object_designator,
                                                   reachable_for=robot_desig_resolved,

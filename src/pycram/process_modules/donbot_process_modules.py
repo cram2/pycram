@@ -1,7 +1,5 @@
 from .default_process_modules import *
-from ..worlds.bullet_world import World
 from ..process_module import ProcessModuleManager
-from ..robot_description import RobotDescription
 from ..datastructures.enums import Arms, ExecutionType, Grasp, StaticJointState, ApproachDirection, VerticalAlignment
 from .default_process_modules import _move_arm_tcp
 
@@ -15,14 +13,14 @@ class DonbotMoveHead(DefaultMoveHead):
 
     def _execute(self, desig):
         target = desig.target.copy()
-        robot = World.robot
+        robot = RobotManager.get_active_robot()
         local_transformer = LocalTransformer()
 
         # Rotate the arm to have a nice starting seed for the IK. If we dont do this, we regularly run into
         # self-collision in the simulation. Another solution would be to look into (possibly collision gradient
         # based) collision avoidance for pinocchio.
-        perceive_state = RobotDescription.current_robot_description.get_static_joint_chain("left_arm",
-                                                                                           "looking")
+        perceive_state = RobotManager.get_robot_description().get_static_joint_chain("left_arm",
+                                                                                     "looking")
         robot.set_multiple_joint_positions(perceive_state)
         pose_in_pan = local_transformer.transform_pose(target,
                                                         robot.get_link_tf_frame("ur5_shoulder_link")).position_as_list()
@@ -65,13 +63,13 @@ class DonbotMoveHead(DefaultMoveHead):
         # Get front grasp of gripper, apply it to the pose, and then roll 180°. This works for donbot, because
         # the camera has the same frame orientation, albeit, rotated by 180° around z (which is the "forward" axis of the frame)
         side_grasp, top_grasp, horizontal = (ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
-        grasp_orientation = RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT).end_effector.get_grasp(
+        grasp_orientation = RobotManager.get_robot_description().get_arm_chain(Arms.LEFT).end_effector.get_grasp(
             side_grasp, top_grasp, horizontal)
         adjusted_pose.rotate_by_quaternion(grasp_orientation)
         adjusted_pose.rotate_by_quaternion([0, 0, 1, 0])
 
         # move the camera link to the computed pose
-        camera_link = RobotDescription.current_robot_description.get_camera_link()
+        camera_link = RobotManager.get_robot_description().get_camera_link()
         _move_arm_tcp(adjusted_pose, robot, Arms.LEFT, camera_link)
 
 

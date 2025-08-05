@@ -12,10 +12,10 @@ from ...motions.gripper import MoveGripperMotion
 from ....config.action_conf import ActionConfig
 from ....datastructures.enums import Arms, GripperState, ContainerManipulationType
 from ....datastructures.partial_designator import PartialDesignator
-from ....datastructures.world import World
 from ....description import Joint, Link, ObjectDescription
 from ....failures import ContainerManipulationError
 from ....has_parameters import has_parameters
+from ....multirobot import RobotManager
 from ....plan import with_plan
 from ....robot_plans.actions.base import ActionDescription
 
@@ -134,13 +134,13 @@ def validate_close_open(object_designator: ObjectDescription.Link, arm: Arms,
 
 def check_opened(joint_obj: Joint, obj_part: Link, arm: Arms, upper_limit: float):
     if joint_obj.position < upper_limit - joint_obj.acceptable_error:
-        raise ContainerManipulationError(World.robot, [arm], obj_part, joint_obj,
+        raise ContainerManipulationError(RobotManager.get_active_robot(), [arm], obj_part, joint_obj,
                                          ContainerManipulationType.Opening)
 
 
 def check_closed(joint_obj: Joint, obj_part: Link, arm: Arms, lower_limit: float):
     if joint_obj.position > lower_limit + joint_obj.acceptable_error:
-        raise ContainerManipulationError(World.robot, [arm], obj_part, joint_obj,
+        raise ContainerManipulationError(RobotManager.get_active_robot(), [arm], obj_part, joint_obj,
                                          ContainerManipulationType.Closing)
 
 OpenActionDescription = OpenAction.description

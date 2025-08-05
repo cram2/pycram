@@ -4,6 +4,7 @@ import random
 import numpy as np
 
 from pycrap.ontologies import PhysicalObject
+from .multirobot import RobotManager
 from .object_descriptors.generic import ObjectDescription
 from .tf_transformations import quaternion_from_euler
 from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional, Iterator
@@ -15,7 +16,6 @@ from .datastructures.world import World
 from .external_interfaces.ik import request_ik
 from .failures import IKError, RobotInCollision
 from .local_transformer import LocalTransformer
-from .robot_description import RobotDescription
 from .ros import logdebug
 from .world_concepts.world_object import Object
 from .world_reasoning import contact
@@ -170,7 +170,7 @@ def visibility_validator(robot: Object,
 
     obj_id = obj.id
 
-    camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link())
+    camera_pose = robot.get_link_pose(RobotManager.get_robot_description().get_camera_link())
     robot.set_pose(PoseStamped.from_list([100, 100, 0], [0, 0, 0, 1]))
     ray = world.ray_test(camera_pose.position.to_list(), obj.get_pose().position.to_list())
     robot.set_pose(robot_pose)
@@ -201,7 +201,7 @@ def reachability_validator(robot: Object,
     """
 
     allowed_collision = allowed_collision or {}
-    arm_chain = RobotDescription.current_robot_description.get_arm_chain(arm)
+    arm_chain = RobotManager.get_robot_description().get_arm_chain(arm)
     allowed_collision[robot] = [link for link in arm_chain.end_effector.links]
 
     joint_state_before_ik = robot.get_positions_of_all_joints()

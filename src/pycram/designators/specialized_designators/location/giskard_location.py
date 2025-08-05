@@ -4,7 +4,7 @@ from ....datastructures.enums import StaticJointState
 from ....datastructures.pose import PoseStamped
 from ....designators.location_designator import CostmapLocation
 from ....external_interfaces.giskard import projection_cartesian_goal_with_approach, projection_joint_goal
-from ....robot_description import RobotDescription
+from ....multirobot import RobotManager
 from ....datastructures.world import UseProspectionWorld, World
 from ....local_transformer import LocalTransformer
 from ....costmaps import OccupancyCostmap, GaussianCostmap
@@ -29,7 +29,7 @@ class GiskardLocation(CostmapLocation):
         local_transformer = LocalTransformer()
         target_map = local_transformer.transform_pose(self.target, "map")
 
-        manipulator_descs = RobotDescription.current_robot_description.get_manipulator_chains()
+        manipulator_descs = RobotManager.get_robot_description().get_manipulator_chains()
 
         near_costmap = (OccupancyCostmap(0.35, False, 200, 0.02, target_map)
                         + GaussianCostmap(200, 15, 0.02, target_map))
@@ -38,7 +38,7 @@ class GiskardLocation(CostmapLocation):
                 projection_joint_goal(chain.get_static_joint_states(StaticJointState.Park), allow_collisions=True)
 
                 trajectory = projection_cartesian_goal_with_approach(maybe_pose, target_map, chain.tool_frame,
-                                                                     "map", RobotDescription.current_robot_description.base_link)
+                                                                     "map", RobotManager.get_robot_description().base_link)
                 last_point_positions = trajectory.trajectory.points[-1].positions
                 last_point_names = trajectory.trajectory.joint_names
                 last_joint_states = dict(zip(last_point_names, last_point_positions))

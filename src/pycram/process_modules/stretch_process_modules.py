@@ -2,7 +2,6 @@ from .default_process_modules import *
 from ..datastructures.world import World
 from ..robot_plans import *
 from ..external_interfaces.robokudo import *
-from ..robot_description import RobotDescription
 
 
 class StretchMoveHead(ProcessModule):
@@ -12,7 +11,7 @@ class StretchMoveHead(ProcessModule):
 
     def _execute(self, designator: MoveMotion) -> Any:
         target = designator.target
-        robot = World.robot
+        robot = RobotManager.get_active_robot()
 
         local_transformer = LocalTransformer()
         pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("link_head_pan"))
@@ -42,7 +41,7 @@ class StretchNavigationReal(ProcessModule):
 
     def _execute(self, designator: MoveMotion) -> Any:
         logdebug(f"Sending goal to giskard to Move the robot")
-        giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
+        giskard.achieve_cartesian_goal(designator.target, RobotManager.get_robot_description().base_link, "map")
 
 
 class StretchMoveHeadReal(ProcessModule):
@@ -53,7 +52,7 @@ class StretchMoveHeadReal(ProcessModule):
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
-        robot = World.robot
+        robot = RobotManager.get_active_robot()
 
         local_transformer = LocalTransformer()
         pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_pan_link"))
@@ -86,7 +85,7 @@ class StretchDetectingReal(ProcessModule):
         obj_pose = query_result["ClusterPoseBBAnnotator"]
 
         lt = LocalTransformer()
-        obj_pose = lt.transform_pose(obj_pose, World.robot.get_link_tf_frame("torso_lift_link"))
+        obj_pose = lt.transform_pose(obj_pose, RobotManager.get_active_robot().get_link_tf_frame("torso_lift_link"))
         obj_pose.orientation = [0, 0, 0, 1]
         obj_pose.position.x += 0.05
 
@@ -110,7 +109,7 @@ class StretchMoveGripperReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveGripperMotion) -> Any:
-        chain = RobotDescription.current_robot_description.get_arm_chain(designator.gripper).get_static_gripper_state(
+        chain = RobotManager.get_robot_description().get_arm_chain(designator.gripper).get_static_gripper_state(
             designator.motion)
         giskard.achieve_joint_goal(chain)
 

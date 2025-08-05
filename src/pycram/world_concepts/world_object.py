@@ -7,7 +7,7 @@ import numpy as np
 from deprecated import deprecated
 from scipy.spatial.transform import Rotation
 from trimesh.parent import Geometry3D
-from typing_extensions import Type, Optional, Dict, Tuple, List, Union, Any
+from typing_extensions import Type, Optional, Dict, Tuple, List, Union, Any, TYPE_CHECKING
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
@@ -22,6 +22,7 @@ from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenAttachedObj
     ObjectDescriptionUndefined
 from ..has_parameters import HasParameters, leaf_types
 from ..local_transformer import LocalTransformer
+from ..multirobot import RobotManager
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
 from ..ros import logwarn, logerr, Time
@@ -30,13 +31,15 @@ try:
     from ..object_descriptors.mjcf import ObjectDescription as MJCF
 except ImportError:
     MJCF = None
-from ..robot_description import RobotDescriptionManager, RobotDescription
+from ..robot_description import RobotDescriptionManager
 from ..world_concepts.constraints import Attachment
 from pycrap.ontologies import PhysicalObject, Joint, \
     Robot, Floor, Location, Bowl, Spoon, Cereal, Environment
 
 Link = ObjectDescription.Link
 
+if TYPE_CHECKING:
+    from ..robot_description import RobotDescription
 
 class Object(PhysicalBody, HasParameters):
     """
@@ -134,6 +137,9 @@ class Object(PhysicalBody, HasParameters):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.add_object(self)
+
+        if self.obj_type == Robot:
+            RobotManager.set_active_robot(self.name)
 
     @property
     def parts(self) -> Dict[str, PhysicalBody]:
@@ -277,7 +283,7 @@ class Object(PhysicalBody, HasParameters):
         """
         The current robot description.
         """
-        return self.world.robot_description
+        return RobotManager.get_robot_description()
 
     def get_actuator_for_joint(self, joint: Joint) -> Optional[str]:
         """
@@ -411,7 +417,7 @@ class Object(PhysicalBody, HasParameters):
         """
         rdm = RobotDescriptionManager()
         rdm.load_description(self.description.name)
-        World.robot = self
+        RobotManager.add_robot(self)
         self._add_virtual_move_base_joints()
 
     def _update_world_environment_object(self):

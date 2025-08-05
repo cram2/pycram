@@ -17,9 +17,9 @@ from ....failures import  PerceptionObjectNotFound
 from ....has_parameters import has_parameters
 from ....language import TryInOrderPlan, SequentialPlan
 from ....local_transformer import LocalTransformer
+from ....multirobot import RobotManager
 from ....plan import with_plan
 from ....robot_plans.actions.base import ActionDescription
-from ....datastructures.world import World
 
 
 @has_parameters
@@ -41,10 +41,10 @@ class SearchAction(ActionDescription):
 
     def plan(self) -> None:
         NavigateActionDescription(
-            CostmapLocation(target=self.target_location, visible_for=World.robot)).resolve().perform()
+            CostmapLocation(target=self.target_location, visible_for=RobotManager.get_active_robot())).resolve().perform()
 
         lt = LocalTransformer()
-        target_base = lt.transform_pose(self.target_location, World.robot.tf_frame)
+        target_base = lt.transform_pose(self.target_location, RobotManager.get_active_robot().tf_frame)
 
         target_base_left = target_base.copy()
         target_base_left.pose.position.y -= 0.5

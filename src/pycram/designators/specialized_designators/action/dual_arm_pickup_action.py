@@ -1,18 +1,21 @@
-from typing_extensions import List, Union, Optional
+from typing_extensions import List, Union, Optional, TYPE_CHECKING
 from numpy.linalg import norm
 from numpy import array
 from geometry_msgs.msg import Vector3
 
 from owlready2 import Thing
 
+from ....multirobot import RobotManager
 from ....robot_plans import PickUpAction, PickUpAction
 from ....local_transformer import LocalTransformer
 from ....datastructures.world import World
 from ....datastructures.pose import PoseStamped, TransformStamped
 from ....datastructures.enums import Arms, Grasp
-from ....robot_description import RobotDescription, KinematicChainDescription
 from ....designator import ObjectDesignatorDescription
 from ....ros import loginfo
+
+if TYPE_CHECKING:
+    from ....robot_description import KinematicChainDescription
 
 
 class DualArmPickupAction(PickUpAction):
@@ -40,10 +43,9 @@ class DualArmPickupAction(PickUpAction):
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
 
-        left_gripper = RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT)
-        right_gripper = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT)
+        left_gripper = RobotManager.get_robot_description().get_arm_chain(Arms.LEFT)
+        right_gripper = RobotManager.get_robot_description().get_arm_chain(Arms.RIGHT)
         self.gripper_list: List[KinematicChainDescription] = [left_gripper, right_gripper]
-
 
     def ground(self) -> PickUpAction:
         if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object):

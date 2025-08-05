@@ -8,7 +8,7 @@ from sensor_msgs.msg import JointState
 from typing_extensions import Optional
 
 from ..datastructures.world import World
-from ..robot_description import RobotDescription
+from ..multirobot import RobotManager
 from ..datastructures.pose import PoseStamped
 from ..ros import  Time, Duration
 from ..ros import  wait_for_message, create_timer, node
@@ -56,8 +56,8 @@ class WorldStateUpdater:
             else:
                 return
         for obj in self.world.objects:
-            if obj.name == self.world.robot.name:
-                tf_frame = RobotDescription.current_robot_description.base_link
+            if obj.name == RobotManager.get_active_robot().name:
+                tf_frame = RobotManager.get_robot_description().base_link
             elif obj.is_an_environment:
                 continue
             elif obj.is_an_object:
@@ -78,7 +78,7 @@ class WorldStateUpdater:
         try:
             msg = wait_for_message(self.joint_state_topic, JointState)
             joint_positions = dict(zip(msg.name, msg.position))
-            World.robot.set_multiple_joint_positions(joint_positions)
+            RobotManager.get_active_robot().set_multiple_joint_positions(joint_positions)
         except AttributeError:
             pass
 

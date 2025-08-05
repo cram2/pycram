@@ -10,6 +10,7 @@ from pycram.datastructures.enums import TorsoState, Arms, Grasp, DetectionTechni
 from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.pose import Vector3, Pose, PoseStamped
 from pycram.designator import ObjectDesignatorDescription
+from pycram.multirobot import RobotManager
 from pycram.robot_plans import MoveTorsoActionDescription, ParkArmsAction, \
     MoveTorsoAction, NavigateAction, PickUpAction, DetectActionDescription, DetectAction, \
     PlaceActionDescription, TransportAction, PlaceAction, LookAtAction, SetGripperAction, OpenAction, CloseAction, \
@@ -54,7 +55,7 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
         object_description = ObjectDesignatorDescription(names=["milk"])
         description = PlaceActionDescription(object_description, [PoseStamped
                                              .from_list([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
-        torso_joint = RobotDescription.current_robot_description.torso_joint
+        torso_joint = RobotManager.get_robot_description().torso_joint
         self.assertEqual(description.resolve().object_designator.name, "milk")
         with simulated_robot:
             plan = SequentialPlan(
@@ -338,7 +339,7 @@ class RelationalAlgebraTestCase(ORMaticBaseTestCaseMixin):
 #             return
 #         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
 #         description = action_designator.PlaceActionDescription(object_description, [PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
-#         torso_joint = RobotDescription.current_robot_description.torso_joint
+#         torso_joint = RobotManager.get_robot_description().torso_joint
 #         self.assertEqual(description.resolve().object_designator.name, "milk")
 #         with simulated_robot:
 #             NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
@@ -362,7 +363,7 @@ class RelationalAlgebraTestCase(ORMaticBaseTestCaseMixin):
 #             return
 #         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
 #         description = action_designator.PlaceActionDescription(object_description, [PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
-#         torso_joint = RobotDescription.current_robot_description.torso_joint
+#         torso_joint = RobotManager.get_robot_description().torso_joint
 #         self.assertEqual(description.resolve().object_designator.name, "milk")
 #         with simulated_robot:
 #             NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1])).perform()

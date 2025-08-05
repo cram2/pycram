@@ -12,7 +12,7 @@ from pycram.language import SequentialPlan, ParallelPlan, TryInOrderPlan, TryAll
     SequentialNode, RepeatPlan, CodePlan, TryAllNode
 from pycram.process_module import simulated_robot
 from pycram.testing import BulletWorldTestCase
-from pycram.robot_description import RobotDescription
+from pycram.multirobot import RobotManager
 from pycrap.ontologies import Cup
 
 
@@ -195,9 +195,9 @@ class LanguageTestCase(BulletWorldTestCase):
             plan.perform()
         self.assertEqual(self.robot.get_pose(), PoseStamped.from_list([0.3, 0.3, 0]))
         self.assertEqual(self.robot.get_joint_position("torso_lift_joint"), 0.3)
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right", StaticJointState.Park).items():
+        for joint, pose in RobotManager.get_robot_description().get_static_joint_chain("right", StaticJointState.Park).items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left", StaticJointState.Park).items():
+        for joint, pose in RobotManager.get_robot_description().get_static_joint_chain("left", StaticJointState.Park).items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
 
 

@@ -6,7 +6,7 @@ from tf2_ros import Buffer, TransformListener
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
 from ..datastructures.world import World
-from ..robot_description import RobotDescription
+from ..multirobot import RobotManager
 from ..datastructures.pose import PoseStamped
 from ..ros import  Time, Duration, sleep
 from ..ros import  wait_for_message, create_timer, node
@@ -49,12 +49,12 @@ class RobotStateUpdater:
 
         :param msg: TransformStamped message published to the topic
         """
-        self.tf_buffer.wait_for_transform_async("map", RobotDescription.current_robot_description.base_link,
+        self.tf_buffer.wait_for_transform_async("map", RobotManager.get_robot_description().base_link,
                                                 Time(0.0))
         trans, rot = self.tf_buffer.lookup_transform("map",
-                                                     RobotDescription.current_robot_description.base_link,
+                                                     RobotManager.get_robot_description().base_link,
                                                      Time(0.0), Duration(5))
-        World.robot.set_pose(PoseStamped(trans, rot))
+        RobotManager.get_active_robot().set_pose(PoseStamped(trans, rot))
 
     def _subscribe_joint_state(self, msg: JointState) -> None:
         """
@@ -67,7 +67,7 @@ class RobotStateUpdater:
         try:
             msg = wait_for_message(self.joint_state_topic, JointState)
             for name, position in zip(msg.name, msg.position):
-                World.robot.set_joint_position(name, position)
+                RobotManager.get_active_robot().set_joint_position(name, position)
         except AttributeError:
             pass
 

@@ -2,13 +2,13 @@ import time
 import unittest
 import xml.etree.ElementTree as ET
 
+from pycram.multirobot import RobotManager
 from pycram.testing import BulletWorldTestCase, BulletWorldGUITestCase
 from pycram.datastructures.dataclasses import Color
 from pycram.datastructures.enums import WorldMode
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.world import UseProspectionWorld
 from pycram.object_descriptors.urdf import ObjectDescription
-from pycram.robot_description import RobotDescription
 from pycram.world_concepts.world_object import Object
 from pycrap.ontologies import Milk, Robot
 from pycram.ros import get_ros_package_path
@@ -60,8 +60,8 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue(robot_id in [obj.id for obj in self.world.objects])
         self.world.remove_object(self.robot)
         self.assertTrue(robot_id not in [obj.id for obj in self.world.objects])
-        BulletWorldTest.robot = Object(RobotDescription.current_robot_description.name, Robot,
-                                       RobotDescription.current_robot_description.name + self.extension)
+        BulletWorldTest.robot = Object(RobotManager.get_robot_description().name, Robot,
+                                       RobotManager.get_robot_description().name + self.extension)
 
     def test_get_joint_position(self):
         self.assertAlmostEqual(self.robot.get_joint_position("head_pan_joint"), 0.0, delta=0.01)
@@ -185,20 +185,20 @@ class BulletWorldTest(BulletWorldTestCase):
         self.world.remove_object(milk_2)
 
     def test_add_vis_axis(self):
-        self.world.add_vis_axis(self.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link()))
+        self.world.add_vis_axis(self.robot.get_link_pose(RobotManager.get_robot_description().get_camera_link()))
         self.assertTrue(len(self.world.vis_axis) == 1)
         self.world.remove_vis_axis()
         self.assertTrue(len(self.world.vis_axis) == 0)
 
     def test_add_text(self):
-        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_link())
+        link: ObjectDescription.Link = self.robot.get_link(RobotManager.get_robot_description().get_camera_link())
         text_id = self.world.add_text("test", link.position.to_list(), link.orientation.to_list(), 1,
                                       Color(1, 0, 0, 1), 3, link.object_id, link.id)
         if self.world.mode == WorldMode.GUI:
             time.sleep(4)
 
     def test_remove_text(self):
-        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_link())
+        link: ObjectDescription.Link = self.robot.get_link(RobotManager.get_robot_description().get_camera_link())
         text_id_1 = self.world.add_text("test 1", link.pose.position.to_list(), link.pose.orientation.to_list(), 1,
                                         Color(1, 0, 0, 1), 0, link.object_id, link.id)
         text_id = self.world.add_text("test 2", link.pose.position.to_list(), link.pose.orientation.to_list(), 1,
@@ -211,7 +211,7 @@ class BulletWorldTest(BulletWorldTestCase):
             time.sleep(3)
 
     def test_remove_all_text(self):
-        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_link())
+        link: ObjectDescription.Link = self.robot.get_link(RobotManager.get_robot_description().get_camera_link())
         text_id_1 = self.world.add_text("test 1", link.pose.position.to_list(), link.pose.orientation.to_list(), 1,
                                         Color(1, 0, 0, 1), 0, link.object_id, link.id)
         text_id = self.world.add_text("test 2", link.pose.position.to_list(), link.pose.orientation.to_list(), 1,
@@ -227,7 +227,7 @@ class BulletWorldTest(BulletWorldTestCase):
 class BulletWorldTestGUI(BulletWorldGUITestCase):
     def test_add_vis_axis(self):
         time.sleep(10)
-        self.world.add_vis_axis(self.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link()))
+        self.world.add_vis_axis(self.robot.get_link_pose(RobotManager.get_robot_description().get_camera_link()))
         self.assertTrue(len(self.world.vis_axis) == 1)
         self.world.remove_vis_axis()
         self.assertTrue(len(self.world.vis_axis) == 0)

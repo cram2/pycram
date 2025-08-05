@@ -3,7 +3,6 @@ from typing_extensions import Any
 
 from .default_process_modules import *
 # from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
-from ..robot_description import RobotDescription
 from ..process_module import ProcessModule
 from ..local_transformer import LocalTransformer
 from ..robot_plans import *
@@ -59,7 +58,7 @@ class HSRBMoveTCPReal(ProcessModule):
         giskard.avoid_all_collisions()
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm)
-        giskard.achieve_cartesian_goal(pose_in_map, RobotDescription.current_robot_description.get_arm_chain(
+        giskard.achieve_cartesian_goal(pose_in_map, RobotManager.get_robot_description().get_arm_chain(
             designator.arm).get_tool_frame(), "map")
 
 
@@ -103,7 +102,7 @@ class HSRBOpenReal(ProcessModule):
 
     def _execute(self, designator: OpeningMotion) -> Any:
         giskard.achieve_open_container_goal(
-            RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
+            RobotManager.get_robot_description().get_arm_chain(designator.arm).get_tool_frame(),
             designator.object_part.name)
 
 
@@ -114,7 +113,7 @@ class HSRBCloseReal(ProcessModule):
 
     def _execute(self, designator: ClosingMotion) -> Any:
         giskard.achieve_close_container_goal(
-            RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
+            RobotManager.get_robot_description().get_arm_chain(designator.arm).get_tool_frame(),
             designator.object_part.name)
 
 

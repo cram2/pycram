@@ -3,6 +3,7 @@ import threading
 
 import sys
 
+from ..multirobot import RobotManager
 from ..ros import Time
 from ..ros import logwarn, loginfo_once, loginfo
 from ..ros import get_node_names
@@ -13,7 +14,6 @@ from ..datastructures.world import World
 from ..datastructures.dataclasses import MeshVisualShape
 from ..ros import get_service_proxy
 from ..world_concepts.world_object import Object
-from ..robot_description import RobotDescription
 
 from typing_extensions import List, Dict, Callable, Optional
 from threading import Lock, RLock
@@ -99,7 +99,7 @@ def initial_adding_objects() -> None:
     """
     groups = giskard_wrapper.get_group_names()
     for obj in World.current_world.objects:
-        if obj is World.robot or obj is World.current_world.get_prospection_object_for_object(World.robot):
+        if obj is RobotManager.get_active_robot() or obj is World.current_world.get_prospection_object_for_object(RobotManager.get_active_robot()):
             continue
         name = obj.name
         if name not in groups:
@@ -131,9 +131,9 @@ def sync_worlds(projection: bool = False) -> None:
     add_gripper_groups()
     world_object_names = set()
     for obj in World.current_world.objects:
-        if obj.name != RobotDescription.current_robot_description.name and obj.obj_type != ObjectType.ROBOT and len(obj.link_name_to_id) != 1:
+        if obj.name != RobotManager.get_robot_description().name and obj.obj_type != ObjectType.ROBOT and len(obj.link_name_to_id) != 1:
             world_object_names.add(obj.name)
-        if obj.name == RobotDescription.current_robot_description.name or obj.obj_type == ObjectType.ROBOT:
+        if obj.name == RobotManager.get_robot_description().name or obj.obj_type == ObjectType.ROBOT:
             joint_config = obj.get_positions_of_all_joints()
             non_fixed_joints = list(filter(lambda joint: joint.type != JointType.FIXED and not joint.is_virtual,
                                            obj.joints.values()))
@@ -141,11 +141,11 @@ def sync_worlds(projection: bool = False) -> None:
 
             if projection:
                 giskard_wrapper.monitors.add_set_seed_configuration(joint_config_filtered,
-                                                                    RobotDescription.current_robot_description.name)
+                                                                    RobotManager.get_robot_description().name)
                 giskard_wrapper.monitors.add_set_seed_odometry(obj.get_pose().ros_message(),
-                                                               RobotDescription.current_robot_description.name)
+                                                               RobotManager.get_robot_description().name)
     giskard_object_names = set(giskard_wrapper.get_group_names())
-    robot_name = {RobotDescription.current_robot_description.name}
+    robot_name = {RobotManager.get_robot_description().name}
     if not world_object_names.union(robot_name).issubset(giskard_object_names):
         giskard_wrapper.clear_world()
     initial_adding_objects()
@@ -256,9 +256,9 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
             for cmd in giskard_wrapper.motion_goals.get_goals():
                 par_value_pair = json.loads(cmd.kwargs)
                 if "tip_link" in par_value_pair.keys() and "root_link" in par_value_pair.keys():
-                    if par_value_pair["tip_link"] == RobotDescription.current_robot_description.base_link:
+                    if par_value_pair["tip_link"] == RobotManager.get_robot_description().base_link:
                         continue
-                    chain = World.robot.description.get_chain(par_value_pair["root_link"],
+                    chain = RobotManager.get_active_robot().description.get_chain(par_value_pair["root_link"],
                                                               par_value_pair["tip_link"])
                     if set(chain).intersection(used_joints) != set():
                         giskard_wrapper.motion_goals._goals = tmp_goals
@@ -705,9 +705,9 @@ def add_gripper_groups() -> None:
         for name in giskard_wrapper.get_group_names():
             if "gripper" in name:
                 return
-        for description in RobotDescription.current_robot_description.get_manipulator_chains():
+        for description in RobotManager.get_robot_description().get_manipulator_chains():
             giskard_wrapper.register_group(description.name + "_gripper", description.end_effector.start_link,
-                                           RobotDescription.current_robot_description.name)
+                                           RobotManager.get_robot_description().name)
 
 
 @init_giskard_interface

@@ -10,8 +10,8 @@ from ..core.navigation import LookAtActionDescription,NavigateActionDescription
 from ....config.action_conf import ActionConfig
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
-from ....datastructures.world import World
 from ....has_parameters import has_parameters
+from ....multirobot import RobotManager
 from ....plan import with_plan
 from ....robot_plans.actions.base import ActionDescription
 from ....tf_transformations import quaternion_from_euler
@@ -35,7 +35,7 @@ class FaceAtAction(ActionDescription):
 
     def plan(self) -> None:
         # get the robot position
-        robot_position = World.robot.pose
+        robot_position = RobotManager.get_active_robot().pose
 
         # calculate orientation for robot to face the object
         angle = np.arctan2(robot_position.position.y - self.pose.position.y,

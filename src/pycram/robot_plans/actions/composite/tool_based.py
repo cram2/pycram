@@ -11,12 +11,12 @@ from ...motions.gripper import MoveTCPMotion
 from .... import utils
 from ....datastructures.pose import PoseStamped
 from ....has_parameters import has_parameters
+from ....multirobot import RobotManager
 from ....plan import with_plan
 from ....datastructures.partial_designator import PartialDesignator
 from ....local_transformer import LocalTransformer
 from ....datastructures.enums import Arms, AxisIdentifier, Grasp, ApproachDirection, VerticalAlignment
 from ....datastructures.world import World
-from ....robot_description import RobotDescription
 from ....world_concepts.world_object import Object
 from ....robot_plans.actions.base import ActionDescription
 
@@ -100,8 +100,8 @@ class PouringAction(ActionDescription):
     """
     def plan(self) -> None:
         lt = LocalTransformer()
-        gripper_frame = World.robot.get_link_tf_frame("base_link")
-        grasp_rot = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.get_grasp(
+        gripper_frame = RobotManager.get_active_robot().get_link_tf_frame("base_link")
+        grasp_rot = RobotManager.get_robot_description().get_arm_chain(self.arm).end_effector.get_grasp(
             ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
 
         pose = lt.transform_pose(self.object_.pose, gripper_frame)
@@ -184,7 +184,7 @@ class CuttingAction(ActionDescription):
 
         for slice_pose in slice_poses:
             pose_a = obj.pose
-            pose_b = World.robot.pose
+            pose_b = RobotManager.get_active_robot().pose
             angle, angle_y = self.get_rotation_offset_from_axis_preference(pose_a, pose_b)
             direction = 1 if angle_y >= 0 else -1
             slice_pose.pose.position.y += direction * (length_tool / 2)

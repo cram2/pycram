@@ -1,4 +1,5 @@
 from ..language import LanguageMixin
+from ..multirobot import RobotManager
 from ..world_concepts.world_object import Object, World
 from ..datastructures.enums import ObjectType
 from ..datastructures.pose import PoseStamped
@@ -57,4 +58,5 @@ class PyCRAMGym(gym.Env):
         """
         if World.current_world is not None and self.world is not None:
             World.current_world.remove_object(self.world)
-            World.current_world.remove_object(self.robot)
+            for name, robot in RobotManager.available_robots:
+                World.current_world.remove_object(robot)
