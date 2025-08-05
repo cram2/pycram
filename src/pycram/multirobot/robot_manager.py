@@ -45,9 +45,9 @@ class RobotManager(ABC):
     def __init__(self):
         """
         Init for RobotManager.
-        Currently does nothing
         """
-        pass
+        rdm = RobotDescriptionManager()
+        logdebug(f'Initialize RobotManager.')
 
     @staticmethod
     def add_robot(robot):
@@ -82,7 +82,7 @@ class RobotManager(ABC):
         return robot
 
     @staticmethod
-    def get_robot_description(robot=None):
+    def get_robot_description(robot=None) -> RobotDescription:
         """
         Retrieve the description of the active robot.
         For concurrent robot actions, a robot shall be given as parameter and its description is used instead.
