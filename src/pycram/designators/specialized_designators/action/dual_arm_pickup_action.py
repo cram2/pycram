@@ -5,17 +5,14 @@ from geometry_msgs.msg import Vector3
 
 from owlready2 import Thing
 
-from ....multirobot import RobotManager
 from ....robot_plans import PickUpAction, PickUpAction
 from ....local_transformer import LocalTransformer
 from ....datastructures.world import World
 from ....datastructures.pose import PoseStamped, TransformStamped
 from ....datastructures.enums import Arms, Grasp
+from ....robot_description import KinematicChainDescription
 from ....designator import ObjectDesignatorDescription
 from ....ros import loginfo
-
-if TYPE_CHECKING:
-    from ....robot_description import KinematicChainDescription
 
 
 class DualArmPickupAction(PickUpAction):

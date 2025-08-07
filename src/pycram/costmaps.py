@@ -13,7 +13,6 @@ from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import P
 from random_events.interval import Interval, reals, closed_open, closed
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
-
 from .multirobot import RobotManager
 from .tf_transformations import quaternion_from_matrix, quaternion_from_euler
 from typing_extensions import Tuple, List, Optional, Iterator

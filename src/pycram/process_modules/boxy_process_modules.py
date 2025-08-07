@@ -1,12 +1,12 @@
 from .default_process_modules import *
 from .. import world_reasoning as btr
-from ..multirobot import RobotManager
 from ..robot_plans import *
 from ..datastructures.enums import StaticJointState
 
 from ..datastructures.world import World
 from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
+from ..multirobot import RobotManager
 
 
 def _park_arms(arm):

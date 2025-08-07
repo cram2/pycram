@@ -3,7 +3,6 @@ import threading
 
 import sys
 
-from ..multirobot import RobotManager
 from ..ros import Time
 from ..ros import logwarn, loginfo_once, loginfo
 from ..ros import get_node_names
@@ -14,6 +13,7 @@ from ..datastructures.world import World
 from ..datastructures.dataclasses import MeshVisualShape
 from ..ros import get_service_proxy
 from ..world_concepts.world_object import Object
+from ..multirobot import RobotManager
 
 from typing_extensions import List, Dict, Callable, Optional
 from threading import Lock, RLock

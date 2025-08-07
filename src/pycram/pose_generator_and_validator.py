@@ -4,7 +4,6 @@ import random
 import numpy as np
 
 from pycrap.ontologies import PhysicalObject
-from .multirobot import RobotManager
 from .object_descriptors.generic import ObjectDescription
 from .tf_transformations import quaternion_from_euler
 from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional, Iterator
@@ -16,6 +15,7 @@ from .datastructures.world import World
 from .external_interfaces.ik import request_ik
 from .failures import IKError, RobotInCollision
 from .local_transformer import LocalTransformer
+from .multirobot import RobotManager
 from .ros import logdebug
 from .world_concepts.world_object import Object
 from .world_reasoning import contact

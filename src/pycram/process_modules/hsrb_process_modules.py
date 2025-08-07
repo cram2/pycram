@@ -3,6 +3,7 @@ from typing_extensions import Any
 
 from .default_process_modules import *
 # from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
+from ..multirobot import RobotManager
 from ..process_module import ProcessModule
 from ..local_transformer import LocalTransformer
 from ..robot_plans import *

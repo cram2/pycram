@@ -8,6 +8,7 @@ from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModuleManager, ProcessModule
 from .default_process_modules import DefaultMoveGripper, DefaultMoveTCP, \
     DefaultNavigation, DefaultMoveHead, DefaultWorldStateDetecting
+from ..multirobot import RobotManager
 from ..ros import logdebug
 from ..external_interfaces import giskard
 from ..world_concepts.world_object import Object

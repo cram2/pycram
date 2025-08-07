@@ -2,6 +2,7 @@ from .default_process_modules import *
 from ..datastructures.world import World
 from ..robot_plans import *
 from ..external_interfaces.robokudo import *
+from ..multirobot import RobotManager
 
 
 class StretchMoveHead(ProcessModule):

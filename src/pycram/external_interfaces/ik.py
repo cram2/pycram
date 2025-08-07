@@ -3,7 +3,6 @@ import numpy as np
 from .. import tf_transformations
 from typing_extensions import List, Union, Tuple, Dict
 
-from ..multirobot import RobotManager
 from ..ros import get_node_names
 from ..ros import  Duration, ServiceException
 from ..ros import  loginfo_once, logerr
@@ -13,6 +12,7 @@ from ..world_concepts.world_object import Object
 from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
 from ..datastructures.pose import PoseStamped
+from ..multirobot import RobotManager
 from ..failures import IKError
 from ..external_interfaces.giskard import projection_cartesian_goal, allow_gripper_collision
 from .pinocchio_ik import compute_ik

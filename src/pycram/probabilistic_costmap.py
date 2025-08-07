@@ -2,7 +2,6 @@ from enum import Enum, auto
 from functools import cached_property
 
 import numpy as np
-
 from .multirobot import RobotManager
 from .tf_transformations import quaternion_from_euler
 from random_events.interval import closed_open

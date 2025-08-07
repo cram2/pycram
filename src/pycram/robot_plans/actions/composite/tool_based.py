@@ -11,12 +11,12 @@ from ...motions.gripper import MoveTCPMotion
 from .... import utils
 from ....datastructures.pose import PoseStamped
 from ....has_parameters import has_parameters
-from ....multirobot import RobotManager
 from ....plan import with_plan
 from ....datastructures.partial_designator import PartialDesignator
 from ....local_transformer import LocalTransformer
 from ....datastructures.enums import Arms, AxisIdentifier, Grasp, ApproachDirection, VerticalAlignment
 from ....datastructures.world import World
+from ....multirobot import RobotManager
 from ....world_concepts.world_object import Object
 from ....robot_plans.actions.base import ActionDescription
 

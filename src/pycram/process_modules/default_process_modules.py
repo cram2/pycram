@@ -6,7 +6,6 @@ from pycrap.urdf_parser import parse_furniture
 from ..datastructures.dataclasses import Colors
 from ..datastructures.enums import ExecutionType
 from ..datastructures.world import World
-from ..multirobot import RobotManager
 from ..robot_plans import *
 from ..external_interfaces import giskard
 from ..external_interfaces.ik import request_ik
@@ -16,6 +15,7 @@ from ..failures import NavigationGoalNotReachedError
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..process_module import ProcessModule, ManagerBase
+from ..multirobot import RobotManager
 from ..ros import get_time
 from ..ros import logdebug, loginfo
 from ..tf_transformations import euler_from_quaternion

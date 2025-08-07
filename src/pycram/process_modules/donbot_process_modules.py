@@ -2,6 +2,7 @@ from .default_process_modules import *
 from ..process_module import ProcessModuleManager
 from ..datastructures.enums import Arms, ExecutionType, Grasp, StaticJointState, ApproachDirection, VerticalAlignment
 from .default_process_modules import _move_arm_tcp
+from ..multirobot import RobotManager
 
 
 class DonbotMoveHead(DefaultMoveHead):
