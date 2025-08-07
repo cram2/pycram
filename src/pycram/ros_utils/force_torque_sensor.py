@@ -20,7 +20,7 @@ class ForceTorqueSensorSimulated:
     to the given topic.
     """
 
-    def __init__(self, joint_name, fts_topic="/pycram/fts", interval=0.1):
+    def __init__(self, joint_name, robot=None, fts_topic="/pycram/fts", interval=0.1):
         """
         The given joint_name has to be part of :py:attr:`~pycram.world.World.robot` otherwise a
         RuntimeError will be raised.
@@ -32,12 +32,13 @@ class ForceTorqueSensorSimulated:
         self.world = World.current_world
         self.fts_joint_idx = None
         self.joint_name = joint_name
-        if joint_name in RobotManager.get_active_robot().joint_name_to_id.keys():
-            self.fts_joint_idx = RobotManager.get_active_robot().joint_name_to_id[joint_name]
+        self.robot = robot
+        if joint_name in RobotManager.get_active_robot(self.robot).joint_name_to_id.keys():
+            self.fts_joint_idx = RobotManager.get_active_robot(self.robot).joint_name_to_id[joint_name]
         else:
             raise RuntimeError(f"Could not register ForceTorqueSensor: Joint {joint_name}"
                                f" does not exist in robot object")
-        self.world.enable_joint_force_torque_sensor(RobotManager.get_active_robot(), self.fts_joint_idx)
+        self.world.enable_joint_force_torque_sensor(RobotManager.get_active_robot(self.robot), self.fts_joint_idx)
 
         self.fts_pub = create_publisher(fts_topic, WrenchStamped, queue_size=10)
         self.interval = interval
@@ -55,7 +56,7 @@ class ForceTorqueSensorSimulated:
         """
         seq = 0
         while not self.kill_event.is_set():
-            joint_ft = self.world.get_joint_reaction_force_torque(RobotManager.get_active_robot(), self.fts_joint_idx)
+            joint_ft = self.world.get_joint_reaction_force_torque(RobotManager.get_active_robot(self.robot), self.fts_joint_idx)
             h = Header()
             h.stamp = Time().now()
             h.frame_id = self.joint_name

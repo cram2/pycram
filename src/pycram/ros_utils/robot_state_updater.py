@@ -23,7 +23,7 @@ class WorldStateUpdater:
         * The current joint state of the robot
     """
 
-    def __init__(self, tf_topic: str, joint_state_topic: str, update_rate: timedelta = timedelta(milliseconds=100),
+    def __init__(self, tf_topic: str, joint_state_topic: str, robot=None, update_rate: timedelta = timedelta(milliseconds=100),
                  world: Optional[World] = None) -> None:
         """
         The robot state updater uses a TF topic and a joint state topic to get the current state of the robot.
@@ -37,6 +37,7 @@ class WorldStateUpdater:
         time.sleep(1)
         self.tf_topic = tf_topic
         self.joint_state_topic = joint_state_topic
+        self.robot = robot
         self.world: Optional[World] = world
         self.tf_timer = create_timer(Duration(update_rate.total_seconds()), self._subscribe_tf)
         self.joint_state_timer = create_timer(Duration(update_rate.total_seconds()),
@@ -56,8 +57,8 @@ class WorldStateUpdater:
             else:
                 return
         for obj in self.world.objects:
-            if obj.name == RobotManager.get_active_robot().name:
-                tf_frame = RobotManager.get_robot_description().base_link
+            if obj.name == RobotManager.get_active_robot(self.robot).name:
+                tf_frame = RobotManager.get_robot_description(self.robot).base_link
             elif obj.is_an_environment:
                 continue
             elif obj.is_an_object:
@@ -78,7 +79,7 @@ class WorldStateUpdater:
         try:
             msg = wait_for_message(self.joint_state_topic, JointState)
             joint_positions = dict(zip(msg.name, msg.position))
-            RobotManager.get_active_robot().set_multiple_joint_positions(joint_positions)
+            RobotManager.get_active_robot(self.robot).set_multiple_joint_positions(joint_positions)
         except AttributeError:
             pass
 

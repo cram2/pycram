@@ -23,12 +23,13 @@ class RobotStateUpdater:
     hence it is not testable in the CI.
     """
 
-    def __init__(self, tf_topic: str, joint_state_topic: str):
+    def __init__(self, tf_topic: str, joint_state_topic: str, robot = None):
         """
         The robot state updater uses a TF topic and a joint state topic to get the current state of the robot.
 
         :param tf_topic: Name of the TF topic, needs to publish geometry_msgs/TransformStamped
         :param joint_state_topic: Name of the joint state topic, needs to publish sensor_msgs/JointState
+        :param robot: Robot object, that can be used for identification.
         """
         self.node = node
         self.tf_buffer = Buffer()
@@ -41,6 +42,8 @@ class RobotStateUpdater:
         self.tf_timer = create_timer(Duration(0.1), self._subscribe_tf)
         self.joint_state_timer = create_timer(Duration(0.1), self._subscribe_joint_state)
 
+        self.robot = robot
+
         atexit.register(self._stop_subscription)
 
     def _subscribe_tf(self, msg: TransformStamped) -> None:
@@ -49,12 +52,12 @@ class RobotStateUpdater:
 
         :param msg: TransformStamped message published to the topic
         """
-        self.tf_buffer.wait_for_transform_async("map", RobotManager.get_robot_description().base_link,
+        self.tf_buffer.wait_for_transform_async("map", RobotManager.get_robot_description(self.robot).base_link,
                                                 Time(0.0))
         trans, rot = self.tf_buffer.lookup_transform("map",
-                                                     RobotManager.get_robot_description().base_link,
+                                                     RobotManager.get_robot_description(self.robot).base_link,
                                                      Time(0.0), Duration(5))
-        RobotManager.get_active_robot().set_pose(PoseStamped(trans, rot))
+        RobotManager.get_active_robot(self.robot).set_pose(PoseStamped(trans, rot))
 
     def _subscribe_joint_state(self, msg: JointState) -> None:
         """
@@ -67,7 +70,7 @@ class RobotStateUpdater:
         try:
             msg = wait_for_message(self.joint_state_topic, JointState)
             for name, position in zip(msg.name, msg.position):
-                RobotManager.get_active_robot().set_joint_position(name, position)
+                RobotManager.get_active_robot(self.robot).set_joint_position(name, position)
         except AttributeError:
             pass
 
