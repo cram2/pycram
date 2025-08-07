@@ -1,22 +1,30 @@
+import os
+import time
+import unittest
+
 from pycram.datastructures.enums import WorldMode
 from pycram.datastructures.pose import PoseStamped
+from pycram.datastructures.world import UseProspectionWorld
 from pycram.multirobot import RobotManager
 from pycram.object_descriptors.urdf import ObjectDescription
+from pycram.plan import Plan
 from pycram.robot_description import RobotDescription
-from pycram.testing import EmptyBulletWorldTestCase
+from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.bullet_world import BulletWorld
 from pycrap.ontologies import Robot, Milk, Cereal
 
 
-class MultiRobotTestCase(EmptyBulletWorldTestCase):
+class MultiRobotTestCase(unittest.TestCase):
     world: BulletWorld
     extension: str = ObjectDescription.get_file_extension()
 
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
         cls.world = BulletWorld(mode=WorldMode.DIRECT)
+
+        if "ROS_VERSION" in os.environ:
+            cls.viz_marker_publisher = VizMarkerPublisher()
 
         cls.robot_pr2 = Object("pr2", Robot,
                                'pr2' + cls.extension,
@@ -45,6 +53,24 @@ class MultiRobotTestCase(EmptyBulletWorldTestCase):
             self.check_robot(name="tiago_dual", base_link="base_link", torso_link="torso_lift_link",
                              torso_joint="torso_lift_joint", number_of_links=69, number_of_joints=68)
 
+    def setUp(self):
+        self.world.reset_world(remove_saved_states=True)
+        Plan.current_plan = None
+        with UseProspectionWorld():
+            pass
+
+
+    def tearDown(self):
+        time.sleep(0.05)
+        self.world.reset_world(remove_saved_states=True)
+        with UseProspectionWorld():
+            pass
+
+    @classmethod
+    def tearDownClass(cls):
+        if "ROS_VERSION" in os.environ:
+            cls.viz_marker_publisher._stop_publishing()
+        cls.world.exit()
 
 class TestMultiRobot(MultiRobotTestCase):
 
