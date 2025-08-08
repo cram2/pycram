@@ -21,3 +21,4 @@ RUN python3 -m venv pycram-venv --system-site-packages  && source pycram-venv/bi
 
 COPY entrypoint.sh /
 ENTRYPOINT ["bash", "/entrypoint.sh"]
+
