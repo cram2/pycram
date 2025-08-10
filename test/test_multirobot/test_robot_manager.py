@@ -30,8 +30,8 @@ class MultiRobotTestCase(unittest.TestCase):
                                'pr2' + cls.extension,
                                pose=PoseStamped.from_list([0, 1, 0]))
 
-        cls.robot_tiago = Object("tiago_dual", Robot,
-                                 "tiago_dual" + cls.extension,
+        cls.robot_justin = Object("rollin_justin", Robot,
+                                 "rollin_justin" + cls.extension,
                                  pose=PoseStamped.from_list([0, 3, 0]))
 
         cls.milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([0.5, 3, 1.02]))
@@ -49,9 +49,9 @@ class MultiRobotTestCase(unittest.TestCase):
         if name == "pr2":
             self.check_robot(name="pr2", base_link="base_link", torso_link="torso_lift_link",
                              torso_joint="torso_lift_joint", number_of_links=88, number_of_joints=87)
-        elif name == "tiago_dual":
-            self.check_robot(name="tiago_dual", base_link="base_link", torso_link="torso_lift_link",
-                             torso_joint="torso_lift_joint", number_of_links=69, number_of_joints=68)
+        elif name == "rollin_justin":
+            self.check_robot(name="rollin_justin", base_link="base_link", torso_link="torso2",
+                             torso_joint="torso2_joint", number_of_links=66, number_of_joints=65)
 
     def setUp(self):
         self.world.reset_world(remove_saved_states=True)
@@ -79,6 +79,6 @@ class TestMultiRobot(MultiRobotTestCase):
 
         self.check_current_robot(self.robot_pr2.name)
 
-        RobotManager.set_active_robot(self.robot_tiago.name)
+        RobotManager.set_active_robot(self.robot_justin.name)
 
-        self.check_current_robot(self.robot_tiago.name)
+        self.check_current_robot(self.robot_justin.name)
