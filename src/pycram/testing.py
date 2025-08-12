@@ -5,6 +5,7 @@ import unittest
 from datetime import timedelta
 
 import pytest
+from semantic_world.adapters.urdf import URDFParser
 
 from .datastructures.world import UseProspectionWorld
 from .worlds.bullet_world import BulletWorld
@@ -89,6 +90,9 @@ class BulletWorldTestCase(EmptyBulletWorldTestCase):
         cls.kitchen = Object("kitchen", Kitchen, "kitchen" + cls.extension)
         cls.cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
                             pose=PoseStamped.from_list([1.3, 0.7, 0.95]))
+
+        cls.pr2_sem_world = URDFParser("/home/jdech/workspace/ros/src/pycram-1/resources/robots/pr2.urdf").parse()
+        cls.context = cls.pr2_sem_world, None
 
 class BulletWorldGUITestCase(BulletWorldTestCase):
     render_mode = WorldMode.GUI

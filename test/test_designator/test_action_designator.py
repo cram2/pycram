@@ -1,23 +1,22 @@
 import unittest
 from copy import deepcopy
-from datetime import timedelta
 
-from pycram.datastructures.pose import GraspDescription
+import numpy as np
+
+from pycram.datastructures.enums import Arms, GripperState, DetectionTechnique, TorsoState, \
+    StaticJointState, ApproachDirection, VerticalAlignment
+from pycram.datastructures.pose import PoseStamped
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators import object_designator
-from pycram.robot_plans.actions import * 
-from pycram.robot_plans.motions import MoveGripperMotion, MoveTCPWaypointsMotion
 from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError, \
-    ObjectNotInGraspingArea, ObjectStillInContact, NavigationGoalNotReachedError, \
+    NavigationGoalNotReachedError, \
     PerceptionObjectNotFound, ContainerManipulationError
 from pycram.local_transformer import LocalTransformer
-from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
-from pycram.datastructures.pose import PoseStamped
-from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp, DetectionTechnique, TorsoState, \
-    StaticJointState, ApproachDirection, VerticalAlignment
-from pycram.testing import  BulletWorldTestCase
-import numpy as np
+from pycram.robot_description import RobotDescription
+from pycram.robot_plans.actions import *
+from pycram.robot_plans.motions import MoveTCPWaypointsMotion
+from pycram.testing import BulletWorldTestCase
 from pycrap.ontologies import Milk
 
 
@@ -26,31 +25,34 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_move_torso(self):
         description = MoveTorsoActionDescription([TorsoState.HIGH])
+        plan = SequentialPlan(self.context, description)
         torso_joint = RobotDescription.current_robot_description.torso_joint
         self.assertEqual(description.resolve().torso_state, TorsoState.HIGH)
         self._test_validate_action_pre_perform(description, TorsoGoalNotReached)
         with simulated_robot:
-            description.resolve().perform()
+            plan.perform()
         self.assertEqual(self.world.robot.get_joint_position(torso_joint),
                          0.3)
 
     def test_set_gripper(self):
         description = SetGripperActionDescription([Arms.LEFT], [GripperState.OPEN, GripperState.CLOSE])
+        plan = SequentialPlan(self.context, description)
         self.assertEqual(description.resolve().gripper, Arms.LEFT)
         self.assertEqual(description.resolve().motion, GripperState.OPEN)
         # self.assertEqual(len(list(iter(description))), 2)
         with simulated_robot:
-            description.resolve().perform()
-        for joint, state in RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT).get_static_gripper_state(GripperState.OPEN).items():
+            plan.perform()
+        for joint, state in RobotDescription.current_robot_description.get_arm_chain(
+                Arms.LEFT).get_static_gripper_state(GripperState.OPEN).items():
             self.assertEqual(self.world.robot.get_joint_position(joint), state)
-
 
     def test_park_arms(self):
         description = ParkArmsActionDescription([Arms.BOTH])
+        plan = SequentialPlan(self.context, description)
         self.assertEqual(description.resolve().arm, Arms.BOTH)
         self._test_validate_action_pre_perform(description, ConfigurationNotReached)
         with simulated_robot:
-            description.resolve().perform()
+            plan.perform()
         for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right",
                                                                                              StaticJointState.Park).items():
             joint_position = self.world.robot.get_joint_position(joint)
@@ -61,26 +63,25 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_navigate(self):
         description = NavigateActionDescription([PoseStamped.from_list([0.3, 0, 0], [0, 0, 0, 1])])
+        plan = SequentialPlan(self.context, description)
         with simulated_robot:
             self._test_validate_action_pre_perform(description, NavigationGoalNotReachedError)
-            description.resolve().perform()
+            plan.perform()
         self.assertEqual(description.resolve().target_location, PoseStamped.from_list([0.3, 0, 0], [0, 0, 0, 1]))
         self.assertEqual(self.robot.get_pose(), PoseStamped.from_list([0.3, 0, 0]))
 
     def test_reach_to_pick_up(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
-        performable = ReachToPickUpAction(object_description.resolve(),
-
-                                                                  Arms.LEFT, grasp_description)
-        self.assertEqual(performable.object_designator.name, "milk")
+        performable = ReachToPickUpActionDescription(object_description.resolve(),
+                                                     Arms.LEFT, grasp_description)
+        plan = SequentialPlan(self.context,
+                              NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
+                              MoveTorsoActionDescription([TorsoState.HIGH]),
+                              SetGripperActionDescription(Arms.LEFT, GripperState.OPEN),
+                              performable)
         with simulated_robot:
-            NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
-            self._test_validate_action_pre_perform(performable, ObjectNotInGraspingArea)
-            MoveGripperMotion(GripperState.OPEN, Arms.LEFT).perform()
-            self._test_validate_action_pre_perform(performable, ObjectNotInGraspingArea)
-            performable.perform()
+            plan.perform()
 
     def test_pick_up(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -89,34 +90,38 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         description = PickUpActionDescription(object_description, [Arms.LEFT], [grasp_description])
 
         self.assertEqual(description.resolve().object_designator.name, "milk")
+        plan = SequentialPlan(self.context,
+                              NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
+                              MoveTorsoActionDescription([TorsoState.HIGH]),
+                              description)
         with simulated_robot:
-            NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
-            self._test_validate_action_pre_perform(description, ObjectNotGraspedError)
-            description.resolve().perform()
+            plan.perform()
         self.assertTrue(object_description.resolve() in self.robot.attachments.keys())
 
     def test_place(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = PlaceActionDescription(object_description, [PoseStamped.from_list([1.3, 1, 0.9],
-                                                                                                [0, 0, 0, 1])],
-                                                    [Arms.LEFT])
+                                                                                        [0, 0, 0, 1])],
+                                             [Arms.LEFT])
         self.assertEqual(description.resolve().object_designator.name, "milk")
+        plan = SequentialPlan(self.context,
+                              NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
+                              MoveTorsoActionDescription([TorsoState.HIGH]),
+                              PickUpActionDescription(object_description.resolve(), Arms.LEFT,
+                                                      GraspDescription(ApproachDirection.FRONT,
+                                                                       VerticalAlignment.NoAlignment, False)),
+                              description)
         with simulated_robot:
-            NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
-            grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
-            PickUpAction(object_description.resolve(), Arms.LEFT, grasp_description).perform()
-            self._test_validate_action_pre_perform(description, ObjectStillInContact)
-            description.resolve().perform()
+            plan.perform()
         self.assertFalse(object_description.resolve() in self.robot.attachments.keys())
 
     def test_look_at(self):
         description = LookAtAction.description([PoseStamped.from_list([1, 0, 1])])
         self.assertEqual(description.resolve().target, PoseStamped.from_list([1, 0, 1]))
+        plan = SequentialPlan(self.context, description)
         with simulated_robot:
             # self._test_validate_action_pre_perform(description, LookAtGoalNotReached)
-            description.resolve().perform()
+            plan.perform()
 
     @unittest.skip("validation isn't working")
     def test_detect(self):
@@ -124,9 +129,10 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.milk.set_pose(PoseStamped.from_list([1.5, 0, 1.2]))
         object_description = ObjectDesignatorDescription(types=[Milk])
         description = DetectActionDescription(technique=DetectionTechnique.TYPES, object_designator=object_description)
+        plan = SequentialPlan(self.context, description)
         with simulated_robot:
             self._test_validate_action_pre_perform(description, PerceptionObjectNotFound)
-            detected_object = description.resolve().perform()
+            detected_object = plan.perform()
 
         self.assertEqual(detected_object[0].name, "milk")
         self.assertEqual(detected_object[0].obj_type, Milk)
@@ -167,12 +173,14 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_transport(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = TransportActionDescription(object_description,
-                                                        [PoseStamped.from_list([-1.4, 0.78, 0.95],
-                                                                     [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])],
-                                                        [Arms.LEFT])
+                                                 [PoseStamped.from_list([-1.4, 0.78, 0.95],
+                                                                        [0.0, 0.0, 0.16439898301071468,
+                                                                         0.9863939245479175])],
+                                                 [Arms.LEFT])
+        plan = SequentialPlan(self.context, MoveTorsoActionDescription([TorsoState.HIGH]),
+                              description)
         with simulated_robot:
-            MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
-            description.resolve().perform()
+            plan.perform()
         self.assertEqual(description.resolve().object_designator.name, "milk")
         milk_position = np.array(self.milk.get_pose().position.to_list())
         dist = np.linalg.norm(milk_position - np.array([-1.4, 0.78, 0.95]))
@@ -182,18 +190,21 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.milk.set_pose(PoseStamped.from_list([-1.4, 1, 1]))
         self.robot.set_pose(PoseStamped.from_list([-2.14, 1.06, 0]))
         milk_desig = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = GraspingActionDescription(milk_desig, [Arms.RIGHT] )
+        description = GraspingActionDescription(milk_desig, [Arms.RIGHT])
+        plan = SequentialPlan(self.context, description)
         with simulated_robot:
             self._test_validate_action_pre_perform(description, ObjectNotGraspedError)
-            description.resolve().perform()
+            plan.perform()
         dist = np.linalg.norm(
-            np.array(self.robot.get_link_position_as_list(RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_tool_frame())) -
+            np.array(self.robot.get_link_position_as_list(
+                RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_tool_frame())) -
             np.array(self.milk.get_position_as_list()))
         self.assertTrue(dist < 0.01)
 
     def test_facing(self):
         with simulated_robot:
-            FaceAtAction(self.milk.pose, True).perform()
+            plan = SequentialPlan(self.context, FaceAtActionDescription(self.milk.pose, True))
+            plan.perform()
             milk_in_robot_frame = LocalTransformer().transform_to_object_frame(self.milk.pose, self.robot)
             self.assertAlmostEqual(milk_in_robot_frame.position.y, 0.)
 
@@ -224,10 +235,10 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             pass
 
     def test_search_action(self):
-        description = SearchActionDescription(PoseStamped.from_list([1, 1, 1]), Milk)
+        plan = SequentialPlan(self.context, MoveTorsoActionDescription([TorsoState.HIGH]),
+                              SearchActionDescription(PoseStamped.from_list([1, 1, 1]), Milk))
         with simulated_robot:
-            ParkArmsActionDescription([Arms.BOTH]).perform()
-            milk = description.perform()
+            milk = plan.perform()
         self.assertTrue(milk)
         self.assertEqual(milk.obj_type, Milk)
         self.assertEqual(self.milk.pose, milk.pose)

@@ -17,7 +17,7 @@ from ....failure_handling import try_action
 from ....failures import LookAtGoalNotReached
 from ....failures import NavigationGoalNotReachedError
 from ....has_parameters import has_parameters
-from ....plan import with_plan
+from ....language import SequentialPlan
 from ....validation.error_checkers import PoseErrorChecker
 from ....world_reasoning import move_away_all_objects_to_create_empty_space, generate_object_at_target, \
     cast_a_ray_from_camera
@@ -49,7 +49,6 @@ class NavigateAction(ActionDescription):
             raise NavigationGoalNotReachedError(World.robot.pose, self.target_location)
 
     @classmethod
-    @with_plan
     def description(cls, target_location: Union[Iterable[PoseStamped], PoseStamped],
                     keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states) -> \
             PartialDesignator[Type[NavigateAction]]:
@@ -70,7 +69,7 @@ class LookAtAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        LookingMotion(target=self.target).perform()
+        SequentialPlan(self.context,  LookingMotion(target=self.target)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """
@@ -89,7 +88,6 @@ class LookAtAction(ActionDescription):
                 raise LookAtGoalNotReached(World.robot, self.target)
 
     @classmethod
-    @with_plan
     def description(cls, target: Union[Iterable[PoseStamped], PoseStamped]) -> PartialDesignator[Type[LookAtAction]]:
         return PartialDesignator(LookAtAction, target=target)
 

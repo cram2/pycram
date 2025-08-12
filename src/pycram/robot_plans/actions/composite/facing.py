@@ -12,7 +12,7 @@ from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
 from ....datastructures.world import World
 from ....has_parameters import has_parameters
-from ....plan import with_plan
+from ....language import SequentialPlan
 from ....robot_plans.actions.base import ActionDescription
 from ....tf_transformations import quaternion_from_euler
 
@@ -46,17 +46,15 @@ class FaceAtAction(ActionDescription):
         new_robot_pose = PoseStamped.from_list(robot_position.position.to_list(), orientation)
 
         # turn robot
-        NavigateActionDescription(new_robot_pose, self.keep_joint_states).perform()
-
-        # look at target
-        LookAtActionDescription(self.pose).perform()
+        SequentialPlan(self.context, NavigateActionDescription(new_robot_pose, self.keep_joint_states),
+            # look at target
+            LookAtActionDescription(self.pose)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         # The validation will be done in the LookAtActionPerformable.perform() method so no need to validate here.
         pass
 
     @classmethod
-    @with_plan
     def description(cls, pose: Union[Iterable[PoseStamped], PoseStamped],
                     keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.face_at_keep_joint_states) -> \
             PartialDesignator[Type[FaceAtAction]]:

@@ -12,7 +12,7 @@ from ....datastructures.pose import Vector3Stamped
 from ....datastructures.world import World
 from ....failures import TorsoGoalNotReached, ConfigurationNotReached
 from ....has_parameters import has_parameters
-from ....plan import with_plan
+from ....language import SequentialPlan
 from ....robot_description import RobotDescription
 from ....robot_plans.actions.base import ActionDescription
 from ....robot_plans.motions.gripper import MoveGripperMotion
@@ -34,7 +34,8 @@ class MoveTorsoAction(ActionDescription):
     def plan(self) -> None:
         joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
                                                                                                   self.torso_state)
-        MoveJointsMotion(list(joint_positions.keys()), list(joint_positions.values())).perform()
+        SequentialPlan(self.context,
+                       MoveJointsMotion(list(joint_positions.keys()), list(joint_positions.values()))).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
         """
@@ -50,7 +51,6 @@ class MoveTorsoAction(ActionDescription):
             raise TorsoGoalNotReached(validator)
 
     @classmethod
-    @with_plan
     def description(cls, torso_state: Union[Iterable[TorsoState], TorsoState]) -> PartialDesignator[
         Type[MoveTorsoAction]]:
         return PartialDesignator(MoveTorsoAction, torso_state=torso_state)
@@ -75,10 +75,10 @@ class SetGripperAction(ActionDescription):
     def plan(self) -> None:
         arm_chains = RobotDescription.current_robot_description.get_arm_chain(self.gripper)
         if type(arm_chains) is not list:
-            MoveGripperMotion(gripper=arm_chains.arm_type, motion=self.motion).perform()
+            SequentialPlan(self.context, MoveGripperMotion(gripper=arm_chains.arm_type, motion=self.motion)).perform()
         else:
             for chain in arm_chains:
-                MoveGripperMotion(gripper=chain.arm_type, motion=self.motion).perform()
+                SequentialPlan(self.context, MoveGripperMotion(gripper=chain.arm_type, motion=self.motion)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
         """
@@ -87,7 +87,6 @@ class SetGripperAction(ActionDescription):
         pass
 
     @classmethod
-    @with_plan
     def description(cls, gripper: Union[Iterable[Arms], Arms],
                     motion: Union[Iterable[GripperState], GripperState] = None) -> PartialDesignator[
         Type[SetGripperAction]]:
@@ -109,7 +108,8 @@ class ParkArmsAction(ActionDescription):
     def plan(self) -> None:
         joint_poses = self.get_joint_poses()
 
-        MoveJointsMotion(names=list(joint_poses.keys()), positions=list(joint_poses.values())).perform()
+        SequentialPlan(self.context,
+                       MoveJointsMotion(names=list(joint_poses.keys()), positions=list(joint_poses.values()))).perform()
 
     def get_joint_poses(self) -> Dict[str, float]:
         """
@@ -136,7 +136,6 @@ class ParkArmsAction(ActionDescription):
             raise ConfigurationNotReached(validator, configuration_type=StaticJointState.Park)
 
     @classmethod
-    @with_plan
     def description(cls, arm: Union[Iterable[Arms], Arms]) -> PartialDesignator[Type[ParkArmsAction]]:
         return PartialDesignator(cls, arm=arm)
 
@@ -183,9 +182,10 @@ class CarryAction(ActionDescription):
         tip_normal = self.axis_to_vector3_stamped(self.tip_axis, link=self.tip_link)
         root_normal = self.axis_to_vector3_stamped(self.root_axis, link=self.root_link)
 
-        MoveJointsMotion(names=list(joint_poses.keys()), positions=list(joint_poses.values()),
-                         align=self.align, tip_link=self.tip_link, tip_normal=tip_normal,
-                         root_link=self.root_link, root_normal=root_normal).perform()
+        SequentialPlan(self.context,
+                       MoveJointsMotion(names=list(joint_poses.keys()), positions=list(joint_poses.values()),
+                                        align=self.align, tip_link=self.tip_link, tip_normal=tip_normal,
+                                        root_link=self.root_link, root_normal=root_normal)).perform()
 
     def get_joint_poses(self) -> Dict[str, float]:
         """
@@ -222,7 +222,6 @@ class CarryAction(ActionDescription):
             raise ConfigurationNotReached(validator, configuration_type=StaticJointState.Park)
 
     @classmethod
-    @with_plan
     def description(cls, arm: Union[Iterable[Arms], Arms], align: Optional[bool] = False,
                     tip_link: Optional[str] = None, tip_axis: Optional[AxisIdentifier] = None,
                     root_link: Optional[str] = None, root_axis: Optional[AxisIdentifier] = None) \

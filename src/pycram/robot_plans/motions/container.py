@@ -3,11 +3,9 @@ from dataclasses import dataclass
 from .base import BaseMotion
 from ...datastructures.enums import Arms
 from ...description import ObjectDescription
-from ...plan import with_plan
 from ...process_module import ProcessModuleManager
 
 
-@with_plan
 @dataclass
 class OpeningMotion(BaseMotion):
     """
@@ -28,7 +26,6 @@ class OpeningMotion(BaseMotion):
         return pm_manager.open().execute(self)
 
 
-@with_plan
 @dataclass
 class ClosingMotion(BaseMotion):
     """

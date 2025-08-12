@@ -15,8 +15,8 @@ from ....datastructures.world import World
 from ....description import Link
 from ....failures import ObjectNotPlacedAtTargetLocation, ObjectStillInContact
 from ....has_parameters import has_parameters
+from ....language import SequentialPlan
 from ....local_transformer import LocalTransformer
-from ....plan import with_plan
 from ....robot_description import EndEffectorDescription
 from ....robot_description import RobotDescription, KinematicChainDescription
 from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
@@ -64,17 +64,17 @@ class PlaceAction(ActionDescription):
             World.robot].get_child_link_target_pose_given_parent(self.target_location)
         pre_place_pose = target_pose.copy()
         pre_place_pose.position.z += 0.1
-        MoveTCPMotion(pre_place_pose, self.arm).perform()
+        SequentialPlan(self.context, MoveTCPMotion(pre_place_pose, self.arm),
 
-        MoveTCPMotion(target_pose, self.arm).perform()
+                       MoveTCPMotion(target_pose, self.arm),
 
-        MoveGripperMotion(GripperState.OPEN, self.arm).perform()
+                       MoveGripperMotion(GripperState.OPEN, self.arm)).perform()
         World.robot.detach(self.object_designator)
 
         retract_pose = LocalTransformer().translate_pose_along_local_axis(target_pose,
                                                                           self.end_effector.get_approach_axis(),
                                                                           -self.object_designator.get_approach_offset())
-        MoveTCPMotion(retract_pose, self.arm).perform()
+        SequentialPlan(self.context, MoveTCPMotion(retract_pose, self.arm)).perform()
 
     @cached_property
     def gripper_link(self) -> Link:
@@ -117,14 +117,12 @@ class PlaceAction(ActionDescription):
             raise ObjectNotPlacedAtTargetLocation(self.object_designator, self.target_location, World.robot, self.arm)
 
     @classmethod
-    @with_plan
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None) -> PartialDesignator[Type[PlaceAction]]:
         return PartialDesignator(PlaceAction, object_designator=object_designator,
                                  target_location=target_location,
                                  arm=arm)
-
 
 
 PlaceActionDescription = PlaceAction.description

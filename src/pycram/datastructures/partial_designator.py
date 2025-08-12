@@ -5,12 +5,11 @@ from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING, TypeV
 from inspect import signature
 
 from ..has_parameters import leaf_types, HasParameters
-from ..language import LanguageMixin
 from ..utils import is_iterable, lazy_product
 
 T = TypeVar('T')
 
-class PartialDesignator(LanguageMixin, Iterable[T]):
+class PartialDesignator(Iterable[T]):
     """
     A partial designator_description is somewhat between a DesignatorDescription and a specified designator_description. Basically it is a
     partially initialized specified designator_description which can take a list of input arguments (like a DesignatorDescription)

@@ -2,11 +2,9 @@ from dataclasses import dataclass
 
 from .base import BaseMotion
 from ...datastructures.pose import PoseStamped
-from ...plan import with_plan
 from ...process_module import ProcessModuleManager
 
 
-@with_plan
 @dataclass
 class MoveMotion(BaseMotion):
     """
@@ -28,7 +26,6 @@ class MoveMotion(BaseMotion):
         return pm_manager.navigate().execute(self)
 
 
-@with_plan
 @dataclass
 class LookingMotion(BaseMotion):
     """

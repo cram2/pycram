@@ -11,7 +11,6 @@ from ...motions.gripper import MoveTCPMotion
 from .... import utils
 from ....datastructures.pose import PoseStamped
 from ....has_parameters import has_parameters
-from ....plan import with_plan
 from ....datastructures.partial_designator import PartialDesignator
 from ....local_transformer import LocalTransformer
 from ....datastructures.enums import Arms, AxisIdentifier, Grasp, ApproachDirection, VerticalAlignment
@@ -64,7 +63,6 @@ class MixingAction(ActionDescription):
         World.current_world.remove_vis_axis()
 
     @classmethod
-    @with_plan
     def description(cls, object_: Union[Iterable[Object], Object], tool: Union[Iterable[Object], Object],
                     arm: Optional[Union[Iterable[Arms], Arms]] = None,
                     technique: Optional[Union[Iterable[str], str]] = None):
@@ -127,7 +125,6 @@ class PouringAction(ActionDescription):
         World.current_world.remove_vis_axis()
 
     @classmethod
-    @with_plan
     def description(cls, object_: Union[Iterable[Object], Object], tool: Union[Iterable[Object], Object],
                     arm: Optional[Union[Iterable[Arms], Arms]] = None,
                     technique: Optional[Union[Iterable[str], str]] = None,
@@ -199,7 +196,6 @@ class CuttingAction(ActionDescription):
             lift_pose.pose.position.z += height
 
     @classmethod
-    @with_plan
     def description(cls, object_: Union[Iterable[Object], Object], tool: Union[Iterable[Object], Object],
                     arm: Optional[Union[Iterable[Arms], Arms]] = None,
                     technique: Optional[Union[Iterable[str], str]] = None, slice_thickness: Optional[float] = 0.03):

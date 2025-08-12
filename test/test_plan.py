@@ -9,7 +9,7 @@ from pycram.datastructures.enums import TaskStatus
 from pycram.robot_plans import *
 from pycram.language import SequentialPlan, ParallelPlan, CodeNode
 from pycram.parameterizer import Parameterizer
-from pycram.plan import PlanNode, Plan, SubPlan
+from pycram.plan import PlanNode, Plan
 from pycram.process_module import simulated_robot
 from pycram.testing import BulletWorldTestCase
 
@@ -236,32 +236,3 @@ class AlgebraTest(BulletWorldTestCase):
             resolved = p.plan_from_sample(conditional, sample[0])
             with simulated_robot:
                 resolved.perform()
-
-class TestSubPlan(BulletWorldTestCase):
-    def test_sub_plan(self):
-        node = PlanNode()
-        plan = Plan(node)
-        sub_node = PlanNode()
-        sub_plan = SubPlan(sub_node, plan)
-
-        self.assertEqual(sub_node, sub_plan.root)
-        print(f"plan: {type(plan)}")
-        print(f"sub_plan: {type(sub_plan.super_plan)}")
-        self.assertEqual(sub_plan.super_plan, plan)
-        for node in sub_plan.nodes:
-            self.assertIn(node, plan.nodes)
-
-    def test_add_node(self):
-        node = PlanNode()
-        plan = Plan(node)
-        sub_node = PlanNode()
-        sub_plan = SubPlan(sub_node, plan)
-        plan.mount(sub_plan)
-
-        new_node = PlanNode()
-        sub_plan.add_edge(sub_plan.root, new_node)
-
-        self.assertIn(new_node, sub_plan.nodes)
-        self.assertIn(new_node, plan.nodes)
-        self.assertEqual(new_node.plan, plan)
-

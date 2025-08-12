@@ -11,7 +11,6 @@ from ....datastructures.partial_designator import PartialDesignator
 from ....failure_handling import try_action
 from ....failures import PerceptionObjectNotFound
 from ....has_parameters import has_parameters
-from ....plan import with_plan
 from ....robot_plans.actions.base import ActionDescription
 from ....world_concepts.world_object import Object
 from pycrap.ontologies import Location
@@ -63,7 +62,6 @@ class DetectAction(ActionDescription):
         #     raise PerceptionObjectNotFound(self.object_designator, self.technique, self.region)
 
     @classmethod
-    @with_plan
     def description(cls, technique: Union[Iterable[DetectionTechnique], DetectionTechnique],
                     state: Union[Iterable[DetectionState], DetectionState] = None,
                     object_designator: Union[Iterable[Object], Object] = None,

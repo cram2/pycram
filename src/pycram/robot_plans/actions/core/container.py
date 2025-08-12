@@ -6,7 +6,6 @@ from datetime import timedelta
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from .pick_up import GraspingActionDescription
-from ...actions.core.robot_body import SetGripperActionDescription
 from ...motions.container import OpeningMotion, ClosingMotion
 from ...motions.gripper import MoveGripperMotion
 from ....config.action_conf import ActionConfig
@@ -16,9 +15,8 @@ from ....datastructures.world import World
 from ....description import Joint, Link, ObjectDescription
 from ....failures import ContainerManipulationError
 from ....has_parameters import has_parameters
-from ....plan import with_plan
+from ....language import SequentialPlan
 from ....robot_plans.actions.base import ActionDescription
-
 
 
 @has_parameters
@@ -42,10 +40,11 @@ class OpenAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        GraspingActionDescription(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
-        OpeningMotion(self.object_designator, self.arm).perform()
+        SequentialPlan(self.context, GraspingActionDescription(self.object_designator, self.arm,
+                                                                               self.grasping_prepose_distance),
+                       OpeningMotion(self.object_designator, self.arm),
 
-        MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
+                       MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """
@@ -55,7 +54,6 @@ class OpenAction(ActionDescription):
         validate_close_open(self.object_designator, self.arm, OpenAction)
 
     @classmethod
-    @with_plan
     def description(cls, object_designator_description: Union[Iterable[ObjectDescription.Link], ObjectDescription.Link],
                     arm: Union[Iterable[Arms], Arms] = None,
                     grasping_prepose_distance: Union[
@@ -87,9 +85,10 @@ class CloseAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        GraspingActionDescription(self.object_designator, self.arm, self.grasping_prepose_distance).perform()
-        ClosingMotion(self.object_designator, self.arm).perform()
-        MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True).perform()
+        SequentialPlan(self.context,
+                       GraspingActionDescription(self.object_designator, self.arm, self.grasping_prepose_distance),
+                       ClosingMotion(self.object_designator, self.arm),
+                       MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """
@@ -99,7 +98,6 @@ class CloseAction(ActionDescription):
         validate_close_open(self.object_designator, self.arm, CloseAction)
 
     @classmethod
-    @with_plan
     def description(cls, object_designator_description: Union[Iterable[ObjectDescription.Link], ObjectDescription.Link],
                     arm: Union[Iterable[Arms], Arms] = None,
                     grasping_prepose_distance: Union[
@@ -143,6 +141,6 @@ def check_closed(joint_obj: Joint, obj_part: Link, arm: Arms, lower_limit: float
         raise ContainerManipulationError(World.robot, [arm], obj_part, joint_obj,
                                          ContainerManipulationType.Closing)
 
+
 OpenActionDescription = OpenAction.description
 CloseActionDescription = CloseAction.description
-

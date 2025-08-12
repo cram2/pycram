@@ -3,11 +3,9 @@ from typing import Optional
 
 from .base import BaseMotion
 from ...datastructures.pose import Vector3Stamped
-from ...plan import with_plan
 from ...process_module import ProcessModuleManager
 
 
-@with_plan
 @dataclass
 class MoveJointsMotion(BaseMotion):
     """

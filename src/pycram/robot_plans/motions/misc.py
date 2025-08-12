@@ -4,12 +4,10 @@ from typing import Optional
 from pycrap.ontologies import Location
 from .base import BaseMotion
 from ...datastructures.enums import DetectionTechnique, DetectionState, ObjectType
-from ...plan import with_plan
 from ...process_module import ProcessModuleManager
 from ...world_concepts.world_object import Object
 
 
-@with_plan
 @dataclass
 class DetectingMotion(BaseMotion):
     """
@@ -41,7 +39,6 @@ class DetectingMotion(BaseMotion):
         return obj_dict
 
 
-@with_plan
 @dataclass
 class WorldStateDetectingMotion(BaseMotion):
     """

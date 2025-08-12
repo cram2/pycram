@@ -8,7 +8,6 @@ from ...datastructures.pose import PoseStamped
 from ...failure_handling import try_motion
 from ...failures import ToolPoseNotReachedError
 from ...local_transformer import LocalTransformer
-from ...plan import with_plan
 from ...process_module import ProcessModuleManager
 from ...world_concepts.world_object import Object
 
@@ -46,7 +45,6 @@ from ...world_concepts.world_object import Object
 #         MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=self.movement_type).perform()
 
 
-@with_plan
 @dataclass
 class MoveArmJointsMotion(BaseMotion):
     """
@@ -67,7 +65,6 @@ class MoveArmJointsMotion(BaseMotion):
         return pm_manager.move_arm_joints().execute(self)
 
 
-@with_plan
 @dataclass
 class MoveGripperMotion(BaseMotion):
     """
@@ -92,7 +89,6 @@ class MoveGripperMotion(BaseMotion):
         return pm_manager.move_gripper().execute(self)
 
 
-@with_plan
 @dataclass
 class MoveTCPMotion(BaseMotion):
     """
@@ -121,7 +117,6 @@ class MoveTCPMotion(BaseMotion):
         try_motion(pm_manager.move_tcp(), self, ToolPoseNotReachedError)
 
 
-@with_plan
 @dataclass
 class MoveTCPWaypointsMotion(BaseMotion):
     """
