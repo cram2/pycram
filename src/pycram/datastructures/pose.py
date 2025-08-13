@@ -8,6 +8,7 @@ from typing import Union
 
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+from semantic_world.world_entity import Body
 from typing_extensions import Self, Tuple, Optional, List, TYPE_CHECKING, Any
 
 from .enums import AxisIdentifier, Arms, Grasp, ApproachDirection, VerticalAlignment
@@ -16,6 +17,8 @@ from ..has_parameters import has_parameters, HasParameters
 from ..ros import Time as ROSTime
 from ..tf_transformations import quaternion_multiply, translation_matrix, quaternion_matrix, inverse_matrix, \
     translation_from_matrix, quaternion_from_matrix
+
+from semantic_world.spatial_types.spatial_types import Vector3 as SpatialVector3, Quaternion as SpatialQuaternion, TransformationMatrix as SpatialTransformationMatrix
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
@@ -57,6 +60,9 @@ class Vector3(HasParameters):
         :return: A list containing the x, y and z coordinates.
         """
         return [self.x, self.y, self.z]
+
+    def to_spatial_type(self, reference_frame: Body = None) -> SpatialVector3:
+        return SpatialVector3(x=float(self.x), y=float(self.y), z=self.z, reference_frame=reference_frame)
 
     def round(self, decimals: int = 4):
         """
@@ -195,6 +201,14 @@ class Quaternion(HasParameters):
         """
         return np.array(self.to_list())
 
+    def to_spatial_type(self) -> SpatialQuaternion:
+        """
+        Convert the quaternion to a SpatialQuaternion.
+
+        :return: A SpatialQuaternion object containing the x, y, z and w components.
+        """
+        return SpatialQuaternion(x=float(self.x), y=float(self.y), z=float(self.z), w=float(self.w))
+
     def round(self, decimals: int = 4):
         """
         Rounds the components of the quaternion to the specified number of decimal places.
@@ -272,6 +286,10 @@ class Pose(HasParameters):
         :return: A list containing the position and orientation of this pose.
         """
         return [self.position.to_list(), self.orientation.to_list()]
+
+    def to_spatial_type(self) -> SpatialTransformationMatrix:
+        return SpatialTransformationMatrix.from_xyz_quat(pos_x=self.position.x, pos_y=self.position.y, pos_z=self.position.z, quat_x=self.orientation.x,
+                                                         quat_y=self.orientation.y, quat_z=self.orientation.z, quat_w=self.orientation.w)
 
     def copy(self) -> Self:
         """
@@ -400,6 +418,9 @@ class Vector3Stamped(Vector3):
         header = Header(frame_id=message.header.frame_id, stamp=message.header.stamp)
         return cls(x=message.vector.x, y=message.vector.y, z=message.vector.z, header=header)
 
+    def to_spatial_type(self) -> SpatialVector3:
+        return SpatialVector3(x=float(self.x), y=float(self.y), z=self.z, reference_frame=self.header.reference_frame)
+
 @has_parameters
 @dataclass
 class PoseStamped(HasParameters):
@@ -487,6 +508,11 @@ class PoseStamped(HasParameters):
         return TransformStamped(header=self.header,
                                 pose=Transform.from_list(self.position.to_list(), self.orientation.to_list()),
                                 child_frame_id=child_link_id)
+
+    def to_spatial_type(self) -> SpatialTransformationMatrix:
+        return SpatialTransformationMatrix.from_xyz_quat(pos_x=self.position.x, pos_y=self.position.y, pos_z=self.position.z, quat_x=self.orientation.x,
+                                                            quat_y=self.orientation.y, quat_z=self.orientation.z, quat_w=self.orientation.w,)
+                                                            # reference_frame=self.header.reference_frame)
 
     def round(self, decimals: int = 4):
         """
@@ -828,6 +854,11 @@ class TransformStamped(PoseStamped):
         """
         p = Pose(self.pose.position, self.pose.orientation)
         return PoseStamped(p, self.header)
+
+    def to_spatial_type(self) -> SpatialTransformationMatrix:
+        return SpatialTransformationMatrix.from_xyz_quat(pos_x=self.translation.x, pos_y=self.translation.y, pos_z=self.translation.z,
+                                                            quat_x=self.rotation.x, quat_y=self.rotation.y, quat_z=self.rotation.z, quat_w=self.rotation.w,
+                                                            reference_frame=self.header.reference_frame, child_frame=self.child_frame_id)
 
     def inverse_times(self, other: TransformStamped) -> Self:
         """

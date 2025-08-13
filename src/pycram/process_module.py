@@ -408,16 +408,6 @@ class ManagerBase(ABC):
         pass
 
     @abstractmethod
-    def world_state_detecting(self) -> ProcessModule:
-        """
-        Get the Process Module for detecting an object using the world state with respect to the
-        :py:attr:`~ProcessModuleManager.execution_type`
-
-        :return: The Process Module for world state detecting
-        """
-        pass
-
-    @abstractmethod
     def move_joints(self) -> ProcessModule:
         """
         Get the Process Module for moving any joint of the robot with respect to the

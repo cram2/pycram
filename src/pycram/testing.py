@@ -5,7 +5,9 @@ import unittest
 from datetime import timedelta
 
 import pytest
+from rclpy.node import Node
 from semantic_world.adapters.urdf import URDFParser
+from semantic_world.spatial_types.spatial_types import TransformationMatrix
 
 from .datastructures.world import UseProspectionWorld
 from .worlds.bullet_world import BulletWorld
@@ -19,7 +21,8 @@ from .plan import Plan
 from .ros import loginfo, get_node_names
 from pycrap.ontologies import Milk, Robot, Kitchen, Cereal
 try:
-    from .ros_utils.viz_marker_publisher import VizMarkerPublisher
+    # from .ros_utils.viz_marker_publisher import VizMarkerPublisher
+    from semantic_world.adapters.viz_marker import VizMarkerPublisher
 except ImportError:
     loginfo("Could not import VizMarkerPublisher. This is probably because you are not running ROS.")
 
@@ -48,8 +51,8 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(mode=cls.render_mode)
-        if "ROS_VERSION" in os.environ:
-            cls.viz_marker_publisher = VizMarkerPublisher()
+        # if "ROS_VERSION" in os.environ:
+        #     cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):
         self.world.reset_world(remove_saved_states=True)
@@ -66,8 +69,8 @@ class EmptyBulletWorldTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if "ROS_VERSION" in os.environ:
-            cls.viz_marker_publisher._stop_publishing()
+        # if "ROS_VERSION" in os.environ:
+        #     cls.viz_marker_publisher._stop_publishing()
         cls.world.exit()
 
 class BulletWorldTestCase(EmptyBulletWorldTestCase):
@@ -92,7 +95,17 @@ class BulletWorldTestCase(EmptyBulletWorldTestCase):
                             pose=PoseStamped.from_list([1.3, 0.7, 0.95]))
 
         cls.pr2_sem_world = URDFParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots", "pr2.urdf")).parse()
-        cls.context = cls.pr2_sem_world, None
+        cls.apartment_world = URDFParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
+        cls.apartment_world.merge_world(cls.pr2_sem_world)
+
+        n = Node("test")
+        cls.viz_marker_publisher = VizMarkerPublisher(cls.apartment_world, n)
+
+        cls.context = cls.apartment_world, None
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.viz_marker_publisher._stop_publishing()
 
 class BulletWorldGUITestCase(BulletWorldTestCase):
     render_mode = WorldMode.GUI

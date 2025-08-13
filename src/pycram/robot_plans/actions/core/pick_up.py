@@ -96,7 +96,9 @@ class ReachToPickUpAction(ActionDescription):
         pose = self.local_transformer.transform_pose(pose, Frame.Map.value)
         if add_vis_axis:
             World.current_world.add_vis_axis(pose)
-        MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=movement_type).perform()
+        SequentialPlan(self.context,
+                       MoveTCPMotion(pose, self.arm, allow_gripper_collision=False,
+                                     movement_type=movement_type)).perform()
 
     @cached_property
     def local_transformer(self) -> LocalTransformer:
@@ -125,7 +127,8 @@ class ReachToPickUpAction(ActionDescription):
     @classmethod
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     arm: Union[Iterable[Arms], Arms] = None,
-                    grasp_description: Union[Iterable[GraspDescription], GraspDescription] = None) -> PartialDesignator[Type[ReachToPickUpAction]]:
+                    grasp_description: Union[Iterable[GraspDescription], GraspDescription] = None) -> PartialDesignator[
+        Type[ReachToPickUpAction]]:
         return PartialDesignator(ReachToPickUpAction, object_designator=object_designator,
                                  arm=arm,
                                  grasp_description=grasp_description)

@@ -40,8 +40,7 @@ class NavigateAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        motion_action = MoveMotion(self.target_location, self.keep_joint_states)
-        return try_action(motion_action, failure_type=NavigationGoalNotReachedError)
+        return SequentialPlan(self.context, MoveMotion(self.target_location, self.keep_joint_states)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         pose_validator = PoseErrorChecker(World.conf.get_pose_tolerance())

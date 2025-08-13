@@ -79,11 +79,11 @@ class ExecutionType(Enum):
     SEMI_REAL = auto()
 
 
-class Arms(int, Enum):
+class Arms(str, Enum):
     """Enum for Arms."""
-    LEFT = 0
-    RIGHT = 1
-    BOTH = 2
+    LEFT = "left"
+    RIGHT = "right"
+    BOTH = "both"
 
     def __str__(self):
         return self.name

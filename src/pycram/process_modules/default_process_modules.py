@@ -1,11 +1,11 @@
 import numpy as np
+from semantic_world.world_entity import View
 from typing_extensions import TYPE_CHECKING
 from scipy.spatial.transform import Rotation as R
 
 from pycrap.urdf_parser import parse_furniture
 from ..datastructures.dataclasses import Colors
 from ..datastructures.enums import ExecutionType
-from ..datastructures.world import World
 from ..robot_plans import *
 from ..external_interfaces import giskard
 from ..external_interfaces.ik import request_ik
@@ -23,6 +23,9 @@ from ..utils import _apply_ik
 from ..world_concepts.world_object import Object
 from ..world_reasoning import visible, link_pose_for_joint_config
 
+from semantic_world.world import World
+from semantic_world.robots import PR2, AbstractRobot
+
 if TYPE_CHECKING:
     from ..designators.object_designator import ObjectDesignatorDescription
 
@@ -33,8 +36,11 @@ class DefaultNavigation(ProcessModule):
     """
 
     def _execute(self, desig: MoveMotion):
-        robot = World.robot
-        robot.set_pose(desig.target)
+        pr2 = PR2.from_world(desig.world)
+
+        root = pr2.root
+        connection = desig.world.get_connection(desig.world.root, root)
+        connection.origin = desig.target.to_spatial_type()
 
 
 class DefaultMoveHead(ProcessModule):
@@ -83,8 +89,8 @@ class DefaultMoveHead(ProcessModule):
 
         current_pan = robot.get_joint_position(pan_joint)
         current_tilt = robot.get_joint_position(tilt_joint)
-        robot.set_joint_position(pan_joint, new_pan + current_pan)
-        robot.set_joint_position(tilt_joint, new_tilt + current_tilt)
+        desig.world.state[desig.world.get_body_by_name(pan_joint)].position = new_pan + current_pan
+        desig.world.state[desig.world.get_body_by_name(tilt_joint)].position = new_tilt + current_tilt
 
 
 class DefaultMoveGripper(ProcessModule):
@@ -97,12 +103,10 @@ class DefaultMoveGripper(ProcessModule):
         robot_description = RobotDescription.current_robot_description
         gripper = desig.gripper
         arm_chain = robot_description.get_arm_chain(gripper)
-        if arm_chain.end_effector.gripper_object_name is not None:
-            robot = World.current_world.get_object_by_name(arm_chain.end_effector.gripper_object_name)
-        else:
-            robot = World.robot
         motion = desig.motion
-        robot.set_multiple_joint_positions(arm_chain.get_static_gripper_state(motion))
+        for joint, position in arm_chain.get_static_gripper_state(motion):
+            desig.world.state[joint.name].position = position
+        desig.world.notify_state_change()
 
 
 class DefaultDetecting(ProcessModule):
@@ -160,11 +164,16 @@ class DefaultMoveTCP(ProcessModule):
     """
 
     def _execute(self, desig: MoveTCPMotion):
-        target = desig.target
-        robot = World.robot
+        pr2 = desig.world.get_view_by_name("pr2") or PR2.from_world(desig.world)
+        left_arm = pr2.left_arm
+        target = desig.target.to_spatial_type()
+        target.reference_frame = desig.world.root
 
-        _move_arm_tcp(target, robot, desig.arm)
+        inv = desig.world.compute_inverse_kinematics(desig.world.root, left_arm.tip, target, max_iterations=5000)
 
+        for joint, state in inv.items():
+            desig.world.state[joint.name].position = state
+        desig.world.notify_state_change()
 
 class DefaultMoveArmJoints(ProcessModule):
     """
@@ -174,30 +183,24 @@ class DefaultMoveArmJoints(ProcessModule):
 
     def _execute(self, desig: MoveArmJointsMotion):
 
-        robot = World.robot
         if desig.right_arm_poses:
-            for joint, pose in desig.right_arm_poses.items():
-                robot.set_joint_position(joint, pose)
+            for joint, position in desig.right_arm_poses.items():
+                dof = desig.world.get_degree_of_freedom_by_name(joint)
+                desig.world.state[dof.name].position = position
+
         if desig.left_arm_poses:
-            for joint, pose in desig.left_arm_poses.items():
-                robot.set_joint_position(joint, pose)
+            for joint, position in desig.right_arm_poses.items():
+                dof = desig.world.get_degree_of_freedom_by_name(joint)
+                desig.world.state[dof.name].position = position
+        desig.world.notify_state_change()
 
 
 class DefaultMoveJoints(ProcessModule):
     def _execute(self, desig: MoveJointsMotion):
-        robot = World.robot
-        for joint, pose in zip(desig.names, desig.positions):
-            robot.set_joint_position(joint, pose)
-
-
-class DefaultWorldStateDetecting(ProcessModule):
-    """
-    This process moduledetectes an object even if it is not in the field of view of the robot.
-    """
-
-    def _execute(self, desig: WorldStateDetectingMotion):
-        obj_type = desig.object_type
-        return list(filter(lambda obj: obj.obj_type == obj_type, World.current_world.objects))[0]
+        for joint, position in zip(desig.names, desig.positions):
+            dof = desig.world.get_degree_of_freedom_by_name(joint)
+            desig.world.state[dof.name].position = position
+        desig.world.notify_state_change()
 
 
 class DefaultOpen(ProcessModule):
@@ -214,7 +217,7 @@ class DefaultOpen(ProcessModule):
         goal_pose = link_pose_for_joint_config(part_of_object, {
             container_joint_name: max(lower_limit, upper_limit - 0.05)}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, World.robot, desig.arm)
+        _move_arm_tcp(goal_pose, World.robot, desig.arm, desig.world)
 
         part_of_object.set_joint_position(container_joint_name, upper_limit)
 
@@ -233,7 +236,7 @@ class DefaultClose(ProcessModule):
         goal_pose = link_pose_for_joint_config(part_of_object, {
             container_joint_name: lower_joint_limit}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, World.robot, desig.arm)
+        _move_arm_tcp(goal_pose, World.robot, desig.arm, desig.world)
 
         part_of_object.set_joint_position(container_joint_name, lower_joint_limit)
 
@@ -247,10 +250,10 @@ class DefaultMoveTCPWaypoints(ProcessModule):
         waypoints = desig.waypoints
         robot = World.robot
         for waypoint in waypoints:
-            _move_arm_tcp(waypoint, robot, desig.arm)
+            _move_arm_tcp(waypoint, robot, desig.arm, desig.world)
 
 
-def _move_arm_tcp(target: PoseStamped, robot: Object, arm: Arms, tip_link: str = None) -> None:
+def _move_arm_tcp(target: PoseStamped, robot: AbstractRobot, arm: Arms, world: World, tip_link: str = None) -> None:
     """
     Calls the ik solver to calculate the inverse kinematics of the arm and then sets the joint states accordingly.
 
@@ -258,13 +261,12 @@ def _move_arm_tcp(target: PoseStamped, robot: Object, arm: Arms, tip_link: str =
     :param robot: Robot object representing the robot.
     :param arm: Which arm to move
     """
-    if tip_link is None:
-        tip_link = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
+    tip = world.get_body_by_name(tip_link) if tip_link else robot.left_arm if arm == Arms.LEFT else robot.right_arm
+    inv = world.compute_inverse_kinematics(world.root, tip, target.to_spatial_type())
 
-    joints = RobotDescription.current_robot_description.get_arm_chain(arm).joints
-
-    inv = request_ik(target, robot, joints, tip_link)
-    _apply_ik(robot, inv)
+    for joint, state in inv.items():
+        world.state[joint.name].position = state
+    world.notify_state_change()
 
 
 ###########################################################
@@ -566,11 +568,6 @@ class DefaultManager(ManagerBase):
             return DefaultMoveArmJoints(self._move_arm_joints_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return DefaultMoveArmJointsReal(self._move_arm_joints_lock)
-
-    def world_state_detecting(self):
-        if (ProcessModuleManager.execution_type == ExecutionType.SIMULATED or
-                ProcessModuleManager.execution_type == ExecutionType.REAL):
-            return DefaultWorldStateDetecting(self._world_state_detecting_lock)
 
     def move_joints(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
