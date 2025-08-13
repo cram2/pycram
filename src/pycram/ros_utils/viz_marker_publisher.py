@@ -1,8 +1,9 @@
 import atexit
 import threading
 import time
+from abc import abstractmethod
 from functools import cached_property
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import numpy as np
 from geometry_msgs.msg import Vector3, Point, Pose
@@ -10,9 +11,9 @@ from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
 from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape, \
-    BoundingBox, BoundingBoxCollection, Color
+    BoundingBoxCollection, Color
 from ..datastructures.enums import AxisIdentifier
-from ..datastructures.pose import PoseStamped, TransformStamped, Quaternion
+from ..datastructures.pose import PoseStamped, TransformStamped
 from ..datastructures.world import World
 from ..designator import ObjectDesignatorDescription
 from ..ros import  Duration, Time
@@ -22,12 +23,236 @@ from ..ros import  sleep
 from ..tf_transformations import quaternion_multiply
 
 
-class VizMarkerPublisher:
+class SingleTypePublisher:
+    """
+    Publishes a single type of data to visualize it in rviz.
+    """
+
+    topic: str
+    """The name of the topic being published to."""
+
+    @cached_property
+    def publisher(self):
+        """
+        Create a publisher that publishes data to topic.
+
+        returns: The created publisher.
+        """
+        pub = create_publisher(self.topic, MarkerArray, queue_size=10)
+        time.sleep(0.5)  # sync time
+        return pub
+
+    @abstractmethod
+    def visualize(self, data):
+        """
+        Subclasses must implement this to create and publish a MarkerArray
+        """
+        pass
+
+    def _create_arrow_marker(self, p1, p2, index, frame_id, color=(1.0, 0.0, 1.0, 1.0), scale=(0.01, 0.02, 0.02),
+                            duration=60):
+        """
+        Create an arrow marker.
+
+        :param p1: first point of the arrow
+        :param p2: second point of the arrow
+        :param index: index of the created arrow
+        :param frame_id: frame id of the created arrow marker
+        :param color: color of the created arrow marker
+        :param scale: scale of the created arrow marker
+        :param duration: duration of visualizing the arrow
+
+        returns: The created arrow marker.
+        """
+
+        marker = Marker()
+        marker.header.frame_id = frame_id
+        marker.id = index
+        marker.ns = f"arrow_marker_{marker.id}"
+        marker.action = Marker.ADD
+        marker.type = Marker.ARROW
+        marker.lifetime = Duration(duration)
+
+        marker.points.append(Point(x=p1.x, y=p1.y, z=p1.z))
+        marker.points.append(Point(x=p2.x, y=p2.y, z=p2.z))
+
+        marker.scale.x, marker.scale.y, marker.scale.z = scale
+        marker.color.r, marker.color.g, marker.color.b, marker.color.a = color
+
+        return marker
+
+    def _create_cube_marker(self, box, index, duration=60):
+        """
+        Create a cube marker.
+
+        :param box: the bounding box the cube marker should be drawn on
+        :param index: index of the created cube
+        :param duration: duration of visualizing the cube marker
+
+        returns: The created cube marker.
+        """
+
+        origin = box.transform.position
+        marker = Marker()
+        marker.header.frame_id = box.transform.frame_id
+        marker.id = index
+        marker.ns = f"cube_marker_{marker.id}"
+        marker.action = Marker.ADD
+        marker.type = Marker.CUBE
+        marker.lifetime = Duration(duration)
+
+        marker.pose = Pose()
+        marker.pose.position = Point(x=origin.x, y=origin.y, z=origin.z)
+
+        marker.scale.x = box.depth
+        marker.scale.y = box.width
+        marker.scale.z = box.height
+
+        marker.color.r = 1.0
+        marker.color.g = 0.0
+        marker.color.b = 1.0
+        marker.color.a = 0.5
+
+        return marker
+
+    def _create_line_marker(self, pose: PoseStamped, axis, color_rgba, index, duration=60, length=0.1, width=0.02):
+        """
+        Create a line marker.
+
+        :param pose: the pose of the line
+        :param axis: the given axis
+        :param color_rgba: the color of the created line marker
+        :param index: id of the created line marker
+        :param duration: duration of visualizing the line marker
+        :param length: length of the axis
+        :param width: width of the axis
+
+        returns: The created line marker.
+        """
+
+        def rotate_axis_by_quaternion(axis, quaternion):
+            """
+            Rotates axis by quaternion.
+
+            :param axis: the axis to rotate
+            :param quaternion: the quaternion the axis is rotated
+
+            returns: Rotated axis
+            """
+
+            qx, qy, qz, qw = quaternion.to_list()
+            axis_quat = (*axis, 0)
+            q = (qx, qy, qz, qw)
+            q_inverse = (-qx, -qy, -qz, qw)
+            rotated_quat = quaternion_multiply(quaternion_multiply(q, axis_quat), q_inverse)
+            return rotated_quat[:3]
+
+        start_point = Point(x=pose.position.x, y=pose.position.y, z=pose.position.z)
+        rotated = rotate_axis_by_quaternion(axis, pose.orientation)
+
+        end_point = Point(
+            x=start_point.x + rotated[0] * length,
+            y=start_point.y + rotated[1] * length,
+            z=start_point.z + rotated[2] * length,
+        )
+
+        marker = Marker()
+        marker.header.frame_id = pose.frame_id
+        marker.header.stamp = Time().now()
+        marker.ns = f'axis_visualization_{index}'
+        marker.id = index
+        marker.type = Marker.LINE_LIST
+        marker.action = Marker.ADD
+        marker.scale.x = width
+        marker.color = ColorRGBA(**dict(zip(["r", "g", "b", "a"], color_rgba)))
+        marker.lifetime = Duration(duration)
+
+        marker.points.append(start_point)
+        marker.points.append(end_point)
+
+        return marker
+
+    def _create_geometry_marker(self, geom, obj, link, i, link_pose_with_origin, reference_frame,
+                                use_prospection_world=False):
+        """
+        Creates a Marker for the given geometry type.
+
+        :param geom: the geometry to create the marker for
+        :param obj: the object to create the marker for
+        :param link: the link to create the marker for
+        :param i: the id of the created marker
+        :param link_pose_with_origin: the pose of the link
+        :param reference_frame: the reference frame of the link
+        :param use_prospection_world: uif prospection world is used or not
+
+        returns: the created marker.
+        """
+        marker = Marker()
+        marker.header.frame_id = reference_frame
+        marker.ns = obj.name
+        marker.id = obj.link_name_to_id[link] * 10000 + i
+        marker.action = Marker.ADD
+        marker.lifetime = Duration(5)
+
+        marker.pose = link_pose_with_origin.to_pose_stamped().pose.ros_message()
+
+        color = obj.get_link_color(link).get_rgba()
+        marker.color = ColorRGBA(**dict(zip(["r", "g", "b", "a"], color)))
+        if use_prospection_world:
+            marker.color.a = 0.5
+
+        # Geometry-specific handling
+        if isinstance(geom, MeshVisualShape):
+            marker.type = Marker.MESH_RESOURCE
+            marker.mesh_resource = "file://" + geom.file_name
+            marker.scale = Vector3(**dict(zip(["x", "y", "z"], geom.scale or (1.0, 1.0, 1.0))))
+            marker.mesh_use_embedded_materials = True
+        elif isinstance(geom, CylinderVisualShape):
+            marker.type = Marker.CYLINDER
+            marker.scale = Vector3(x=geom.radius * 2, y=geom.radius * 2, z=geom.length)
+        elif isinstance(geom, BoxVisualShape):
+            marker.type = Marker.CUBE
+            size = np.array(geom.size) * 2
+            marker.scale = Vector3(x=float(size[0]), y=float(size[1]), z=float(size[2]))
+        elif isinstance(geom, SphereVisualShape):
+            marker.type = Marker.SPHERE
+            marker.scale = Vector3(x=geom.radius * 2, y=geom.radius * 2, z=geom.radius * 2)
+
+        return marker
+
+    def _create_object_marker(self, pose, name, path, current_id):
+        """
+        Create an object marker.
+
+        :param pose: the pose of the object
+        :param name: the name of the object
+        :param path: the path of the object
+        :param current_id: the id of the current object
+
+        returns: The created object marker.
+        """
+        marker = Marker()
+        marker.id = current_id
+        marker.header.frame_id = pose.header.frame_id
+        marker.ns = name
+        marker.type = Marker.MESH_RESOURCE
+        marker.action = Marker.ADD
+        marker.pose = pose.pose
+        marker.scale.x = 1.0
+        marker.scale.y = 1.0
+        marker.scale.z = 1.0
+        marker.color = ColorRGBA(r=1.0, g=1.0, b=1.0, a=1.0)
+        marker.mesh_resource = 'file://' + path
+
+        return marker
+
+class VizMarkerPublisher(SingleTypePublisher):
     """
     Publishes an Array of visualization marker which represent the situation in the World
     """
+    topic = "/pycram/viz_marker"
 
-    def __init__(self, topic_name="/pycram/viz_marker", interval=0.1, reference_frame="map", use_prospection_world=False, publish_visuals=False):
+    def __init__(self, topic_name=topic, interval=0.1, reference_frame="map", use_prospection_world=False, publish_visuals=False):
         """
         The Publisher creates an Array of Visualization marker with a Marker for each link of each Object in the
         World. This Array is published with a rate of interval.
@@ -39,105 +264,72 @@ class VizMarkerPublisher:
         :param publish_visuals: If True, the visualization marker will be published.
         """
         self.use_prospection_world = use_prospection_world
-        if self.use_prospection_world:
-            self.topic_name = "/pycram/prospection_viz_marker"
-        else:
-            self.topic_name = topic_name
+        self.topic = "/pycram/prospection_viz_marker" if use_prospection_world else topic_name
         self.interval = interval
         self.reference_frame = reference_frame
-
-        self.pub = create_publisher(self.topic_name, MarkerArray, queue_size=10)
-
-        self.thread = threading.Thread(target=self._publish)
-        self.kill_event = threading.Event()
         self.publish_visuals = publish_visuals
+
         if self.use_prospection_world:
             self.main_world = World.current_world.prospection_world
         else:
             self.main_world = World.current_world if not World.current_world.is_prospection_world else World.current_world.world_sync.world
+
         self.lock = self.main_world.object_lock
+        self.kill_event = threading.Event()
+        self.thread = threading.Thread(target=self.visualize)
         self.thread.start()
         atexit.register(self._stop_publishing)
 
-    def _publish(self) -> None:
+    def _get_data(self):
         """
-        Constantly publishes the Marker Array. To the given topic name at a fixed rate.
+        Collects all geometry + pose data from the current world.
+        Returns a list of tuples: (geom, obj, link, i, link_pose_with_origin)
         """
-        while not self.kill_event.is_set():
-            self.lock.acquire()
-            marker_array = self._make_marker_array()
-            self.lock.release()
-            self.pub.publish(marker_array)
-            time.sleep(self.interval)
-
-    def _make_marker_array(self) -> MarkerArray:
-        """
-        Creates the Marker Array to be published. There is one Marker for link for each object in the Array, each Object
-        creates a name space in the visualization Marker. The type of Visualization Marker is decided by the collision
-        tag of the URDF.
-
-        :return: An Array of Visualization Marker
-        """
-        marker_array = MarkerArray()
+        result = []
         for obj in self.main_world.objects:
             if obj.name == "floor":
                 continue
             for link in obj.link_name_to_id.keys():
-                if self.publish_visuals:
-                    geoms = obj.get_link_visual_geometry(link)
-                else:
-                    geoms = obj.get_link_geometry(link)
+                geoms = obj.get_link_visual_geometry(link) if self.publish_visuals else obj.get_link_geometry(link)
                 if not isinstance(geoms, list):
                     geoms = [geoms]
-                if len(geoms) < 1:
+                if not geoms:
                     continue
+
+                link_pose = obj.get_link_transform(link)
+                link_origin = obj.get_link_origin_transform(link) if obj.get_link_origin(
+                    link) else TransformStamped.from_list()
+                link_pose_with_origin = link_pose * link_origin
 
                 for i, geom in enumerate(geoms):
                     if geom is None:
                         continue
+                    result.append((geom, obj, link, i, link_pose_with_origin))
+        return result
 
-                    msg = Marker()
-                    msg.header.frame_id = self.reference_frame
-                    msg.ns = obj.name
-                    msg.id = obj.link_name_to_id[link] * 10000 + i
-                    msg.type = Marker.MESH_RESOURCE
-                    msg.action = Marker.ADD
-                    link_pose = obj.get_link_transform(link)
-                    if obj.get_link_origin(link) is not None:
-                        link_origin = obj.get_link_origin_transform(link)
-                    else:
-                        link_origin = TransformStamped.from_list()
-                    link_pose_with_origin = link_pose * link_origin
-                    msg.pose = link_pose_with_origin.to_pose_stamped().pose.ros_message()
-
-                    color = obj.get_link_color(link).get_rgba()
-
-                    msg.color = ColorRGBA(**dict(zip(["r", "g", "b","a"], color)))
-                    if self.use_prospection_world:
-                        msg.color.a = 0.5
-                    msg.lifetime = Duration(5)
-
-                    if isinstance(geom, MeshVisualShape):
-                        msg.type = Marker.MESH_RESOURCE
-                        msg.mesh_resource = "file://" + geom.file_name
-                        if hasattr(geom, "scale") and geom.scale is not None:
-                            msg.scale = Vector3(**dict(zip(["x", "y", "z"], geom.scale)))
-                        else:
-                            msg.scale = Vector3(x=1.0, y=1.0, z=1.0)
-                        msg.mesh_use_embedded_materials = True
-                    elif isinstance(geom, CylinderVisualShape):
-                        msg.type = Marker.CYLINDER
-                        msg.scale = Vector3(x=geom.radius * 2, y=geom.radius * 2, z=geom.length)
-                    elif isinstance(geom, BoxVisualShape):
-                        msg.type = Marker.CUBE
-                        size = np.array(geom.size) * 2
-                        msg.scale = Vector3(x=float(size[0]), y=float(size[1]), z=float(size[2]))
-                    elif isinstance(geom, SphereVisualShape):
-                        msg.type = Marker.SPHERE
-                        msg.scale = Vector3(x=geom.radius * 2, y=geom.radius * 2, z=geom.radius * 2)
-
-                    marker_array.markers.append(msg)
+    def _make_marker_array(self, data):
+        """
+        Build MarkerArray from prepared link data.
+        If no data is given, automatically gather it from the world.
+        """
+        marker_array = MarkerArray()
+        for geom, obj, link, i, link_pose_with_origin in data:
+            msg = self._create_geometry_marker(
+                geom, obj, link, i, link_pose_with_origin,
+                self.reference_frame, self.use_prospection_world
+            )
+            marker_array.markers.append(msg)
         return marker_array
+
+
+    def visualize(self, data=None):
+        while not self.kill_event.is_set():
+            self.lock.acquire()
+            data = self._get_data()
+            marker_array = self._make_marker_array(data)
+            self.lock.release()
+            self.publisher.publish(marker_array)
+            time.sleep(self.interval)
 
     def _stop_publishing(self) -> None:
         """
@@ -147,12 +339,14 @@ class VizMarkerPublisher:
         self.thread.join()
 
 
-class ManualMarkerPublisher:
+class ManualMarkerPublisher(SingleTypePublisher):
     """
     Class to manually add and remove marker of objects and poses.
     """
 
-    def __init__(self, topic_name: str = '/pycram/manual_marker', interval: float = 0.1):
+    topic = '/pycram/manual_marker'
+
+    def __init__(self, topic_name: str = topic, interval: float = 0.1):
         """
         The Publisher creates an Array of Visualization marker with a marker for a pose or object.
         This Array is published with a rate of interval.
@@ -161,16 +355,12 @@ class ManualMarkerPublisher:
         :param interval: Interval at which the marker should be published
         """
         self.start_time = None
-        self.marker_array_pub = create_publisher(topic_name, MarkerArray, queue_size=10)
-
         self.marker_array = MarkerArray()
         self.marker_overview = {}
         self.current_id = 0
-
         self.interval = interval
-        self.log_message = None
 
-    def publish(self, pose: PoseStamped, color: Optional[List] = None, bw_object: Optional[ObjectDesignatorDescription] = None,
+    def visualize(self, pose: PoseStamped, color: Optional[List] = None, bw_object: Optional[ObjectDesignatorDescription] = None,
                 name: Optional[str] = None):
         """
         Publish a pose or an object into the MarkerArray.
@@ -188,7 +378,6 @@ class ManualMarkerPublisher:
         self.start_time = time.time()
         thread = threading.Thread(target=self._publish, args=(pose, bw_object, name, color))
         thread.start()
-        loginfo(self.log_message)
         thread.join()
 
     def _publish(self, pose: PoseStamped, bw_object: Optional[ObjectDesignatorDescription] = None, name: Optional[str] = None,
@@ -221,15 +410,37 @@ class ManualMarkerPublisher:
         if name is None:
             name = 'pose_marker'
 
+        if color is None:
+            color = [1, 0, 1, 1]
+
         if name in self.marker_overview.keys():
             self._update_marker(self.marker_overview[name], new_pose=pose)
             return
 
-        color_rgba = ColorRGBA(**dict(zip(["r", "g", "b","a"], color)))
-        self._make_marker_array(name=name, marker_type=Marker.ARROW, marker_pose=pose,
-                                marker_scales=(0.05, 0.05, 0.05), color_rgba=color_rgba)
-        self.marker_array_pub.publish(self.marker_array)
-        self.log_message = f"Pose '{name}' published"
+        # Create arrow marker from pose (pose → arrow from position to orientation offset)
+        start_point = Point(
+            x=pose.pose.position.x,
+            y=pose.pose.position.y,
+            z=pose.pose.position.z
+        )
+
+        # Simple offset for arrow end
+        end_point = Point(
+            x=start_point.x + 0.05,
+            y=start_point.y,
+            z=start_point.z
+        )
+
+        marker = self._create_arrow_marker(start_point, end_point, self.current_id,
+                                           pose.header.frame_id, color=tuple(color))
+        marker.ns = name
+
+        self.marker_array.markers.append(marker)
+        self.marker_overview[name] = marker.id
+        self.current_id += 1
+
+        self.publisher.publish(self.marker_array)
+        loginfo(f"Pose '{name}' published")
 
     def _publish_object(self, name: Optional[str], pose: PoseStamped, bw_object: ObjectDesignatorDescription):
         """
@@ -250,50 +461,14 @@ class ManualMarkerPublisher:
             return
 
         path = bw_real.world_object.root_link.geometry.file_name
+        marker = self._create_object_marker(pose, name, path, self.current_id)
 
-        self._make_marker_array(name=name, marker_type=Marker.MESH_RESOURCE, marker_pose=pose,
-                                path_to_resource=path)
-
-        self.marker_array_pub.publish(self.marker_array)
-        self.log_message = f"Object '{name}' published"
-
-    def _make_marker_array(self, name, marker_type: int, marker_pose: PoseStamped, marker_scales: Tuple = (1.0, 1.0, 1.0),
-                           color_rgba: ColorRGBA = ColorRGBA(**dict(zip(["r", "g", "b","a"], [1.0, 1.0, 1.0, 1.0]))),
-                           path_to_resource: Optional[str] = None):
-        """
-        Create a Marker and add it to the MarkerArray
-
-        :param name: Name of the Marker
-        :param marker_type: Type of the marker to create
-        :param marker_pose: Pose of the marker
-        :param marker_scales: individual scaling of the markers axes
-        :param color_rgba: Color of the marker as RGBA
-        :param path_to_resource: Path to the resource of a Bulletworld object
-        """
-
-        frame_id = marker_pose.header.frame_id
-        new_marker = Marker()
-        new_marker.id = self.current_id
-        new_marker.header.frame_id = frame_id
-        new_marker.ns = name
-        # new_marker.header.stamp = Time.now()
-        new_marker.type = marker_type
-        new_marker.action = Marker.ADD
-        new_marker.pose = marker_pose.pose
-        new_marker.scale.x = marker_scales[0]
-        new_marker.scale.y = marker_scales[1]
-        new_marker.scale.z = marker_scales[2]
-        new_marker.color.a = color_rgba.a
-        new_marker.color.r = color_rgba.r
-        new_marker.color.g = color_rgba.g
-        new_marker.color.b = color_rgba.b
-
-        if path_to_resource is not None:
-            new_marker.mesh_resource = 'file://' + path_to_resource
-
-        self.marker_array.markers.append(new_marker)
-        self.marker_overview[name] = new_marker.id
+        self.marker_array.markers.append(marker)
+        self.marker_overview[name] = marker.id
         self.current_id += 1
+
+        self.publisher.publish(self.marker_array)
+        loginfo(f"Object '{name}' published")
 
     def _update_marker(self, marker_id: int, new_pose: PoseStamped) -> bool:
         """
@@ -311,7 +486,7 @@ class ManualMarkerPublisher:
                 # Update successful
                 marker.pose = new_pose
                 self.log_message = f"Marker '{marker.ns}' updated"
-                self.marker_array_pub.publish(self.marker_array)
+                self.publisher.publish(self.marker_array)
                 return True
 
         # Update was not successful
@@ -339,8 +514,7 @@ class ManualMarkerPublisher:
         for marker in self.marker_array.markers:
             if marker.id == marker_id:
                 marker.action = Marker.DELETE
-
-        self.marker_array_pub.publish(self.marker_array)
+        self.publisher.publish(self.marker_array)
         self.marker_array.markers.pop(marker_id)
 
         loginfo(f"Removed Marker '{name}'")
@@ -353,208 +527,79 @@ class ManualMarkerPublisher:
             marker.action = Marker.DELETE
 
         self.marker_overview = {}
-        self.marker_array_pub.publish(self.marker_array)
-
+        self.publisher.publish(self.marker_array)
         loginfo('Removed all markers')
 
 
-
-class TrajectoryPublisher:
+class TrajectoryPublisher(SingleTypePublisher):
     """
     Publishes a trajectory as a MarkerArray to visualize it in rviz.
     """
 
-    @cached_property
-    def publisher(self):
-        pub = create_publisher("/pycram/trajectory", MarkerArray)
-        time.sleep(0.5) # this is needed to synchronize the publisher creation thread
-        return pub
+    topic = "/pycram/trajectory"
+    """The name of the topic being published to."""
 
-    def visualize_trajectory(self, trajectory: List[PoseStamped]):
+    def visualize(self, trajectory: List[PoseStamped]):
         """
         Visualize a trajectory in rviz as a series of arrows.
 
         :param trajectory: The trajectory to visualize as a list of points where an arrow should be drawn
         from point to point.
         """
+
         marker_array = MarkerArray()
         for index, (p1, p2) in enumerate(zip(trajectory, trajectory[1:])):
-
-            marker = Marker()
-            marker.header.frame_id = p1.frame_id
-            marker.id = index
-            marker.ns = "trajectory_arrows"
-            marker.action = Marker.ADD
-            marker.type = Marker.ARROW
-            marker.lifetime = Duration(60)
-
-            marker_p1 = Point()
-            marker_p1.x = p1.position.x
-            marker_p1.y = p1.position.y
-            marker_p1.z = p1.position.z
-
-            marker_p2 = Point()
-            marker_p2.x = p2.position.x
-            marker_p2.y = p2.position.y
-            marker_p2.z = p2.position.z
-
-            marker.points.append(marker_p1)
-            marker.points.append(marker_p2)
-
-            marker.scale.x = 0.01
-            marker.scale.y = 0.02
-            marker.scale.z = 0.02
-
-            marker.color.r = 1.0
-            marker.color.g = 0.0
-            marker.color.b = 1.0
-            marker.color.a = 1.0
-
+            marker = self._create_arrow_marker(
+                p1.position, p2.position, index, p1.frame_id
+            )
             marker_array.markers.append(marker)
+
         self.publisher.publish(marker_array)
 
 
-class BoundingBoxPublisher:
+class BoundingBoxPublisher(SingleTypePublisher):
     """
-    Publishes a trajectory as a MarkerArray to visualize it in rviz.
+    Publishes a list of bounding boxes as a MarkerArray to visualize it in rviz.
     """
 
-    id_counter = 0
-
-    @cached_property
-    def publisher(self):
-        pub = create_publisher("/pycram/bounding_boxes", MarkerArray)
-        time.sleep(0.5) # this is needed to synchronize the publisher creation thread
-        return pub
+    topic = "/pycram/bounding_boxes"
+    """The name of the topic being published to."""
 
     def visualize(self, boxes: BoundingBoxCollection, duration: Optional[int] = 60):
         """
         Visualize a collection of bounding boxes in rviz as a series of cubes.
         """
         marker_array = MarkerArray()
-        for box in boxes:
-
-            origin = box.transform.position
-
-            marker = Marker()
-            marker.header.frame_id = box.transform.frame_id
-            marker.id = self.id_counter
-            marker.ns = "bounding_boxes"
-            marker.action = Marker.ADD
-            marker.type = Marker.CUBE
-            marker.lifetime = Duration(duration)
-
-            marker.pose = Pose()
-            marker.pose.position = Point(x=origin.x, y=origin.y, z=origin.z)
-
-            marker.scale.x = box.depth
-            marker.scale.y = box.width
-            marker.scale.z = box.height
-
-            marker.color.r = 1.0
-            marker.color.g = 0.0
-            marker.color.b = 1.0
-            marker.color.a = 0.5
-
+        for index, box in enumerate(boxes):
+            marker = self._create_cube_marker(box, index, duration)
             marker_array.markers.append(marker)
-            self.id_counter += 1
+
         self.publisher.publish(marker_array)
 
-class CoordinateAxisPublisher:
+
+class CoordinateAxisPublisher(SingleTypePublisher):
     """
     Publishes coordinate axes as a MarkerArray to visualize them in rviz.
     """
+    topic = "/pycram/coordinate_axis"
+    """The name of the topic being published to."""
 
-    id_counter = 10000
-
-    @cached_property
-    def publisher(self):
-        pub = create_publisher("/pycram/coordinate_axis", MarkerArray)
-        time.sleep(1) # this is needed to synchronize the publisher creation thread
-        return pub
-
-    def visualize(self, poses: List[PoseStamped], duration: Optional[float] = 60, length: float = 0.1):
+    def visualize(self, poses: List[PoseStamped], duration: int = 60, length: float = 0.1):
         """
-        Visualize coordinate axes in rviz to topic '/pycram/coordinate_axis'
+        Visualize coordinate axes in rviz'
         """
         marker_array = MarkerArray()
-        for pose in poses:
-
-            x_axis = self._create_line(pose, AxisIdentifier.X.value, duration, length,
-                                       Color.from_rgb([1., 0., 0.]))
-            y_axis = self._create_line(pose, AxisIdentifier.Y.value, duration, length,
-                                       Color.from_rgb([0., 1., 0.]))
-            z_axis = self._create_line(pose, AxisIdentifier.Z.value, duration, length,
-                                       Color.from_rgb([0., 0., 1.]))
-            marker_array.markers.append(x_axis)
-            marker_array.markers.append(y_axis)
-            marker_array.markers.append(z_axis)
-
+        for index, pose in enumerate(poses):
+            for axis, color in zip(
+                    [AxisIdentifier.X.value, AxisIdentifier.Y.value, AxisIdentifier.Z.value],
+                    [Color.from_rgb([1., 0., 0.]), Color.from_rgb([0., 1., 0.]), Color.from_rgb([0., 0., 1.])]
+            ):
+                marker = self._create_line_marker(pose, axis, color.get_rgba(), index, duration, length)
+                marker_array.markers.append(marker)
 
         self.publisher.publish(marker_array)
 
-    def _create_line(self, pose: PoseStamped, axis, duration, length, color):
-        """
-        Create a line marker to add to the marker array.
-
-        :param pose: Starting pose of the line
-        :param axis: Axis along which the line is set
-        :param duration: Duration of the line marker
-        :param length: Length of the line
-        :param color: Optional color for the Line
-        """
-
-        def rotate_axis_by_quaternion(axis, quaternion):
-
-            qx, qy, qz, qw = quaternion.to_list()
-
-            # Represent axis as quaternion (x, y, z, 0)
-            axis_quat = (*axis, 0)
-
-            q = (qx, qy, qz, qw)
-            q_inverse = (-qx, -qy, -qz, qw)
-
-            # Rotate the vector
-            rotated_quat = quaternion_multiply(quaternion_multiply(q, axis_quat), q_inverse)
-
-            # The rotated vector is the vector part of the resulting quaternion
-            return rotated_quat[:3]
-
-        # Create a line marker for the axis
-        line_marker = Marker()
-        line_marker.header.frame_id = pose.frame_id
-        line_marker.header.stamp = Time().now()
-        line_marker.ns = f'axis_visualization_{self.id_counter}'
-        line_marker.id = self.id_counter
-        line_marker.type = Marker.LINE_LIST
-        line_marker.action = Marker.ADD
-        line_marker.scale.x = 0.02  # Line width
-        line_marker.color = ColorRGBA(**dict(zip(["r", "g", "b","a"], color.get_rgba())))
-        line_marker.lifetime = Duration(duration)
-
-        # Start point at the position specified by the pose (translation part)
-        start_point = Point()
-        start_point.x = pose.position.x
-        start_point.y = pose.position.y
-        start_point.z = pose.position.z
-
-        quaternion = pose.orientation
-        rotated_axis = rotate_axis_by_quaternion(axis, quaternion)
-
-        # Calculate the end point by adding the rotated axis vector (scaled by length)
-        end_point = Point()
-        end_point.x = pose.position.x + (rotated_axis[0] * length)
-        end_point.y = pose.position.y + (rotated_axis[1] * length)
-        end_point.z = pose.position.z + (rotated_axis[2] * length)
-
-        line_marker.points.append(start_point)
-        line_marker.points.append(end_point)
-
-        # Add the line marker to the MarkerArray
-        self.id_counter += 1
-        return line_marker
-
-def plot_axis_in_rviz(poses: List[PoseStamped], duration: Optional[float] = 60, length: float = 0.3):
+def plot_axis_in_rviz(poses: List[PoseStamped], duration: Optional[int] = 60, length: float = 0.3):
     def make_publisher():
         return CoordinateAxisPublisher()
 
