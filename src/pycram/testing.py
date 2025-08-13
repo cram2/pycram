@@ -91,7 +91,7 @@ class BulletWorldTestCase(EmptyBulletWorldTestCase):
         cls.cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
                             pose=PoseStamped.from_list([1.3, 0.7, 0.95]))
 
-        cls.pr2_sem_world = URDFParser("/home/jdech/workspace/ros/src/pycram-1/resources/robots/pr2.urdf").parse()
+        cls.pr2_sem_world = URDFParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots", "pr2.urdf")).parse()
         cls.context = cls.pr2_sem_world, None
 
 class BulletWorldGUITestCase(BulletWorldTestCase):

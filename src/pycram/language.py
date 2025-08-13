@@ -450,6 +450,7 @@ class CodeNode(LanguageNode):
         :param function: The function that was called
         :param kwargs: The keyword arguments of the function as dict
         """
+        super().__init__()
         self.function: Callable = function
 
         if kwargs is None:

@@ -535,7 +535,9 @@ class PlanNode:
 
         :return: A list of all nodes above this
         """
-        return [self.plan.plan_graph[i] for i in rx.ancestors(self.plan.plan_graph, self.index)]
+        all_parents = [self.plan.plan_graph[i] for i in rx.ancestors(self.plan.plan_graph, self.index)]
+        all_parents.reverse()
+        return all_parents
 
     @property
     def is_leaf(self) -> bool:
