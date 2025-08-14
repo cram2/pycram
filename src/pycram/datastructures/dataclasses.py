@@ -29,8 +29,6 @@ if TYPE_CHECKING:
     from ..description import Link, ObjectDescription
     from ..world_concepts.world_object import Object
     from ..world_concepts.constraints import Attachment
-    from .world_entity import PhysicalBody
-    from .world import World
 
 
 @dataclass
@@ -1183,201 +1181,201 @@ class LateralFriction:
     lateral_friction: float
     lateral_friction_direction: List[float]
 
-
-@dataclass
-class ContactPoint:
-    """
-    Dataclass for storing the information of a contact point between two bodies.
-    """
-    body_a: PhysicalBody
-    body_b: PhysicalBody
-    position_on_body_a: Optional[List[float]] = None
-    position_on_body_b: Optional[List[float]] = None
-    normal_on_body_b: Optional[List[float]] = None  # the contact normal vector on object b pointing towards object a
-    distance: Optional[float] = None  # distance between the two objects (+ve for separation, -ve for penetration)
-    normal_force: Optional[float] = None  # normal force applied during last step simulation
-    lateral_friction_1: Optional[LateralFriction] = None
-    lateral_friction_2: Optional[LateralFriction] = None
-
-    @property
-    def normal(self) -> List[float]:
-        return self.normal_on_body_b
-
-    @property
-    def bodies(self) -> Tuple[PhysicalBody, PhysicalBody]:
-        return self.body_a, self.body_b
-
-    def __str__(self):
-        return f"ContactPoint: {self.body_a.name} - {self.body_b.name}"
-
-    def __repr__(self):
-        return self.__str__()
-
-
-ClosestPoint = ContactPoint
-"""
-The closest point between two objects which has the same structure as ContactPoint.
-"""
-
-
-class ContactPointsList(list):
-    """
-    A list of contact points.
-    """
-
-    def get_bodies_that_got_removed(self, previous_points: ContactPointsList) -> List[PhysicalBody]:
-        """
-        Return the bodies that are not in the current points list but were in the initial points list.
-
-        :param previous_points: The initial points list.
-        :return: A list of bodies that got removed.
-        """
-        initial_bodies_in_contact = previous_points.get_all_bodies()
-        current_bodies_in_contact = self.get_all_bodies()
-        return [body for body in initial_bodies_in_contact if body not in current_bodies_in_contact]
-
-    def get_all_bodies(self, excluded: List[PhysicalBody] = None) -> List[PhysicalBody]:
-        """
-        :return: A list of all involved bodies in the points.
-        """
-        excluded = excluded if excluded is not None else []
-        return list(set([body for point in self for body in point.bodies if body not in excluded]))
-
-    def check_if_two_objects_are_in_contact(self, obj_a: Object, obj_b: Object) -> bool:
-        """
-        Check if two objects are in contact.
-
-        :param obj_a: An instance of the Object class that represents the first object.
-        :param obj_b: An instance of the Object class that represents the second object.
-        :return: True if the objects are in contact, False otherwise.
-        """
-        return (any([self.is_body_in_object(point.body_b, obj_b)
-                     and self.is_body_in_object(point.body_a, obj_a) for point in self]) or
-                any([self.is_body_in_object(point.body_a, obj_b)
-                     and self.is_body_in_object(point.body_b, obj_a) for point in self]))
-
-    @staticmethod
-    def is_body_in_object(body: PhysicalBody, obj: Object) -> bool:
-        """
-        Check if the body belongs to the object.
-
-        :param body: The body.
-        :param obj: The object.
-        :return: True if the body belongs to the object, False otherwise.
-        """
-        return body in list(obj.links.values()) or body == obj
-
-    def get_normals_of_object(self, obj: Object) -> List[List[float]]:
-        """
-        Get the normals of the object.
-
-        :param obj: An instance of the Object class that represents the object.
-        :return: A list of float vectors that represent the normals of the object.
-        """
-        return self.get_points_of_object(obj).get_normals()
-
-    def get_normals(self) -> List[List[float]]:
-        """
-        Get the normals of the points.
-
-        :return: A list of float vectors that represent the normals of the contact points.
-        """
-        return [point.normal_on_body_b for point in self]
-
-    def get_links_in_contact_of_object(self, obj: Object) -> List[PhysicalBody]:
-        """
-        Get the links in contact of the object.
-
-        :param obj: An instance of the Object class that represents the object.
-        :return: A list of Link instances that represent the links in contact of the object.
-        """
-        return [point.body_b for point in self if point.body_b.parent_entity == obj]
-
-    def get_points_of_object(self, obj: Object) -> ContactPointsList:
-        """
-        Get the points of the object.
-
-        :param obj: An instance of the Object class that represents the object that the points are related to.
-        :return: A ContactPointsList instance that represents the contact points of the object.
-        """
-        return ContactPointsList([point for point in self if self.is_body_in_object(point.body_b, obj)])
-
-    def get_points_of_link(self, link: Link) -> ContactPointsList:
-        """
-        Get the points of the link.
-
-        :param link: An instance of the Link class that represents the link that the points are related to.
-        :return: A ContactPointsList instance that represents the contact points of the link.
-        """
-        return self.get_points_of_body(link)
-
-    def get_points_of_body(self, body: PhysicalBody) -> ContactPointsList:
-        """
-        Get the points of the body.
-
-        :param body: An instance of the PhysicalBody class that represents the body that the points are related to.
-        :return: A ContactPointsList instance that represents the contact points of the body.
-        """
-        return ContactPointsList([point for point in self if body == point.body_b])
-
-    def get_objects_that_got_removed(self, previous_points: ContactPointsList) -> List[Object]:
-        """
-        Return the object that is not in the current points list but was in the initial points list.
-
-        :param previous_points: The initial points list.
-        :return: A list of Object instances that represent the objects that got removed.
-        """
-        initial_objects_in_contact = previous_points.get_objects_that_have_points()
-        current_objects_in_contact = self.get_objects_that_have_points()
-        return [obj for obj in initial_objects_in_contact if obj not in current_objects_in_contact]
-
-    def get_new_objects(self, previous_points: ContactPointsList) -> List[Object]:
-        """
-        Return the object that is not in the initial points list but is in the current points list.
-
-        :param previous_points: The initial points list.
-        :return: A list of Object instances that represent the new objects.
-        """
-        initial_objects_in_contact = previous_points.get_objects_that_have_points()
-        current_objects_in_contact = self.get_objects_that_have_points()
-        return [obj for obj in current_objects_in_contact if obj not in initial_objects_in_contact]
-
-    def is_object_in_the_list(self, obj: Object) -> bool:
-        """
-        Check if the object is one of the objects that have points in the list.
-
-        :param obj: An instance of the Object class that represents the object.
-        :return: True if the object is in the list, False otherwise.
-        """
-        return obj in self.get_objects_that_have_points()
-
-    def get_names_of_objects_that_have_points(self) -> List[str]:
-        """
-        Return the names of the objects that have points in the list.
-
-        :return: A list of strings that represent the names of the objects that have points in the list.
-        """
-        return [obj.name for obj in self.get_objects_that_have_points()]
-
-    def get_objects_that_have_points(self) -> List[Object]:
-        """
-        Return the objects that have points in the list.
-
-        :return: A list of Object instances that represent the objects that have points in the list.
-        """
-        return list({point.body_b.parent_entity for point in self})
-
-    def __str__(self):
-        return f"ContactPointsList: {', '.join([point.__str__() for point in self])}"
-
-    def __repr__(self):
-        return self.__str__()
-
-
-ClosestPointsList = ContactPointsList
-"""
-The list of closest points which has same structure as ContactPointsList.
-"""
+#
+# @dataclass
+# class ContactPoint:
+#     """
+#     Dataclass for storing the information of a contact point between two bodies.
+#     """
+#     body_a: PhysicalBody
+#     body_b: PhysicalBody
+#     position_on_body_a: Optional[List[float]] = None
+#     position_on_body_b: Optional[List[float]] = None
+#     normal_on_body_b: Optional[List[float]] = None  # the contact normal vector on object b pointing towards object a
+#     distance: Optional[float] = None  # distance between the two objects (+ve for separation, -ve for penetration)
+#     normal_force: Optional[float] = None  # normal force applied during last step simulation
+#     lateral_friction_1: Optional[LateralFriction] = None
+#     lateral_friction_2: Optional[LateralFriction] = None
+#
+#     @property
+#     def normal(self) -> List[float]:
+#         return self.normal_on_body_b
+#
+#     @property
+#     def bodies(self) -> Tuple[PhysicalBody, PhysicalBody]:
+#         return self.body_a, self.body_b
+#
+#     def __str__(self):
+#         return f"ContactPoint: {self.body_a.name} - {self.body_b.name}"
+#
+#     def __repr__(self):
+#         return self.__str__()
+#
+#
+# ClosestPoint = ContactPoint
+# """
+# The closest point between two objects which has the same structure as ContactPoint.
+# """
+#
+#
+# class ContactPointsList(list):
+#     """
+#     A list of contact points.
+#     """
+#
+#     def get_bodies_that_got_removed(self, previous_points: ContactPointsList) -> List[PhysicalBody]:
+#         """
+#         Return the bodies that are not in the current points list but were in the initial points list.
+#
+#         :param previous_points: The initial points list.
+#         :return: A list of bodies that got removed.
+#         """
+#         initial_bodies_in_contact = previous_points.get_all_bodies()
+#         current_bodies_in_contact = self.get_all_bodies()
+#         return [body for body in initial_bodies_in_contact if body not in current_bodies_in_contact]
+#
+#     def get_all_bodies(self, excluded: List[PhysicalBody] = None) -> List[PhysicalBody]:
+#         """
+#         :return: A list of all involved bodies in the points.
+#         """
+#         excluded = excluded if excluded is not None else []
+#         return list(set([body for point in self for body in point.bodies if body not in excluded]))
+#
+#     def check_if_two_objects_are_in_contact(self, obj_a: Object, obj_b: Object) -> bool:
+#         """
+#         Check if two objects are in contact.
+#
+#         :param obj_a: An instance of the Object class that represents the first object.
+#         :param obj_b: An instance of the Object class that represents the second object.
+#         :return: True if the objects are in contact, False otherwise.
+#         """
+#         return (any([self.is_body_in_object(point.body_b, obj_b)
+#                      and self.is_body_in_object(point.body_a, obj_a) for point in self]) or
+#                 any([self.is_body_in_object(point.body_a, obj_b)
+#                      and self.is_body_in_object(point.body_b, obj_a) for point in self]))
+#
+#     @staticmethod
+#     def is_body_in_object(body: PhysicalBody, obj: Object) -> bool:
+#         """
+#         Check if the body belongs to the object.
+#
+#         :param body: The body.
+#         :param obj: The object.
+#         :return: True if the body belongs to the object, False otherwise.
+#         """
+#         return body in list(obj.links.values()) or body == obj
+#
+#     def get_normals_of_object(self, obj: Object) -> List[List[float]]:
+#         """
+#         Get the normals of the object.
+#
+#         :param obj: An instance of the Object class that represents the object.
+#         :return: A list of float vectors that represent the normals of the object.
+#         """
+#         return self.get_points_of_object(obj).get_normals()
+#
+#     def get_normals(self) -> List[List[float]]:
+#         """
+#         Get the normals of the points.
+#
+#         :return: A list of float vectors that represent the normals of the contact points.
+#         """
+#         return [point.normal_on_body_b for point in self]
+#
+#     def get_links_in_contact_of_object(self, obj: Object) -> List[PhysicalBody]:
+#         """
+#         Get the links in contact of the object.
+#
+#         :param obj: An instance of the Object class that represents the object.
+#         :return: A list of Link instances that represent the links in contact of the object.
+#         """
+#         return [point.body_b for point in self if point.body_b.parent_entity == obj]
+#
+#     def get_points_of_object(self, obj: Object) -> ContactPointsList:
+#         """
+#         Get the points of the object.
+#
+#         :param obj: An instance of the Object class that represents the object that the points are related to.
+#         :return: A ContactPointsList instance that represents the contact points of the object.
+#         """
+#         return ContactPointsList([point for point in self if self.is_body_in_object(point.body_b, obj)])
+#
+#     def get_points_of_link(self, link: Link) -> ContactPointsList:
+#         """
+#         Get the points of the link.
+#
+#         :param link: An instance of the Link class that represents the link that the points are related to.
+#         :return: A ContactPointsList instance that represents the contact points of the link.
+#         """
+#         return self.get_points_of_body(link)
+#
+#     def get_points_of_body(self, body: PhysicalBody) -> ContactPointsList:
+#         """
+#         Get the points of the body.
+#
+#         :param body: An instance of the PhysicalBody class that represents the body that the points are related to.
+#         :return: A ContactPointsList instance that represents the contact points of the body.
+#         """
+#         return ContactPointsList([point for point in self if body == point.body_b])
+#
+#     def get_objects_that_got_removed(self, previous_points: ContactPointsList) -> List[Object]:
+#         """
+#         Return the object that is not in the current points list but was in the initial points list.
+#
+#         :param previous_points: The initial points list.
+#         :return: A list of Object instances that represent the objects that got removed.
+#         """
+#         initial_objects_in_contact = previous_points.get_objects_that_have_points()
+#         current_objects_in_contact = self.get_objects_that_have_points()
+#         return [obj for obj in initial_objects_in_contact if obj not in current_objects_in_contact]
+#
+#     def get_new_objects(self, previous_points: ContactPointsList) -> List[Object]:
+#         """
+#         Return the object that is not in the initial points list but is in the current points list.
+#
+#         :param previous_points: The initial points list.
+#         :return: A list of Object instances that represent the new objects.
+#         """
+#         initial_objects_in_contact = previous_points.get_objects_that_have_points()
+#         current_objects_in_contact = self.get_objects_that_have_points()
+#         return [obj for obj in current_objects_in_contact if obj not in initial_objects_in_contact]
+#
+#     def is_object_in_the_list(self, obj: Object) -> bool:
+#         """
+#         Check if the object is one of the objects that have points in the list.
+#
+#         :param obj: An instance of the Object class that represents the object.
+#         :return: True if the object is in the list, False otherwise.
+#         """
+#         return obj in self.get_objects_that_have_points()
+#
+#     def get_names_of_objects_that_have_points(self) -> List[str]:
+#         """
+#         Return the names of the objects that have points in the list.
+#
+#         :return: A list of strings that represent the names of the objects that have points in the list.
+#         """
+#         return [obj.name for obj in self.get_objects_that_have_points()]
+#
+#     def get_objects_that_have_points(self) -> List[Object]:
+#         """
+#         Return the objects that have points in the list.
+#
+#         :return: A list of Object instances that represent the objects that have points in the list.
+#         """
+#         return list({point.body_b.parent_entity for point in self})
+#
+#     def __str__(self):
+#         return f"ContactPointsList: {', '.join([point.__str__() for point in self])}"
+#
+#     def __repr__(self):
+#         return self.__str__()
+#
+#
+# ClosestPointsList = ContactPointsList
+# """
+# The list of closest points which has same structure as ContactPointsList.
+# """
 
 
 @dataclass

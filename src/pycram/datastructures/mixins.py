@@ -6,8 +6,6 @@ from typing_extensions import Type, Optional
 from pycrap.urdf_parser import parse_furniture
 from pycrap.ontologies import Base, PhysicalObject
 
-if typing_extensions.TYPE_CHECKING:
-    from .world import World
 
 
 class HasConcept:

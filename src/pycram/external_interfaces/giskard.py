@@ -3,16 +3,16 @@ import threading
 
 import sys
 
+from semantic_world.world_entity import Body
+
 from ..ros import Time
 from ..ros import logwarn, loginfo_once, loginfo
 from ..ros import get_node_names
 
 from ..datastructures.enums import JointType, ObjectType, Arms
 from ..datastructures.pose import PoseStamped
-from ..datastructures.world import World
 from ..datastructures.dataclasses import MeshVisualShape
 from ..ros import get_service_proxy
-from ..world_concepts.world_object import Object
 from ..robot_description import RobotDescription
 
 from typing_extensions import List, Dict, Callable, Optional
@@ -152,7 +152,7 @@ def sync_worlds(projection: bool = False) -> None:
 
 
 @init_giskard_interface
-def update_pose(object: Object) -> 'UpdateWorldResponse':
+def update_pose(object: Body) -> 'UpdateWorldResponse':
     """
     Sends an update message to giskard to update the object position. Might not work when working on the real robot just
     in standalone mode.
@@ -164,7 +164,7 @@ def update_pose(object: Object) -> 'UpdateWorldResponse':
 
 
 @init_giskard_interface
-def spawn_object(object: Object) -> None:
+def spawn_object(object: Body) -> None:
     """
     Spawns a World Object in the giskard belief state.
 
@@ -181,7 +181,7 @@ def spawn_object(object: Object) -> None:
 
 
 @init_giskard_interface
-def remove_object(object: Object) -> 'UpdateWorldResponse':
+def remove_object(object: Body) -> 'UpdateWorldResponse':
     """
     Removes an object from the giskard belief state.
 
@@ -727,7 +727,7 @@ def allow_self_collision() -> None:
 
 
 @init_giskard_interface
-def avoid_collisions(object1: Object, object2: Object) -> None:
+def avoid_collisions(object1: Body, object2: Body) -> None:
     """
     Will avoid collision between the two objects for the next goal.
 
@@ -740,7 +740,7 @@ def avoid_collisions(object1: Object, object2: Object) -> None:
 # Creating ROS messages
 
 @init_giskard_interface
-def make_world_body(object: Object) -> 'WorldBody':
+def make_world_body(object: Body) -> 'WorldBody':
     """
     Create a WorldBody message for a World Object. The WorldBody will contain the URDF of the World Object
 

@@ -10,7 +10,6 @@ from ..core.navigation import LookAtActionDescription,NavigateActionDescription
 from ....config.action_conf import ActionConfig
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
-from ....datastructures.world import World
 from ....has_parameters import has_parameters
 from ....language import SequentialPlan
 from ....robot_plans.actions.base import ActionDescription

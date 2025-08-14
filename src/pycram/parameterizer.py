@@ -18,7 +18,6 @@ from sortedcontainers import SortedSet
 from semantic_world.world import World
 
 from pycrap.ontologies import PhysicalObject
-from .datastructures.world import World
 from .datastructures.dataclasses import BoundingBox, BoundingBoxCollection
 from .datastructures.partial_designator import PartialDesignator
 from .graph_of_convex_sets import GraphOfConvexSets

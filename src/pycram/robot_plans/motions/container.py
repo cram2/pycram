@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 
+from semantic_world.world_entity import Body
+
 from .base import BaseMotion
 from ...datastructures.enums import Arms
-from ...description import ObjectDescription
 from ...process_module import ProcessModuleManager
 
 
@@ -12,7 +13,7 @@ class OpeningMotion(BaseMotion):
     Designator for opening container
     """
 
-    object_part: ObjectDescription.Link
+    object_part: Body
     """
     Object designator for the drawer handle
     """
@@ -32,7 +33,7 @@ class ClosingMotion(BaseMotion):
     Designator for closing a container
     """
 
-    object_part: ObjectDescription.Link
+    object_part: Body
     """
     Object designator for the drawer handle
     """

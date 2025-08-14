@@ -7,16 +7,12 @@ from datetime import timedelta
 import pytest
 from rclpy.node import Node
 from semantic_world.adapters.urdf import URDFParser
-from semantic_world.spatial_types.spatial_types import TransformationMatrix
+from semantic_world.world import World
 
-from .datastructures.world import UseProspectionWorld
-from .worlds.bullet_world import BulletWorld
 from .world_concepts.world_object import Object
 from .datastructures.pose import PoseStamped
 from .robot_description import RobotDescription, RobotDescriptionManager
-from .process_module import ProcessModule
 from .datastructures.enums import WorldMode
-from .object_descriptors.urdf import ObjectDescription
 from .plan import Plan
 from .ros import loginfo, get_node_names
 from pycrap.ontologies import Milk, Robot, Kitchen, Cereal
@@ -36,6 +32,18 @@ def cleanup_ros(self):
         import rclpy
         if rclpy.ok():
             rclpy.shutdown()
+
+class SemanticWorldTestCase(unittest.TestCase):
+    world: World
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pr2_sem_world = URDFParser(
+            os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots", "pr2.urdf")).parse()
+        cls.apartment_world = URDFParser(
+            os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
+        cls.apartment_world.merge_world(cls.pr2_sem_world)
+
 
 
 class EmptyBulletWorldTestCase(unittest.TestCase):

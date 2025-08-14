@@ -4,7 +4,9 @@ from __future__ import annotations
 from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING, TypeVar, Generic, Iterator, Iterable, AnyStr
 from inspect import signature
 
+# from ..designator import DesignatorDescription
 from ..has_parameters import leaf_types, HasParameters
+from ..plan import PlanNode
 from ..utils import is_iterable, lazy_product
 
 T = TypeVar('T')
@@ -37,6 +39,11 @@ class PartialDesignator(Iterable[T]):
     kwargs: Dict[str, Any] = None
     """
     Keyword arguments that are passed to the performable
+    """
+
+    _plan_node: PlanNode = None
+    """
+    Reference to the PlanNode that is used to execute the performable
     """
 
     def __init__(self, performable: T, *args, **kwargs):
@@ -138,6 +145,29 @@ class PartialDesignator(Iterable[T]):
         :return: A dict with the flattened parameter types of the performable.
         """
         return self.performable.flatten_parameters()
+
+    @property
+    def plan_node(self) -> PlanNode:
+        """
+        Returns the PlanNode that is used to execute the performable.
+
+        :return: The PlanNode that is used to execute the performable.
+        """
+        return self._plan_node
+
+    @plan_node.setter
+    def plan_node(self, value: PlanNode):
+        """
+        Sets the PlanNode that is used to execute the performable.
+
+        :param value: The PlanNode that is used to execute the performable.
+        """
+        if not isinstance(value, PlanNode):
+            raise TypeError("plan_node must be an instance of PlanNode")
+        self._plan_node = value
+        for key, value in self.kwargs.items():
+            if "DesignatorDescription" in [c.__name__ for c in value.__class__.__mro__]:
+                value.plan_node = self._plan_node
 
 
 

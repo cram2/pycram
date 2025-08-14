@@ -1,23 +1,21 @@
 import dataclasses
-from functools import reduce
 
-import plotly.graph_objects as go
 import networkx as nx
 import numpy as np
-import tqdm
 from box import Box
 from probabilistic_model.distributions import DiracDeltaDistribution, GaussianDistribution
 from probabilistic_model.distributions.helper import make_dirac
 from probabilistic_model.probabilistic_circuit.rx.helper import uniform_measure_of_event, leaf
 from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import SumUnit, ProbabilisticCircuit, \
     ProductUnit
-from probabilistic_model.probabilistic_model import ProbabilisticModel
 from random_events.interval import closed
 from random_events.polytope import Polytope, NoOptimalSolutionError
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.set import Set
 from random_events.variable import Continuous, Symbolic
 from scipy.spatial import ConvexHull
+from semantic_world.world import World
+from semantic_world.world_entity import Body
 from sortedcontainers import SortedSet
 from typing_extensions import List, Union, Iterable, Optional, Iterator, Dict, Tuple
 
@@ -27,18 +25,13 @@ from ..datastructures.dataclasses import BoundingBox, AxisAlignedBoundingBox, Co
 from ..datastructures.enums import JointType, Arms, Grasp, ApproachDirection, VerticalAlignment
 from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.pose import PoseStamped, GraspDescription, GraspPose, Vector3
-from ..datastructures.world import World, UseProspectionWorld
 from ..designator import LocationDesignatorDescription
 from ..failures import RobotInCollision
 from ..graph_of_convex_sets import GraphOfConvexSets, plot_bounding_boxes_in_rviz
-from ..local_transformer import LocalTransformer
-from ..object_descriptors.urdf import ObjectDescription
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, pose_sequence_reachability_validator, \
     collision_check, OrientationGenerator
 from ..process_module import real_robot
 from ..ros import logwarn, logerr
-from ..ros_utils.viz_marker_publisher import plot_axis_in_rviz
-from ..world_concepts.world_object import Object, Link
 from ..world_reasoning import link_pose_for_joint_config
 
 
@@ -64,8 +57,8 @@ class Location(LocationDesignatorDescription):
         """
         return self.pose
 
-def _create_target_sequence(grasp_description: GraspDescription, target: Union[PoseStamped, Object], robot: Object,
-                           object_in_hand: Object, reachable_arm: Arms, rotation_agnostic: bool = False) -> List[
+def _create_target_sequence(grasp_description: GraspDescription, target: Union[PoseStamped, Body], robot: Body,
+                           object_in_hand: Body, reachable_arm: Arms, rotation_agnostic: bool = False) -> List[
     PoseStamped]:
     """
     Creates the sequence of poses that need to be reachable for the robot to grasp the target.
@@ -124,13 +117,13 @@ class CostmapLocation(LocationDesignatorDescription):
     Uses Costmaps to create locations for complex constrains
     """
 
-    def __init__(self, target: Union[PoseStamped, Object],
-                 reachable_for: Optional[Union[Iterable[Object], Object]] = None,
-                 visible_for: Optional[Union[Iterable[Object], Object]] = None,
+    def __init__(self, target: Union[PoseStamped, Body],
+                 reachable_for: Optional[Union[Iterable[Body], Body]] = None,
+                 visible_for: Optional[Union[Iterable[Body], Body]] = None,
                  reachable_arm: Optional[Union[Iterable[Arms], Arms]] = None,
-                 ignore_collision_with: Optional[Union[Iterable[Object], Object]] = None,
+                 ignore_collision_with: Optional[Union[Iterable[Body], Body]] = None,
                  grasp_descriptions: Optional[Union[Iterable[GraspDescription], GraspDescription]] = None,
-                 object_in_hand: Optional[Union[Iterable[Object], Object]] = None,
+                 object_in_hand: Optional[Union[Iterable[Body], Body]] = None,
                  rotation_agnostic: bool = False,):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
@@ -170,7 +163,7 @@ class CostmapLocation(LocationDesignatorDescription):
         return next(iter(self))
 
     @staticmethod
-    def setup_costmaps(target: PoseStamped, robot: Object, visible_for, reachable_for) -> Costmap:
+    def setup_costmaps(target: PoseStamped, robot: Body, visible_for, reachable_for) -> Costmap:
         """
         Sets up the costmaps for the given target and robot. The costmaps are merged and stored in the final_map
 
@@ -200,7 +193,7 @@ class CostmapLocation(LocationDesignatorDescription):
 
 
     @staticmethod
-    def create_allowed_collisions(ignore_collision_with: List[Object], object_in_hand: Object) -> Dict[Object, str]:
+    def create_allowed_collisions(ignore_collision_with: List[Body], object_in_hand: Body) -> Dict[Body, str]:
         """
         Creates a dict of object which are allowed to collide with the robot without impacting reachability
 
@@ -290,8 +283,8 @@ class AccessingLocation(LocationDesignatorDescription):
     Location designator which describes poses used for opening drawers
     """
 
-    def __init__(self, handle: Union[ObjectDescription.Link, Iterable[ObjectDescription.Link]],
-                 robot_desig: Union[Object, Iterable[Object]],
+    def __init__(self, handle: Union[Body, Iterable[Body]],
+                 robot_desig: Union[Body, Iterable[Body]],
                  arm: Union[List[Arms], Arms] = None,
                  prepose_distance: float = ActionConfig.grasping_prepose_distance):
         """
@@ -348,7 +341,7 @@ class AccessingLocation(LocationDesignatorDescription):
                        int(map_origin_idx[1] + i * unit_motion_vector[1] - j * orthogonal_vector[1]))
                 cost_map.map[idx] = 0
 
-    def setup_costmaps(self, handle: Link) -> Costmap:
+    def setup_costmaps(self, handle: Body) -> Costmap:
         """
         Sets up the costmaps for the given handle and robot. The costmaps are merged and stored in the final_map.
         """
@@ -518,7 +511,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
     Variable representing the y coordinate on a surface
     """
 
-    def __init__(self, link_names: List[str], part_of: Object, for_object: Object=None, link_is_center_link: bool = False, number_of_samples: int = 1000,
+    def __init__(self, link_names: List[str], part_of: Body, for_object: Body=None, link_is_center_link: bool = False, number_of_samples: int = 1000,
                     sort_sampels: bool = False, uniform_sampling: bool = False, highlight_used_surfaces: bool = False):
         """
         Creates a distribution over a link to sample poses which are on this link. Can be used, for example, to find
@@ -544,8 +537,8 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         self.number_of_samples = number_of_samples
         self.link_names: list = link_names
         self.link_is_center_link: bool = link_is_center_link
-        self.part_of: Object = part_of
-        self.for_object: Optional[Object] = for_object
+        self.part_of: Body = part_of
+        self.for_object: Optional[Body] = for_object
         self.highlight_used_surfaces: bool = highlight_used_surfaces
 
     def ground(self) -> PoseStamped:
@@ -599,7 +592,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         return link_circuit
 
     @staticmethod
-    def _create_surface_event(params_box, world: World, link: Link, search_space: BoundingBoxCollection, wall_bloat: float) -> Optional[Event]:
+    def _create_surface_event(params_box, world: World, link: Body, search_space: BoundingBoxCollection, wall_bloat: float) -> Optional[Event]:
         """
         Creates an event that describes the surface of the link we want to sample from.
         The surface event is constructed from the bounding box of the link, and the walls and doors are cut out to
@@ -633,7 +626,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
         return surface_event
 
-    def _create_navigation_space_event(self, free_space: GraphOfConvexSets, link: Link) -> Optional[Event]:
+    def _create_navigation_space_event(self, free_space: GraphOfConvexSets, link: Body) -> Optional[Event]:
         """
         Creates an event that describes the navigation space for the link we want to sample from.
         The navigation space is the free space around the link, which is used to sample navigation poses.
@@ -672,7 +665,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         navigation_space_event = navigation_space_event.marginal(SortedSet([BoundingBox.x_variable, BoundingBox.y_variable]))
         return navigation_space_event
 
-    def _create_distribution_for_link(self, params_box, world: World, link: Link, link_id_symbol: Symbolic) -> Tuple[Optional[ProbabilisticCircuit], float]:
+    def _create_distribution_for_link(self, params_box, world: World, link: Body, link_id_symbol: Symbolic) -> Tuple[Optional[ProbabilisticCircuit], float]:
         """
         Creates a distribution for the given link, which is a probabilistic circuit that samples navigation poses on the
         surface of the link. The distribution is conditioned on the navigation space event, which is the free space
@@ -874,13 +867,13 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
     Variable representing the y coordinate of the target pose
     """
 
-    def __init__(self, target: Union[PoseStamped, Object],
-                 reachable_for: Optional[Union[Iterable[Object], Object]] = None,
-                 visible_for: Optional[Union[Iterable[Object], Object]] = None,
+    def __init__(self, target: Union[PoseStamped, Body],
+                 reachable_for: Optional[Union[Iterable[Body], Body]] = None,
+                 visible_for: Optional[Union[Iterable[Body], Body]] = None,
                  reachable_arm: Optional[Union[Iterable[Arms], Arms]] = None,
-                 ignore_collision_with: Optional[Union[Iterable[Object], Object]] = None,
+                 ignore_collision_with: Optional[Union[Iterable[Body], Body]] = None,
                  grasp_descriptions: Optional[Union[Iterable[GraspDescription], GraspDescription]] = None,
-                 object_in_hand: Optional[Union[Iterable[Object], Object]] = None,
+                 object_in_hand: Optional[Union[Iterable[Body], Body]] = None,
                  rotation_agnostic: bool = False, number_of_samples: int = 300, costmap_resolution: float = 0.1):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
@@ -910,9 +903,9 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
         self.number_of_samples = number_of_samples
         # The resolution is divided by 2, since each sampled point is a center of a cell in the costmap
         self.costmap_resolution = costmap_resolution / 2
-        self.target: Union[PoseStamped, Object] = target
-        self.reachable_for: Object = reachable_for
-        self.visible_for: Object = visible_for
+        self.target: Union[PoseStamped, Body] = target
+        self.reachable_for: Body = reachable_for
+        self.visible_for: Body = visible_for
         self.reachable_arm: Optional[Arms] = reachable_arm
         self.ignore_collision_with = ignore_collision_with if ignore_collision_with is not None else [[]]
         self.grasps: List[Optional[Grasp]] = grasp_descriptions if grasp_descriptions is not None else [None]
@@ -926,7 +919,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
         return next(iter(self))
 
     @staticmethod
-    def create_allowed_collisions(ignore_collision_with: List[Object], object_in_hand: Object) -> Dict[Object, str]:
+    def create_allowed_collisions(ignore_collision_with: List[Body], object_in_hand: Body) -> Dict[Body, str]:
         """
         Creates a dict of object which are allowed to collide with the robot without impacting reachability
 

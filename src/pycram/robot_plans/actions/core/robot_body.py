@@ -9,7 +9,6 @@ from typing_extensions import Union, Optional, Type, Dict, Any, Iterable
 from ....datastructures.enums import Arms, GripperState, TorsoState, StaticJointState, AxisIdentifier
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import Vector3Stamped
-from ....datastructures.world import World
 from ....failures import TorsoGoalNotReached, ConfigurationNotReached
 from ....has_parameters import has_parameters
 from ....language import SequentialPlan

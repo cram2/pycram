@@ -20,10 +20,11 @@ from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointT
 from .datastructures.pose import GraspDescription, PoseStamped
 from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
     get_robot_description_path
-from .object_descriptors.urdf import ObjectDescription as URDFObject
 from .ros import logerr
 from .tf_transformations import quaternion_multiply
 from .utils import suppress_stdout_stderr
+
+from urdf_parser_py.urdf import URDF as URDFObject
 
 if TYPE_CHECKING:
     from .datastructures.pose import Pose
@@ -354,7 +355,7 @@ class RobotDescription:
 
     def get_parent(self, name: str) -> str:
         """
-        Get the parent of a link or joint in the URDF. Always returns the imeadiate parent, for a link this is a joint
+        Get the parent of a link or joint in the URDF. Always returns the immediate parent, for a link this is a joint
         and vice versa.
 
         :param name: Name of the link or joint in the URDF

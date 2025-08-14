@@ -13,16 +13,18 @@ from datetime import timedelta
 from threading import Lock
 import time
 from abc import ABC, abstractmethod
+
+from semantic_world.world import World
 from typing_extensions import Callable, Any, Union, Optional, List
 
 from .robot_description import RobotDescription
-from .datastructures.world import World
 from typing_extensions import TYPE_CHECKING
 from .datastructures.enums import ExecutionType
 from .ros import logerr, logwarn_once
+from .config.world_conf import WorldConfig
 
 if TYPE_CHECKING:
-    from pycram.robot_plans.motions.motion_designator import BaseMotion
+    from pycram.robot_plans.motions import BaseMotion
 
 
 class ProcessModule:
@@ -30,7 +32,7 @@ class ProcessModule:
     Implementation of process modules. Process modules are the part that communicate with the outer world to execute
      designators.
     """
-    execution_delay: Optional[timedelta] = World.conf.execution_delay
+    execution_delay: Optional[timedelta] = WorldConfig.execution_delay
     """
     Adds a delay after executing a process module, to make the execution in simulation more realistic
     """
@@ -78,7 +80,7 @@ class RealRobot:
 
     def __init__(self):
         self.pre: ExecutionType = ExecutionType.REAL
-        self.pre_delay: timedelta = World.conf.execution_delay
+        self.pre_delay: timedelta = WorldConfig.execution_delay
 
     def __enter__(self):
         """

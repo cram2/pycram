@@ -7,9 +7,7 @@ from ...datastructures.grasp import GraspDescription
 from ...datastructures.pose import PoseStamped
 from ...failure_handling import try_motion
 from ...failures import ToolPoseNotReachedError
-from ...local_transformer import LocalTransformer
 from ...process_module import ProcessModuleManager
-from ...world_concepts.world_object import Object
 
 
 # class ReachMotion(BaseMotion):

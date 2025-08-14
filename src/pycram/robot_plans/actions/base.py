@@ -33,10 +33,20 @@ class ActionDescription(HasParameters):
     robot_type: Type[Agent] = field(init=False)
 
     # Is assigned in the __post_init method of the ActionNode
-    plan_node: PlanNode = field(init=False, default=None)
+    _plan_node: PlanNode = field(init=False, default=None)
 
     _pre_perform_callbacks = []
     _post_perform_callbacks = []
+
+    @property
+    def plan_node(self) -> PlanNode:
+        return self._plan_node
+
+    @plan_node.setter
+    def plan_node(self, value: PlanNode):
+        if not isinstance(value, PlanNode):
+            raise TypeError("plan_node must be an instance of PlanNode")
+        self._plan_node = value
 
     @property
     def plan_struct(self) -> Plan:

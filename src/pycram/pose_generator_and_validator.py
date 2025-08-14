@@ -2,22 +2,19 @@ import functools
 import random
 
 import numpy as np
+from semantic_world.world_entity import Body
 
 from pycrap.ontologies import PhysicalObject
-from .object_descriptors.generic import ObjectDescription
 from .tf_transformations import quaternion_from_euler
 from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional, Iterator
 
 from .datastructures.enums import Arms
 from .costmaps import Costmap, SemanticCostmap
 from .datastructures.pose import PoseStamped, TransformStamped, GraspDescription
-from .datastructures.world import World
 from .external_interfaces.ik import request_ik
 from .failures import IKError, RobotInCollision
-from .local_transformer import LocalTransformer
 from .robot_description import RobotDescription
 from .ros import logdebug
-from .world_concepts.world_object import Object
 from .world_reasoning import contact
 
 
@@ -146,8 +143,8 @@ class PoseGenerator(Iterable[PoseStamped]):
         return quaternion
 
 
-def visibility_validator(robot: Object,
-                         object_or_pose: Union[Object, PoseStamped]) -> bool:
+def visibility_validator(robot: Body,
+                         object_or_pose: Union[Body, PoseStamped]) -> bool:
     """
     This method validates if the robot can see the target position from a given
     pose candidate. The target position can either be a position, in world coordinate
@@ -180,10 +177,10 @@ def visibility_validator(robot: Object,
     return ray.obj_id == obj_id
 
 
-def reachability_validator(robot: Object,
+def reachability_validator(robot: Body,
                            target_pose: PoseStamped,
                            arm: Arms,
-                           allowed_collision: Dict[Object, List] = None
+                           allowed_collision: Dict[Body, List] = None
                            ) -> Optional[Dict[str, float]]:
     """
     This method validates if a target position is reachable for the robot.
@@ -223,10 +220,10 @@ def reachability_validator(robot: Object,
         robot.set_multiple_joint_positions(joint_state_before_ik)
 
 
-def pose_sequence_reachability_validator(robot: Object,
+def pose_sequence_reachability_validator(robot: Body,
                                          target_sequence: List[PoseStamped],
                                          arm: Arms,
-                                         allowed_collision: Dict[Object, List] = None
+                                         allowed_collision: Dict[Body, List] = None
                                          ) -> bool:
     """
     This method validates if a target sequence, if traversed in order, is reachable for the robot.
@@ -254,7 +251,7 @@ def pose_sequence_reachability_validator(robot: Object,
     return True
 
 
-def collision_check(robot: Object, allowed_collision: Dict[Object, List]):
+def collision_check(robot: Body, allowed_collision: Dict[Body, List]):
     """
     This method checks if a given robot collides with any object within the world
     which it is not allowed to collide with.

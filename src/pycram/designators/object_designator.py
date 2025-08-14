@@ -4,16 +4,15 @@ import dataclasses
 
 import owlready2
 from owlready2.triplelite import _SearchList
+from semantic_world.world_entity import Body
 from typing_extensions import TYPE_CHECKING, Iterable, Iterator, Union
 
 from ..datastructures.enums import ObjectType
 from ..datastructures.partial_designator import PartialDesignator
-from ..datastructures.world import World
 from ..external_interfaces.robokudo import *
 from ..plan import Plan
 from ..utils import is_iterable
-from ..world_concepts.world_object import Object as WorldObject, Object
-from ..description import ObjectDescription
+
 
 if TYPE_CHECKING:
     pass
@@ -32,7 +31,7 @@ class OntologyObjectDesignatorDescription:
     def __init__(self, search_result: _SearchList):
         self.search_result = list(search_result)
 
-    def __iter__(self) -> Iterable[Object]:
+    def __iter__(self) -> Iterable[Body]:
         """
         :return: The objects in the current world which match the search result in the 'is_a' relation.
         """
@@ -90,7 +89,7 @@ class ResolutionStrategyObject(ObjectDesignatorDescription):
         resolution_strategy = IterClass(resolution_strategy)
         return resolution_strategy
 
-    def __iter__(self) -> Iterable[Object]:
+    def __iter__(self) -> Iterable[Body]:
         """
         Iterates through every possible solution for the given solution strategy.
 
@@ -100,7 +99,7 @@ class ResolutionStrategyObject(ObjectDesignatorDescription):
             yield obj
 
 
-class ObjectPart(ObjectDesignatorDescription, Iterable[ObjectDescription.Link]):
+class ObjectPart(ObjectDesignatorDescription, Iterable[Body]):
     """
     Object Designator Descriptions for Objects that are part of some other object.
     """
@@ -125,7 +124,7 @@ class ObjectPart(ObjectDesignatorDescription, Iterable[ObjectDescription.Link]):
         self.names: Optional[List[str]] = names
         self.part_of = part_of
 
-    def ground(self) -> ObjectDescription.Link:
+    def ground(self) -> Body:
         """
         Default specialized_designators, returns the first result of the iterator of this instance.
 
@@ -133,7 +132,7 @@ class ObjectPart(ObjectDesignatorDescription, Iterable[ObjectDescription.Link]):
         """
         return next(iter(self))
 
-    def __iter__(self) -> Iterator[ObjectDescription.Link]:
+    def __iter__(self) -> Iterator[Body]:
         """
         Iterates through every possible solution for the given input parameter.
 

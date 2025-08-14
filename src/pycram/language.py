@@ -69,7 +69,7 @@ class SequentialPlan(LanguagePlan):
     Creates a plan which executes its children in sequential order
     """
 
-    def __init__(self, context: Tuple[World, Plan], *children: Union[Plan, PartialDesignator, BaseMotion] ) -> None:
+    def __init__(self, context: Tuple[World, Optional[Plan]], *children: Union[Plan, PartialDesignator, BaseMotion] ) -> None:
         seq = SequentialNode()
         world, plan = context
         super().__init__(seq, world, plan, *children)

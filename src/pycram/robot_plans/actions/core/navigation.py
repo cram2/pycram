@@ -11,9 +11,6 @@ from ...motions.navigation import MoveMotion, LookingMotion
 from ....config.action_conf import ActionConfig
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
-from ....datastructures.world import UseProspectionWorld
-from ....datastructures.world import World
-from ....failure_handling import try_action
 from ....failures import LookAtGoalNotReached
 from ....failures import NavigationGoalNotReachedError
 from ....has_parameters import has_parameters

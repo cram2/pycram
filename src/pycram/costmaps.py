@@ -13,6 +13,8 @@ from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import P
 from random_events.interval import Interval, reals, closed_open, closed
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
+from semantic_world.raytracer import RayTracer
+
 from .tf_transformations import quaternion_from_matrix, quaternion_from_euler
 from typing_extensions import Tuple, List, Optional, Iterator
 
@@ -21,13 +23,9 @@ from .datastructures.pose import TransformStamped
 from .ros import logwarn
 from .datastructures.dataclasses import AxisAlignedBoundingBox
 from .datastructures.pose import PoseStamped
-from .datastructures.world import UseProspectionWorld
-from .datastructures.world import World
-from .description import Link
-from .local_transformer import LocalTransformer
 from .ros import wait_for_message
 from .utils import chunks
-from .world_concepts.world_object import Object
+from semantic_world.world import World
 
 try:
     from nav_msgs.msg import OccupancyGrid, MapMetaData
@@ -71,7 +69,7 @@ class Costmap:
                  width: int,
                  origin: PoseStamped,
                  map: np.ndarray,
-                 world: Optional[World] = None):
+                 world: World):
         """
         The constructor of the base class of all Costmaps.
 
@@ -84,13 +82,12 @@ class Costmap:
         :param map: The costmap represents as a 2D numpy array.
         :param world: The World for which the costmap should be created.
         """
-        self.world = world if world else World.current_world
+        self.world = world
         self.resolution: float = resolution
         self.size: int = height
         self.height: int = height
         self.width: int = width
-        local_transformer = LocalTransformer()
-        self.origin: PoseStamped = local_transformer.transform_pose(origin, 'map')
+        self.origin: PoseStamped = self.world.transform(origin.to_spatial_type(), self.world.root)
         self.map: np.ndarray = map
         self.vis_ids: List[int] = []
 
@@ -138,7 +135,7 @@ class Costmap:
             map_obj = self.world.create_multi_body_from_visual_shapes(cell_parts, new_pose)
             self.vis_ids.append(map_obj)
 
-    def _chunks(self, lst: List, n: int) -> List:
+    def _chunks(self, lst: List, n: int) -> Iterator[List]:
         """
         Yield successive n-sized chunks from lst.
 
@@ -289,11 +286,11 @@ class OccupancyCostmap(Costmap):
     """
 
     def __init__(self, distance_to_obstacle: float,
-                 from_ros: Optional[bool] = False,
+                 world: World,
                  size: Optional[int] = 100,
                  resolution: Optional[float] = 0.02,
                  origin: Optional[PoseStamped] = None,
-                 world: Optional[World] = None):
+                 ):
         """
         Constructor for the Occupancy costmap, the actual costmap is received
         from the ROS map_server and wrapped by this class. Meta-data about the
@@ -302,10 +299,6 @@ class OccupancyCostmap(Costmap):
         :param distance_to_obstacle: The distance by which the obstacles should be
             inflated. Meaning that obstacles in the costmap are growing bigger by this
             distance.
-        :param from_ros: This determines if the Occupancy map should be created
-            from the map provided by the ROS map_server or from the World.
-            If True then the map from the ROS map_server will be used otherwise
-            the Occupancy map will be created from the World.
         :param size: The length of the side of the costmap. The costmap will be created
             as a square. This will only be used if from_ros is False.
         :param resolution: The resolution of this costmap. This determines how much
@@ -315,120 +308,15 @@ class OccupancyCostmap(Costmap):
             be in the middle of the costmap. This parameter is only used if from_ros
             is False.
         """
-        self.world = world if world else World.current_world
-        if from_ros:
-            meta = self._get_map_metadata()
-            self.original_map = np.reshape(self._get_map(), (meta.height, meta.width))
-            self.meta_origin = [meta.origin.position.x, meta.origin.position.y, meta.origin.position.z]
-            self.resolution = meta.resolution
-            self.height = meta.height
-            self.width = meta.width
-            # Nunber of cells that have to be between a valid cell and an obstacle
-            self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
-            Costmap.__init__(self, meta.resolution, meta.height, meta.width,
-                             self._calculate_diff_origin(meta.height, meta.width),
-                             np.rot90(np.flip(self._convert_map(self.original_map), 0)))
-        else:
-            self.size = size
-            self.origin = PoseStamped.from_list() if not origin else origin
-            lt = LocalTransformer()
-            self.origin = lt.transform_pose(self.origin, "map")
-            self.resolution = resolution
-            self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
-            self.map = self._create_from_world(size, resolution)
-            Costmap.__init__(self, resolution, size, size, self.origin, self.map)
+        self.world = world
 
-    def _calculate_diff_origin(self, height: int, width: int) -> PoseStamped:
-        """
-        Calculates the difference between the origin of the costmap
-        as stated by the meta-data and the actual middle of the costmap which
-        is used by PyCRAM to visualize the costmap. The origin as stated by the
-        meta-data refers to the position of the global coordinate frame with
-        the bottom left corner as reference.
-
-        :param height: The height of the costmap
-        :param width: The width of the costmap
-        :return: The difference between the actual origin and center of the costmap
-        """
-        actual_origin = [int(height / 2) * self.resolution, int(width / 2) * self.resolution, 0]
-        origin = np.array(self.meta_origin) + np.array(actual_origin)
-        return PoseStamped.from_list(origin.tolist())
-
-    @staticmethod
-    def _get_map() -> np.ndarray:
-        """
-        Receives the map array from the map_server converts it and into a numpy array.
-
-        :return: The costmap as a numpy array.
-        """
-        print("Waiting for Map")
-        map = wait_for_message("/map", OccupancyGrid)
-        print("Recived Map")
-        return np.array(map.data)
-
-    @staticmethod
-    def _get_map_metadata() -> MapMetaData:
-        """
-        Receives the meta-data about the costmap from the map_server and returns it.
-        The meta-data contains things like, height, width, origin and resolution.
-
-        :return: The meta-data for the costmap array.
-        """
-        print("Waiting for Map Meta Data")
-        meta = wait_for_message("/map_metadata", MapMetaData)
-        print("Recived Meta Data")
-        return meta
-
-    def _convert_map(self, map: np.ndarray) -> np.ndarray:
-        """
-        Converts the Occupancy Map received from ROS to be more consistent
-        with how PyCRAM handles its costmap. Every possible cell for a robot to stand
-        is set to one while anything else is set to zero. Additionally, this method
-        also takes into account the distance_to_obstacle parameter and sets cell values
-        that are too close to an obstacle to 0.
-
-        :param map: The map that should be converted. Represented as 2d numpy array
-        :return: The converted map. Represented as 2d numpy array.
-        """
-        map = np.pad(map, (int(self.distance_obstacle / 2), int(self.distance_obstacle / 2)))
-
-        sub_shape = (self.distance_obstacle, self.distance_obstacle)
-        view_shape = tuple(np.subtract(map.shape, sub_shape) + 1) + sub_shape
-        strides = map.strides + map.strides
-
-        sub_matrices = np.lib.stride_tricks.as_strided(map, view_shape, strides)
-        sub_matrices = sub_matrices.reshape(sub_matrices.shape[:-2] + (-1,))
-        sum = np.sum(sub_matrices, axis=2)
-        return (sum == 0).astype('int16')
-
-    def create_sub_map(self, sub_origin: PoseStamped, size: int) -> Costmap:
-        """
-        Creates a smaller map from the overall occupancy map, the new map is centered
-        around the point specified by "sub_origin" and has the size "size". The
-        resolution of the costmap stays the same for the sub costmap.
-
-        :param sub_origin: The point in global coordinate frame, around which the sub costmap should be centered.
-        :param size: The size the sub costmap should have.
-        :return: The sub costmap, represented as 2d numpy array.
-        """
-        # To ensure this is a numpy array
-        sub_origin = np.array(sub_origin.position.to_list())
-        # Since origin obtained from the meta data uses bottom left corner as reference.
-        sub_origin *= -1
-        # Calculates origin of sub costmap as vector between origin and given sub_origin
-        new_origin = np.array(self.meta_origin) + sub_origin
-        # Convert from vector in meter to index values
-        new_origin /= self.resolution
-        new_origin = np.abs(new_origin)
-        # Offset to top left corner, for easier slicing
-        new_origin = (new_origin - size / 2).astype(int)
-
-        # slices a submap with size "size" around the given origin
-        sub_map = self.original_map[new_origin[1]: new_origin[1] + size,
-                  new_origin[0]: new_origin[0] + size]
-        # Convert map to fit with the other costmaps
-        sub_map = np.rot90(np.flip(self._convert_map(sub_map), 0))
-        return Costmap(self.resolution, size, size, PoseStamped.from_list(list(sub_origin * -1)), sub_map)
+        self.size = size
+        self.origin = PoseStamped.from_list() if not origin else origin
+        self.origin = self.world.transform(self.origin.to_spatial_type(), self.world.root)
+        self.resolution = resolution
+        self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
+        self.map = self._create_from_world(size, resolution)
+        Costmap.__init__(self, resolution, size, size, self.origin, self.map, self.world)
 
     def _create_from_world(self, size: int, resolution: float) -> np.ndarray:
         """
@@ -456,11 +344,10 @@ class OccupancyCostmap(Costmap):
         # 16383 is the maximal number of rays that can be processed in a batch
         i = 0
         j = 0
-        floor_id = self.world.get_object_by_name("floor").id
-        for n in chunks(np.array(rays), World.current_world.conf.max_batch_size_for_rays):
-            r_t = World.current_world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
-            while r_t is None:
-                r_t = World.current_world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
+        # floor_id = self.world.get_object_by_name("floor").id
+        for n in chunks(np.array(rays), 256):
+            ray_tracer = RayTracer(self.world)
+            r_t = ray_tracer.ray_test(n[:, 0], n[:, 1])
             j += len(n)
             if World.robot:
                 attached_objs_id = [o.id for o in self.world.robot.attachments.keys()]

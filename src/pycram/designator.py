@@ -13,12 +13,11 @@ from pycrap.ontologies import PhysicalObject, Agent
 from .datastructures.enums import ObjectType
 from .datastructures.partial_designator import PartialDesignator
 from .datastructures.pose import PoseStamped
-from .datastructures.world import World
-from .failures import PlanFailure
-from .has_parameters import HasParameters
-from .robot_description import RobotDescription
+
+from .plan import Plan, PlanNode
 from .utils import bcolors
-from .world_concepts.world_object import Object as WorldObject, Object
+
+from semantic_world.world import World
 
 
 class DesignatorError(Exception):
@@ -54,6 +53,28 @@ class DesignatorDescription:
     """
     :ivar resolve: The specialized_designators function to use for this designator_description, defaults to self.ground
     """
+
+    plan_node: PlanNode = None
+
+    @property
+    def plan(self) -> Plan:
+        """
+        Returns the plan that this designator_description is part of.
+        """
+        if self.plan_node is not None:
+            return self.plan_node.plan
+        else:
+            raise ValueError("This designator_description is not part of a plan.")
+
+    @property
+    def world(self) -> World:
+        """
+        Returns the world that this designator_description is part of.
+        """
+        if self.plan_node is not None:
+            return self.plan_node.plan.world
+        else:
+            raise ValueError("This designator_description is not part of a plan.")
 
     def __init__(self):
         """

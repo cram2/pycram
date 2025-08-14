@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 
 import numpy as np
+from semantic_world.world_entity import Body
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from .facing import FaceAtActionDescription
@@ -22,7 +23,6 @@ from ....has_parameters import has_parameters
 from ....language import SequentialPlan
 from ....robot_description import RobotDescription
 from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
-from ....world_concepts.world_object import Object
 
 
 @has_parameters
@@ -32,7 +32,7 @@ class TransportAction(ActionDescription):
     Transports an object to a position using an arm
     """
 
-    object_designator: Object = field(repr=False)
+    object_designator: Body = field(repr=False)
     """
     Object designator_description describing the object that should be transported.
     """
@@ -120,7 +120,7 @@ class TransportAction(ActionDescription):
         pass
 
     @classmethod
-    def description(cls, object_designator: Union[Iterable[Object], Object],
+    def description(cls, object_designator: Union[Iterable[Body], Body],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None, place_rotation_agnostic: Optional[bool] = False) -> \
             PartialDesignator[Type[TransportAction]]:
@@ -136,7 +136,7 @@ class PickAndPlaceAction(ActionDescription):
     Transports an object to a position using an arm without moving the base of the robot
     """
 
-    object_designator: Object
+    object_designator: Body
     """
     Object designator_description describing the object that should be transported.
     """
@@ -179,7 +179,7 @@ class PickAndPlaceAction(ActionDescription):
             raise ValueError("Object not moved to the target location")
 
     @classmethod
-    def description(cls, object_designator: Union[Iterable[Object], Object],
+    def description(cls, object_designator: Union[Iterable[Body], Body],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None,
                     grasp_description=GraspDescription) -> PartialDesignator[Type[PickAndPlaceAction]]:
@@ -201,7 +201,7 @@ class MoveAndPlaceAction(ActionDescription):
     The pose to stand before trying to pick up the object
     """
 
-    object_designator: Object
+    object_designator: Body
     """
     The object to pick up
     """
@@ -233,7 +233,7 @@ class MoveAndPlaceAction(ActionDescription):
 
     @classmethod
     def description(cls, standing_position: Union[Iterable[PoseStamped], PoseStamped],
-                    object_designator: Union[Iterable[Object], Object],
+                    object_designator: Union[Iterable[Body], Body],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None,
                     keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states, ) -> \
@@ -257,7 +257,7 @@ class MoveAndPickUpAction(ActionDescription):
     The pose to stand before trying to pick up the object
     """
 
-    object_designator: Object
+    object_designator: Body
     """
     The object to pick up
     """

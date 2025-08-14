@@ -1,30 +1,25 @@
-import numpy as np
-from semantic_world.world_entity import View
+from semantic_world.prefixed_name import PrefixedName
+from semantic_world.prefixed_name import PrefixedName
+from semantic_world.robots import PR2, AbstractRobot
+from semantic_world.world import World
+from semantic_world.world_entity import Body
 from typing_extensions import TYPE_CHECKING
-from scipy.spatial.transform import Rotation as R
 
 from pycrap.urdf_parser import parse_furniture
 from ..datastructures.dataclasses import Colors
 from ..datastructures.enums import ExecutionType
-from ..robot_plans import *
 from ..external_interfaces import giskard
-from ..external_interfaces.ik import request_ik
 from ..external_interfaces.robokudo import query_all_objects, query_object, query_human, query_specific_region, \
     query_human_attributes, query_waving_human
 from ..failures import NavigationGoalNotReachedError
-from ..local_transformer import LocalTransformer
-from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..process_module import ProcessModule, ManagerBase
 from ..robot_description import RobotDescription
+from ..robot_plans import *
 from ..ros import get_time
 from ..ros import logdebug, loginfo
 from ..tf_transformations import euler_from_quaternion
-from ..utils import _apply_ik
 from ..world_concepts.world_object import Object
 from ..world_reasoning import visible, link_pose_for_joint_config
-
-from semantic_world.world import World
-from semantic_world.robots import PR2, AbstractRobot
 
 if TYPE_CHECKING:
     from ..designators.object_designator import ObjectDesignatorDescription
@@ -51,8 +46,7 @@ class DefaultMoveHead(ProcessModule):
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
-        robot = World.robot
-        local_transformer = LocalTransformer()
+        robot = desig.world.get_views_by_type(AbstractRobot)[0]
 
         neck = RobotDescription.current_robot_description.get_neck()
         pan_link = neck["yaw"][0]
@@ -61,12 +55,12 @@ class DefaultMoveHead(ProcessModule):
         pan_joint = neck["yaw"][1]
         tilt_joint = neck["pitch"][1]
 
-        pose_in_map = local_transformer.transform_pose(target, "map")
+        pose_in_map = desig.world.transform_pose(target.to_spatial_type(), desig.world.root)
 
-        pose_in_pan = local_transformer.transform_pose(pose_in_map,
-                                                       robot.get_link_tf_frame(pan_link)).position.to_list()
-        pose_in_tilt = local_transformer.transform_pose(pose_in_map,
-                                                        robot.get_link_tf_frame(tilt_link)).position.to_list()
+        pose_in_pan = \
+        desig.world.transform(pose_in_map.to_spatial_type(), desig.world.get_body_by_name(pan_link)).to_np()[:3, 3]
+        pose_in_tilt = \
+        desig.world.transform(pose_in_map.to_spatial_type(), desig.world.get_body_by_name(tilt_link)).to_np()[:3, 3]
 
         new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
 
@@ -175,6 +169,7 @@ class DefaultMoveTCP(ProcessModule):
         for joint, state in inv.items():
             desig.world.state[joint.name].position = state
         desig.world.notify_state_change()
+
 
 class DefaultMoveArmJoints(ProcessModule):
     """
@@ -304,9 +299,8 @@ class DefaultDetectingReal(ProcessModule):
                 except IndexError:
                     obj_pose = PoseStamped.from_ros_message(query_result.res[i].pose)
                     pass
-                lt = LocalTransformer()
                 obj_pose.frame_id = World.robot.get_link_tf_frame(obj_pose.frame_id)
-                obj_pose_T_m = lt.transform_pose(obj_pose, "map")
+                obj_pose_T_m = designator.world.transform(obj_pose, designator.world.root)
 
                 obj_type = query_result.res[i].type
                 obj_size = None
@@ -335,19 +329,21 @@ class DefaultDetectingReal(ProcessModule):
 
                 obj_name = obj_type + "" + str(get_time())
 
-                gen_obj_desc = GenericObjectDescription(obj_name, [0, 0, 0], hsize)
+                # gen_obj_desc = GenericObjectDescription(obj_name, [0, 0, 0], hsize)
+                gen_obj = Body(name=PrefixedName(obj_name))
+                designator.world.add_object(gen_obj)
 
-                if obj_color is not None: color = Colors.from_string(obj_color)
-                else: color = Colors.PINK
+                if obj_color is not None:
+                    color = Colors.from_string(obj_color)
+                else:
+                    color = Colors.PINK
 
-                generic_obj = Object(name=obj_name, concept=type_concept, path=None, description=gen_obj_desc,
-                                     color=color)
+                # generic_obj = Object(name=obj_name, concept=type_concept, path=None, description=gen_obj_desc,
+                #                      color=color)
 
+                designator.world.get_connection(designator.world.root, gen_obj).origin = obj_pose
 
-                generic_obj.set_pose(obj_pose)
-
-
-                perceived_objects.append(generic_obj)
+                perceived_objects.append(gen_obj)
 
             object_dict = []
 
@@ -384,9 +380,8 @@ class DefaultMoveHeadReal(ProcessModule):
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
-        robot = World.robot
+        robot = desig.world.get_views_by_type(AbstractRobot)
 
-        local_transformer = LocalTransformer()
         neck = RobotDescription.current_robot_description.get_neck()
         pan_link = neck["yaw"][0]
         tilt_link = neck["pitch"][0]
@@ -394,8 +389,12 @@ class DefaultMoveHeadReal(ProcessModule):
         pan_joint = neck["yaw"][1]
         tilt_joint = neck["pitch"][1]
 
-        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link)).position.to_list()
-        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link)).position.to_list()
+        pose_in_map = desig.world.transform_pose(target.to_spatial_type(), desig.world.root)
+
+        pose_in_pan = \
+            desig.world.transform(pose_in_map.to_spatial_type(), desig.world.get_body_by_name(pan_link)).to_np()[:3, 3]
+        pose_in_tilt = \
+            desig.world.transform(pose_in_map.to_spatial_type(), desig.world.get_body_by_name(tilt_link)).to_np()[:3, 3]
 
         new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
 
@@ -430,8 +429,7 @@ class DefaultMoveTCPReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveTCPMotion):
-        lt = LocalTransformer()
-        pose_in_map = lt.transform_pose(designator.target, "map")
+        pose_in_map = designator.world.transform(designator.target, designator.world.root)
         tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
         root_link = "map"
 
@@ -521,8 +519,7 @@ class DefaultMoveTCPWaypointsReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveTCPWaypointsMotion):
-        lt = LocalTransformer()
-        waypoints = [lt.transform_pose(x, "map") for x in designator.waypoints]
+        waypoints = [designator.world.transform(x.to_spatial_type(), designator.world.root) for x in designator.waypoints]
         tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
         root_link = "map"
 
@@ -599,6 +596,7 @@ class DefaultManager(ManagerBase):
             return DefaultMoveTCPWaypoints(self._move_tcp_waypoints_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return DefaultMoveTCPWaypointsReal(self._move_tcp_waypoints_lock)
+
 
 # Initialize the default manager and register it with the ProcessModuleManager
 DefaultManager()

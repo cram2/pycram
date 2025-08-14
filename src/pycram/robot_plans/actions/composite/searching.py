@@ -11,13 +11,11 @@ from ..core.navigation import LookAtActionDescription, NavigateActionDescription
 from ....datastructures.enums import DetectionTechnique
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
-from ....datastructures.world import World
 from ....designators.location_designator import CostmapLocation
 from ....designators.object_designator import BelieveObject
 from ....failures import PerceptionObjectNotFound
 from ....has_parameters import has_parameters
 from ....language import TryInOrderPlan, SequentialPlan
-from ....local_transformer import LocalTransformer
 from ....robot_plans.actions.base import ActionDescription
 
 

@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from functools import cached_property
 
+from semantic_world.world_entity import Body
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from ...motions.gripper import MoveTCPMotion, MoveGripperMotion
@@ -11,17 +12,13 @@ from ....datastructures.dataclasses import FrozenObject
 from ....datastructures.enums import Arms, GripperState
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
-from ....datastructures.world import World
-from ....description import Link
 from ....failures import ObjectNotPlacedAtTargetLocation, ObjectStillInContact
 from ....has_parameters import has_parameters
 from ....language import SequentialPlan
-from ....local_transformer import LocalTransformer
 from ....robot_description import EndEffectorDescription
 from ....robot_description import RobotDescription, KinematicChainDescription
 from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
 from ....validation.error_checkers import PoseErrorChecker
-from ....world_concepts.world_object import Object
 
 
 @has_parameters
@@ -31,7 +28,7 @@ class PlaceAction(ActionDescription):
     Places an Object at a position using an arm.
     """
 
-    object_designator: Object
+    object_designator: Body
     """
     Object designator_description describing the object that should be place
     """
@@ -77,7 +74,7 @@ class PlaceAction(ActionDescription):
         SequentialPlan(self.context, MoveTCPMotion(retract_pose, self.arm)).perform()
 
     @cached_property
-    def gripper_link(self) -> Link:
+    def gripper_link(self) -> Body:
         return World.robot.links[self.arm_chain.get_tool_frame()]
 
     @cached_property
@@ -87,10 +84,6 @@ class PlaceAction(ActionDescription):
     @cached_property
     def end_effector(self) -> EndEffectorDescription:
         return self.arm_chain.end_effector
-
-    @cached_property
-    def local_transformer(self) -> LocalTransformer:
-        return LocalTransformer()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """
@@ -117,7 +110,7 @@ class PlaceAction(ActionDescription):
             raise ObjectNotPlacedAtTargetLocation(self.object_designator, self.target_location, World.robot, self.arm)
 
     @classmethod
-    def description(cls, object_designator: Union[Iterable[Object], Object],
+    def description(cls, object_designator: Union[Iterable[Body], Body],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None) -> PartialDesignator[Type[PlaceAction]]:
         return PartialDesignator(PlaceAction, object_designator=object_designator,

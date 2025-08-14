@@ -1,22 +1,19 @@
 import numpy as np
+from semantic_world.world_entity import Body
 from trimesh import Trimesh
 from typing_extensions import List, Tuple, Optional, Union, Dict
 
 from pycrap.ontologies import PhysicalObject
-from .datastructures.dataclasses import ContactPointsList, RayResult
+from .datastructures.dataclasses import RayResult
 from .datastructures.enums import Frame, Arms, FindBodyInRegionMethod, Grasp, ApproachDirection, VerticalAlignment
 from .datastructures.pose import PoseStamped, TransformStamped
-from .datastructures.world import World, UseProspectionWorld
-from .datastructures.world_entity import PhysicalBody
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
-from .object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from .robot_description import RobotDescription, KinematicChainDescription
 from .ros import logdebug, logwarn
 from .utils import RayTestUtils, chunks, get_rays_from_min_max
-from .world_concepts.world_object import Object, Link
 
 
-def stable(obj: Object) -> bool:
+def stable(obj: Body) -> bool:
     """
     Checks if an object is stable in the world. Stable meaning that it's position will not change after simulating
     physics in the World. This will be done by simulating the world for 10 seconds and compare
@@ -39,9 +36,9 @@ def stable(obj: Object) -> bool:
 
 
 def contact(
-        object1: Object,
-        object2: Object,
-        return_links: bool = False) -> Union[bool, Tuple[bool, List[Tuple[Link, Link]]]]:
+        object1: Body,
+        object2: Body,
+        return_links: bool = False) -> Union[bool, Tuple[bool, List[Tuple[Body, Body]]]]:
     """
     Checks if two objects are in contact or not. If the links should be returned then the output will also contain a
     list of tuples where the first element is the link name of 'object1' and the second element is the link name of
@@ -67,7 +64,7 @@ def contact(
             return objects_are_in_contact
 
 
-def prospect_robot_contact(robot: Object, ignore_collision_with: Optional[List[Object]] = None) -> bool:
+def prospect_robot_contact(robot: Body, ignore_collision_with: Optional[List[Body]] = None) -> bool:
     """
     Check if the robot collides with any object in the world at the given pose.
 
@@ -96,7 +93,7 @@ def prospect_robot_contact(robot: Object, ignore_collision_with: Optional[List[O
 
 
 
-def is_held_object(robot: Object, obj: Object, robot_contact_links: List[Link]) -> bool:
+def is_held_object(robot: Body, obj: Body, robot_contact_links: List[Body]) -> bool:
     """
     Check if the object is picked by the robot.
 
@@ -148,7 +145,7 @@ def get_visible_objects(
 
 
 def visible(
-        obj: Object,
+        obj: Body,
         camera_pose: PoseStamped,
         front_facing_axis: Optional[List[float]] = None,
         threshold: float = 0.8,
@@ -193,10 +190,10 @@ def visible(
 
 
 def occluding(
-        obj: Object,
+        obj: Body,
         camera_pose: PoseStamped,
         front_facing_axis: Optional[List[float]] = None,
-        plot_segmentation_mask: bool = False) -> List[Object]:
+        plot_segmentation_mask: bool = False) -> List[Body]:
     """
     Lists all objects which are occluding the given object. This works similar to 'visible'.
     First the object alone will be rendered and the position of the pixels of the object in the picture will be saved.
@@ -241,8 +238,8 @@ def occluding(
 
 
 def reachable(
-        pose_or_object: Union[Object, PoseStamped],
-        robot: Object,
+        pose_or_object: Union[Body, PoseStamped],
+        robot: Body,
         gripper_name: str,
         threshold: float = 0.01) -> bool:
     """
@@ -271,10 +268,10 @@ def reachable(
 
 
 def blocking(
-        pose_or_object: Union[Object, PoseStamped],
-        robot: Object,
+        pose_or_object: Union[Body, PoseStamped],
+        robot: Body,
         gripper_chain: KinematicChainDescription,
-        grasp: Optional[ApproachDirection] = None) -> Union[List[Object], None]:
+        grasp: Optional[ApproachDirection] = None) -> Union[List[Body], None]:
     """
     Checks if any objects are blocking another object when a robot tries to pick it. This works
     similar to the reachable predicate. First the inverse kinematics between the robot and the object will be
@@ -302,8 +299,8 @@ def blocking(
 
 
 def supporting(
-        object1: Object,
-        object2: Object) -> bool:
+        object1: Body,
+        object2: Body) -> bool:
     """
     Checks if one object is supporting another object. An object supports another object if they are in
     contact and the second object is above the first one. (e.g. a Bottle will be supported by a table)
@@ -316,7 +313,7 @@ def supporting(
 
 
 def link_pose_for_joint_config(
-        obj: Object,
+        obj: Body,
         joint_config: Dict[str, float],
         link_name: str) -> PoseStamped:
     """
@@ -350,7 +347,7 @@ def move_away_all_objects_to_create_empty_space(exclude_objects: List[str] = Non
 
 
 def generate_object_at_target(target_location: List[float], size: Tuple[float, ...] = (0.2, 0.2, 0.2),
-                              name: str = "target") -> Object:
+                              name: str = "target") -> Body:
     """
     Generate a virtual object at the target location.
 
@@ -382,7 +379,7 @@ def cast_a_ray_from_camera(max_distance: float = 10):
     return ray_result
 
 
-def has_gripper_grasped_body(arm: Arms, body: PhysicalBody) -> bool:
+def has_gripper_grasped_body(arm: Arms, body: Body) -> bool:
     """
     Check if the gripper has grasped the body by checking if the gripper fingers are in contact with the body.
     else it will check if the gripper links are in contact with the body.
@@ -408,7 +405,7 @@ def has_gripper_grasped_body(arm: Arms, body: PhysicalBody) -> bool:
     return False
 
 
-def is_body_between_fingers(body: PhysicalBody, fingers_link_names: List[str],
+def is_body_between_fingers(body: Body, fingers_link_names: List[str],
                             method: FindBodyInRegionMethod = FindBodyInRegionMethod.FingerToCentroid) -> bool:
     """
     Check if the body is between the fingers of the gripper.
@@ -457,7 +454,7 @@ def get_empty_space_between_fingers(fingers_link_names: List[str]) -> Optional[T
     return empty_space_between_fingers
 
 
-def get_intersection_between_body_bounding_box_and_empty_space(body: PhysicalBody, empty_space: Trimesh) \
+def get_intersection_between_body_bounding_box_and_empty_space(body: Body, empty_space: Trimesh) \
         -> Optional[Trimesh]:
     """
     Get the intersection between the body and the empty space between the fingers.
@@ -477,7 +474,7 @@ def get_intersection_between_body_bounding_box_and_empty_space(body: PhysicalBod
     return intersection
 
 
-def is_body_in_region(body: PhysicalBody, region: Trimesh, step_size_in_meters: float = 0.01,
+def is_body_in_region(body: Body, region: Trimesh, step_size_in_meters: float = 0.01,
                       method: FindBodyInRegionMethod = FindBodyInRegionMethod.Centroid) -> bool:
     """
     Check if the body is in the given region.

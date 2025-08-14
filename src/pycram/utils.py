@@ -10,6 +10,7 @@ from __future__ import annotations
 from inspect import isgeneratorfunction
 import os
 import math
+from typing import Union, Iterator
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -19,7 +20,6 @@ from .tf_transformations import quaternion_about_axis, quaternion_multiply
 from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence, Any, Iterable, Optional
 
 from .datastructures.pose import PoseStamped
-from .local_transformer import LocalTransformer
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
@@ -85,7 +85,7 @@ def get_rays_from_min_max(min_bound: Sequence[float], max_bound: Sequence[float]
     return np.stack((rays_start, rays_end), axis=-1)
 
 
-def chunks(lst: List, n: int) -> List:
+def chunks(lst: Union[List, np.ndarray], n: int) -> Iterator[List]:
     """
     Yield successive n-sized chunks from lst.
 
