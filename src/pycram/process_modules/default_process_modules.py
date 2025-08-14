@@ -91,6 +91,7 @@ class DefaultMoveHead(ProcessModule):
         current_tilt = robot.get_joint_position(tilt_joint)
         desig.world.state[desig.world.get_body_by_name(pan_joint)].position = new_pan + current_pan
         desig.world.state[desig.world.get_body_by_name(tilt_joint)].position = new_tilt + current_tilt
+        desig.world.notify_state_change()
 
 
 class DefaultMoveGripper(ProcessModule):
