@@ -15,13 +15,14 @@ from ....datastructures.enums import Arms, Grasp, VerticalAlignment
 from ....datastructures.grasp import GraspDescription
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
-from ....designators.location_designator import ProbabilisticCostmapLocation
+from ....designators.location_designator import ProbabilisticCostmapLocation, CostmapLocation
 from ....designators.object_designator import BelieveObject
-from ....failures import ObjectUnfetchable, ReachabilityFailure
+from ....failures import ObjectUnfetchable, ReachabilityFailure, ConfigurationNotReached
 from ....has_parameters import has_parameters
 from ....plan import with_plan
 from ....robot_description import RobotDescription
 from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
+from ....ros import loginfo
 from ....world_concepts.world_object import Object
 from ....datastructures.world import World
 
@@ -166,7 +167,7 @@ class PickAndPlaceAction(ActionDescription):
     def plan(self) -> None:
         ParkArmsActionDescription(Arms.BOTH).perform()
         PickUpActionDescription(self.object_designator, self.arm,
-                                grasp_description=self.grasp_description).perform()
+                     grasp_description=self.grasp_description).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()
         PlaceActionDescription(self.object_designator, self.target_location, self.arm).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()
@@ -182,7 +183,7 @@ class PickAndPlaceAction(ActionDescription):
     def description(cls, object_designator: Union[Iterable[Object], Object],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
                     arm: Union[Iterable[Arms], Arms] = None,
-                    grasp_description=GraspDescription) -> PartialDesignator[Type[PickAndPlaceAction]]:
+                    grasp_description = GraspDescription) -> PartialDesignator[Type[PickAndPlaceAction]]:
         return PartialDesignator(PickAndPlaceAction, object_designator=object_designator,
                                  target_location=target_location,
                                  arm=arm,
@@ -318,7 +319,97 @@ class MoveAndPickUpAction(ActionDescription):
                                  grasp_description=grasp_description,
                                  keep_joint_states=keep_joint_states)
 
+
+
+
+@has_parameters
+@dataclass
+class EfficientTransportAction(ActionDescription):
+    """
+    To transport an object to a target location by choosing the closest
+    available arm using simple Euclidean distance.
+    """
+    object_designator: Object
+    target_location: PoseStamped
+
+    def _choose_best_arm(self, robot: Object, obj: Object) -> Arms:
+        """
+        Function to find the closest available arm.
+        """
+        rd = RobotDescription.current_robot_description
+        try:
+            left_tool_frame = rd.get_arm_chain(Arms.LEFT).get_tool_frame()
+            right_tool_frame = rd.get_arm_chain(Arms.RIGHT).get_tool_frame()
+            left_tip = robot.get_link_position(left_tool_frame)
+            right_tip = robot.get_link_position(right_tool_frame)
+        except Exception as e:
+            raise ConfigurationNotReached(f"Could not get tool frames or link positions for arms: {e}")
+
+        # Calculating the distance from gripper to the object
+        object_pos_vec = np.array([obj.pose.position.x, obj.pose.position.y, obj.pose.position.z])
+        left_dist = np.linalg.norm(np.array(left_tip) - object_pos_vec)
+        right_dist = np.linalg.norm(np.array(right_tip) - object_pos_vec)
+
+        # If the arms are free or not
+        attached_links = robot._attached_objects.values() if hasattr(robot, '_attached_objects') else []
+        left_free = left_tool_frame not in attached_links
+        right_free = right_tool_frame not in attached_links
+
+        # Decide which arm to use based on proximity and availability
+        if left_free and (not right_free or left_dist <= right_dist):
+            return Arms.LEFT
+        elif right_free:
+            return Arms.RIGHT
+        else:
+            raise ConfigurationNotReached("No free arm available to grasp the object.")
+
+    def plan(self) -> None:
+        """
+        The main plan for the transport action, optimized for a stationary robot.
+        """
+        robot = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
+        obj = self.object_designator
+
+        if not obj or not obj.pose:
+            raise ConfigurationNotReached(f"Couldn't resolve the pose for the object: {self.object_designator}")
+
+        # Intelligently choose the best arm
+        chosen_arm = self._choose_best_arm(robot, obj)
+        loginfo(f"Chosen arm for transport: {chosen_arm.name}")
+
+        ParkArmsActionDescription(Arms.BOTH).perform()
+
+        PickUpActionDescription(
+            object_designator=self.object_designator,
+            arm=chosen_arm
+        ).perform()
+
+        ParkArmsActionDescription(Arms.BOTH).perform()
+
+        # Attempting the placement.
+        PlaceActionDescription(
+            object_designator=self.object_designator,
+            target_location=self.target_location,
+            arm=chosen_arm
+        ).perform()
+
+
+        ParkArmsActionDescription(Arms.BOTH).perform()
+
+    @classmethod
+    @with_plan
+    def description(cls, object_designator: Union[Iterable[Object], Object],
+                    target_location: Union[Iterable[PoseStamped], PoseStamped]) -> PartialDesignator[Type['EfficientTransportAction']]:
+        return PartialDesignator(cls,
+                                 object_designator=object_designator,
+                                 target_location=target_location)
+
+
+
+
+
 TransportActionDescription = TransportAction.description
 PickAndPlaceActionDescription = PickAndPlaceAction.description
 MoveAndPlaceActionDescription = MoveAndPlaceAction.description
 MoveAndPickUpActionDescription = MoveAndPickUpAction.description
+EfficientTransportActionDescription = EfficientTransportAction.description
