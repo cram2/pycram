@@ -105,7 +105,7 @@ If you want to cite PyCRAM in your work, you can use the following bibtex entry:
 .. code-block:: bibtex
 
         @software{dech2024pycram,
-        author = {Dech, Jonas},
+        author = {Dech, Jonas and Bassiouny, Abdelrhman and  Schierenbeck, Tom and Hassouna, Vanessa and Krohm, Luca and Prüsser, David},
         title = {PyCRAM: A Python framework for cognition-enbabled robtics},
         url = {https://github.com/cram2/pycram},
         version = {0.2.0},
