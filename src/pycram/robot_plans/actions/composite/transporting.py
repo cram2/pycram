@@ -321,6 +321,7 @@ class MoveAndPickUpAction(ActionDescription):
 
 
 
+
 @has_parameters
 @dataclass
 class EfficientTransportAction(ActionDescription):
@@ -402,6 +403,8 @@ class EfficientTransportAction(ActionDescription):
         return PartialDesignator(cls,
                                  object_designator=object_designator,
                                  target_location=target_location)
+
+
 
 
 
