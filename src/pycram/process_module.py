@@ -100,7 +100,7 @@ class RealRobot:
 
     def __call__(self, robot=None):
         if robot is not None:
-            RobotManager.set_active_robot(robot.name)
+            RobotManager.set_active_robot(robot)
         return self
 
 
@@ -137,7 +137,7 @@ class SimulatedRobot:
 
     def __call__(self, robot=None):
         if robot is not None:
-            RobotManager.set_active_robot(robot.name)
+            RobotManager.set_active_robot(robot)
         return self
 
 
@@ -174,7 +174,7 @@ class SemiRealRobot:
 
     def __call__(self, robot=None):
         if robot is not None:
-            RobotManager.set_active_robot(robot.name)
+            RobotManager.set_active_robot(robot)
         return self
 
 

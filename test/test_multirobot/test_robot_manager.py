@@ -75,10 +75,10 @@ class MultiRobotTestCase(unittest.TestCase):
 class TestMultiRobot(MultiRobotTestCase):
 
     def test_load_multiple_robots(self):
-        RobotManager.set_active_robot(self.robot_pr2.name)
+        RobotManager.set_active_robot(self.robot_pr2)
 
         self.check_current_robot(self.robot_pr2.name)
 
-        RobotManager.set_active_robot(self.robot_justin.name)
+        RobotManager.set_active_robot(self.robot_justin)
 
         self.check_current_robot(self.robot_justin.name)

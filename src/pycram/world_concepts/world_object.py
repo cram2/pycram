@@ -139,7 +139,7 @@ class Object(PhysicalBody, HasParameters):
         self.world.add_object(self)
 
         if self.obj_type == Robot:
-            RobotManager.set_active_robot(self.name)
+            RobotManager.set_active_robot(self)
 
     @property
     def parts(self) -> Dict[str, PhysicalBody]:

@@ -1,7 +1,14 @@
+from __future__ import annotations
 from abc import ABC
+from typing import Optional
+
+from typing_extensions import TYPE_CHECKING
 
 from pycram.robot_description import RobotDescriptionManager, RobotDescription
 from pycram.ros import logdebug
+
+if TYPE_CHECKING:
+    from pycram.world_concepts.world_object import Object
 
 
 class RobotManager(ABC):
@@ -50,7 +57,7 @@ class RobotManager(ABC):
         logdebug(f'Initialize RobotManager.')
 
     @staticmethod
-    def add_robot(robot):
+    def add_robot(robot: Object):
         """
         Add another robot to the list of available robots
 
@@ -59,20 +66,20 @@ class RobotManager(ABC):
         RobotManager.available_robots[robot.name] = robot
 
     @staticmethod
-    def set_active_robot(robot_name: str = None):
+    def set_active_robot(robot: Optional[Object] = None):
         """
         Set the currently active robot based on its name.
 
-        :param robot_name: Robot name
+        :param robot: Robot object to use
         """
         rdm = RobotDescriptionManager()
-        RobotManager.robot_description = rdm.load_description(name=robot_name)
-        RobotManager.active_robot = RobotManager.available_robots[robot_name] if robot_name else None
-        RobotManager.set_giskard_robot(robot_name) if robot_name else None
-        logdebug(f'Setting active robot. Is now: {robot_name}')
+        RobotManager.robot_description = rdm.load_description(name=robot.name)
+        RobotManager.active_robot = RobotManager.available_robots[robot.name] if robot else None
+        RobotManager.set_giskard_robot(robot) if robot else None
+        logdebug(f'Setting active robot. Is now: {robot.name}')
 
     @staticmethod
-    def get_active_robot(robot=None):
+    def get_active_robot(robot: Optional[Object] = None) -> Object:
         """
         Returns the active robot if the given variable is None.
         This differentiation is used for handling multiple robots in multithreaded Actions
@@ -85,7 +92,7 @@ class RobotManager(ABC):
         return robot
 
     @staticmethod
-    def get_robot_description(robot=None) -> RobotDescription:
+    def get_robot_description(robot: Optional[Object] = None) -> RobotDescription:
         """
         Retrieve the description of the active robot.
         For concurrent robot actions, a robot can be given as parameter and its description is used instead.
@@ -103,7 +110,7 @@ class RobotManager(ABC):
         raise Exception(f"Robot {robot.name} could not be found in RobotDescriptionManager")
 
     @staticmethod
-    def multiple_robots_active():
+    def multiple_robots_active() -> bool:
         """
         State if multiple robots exist to differentiate between single-robot and multi-robot demos.
 
@@ -115,10 +122,10 @@ class RobotManager(ABC):
         return False
 
     @staticmethod
-    def set_giskard_robot(robot_name: str):
+    def set_giskard_robot(robot: Object):
         """
         Set the giskard robot with the given robot
 
-        :param robot_name: Name of the robot
+        :param robot: Robot object to set
         """
-        RobotManager.giskard_robot = RobotManager.available_robots[robot_name]
+        RobotManager.giskard_robot = RobotManager.available_robots[robot.name]
