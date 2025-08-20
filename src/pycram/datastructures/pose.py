@@ -354,7 +354,7 @@ class Header:
         from std_msgs.msg import Header as ROSHeader
         split_time = str(self.stamp.timestamp()).split(".")
         stamp = ROSTime(int(split_time[0]), int(split_time[1]))
-        return ROSHeader(frame_id=self.frame_id, stamp=stamp, seq=self.sequence)
+        return ROSHeader(frame_id=self.frame_id, stamp=stamp)
 
 @has_parameters
 @dataclass
