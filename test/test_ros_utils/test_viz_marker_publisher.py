@@ -313,7 +313,7 @@ class TestTrajectoryPublisher(unittest.TestCase):
     def setUpClass(cls):
         cls.mock_create_publisher = patch("pycram.ros_utils.viz_marker_publisher.create_publisher").start()
         cls.mock_publisher = MagicMock()
-        cls.mock_create_publisher.return_value = MagicMock(return_value=cls.mock_publisher)
+        cls.mock_create_publisher.return_value = cls.mock_publisher
 
     @classmethod
     def tearDownClass(cls):
@@ -321,7 +321,7 @@ class TestTrajectoryPublisher(unittest.TestCase):
 
     def test_publisher(self):
         trajectory_pub = TrajectoryPublisher()
-        self.assertEqual(trajectory_pub.publisher(), self.mock_publisher)
+        self.assertEqual(trajectory_pub.publisher, self.mock_publisher)
 
     def test_visualize_trajectory(self):
         with patch("pycram.ros_utils.viz_marker_publisher.create_publisher") as mock_create_publisher:
@@ -387,7 +387,7 @@ class TestBoundingBoxPublisher(unittest.TestCase):
     def setUpClass(cls):
         cls.mock_create_publisher = patch("pycram.ros_utils.viz_marker_publisher.create_publisher").start()
         cls.mock_publisher = MagicMock()
-        cls.mock_create_publisher.return_value = MagicMock(return_value=cls.mock_publisher)
+        cls.mock_create_publisher.return_value = cls.mock_publisher
 
     @classmethod
     def tearDownClass(cls):
@@ -395,7 +395,7 @@ class TestBoundingBoxPublisher(unittest.TestCase):
 
     def test_publisher(self):
         bounding_box_pub = BoundingBoxPublisher()
-        self.assertEqual(bounding_box_pub.publisher(), self.mock_publisher)
+        self.assertEqual(bounding_box_pub.publisher, self.mock_publisher)
 
     def test_visualization(self):
         with patch("pycram.ros_utils.viz_marker_publisher.create_publisher") as mock_create_publisher:
@@ -438,7 +438,7 @@ class TestCoordinateAxisPublisher(unittest.TestCase):
     def setUpClass(cls):
         cls.mock_create_publisher = patch("pycram.ros_utils.viz_marker_publisher.create_publisher").start()
         cls.mock_publisher = MagicMock()
-        cls.mock_create_publisher.return_value = MagicMock(return_value=cls.mock_publisher)
+        cls.mock_create_publisher.return_value = cls.mock_publisher
 
     @classmethod
     def tearDownClass(cls):
@@ -446,7 +446,7 @@ class TestCoordinateAxisPublisher(unittest.TestCase):
 
     def test_publisher(self):
         coordinate_axis_pub = CoordinateAxisPublisher()
-        self.assertEqual(coordinate_axis_pub.publisher(), self.mock_publisher)
+        self.assertEqual(coordinate_axis_pub.publisher, self.mock_publisher)
 
     def test_visualize(self):
         with patch("pycram.ros_utils.viz_marker_publisher.create_publisher") as mock_create_publisher:

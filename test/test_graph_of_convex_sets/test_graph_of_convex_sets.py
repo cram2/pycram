@@ -86,7 +86,7 @@ class GCSFromWorldTestCase(BulletWorldTestCase):
 
         if "ROS_VERSION" in os.environ:
             pub = TrajectoryPublisher()
-            pub.visualize_trajectory(path)
+            pub.visualize(path)
 
         self.assertIsNotNone(path)
         self.assertGreater(len(path), 1)

@@ -1,17 +1,18 @@
 import atexit
 import threading
 import time
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from functools import cached_property
 from typing import List, Optional
 
 import numpy as np
 from geometry_msgs.msg import Vector3, Point, Pose
+from rclpy.publisher import Publisher
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
 from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape, \
-    BoundingBoxCollection, Color
+    BoundingBoxCollection, Color, BoundingBox
 from ..datastructures.enums import AxisIdentifier
 from ..datastructures.pose import PoseStamped, TransformStamped
 from ..datastructures.world import World
@@ -21,18 +22,25 @@ from ..ros import  loginfo, logwarn, logerr
 from ..ros import  create_publisher
 from ..ros import  sleep
 from ..tf_transformations import quaternion_multiply
+from ..world_concepts.world_object import Object
 
 
-class SingleTypePublisher:
+class SingleTypePublisher(ABC):
     """
     Publishes a single type of data to visualize it in rviz.
     """
 
-    topic: str
-    """The name of the topic being published to."""
+    def __init__(self, topic: str):
+        """
+        Initializes the name of the topic.
+
+        :param topic: The topic to publish to.
+        """
+
+        self.topic = topic
 
     @cached_property
-    def publisher(self):
+    def publisher(self) -> Publisher:
         """
         Create a publisher that publishes data to topic.
 
@@ -43,14 +51,15 @@ class SingleTypePublisher:
         return pub
 
     @abstractmethod
-    def visualize(self, data):
+    def visualize(self, data: object) -> None:
         """
         Subclasses must implement this to create and publish a MarkerArray
         """
         pass
 
-    def _create_arrow_marker(self, p1, p2, index, frame_id, color=(1.0, 0.0, 1.0, 1.0), scale=(0.01, 0.02, 0.02),
-                            duration=60):
+    def _create_arrow_marker(self, p1: Point, p2: Point, index: int, frame_id: str,
+                             color: Optional[List] = (1.0, 0.0, 1.0, 1.0), scale: Optional[List] = (0.01, 0.02, 0.02),
+                             duration: Optional[int] = 60) -> Marker:
         """
         Create an arrow marker.
 
@@ -81,7 +90,7 @@ class SingleTypePublisher:
 
         return marker
 
-    def _create_cube_marker(self, box, index, duration=60):
+    def _create_cube_marker(self, box: BoundingBox, index: int, duration: Optional[int] = 60) -> Marker:
         """
         Create a cube marker.
 
@@ -115,7 +124,9 @@ class SingleTypePublisher:
 
         return marker
 
-    def _create_line_marker(self, pose: PoseStamped, axis, color_rgba, index, duration=60, length=0.1, width=0.02):
+    def _create_line_marker(self, pose: PoseStamped, axis: List[float], color_rgba: List[float], index: int,
+                            duration: Optional[int] = 60, length: Optional[float] = 0.1,
+                            width: Optional[float] = 0.02) -> Marker:
         """
         Create a line marker.
 
@@ -129,8 +140,7 @@ class SingleTypePublisher:
 
         returns: The created line marker.
         """
-
-        def rotate_axis_by_quaternion(axis, quaternion):
+        def rotate_axis_by_quaternion(axis: List[float], quaternion: PoseStamped.orientation) -> List[float]:
             """
             Rotates axis by quaternion.
 
@@ -172,8 +182,9 @@ class SingleTypePublisher:
 
         return marker
 
-    def _create_geometry_marker(self, geom, obj, link, i, link_pose_with_origin, reference_frame,
-                                use_prospection_world=False):
+    def _create_geometry_marker(self, geom: MeshVisualShape | CylinderVisualShape | BoxVisualShape | SphereVisualShape,
+                                obj: Object, link: str, i: int, link_pose_with_origin: TransformStamped, reference_frame: str,
+                                use_prospection_world: Optional[bool] = False) -> Marker:
         """
         Creates a Marker for the given geometry type.
 
@@ -220,16 +231,16 @@ class SingleTypePublisher:
 
         return marker
 
-    def _create_object_marker(self, pose, name, path, current_id):
+    def _create_object_marker(self, pose: PoseStamped, name: str, path: str, current_id: int) -> Marker:
         """
-        Create an object marker.
+        Create a marker for an object.
 
         :param pose: the pose of the object
         :param name: the name of the object
         :param path: the path of the object
         :param current_id: the id of the current object
 
-        returns: The created object marker.
+        returns: The created marker.
         """
         marker = Marker()
         marker.id = current_id
@@ -250,21 +261,22 @@ class VizMarkerPublisher(SingleTypePublisher):
     """
     Publishes an Array of visualization marker which represent the situation in the World
     """
-    topic = "/pycram/viz_marker"
 
-    def __init__(self, topic_name=topic, interval=0.1, reference_frame="map", use_prospection_world=False, publish_visuals=False):
+    def __init__(self, topic="/pycram/viz_marker", interval=0.1, reference_frame="map", use_prospection_world=False,
+                 publish_visuals=False):
         """
         The Publisher creates an Array of Visualization marker with a Marker for each link of each Object in the
         World. This Array is published with a rate of interval.
 
-        :param topic_name: The name of the topic to which the Visualization Marker should be published.
+        :param topic: The name of the topic to which the Visualization Marker should be published.
         :param interval: The interval at which the visualization marker should be published, in seconds.
         :param reference_frame: The reference frame of the visualization marker.
         :param use_prospection_world: If True, the visualization marker will be published for the prospection world.
         :param publish_visuals: If True, the visualization marker will be published.
         """
+
         self.use_prospection_world = use_prospection_world
-        self.topic = "/pycram/prospection_viz_marker" if use_prospection_world else topic_name
+        super().__init__(topic="/pycram/prospection_viz_marker" if use_prospection_world else topic)
         self.interval = interval
         self.reference_frame = reference_frame
         self.publish_visuals = publish_visuals
@@ -280,7 +292,8 @@ class VizMarkerPublisher(SingleTypePublisher):
         self.thread.start()
         atexit.register(self._stop_publishing)
 
-    def _get_data(self):
+    def _get_data(self) -> List[tuple[MeshVisualShape | CylinderVisualShape | BoxVisualShape | SphereVisualShape,
+                            Object, str, int, TransformStamped]]:
         """
         Collects all geometry + pose data from the current world.
         Returns a list of tuples: (geom, obj, link, i, link_pose_with_origin)
@@ -293,6 +306,9 @@ class VizMarkerPublisher(SingleTypePublisher):
                 geoms = obj.get_link_visual_geometry(link) if self.publish_visuals else obj.get_link_geometry(link)
                 if not isinstance(geoms, list):
                     geoms = [geoms]
+
+                # filter out None values immediately
+                geoms = [g for g in geoms if g is not None]
                 if not geoms:
                     continue
 
@@ -302,12 +318,11 @@ class VizMarkerPublisher(SingleTypePublisher):
                 link_pose_with_origin = link_pose * link_origin
 
                 for i, geom in enumerate(geoms):
-                    if geom is None:
-                        continue
                     result.append((geom, obj, link, i, link_pose_with_origin))
         return result
 
-    def _make_marker_array(self, data):
+    def _make_marker_array(self, data: List[tuple[MeshVisualShape | CylinderVisualShape | BoxVisualShape | SphereVisualShape,
+                                        Object, str, int, TransformStamped]]) -> MarkerArray:
         """
         Build MarkerArray from prepared link data.
         If no data is given, automatically gather it from the world.
@@ -322,7 +337,8 @@ class VizMarkerPublisher(SingleTypePublisher):
         return marker_array
 
 
-    def visualize(self, data=None):
+    def visualize(self, data: List[tuple[MeshVisualShape | CylinderVisualShape | BoxVisualShape | SphereVisualShape,
+                            Object, str, int, TransformStamped]] = None) -> None:
         while not self.kill_event.is_set():
             self.lock.acquire()
             data = self._get_data()
@@ -344,16 +360,15 @@ class ManualMarkerPublisher(SingleTypePublisher):
     Class to manually add and remove marker of objects and poses.
     """
 
-    topic = '/pycram/manual_marker'
-
-    def __init__(self, topic_name: str = topic, interval: float = 0.1):
+    def __init__(self, topic: str = '/pycram/manual_marker', interval: float = 0.1):
         """
         The Publisher creates an Array of Visualization marker with a marker for a pose or object.
         This Array is published with a rate of interval.
 
-        :param topic_name: Name of the marker topic
+        :param topic: Name of the marker topic
         :param interval: Interval at which the marker should be published
         """
+        super().__init__(topic=topic)
         self.start_time = None
         self.marker_array = MarkerArray()
         self.marker_overview = {}
@@ -361,7 +376,7 @@ class ManualMarkerPublisher(SingleTypePublisher):
         self.interval = interval
 
     def visualize(self, pose: PoseStamped, color: Optional[List] = None, bw_object: Optional[ObjectDesignatorDescription] = None,
-                name: Optional[str] = None):
+                name: Optional[str] = None) -> None:
         """
         Publish a pose or an object into the MarkerArray.
         Priorities to add an object if possible
@@ -381,7 +396,7 @@ class ManualMarkerPublisher(SingleTypePublisher):
         thread.join()
 
     def _publish(self, pose: PoseStamped, bw_object: Optional[ObjectDesignatorDescription] = None, name: Optional[str] = None,
-                 color: Optional[List] = None):
+                 color: Optional[List] = None) -> None:
         """
         Publish the marker into the MarkerArray
         """
@@ -398,7 +413,7 @@ class ManualMarkerPublisher(SingleTypePublisher):
 
             sleep(self.interval)
 
-    def _publish_pose(self, name: str, pose: PoseStamped, color: Optional[List] = None):
+    def _publish_pose(self, name: str, pose: PoseStamped, color: Optional[List] = None) -> None:
         """
         Publish a Pose as a marker
 
@@ -432,7 +447,7 @@ class ManualMarkerPublisher(SingleTypePublisher):
         )
 
         marker = self._create_arrow_marker(start_point, end_point, self.current_id,
-                                           pose.header.frame_id, color=tuple(color))
+                                           pose.header.frame_id, color=color)
         marker.ns = name
 
         self.marker_array.markers.append(marker)
@@ -442,7 +457,7 @@ class ManualMarkerPublisher(SingleTypePublisher):
         self.publisher.publish(self.marker_array)
         loginfo(f"Pose '{name}' published")
 
-    def _publish_object(self, name: Optional[str], pose: PoseStamped, bw_object: ObjectDesignatorDescription):
+    def _publish_object(self, name: Optional[str], pose: PoseStamped, bw_object: ObjectDesignatorDescription) -> None:
         """
         Publish an Object as a marker
 
@@ -493,7 +508,7 @@ class ManualMarkerPublisher(SingleTypePublisher):
         logwarn(f"Marker {marker_id} not found for update")
         return False
 
-    def remove_marker(self, bw_object: Optional[ObjectDesignatorDescription] = None, name: Optional[str] = None):
+    def remove_marker(self, bw_object: Optional[ObjectDesignatorDescription] = None, name: Optional[str] = None) -> None:
         """
         Remove a marker by object or name
 
@@ -519,7 +534,7 @@ class ManualMarkerPublisher(SingleTypePublisher):
 
         loginfo(f"Removed Marker '{name}'")
 
-    def clear_all_marker(self):
+    def clear_all_marker(self) -> None:
         """
         Clear all existing markers
         """
@@ -536,10 +551,10 @@ class TrajectoryPublisher(SingleTypePublisher):
     Publishes a trajectory as a MarkerArray to visualize it in rviz.
     """
 
-    topic = "/pycram/trajectory"
-    """The name of the topic being published to."""
+    def __init__(self, topic: str = "/pycram/trajectory") -> None:
+        super().__init__(topic)
 
-    def visualize(self, trajectory: List[PoseStamped]):
+    def visualize(self, trajectory: List[PoseStamped]) -> None:
         """
         Visualize a trajectory in rviz as a series of arrows.
 
@@ -562,10 +577,10 @@ class BoundingBoxPublisher(SingleTypePublisher):
     Publishes a list of bounding boxes as a MarkerArray to visualize it in rviz.
     """
 
-    topic = "/pycram/bounding_boxes"
-    """The name of the topic being published to."""
+    def __init__(self, topic: str = "/pycram/bounding_boxes") -> None:
+        super().__init__(topic)
 
-    def visualize(self, boxes: BoundingBoxCollection, duration: Optional[int] = 60):
+    def visualize(self, boxes: BoundingBoxCollection, duration: Optional[int] = 60) -> None:
         """
         Visualize a collection of bounding boxes in rviz as a series of cubes.
         """
@@ -581,10 +596,11 @@ class CoordinateAxisPublisher(SingleTypePublisher):
     """
     Publishes coordinate axes as a MarkerArray to visualize them in rviz.
     """
-    topic = "/pycram/coordinate_axis"
-    """The name of the topic being published to."""
 
-    def visualize(self, poses: List[PoseStamped], duration: int = 60, length: float = 0.1):
+    def __init__(self, topic: str = "/pycram/coordinate_axis") -> None:
+        super().__init__(topic)
+
+    def visualize(self, poses: List[PoseStamped], duration: Optional[int] = 60, length: Optional[float] = 0.1) -> None:
         """
         Visualize coordinate axes in rviz'
         """
