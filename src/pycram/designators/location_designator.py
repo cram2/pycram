@@ -24,7 +24,7 @@ from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, Gau
 from ..datastructures.dataclasses import BoundingBox, AxisAlignedBoundingBox, Color, BoundingBoxCollection
 from ..datastructures.enums import JointType, Arms, Grasp, ApproachDirection, VerticalAlignment
 from ..datastructures.partial_designator import PartialDesignator
-from ..datastructures.pose import PoseStamped, GraspDescription, GraspPose, Vector3
+from ..datastructures.pose import PoseStamped, GraspPose, Vector3
 from ..designator import LocationDesignatorDescription
 from ..failures import RobotInCollision
 from ..graph_of_convex_sets import GraphOfConvexSets, plot_bounding_boxes_in_rviz
@@ -33,6 +33,7 @@ from ..pose_generator_and_validator import PoseGenerator, visibility_validator, 
 from ..process_module import real_robot
 from ..ros import logwarn, logerr
 from ..world_reasoning import link_pose_for_joint_config
+from ..datastructures.grasp import GraspDescription
 
 
 class Location(LocationDesignatorDescription):

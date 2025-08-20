@@ -12,7 +12,6 @@ from semantic_world.world_entity import Body
 from typing_extensions import Self, Tuple, Optional, List, TYPE_CHECKING, Any
 
 from .enums import AxisIdentifier, Arms, Grasp, ApproachDirection, VerticalAlignment
-from .grasp import GraspDescription, PreferredGraspAlignment
 from ..has_parameters import has_parameters, HasParameters
 from ..ros import Time as ROSTime
 from ..tf_transformations import quaternion_multiply, translation_matrix, quaternion_matrix, inverse_matrix, \
@@ -21,7 +20,8 @@ from ..tf_transformations import quaternion_multiply, translation_matrix, quater
 from semantic_world.spatial_types.spatial_types import Vector3 as SpatialVector3, Quaternion as SpatialQuaternion, TransformationMatrix as SpatialTransformationMatrix
 
 if TYPE_CHECKING:
-    from ..world_concepts.world_object import Object
+    from .grasp import GraspDescription, PreferredGraspAlignment
+
 
 
 @has_parameters
@@ -248,6 +248,16 @@ class Quaternion(HasParameters):
         :return: A new Quaternion object.
         """
         return cls(*quaternion)
+
+    @classmethod
+    def from_matrix(cls, matrix: np.ndarray) -> Self:
+        """
+        Create a Quaternion from a 3x3 rotation matrix.
+
+        :param matrix: A 3x3 rotation matrix as numpy array.
+        :return: A Quaternion object created from the matrix.
+        """
+        return cls(*quaternion_from_matrix(matrix))
 
     # # TODO fix this
     # def __setattr__(self, key, value):
@@ -497,6 +507,18 @@ class PoseStamped(HasParameters):
         orientation = orientation or [0.0, 0.0, 0.0, 1.0]
         return cls(pose=Pose.from_list(position, orientation),
                    header=Header(frame_id=frame, stamp=datetime.datetime.now()))
+
+    @classmethod
+    def from_matrix(cls, matrix: np.ndarray, frame: Body) -> Self:
+        """
+        Create a PoseStamped from a 4x4 transformation matrix and a frame.
+
+        :param matrix: A 4x4 transformation matrix as numpy array.
+        :param frame: The frame in which the pose is defined.
+        :return: A PoseStamped object created from the matrix and frame.
+        """
+        pose = Pose.from_matrix(matrix)
+        return cls(pose=pose, header=Header(frame_id=frame.name, stamp=datetime.datetime.now()))
 
     def to_transform_stamped(self, child_link_id: str) -> TransformStamped:
         """
@@ -871,7 +893,7 @@ class TransformStamped(PoseStamped):
         return self * ~other
 
 
-@has_parameters
+# @has_parameters
 @dataclass
 class GraspPose(PoseStamped):
     """

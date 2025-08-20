@@ -155,6 +155,13 @@ class ApproachDirection(Grasp, Enum):
     RIGHT = (AxisIdentifier.Y, -1)
     LEFT = (AxisIdentifier.Y, 1)
 
+    @property
+    def axis(self) -> AxisIdentifier:
+        """
+        Returns the axis of the approach direction.
+        """
+        return self.value[0]
+
 class VerticalAlignment(Grasp, Enum):
     """
     Enum for the vertical alignment of a gripper.

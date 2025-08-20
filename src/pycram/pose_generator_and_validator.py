@@ -10,7 +10,7 @@ from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional, Iter
 
 from .datastructures.enums import Arms
 from .costmaps import Costmap, SemanticCostmap
-from .datastructures.pose import PoseStamped, TransformStamped, GraspDescription
+from .datastructures.pose import PoseStamped, TransformStamped
 from .external_interfaces.ik import request_ik
 from .failures import IKError, RobotInCollision
 from .robot_description import RobotDescription

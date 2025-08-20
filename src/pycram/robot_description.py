@@ -1,7 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from semantic_world.robots import AbstractRobot
+from semantic_world.robots import AbstractRobot, KinematicChain, Manipulator
 from semantic_world.world import World
 from semantic_world.world_entity import View
 
@@ -22,7 +22,7 @@ from typing_extensions import List, Dict, Union, Optional, Tuple, TYPE_CHECKING
 from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, Rotations
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState, \
     ApproachDirection, VerticalAlignment
-from .datastructures.pose import GraspDescription, PoseStamped
+from .datastructures.pose import PoseStamped
 from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
     get_robot_description_path
 from .ros import logerr
@@ -997,3 +997,10 @@ class ViewManager:
             raise ValueError("No active robots found in the world.")
         return robots[0]
 
+    @staticmethod
+    def get_arm_view(arm: Arms, robot_view: AbstractRobot) -> Optional[Manipulator]:
+        for man in robot_view.manipulators:
+            if "left" in man.name.name and arm == Arms.LEFT:
+                return man
+            elif "right" in man.name.name and arm == Arms.RIGHT:
+                return man

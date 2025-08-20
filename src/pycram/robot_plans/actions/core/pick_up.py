@@ -19,7 +19,7 @@ from ....failures import ObjectNotGraspedError
 from ....failures import ObjectNotInGraspingArea
 from ....has_parameters import has_parameters
 from ....language import SequentialPlan
-from ....robot_description import EndEffectorDescription
+from ....robot_description import EndEffectorDescription, ViewManager
 from ....robot_description import RobotDescription, KinematicChainDescription
 from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
 from ....ros import logwarn
@@ -66,8 +66,12 @@ class ReachToPickUpAction(ActionDescription):
 
     def plan(self) -> None:
 
-        target_pose = self.object_designator.get_grasp_pose(self.end_effector, self.grasp_description)
-        target_pose.rotate_by_quaternion(self.end_effector.grasps[self.grasp_description])
+        # target_pose = self.object_designator.get_grasp_pose(self.end_effector, self.grasp_description)
+        robot_view = ViewManager().find_robot_view_for_world(self.world)
+        end_effector = ViewManager.get_arm_view(self.arm, robot_view)
+
+        target_pose = self.grasp_description.get_grasp_pose(end_effector, self.object_designator)
+        # target_pose.rotate_by_quaternion(self.end_effector.grasps[self.grasp_description])
 
         target_pre_pose = LocalTransformer().translate_pose_along_local_axis(target_pose,
                                                                              self.end_effector.get_approach_axis(),
