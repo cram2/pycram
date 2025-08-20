@@ -61,7 +61,7 @@ def init_giskard_interface(func: Callable) -> Callable:
     def wrapper(*args, **kwargs):
 
         #from giskardpy_ros.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
-        from giskardpy_ros.python_interface.python_interface import GiskardWrapper
+        from giskardpy_ros.python_interface.python_interface import GiskardWrapper as GiskardWrapper
         from giskard_msgs.msg import WorldBody, ExecutionState, CollisionEntry
         from geometry_msgs.msg import PoseStamped as ROSPoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 
@@ -717,7 +717,7 @@ def avoid_all_collisions() -> None:
     """
     Will avoid all collision for the next goal.
     """
-    giskard_wrapper.avoid_all_collisions()
+    giskard_wrapper.motion_goals.avoid_all_collisions()
 
 
 @init_giskard_interface
