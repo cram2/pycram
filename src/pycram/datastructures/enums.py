@@ -79,7 +79,7 @@ class ExecutionType(Enum):
     SEMI_REAL = auto()
 
 
-class Arms(str, Enum):
+class Arms(Enum):
     """Enum for Arms."""
     LEFT = "left"
     RIGHT = "right"

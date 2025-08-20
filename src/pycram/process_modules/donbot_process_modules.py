@@ -1,5 +1,4 @@
 from .default_process_modules import *
-from ..worlds.bullet_world import World
 from ..process_module import ProcessModuleManager
 from ..robot_description import RobotDescription
 from ..datastructures.enums import Arms, ExecutionType, Grasp, StaticJointState, ApproachDirection, VerticalAlignment

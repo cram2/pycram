@@ -1,4 +1,4 @@
-from semantic_world.prefixed_name import PrefixedName
+from scipy.constants import R
 from semantic_world.prefixed_name import PrefixedName
 from semantic_world.robots import PR2, AbstractRobot
 from semantic_world.world import World
@@ -13,12 +13,10 @@ from ..external_interfaces.robokudo import query_all_objects, query_object, quer
     query_human_attributes, query_waving_human
 from ..failures import NavigationGoalNotReachedError
 from ..process_module import ProcessModule, ManagerBase
-from ..robot_description import RobotDescription
 from ..robot_plans import *
 from ..ros import get_time
 from ..ros import logdebug, loginfo
 from ..tf_transformations import euler_from_quaternion
-from ..world_concepts.world_object import Object
 from ..world_reasoning import visible, link_pose_for_joint_config
 
 if TYPE_CHECKING:
@@ -270,7 +268,7 @@ def _move_arm_tcp(target: PoseStamped, robot: AbstractRobot, arm: Arms, world: W
 ###########################################################
 
 class DefaultDetectingReal(ProcessModule):
-    def _execute(self, designator: DetectingMotion) -> List[Object]:
+    def _execute(self, designator: DetectingMotion) -> List[Body]:
         """
             Perform a query based on the detection technique and state defined in the designator.
 

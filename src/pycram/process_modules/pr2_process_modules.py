@@ -1,6 +1,5 @@
 from .default_process_modules import *
 from ..datastructures.enums import GripperState, Arms, ExecutionType
-from ..datastructures.world import World
 from ..robot_plans import MoveGripperMotion
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..ros import Duration, create_action_client

@@ -23,8 +23,8 @@ def record_object_pre_perform(action):
     """
     # for every field in the action that is an object
     # write it to a dict mapping the OG field name to the frozen copy
-    action.object_at_execution = action.object_designator.frozen_copy()
-
+    # action.object_at_execution = action.object_designator.frozen_copy()
+    pass
 
 @dataclass
 class ActionDescription(HasParameters):

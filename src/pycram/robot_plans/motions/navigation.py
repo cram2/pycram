@@ -22,7 +22,7 @@ class MoveMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.world)
         return pm_manager.navigate().execute(self)
 
 

@@ -17,7 +17,7 @@ from abc import ABC, abstractmethod
 from semantic_world.world import World
 from typing_extensions import Callable, Any, Union, Optional, List
 
-from .robot_description import RobotDescription
+from .robot_description import RobotDescription, ViewManager
 from typing_extensions import TYPE_CHECKING
 from .datastructures.enums import ExecutionType
 from .ros import logerr, logwarn_once
@@ -288,42 +288,53 @@ class ProcessModuleManager(ABC):
         self.available_pms.append(manager)
 
 
-    def get_manager(self) -> Union[ManagerBase, None]:
+    def get_manager(self, world: World) -> ManagerBase:
         """
         Returns the Process Module manager for the currently loaded robot or None if there is no Manager.
 
         :return: ProcessModuleManager instance of the current robot
         """
         self.register_all_process_modules()
-        manager = None
-        _default_manager = None
-        if not self.execution_type:
-            raise RuntimeError(
-                f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
-
-        robot_description = RobotDescription.current_robot_description
-        chains = robot_description.get_manipulator_chains()
-        gripper_name = [chain.end_effector.gripper_object_name for chain in chains
-                        if chain.end_effector.gripper_object_name]
-        gripper_name = gripper_name[0] if len(gripper_name) > 0 else None
+        robot_view = ViewManager().find_robot_view_for_world(world)
+        default_manager = None
 
         for pm_manager in self.available_pms:
-            if pm_manager.robot_name == robot_description.name or\
-                    ((pm_manager.robot_name == gripper_name) and gripper_name):
-                manager = pm_manager
+            if robot_view.name.name in pm_manager.robot_name:
+                return pm_manager
             if pm_manager.robot_name == "default":
-                _default_manager = pm_manager
+                default_manager = pm_manager
+        logwarn_once(f"No Process Module Manager found for robot: '{robot_view.name}' returning default process modules")
+        return default_manager
 
-        if manager:
-            return manager
-        elif _default_manager:
-            logwarn_once(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
-                               f", using default process modules")
-            return _default_manager
-        else:
-            logerr(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
-                         f", and no default process modules available")
-            return None
+        # manager = None
+        # _default_manager = None
+        # if not self.execution_type:
+        #     raise RuntimeError(
+        #         f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
+        #
+        # robot_description = RobotDescription.current_robot_description
+        # chains = robot_description.get_manipulator_chains()
+        # gripper_name = [chain.end_effector.gripper_object_name for chain in chains
+        #                 if chain.end_effector.gripper_object_name]
+        # gripper_name = gripper_name[0] if len(gripper_name) > 0 else None
+        #
+        # for pm_manager in self.available_pms:
+        #     if pm_manager.robot_name == robot_description.name or\
+        #             ((pm_manager.robot_name == gripper_name) and gripper_name):
+        #         manager = pm_manager
+        #     if pm_manager.robot_name == "default":
+        #         _default_manager = pm_manager
+        #
+        # if manager:
+        #     return manager
+        # elif _default_manager:
+        #     logwarn_once(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
+        #                        f", using default process modules")
+        #     return _default_manager
+        # else:
+        #     logerr(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
+        #                  f", and no default process modules available")
+        #     return None
 
     @staticmethod
     def register_all_process_modules():

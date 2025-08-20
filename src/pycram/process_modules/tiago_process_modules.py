@@ -1,17 +1,14 @@
 from .default_process_modules import *
 
-from ..datastructures.world import World
 from ..datastructures.enums import ExecutionType, ObjectType
 from ..designator import ObjectDesignatorDescription
 from ..robot_plans import MoveMotion, DetectingMotion, MoveTCPMotion
-from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModuleManager, ProcessModule
 from .default_process_modules import DefaultMoveGripper, DefaultMoveTCP, \
-    DefaultNavigation, DefaultMoveHead, DefaultWorldStateDetecting
+    DefaultNavigation, DefaultMoveHead
 from ..robot_description import RobotDescription
 from ..ros import logdebug
 from ..external_interfaces import giskard
-from ..world_concepts.world_object import Object
 from ..external_interfaces.robokudo import send_query
 
 
@@ -107,11 +104,6 @@ class TiagoManager(DefaultManager):
             return DefaultMoveTCP(self._move_tcp_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return TiagoMoveTCPReal(self._move_tcp_lock)
-
-    def world_state_detecting(self):
-        if (ProcessModuleManager.execution_type == ExecutionType.SIMULATED or
-                ProcessModuleManager.execution_type == ExecutionType.REAL):
-            return DefaultWorldStateDetecting(self._world_state_detecting_lock)
 
     def move_gripper(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:

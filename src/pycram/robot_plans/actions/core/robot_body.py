@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import Tuple, List
 
 from typing_extensions import Union, Optional, Type, Dict, Any, Iterable
 
@@ -11,8 +12,9 @@ from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import Vector3Stamped
 from ....failures import TorsoGoalNotReached, ConfigurationNotReached
 from ....has_parameters import has_parameters
+from ....joint_state import JointStateManager
 from ....language import SequentialPlan
-from ....robot_description import RobotDescription
+from ....robot_description import RobotDescription, ViewManager
 from ....robot_plans.actions.base import ActionDescription
 from ....robot_plans.motions.gripper import MoveGripperMotion
 from ....robot_plans.motions.robot_body import MoveJointsMotion
@@ -31,10 +33,12 @@ class MoveTorsoAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
-                                                                                                  self.torso_state)
+        view = ViewManager().find_robot_view_for_world(self.world)
+        jm = JointStateManager()
+        joint_state = jm.get_joint_state(self.torso_state, view)[0]
+
         SequentialPlan(self.context,
-                       MoveJointsMotion(list(joint_positions.keys()), list(joint_positions.values()))).perform()
+                       MoveJointsMotion(joint_state.joint_names, joint_state.joint_positions)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
         """
@@ -105,23 +109,19 @@ class ParkArmsAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        joint_poses = self.get_joint_poses()
+        joint_names, joint_poses = self.get_joint_poses()
 
         SequentialPlan(self.context,
-                       MoveJointsMotion(names=list(joint_poses.keys()), positions=list(joint_poses.values()))).perform()
+                       MoveJointsMotion(names=joint_names, positions=joint_poses)).perform()
 
-    def get_joint_poses(self) -> Dict[str, float]:
+    def get_joint_poses(self) -> Tuple[List[str], List[float]]:
         """
         :return: The joint positions that should be set for the arm to be in the park position.
         """
-        joint_poses = {}
-        arm_chains = RobotDescription.current_robot_description.get_arm_chain(self.arm)
-        if type(arm_chains) is not list:
-            joint_poses = arm_chains.get_static_joint_states(StaticJointState.Park)
-        else:
-            for arm_chain in RobotDescription.current_robot_description.get_arm_chain(self.arm):
-                joint_poses.update(arm_chain.get_static_joint_states(StaticJointState.Park))
-        return joint_poses
+        jm = JointStateManager()
+        view = ViewManager().find_robot_view_for_world(self.world)
+        park_state = jm.get_arm_state(self.arm, StaticJointState.Park, view)
+        return park_state.joint_names, park_state.joint_positions
 
     def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
         """

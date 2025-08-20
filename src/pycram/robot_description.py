@@ -1,12 +1,17 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import dataclasses
+from semantic_world.robots import AbstractRobot
+from semantic_world.world import World
+from semantic_world.world_entity import View
+
+
 import glob
 import importlib
 from os.path import dirname, basename, isfile, join
 import math
 from dataclasses import field
+from dataclasses import dataclass
 from enum import Enum
 from itertools import product
 
@@ -25,9 +30,6 @@ from .tf_transformations import quaternion_multiply
 from .utils import suppress_stdout_stderr
 
 from urdf_parser_py.urdf import URDF as URDFObject
-
-if TYPE_CHECKING:
-    from .datastructures.pose import Pose
 
 class RobotDescriptionManager:
     """
@@ -958,3 +960,40 @@ def create_manipulator_description(data: ManipulatorData,
                             relative_dir=data.gripper_relative_dir, opening_distance=data.opening_distance)
 
     return robot_description
+
+
+@dataclass
+class ViewManager:
+
+    @staticmethod
+    def find_active_robots_for_world(world: World) -> List[AbstractRobot]:
+        """
+        Find all active robots for a given world.
+
+        :param world: The world to search for active robots.
+        :return: A list of active robots in the world.
+        """
+        robot_views = world.get_views_by_type(AbstractRobot)
+        all_robots = AbstractRobot.__subclasses__()
+        for robot_class in all_robots:
+            if robot_class not in [view.__class__ for view in robot_views]:
+                try:
+                    robot_class.from_world(world)
+                except Exception as e:
+                    # TODO: Better error check and handling, error when the robot is not in the world are expected
+                    pass
+
+        return world.get_views_by_type(AbstractRobot)
+
+    def find_robot_view_for_world(self, world: World) -> AbstractRobot:
+        """
+        Find the robot view for a given world. If there are multiple robots, the first one is returned.
+
+        :param world: The world to search for a robot view.
+        :return: The first robot view in the world.
+        """
+        robots = self.find_active_robots_for_world(world)
+        if not robots:
+            raise ValueError("No active robots found in the world.")
+        return robots[0]
+
