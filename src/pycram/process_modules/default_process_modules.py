@@ -364,7 +364,8 @@ class DefaultNavigationReal(ProcessModule):
         # logdebug(f"Sending goal to movebase to Move the robot")
         # query_pose_nav(designator.target)
         logdebug(f"Sending goal to giskard to Move the robot")
-        giskard.avoid_all_collisions()
+        # giskard.avoid_all_collisions()
+        giskard.allow_self_collision()
         giskard.achieve_cartesian_goal(designator.target,
                                        RobotDescription.current_robot_description.base_link,
                                        "map")
@@ -416,7 +417,8 @@ class DefaultMoveHeadReal(ProcessModule):
         current_pan = robot.get_joint_position(pan_joint)
         current_tilt = robot.get_joint_position(tilt_joint)
 
-        giskard.avoid_all_collisions()
+        # giskard.avoid_all_collisions()
+        giskard.allow_self_collision()
         giskard.achieve_joint_goal({pan_joint: new_pan + current_pan,
                                     tilt_joint: new_tilt + current_tilt})
 
@@ -460,7 +462,8 @@ class DefaultMoveArmJointsReal(ProcessModule):
             joint_goals.update(designator.left_arm_poses)
         if designator.right_arm_poses:
             joint_goals.update(designator.right_arm_poses)
-        giskard.avoid_all_collisions()
+        # giskard.avoid_all_collisions()
+        giskard.allow_self_collision()
         giskard.achieve_joint_goal(joint_goals)
 
 
@@ -476,9 +479,9 @@ class DefaultMoveJointsReal(ProcessModule):
         tip_normal = designator.tip_normal
         root_normal = designator.root_normal
         root_link = designator.root_link
-        giskard.avoid_all_collisions()
-        giskard.achieve_joint_goal(name_to_position, align=align, tip_link=tip_link, tip_normal=tip_normal,
-                                   root_link=root_link, root_normal=root_normal)
+        # giskard.avoid_all_collisions()
+        giskard.allow_self_collision()
+        giskard.achieve_joint_goal(name_to_position)
 
 
 class DefaultMoveGripperReal(ProcessModule):

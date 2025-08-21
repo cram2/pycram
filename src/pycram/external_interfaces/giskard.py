@@ -18,7 +18,7 @@ from ..robot_description import RobotDescription
 
 from typing_extensions import List, Dict, Callable, Optional
 from threading import Lock, RLock
-from pycram.ros import logging as log
+from ..ros import logging as log, node
 
 
 
@@ -60,6 +60,7 @@ def init_giskard_interface(func: Callable) -> Callable:
 
     def wrapper(*args, **kwargs):
 
+
         #from giskardpy_ros.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
         from giskardpy_ros.python_interface.python_interface import GiskardWrapper as GiskardWrapper
         from giskard_msgs.msg import WorldBody, ExecutionState, CollisionEntry
@@ -79,7 +80,7 @@ def init_giskard_interface(func: Callable) -> Callable:
         if "giskard_msgs" not in sys.modules:
             logwarn("Could not initialize the Giskard interface since the giskard_msgs are not imported")
             return
-        print(get_node_names())
+
         if "giskard" in get_node_names():
             giskard_wrapper = GiskardWrapper(node)
             loginfo_once("Successfully initialized Giskard interface")
@@ -105,6 +106,7 @@ def initial_adding_objects() -> None:
             continue
         name = obj.name
         if name not in groups:
+            print(obj)
             spawn_object(obj)
 
 
