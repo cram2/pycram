@@ -62,7 +62,7 @@ def init_giskard_interface(func: Callable) -> Callable:
 
 
         #from giskardpy_ros.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
-        from giskardpy_ros.python_interface.python_interface import GiskardWrapper as GiskardWrapper
+        from giskardpy_ros.python_interface.python_interface import GiskardWrapper
         from giskard_msgs.msg import WorldBody, ExecutionState, CollisionEntry
         from geometry_msgs.msg import PoseStamped as ROSPoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 
@@ -727,7 +727,7 @@ def allow_self_collision() -> None:
     """
     Will allow the robot collision with itself.
     """
-    giskard_wrapper.allow_self_collision()
+    giskard_wrapper.motion_goals.allow_self_collision()
 
 
 @init_giskard_interface
@@ -738,7 +738,7 @@ def avoid_collisions(object1: Object, object2: Object) -> None:
     :param object1: The first World Object
     :param object2: The second World Object
     """
-    giskard_wrapper.avoid_collision(-1, object1.name, object2.name)
+    giskard_wrapper.motion_goals.avoid_collision(-1, object1.name, object2.name)
 
 
 # Creating ROS messages
