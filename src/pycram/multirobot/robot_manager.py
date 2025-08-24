@@ -13,12 +13,12 @@ if TYPE_CHECKING:
 
 class RobotManager(ABC):
     """
-    Class for managing multiple robots simultaneously
+    Singleton class for managing multiple robots simultaneously
     """
 
     _instance = None
     """
-    Singelton instance of this Robot Manager
+    Instance of this Robot Manager
     """
     active_robot = None
     """
@@ -41,7 +41,7 @@ class RobotManager(ABC):
         """
         Creates a new instance if :py:attr:`~RobotManager._instance` is None, otherwise the instance
         in :py:attr:`~RobotManager._instance` is returned.
-        :return: Singelton instance of this Robot Manager
+        :return: Singleton instance of this Robot Manager
         """
         if not cls._instance:
             cls._instance = super(RobotManager, cls).__new__(cls)
@@ -51,9 +51,9 @@ class RobotManager(ABC):
 
     def __init__(self):
         """
-        Initialize RobotManager
+        Initialize RobotManager.
+        Makes sure that the RobotDescriptionManager has already been initialized.
         """
-        rdm = RobotDescriptionManager()
         logdebug(f'Initialize RobotManager.')
 
     @staticmethod
@@ -82,7 +82,11 @@ class RobotManager(ABC):
     def get_active_robot(robot: Optional[Object] = None) -> Object:
         """
         Returns the active robot if the given variable is None.
-        This differentiation is used for handling multiple robots in multithreaded Actions
+        Robot can be None in single-robot and sequential multi-robot scenarios, since there
+        the context blocks 'with_simulated_robot' and 'with_real_robot' provide the appropriate 'active robot'.
+        We do this because we may want to be able to combine simulated and real robots in the same plan.
+        However, this is not sufficient for concurrent multi-robot execution,
+        for which the robot variable needs to be provided to the action directly.
 
         :param robot: Robot object
         :return: Currently active robot
@@ -96,6 +100,7 @@ class RobotManager(ABC):
         """
         Retrieve the description of the active robot.
         For concurrent robot actions, a robot can be given as parameter and its description is used instead.
+        This is an equivalent behaviour to 'get_active_robot'.
 
         :param robot: Robot object to use. If None is given, use the first robot added instead.
 
@@ -124,7 +129,7 @@ class RobotManager(ABC):
     @staticmethod
     def set_giskard_robot(robot: Object):
         """
-        Set the giskard robot with the given robot
+        Set the robot that is supposed to use giskard.
 
         :param robot: Robot object to set
         """
