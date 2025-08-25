@@ -1,7 +1,6 @@
 from __future__ import annotations
 from abc import ABC
-from typing import Optional
-
+from typing import Optional, Self, Dict
 from typing_extensions import TYPE_CHECKING
 
 from pycram.robot_description import RobotDescriptionManager, RobotDescription
@@ -16,23 +15,23 @@ class RobotManager(ABC):
     Singleton class for managing multiple robots simultaneously
     """
 
-    _instance = None
+    _instance: Self = None
     """
     Instance of this Robot Manager
     """
-    active_robot = None
+    active_robot: Optional[Object] = None
     """
     Currently active robot
     """
-    available_robots = {}
+    available_robots: Dict = {}
     """
     List of all available robots
     """
-    robot_description = None
+    robot_description: Optional[RobotDescription] = None
     """
     Robot description of active robot
     """
-    giskard_robot = None
+    giskard_robot: Optional[Object] = None
     """
     Active robot using giskard to avoid conflicts when other robots use other services 
     """
@@ -48,13 +47,6 @@ class RobotManager(ABC):
             return cls._instance
         else:
             return cls._instance
-
-    def __init__(self):
-        """
-        Initialize RobotManager.
-        Makes sure that the RobotDescriptionManager has already been initialized.
-        """
-        logdebug(f'Initialize RobotManager.')
 
     @staticmethod
     def add_robot(robot: Object):
