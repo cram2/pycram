@@ -23,6 +23,7 @@ from .ros import logerr, logwarn_once
 
 if TYPE_CHECKING:
     from pycram.robot_plans.motions.motion_designator import BaseMotion
+    from .world_concepts.world_object import Object
 
 
 class ProcessModule:
@@ -98,7 +99,7 @@ class RealRobot:
         ProcessModuleManager.execution_type = self.pre
         ProcessModule.execution_delay = self.pre_delay
 
-    def __call__(self, robot=None):
+    def __call__(self, robot: Object = None):
         if robot is not None:
             RobotManager.set_active_robot(robot)
         return self
@@ -135,7 +136,7 @@ class SimulatedRobot:
         """
         ProcessModuleManager.execution_type = self.pre
 
-    def __call__(self, robot=None):
+    def __call__(self, robot: Object = None):
         if robot is not None:
             RobotManager.set_active_robot(robot)
         return self
@@ -172,7 +173,7 @@ class SemiRealRobot:
         """
         ProcessModuleManager.execution_type = self.pre
 
-    def __call__(self, robot=None):
+    def __call__(self, robot: Object = None):
         if robot is not None:
             RobotManager.set_active_robot(robot)
         return self
