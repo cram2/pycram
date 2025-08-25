@@ -1,6 +1,7 @@
 from __future__ import annotations
 from abc import ABC
-from typing import Optional, Self, Dict
+from dataclasses import dataclass, field
+from typing import Optional, Dict, ClassVar
 from typing_extensions import TYPE_CHECKING
 
 from pycram.robot_description import RobotDescriptionManager, RobotDescription
@@ -10,43 +11,28 @@ if TYPE_CHECKING:
     from pycram.world_concepts.world_object import Object
 
 
+@dataclass
 class RobotManager(ABC):
     """
-    Singleton class for managing multiple robots simultaneously
+    Singleton-like class for managing multiple robots simultaneously
     """
 
-    _instance: Self = None
-    """
-    Instance of this Robot Manager
-    """
-    active_robot: Optional[Object] = None
+    active_robot: ClassVar[Optional[Object]] = field(default=None, init=False)
     """
     Currently active robot
     """
-    available_robots: Dict = {}
+    available_robots: ClassVar[Dict[str, Object]] = {}
     """
     List of all available robots
     """
-    robot_description: Optional[RobotDescription] = None
+    robot_description: ClassVar[Optional[RobotDescription]] = field(default=None, init=False)
     """
     Robot description of active robot
     """
-    giskard_robot: Optional[Object] = None
+    giskard_robot: ClassVar[Optional[Object]] = field(default=None, init=False)
     """
     Active robot using giskard to avoid conflicts when other robots use other services 
     """
-
-    def __new__(cls, *args, **kwargs):
-        """
-        Creates a new instance if :py:attr:`~RobotManager._instance` is None, otherwise the instance
-        in :py:attr:`~RobotManager._instance` is returned.
-        :return: Singleton instance of this Robot Manager
-        """
-        if not cls._instance:
-            cls._instance = super(RobotManager, cls).__new__(cls)
-            return cls._instance
-        else:
-            return cls._instance
 
     @staticmethod
     def add_robot(robot: Object):
