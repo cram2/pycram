@@ -25,7 +25,9 @@ class RobotManager(ABC):
     """
     List of all available robots
     """
-    robot_description: ClassVar[Optional[RobotDescription]] = field(default=None, init=False)
+    robot_description: ClassVar[Optional[RobotDescription]] = field(
+        default=None, init=False
+    )
     """
     Robot description of active robot
     """
@@ -52,9 +54,11 @@ class RobotManager(ABC):
         """
         rdm = RobotDescriptionManager()
         RobotManager.robot_description = rdm.load_description(name=robot.name)
-        RobotManager.active_robot = RobotManager.available_robots[robot.name] if robot else None
+        RobotManager.active_robot = (
+            RobotManager.available_robots[robot.name] if robot else None
+        )
         RobotManager.set_giskard_robot(robot) if robot else None
-        logdebug(f'Setting active robot. Is now: {robot.name}')
+        logdebug(f"Setting active robot. Is now: {robot.name}")
 
     @staticmethod
     def get_active_robot(robot: Optional[Object] = None) -> Object:
@@ -90,7 +94,9 @@ class RobotManager(ABC):
         if robot.name in RobotDescriptionManager().descriptions.keys():
             return RobotDescriptionManager().descriptions[robot.name]
 
-        raise Exception(f"Robot {robot.name} could not be found in RobotDescriptionManager")
+        raise Exception(
+            f"Robot {robot.name} could not be found in RobotDescriptionManager"
+        )
 
     @staticmethod
     def multiple_robots_active() -> bool:
