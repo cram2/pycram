@@ -46,28 +46,32 @@ left_gripper_open = GripperState(
     name=PrefixedName("pr2", "left_gripper_open"),
     joint_names=["l_gripper_l_finger_joint", "l_gripper_r_finger_joint"],
     joint_positions=[0.548, 0.548],
-    state_type=GripperStateEnum.OPEN
+    state_type=GripperStateEnum.OPEN,
+    gripper=Arms.LEFT
 )
 
-left_gripper_close = JointState(
+left_gripper_close = GripperState(
     name=PrefixedName("pr2", "left_gripper_close"),
     joint_names=["l_gripper_l_finger_joint", "l_gripper_r_finger_joint"],
     joint_positions=[0.0, 0.0],
-    state_type=GripperStateEnum.CLOSE
+    state_type=GripperStateEnum.CLOSE,
+    gripper=Arms.LEFT
 )
 
-right_gripper_open = JointState(
+right_gripper_open = GripperState(
     name=PrefixedName("pr2", "right_gripper_open"),
     joint_names=["r_gripper_l_finger_joint", "r_gripper_r_finger_joint"],
     joint_positions=[0.548, 0.548],
-    state_type=GripperStateEnum.OPEN
+    state_type=GripperStateEnum.OPEN,
+    gripper=Arms.RIGHT
 )
 
-right_gripper_close = JointState(
+right_gripper_close = GripperState(
     name=PrefixedName("pr2", "right_gripper_close"),
     joint_names=["r_gripper_l_finger_joint", "r_gripper_r_finger_joint"],
     joint_positions=[0.0, 0.0],
-    state_type=GripperStateEnum.CLOSE
+    state_type=GripperStateEnum.CLOSE,
+    gripper=Arms.RIGHT
 )
 
 torso_low = JointState(
@@ -87,7 +91,6 @@ torso_high = JointState(
     joint_names=["torso_lift_joint"],
     joint_positions=[0.3],
     state_type=TorsoState.HIGH)
-
 
 JointStateManager().add_joint_states(PR2, [right_park, left_park, both_park, right_gripper_open, right_gripper_close,
                                            left_gripper_open, left_gripper_close, torso_low, torso_mid, torso_high])

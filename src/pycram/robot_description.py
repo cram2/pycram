@@ -1,7 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from semantic_world.robots import AbstractRobot, KinematicChain, Manipulator
+from semantic_world.robots import AbstractRobot, KinematicChain, Manipulator, Neck
 from semantic_world.world import World
 from semantic_world.world_entity import View
 
@@ -998,9 +998,40 @@ class ViewManager:
         return robots[0]
 
     @staticmethod
-    def get_arm_view(arm: Arms, robot_view: AbstractRobot) -> Optional[Manipulator]:
+    def get_end_effector_view(arm: Arms, robot_view: AbstractRobot) -> Optional[Manipulator]:
+
         for man in robot_view.manipulators:
             if "left" in man.name.name and arm == Arms.LEFT:
                 return man
             elif "right" in man.name.name and arm == Arms.RIGHT:
                 return man
+        return None
+
+    @staticmethod
+    def get_arm_view(arm: Arms, robot_view: AbstractRobot) -> Optional[KinematicChain]:
+        """
+        Get the arm view for a given arm and robot view.
+
+        :param arm: The arm to get the view for.
+        :param robot_view: The robot view to search in.
+        :return: The Manipulator object representing the arm.
+        """
+        for arm_chain in robot_view.manipulator_chains:
+            if "left" in arm_chain.name.name and arm == Arms.LEFT:
+                return arm_chain
+            elif "right" in arm_chain.name.name and arm == Arms.RIGHT:
+                return arm_chain
+        return None
+
+    @staticmethod
+    def get_neck_view(robot_view: AbstractRobot) -> Optional[Neck]:
+        """
+        Get the neck view for a given robot view.
+
+        :param robot_view: The robot view to search in.
+        :return: The Neck object representing the neck.
+        """
+        if getattr(robot_view, "neck", Neck):
+            return robot_view.neck
+        else:
+            raise ValueError(f"The robot view {robot_view} has no neck.")

@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 from semantic_world.world_entity import Body
 from trimesh import Trimesh
@@ -5,7 +7,7 @@ from typing_extensions import List, Tuple, Optional, Union, Dict
 
 from pycrap.ontologies import PhysicalObject
 from .datastructures.dataclasses import RayResult
-from .datastructures.enums import Frame, Arms, FindBodyInRegionMethod, Grasp, ApproachDirection, VerticalAlignment
+from .datastructures.enums import Arms, FindBodyInRegionMethod, Grasp, ApproachDirection, VerticalAlignment
 from .datastructures.pose import PoseStamped, TransformStamped
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .robot_description import RobotDescription, KinematicChainDescription
@@ -314,23 +316,22 @@ def supporting(
 
 def link_pose_for_joint_config(
         obj: Body,
-        joint_config: Dict[str, float],
-        link_name: str) -> PoseStamped:
+        joint_config: Dict[str, float]) -> PoseStamped:
     """
     Get the pose a link would be in if the given joint configuration would be applied to the object.
     This is done by using the respective object in the prospection world and applying the joint configuration
     to this one. After applying the joint configuration the link position is taken from there.
 
-    :param obj: Object of which the link is a part
+    :param obj: The body for which the pose should be calculated
     :param joint_config: Dict with the goal joint configuration
-    :param link_name: Name of the link for which the pose should be returned
     :return: The pose of the link after applying the joint configuration
     """
-    prospection_object = World.current_world.get_prospection_object_for_object(obj)
-    with UseProspectionWorld():
-        for joint, pose in joint_config.items():
-            prospection_object.set_joint_position(joint, pose)
-        return prospection_object.get_link_pose(link_name)
+    reasoning_world = deepcopy(obj._world)
+    for joint_name, joint_pose in joint_config.items():
+        reasoning_world.state[reasoning_world.get_degree_of_freedom_by_name(joint_name).name].position = joint_pose
+    reasoning_world.notify_state_change()
+    pose = reasoning_world.get_body_by_name(obj.name).global_pose
+    return PoseStamped.from_matrix(pose, frame=obj._world.root)
 
 
 def move_away_all_objects_to_create_empty_space(exclude_objects: List[str] = None):

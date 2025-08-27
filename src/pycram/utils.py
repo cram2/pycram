@@ -688,7 +688,7 @@ def lazy_product(*iterables: Iterable) -> Iterable[Tuple]:
                     raise StopIteration(f"No more values in the iterable: {iterables[index]}")
 
 
-def translate_pose_along_local_axis(pose: PoseStamped, axis: List, distance: float) -> PoseStamped:
+def translate_pose_along_local_axis(pose: PoseStamped, axis: Union[List, np.ndarray], distance: float) -> PoseStamped:
     """
     Translate a pose along a given 3d vector (axis) by a given distance. The axis is given in the local coordinate
     frame of the pose. The axis is normalized and then scaled by the distance.
@@ -705,4 +705,4 @@ def translate_pose_along_local_axis(pose: PoseStamped, axis: List, distance: flo
     translation_in_world = rot_matrix @ normalized_translation_vector
     scaled_translation_vector = np.array(pose.position.to_list()) + translation_in_world * distance
 
-    return PoseStamped.from_list(list(scaled_translation_vector), pose.orientation.to_list(), pose.frame_id)
+    return PoseStamped.from_list(pose.frame_id, list(scaled_translation_vector), pose.orientation.to_list())

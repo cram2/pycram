@@ -51,10 +51,6 @@ class FindBodyInRegionMethod(Enum):
     """
 
 
-class Frame(Enum):
-    Map = "map"
-
-
 class StaticJointState(Enum):
     Park = "park"
 

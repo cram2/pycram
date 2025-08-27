@@ -34,5 +34,5 @@ class LookingMotion(BaseMotion):
     target: PoseStamped
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.world)
         return pm_manager.looking().execute(self)

@@ -369,7 +369,7 @@ class Header:
     """
     A header with a timestamp.
     """
-    frame_id: str = "map"
+    frame_id: Body = field(default=None)
     stamp: datetime.datetime = field(default_factory=datetime.datetime.now, compare=False)
     sequence: int = field(default=0, compare=False)
 
@@ -398,7 +398,7 @@ class Vector3Stamped(Vector3):
         return self.header.frame_id
 
     @frame_id.setter
-    def frame_id(self, value: str):
+    def frame_id(self, value: Body):
         self.header.frame_id = value
 
     def __repr__(self):
@@ -429,7 +429,7 @@ class Vector3Stamped(Vector3):
         return cls(x=message.vector.x, y=message.vector.y, z=message.vector.z, header=header)
 
     def to_spatial_type(self) -> SpatialVector3:
-        return SpatialVector3(x=float(self.x), y=float(self.y), z=self.z, reference_frame=self.header.reference_frame)
+        return SpatialVector3(x=float(self.x), y=float(self.y), z=self.z, reference_frame=self.header.frame_id)
 
 @has_parameters
 @dataclass
@@ -461,7 +461,7 @@ class PoseStamped(HasParameters):
         return self.header.frame_id
 
     @frame_id.setter
-    def frame_id(self, value: str):
+    def frame_id(self, value: Body):
         self.header.frame_id = value
 
     def __repr__(self):
@@ -493,8 +493,7 @@ class PoseStamped(HasParameters):
         return cls(pose=Pose(position=position, orientation=orientation), header=header)
 
     @classmethod
-    def from_list(cls, position: Optional[List[float]] = None, orientation: Optional[List[float]] = None,
-                  frame: Optional[str] = "map") -> Self:
+    def from_list(cls, frame: Optional[Body], position: Optional[List[float]] = None, orientation: Optional[List[float]] = None) -> Self:
         """
         Factory to create a PoseStamped from a list of position and orientation.
 
@@ -518,7 +517,17 @@ class PoseStamped(HasParameters):
         :return: A PoseStamped object created from the matrix and frame.
         """
         pose = Pose.from_matrix(matrix)
-        return cls(pose=pose, header=Header(frame_id=frame.name, stamp=datetime.datetime.now()))
+        return cls(pose=pose, header=Header(frame_id=frame, stamp=datetime.datetime.now()))
+
+    @classmethod
+    def from_spatial_type(cls, spatial_type: SpatialTransformationMatrix) -> Self:
+        """
+        Create a PoseStamped from a SpatialTransformationMatrix and a frame.
+
+        :param spatial_type: A SpatialTransformationMatrix object.
+        :return: A PoseStamped object created from the spatial type and frame.
+        """
+        return PoseStamped.from_matrix(spatial_type.to_np(), spatial_type.reference_frame)
 
     def to_transform_stamped(self, child_link_id: str) -> TransformStamped:
         """
@@ -532,9 +541,14 @@ class PoseStamped(HasParameters):
                                 child_frame_id=child_link_id)
 
     def to_spatial_type(self) -> SpatialTransformationMatrix:
+        """
+        Converts the PoseStamped to a SpatialTransformationMatrix.
+
+        :return: A SpatialTransformationMatrix object representing the pose in 3D space.
+        """
         return SpatialTransformationMatrix.from_xyz_quat(pos_x=self.position.x, pos_y=self.position.y, pos_z=self.position.z, quat_x=self.orientation.x,
-                                                            quat_y=self.orientation.y, quat_z=self.orientation.z, quat_w=self.orientation.w,)
-                                                            # reference_frame=self.header.reference_frame)
+                                                            quat_y=self.orientation.y, quat_z=self.orientation.z, quat_w=self.orientation.w,
+                                                            reference_frame=self.header.frame_id)
 
     def round(self, decimals: int = 4):
         """
@@ -783,7 +797,7 @@ class Transform(Pose):
 @has_parameters
 @dataclass
 class TransformStamped(PoseStamped):
-    child_frame_id: str = field(default_factory=str)
+    child_frame_id: Body = field(default_factory=str)
     """
     Target frame id of the transform.
     """
@@ -841,8 +855,8 @@ class TransformStamped(PoseStamped):
         return result
 
     @classmethod
-    def from_list(cls, translation: List[float] = None, rotation: List[float] = None, frame: str = "map",
-                  child_frame_id="") -> Self:
+    def from_list(cls, translation: List[float] = None, rotation: List[float] = None, frame: Body = None,
+                  child_frame_id: Body = None) -> Self:
         """
         Factory to create a TransformStamped from a list of position and orientation.
 
@@ -878,9 +892,14 @@ class TransformStamped(PoseStamped):
         return PoseStamped(p, self.header)
 
     def to_spatial_type(self) -> SpatialTransformationMatrix:
+        """
+        Converts the TransformStamped to a SpatialTransformationMatrix.
+
+        :return: A SpatialTransformationMatrix object representing the transform in 3D space.
+        """
         return SpatialTransformationMatrix.from_xyz_quat(pos_x=self.translation.x, pos_y=self.translation.y, pos_z=self.translation.z,
                                                             quat_x=self.rotation.x, quat_y=self.rotation.y, quat_z=self.rotation.z, quat_w=self.rotation.w,
-                                                            reference_frame=self.header.reference_frame, child_frame=self.child_frame_id)
+                                                            reference_frame=self.header.frame_id, child_frame=self.child_frame_id)
 
     def inverse_times(self, other: TransformStamped) -> Self:
         """

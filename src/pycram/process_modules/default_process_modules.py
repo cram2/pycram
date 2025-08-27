@@ -1,4 +1,4 @@
-from scipy.constants import R
+from scipy.spatial.transform import Rotation as R
 from semantic_world.prefixed_name import PrefixedName
 from semantic_world.robots import PR2, AbstractRobot
 from semantic_world.world import World
@@ -29,10 +29,9 @@ class DefaultNavigation(ProcessModule):
     """
 
     def _execute(self, desig: MoveMotion):
-        pr2 = PR2.from_world(desig.world)
+        robot_view = ViewManager().find_robot_view_for_world(desig.world)
 
-        root = pr2.root
-        connection = desig.world.get_connection(desig.world.root, root)
+        connection = desig.world.get_connection(desig.world.root, robot_view.root)
         connection.origin = desig.target.to_spatial_type()
 
 
@@ -44,31 +43,31 @@ class DefaultMoveHead(ProcessModule):
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
-        robot = desig.world.get_views_by_type(AbstractRobot)[0]
+        robot = ViewManager().find_robot_view_for_world(desig.world)
+        neck = ViewManager.get_neck_view(robot)
 
-        neck = RobotDescription.current_robot_description.get_neck()
-        pan_link = neck["yaw"][0]
-        tilt_link = neck["pitch"][0]
+        pan_link = neck.yaw_body
+        tilt_link = neck.pitch_body
 
-        pan_joint = neck["yaw"][1]
-        tilt_joint = neck["pitch"][1]
+        pan_joint = pan_link.parent_connection
+        tilt_joint = tilt_link.parent_connection
 
-        pose_in_map = desig.world.transform_pose(target.to_spatial_type(), desig.world.root)
+        pose_in_map = desig.world.transform(target.to_spatial_type(), desig.world.root)
 
         pose_in_pan = \
-        desig.world.transform(pose_in_map.to_spatial_type(), desig.world.get_body_by_name(pan_link)).to_np()[:3, 3]
+        desig.world.transform(pose_in_map, pan_link).to_np()[:3, 3]
         pose_in_tilt = \
-        desig.world.transform(pose_in_map.to_spatial_type(), desig.world.get_body_by_name(tilt_link)).to_np()[:3, 3]
+        desig.world.transform(pose_in_map, tilt_link).to_np()[:3, 3]
 
         new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
 
-        tilt_offset = RobotDescription.current_robot_description.get_offset(tilt_joint)
-        if tilt_offset:
-            tilt_offset_rotation = tilt_offset.orientation
-            quaternion_list = [tilt_offset_rotation.x, tilt_offset_rotation.y, tilt_offset_rotation.z,
-                               tilt_offset_rotation.w]
-        else:
-            quaternion_list = [0, 0, 0, 1]
+        # tilt_offset = RobotDescription.current_robot_description.get_offset(tilt_joint)
+        # if tilt_offset:
+        #     tilt_offset_rotation = tilt_offset.orientation
+        #     quaternion_list = [tilt_offset_rotation.x, tilt_offset_rotation.y, tilt_offset_rotation.z,
+        #                        tilt_offset_rotation.w]
+        # else:
+        quaternion_list = [0, 0, 0, 1]
 
         tilt_offset_rotation = euler_from_quaternion(quaternion_list, axes='sxyz')
         adjusted_pose_in_tilt = R.from_euler('xyz', tilt_offset_rotation).apply(pose_in_tilt)
@@ -76,13 +75,13 @@ class DefaultMoveHead(ProcessModule):
         new_tilt = -np.arctan2(adjusted_pose_in_tilt[2],
                                np.sqrt(adjusted_pose_in_tilt[0] ** 2 + adjusted_pose_in_tilt[1] ** 2))
 
-        if RobotDescription.current_robot_description.name in {"iCub", "tiago_dual"}:
+        if robot.name in {"iCub", "tiago_dual"}:
             new_tilt = -new_tilt
 
-        current_pan = robot.get_joint_position(pan_joint)
-        current_tilt = robot.get_joint_position(tilt_joint)
-        desig.world.state[desig.world.get_body_by_name(pan_joint)].position = new_pan + current_pan
-        desig.world.state[desig.world.get_body_by_name(tilt_joint)].position = new_tilt + current_tilt
+        current_pan = pan_joint.position
+        current_tilt = tilt_joint.position
+        pan_joint.position = new_pan + current_pan
+        tilt_joint.position = new_tilt + current_tilt
         desig.world.notify_state_change()
 
 
@@ -93,14 +92,9 @@ class DefaultMoveGripper(ProcessModule):
     """
 
     def _execute(self, desig: MoveGripperMotion):
-        robot_description = RobotDescription.current_robot_description
-        gripper = desig.gripper
-        arm_chain = robot_description.get_arm_chain(gripper)
-        motion = desig.motion
-        for joint, position in arm_chain.get_static_gripper_state(motion):
-            desig.world.state[joint.name].position = position
-        desig.world.notify_state_change()
-
+        robot_view = ViewManager().find_robot_view_for_world(desig.world)
+        gripper_state = JointStateManager().get_gripper_state(desig.gripper, desig.motion, robot_view)
+        gripper_state.apply_to_world(desig.world)
 
 class DefaultDetecting(ProcessModule):
     """
@@ -157,12 +151,12 @@ class DefaultMoveTCP(ProcessModule):
     """
 
     def _execute(self, desig: MoveTCPMotion):
-        pr2 = desig.world.get_view_by_name("pr2") or PR2.from_world(desig.world)
-        left_arm = pr2.left_arm
-        target = desig.target.to_spatial_type()
-        target.reference_frame = desig.world.root
+        robot_view = ViewManager().find_robot_view_for_world(desig.world)
+        arm = ViewManager.get_arm_view(desig.arm, robot_view)
 
-        inv = desig.world.compute_inverse_kinematics(desig.world.root, left_arm.tip, target, max_iterations=5000)
+        target = desig.target.to_spatial_type()
+
+        inv = desig.world.compute_inverse_kinematics(desig.world.root, arm.manipulator.tool_frame, target, max_iterations=5000)
 
         for joint, state in inv.items():
             desig.world.state[joint.name].position = state
@@ -203,17 +197,21 @@ class DefaultOpen(ProcessModule):
     """
 
     def _execute(self, desig: OpeningMotion):
-        part_of_object = desig.object_part.parent_entity
 
-        container_joint_name = part_of_object.find_joint_above_link(desig.object_part.name)
-        lower_limit, upper_limit = part_of_object.get_joint_limits(container_joint_name)
+        # compute the chain of connections only works top down,
+        handle_to_root_connections = list(reversed(desig.world.compute_chain_of_connections(desig.world.root, desig.object_part)))
+        # Search for the first connection that is not a FixedConnection,
+        container_connection = list(filter(lambda c: not isinstance(c, FixedConnection), handle_to_root_connections))[0]
 
-        goal_pose = link_pose_for_joint_config(part_of_object, {
-            container_joint_name: max(lower_limit, upper_limit - 0.05)}, desig.object_part.name)
+        lower_limit = container_connection.dof.lower_limits.position
+        upper_limit = container_connection.dof.upper_limits.position
 
-        _move_arm_tcp(goal_pose, World.robot, desig.arm, desig.world)
+        goal_pose = link_pose_for_joint_config(desig.object_part, {
+            container_connection.dof.name.name: max(lower_limit, upper_limit - 0.05)})
 
-        part_of_object.set_joint_position(container_joint_name, upper_limit)
+        _move_arm_tcp(goal_pose, ViewManager().find_robot_view_for_world(desig.world), desig.arm, desig.world)
+
+        container_connection.position = upper_limit
 
 
 class DefaultClose(ProcessModule):
@@ -222,17 +220,20 @@ class DefaultClose(ProcessModule):
     """
 
     def _execute(self, desig: ClosingMotion):
-        part_of_object = desig.object_part.parent_entity
+        # compute the chain of connections only works top down,
+        handle_to_root_connections = list(reversed(desig.world.compute_chain_of_connections(desig.world.root, desig.object_part)))
+        # Search for the first connection that is not a FixedConnection,
+        container_connection = list(filter(lambda c: not isinstance(c, FixedConnection), handle_to_root_connections))[0]
 
-        container_joint_name = part_of_object.find_joint_above_link(desig.object_part.name)
-        lower_joint_limit = part_of_object.get_joint_limits(container_joint_name)[0]
+        lower_limit = container_connection.dof.lower_limits.position
+        upper_limit = container_connection.dof.upper_limits.position
 
-        goal_pose = link_pose_for_joint_config(part_of_object, {
-            container_joint_name: lower_joint_limit}, desig.object_part.name)
+        goal_pose = link_pose_for_joint_config(desig.object_part, {
+            container_connection.dof.name.name: min(lower_limit, upper_limit - 0.05)})
 
-        _move_arm_tcp(goal_pose, World.robot, desig.arm, desig.world)
+        _move_arm_tcp(goal_pose, ViewManager().find_robot_view_for_world(desig.world), desig.arm, desig.world)
 
-        part_of_object.set_joint_position(container_joint_name, lower_joint_limit)
+        container_connection.position = lower_limit
 
 
 class DefaultMoveTCPWaypoints(ProcessModule):
@@ -242,12 +243,12 @@ class DefaultMoveTCPWaypoints(ProcessModule):
 
     def _execute(self, desig: MoveTCPWaypointsMotion):
         waypoints = desig.waypoints
-        robot = World.robot
+        robot = ViewManager().find_robot_view_for_world(desig.world)
         for waypoint in waypoints:
             _move_arm_tcp(waypoint, robot, desig.arm, desig.world)
 
 
-def _move_arm_tcp(target: PoseStamped, robot: AbstractRobot, arm: Arms, world: World, tip_link: str = None) -> None:
+def _move_arm_tcp(target: PoseStamped, robot: AbstractRobot, arm: Arms, world: World) -> None:
     """
     Calls the ik solver to calculate the inverse kinematics of the arm and then sets the joint states accordingly.
 
@@ -255,7 +256,7 @@ def _move_arm_tcp(target: PoseStamped, robot: AbstractRobot, arm: Arms, world: W
     :param robot: Robot object representing the robot.
     :param arm: Which arm to move
     """
-    tip = world.get_body_by_name(tip_link) if tip_link else robot.left_arm if arm == Arms.LEFT else robot.right_arm
+    tip = ViewManager().get_end_effector_view(arm, robot).tool_frame
     inv = world.compute_inverse_kinematics(world.root, tip, target.to_spatial_type())
 
     for joint, state in inv.items():
