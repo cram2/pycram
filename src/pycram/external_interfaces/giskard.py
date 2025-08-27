@@ -20,9 +20,9 @@ from typing_extensions import List, Dict, Callable, Optional
 from threading import Lock, RLock
 from ..ros import logging as log, node
 
+from giskardpy_ros.python_interface.python_interface import GiskardWrapper
 
-
-giskard_wrapper = None
+giskard_wrapper : GiskardWrapper = None
 giskard_update_service = None
 is_init = False
 
@@ -314,6 +314,7 @@ def achieve_joint_goal(goal_poses: Dict[str, float]) -> 'ExecutionState':
     :return: MoveResult message for this goal
     """
     set_joint_goal(goal_poses)
+    giskard_wrapper.motion_goals.allow_collision()
     return giskard_wrapper.execute()
 
 
@@ -680,14 +681,18 @@ def allow_gripper_collision(gripper: Arms, at_goal: bool = False) -> None:
     :param gripper: The gripper which can collide, either 'Arms.RIGHT', 'Arms.LEFT' or 'Arms.BOTH'
     :param at_goal: If the collision should be allowed only for this motion goal.
     """
+    from giskard_msgs.msg import CollisionEntry
     add_gripper_groups()
     for gripper_group in get_gripper_group_names():
         if gripper.name.lower() in gripper_group or gripper == Arms.BOTH:
             if at_goal:
                 giskard_wrapper.motion_goals.allow_collision(gripper_group, CollisionEntry.ALL)
             else:
-                giskard_wrapper.allow_collision(gripper_group, CollisionEntry.ALL)
+                giskard_wrapper.motion_goals.allow_collision(gripper_group, CollisionEntry.ALL)
 
+@init_giskard_interface
+def allow_all_collision():
+    giskard_wrapper.motion_goals.allow_all_collisions()
 
 @init_giskard_interface
 def get_gripper_group_names() -> List[str]:
