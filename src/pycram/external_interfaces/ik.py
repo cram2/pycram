@@ -101,7 +101,7 @@ def request_ik(target_pose: PoseStamped, robot: Object, joints: List[str], gripp
     :param gripper: Name of the tool frame which should grasp, this should be at the end of the given joint chain
     :return: A Pose at which the robt should stand as well as a dictionary of joint values
     """
-    if "/giskard" not in get_node_names():
+    if "giskard" not in get_node_names():
         return robot.pose, request_pinocchio_ik(target_pose, robot, gripper, joints)
         # return robot.pose, request_kdl_ik(target_pose, robot, joints, gripper)
     return request_giskard_ik(target_pose, robot, gripper)

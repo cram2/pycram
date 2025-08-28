@@ -289,7 +289,7 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['ExecutionState']:
                     del par_motion_goal[key]
                 del par_threads[key]
                 # giskard_wrapper.add_default_end_motion_conditions()
-                res = giskard_wrapper.execute()
+                res = execute()
                 giskard_wrapper.motion_goals._goals = tmp_goals
                 giskard_wrapper.monitors._monitors = tmp_monitors
                 return res
@@ -315,7 +315,7 @@ def achieve_joint_goal(goal_poses: Dict[str, float]) -> 'ExecutionState':
     """
     set_joint_goal(goal_poses)
     giskard_wrapper.motion_goals.allow_collision()
-    return giskard_wrapper.execute()
+    return execute()
 
 
 @init_giskard_interface
@@ -380,7 +380,7 @@ def achieve_cartesian_goal(goal_pose: 'PoseStamped', tip_link: str, root_link: s
     if grippers_that_can_collide is not None:
         allow_gripper_collision(grippers_that_can_collide)
 
-    return giskard_wrapper.execute()
+    return execute()
 
 
 @init_giskard_interface
@@ -409,7 +409,7 @@ def achieve_straight_cartesian_goal(goal_pose: 'PoseStamped', tip_link: str,
         allow_gripper_collision(grippers_that_can_collide)
     giskard_wrapper.set_straight_cart_goal(goal_pose.ros_message(), tip_link, root_link)
     # giskard_wrapper.add_default_end_motion_conditions()
-    return giskard_wrapper.execute()
+    return execute()
 
 
 @init_giskard_interface
@@ -432,7 +432,7 @@ def achieve_translation_goal(goal_point: List[float], tip_link: str, root_link: 
 
     giskard_wrapper.set_translation_goal(make_point_stamped(goal_point), tip_link, root_link)
     # giskard_wrapper.add_default_end_motion_conditions()
-    return giskard_wrapper.execute()
+    return execute()
 
 
 @init_giskard_interface
@@ -456,7 +456,7 @@ def achieve_straight_translation_goal(goal_point: List[float], tip_link: str, ro
 
     giskard_wrapper.set_straight_translation_goal(make_point_stamped(goal_point), tip_link, root_link)
     # giskard_wrapper.add_default_end_motion_conditions()
-    return giskard_wrapper.execute()
+    return execute()
 
 
 @init_giskard_interface
@@ -479,7 +479,7 @@ def achieve_rotation_goal(quat: List[float], tip_link: str, root_link: str) -> '
 
     giskard_wrapper.set_rotation_goal(make_quaternion_stamped(quat), tip_link, root_link)
     # giskard_wrapper.add_default_end_motion_conditions()
-    return giskard_wrapper.execute()
+    return execute()
 
 
 @init_giskard_interface
@@ -506,7 +506,7 @@ def achieve_align_planes_goal(goal_normal: List[float], tip_link: str, tip_norma
                                           make_vector_stamped(tip_normal),
                                           root_link)
     # giskard_wrapper.add_default_end_motion_conditions()
-    return giskard_wrapper.execute()
+    return execute()
 
 
 @init_giskard_interface
@@ -526,7 +526,7 @@ def achieve_open_container_goal(tip_link: str, environment_link: str) -> 'Execut
         return par_return
     giskard_wrapper.set_open_container_goal(tip_link, environment_link)
     # giskard_wrapper.add_default_end_motion_conditions()
-    return giskard_wrapper.execute()
+    return execute()
 
 
 @init_giskard_interface
@@ -547,7 +547,7 @@ def achieve_close_container_goal(tip_link: str, environment_link: str) -> 'Execu
 
     giskard_wrapper.set_close_container_goal(tip_link, environment_link)
     # giskard_wrapper.add_default_end_motion_conditions()
-    return giskard_wrapper.execute()
+    return execute()
 
 
 @init_giskard_interface
@@ -819,3 +819,9 @@ def make_vector_stamped(vector: List[float]) -> 'Vector3Stamped':
     msg.vector.z = vector[2]
 
     return msg
+
+@init_giskard_interface
+def execute(add_default=True):
+    if add_default:
+        giskard_wrapper.add_default_end_motion_conditions()
+    return giskard_wrapper.execute()
