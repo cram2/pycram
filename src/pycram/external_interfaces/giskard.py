@@ -399,15 +399,15 @@ def achieve_straight_cartesian_goal(goal_pose: 'PoseStamped', tip_link: str,
     :return: MoveResult message for this goal
     """
     sync_worlds()
-    par_return = _manage_par_motion_goals(giskard_wrapper.set_straight_cart_goal, goal_pose.ros_message(),
+    par_return = _manage_par_motion_goals(set_straight_cart_goal, goal_pose.ros_message(),
                                           tip_link, root_link)
     if par_return:
         return par_return
 
-    giskard_wrapper.avoid_all_collisions()
+    avoid_all_collisions()
     if grippers_that_can_collide is not None:
         allow_gripper_collision(grippers_that_can_collide)
-    giskard_wrapper.set_straight_cart_goal(goal_pose.ros_message(), tip_link, root_link)
+    set_straight_cart_goal(goal_pose.ros_message(), tip_link, root_link)
     # giskard_wrapper.add_default_end_motion_conditions()
     return execute()
 
@@ -646,11 +646,11 @@ def projection_cartesian_goal_with_approach(approach_pose: 'PoseStamped', goal_p
     :return: A trajectory calculated to move the tip_link to the goal_pose
     """
     sync_worlds(projection=True)
-    giskard_wrapper.allow_all_collisions()
-    giskard_wrapper.set_cart_goal(approach_pose.ros_message(), robot_base_link, "map")
+    giskard_wrapper.motion_goals.allow_all_collisions()
+    giskard_wrapper.motion_goals.set_cart_goal(approach_pose.ros_message(), robot_base_link, "map")
     giskard_wrapper.projection()
-    giskard_wrapper.avoid_all_collisions()
-    giskard_wrapper.set_cart_goal(goal_pose.ros_message(), tip_link, root_link)
+    giskard_wrapper.motion_goals.avoid_all_collisions()
+    giskard_wrapper.motion_goals.set_cart_goal(goal_pose.ros_message(), tip_link, root_link)
     return giskard_wrapper.projection()
 
 
@@ -819,6 +819,28 @@ def make_vector_stamped(vector: List[float]) -> 'Vector3Stamped':
     msg.vector.z = vector[2]
 
     return msg
+
+@init_giskard_interface
+def set_straight_cart_goal(goal_pose: PoseStamped,
+                           tip_link: str,
+                           root_link: str,
+                           tip_group: Optional[str] = None,
+                           root_group: Optional[str] = None,
+                           reference_linear_velocity: Optional[float] = None,
+                           reference_angular_velocity: Optional[float] = None,
+                           weight: Optional[float] = None,
+                           **kwargs):
+
+    #root_link = giskard_msgs.LinkName(name=root_link, group_name=root_group)
+    #tip_link = giskard_msgs.LinkName(name=tip_link, group_name=tip_group)
+    giskard_wrapper.motion_goals.add_cartesian_pose_straight(end_condition='',
+                                                  goal_pose=goal_pose,
+                                                  tip_link=tip_link,
+                                                  root_link=root_link,
+                                                  weight=weight,
+                                                  reference_linear_velocity=reference_linear_velocity,
+                                                  reference_angular_velocity=reference_angular_velocity,
+                                                  **kwargs)
 
 @init_giskard_interface
 def execute(add_default=True):
