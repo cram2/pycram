@@ -492,7 +492,12 @@ class DefaultMoveGripperReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveGripperMotion):
-        raise NotImplementedError(f"There is DefaultMoveGripperReal process module")
+        robot_description = RobotDescription.current_robot_description
+        gripper = designator.gripper
+        arm_chain = robot_description.get_arm_chain(gripper)
+        motion = designator.motion
+        giskard.achieve_joint_goal(arm_chain.get_static_gripper_state(motion))
+        #raise NotImplementedError(f"There is DefaultMoveGripperReal process module")
 
 
 class DefaultOpenReal(ProcessModule):
