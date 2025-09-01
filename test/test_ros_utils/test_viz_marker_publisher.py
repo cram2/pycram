@@ -14,7 +14,7 @@ from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher, ManualMark
 class TestVizMarkerPublisher(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mock_create_publisher = patch("pycram.ros_utils.single_type_publisher.create_publisher").start()
+        cls.mock_create_publisher = patch("pycram.ros_utils.marker_publisher_base.create_publisher").start()
         cls.mock_publisher = MagicMock()
         cls.mock_create_publisher.return_value = cls.mock_publisher
         cls.mock_world = patch("pycram.ros_utils.viz_marker_publisher.World").start()
@@ -177,7 +177,7 @@ class TestVizMarkerPublisher(unittest.TestCase):
 class TestManualMarkerPublisher(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mock_create_publisher = patch("pycram.ros_utils.single_type_publisher.create_publisher").start()
+        cls.mock_create_publisher = patch("pycram.ros_utils.marker_publisher_base.create_publisher").start()
         cls.mock_publisher = MagicMock()
         cls.mock_create_publisher.return_value = cls.mock_publisher
 
@@ -311,7 +311,7 @@ class TestManualMarkerPublisher(unittest.TestCase):
 class TestTrajectoryPublisher(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mock_create_publisher = patch("pycram.ros_utils.single_type_publisher.create_publisher").start()
+        cls.mock_create_publisher = patch("pycram.ros_utils.marker_publisher_base.create_publisher").start()
         cls.mock_publisher = MagicMock()
         cls.mock_create_publisher.return_value = cls.mock_publisher
 
@@ -324,7 +324,7 @@ class TestTrajectoryPublisher(unittest.TestCase):
         self.assertEqual(trajectory_pub.publisher, self.mock_publisher)
 
     def test_visualize_trajectory(self):
-        with patch("pycram.ros_utils.single_type_publisher.create_publisher") as mock_create_publisher:
+        with patch("pycram.ros_utils.marker_publisher_base.create_publisher") as mock_create_publisher:
             mock_publisher = MagicMock()
             mock_create_publisher.return_value = mock_publisher
 
@@ -385,7 +385,7 @@ class TestTrajectoryPublisher(unittest.TestCase):
 class TestBoundingBoxPublisher(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mock_create_publisher = patch("pycram.ros_utils.single_type_publisher.create_publisher").start()
+        cls.mock_create_publisher = patch("pycram.ros_utils.marker_publisher_base.create_publisher").start()
         cls.mock_publisher = MagicMock()
         cls.mock_create_publisher.return_value = cls.mock_publisher
 
@@ -398,7 +398,7 @@ class TestBoundingBoxPublisher(unittest.TestCase):
         self.assertEqual(bounding_box_pub.publisher, self.mock_publisher)
 
     def test_visualization(self):
-        with patch("pycram.ros_utils.single_type_publisher.create_publisher") as mock_create_publisher:
+        with patch("pycram.ros_utils.marker_publisher_base.create_publisher") as mock_create_publisher:
             mock_publisher = MagicMock()
             mock_create_publisher.return_value = mock_publisher
 
@@ -436,7 +436,7 @@ class TestBoundingBoxPublisher(unittest.TestCase):
 class TestCoordinateAxisPublisher(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mock_create_publisher = patch("pycram.ros_utils.single_type_publisher.create_publisher").start()
+        cls.mock_create_publisher = patch("pycram.ros_utils.marker_publisher_base.create_publisher").start()
         cls.mock_publisher = MagicMock()
         cls.mock_create_publisher.return_value = cls.mock_publisher
 
@@ -449,7 +449,7 @@ class TestCoordinateAxisPublisher(unittest.TestCase):
         self.assertEqual(coordinate_axis_pub.publisher, self.mock_publisher)
 
     def test_visualize(self):
-        with patch("pycram.ros_utils.single_type_publisher.create_publisher") as mock_create_publisher:
+        with patch("pycram.ros_utils.marker_publisher_base.create_publisher") as mock_create_publisher:
             mock_publisher = MagicMock()
             mock_create_publisher.return_value = mock_publisher
 

@@ -1,12 +1,13 @@
 import atexit
 import threading
 import time
+from dataclasses import dataclass, field
 from typing import List, Optional
 
 from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker, MarkerArray
 
-from .single_type_publisher import SingleTypePublisher
+from .marker_publisher_base import MarkerPublisherBase
 from ..datastructures.dataclasses import BoundingBoxCollection, Color
 from ..datastructures.enums import AxisIdentifier
 from ..datastructures.pose import PoseStamped, TransformStamped
@@ -15,34 +16,38 @@ from ..designator import ObjectDesignatorDescription
 from ..ros import  loginfo, logwarn, logerr
 from ..ros import  sleep
 
-class VizMarkerPublisher(SingleTypePublisher):
+@dataclass
+class VizMarkerPublisher(MarkerPublisherBase):
     """
     Publishes an Array of visualization marker which represent the situation in the World
     """
 
-    def __init__(self, topic="/pycram/viz_marker", interval=0.1, reference_frame="map", use_prospection_world=False,
-                 publish_visuals=False):
-        """
-        The Publisher creates an Array of Visualization marker with a Marker for each link of each Object in the
-        World. This Array is published with a rate of interval.
+    topic: str = "/pycram/viz_marker"
+    """The name of the topic to which the Visualization Marker should be published."""
 
-        :param topic: The name of the topic to which the Visualization Marker should be published.
-        :param interval: The interval at which the visualization marker should be published, in seconds.
-        :param reference_frame: The reference frame of the visualization marker.
-        :param use_prospection_world: If True, the visualization marker will be published for the prospection world.
-        :param publish_visuals: If True, the visualization marker will be published.
-        """
+    interval: float = 0.1
+    """The interval at which the visualization marker should be published in seconds."""
 
-        self.use_prospection_world = use_prospection_world
-        super().__init__(topic="/pycram/prospection_viz_marker" if use_prospection_world else topic)
-        self.interval = interval
-        self.reference_frame = reference_frame
-        self.publish_visuals = publish_visuals
+    reference_frame: str = "map"
+    """The reference frame of the visualization marker."""
+
+    use_prospection_world: bool = False
+    """Is prospection_world used?"""
+
+    publish_visuals: bool = False
+    """Should the visualization marker be published?"""
+
+    def __post_init__(self):
+        super().__init__(topic="/pycram/prospection_viz_marker" if self.use_prospection_world else self.topic)
 
         if self.use_prospection_world:
             self.main_world = World.current_world.prospection_world
         else:
-            self.main_world = World.current_world if not World.current_world.is_prospection_world else World.current_world.world_sync.world
+            self.main_world = (
+                World.current_world
+                if not World.current_world.is_prospection_world
+                else World.current_world.world_sync.world
+            )
 
         self.lock = self.main_world.object_lock
         self.kill_event = threading.Event()
@@ -115,26 +120,27 @@ class VizMarkerPublisher(SingleTypePublisher):
         self.kill_event.set()
         self.thread.join()
 
-
-class ManualMarkerPublisher(SingleTypePublisher):
+@dataclass
+class ManualMarkerPublisher(MarkerPublisherBase):
     """
     Class to manually add and remove marker of objects and poses.
     """
 
-    def __init__(self, topic: str = '/pycram/manual_marker', interval: float = 0.1):
+    topic: str = "/pycram/manual_marker"
+    """The name of the topic to which the Visualization Marker should be published."""
+
+    interval: float = 0.1
+    """The interval at which the visualization marker should be published in seconds."""
+
+    def __post_init__(self):
         """
         The Publisher creates an Array of Visualization marker with a marker for a pose or object.
-        This Array is published with a rate of interval.
-
-        :param topic: Name of the marker topic
-        :param interval: Interval at which the marker should be published
         """
-        super().__init__(topic=topic)
+
         self.start_time = None
         self.marker_array = MarkerArray()
         self.marker_overview = {}
         self.current_id = 0
-        self.interval = interval
 
     def visualize(self, pose: PoseStamped, color: Optional[List] = None, bw_object: Optional[ObjectDesignatorDescription] = None,
                 name: Optional[str] = None) -> None:
@@ -307,13 +313,14 @@ class ManualMarkerPublisher(SingleTypePublisher):
         loginfo('Removed all markers')
 
 
-class TrajectoryPublisher(SingleTypePublisher):
+@dataclass
+class TrajectoryPublisher(MarkerPublisherBase):
     """
     Publishes a trajectory as a MarkerArray to visualize it in rviz.
     """
 
-    def __init__(self, topic: str = "/pycram/trajectory") -> None:
-        self.topic = topic
+    topic: str = "/pycram/trajectory"
+    """The name of the topic that the trajectory should be published to"""
 
     def visualize(self, trajectory: List[PoseStamped]) -> None:
         """
@@ -333,13 +340,14 @@ class TrajectoryPublisher(SingleTypePublisher):
         self.publisher.publish(marker_array)
 
 
-class BoundingBoxPublisher(SingleTypePublisher):
+@dataclass
+class BoundingBoxPublisher(MarkerPublisherBase):
     """
     Publishes a list of bounding boxes as a MarkerArray to visualize it in rviz.
     """
 
-    def __init__(self, topic: str = "/pycram/bounding_boxes") -> None:
-        self.topic = topic
+    topic: str = "/pycram/bounding_boxes"
+    """The name of the topic that the bounding boxes should be published to"""
 
     def visualize(self, boxes: BoundingBoxCollection, duration: Optional[int] = 60) -> None:
         """
@@ -353,13 +361,14 @@ class BoundingBoxPublisher(SingleTypePublisher):
         self.publisher.publish(marker_array)
 
 
-class CoordinateAxisPublisher(SingleTypePublisher):
+@dataclass
+class CoordinateAxisPublisher(MarkerPublisherBase):
     """
     Publishes coordinate axes as a MarkerArray to visualize them in rviz.
     """
 
-    def __init__(self, topic: str = "/pycram/coordinate_axis") -> None:
-        self.topic = topic
+    topic: str = "/pycram/coordinate_axis"
+    """The name of the topic that the coordinate axis should be published to"""
 
     def visualize(self, poses: List[PoseStamped], duration: Optional[int] = 60, length: Optional[float] = 0.1) -> None:
         """

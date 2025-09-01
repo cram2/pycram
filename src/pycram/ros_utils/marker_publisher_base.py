@@ -20,9 +20,9 @@ from ..world_concepts.world_object import Object
 
 
 @dataclass
-class SingleTypePublisher(ABC):
+class MarkerPublisherBase(ABC):
     """
-     Base class for publishing visualization markers of a single data type in ROS/RViz.
+    Base class for publishing visualization markers of specific data in ROS/RViz.
 
     This class provides common utilities for creating and publishing various types of
     markers, such as arrows, cubes, lines, and geometry-based visualizations. Subclasses
