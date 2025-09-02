@@ -1,8 +1,10 @@
 import functools
 import random
+from copy import deepcopy
 
 import numpy as np
 from semantic_world.world_entity import Body
+from semantic_world.world import World
 
 from pycrap.ontologies import PhysicalObject
 from .tf_transformations import quaternion_from_euler
@@ -177,9 +179,11 @@ def visibility_validator(robot: Body,
     return ray.obj_id == obj_id
 
 
-def reachability_validator(robot: Body,
+def reachability_validator( root: Body,
+                            tip: Body,
                            target_pose: PoseStamped,
                            arm: Arms,
+                           world: World,
                            allowed_collision: Dict[Body, List] = None
                            ) -> Optional[Dict[str, float]]:
     """
@@ -188,9 +192,11 @@ def reachability_validator(robot: Body,
     robot stands at the position of the pose candidate. if there is a solution
     the validator returns True and False in any other case.
 
-    :param robot: The robot object in the World for which the reachability should be validated.
+    :param root: The body which is the root of the kinematic chain to be used for ik.
+    :param tip: The body which is the tip of the kinematic chain to be used for ik.
     :param target_pose: The target pose for which the reachability should be validated.
     :param arm: The arm that should be checked for reachability.
+    :param world: The world in which the robot is located.
     :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates
      to a list of links of which this object consists
 
@@ -199,30 +205,33 @@ def reachability_validator(robot: Body,
 
     allowed_collision = allowed_collision or {}
     arm_chain = RobotDescription.current_robot_description.get_arm_chain(arm)
-    allowed_collision[robot] = [link for link in arm_chain.end_effector.links]
+    # allowed_collision[robot] = [link for link in arm_chain.end_effector.links]
 
-    joint_state_before_ik = robot.get_positions_of_all_joints()
+    old_state = deepcopy(world.state.data)
     try:
-        pose, joint_states = request_ik(target_pose, robot, arm_chain.joints, arm_chain.end_effector.tool_frame)
+        joint_states = world.compute_inverse_kinematics(root, tip, target_pose.to_spatial_type())
         logdebug(f"Robot {arm.name} can reach target pose")
-        robot.set_pose(pose)
-        robot.set_multiple_joint_positions(joint_states)
+        for dof, value in joint_states.items():
+            world.state[dof.name].position = value
+        world.notify_state_change()
+
         collision_check(robot, allowed_collision)
         logdebug(f"Robot is not in contact at target pose")
 
-        robot.set_multiple_joint_positions(joint_state_before_ik)
         return joint_states
 
     except (IKError, RobotInCollision):
         logdebug(f"Robot {arm.name} cannot reach pose without collision")
         return None
     finally:
-        robot.set_multiple_joint_positions(joint_state_before_ik)
+        world.state.data = old_state
+        world.notify_state_change()
 
 
 def pose_sequence_reachability_validator(robot: Body,
                                          target_sequence: List[PoseStamped],
                                          arm: Arms,
+                                         world: World,
                                          allowed_collision: Dict[Body, List] = None
                                          ) -> bool:
     """
@@ -233,25 +242,29 @@ def pose_sequence_reachability_validator(robot: Body,
 
     :param robot: The robot object in the World for which the reachability should be validated.
     :param target_sequence: The target sequence of poses for which the reachability should be validated.
+    :param world: The world in which the robot is located.
     :param arm: The arm that should be checked for reachability.
     :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates
      to a list of links of which this object consists
 
     :return: The arm that can reach the target position and None in any other case.
     """
-    joint_state_before_ik = robot.get_positions_of_all_joints()
+    old_state = world.state.data
     for target_pose in target_sequence:
         joint_states = reachability_validator(robot, target_pose, arm, allowed_collision)
         if joint_states is None:
-            robot.set_multiple_joint_positions(joint_state_before_ik)
+            world.state.data = old_state
+            world.notify_state_change()
             return False
-        robot.set_multiple_joint_positions(joint_states)
+        world.state.data = old_state
+        world.notify_state_change()
 
-    robot.set_multiple_joint_positions(joint_state_before_ik)
+    world.state.data = old_state
+    world.notify_state_change()
     return True
 
 
-def collision_check(robot: Body, allowed_collision: Dict[Body, List]):
+def collision_check(body_list: List[Body], allowed_collision: Dict[Body, List]):
     """
     This method checks if a given robot collides with any object within the world
     which it is not allowed to collide with.

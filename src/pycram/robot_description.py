@@ -1,6 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+from semantic_world.exceptions import ViewNotFoundError
 from semantic_world.robots import AbstractRobot, KinematicChain, Manipulator, Neck
 from semantic_world.world import World
 from semantic_world.world_entity import View
@@ -17,7 +18,7 @@ from itertools import product
 
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-from typing_extensions import List, Dict, Union, Optional, Tuple, TYPE_CHECKING
+from typing_extensions import List, Dict, Union, Optional, Tuple, TYPE_CHECKING, TypeVar
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, Rotations
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState, \
@@ -961,6 +962,7 @@ def create_manipulator_description(data: ManipulatorData,
 
     return robot_description
 
+T = TypeVar('T', bound=View)
 
 @dataclass
 class ViewManager:
@@ -1035,3 +1037,19 @@ class ViewManager:
             return robot_view.neck
         else:
             raise ValueError(f"The robot view {robot_view} has no neck.")
+
+    @staticmethod
+    def get_view_in_other_world(view: T, other_world: World) -> Optional[T]:
+        """
+        Get the view in another world.
+
+        :param view: The view to search for.
+        :param other_world: The world to search in.
+        :return: The view in the other world, or None if not found.
+        """
+        try:
+            return view.from_world(other_world)
+        except ViewNotFoundError:
+            other_view = other_world.get_view_by_name(view.name)
+            if other_view is None:
+                return other_view.__class__.from_world(other_world)
