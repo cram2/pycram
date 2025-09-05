@@ -996,8 +996,8 @@ class ViewManager:
         """
         robots = self.find_active_robots_for_world(world)
         if not robots:
-            raise ValueError("No active robots found in the world.")
-        return robots[0]
+            print("No robot found in the world.")
+        return robots[0] if robots else None
 
     @staticmethod
     def get_end_effector_view(arm: Arms, robot_view: AbstractRobot) -> Optional[Manipulator]:

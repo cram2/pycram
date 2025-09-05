@@ -652,11 +652,12 @@ def is_iterable(obj: Any) -> bool:
     return True
 
 
-def lazy_product(*iterables: Iterable) -> Iterable[Tuple]:
+def lazy_product(*iterables: Iterable, iter_names: List[str] = None) -> Iterable[Tuple]:
     """
     Lazily generate the cartesian product of the iterables.
 
     :param iterables: Iterable of iterables to construct product for.
+    :param iter_names: Optional names for the iterables for better error messages.
     :return: Iterable of tuples in the cartesian product.
     """
 
@@ -667,7 +668,7 @@ def lazy_product(*iterables: Iterable) -> Iterable[Tuple]:
         try:
             current_value.append(next(consumable_iterable))
         except StopIteration as e:
-            raise RuntimeError(f"No values in the iterable: {consumable_iterable} with attributes: {iterables[i].__dict__ if hasattr(iterables[i], '__dict__') else ''}")
+            raise RuntimeError(f"No values in the iterable: {consumable_iterable} for iterable '{iter_names[i] if iter_names else i}'")
 
     while True:
         yield tuple(current_value)

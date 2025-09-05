@@ -94,7 +94,7 @@ class PartialDesignator(Iterable[T]):
         :yields: A list with a possible permutation of the given arguments
         """
         iter_list = [x if is_iterable(x) and not type(x) == str else [x] for x in self.kwargs.values()]
-        for combination in lazy_product(*iter_list):
+        for combination in lazy_product(*iter_list, iter_names=list(self.kwargs.keys())):
             yield dict(zip(self.kwargs.keys(), combination))
 
     def missing_parameter(self) -> List[str]:

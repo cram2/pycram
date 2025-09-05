@@ -15,6 +15,8 @@ from random_events.product_algebra import Event, SimpleEvent
 from random_events.set import Set
 from random_events.variable import Continuous, Symbolic
 from scipy.spatial import ConvexHull
+from semantic_world.collision_checking.collision_detector import CollisionCheck
+from semantic_world.collision_checking.trimesh_collision_detector import TrimeshCollisionDetector
 from semantic_world.robots import AbstractRobot
 from semantic_world.spatial_types.spatial_types import TransformationMatrix
 from semantic_world.world import World
@@ -33,7 +35,7 @@ from ..designator import LocationDesignatorDescription
 from ..failures import RobotInCollision
 from ..graph_of_convex_sets import GraphOfConvexSets
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, pose_sequence_reachability_validator, \
-    collision_check, OrientationGenerator
+    OrientationGenerator
 from ..robot_description import ViewManager
 from ..ros import logerr
 from ..utils import translate_pose_along_local_axis
@@ -65,8 +67,8 @@ class Location(LocationDesignatorDescription):
 
 def _create_target_sequence(grasp_description: GraspDescription, target: Union[PoseStamped, Body], robot: AbstractRobot,
                             object_in_hand: Body, reachable_arm: Arms, world: World, rotation_agnostic: bool = False) -> \
-List[
-    PoseStamped]:
+        List[
+            PoseStamped]:
     """
     Creates the sequence of poses that need to be reachable for the robot to grasp the target.
     For pickup this would be retract pose, target pose and lift pose.
@@ -83,7 +85,7 @@ List[
     end_effector = ViewManager.get_end_effector_view(reachable_arm, robot)
 
     grasp_quaternion = grasp_description.calculate_grasp_orientation(end_effector.front_facing_orientation.to_np())
-    approach_axis = end_effector.approach_axis
+    approach_axis = end_effector.front_facing_axis
 
     target_pose = target.copy() if isinstance(target, PoseStamped) else \
         grasp_description.get_grasp_pose(end_effector, target)
@@ -102,9 +104,6 @@ List[
             side_grasp *= np.array([-1, -1, -1, 1])
             target_pose.rotate_by_quaternion(side_grasp.tolist())
 
-        # target_pose = object_in_hand.attachments[
-        #     World.robot].get_child_link_target_pose_given_parent(target_pose)
-
         target_pose = world.transform(TransformationMatrix.from_point_rotation_matrix(object_in_hand.global_pose[:3, 3],
                                                                                       object_in_hand.global_pose[
                                                                                           :3, :3]),
@@ -116,12 +115,12 @@ List[
     else:
 
         target_pose.rotate_by_quaternion(grasp_quaternion)
-        approach_offset_cm = 0.1 # if isinstance(target, PoseStamped) else target.get_approach_offset()
+        approach_offset_cm = 0.1  # if isinstance(target, PoseStamped) else target.get_approach_offset()
 
     lift_pose = target_pose.copy()
     lift_pose.position.z += 0.1
 
-    retract_pose = translate_pose_along_local_axis(target_pose, approach_axis, -approach_offset_cm)
+    retract_pose = translate_pose_along_local_axis(target_pose, approach_axis.to_np()[:3], -approach_offset_cm)
 
     target_sequence = ([lift_pose, target_pose, retract_pose] if object_in_hand
                        else [retract_pose, target_pose, lift_pose])
@@ -187,9 +186,6 @@ class CostmapLocation(LocationDesignatorDescription):
 
 
         """
-        # target_pose = PoseStamped.from_list([target.position.x, target.position.y, target.position.z],
-        #                                     [target.orientation.x, target.orientation.y, target.orientation.z,
-        #                                      target.orientation.w])
         ground_pose = deepcopy(target)
         ground_pose.position.z = 0
 
@@ -206,28 +202,33 @@ class CostmapLocation(LocationDesignatorDescription):
             final_map += visible
 
         if reachable_for:
-            gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
+            gaussian = GaussianCostmap(200, 15, self.world, 0.02, ground_pose)
             final_map += gaussian
 
         return final_map
 
     @staticmethod
-    def create_allowed_collisions(ignore_collision_with: List[Body], object_in_hand: Body) -> Dict[Body, str]:
+    def create_collision_matrix(ignore_collision_with: List[Body], object_in_hand: Body, world: World,
+                                robot: AbstractRobot) -> List[CollisionCheck]:
         """
-        Creates a dict of object which are allowed to collide with the robot without impacting reachability
+        CCreates a list of collision checks that should be performed
 
         :param ignore_collision_with: List of objects for which collision should be ignored
         :param object_in_hand: An object that the robot might hold
-        :return: A dict of objects that link to their names
+        :param world: The world in which the collision check should be performed
+        :param robot: The robot for which the collision check should be performed
+        :return: A list of collision checks that should be performed
         """
-        ignore_collision_with = [World.current_world.get_prospection_object_for_object(obj)
-                                 for obj in ignore_collision_with]
+        collision_checks = []
+        allowed_collision_with = ignore_collision_with + ([object_in_hand] if object_in_hand else [])
 
-        allowed_collision = {object: object.link_id_to_name[-1] for object in ignore_collision_with}
-        if object_in_hand:
-            prospection_object = World.current_world.get_prospection_object_for_object(object_in_hand)
-            allowed_collision.update({prospection_object: prospection_object.link_id_to_name[-1]})
-        return allowed_collision
+        for robot_body in robot.bodies_with_enabled_collision:
+            for world_body in world.bodies_with_enabled_collision:
+                if world_body in allowed_collision_with or robot_body in allowed_collision_with or world_body in robot.bodies:
+                    continue
+                collision_checks.append(CollisionCheck(robot_body, world_body, 0.01, world))
+
+        return collision_checks
 
     def __iter__(self) -> Iterator[PoseStamped]:
         """
@@ -246,29 +247,28 @@ class CostmapLocation(LocationDesignatorDescription):
             params_box = Box(params)
             # Target is either a pose or an object since the object is later needed for the visibility validator
             target = params_box.target.copy() if isinstance(params_box.target, PoseStamped) else params_box.target
-
+            test_world = deepcopy(self.world)
+            test_world.name = "Test World"
 
             if params_box.visible_for or params_box.reachable_for:
                 robot_object = params_box.visible_for if params_box.visible_for else params_box.reachable_for
             else:
                 robot_object = ViewManager.find_active_robots_for_world(test_world)
 
-            test_world = deepcopy(self.world)
+            collision_detector = TrimeshCollisionDetector(test_world)
 
             test_robot = ViewManager.get_view_in_other_world(robot_object, test_world)
 
-            allowed_collision = self.create_allowed_collisions(params_box.ignore_collision_with,
-                                                               params_box.object_in_hand)
+            collision_matrix = self.create_collision_matrix(params_box.ignore_collision_with,
+                                                            params_box.object_in_hand, test_world, test_robot)
 
             final_map = self.setup_costmaps(target, robot_object, params_box.visible_for, params_box.reachable_for)
-
 
             for pose_candidate in PoseGenerator(final_map, number_of_samples=600):
                 pose_candidate.position.z = 0
                 test_robot.root.parent_connection.origin = pose_candidate.to_spatial_type()
-                try:
-                    collision_check(test_robot, allowed_collision)
-                except RobotInCollision:
+                collisions = collision_detector.check_collisions(collision_matrix)
+                if collisions:
                     continue
 
                 if not (params_box.reachable_for or params_box.visible_for):
@@ -283,8 +283,8 @@ class CostmapLocation(LocationDesignatorDescription):
                     continue
 
                 grasp_descriptions = [
-                    params_box.grasp_descriptions] if params_box.grasp_descriptions else target.calculate_grasp_descriptions(
-                    test_robot)
+                    params_box.grasp_descriptions] if params_box.grasp_descriptions else GraspDescription.calculate_grasp_descriptions(
+                    test_robot, target)
 
                 for grasp_desc in grasp_descriptions:
 
@@ -292,10 +292,12 @@ class CostmapLocation(LocationDesignatorDescription):
                                                               params_box.object_in_hand,
                                                               params_box.reachable_arm,
                                                               params_box.rotation_agnostic)
-
-                    is_reachable = pose_sequence_reachability_validator(test_robot, target_sequence,
+                    ee = ViewManager.get_arm_view(params_box.reachable_arm, test_robot)
+                    is_reachable = pose_sequence_reachability_validator(test_world.root, ee.manipulator.tool_frame,
+                                                                        target_sequence,
                                                                         arm=params_box.reachable_arm,
-                                                                        allowed_collision=allowed_collision)
+                                                                        allowed_collision=collision_matrix,
+                                                                        world=test_world)
                     if is_reachable:
                         yield GraspPose(pose_candidate.pose, pose_candidate.header,
                                         arm=params_box.reachable_arm, grasp_description=grasp_desc)
@@ -1015,7 +1017,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
         return room_event
 
     def _create_free_space_conditions(self, world: World, target_position: Vector3, search_distance: float = 1.5) -> \
-    Tuple[Event, Event, Event]:
+            Tuple[Event, Event, Event]:
         """
         Creates the conditions for the free space around the target position.
         1. reachable_space_condition: The condition that describes the reachable space around the target position in 3d

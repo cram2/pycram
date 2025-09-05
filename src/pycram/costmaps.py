@@ -1,6 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
@@ -14,18 +15,17 @@ from random_events.interval import Interval, reals, closed_open, closed
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
 from semantic_world.raytracer import RayTracer
-
-from .tf_transformations import quaternion_from_matrix, quaternion_from_euler
+from semantic_world.world import World
+from semantic_world.world_entity import Body
 from typing_extensions import Tuple, List, Optional, Iterator
 
-from .datastructures.dataclasses import BoxVisualShape, Color
-from .datastructures.pose import TransformStamped
-from .ros import logwarn
 from .datastructures.dataclasses import AxisAlignedBoundingBox
+from .datastructures.dataclasses import BoxVisualShape, Color
 from .datastructures.pose import PoseStamped
-from .ros import wait_for_message
-from .utils import chunks
-from semantic_world.world import World
+from .datastructures.pose import TransformStamped
+from .robot_description import ViewManager
+from .ros import logwarn
+from .tf_transformations import quaternion_from_euler
 
 try:
     from nav_msgs.msg import OccupancyGrid, MapMetaData
@@ -87,7 +87,8 @@ class Costmap:
         self.size: int = height
         self.height: int = height
         self.width: int = width
-        self.origin: PoseStamped = self.world.transform(origin.to_spatial_type(), self.world.root)
+        self.origin: PoseStamped = PoseStamped.from_spatial_type(
+            self.world.transform(origin.to_spatial_type(), self.world.root))
         self.map: np.ndarray = map
         self.vis_ids: List[int] = []
 
@@ -215,6 +216,8 @@ class Costmap:
             raise ValueError("To merge costmaps, the x and y coordinate as well as the orientation must be equal.")
         elif self.resolution != other_cm.resolution:
             raise ValueError("To merge two costmaps their resolution must be equal.")
+        elif self.world != other_cm.world:
+            raise ValueError("To merge two costmaps they must belong to the same world.")
         new_map = np.zeros((self.height, self.width))
         # A numpy array of the positions where both costmaps are greater than 0
         merge = np.logical_and(self.map > 0, other_cm.map > 0)
@@ -225,7 +228,7 @@ class Costmap:
         else:
             new_map = new_map.reshape((self.height, self.width))
             logwarn("Merged costmap is empty.")
-        return Costmap(self.resolution, self.height, self.width, self.origin, new_map)
+        return Costmap(self.resolution, self.height, self.width, self.origin, new_map, self.world)
 
     def __add__(self, other: Costmap) -> Costmap:
         """
@@ -311,8 +314,9 @@ class OccupancyCostmap(Costmap):
         self.world = world
 
         self.size = size
-        self.origin = PoseStamped.from_list() if not origin else origin
-        self.origin = self.world.transform(self.origin.to_spatial_type(), self.world.root)
+        self.origin = PoseStamped.from_list(self.world.root) if not origin else origin
+        self.origin = PoseStamped.from_spatial_type(
+            self.world.transform(self.origin.to_spatial_type(), self.world.root))
         self.resolution = resolution
         self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
         self.map = self._create_from_world(size, resolution)
@@ -338,25 +342,15 @@ class OccupancyCostmap(Costmap):
         # only differ in the z-coordinate
         rays = np.dstack(np.dstack((indices_0, indices_10))).T
 
-        res = np.zeros(len(rays))
-        # Using the World rayTest to check if there is an object above the position
-        # if there is no object the position is marked as valid
-        # 16383 is the maximal number of rays that can be processed in a batch
-        i = 0
-        j = 0
-        # floor_id = self.world.get_object_by_name("floor").id
-        for n in chunks(np.array(rays), 256):
-            ray_tracer = RayTracer(self.world)
-            r_t = ray_tracer.ray_test(n[:, 0], n[:, 1])
-            j += len(n)
-            if World.robot:
-                attached_objs_id = [o.id for o in self.world.robot.attachments.keys()]
-                res[i:j] = [
-                    1 if ray.obj_id in [-1, self.world.robot.id, floor_id] + attached_objs_id else 0 for
-                    ray in r_t]
-            else:
-                res[i:j] = [1 if ray.obj_id in [-1, floor_id] else 0 for ray in r_t]
-            i += len(n)
+        res = np.ones(len(rays))
+
+        ray_tracer = RayTracer(self.world)
+        r_t = ray_tracer.ray_test(rays[:, 0], rays[:, 1])
+        robot_view = ViewManager().find_robot_view_for_world(self.world)
+        if robot_view:
+            res[r_t[1]] = [1 if r_t[2][i] in robot_view.bodies else 0 for i in range(len(r_t[1]))]
+        else:
+            res[r_t[1]] = 0
 
         res = np.flip(np.reshape(np.array(res), (size, size)))
 
@@ -389,12 +383,11 @@ class VisibilityCostmap(Costmap):
 
     def __init__(self, min_height: float,
                  max_height: float,
+                 world: Optional[World],
                  size: Optional[int] = 100,
                  resolution: Optional[float] = 0.02,
                  origin: Optional[PoseStamped] = None,
-                 world: Optional[World] = None,
-                 target_object: Optional[Object] = None,
-                 robot: Optional[Object] = None):
+                 target_object: Optional[Body] = None):
         """
         Visibility Costmaps show for every position around the origin pose if the origin can be seen from this pose.
         The costmap is able to deal with height differences of the camera while in a single position, for example, if
@@ -417,7 +410,7 @@ class VisibilityCostmap(Costmap):
         if (11 * size ** 2 + size ** 3) * 2 > psutil.virtual_memory().available:
             raise OSError("Not enough free RAM to calculate a costmap of this size")
 
-        self.world = world if world else World.current_world
+        self.world = world
         self.map = np.zeros((size, size))
         self.size = size
         self.resolution = resolution
@@ -425,30 +418,11 @@ class VisibilityCostmap(Costmap):
         self.max_height: float = max_height
         # for pr2 = 1.6
         self.min_height: float = min_height
-        self.origin: PoseStamped = PoseStamped.from_list() if not origin else origin
-        self.target_object: Optional[Object] = target_object
-        self.robot: Optional[Object] = robot
-        if robot:
-            # this is done because otherwise the robot would interfere with the costmap
-            current_pose = robot.get_pose()
-            robot.world.robot.set_pose(PoseStamped.from_list([current_pose.position.x, current_pose.position.y+1000, current_pose.position.z]))
+        self.origin: PoseStamped = PoseStamped.from_list(self.world.root) if not origin else origin
+        self.target_object: Optional[Body] = target_object
+
         self._generate_map()
-        if robot:
-            robot.world.robot.set_pose(current_pose)
-        Costmap.__init__(self, resolution, size, size, self.origin, self.map)
-
-    @property
-    def robot(self) -> Optional[Object]:
-        return self._robot
-
-    @robot.setter
-    def robot(self, robot: Optional[Object]) -> None:
-        if robot is not None:
-            self._robot = World.current_world.get_prospection_object_for_object(robot)
-            self.robot_original_pose = self._robot.pose
-        else:
-            self._robot = None
-            self.robot_original_pose = None
+        Costmap.__init__(self, resolution, size, size, self.origin, self.map, self.world)
 
     @property
     def target_object(self) -> Optional[Object]:
@@ -491,31 +465,52 @@ class VisibilityCostmap(Costmap):
         images = []
         camera_pose = self.origin
 
-        self.move_target_and_robot_far_away()
+        camera_world = deepcopy(self.world)
 
-        with UseProspectionWorld():
-            origin_copy = self.origin.copy()
-            origin_copy.position.y += 1
-            images.append(
-                self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
+        # self.move_target_and_robot_far_away(camera_world)
 
-            origin_copy = self.origin.copy()
-            origin_copy.position.x -= 1
-            images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
+        r_t = RayTracer(self.world)
 
-            origin_copy = self.origin.copy()
-            origin_copy.position.y -= 1
-            images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
+        origin_copy = self.origin.copy()
 
-            origin_copy = self.origin.copy()
-            origin_copy.position.x += 1
-            images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
+        images.append(
+            r_t.create_depth_map(origin_copy.to_spatial_type(), resolution=self.size))
 
-        self.return_target_and_robot_to_their_original_position()
+        origin_copy.rotate_by_quaternion([0, 0, 1, 1])
+        images.append(
+            r_t.create_depth_map(origin_copy.to_spatial_type(), resolution=self.size))
 
-        if not World.current_world.conf.depth_images_are_in_meter:
-            for i in range(0, 4):
-                images[i] = self._depth_buffer_to_meter(images[i])
+        origin_copy.rotate_by_quaternion([0, 0, 1, 1])
+        images.append(
+            r_t.create_depth_map(origin_copy.to_spatial_type(), resolution=self.size))
+
+        origin_copy.rotate_by_quaternion([0, 0, 1, 1])
+        images.append(
+            r_t.create_depth_map(origin_copy.to_spatial_type(), resolution=self.size))
+
+        # with UseProspectionWorld():
+        #     origin_copy = self.origin.copy()
+        #     origin_copy.position.y += 1
+        #     images.append(
+        #         self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
+        #
+        #     origin_copy = self.origin.copy()
+        #     origin_copy.position.x -= 1
+        #     images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
+        #
+        #     origin_copy = self.origin.copy()
+        #     origin_copy.position.y -= 1
+        #     images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
+        #
+        #     origin_copy = self.origin.copy()
+        #     origin_copy.position.x += 1
+        #     images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
+        #
+        # self.return_target_and_robot_to_their_original_position()
+
+        # if not World.current_world.conf.depth_images_are_in_meter:
+        #     for i in range(0, 4):
+        #         images[i] = self._depth_buffer_to_meter(images[i])
         return images
 
     def _depth_buffer_to_meter(self, buffer: np.ndarray) -> np.ndarray:
@@ -591,7 +586,7 @@ class VisibilityCostmap(Costmap):
         # An array with size * size that contains the euclidean distance to the
         # origin (in the middle of the costmap) from every cell
         distances = np.maximum(np.linalg.norm(np.dstack(np.mgrid[-int(self.size / 2): int(self.size / 2), \
-                                                        -int(self.size / 2): int(self.size / 2)]), axis=2), 0.001)
+            -int(self.size / 2): int(self.size / 2)]), axis=2), 0.001)
 
         # Row ranges
         # Calculation of the ranges of coordinates in the row which have to be
@@ -646,7 +641,7 @@ class GaussianCostmap(Costmap):
     Gaussian Costmaps are 2D gaussian distributions around the origin with the given mean and sigma
     """
 
-    def __init__(self, mean: int, sigma: float, resolution: Optional[float] = 0.02,
+    def __init__(self, mean: int, sigma: float, world: World, resolution: Optional[float] = 0.02,
                  origin: Optional[PoseStamped] = None):
         """
         This Costmap creates a 2D gaussian distribution around the origin with
@@ -662,9 +657,15 @@ class GaussianCostmap(Costmap):
         """
         self.gau: np.ndarray = self._gaussian_window(mean, sigma)
         self.map: np.ndarray = np.outer(self.gau, self.gau)
+        cut_dist = int(0.15 * mean)
+        center = int(mean / 2)
+        # Cuts out the middle 15% of the gaussian to avoid the robot being too close to the target since this is usually
+        # bad for reaching the target with a manipulator. 15% is a magic number that might need some tuning in the future
+        self.map[center - cut_dist:center + cut_dist, center - cut_dist:center + cut_dist] = 0
         self.size: float = mean
-        self.origin: PoseStamped = PoseStamped.from_list() if not origin else origin
-        Costmap.__init__(self, resolution, mean, mean, self.origin, self.map)
+        self.world = world
+        self.origin: PoseStamped = PoseStamped.from_list(self.world.root) if not origin else origin
+        Costmap.__init__(self, resolution, mean, mean, self.origin, self.map, self.world)
 
     def _gaussian_window(self, mean: int, std: float) -> np.ndarray:
         """

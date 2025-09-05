@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 import numpy as np
+from semantic_world.robots import AbstractRobot
 from semantic_world.world_entity import Body
 from trimesh import Trimesh
 from typing_extensions import List, Tuple, Optional, Union, Dict
@@ -313,6 +314,18 @@ def supporting(
     """
     return contact(object1, object2) and object2.get_position().z > object1.get_position().z
 
+
+def get_attached_bodies(robot_view: AbstractRobot) -> List[Body]:
+    """
+    Get all bodies that are attached to the robot in the prospection world.
+
+    :param robot_view: The robot view for which the attached bodies should be returned
+    :return: A list of all bodies that are attached to the robot
+    """
+    attached_bodies = []
+    for manipulator in robot_view.manipulators:
+        attached_bodies.extend(robot_view._world.compute_descendent_child_kinematic_structure_entities(manipulator.tool_frame))
+    return attached_bodies
 
 def link_pose_for_joint_config(
         obj: Body,
