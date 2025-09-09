@@ -1,6 +1,7 @@
 import json
 import threading
 
+import geometry_msgs.msg
 import sys
 
 
@@ -174,8 +175,10 @@ def spawn_object(object: Object) -> None:
 
     :param object: World object that should be spawned
     """
-    if len(object.link_name_to_id) == 1:
+    if len(object.link_name_to_id) == 1 and False:
         geometry = object.get_link_geometry(object.root_link.name)
+        if type(geometry) == list:
+            geometry = geometry[0]
         if isinstance(geometry, MeshVisualShape):
             filename = geometry.file_name
             spawn_mesh(object.name, filename, object.get_pose())
@@ -208,7 +211,14 @@ def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> 'UpdateWorldResp
     with open(urdf_path) as f:
         urdf_string = f.read()
 
-    return giskard_wrapper.add_urdf(name, urdf_string, pose)
+    pose_xyz = pose.pose.position.to_list()
+    pose_xyzw = pose.pose.orientation.to_list()
+    pose = geometry_msgs.msg.PoseStamped()
+    pose.header.frame_id = 'map'
+    pose.pose.position.x, pose.pose.position.y, pose.pose.position.z = pose_xyz
+    pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w = pose_xyzw
+
+    return giskard_wrapper.world.add_urdf(name, urdf_string, pose)
 
 
 @init_giskard_interface
@@ -666,8 +676,8 @@ def projection_joint_goal(goal_poses: Dict[str, float], allow_collisions: bool =
     """
     sync_worlds(projection=True)
     if allow_collisions:
-        giskard_wrapper.allow_all_collisions()
-    giskard_wrapper.set_joint_goal(goal_poses)
+        giskard_wrapper.motion_goals.allow_all_collisions()
+    giskard_wrapper.motion_goals.set_joint_goal(goal_poses)
     return giskard_wrapper.projection()
 
 
