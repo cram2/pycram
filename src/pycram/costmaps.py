@@ -98,6 +98,8 @@ class Costmap:
         subdividing the costmap in rectangles which are then visualized as pybullet
         visual shapes.
         """
+
+        #TODO: This needs to be fixed, when we have a visualization in the sem world
         if self.vis_ids != []:
             return
 
@@ -463,54 +465,16 @@ class VisibilityCostmap(Costmap):
         :return: A list of four depth images, the images are represented as 2D arrays.
         """
         images = []
-        camera_pose = self.origin
-
-        camera_world = deepcopy(self.world)
-
-        # self.move_target_and_robot_far_away(camera_world)
 
         r_t = RayTracer(self.world)
 
         origin_copy = self.origin.copy()
 
-        images.append(
-            r_t.create_depth_map(origin_copy.to_spatial_type(), resolution=self.size))
+        for _ in range(4):
+            origin_copy.rotate_by_quaternion([0, 0, 1, 1])
+            images.append(
+                r_t.create_depth_map(origin_copy.to_spatial_type(), resolution=self.size))
 
-        origin_copy.rotate_by_quaternion([0, 0, 1, 1])
-        images.append(
-            r_t.create_depth_map(origin_copy.to_spatial_type(), resolution=self.size))
-
-        origin_copy.rotate_by_quaternion([0, 0, 1, 1])
-        images.append(
-            r_t.create_depth_map(origin_copy.to_spatial_type(), resolution=self.size))
-
-        origin_copy.rotate_by_quaternion([0, 0, 1, 1])
-        images.append(
-            r_t.create_depth_map(origin_copy.to_spatial_type(), resolution=self.size))
-
-        # with UseProspectionWorld():
-        #     origin_copy = self.origin.copy()
-        #     origin_copy.position.y += 1
-        #     images.append(
-        #         self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
-        #
-        #     origin_copy = self.origin.copy()
-        #     origin_copy.position.x -= 1
-        #     images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
-        #
-        #     origin_copy = self.origin.copy()
-        #     origin_copy.position.y -= 1
-        #     images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
-        #
-        #     origin_copy = self.origin.copy()
-        #     origin_copy.position.x += 1
-        #     images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
-        #
-        # self.return_target_and_robot_to_their_original_position()
-
-        # if not World.current_world.conf.depth_images_are_in_meter:
-        #     for i in range(0, 4):
-        #         images[i] = self._depth_buffer_to_meter(images[i])
         return images
 
     def _depth_buffer_to_meter(self, buffer: np.ndarray) -> np.ndarray:
@@ -621,7 +585,7 @@ class VisibilityCostmap(Costmap):
             # the complete columns of the depth image (which where computed beforehand)
             # and checks if the values in them are greater than the distance to the
             # respective coordinates. This does not take the row ranges into account.
-            values = depth_imgs[i][:, columns[res == i].flatten()] > \
+            values = depth_imgs[i][:, columns[res == i].flatten()] <\
                      np.tile(distances[res == i][:, None], (1, self.size)).T * self.resolution
             # This applies the created mask of the row ranges to the values of
             # the columns which are compared in the previous statement
