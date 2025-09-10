@@ -4,6 +4,7 @@ import abc
 from dataclasses import dataclass, field
 
 from jedi.inference.gradual.typing import Tuple
+from semantic_world.robots import AbstractRobot
 from typing_extensions import Type, Any, Optional, Callable
 
 from ...datastructures.pose import PoseStamped
@@ -59,6 +60,10 @@ class ActionDescription(HasParameters):
     @property
     def context(self) -> Tuple[World, Plan]:
         return self.world, self.plan_struct
+
+    @property
+    def robot_view(self) -> AbstractRobot:
+        return self.plan_struct.robot
 
     def __post_init__(self):
         pass

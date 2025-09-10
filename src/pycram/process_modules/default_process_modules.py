@@ -428,7 +428,7 @@ class DefaultMoveTCPReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveTCPMotion):
-        pose_in_map = designator.world.transform(designator.target, designator.world.root)
+        pose_in_map = PoseStamped.from_spatial_type(designator.world.transform(designator.target.to_spatial_type(), designator.world.root))
         tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
         root_link = "map"
 

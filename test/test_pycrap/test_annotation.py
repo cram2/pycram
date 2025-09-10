@@ -1,7 +1,7 @@
 import unittest
 
 from owlready2 import destroy_entity, get_ontology, Thing, FunctionalProperty, Imp, sync_reasoner_pellet
-from pycram.testing import EmptyBulletWorldTestCase
+from pycram.testing import EmptyWorldTestCase
 from pycram.world_concepts.world_object import Object
 from pycrap.ontologies import (DesignedFurniture, Surface, PhysicalObject, ontology, Bowl,
                                Kitchen, PhysicalTask, Milk, Cereal, Refrigerator, Sink, Washer, Action, is_part_of,
@@ -46,7 +46,7 @@ class TableConceptTestCase(unittest.TestCase):
         self.ontology.destroy_individuals()
 
 
-class AnnotationTestCase(EmptyBulletWorldTestCase):
+class AnnotationTestCase(EmptyWorldTestCase):
 
     def test_reasoner(self):
         cabinet = Cabinet("cabinet")

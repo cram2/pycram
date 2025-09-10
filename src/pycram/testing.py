@@ -2,14 +2,17 @@ import os
 import threading
 import time
 import unittest
+from copy import deepcopy
 from datetime import timedelta
 
 import pytest
 from rclpy.node import Node
+from semantic_world.adapters.mesh import STLParser
 from semantic_world.adapters.urdf import URDFParser
+from semantic_world.robots import PR2
+from semantic_world.spatial_types.spatial_types import TransformationMatrix
 from semantic_world.world import World
 
-from .world_concepts.world_object import Object
 from .datastructures.pose import PoseStamped
 from .robot_description import RobotDescription, RobotDescriptionManager
 from .datastructures.enums import WorldMode
@@ -46,74 +49,62 @@ class SemanticWorldTestCase(unittest.TestCase):
 
 
 
-class EmptyBulletWorldTestCase(unittest.TestCase):
+class EmptyWorldTestCase(unittest.TestCase):
     """
     Base class for unit tests that require and ordinary setup and teardown of the empty bullet-world.
     """
 
-    world: BulletWorld
+    world: World
     #viz_marker_publisher: VizMarkerPublisher
-    extension: str = ObjectDescription.get_file_extension()
     render_mode = WorldMode.DIRECT
 
     @classmethod
     def setUpClass(cls):
-        cls.world = BulletWorld(mode=cls.render_mode)
+        cls.world = World()
         # if "ROS_VERSION" in os.environ:
         #     cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):
-        self.world.reset_world(remove_saved_states=True)
         Plan.current_plan = None
-        with UseProspectionWorld():
-            pass
 
 
     def tearDown(self):
         time.sleep(0.05)
-        self.world.reset_world(remove_saved_states=True)
-        with UseProspectionWorld():
-            pass
 
-    @classmethod
-    def tearDownClass(cls):
-        # if "ROS_VERSION" in os.environ:
-        #     cls.viz_marker_publisher._stop_publishing()
-        cls.world.exit()
 
-class BulletWorldTestCase(EmptyBulletWorldTestCase):
+class BulletWorldTestCase(EmptyWorldTestCase):
     """
     Class for unit tests that require a bullet-world with a PR2, kitchen, milk and cereal.
     """
 
-    world: BulletWorld
-    #viz_marker_publisher: VizMarkerPublisher
-    extension: str = ObjectDescription.get_file_extension()
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        rdm = RobotDescriptionManager()
-        rdm.load_description("pr2")
-        cls.milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
-        cls.robot = Object(RobotDescription.current_robot_description.name, Robot,
-                           RobotDescription.current_robot_description.name + cls.extension)
-        cls.kitchen = Object("kitchen", Kitchen, "kitchen" + cls.extension)
-        cls.cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
-                            pose=PoseStamped.from_list([1.3, 0.7, 0.95]))
-
-        cls.pr2_sem_world = URDFParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots", "pr2.urdf")).parse()
-        cls.apartment_world = URDFParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
+        cls.pr2_sem_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots", "pr2.urdf")).parse()
+        cls.apartment_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
+        cls.milk_world = STLParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "milk.stl")).parse()
         cls.apartment_world.merge_world(cls.pr2_sem_world)
+        cls.apartment_world.merge_world(cls.milk_world)
 
-        n = Node("test")
-        cls.viz_marker_publisher = VizMarkerPublisher(cls.apartment_world, n)
+        cls.apartment_world.get_body_by_name("milk.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 2, 1, reference_frame=cls.apartment_world.root)
 
-        cls.context = cls.apartment_world, None
+        cls.n = Node("test")
+        # cls.viz_marker_publisher = VizMarkerPublisher(cls.apartment_world, n)
+
+        # cls.robot_view = PR2.from_world(cls.apartment_world)
+
+        # cls.context = cls.apartment_world, None
+
+    def setUp(self):
+        self.world = deepcopy(self.apartment_world)
+        self.context = (self.world, None)
+        self.robot_view = PR2.from_world(self.world)
+        # viz_marker_publisher = VizMarkerPublisher(self.world, self.n)
 
     @classmethod
     def tearDownClass(cls):
-        cls.viz_marker_publisher._stop_publishing()
+        pass
+        # cls.viz_marker_publisher._stop_publishing()
 
 class BulletWorldGUITestCase(BulletWorldTestCase):
     render_mode = WorldMode.GUI

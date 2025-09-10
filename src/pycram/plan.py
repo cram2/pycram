@@ -10,6 +10,7 @@ import numpy as np
 import rustworkx as rx
 import rustworkx.visualization
 from mercurial.revset import children
+from semantic_world.robots import AbstractRobot
 from semantic_world.world import World
 from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
@@ -38,7 +39,7 @@ class Plan:
     on_start_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
     on_end_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
 
-    def __init__(self, root: PlanNode, world: World, super_plan: Plan = None):
+    def __init__(self, root: PlanNode, world: World, robot: AbstractRobot, super_plan: Plan = None):
         super().__init__()
         self.plan_graph = rx.PyDiGraph()
         self.node_indices = {}
@@ -49,6 +50,7 @@ class Plan:
         self.current_node: PlanNode = self.root
         self.on_start_callback = {}
         self.on_end_callback = {}
+        self.robot = robot
         if self.super_plan:
             self.super_plan.add_edge(self.super_plan.current_node, self.root)
 

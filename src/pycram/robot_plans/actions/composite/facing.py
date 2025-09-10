@@ -36,7 +36,7 @@ class FaceAtAction(ActionDescription):
     def plan(self) -> None:
         # get the robot position
         robot_view = ViewManager().find_robot_view_for_world(self.world)
-        robot_position = PoseStamped.from_matrix(robot_view.root.global_pose, self.world.root)
+        robot_position = PoseStamped.from_spatial_type(robot_view.root.global_pose)
 
         # calculate orientation for robot to face the object
         angle = np.arctan2(robot_position.position.y - self.pose.position.y,
@@ -47,7 +47,7 @@ class FaceAtAction(ActionDescription):
         new_robot_pose = PoseStamped.from_list(self.world.root, robot_position.position.to_list(), orientation)
 
         # turn robot
-        SequentialPlan(self.context,
+        SequentialPlan(self.context, self.robot_view,
                        NavigateActionDescription(new_robot_pose, self.keep_joint_states),
                        # look at target
                        LookAtActionDescription(self.pose)).perform()

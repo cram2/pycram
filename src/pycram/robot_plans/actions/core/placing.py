@@ -61,7 +61,8 @@ class PlaceAction(ActionDescription):
         pre_place_pose = self.world.transform(self.target_location.to_spatial_type(), self.world.root)
         pre_place_pose = PoseStamped.from_spatial_type(pre_place_pose)
         pre_place_pose.position.z += 0.1
-        SequentialPlan(self.context, MoveTCPMotion(pre_place_pose, self.arm),
+        SequentialPlan(self.context, self.robot_view,
+                       MoveTCPMotion(pre_place_pose, self.arm),
 
                        MoveTCPMotion(self.target_location, self.arm),
 
@@ -76,14 +77,13 @@ class PlaceAction(ActionDescription):
             connection.origin = obj_transform
             self.world.add_connection(connection)
 
-        robot_view = ViewManager().find_robot_view_for_world(self.world)
-        ee_view = ViewManager().get_end_effector_view(self.arm, robot_view)
+        ee_view = ViewManager().get_end_effector_view(self.arm, self.robot_view)
 
-        retract_pose = translate_pose_along_local_axis(PoseStamped.from_matrix(self.object_designator.global_pose, self.world.root),
+        retract_pose = translate_pose_along_local_axis(PoseStamped.from_spatial_type(self.object_designator.global_pose),
                                                        ee_view.front_facing_axis.to_np()[:3],
                                                        -ActionConfig.pick_up_prepose_distance)
 
-        SequentialPlan(self.context, MoveTCPMotion(retract_pose, self.arm)).perform()
+        SequentialPlan(self.context, self.robot_view,  MoveTCPMotion(retract_pose, self.arm)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """

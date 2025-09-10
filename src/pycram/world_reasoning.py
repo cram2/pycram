@@ -344,7 +344,7 @@ def link_pose_for_joint_config(
         reasoning_world.state[reasoning_world.get_degree_of_freedom_by_name(joint_name).name].position = joint_pose
     reasoning_world.notify_state_change()
     pose = reasoning_world.get_body_by_name(obj.name).global_pose
-    return PoseStamped.from_matrix(pose, frame=obj._world.root)
+    return PoseStamped.from_spatial_type(pose)
 
 
 def move_away_all_objects_to_create_empty_space(exclude_objects: List[str] = None):

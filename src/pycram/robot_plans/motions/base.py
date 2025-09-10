@@ -4,6 +4,7 @@ import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
+from semantic_world.robots import AbstractRobot
 from semantic_world.world import World
 from typing_extensions import TYPE_CHECKING
 
@@ -22,8 +23,12 @@ class BaseMotion(ABC):
         return self.plan_node.plan
 
     @property
-    def world(self):
+    def world(self) -> World:
         return self.plan.world
+
+    @property
+    def robot_view(self) -> AbstractRobot:
+        return self.plan.robot
 
     @abstractmethod
     def perform(self):

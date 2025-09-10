@@ -33,11 +33,10 @@ class MoveTorsoAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        view = ViewManager().find_robot_view_for_world(self.world)
         jm = JointStateManager()
-        joint_state = jm.get_joint_state(self.torso_state, view)[0]
+        joint_state = jm.get_joint_state(self.torso_state, self.robot_view)[0]
 
-        SequentialPlan(self.context,
+        SequentialPlan(self.context, self.robot_view,
                        MoveJointsMotion(joint_state.joint_names, joint_state.joint_positions)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
@@ -76,12 +75,9 @@ class SetGripperAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        arm_chains = RobotDescription.current_robot_description.get_arm_chain(self.gripper)
-        if type(arm_chains) is not list:
-            SequentialPlan(self.context, MoveGripperMotion(gripper=arm_chains.arm_type, motion=self.motion)).perform()
-        else:
-            for chain in arm_chains:
-                SequentialPlan(self.context, MoveGripperMotion(gripper=chain.arm_type, motion=self.motion)).perform()
+        arms = [Arms.LEFT, Arms.RIGHT] if self.gripper == Arms.BOTH else [self.gripper]
+        for arm in arms:
+            SequentialPlan(self.context, self.robot_view, MoveGripperMotion(gripper=arm, motion=self.motion)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
         """
@@ -111,7 +107,7 @@ class ParkArmsAction(ActionDescription):
     def plan(self) -> None:
         joint_names, joint_poses = self.get_joint_poses()
 
-        SequentialPlan(self.context,
+        SequentialPlan(self.context, self.robot_view,
                        MoveJointsMotion(names=joint_names, positions=joint_poses)).perform()
 
     def get_joint_poses(self) -> Tuple[List[str], List[float]]:
@@ -119,8 +115,7 @@ class ParkArmsAction(ActionDescription):
         :return: The joint positions that should be set for the arm to be in the park position.
         """
         jm = JointStateManager()
-        view = ViewManager().find_robot_view_for_world(self.world)
-        park_state = jm.get_arm_state(self.arm, StaticJointState.Park, view)
+        park_state = jm.get_arm_state(self.arm, StaticJointState.Park, self.robot_view)
         return park_state.joint_names, park_state.joint_positions
 
     def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
