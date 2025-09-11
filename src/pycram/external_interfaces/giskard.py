@@ -150,8 +150,8 @@ def sync_worlds(projection: bool = False) -> None:
                 giskard_wrapper.monitors.add_set_seed_odometry(obj.get_pose().ros_message(),
                                                                RobotDescription.current_robot_description.name)
     giskard_object_names = set(giskard_wrapper.world.get_group_names())
-    robot_name = {RobotDescription.current_robot_description.name}
-    if not world_object_names.union(robot_name).issubset(giskard_object_names) and False:
+    #robot_name = {RobotDescription.current_robot_description.name}
+    if not world_object_names.issubset(giskard_object_names):
         giskard_wrapper.world.clear()
     initial_adding_objects()
 
