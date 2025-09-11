@@ -12,7 +12,7 @@ from ..ros import get_node_names
 from ..datastructures.enums import JointType, ObjectType, Arms
 from ..datastructures.pose import PoseStamped
 from ..datastructures.world import World
-from ..datastructures.dataclasses import MeshVisualShape
+from ..datastructures.dataclasses import MeshVisualShape, BoxVisualShape
 from ..ros import get_service_proxy
 from ..world_concepts.world_object import Object
 from ..robot_description import RobotDescription
@@ -121,7 +121,7 @@ def removing_of_objects() -> None:
         map(lambda obj: object_names.name, World.current_world.objects))
     diff = list(set(groups) - set(object_names))
     for grp in diff:
-        giskard_wrapper.remove_group(grp)
+        giskard_wrapper.world.remove_group(grp)
 
 
 @init_giskard_interface
@@ -151,7 +151,7 @@ def sync_worlds(projection: bool = False) -> None:
                                                                RobotDescription.current_robot_description.name)
     giskard_object_names = set(giskard_wrapper.world.get_group_names())
     robot_name = {RobotDescription.current_robot_description.name}
-    if not world_object_names.union(robot_name).issubset(giskard_object_names):
+    if not world_object_names.union(robot_name).issubset(giskard_object_names) and False:
         giskard_wrapper.world.clear()
     initial_adding_objects()
 
@@ -165,7 +165,7 @@ def update_pose(object: Object) -> 'UpdateWorldResponse':
     :param object: Object that should be updated
     :return: An UpdateWorldResponse
     """
-    return giskard_wrapper.update_group_pose(object.name)
+    return giskard_wrapper.world.update_group_pose(object.name, object.get_pose())
 
 
 @init_giskard_interface
@@ -175,13 +175,15 @@ def spawn_object(object: Object) -> None:
 
     :param object: World object that should be spawned
     """
-    if len(object.link_name_to_id) == 1 and False:
+    if len(object.link_name_to_id) == 1:
         geometry = object.get_link_geometry(object.root_link.name)
         if type(geometry) == list:
             geometry = geometry[0]
         if isinstance(geometry, MeshVisualShape):
             filename = geometry.file_name
             spawn_mesh(object.name, filename, object.get_pose())
+        elif isinstance(geometry, BoxVisualShape):
+            spawn_box(object.name, geometry.size, object.get_pose())
     else:
         ww = spawn_urdf(object.name, object.path, object.get_pose())
         log.loginfo("GiskardSpawnURDF Return value: {} ObjectName:{}".format(ww,object.name))
@@ -194,7 +196,7 @@ def remove_object(object: Object) -> 'UpdateWorldResponse':
 
     :param object: The World Object that should be removed
     """
-    return giskard_wrapper.remove_group(object.name)
+    return giskard_wrapper.world.remove_group(object.name)
 
 
 @init_giskard_interface
@@ -220,6 +222,18 @@ def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> 'UpdateWorldResp
 
     return giskard_wrapper.world.add_urdf(name, urdf_string, pose)
 
+@init_giskard_interface
+def spawn_box(name: str, size: tuple[float, float, float], pose: PoseStamped):
+
+    pose_xyz = pose.pose.position.to_list()
+    pose_xyzw = pose.pose.orientation.to_list()
+    pose = geometry_msgs.msg.PoseStamped()
+    pose.header.frame_id = 'map'
+    pose.pose.position.x, pose.pose.position.y, pose.pose.position.z = pose_xyz
+    pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w = pose_xyzw
+
+    return giskard_wrapper.world.add_box(name, size, pose)
+
 
 @init_giskard_interface
 def spawn_mesh(name: str, path: str, pose: 'PoseStamped') -> 'UpdateWorldResponse':
@@ -231,7 +245,7 @@ def spawn_mesh(name: str, path: str, pose: 'PoseStamped') -> 'UpdateWorldRespons
     :param pose: Pose in which the mesh should be spawned
     :return: An UpdateWorldResponse message
     """
-    return giskard_wrapper.add_mesh(name, path, pose)
+    return giskard_wrapper.world.add_mesh(name, path, pose)
 
 
 # Sending Goals to Giskard
@@ -856,4 +870,6 @@ def set_straight_cart_goal(goal_pose: PoseStamped,
 def execute(add_default=True):
     if add_default:
         giskard_wrapper.add_default_end_motion_conditions()
+        allow_self_collision()
+        allow_all_collision()
     return giskard_wrapper.execute()
