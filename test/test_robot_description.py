@@ -1,12 +1,11 @@
 import pathlib
 import unittest
 
-from pycram.datastructures.pose import GraspDescription
+from pycram.datastructures.grasp import GraspDescription
 from pycram.robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     CameraDescription, RobotDescriptionManager
 from pycram.datastructures.enums import Arms, GripperState, StaticJointState, Grasp, ApproachDirection, \
     VerticalAlignment
-from pycram.object_descriptors.urdf import ObjectDescription as URDF
 
 
 class TestRobotDescription(unittest.TestCase):

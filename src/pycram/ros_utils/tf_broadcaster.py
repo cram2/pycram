@@ -3,7 +3,6 @@ import threading
 import atexit
 
 from ..datastructures.pose import PoseStamped
-from ..datastructures.world import World
 from ..datastructures.enums import ExecutionType
 from tf2_msgs.msg import TFMessage
 

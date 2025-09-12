@@ -179,6 +179,7 @@ def visibility_validator(robot: AbstractRobot,
 
     with world.modify_world():
         if isinstance(object_or_pose, PoseStamped):
+            world.remove_connection(gen_body.parent_connection)
             world.remove_kinematic_structure_entity(gen_body)
 
     return ray[2][0] == gen_body

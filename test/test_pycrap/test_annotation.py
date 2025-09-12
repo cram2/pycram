@@ -2,7 +2,6 @@ import unittest
 
 from owlready2 import destroy_entity, get_ontology, Thing, FunctionalProperty, Imp, sync_reasoner_pellet
 from pycram.testing import EmptyWorldTestCase
-from pycram.world_concepts.world_object import Object
 from pycrap.ontologies import (DesignedFurniture, Surface, PhysicalObject, ontology, Bowl,
                                Kitchen, PhysicalTask, Milk, Cereal, Refrigerator, Sink, Washer, Action, is_part_of,
                                Drawer, Door, Agent, Location, Cabinet)

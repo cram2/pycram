@@ -1,10 +1,10 @@
 import time
+
 import threading
 import atexit
 
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
-from ..datastructures.world import World
 from ..ros import  Time
 from ..ros import  create_publisher
 

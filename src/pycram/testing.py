@@ -13,12 +13,11 @@ from semantic_world.robots import PR2
 from semantic_world.spatial_types.spatial_types import TransformationMatrix
 from semantic_world.world import World
 
-from .datastructures.pose import PoseStamped
-from .robot_description import RobotDescription, RobotDescriptionManager
 from .datastructures.enums import WorldMode
 from .plan import Plan
 from .ros import loginfo, get_node_names
 from pycrap.ontologies import Milk, Robot, Kitchen, Cereal
+from .robot_descriptions.pr2_states import *
 try:
     # from .ros_utils.viz_marker_publisher import VizMarkerPublisher
     from semantic_world.adapters.viz_marker import VizMarkerPublisher

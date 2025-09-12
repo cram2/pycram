@@ -10,6 +10,7 @@ from probabilistic_model.utils import MissingDict
 from random_events.product_algebra import SimpleEvent
 from random_events.set import Set
 from random_events.variable import Symbolic, Continuous
+from semantic_world.world_description.world_entity import Body
 from sqlalchemy import select
 from typing_extensions import Optional, List
 
@@ -19,10 +20,8 @@ from ....datastructures.enums import Arms, Grasp, VerticalAlignment, ApproachDir
 from ....datastructures.grasp import GraspDescription
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
-from ....datastructures.world import World
 from ....parameterizer import collision_free_event
 from ....utils import classproperty
-from ....world_concepts.world_object import Object
 
 
 class Variables(enum.Enum):
@@ -85,7 +84,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
 
     partial: PartialDesignator[MoveAndPickUpAction]
 
-    def collision_free_condition_for_object(self, obj: Object):
+    def collision_free_condition_for_object(self, obj: Body):
         search_space_size = 1.
         search_space = BoundingBox(min_x=obj.pose.position.x - search_space_size,
                                    min_y=obj.pose.position.y - search_space_size,
@@ -96,7 +95,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
         navigate_conditions = collision_free_event(obj.world, search_space)
         return navigate_conditions
 
-    def accessing_distribution_for_object(self, obj: Object, object_variable: Symbolic) -> ProbabilisticCircuit:
+    def accessing_distribution_for_object(self, obj: Body, object_variable: Symbolic) -> ProbabilisticCircuit:
         model = self.default_policy()
 
         # add object distribution her

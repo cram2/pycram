@@ -11,7 +11,6 @@ from .marker_publisher_base import MarkerPublisherBase
 from ..datastructures.dataclasses import BoundingBoxCollection, Color
 from ..datastructures.enums import AxisIdentifier
 from ..datastructures.pose import PoseStamped, TransformStamped
-from ..datastructures.world import World
 from ..designator import ObjectDesignatorDescription
 from ..ros import  loginfo, logwarn, logerr
 from ..ros import  sleep

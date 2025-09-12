@@ -15,7 +15,7 @@ from pycram.robot_plans import MoveTorsoActionDescription, ParkArmsAction, \
     PlaceActionDescription, TransportAction, PlaceAction, LookAtAction, SetGripperAction, OpenAction, CloseAction, \
     ParkArmsActionDescription, TransportActionDescription, LookAtActionDescription, NavigateActionDescription, \
     PickUpActionDescription, SetGripperActionDescription, OpenActionDescription, CloseActionDescription
-from pycram.designators.object_designator import BelieveObject, ObjectPart
+from pycram.designators.object_designator import BelieveObject
 from pycram.language import SequentialPlan
 from pycram.orm.logging_hooks import insert
 from pycram.orm.ormatic_interface import *
@@ -23,8 +23,6 @@ from pycram.plan import ResolvedActionNode
 from pycram.process_module import simulated_robot
 from pycram.robot_description import RobotDescription
 from pycram.testing import BulletWorldTestCase
-from pycram.world_concepts.world_object import Object
-from pycram.worlds.bullet_world import BulletWorld
 from pycrap.ontologies import Milk, Apartment, Robot
 
 

@@ -1,7 +1,6 @@
 import unittest
 from datetime import timedelta
 
-from pycram.worlds.bullet_world import BulletWorld, Object
 from pycram.robot_plans  import ActionDescription
 from pycram.robot_plans import ParkArmsAction, ParkArmsActionDescription
 from pycram.datastructures.enums import ObjectType, Arms, WorldMode
@@ -9,10 +8,8 @@ from pycram.failure_handling import Retry
 from pycram.failures import PlanFailure
 from pycram.process_module import ProcessModule, simulated_robot
 from pycram.robot_description import RobotDescription
-from pycram.object_descriptors.urdf import ObjectDescription
 from pycrap.ontologies import Robot
 
-extension = ObjectDescription.get_file_extension()
 
 
 # start ik_and_description.launch
@@ -28,8 +25,6 @@ class DummyActionDesignator(ActionDescription):
 
 @unittest.skip
 class FailureHandlingTest(unittest.TestCase):
-    world: BulletWorld
-
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(WorldMode.DIRECT)

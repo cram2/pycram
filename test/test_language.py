@@ -2,16 +2,13 @@ import threading
 import time
 import unittest
 
-from pycram.datastructures.enums import DetectionTechnique, TaskStatus, MonitorBehavior
-from pycram.datastructures.pose import PoseStamped
-from pycram.designators.object_designator import BelieveObject
+from pycram.datastructures.enums import TaskStatus, MonitorBehavior
 from pycram.failure_handling import RetryMonitor
 from pycram.failures import PlanFailure, NotALanguageExpression
 from pycram.fluent import Fluent
-from pycram.language import SequentialPlan, ParallelPlan, TryInOrderPlan, TryAllPLan, MonitorPlan, MonitorNode, \
+from pycram.language import ParallelPlan, TryAllPLan, MonitorPlan, MonitorNode, \
     SequentialNode, RepeatPlan, CodePlan, TryAllNode
 from pycram.process_module import simulated_robot
-from pycram.robot_description import RobotDescription
 from pycram.robot_plans import *
 from pycram.testing import BulletWorldTestCase
 
@@ -23,7 +20,7 @@ class LanguageTestCase(BulletWorldTestCase):
         act2 = MoveTorsoActionDescription(TorsoState.HIGH)
         act3 = DetectActionDescription(DetectionTechnique.TYPES)
 
-        plan = SequentialPlan(self.context, act, SequentialPlan(self.context, act2, act3))
+        plan = SequentialPlan(self.context, self.robot_view, act, SequentialPlan(self.context, act2, act3))
         self.assertEqual(len(plan.root.children), 3)
         self.assertEqual(plan.root.children[0].children, [])
 
@@ -32,7 +29,7 @@ class LanguageTestCase(BulletWorldTestCase):
         act2 = MoveTorsoActionDescription(TorsoState.HIGH)
         act3 = DetectActionDescription(DetectionTechnique.TYPES)
 
-        plan = SequentialPlan(self.context, act, act2, act3)
+        plan = SequentialPlan(self.context, self.robot_view, act, act2, act3)
         self.assertTrue(isinstance(plan, SequentialPlan))
         self.assertEqual(len(plan.root.children), 3)
 
@@ -41,7 +38,7 @@ class LanguageTestCase(BulletWorldTestCase):
         act2 = MoveTorsoActionDescription(TorsoState.HIGH)
         act3 = DetectActionDescription(DetectionTechnique.TYPES)
 
-        plan = ParallelPlan(self.context, act, act2, act3)
+        plan = ParallelPlan(self.context, self.robot_view, act, act2, act3)
         self.assertTrue(isinstance(plan, ParallelPlan))
         self.assertEqual(len(plan.root.children), 3)
 
@@ -50,7 +47,7 @@ class LanguageTestCase(BulletWorldTestCase):
         act2 = MoveTorsoActionDescription(TorsoState.HIGH)
         act3 = DetectActionDescription(DetectionTechnique.TYPES)
 
-        plan = TryInOrderPlan(self.context, act, act2, act3)
+        plan = TryInOrderPlan(self.context, self.robot_view, act, act2, act3)
         self.assertTrue(isinstance(plan, TryInOrderPlan))
         self.assertEqual(len(plan.root.children), 3)
 
@@ -59,7 +56,7 @@ class LanguageTestCase(BulletWorldTestCase):
         act2 = MoveTorsoActionDescription(TorsoState.HIGH)
         act3 = DetectActionDescription(DetectionTechnique.TYPES)
 
-        plan = TryAllPLan(self.context, act, act2, act3)
+        plan = TryAllPLan(self.context, self.robot_view, act, act2, act3)
         self.assertTrue(TryAllNode, type(plan.root))
         self.assertTrue(isinstance(plan, TryAllPLan))
         self.assertEqual(len(plan.root.children), 3)
@@ -69,7 +66,8 @@ class LanguageTestCase(BulletWorldTestCase):
         act2 = MoveTorsoActionDescription(TorsoState.HIGH)
         act3 = DetectActionDescription(DetectionTechnique.TYPES)
 
-        plan = ParallelPlan(self.context, SequentialPlan(self.context, act, act2), act3)
+        plan = ParallelPlan(self.context, self.robot_view, SequentialPlan(self.context, self.robot_view, act, act2),
+                            act3)
         self.assertTrue(isinstance(plan, ParallelPlan))
         self.assertEqual(len(plan.root.children), 2)
         self.assertTrue(isinstance(plan.root.children[0], SequentialNode))
@@ -84,7 +82,7 @@ class LanguageTestCase(BulletWorldTestCase):
         act = NavigateActionDescription(PoseStamped())
         act2 = PickUpActionDescription(BelieveObject(names=["milk"]), ["left"], ["front"])
 
-        self.assertRaises(AttributeError, lambda: TryAllPLan(self.context, act, act2))
+        self.assertRaises(AttributeError, lambda: TryAllPLan(self.context, self.robot_view, act, act2))
 
     def test_monitor_construction(self):
         act = ParkArmsActionDescription(Arms.BOTH)
@@ -94,7 +92,7 @@ class LanguageTestCase(BulletWorldTestCase):
             time.sleep(1)
             return True
 
-        plan = MonitorPlan(monitor_func, self.context, SequentialPlan(self.context, act, act2))
+        plan = MonitorPlan(monitor_func, self.context, self.robot_view, SequentialPlan(self.context, act, act2))
         self.assertEqual(len(plan.root.children), 1)
         self.assertTrue(isinstance(plan.root, MonitorNode))
 
@@ -111,7 +109,8 @@ class LanguageTestCase(BulletWorldTestCase):
 
         recovery = {NotALanguageExpression: recovery1}
 
-        subplan = MonitorPlan(monitor_func, self.context, SequentialPlan(self.context, act, act2))
+        subplan = MonitorPlan(monitor_func, self.context, self.robot_view,
+                              SequentialPlan(self.context, self.robot_view, act, act2))
         plan = RetryMonitor(subplan, max_tries=6, recovery=recovery)
         self.assertEqual(len(plan.recovery), 1)
         self.assertIsInstance(plan.plan, MonitorPlan)
@@ -128,10 +127,10 @@ class LanguageTestCase(BulletWorldTestCase):
             return True
 
         act2 = MoveTorsoActionDescription([TorsoState.HIGH])
-        fail = CodePlan(self.context, raise_failure)
-        counter = CodePlan(self.context, monitor_func)
+        fail = CodePlan(self.context, self.robot_view, raise_failure)
+        counter = CodePlan(self.context, self.robot_view, monitor_func)
 
-        subplan = SequentialPlan(self.context, counter, fail)
+        subplan = SequentialPlan(self.context, self.robot_view, counter, fail)
         plan = RetryMonitor(subplan, max_tries=6)
         self.assertRaises(PlanFailure, plan.perform)
 
@@ -161,8 +160,8 @@ class LanguageTestCase(BulletWorldTestCase):
         recovery = {NotALanguageExpression: recovery1,
                     PlanFailure: recovery2}
 
-        code = CodePlan(self.context, monitor_func)
-        subplan = SequentialPlan(self.context, code)
+        code = CodePlan(self.context, self.robot_view, monitor_func)
+        subplan = SequentialPlan(self.context, self.robot_view, code)
         plan = RetryMonitor(subplan, max_tries=6, recovery=recovery)
         try:
             plan.perform()
@@ -175,7 +174,7 @@ class LanguageTestCase(BulletWorldTestCase):
         act = ParkArmsActionDescription([Arms.BOTH])
         act2 = MoveTorsoActionDescription([TorsoState.HIGH])
 
-        plan = RepeatPlan(self.context, 5, SequentialPlan(self.context, act, act2))
+        plan = RepeatPlan(self.context, self.robot_view, 5, SequentialPlan(self.context, self.robot_view, act, act2))
         self.assertEqual(len(plan.root.children), 1)
         self.assertTrue(isinstance(plan.root.children[0], SequentialNode))
 
@@ -185,17 +184,18 @@ class LanguageTestCase(BulletWorldTestCase):
         park = ParkArmsActionDescription([Arms.BOTH])
 
         self.assertRaises(AttributeError,
-                          lambda: RepeatPlan(self.context, park, SequentialPlan(self.context, act, act2)))
+                          lambda: RepeatPlan(self.context, self.robot_view, park,
+                                             SequentialPlan(self.context, self.robot_view, act, act2)))
 
     def test_perform_desig(self):
-        act = NavigateActionDescription([PoseStamped.from_list([0.3, 0.3, 0])])
+        act = NavigateActionDescription([PoseStamped.from_list(self.world.root, [0.3, 0.3, 0])])
         act2 = MoveTorsoActionDescription([TorsoState.HIGH])
         act3 = ParkArmsActionDescription([Arms.BOTH])
 
-        plan = SequentialPlan(self.context, act, act2, act3)
+        plan = SequentialPlan(self.context, self.robot_view, act, act2, act3)
         with simulated_robot:
             plan.perform()
-        self.assertEqual(self.robot.get_pose(), PoseStamped.from_list([0.3, 0.3, 0]))
+        self.assertEqual(self.robot.get_pose(), PoseStamped.from_list(self.world.root, [0.3, 0.3, 0]))
         self.assertEqual(self.robot.get_joint_position("torso_lift_joint"), 0.3)
         for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right",
                                                                                              StaticJointState.Park).items():
@@ -209,11 +209,11 @@ class LanguageTestCase(BulletWorldTestCase):
         def check_thread_id(main_id):
             self.assertNotEqual(main_id, threading.get_ident())
 
-        act = CodePlan(self.context, check_thread_id, {"main_id": threading.get_ident()})
-        act2 = CodePlan(self.context, check_thread_id, {"main_id": threading.get_ident()})
-        act3 = CodePlan(self.context, check_thread_id, {"main_id": threading.get_ident()})
+        act = CodePlan(self.context, self.robot_view, check_thread_id, {"main_id": threading.get_ident()})
+        act2 = CodePlan(self.context, self.robot_view, check_thread_id, {"main_id": threading.get_ident()})
+        act3 = CodePlan(self.context, self.robot_view, check_thread_id, {"main_id": threading.get_ident()})
 
-        plan = ParallelPlan(self.context, act, act2, act3)
+        plan = ParallelPlan(self.context, self.robot_view, act, act2, act3)
         with simulated_robot:
             plan.perform()
 
@@ -223,7 +223,7 @@ class LanguageTestCase(BulletWorldTestCase):
         def inc(var):
             var.set_value(var.get_value() + 1)
 
-        plan = RepeatPlan(self.context, 10, CodePlan(self.context, lambda: inc(test_var)))
+        plan = RepeatPlan(self.context, self.robot_view, 10, CodePlan(self.context, lambda: inc(test_var)))
         with simulated_robot:
             plan.perform()
         self.assertEqual(10, test_var.get_value())
@@ -233,9 +233,9 @@ class LanguageTestCase(BulletWorldTestCase):
             raise PlanFailure
 
         act = NavigateActionDescription([PoseStamped()])
-        code = CodePlan(self.context, raise_except)
+        code = CodePlan(self.context, self.robot_view, raise_except)
 
-        plan = SequentialPlan(self.context, act, code)
+        plan = SequentialPlan(self.context, self.robot_view, act, code)
 
         def perform_plan():
             with simulated_robot:
@@ -250,9 +250,9 @@ class LanguageTestCase(BulletWorldTestCase):
             raise PlanFailure
 
         act = NavigateActionDescription([PoseStamped()])
-        code = CodePlan(self.context, raise_except)
+        code = CodePlan(self.context, self.robot_view, raise_except)
 
-        plan = TryInOrderPlan(self.context, act, code)
+        plan = TryInOrderPlan(self.context, self.robot_view, act, code)
         with simulated_robot:
             _ = plan.perform()
         self.assertEqual(2, len(plan.root.children))
@@ -263,9 +263,9 @@ class LanguageTestCase(BulletWorldTestCase):
             raise PlanFailure
 
         act = NavigateActionDescription([PoseStamped()])
-        code = CodePlan(self.context, raise_except)
+        code = CodePlan(self.context, self.robot_view, raise_except)
 
-        plan = ParallelPlan(self.context, act, code)
+        plan = ParallelPlan(self.context, self.robot_view, act, code)
         with simulated_robot:
             _ = plan.perform()
         self.assertEqual(PlanFailure, type(plan.root.reason))
@@ -276,9 +276,9 @@ class LanguageTestCase(BulletWorldTestCase):
             raise PlanFailure
 
         act = NavigateActionDescription([PoseStamped()])
-        code = CodePlan(self.context, raise_except)
+        code = CodePlan(self.context, self.robot_view, raise_except)
 
-        plan = TryAllPLan(self.context, act, code)
+        plan = TryAllPLan(self.context, self.robot_view, act, code)
         with simulated_robot:
             _ = plan.perform()
 
@@ -293,7 +293,8 @@ class LanguageTestCase(BulletWorldTestCase):
             time.sleep(2)
             return True
 
-        plan = MonitorPlan(monitor_func, self.context, SequentialPlan(self.context, act, act2),
+        plan = MonitorPlan(monitor_func, self.context, self.robot_view,
+                           SequentialPlan(self.context, self.robot_view, act, act2),
                            behavior=MonitorBehavior.RESUME)
         with simulated_robot:
             plan.perform()

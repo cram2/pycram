@@ -2,12 +2,12 @@ import atexit
 from datetime import timedelta
 import time
 
+from semantic_world.world import World
 from tf2_ros import Buffer, TransformListener
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
 from typing_extensions import Optional
 
-from ..datastructures.world import World
 from ..robot_description import RobotDescription
 from ..datastructures.pose import PoseStamped
 from ..ros import  Time, Duration
