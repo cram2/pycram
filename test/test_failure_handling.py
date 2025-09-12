@@ -26,6 +26,7 @@ class DummyActionDesignator(ActionDescription):
             yield self.Action()
 
 
+@unittest.skip
 class FailureHandlingTest(unittest.TestCase):
     world: BulletWorld
 

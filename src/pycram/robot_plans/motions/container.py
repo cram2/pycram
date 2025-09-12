@@ -1,20 +1,19 @@
 from dataclasses import dataclass
 
+from semantic_world.world_description.world_entity import Body
+
 from .base import BaseMotion
 from ...datastructures.enums import Arms
-from ...description import ObjectDescription
-from ...plan import with_plan
 from ...process_module import ProcessModuleManager
 
 
-@with_plan
 @dataclass
 class OpeningMotion(BaseMotion):
     """
     Designator for opening container
     """
 
-    object_part: ObjectDescription.Link
+    object_part: Body
     """
     Object designator for the drawer handle
     """
@@ -24,18 +23,17 @@ class OpeningMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.world)
         return pm_manager.open().execute(self)
 
 
-@with_plan
 @dataclass
 class ClosingMotion(BaseMotion):
     """
     Designator for closing a container
     """
 
-    object_part: ObjectDescription.Link
+    object_part: Body
     """
     Object designator for the drawer handle
     """
@@ -45,5 +43,5 @@ class ClosingMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.world)
         return pm_manager.close().execute(self)

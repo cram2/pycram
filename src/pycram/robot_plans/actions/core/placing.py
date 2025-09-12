@@ -2,26 +2,24 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import timedelta
-from functools import cached_property
 
+from semantic_world.world_description.connections import Connection6DoF
+from semantic_world.world_description.world_entity import Body
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
+from config.action_conf import ActionConfig
 from ...motions.gripper import MoveTCPMotion, MoveGripperMotion
 from ....datastructures.dataclasses import FrozenObject
 from ....datastructures.enums import Arms, GripperState
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
-from ....datastructures.world import World
-from ....description import Link
 from ....failures import ObjectNotPlacedAtTargetLocation, ObjectStillInContact
 from ....has_parameters import has_parameters
-from ....local_transformer import LocalTransformer
-from ....plan import with_plan
-from ....robot_description import EndEffectorDescription
-from ....robot_description import RobotDescription, KinematicChainDescription
+from ....language import SequentialPlan
+from ....robot_description import ViewManager
 from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
+from ....utils import translate_pose_along_local_axis
 from ....validation.error_checkers import PoseErrorChecker
-from ....world_concepts.world_object import Object
 
 
 @has_parameters
@@ -31,7 +29,7 @@ class PlaceAction(ActionDescription):
     Places an Object at a position using an arm.
     """
 
-    object_designator: Object
+    object_designator: Body
     """
     Object designator_description describing the object that should be place
     """
@@ -60,37 +58,32 @@ class PlaceAction(ActionDescription):
         self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
-        target_pose = self.object_designator.attachments[
-            World.robot].get_child_link_target_pose_given_parent(self.target_location)
-        pre_place_pose = target_pose.copy()
+        pre_place_pose = self.world.transform(self.target_location.to_spatial_type(), self.world.root)
+        pre_place_pose = PoseStamped.from_spatial_type(pre_place_pose)
         pre_place_pose.position.z += 0.1
-        MoveTCPMotion(pre_place_pose, self.arm).perform()
+        SequentialPlan(self.context, self.robot_view,
+                       MoveTCPMotion(pre_place_pose, self.arm),
 
-        MoveTCPMotion(target_pose, self.arm).perform()
+                       MoveTCPMotion(self.target_location, self.arm),
 
-        MoveGripperMotion(GripperState.OPEN, self.arm).perform()
-        World.robot.detach(self.object_designator)
+                       MoveGripperMotion(GripperState.OPEN, self.arm)).perform()
 
-        retract_pose = LocalTransformer().translate_pose_along_local_axis(target_pose,
-                                                                          self.end_effector.get_approach_axis(),
-                                                                          -self.object_designator.get_approach_offset())
-        MoveTCPMotion(retract_pose, self.arm).perform()
+        # Detaches the object from the robot
+        world_root = self.world.root
+        obj_transform = self.world.compute_forward_kinematics(world_root, self.object_designator)
+        with self.world.modify_world():
+            self.world.remove_connection(self.object_designator.parent_connection)
+            connection = Connection6DoF(world_root, self.object_designator, _world=self.world)
+            connection.origin = obj_transform
+            self.world.add_connection(connection)
 
-    @cached_property
-    def gripper_link(self) -> Link:
-        return World.robot.links[self.arm_chain.get_tool_frame()]
+        ee_view = ViewManager().get_end_effector_view(self.arm, self.robot_view)
 
-    @cached_property
-    def arm_chain(self) -> KinematicChainDescription:
-        return RobotDescription.current_robot_description.get_arm_chain(self.arm)
+        retract_pose = translate_pose_along_local_axis(PoseStamped.from_spatial_type(self.object_designator.global_pose),
+                                                       ee_view.front_facing_axis.to_np()[:3],
+                                                       -ActionConfig.pick_up_prepose_distance)
 
-    @cached_property
-    def end_effector(self) -> EndEffectorDescription:
-        return self.arm_chain.end_effector
-
-    @cached_property
-    def local_transformer(self) -> LocalTransformer:
-        return LocalTransformer()
+        SequentialPlan(self.context, self.robot_view,  MoveTCPMotion(retract_pose, self.arm)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """
@@ -117,14 +110,12 @@ class PlaceAction(ActionDescription):
             raise ObjectNotPlacedAtTargetLocation(self.object_designator, self.target_location, World.robot, self.arm)
 
     @classmethod
-    @with_plan
-    def description(cls, object_designator: Union[Iterable[Object], Object],
+    def description(cls, object_designator: Union[Iterable[Body], Body],
                     target_location: Union[Iterable[PoseStamped], PoseStamped],
-                    arm: Union[Iterable[Arms], Arms] = None) -> PartialDesignator[Type[PlaceAction]]:
+                    arm: Union[Iterable[Arms], Arms]) -> PartialDesignator[Type[PlaceAction]]:
         return PartialDesignator(PlaceAction, object_designator=object_designator,
                                  target_location=target_location,
                                  arm=arm)
-
 
 
 PlaceActionDescription = PlaceAction.description

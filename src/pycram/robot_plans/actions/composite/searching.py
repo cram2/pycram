@@ -13,13 +13,10 @@ from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
 from ....designators.location_designator import CostmapLocation
 from ....designators.object_designator import BelieveObject
-from ....failures import  PerceptionObjectNotFound
+from ....failures import PerceptionObjectNotFound
 from ....has_parameters import has_parameters
 from ....language import TryInOrderPlan, SequentialPlan
-from ....local_transformer import LocalTransformer
-from ....plan import with_plan
 from ....robot_plans.actions.base import ActionDescription
-from ....datastructures.world import World
 
 
 @has_parameters
@@ -52,16 +49,18 @@ class SearchAction(ActionDescription):
         target_base_right = target_base.copy()
         target_base_right.pose.position.y += 0.5
 
-        plan = TryInOrderPlan(
+        plan = TryInOrderPlan(self.context,
             SequentialPlan(
+                self.context,
                 LookAtActionDescription(target_base_left),
                 DetectActionDescription(DetectionTechnique.TYPES,
                                         object_designator=BelieveObject(types=[self.object_type]))),
             SequentialPlan(
+                self.context,
                 LookAtActionDescription(target_base_right),
                 DetectActionDescription(DetectionTechnique.TYPES,
                                         object_designator=BelieveObject(types=[self.object_type]))),
-            SequentialPlan(
+            SequentialPlan(self.context,
                 LookAtActionDescription(target_base),
                 DetectActionDescription(DetectionTechnique.TYPES,
                                         object_designator=BelieveObject(types=[self.object_type]))))
@@ -75,7 +74,6 @@ class SearchAction(ActionDescription):
         pass
 
     @classmethod
-    @with_plan
     def description(cls, target_location: Union[Iterable[PoseStamped], PoseStamped],
                     object_type: Union[Iterable[PhysicalObject], PhysicalObject]) -> PartialDesignator[
         Type[SearchAction]]:

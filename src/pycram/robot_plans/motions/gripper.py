@@ -2,15 +2,12 @@ from dataclasses import dataclass
 from typing import Optional, Dict, List
 
 from .base import BaseMotion
-from ...datastructures.enums import Arms, GripperState, MovementType, WaypointsMovementType, Frame
+from ...datastructures.enums import Arms, GripperState, MovementType, WaypointsMovementType
 from ...datastructures.grasp import GraspDescription
 from ...datastructures.pose import PoseStamped
 from ...failure_handling import try_motion
 from ...failures import ToolPoseNotReachedError
-from ...local_transformer import LocalTransformer
-from ...plan import with_plan
 from ...process_module import ProcessModuleManager
-from ...world_concepts.world_object import Object
 
 
 # class ReachMotion(BaseMotion):
@@ -46,7 +43,6 @@ from ...world_concepts.world_object import Object
 #         MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=self.movement_type).perform()
 
 
-@with_plan
 @dataclass
 class MoveArmJointsMotion(BaseMotion):
     """
@@ -67,7 +63,6 @@ class MoveArmJointsMotion(BaseMotion):
         return pm_manager.move_arm_joints().execute(self)
 
 
-@with_plan
 @dataclass
 class MoveGripperMotion(BaseMotion):
     """
@@ -88,11 +83,10 @@ class MoveGripperMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.world)
         return pm_manager.move_gripper().execute(self)
 
 
-@with_plan
 @dataclass
 class MoveTCPMotion(BaseMotion):
     """
@@ -117,11 +111,10 @@ class MoveTCPMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.world)
         try_motion(pm_manager.move_tcp(), self, ToolPoseNotReachedError)
 
 
-@with_plan
 @dataclass
 class MoveTCPWaypointsMotion(BaseMotion):
     """
@@ -146,5 +139,5 @@ class MoveTCPWaypointsMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.world)
         pm_manager.move_tcp_waypoints().execute(self)

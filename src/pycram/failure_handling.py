@@ -6,7 +6,7 @@ from .designator import DesignatorDescription
 from .failures import PlanFailure
 from threading import Lock
 from typing_extensions import Union, Tuple, Any, List, Optional, Type, Callable, TYPE_CHECKING
-from .language import LanguageMixin, MonitorNode, MonitorPlan
+from .language import MonitorNode, MonitorPlan
 from .plan import Plan
 from .process_module import ProcessModule
 if TYPE_CHECKING:
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 
-class FailureHandling(LanguageMixin):
+class FailureHandling():
     """
     Base class for failure handling mechanisms in automated systems or workflows.
 

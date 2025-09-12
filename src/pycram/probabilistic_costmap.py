@@ -2,11 +2,12 @@ from enum import Enum, auto
 from functools import cached_property
 
 import numpy as np
+from semantic_world.world import World
+
 from .tf_transformations import quaternion_from_euler
 from random_events.interval import closed_open
 from typing_extensions import Optional, Type
 
-from .datastructures.world import World
 from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
 import matplotlib.colorbar
 from .datastructures.pose import PoseStamped
@@ -74,7 +75,7 @@ class ProbabilisticCostmap:
                  costmap_type: Type[Costmap] = OccupancyCostmap,
                  world: Optional[World] = None):
 
-        self.world = world if world else World.current_world
+        self.world = world
         self.origin = origin
         self.size = size
 
@@ -90,7 +91,6 @@ class ProbabilisticCostmap:
                 distance_to_obstacle=distance_to_obstacle,
                 size=number_of_cells,
                 resolution=resolution.magnitude,
-                from_ros=False,
                 world = self.world)
         elif costmap_type == VisibilityCostmap:
             camera = list(self.world.robot_description.cameras.values())[0]

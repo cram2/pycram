@@ -1,4 +1,5 @@
 import numpy as np
+from semantic_world.world_description.world_entity import Body
 
 from .. import tf_transformations
 from typing_extensions import List, Union, Tuple, Dict
@@ -6,11 +7,7 @@ from typing_extensions import List, Union, Tuple, Dict
 from ..ros import get_node_names
 from ..ros import  Duration, ServiceException
 from ..ros import  loginfo_once, logerr
-from ..ros import  get_service_proxy, wait_for_service
-from ..datastructures.world import World, UseProspectionWorld
-from ..world_concepts.world_object import Object
 from ..utils import _apply_ik
-from ..local_transformer import LocalTransformer
 from ..datastructures.pose import PoseStamped
 from ..robot_description import RobotDescription
 from ..failures import IKError
@@ -27,8 +24,8 @@ except ImportError:
     pass
 
 
-def try_to_reach_with_grasp(pose_or_object: Union[PoseStamped, Object],
-                            prospection_robot: Object, gripper_name: str,
+def try_to_reach_with_grasp(pose_or_object: Union[PoseStamped, Body],
+                            prospection_robot: Body, gripper_name: str,
                             grasp_quaternion: List[float]) -> Union[PoseStamped, None]:
     """
     Checks if the robot can reach a given position with a specific grasp orientation.
@@ -40,7 +37,7 @@ def try_to_reach_with_grasp(pose_or_object: Union[PoseStamped, Object],
     :param grasp_quaternion: The orientation of the grasp
     """
 
-    input_pose = pose_or_object.get_pose() if isinstance(pose_or_object, Object) else pose_or_object
+    input_pose = pose_or_object.get_pose() if isinstance(pose_or_object, Body) else pose_or_object
 
     target_pose = apply_grasp_orientation_to_pose(grasp_quaternion, input_pose)
 
@@ -64,7 +61,7 @@ def apply_grasp_orientation_to_pose(grasp_orientation: List[float], pose: PoseSt
     return target_map
 
 
-def try_to_reach(pose_or_object: Union[PoseStamped, Object], prospection_robot: Object,
+def try_to_reach(pose_or_object: Union[PoseStamped, Body], prospection_robot: Body,
                  gripper_name: str) -> Union[PoseStamped, None]:
     """
     Tries to reach a given position with a given robot. This is done by calculating the inverse kinematics.
@@ -90,7 +87,7 @@ def try_to_reach(pose_or_object: Union[PoseStamped, Object], prospection_robot: 
     return input_pose
 
 
-def request_ik(target_pose: PoseStamped, robot: Object, joints: List[str], gripper: str) -> Tuple[PoseStamped, Dict[str, float]]:
+def request_ik(target_pose: PoseStamped, robot: Body, joints: List[str], gripper: str) -> Tuple[PoseStamped, Dict[str, float]]:
     """
     Top-level method to request ik solution for a given pose. This method will check if the giskard node is running
     and if so will call the giskard service. If the giskard node is not running the kdl_ik_service will be called.
@@ -106,7 +103,7 @@ def request_ik(target_pose: PoseStamped, robot: Object, joints: List[str], gripp
         # return robot.pose, request_kdl_ik(target_pose, robot, joints, gripper)
     return request_giskard_ik(target_pose, robot, gripper)
 
-def request_giskard_ik(target_pose: PoseStamped, robot: Object, gripper: str) -> Tuple[PoseStamped, Dict[str, float]]:
+def request_giskard_ik(target_pose: PoseStamped, robot: Body, gripper: str) -> Tuple[PoseStamped, Dict[str, float]]:
     """
     Calls giskard in projection mode and queries the ik solution for a full body ik solution. This method will
     try to drive the robot directly to a pose from which the target_pose is reachable for the end effector. If there
@@ -148,7 +145,7 @@ def request_giskard_ik(target_pose: PoseStamped, robot: Object, gripper: str) ->
             raise IKError(target_map, 'map', gripper, World.robot.get_pose(), robot.get_positions_of_all_joints())
         return pose, robot_joint_states
 
-def request_pinocchio_ik(target_pose: PoseStamped, robot: Object, target_link: str, joints: List[str]) -> Dict[str, float]:
+def request_pinocchio_ik(target_pose: PoseStamped, robot: Body, target_link: str, joints: List[str]) -> Dict[str, float]:
     """
     Calls the pinocchio ik solver to calculate the ik solution for a given target link and pose.
 

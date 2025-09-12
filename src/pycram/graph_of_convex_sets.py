@@ -8,12 +8,12 @@ import plotly.graph_objects as go
 from random_events.interval import reals
 from random_events.product_algebra import SimpleEvent, Event
 from rtree import index
+from semantic_world.world import World
 from sortedcontainers import SortedSet
 from tqdm import tqdm
 from typing_extensions import Self, Optional, List
 from .datastructures.dataclasses import BoundingBox, BoundingBoxCollection
 from .datastructures.pose import PoseStamped
-from .datastructures.world import World
 from .failures import PlanFailure
 from .ros import loginfo
 

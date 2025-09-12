@@ -3,12 +3,15 @@ from __future__ import annotations
 import abc
 from dataclasses import dataclass, field
 
+from jedi.inference.gradual.typing import Tuple
+from semantic_world.robots import AbstractRobot
 from typing_extensions import Type, Any, Optional, Callable
 
 from ...datastructures.pose import PoseStamped
-from ...datastructures.world import World
+from semantic_world.world import World
 from ...failures import PlanFailure
 from ...has_parameters import HasParameters
+from ...plan import PlanNode, Plan
 from ...robot_description import RobotDescription
 from pycrap.ontologies import Agent
 
@@ -21,8 +24,8 @@ def record_object_pre_perform(action):
     """
     # for every field in the action that is an object
     # write it to a dict mapping the OG field name to the frozen copy
-    action.object_at_execution = action.object_designator.frozen_copy()
-
+    # action.object_at_execution = action.object_designator.frozen_copy()
+    pass
 
 @dataclass
 class ActionDescription(HasParameters):
@@ -30,11 +33,41 @@ class ActionDescription(HasParameters):
     robot_torso_height: float = field(init=False)
     robot_type: Type[Agent] = field(init=False)
 
+    # Is assigned in the __post_init method of the ActionNode
+    _plan_node: PlanNode = field(init=False, default=None)
+
     _pre_perform_callbacks = []
     _post_perform_callbacks = []
 
+    @property
+    def plan_node(self) -> PlanNode:
+        return self._plan_node
+
+    @plan_node.setter
+    def plan_node(self, value: PlanNode):
+        if not isinstance(value, PlanNode):
+            raise TypeError("plan_node must be an instance of PlanNode")
+        self._plan_node = value
+
+    @property
+    def plan_struct(self) -> Plan:
+        return self.plan_node.plan
+
+    @property
+    def world(self) -> World:
+        return self.plan_struct.world
+
+    @property
+    def context(self) -> Tuple[World, Plan]:
+        return self.world, self.plan_struct
+
+    @property
+    def robot_view(self) -> AbstractRobot:
+        return self.plan_struct.robot
+
     def __post_init__(self):
-        self._pre_perform_callbacks.append(self._update_robot_params)
+        pass
+        # self._pre_perform_callbacks.append(self._update_robot_params)
 
     def perform(self) -> Any:
         """

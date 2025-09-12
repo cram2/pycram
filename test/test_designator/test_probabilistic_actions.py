@@ -16,11 +16,11 @@ from pycram.orm.logging_hooks import insert
 from pycram.plan import Plan, ResolvedActionNode, PlanNode
 from pycram.process_module import simulated_robot
 from pycram.robot_description import RobotDescriptionManager, RobotDescription
-from pycram.testing import EmptyBulletWorldTestCase
+from pycram.testing import EmptyWorldTestCase
 from pycram.world_concepts.world_object import Object
 from pycrap.ontologies import Robot, Milk
 
-class MoveAndPickUpTestCase(EmptyBulletWorldTestCase):
+class MoveAndPickUpTestCase(EmptyWorldTestCase):
 
     @classmethod
     def setUpClass(cls):

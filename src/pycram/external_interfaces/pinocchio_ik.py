@@ -3,15 +3,15 @@ from __future__ import annotations
 import numpy as np
 import pinocchio
 from numpy.linalg import norm, solve
+from semantic_world.world_description.world_entity import Body
 from typing_extensions import List, Tuple, Dict
 
 from ..failures import IKError
-from ..world_concepts.world_object import Object
 from ..datastructures.pose import PoseStamped
 from ..config.ik_conf import PinocchioConfig
 
 
-def create_joint_configuration(robot: Object, model) -> np.ndarray[float]:
+def create_joint_configuration(robot: Body, model) -> np.ndarray[float]:
     """
     Create a joint configuration vector (q) from the current joint positions of the robot.
 

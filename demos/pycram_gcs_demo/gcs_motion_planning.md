@@ -48,10 +48,11 @@ sync_worlds()
 
 ```python
 from pycram.external_interfaces.giskard import giskard_wrapper
+
 kitchen.set_joint_position("oven_area_area_right_drawer_joint", .45)
 giskard_wrapper.set_seed_configuration({"oven_area_area_right_drawer_joint": .45})
 pose = PoseStamped()
-pose.header.frame_id = 'map'
+pose.header.reference_frame = 'map'
 pose.pose.position.y = 1
 pose.pose.orientation.w = 1
 giskard_wrapper.monitors.add_set_seed_odometry(pose)

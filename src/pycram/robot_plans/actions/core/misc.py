@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
 
+from semantic_world.world_description.world_entity import Body
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from ...motions.misc import DetectingMotion
@@ -11,9 +12,7 @@ from ....datastructures.partial_designator import PartialDesignator
 from ....failure_handling import try_action
 from ....failures import PerceptionObjectNotFound
 from ....has_parameters import has_parameters
-from ....plan import with_plan
 from ....robot_plans.actions.base import ActionDescription
-from ....world_concepts.world_object import Object
 from pycrap.ontologies import Location
 
 
@@ -34,7 +33,7 @@ class DetectAction(ActionDescription):
     """
     The state of the detection, e.g Start Stop for continues perception
     """
-    object_designator: Optional[Object] = None
+    object_designator: Optional[Body] = None
     """
     The type of the object that should be detected, only considered if technique is equal to Type
     """
@@ -63,10 +62,9 @@ class DetectAction(ActionDescription):
         #     raise PerceptionObjectNotFound(self.object_designator, self.technique, self.region)
 
     @classmethod
-    @with_plan
     def description(cls, technique: Union[Iterable[DetectionTechnique], DetectionTechnique],
                     state: Union[Iterable[DetectionState], DetectionState] = None,
-                    object_designator: Union[Iterable[Object], Object] = None,
+                    object_designator: Union[Iterable[Body], Body] = None,
                     region: Union[Iterable[Location], Location] = None) -> PartialDesignator[Type[DetectAction]]:
         return PartialDesignator(DetectAction, technique=technique,
                                  state=state,

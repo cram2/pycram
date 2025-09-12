@@ -15,8 +15,9 @@ from random_events.utils import recursive_subclasses
 from random_events.variable import Symbolic, Integer, Variable, Continuous
 from sortedcontainers import SortedSet
 
+from semantic_world.world import World
+
 from pycrap.ontologies import PhysicalObject
-from .datastructures.world import World
 from .datastructures.dataclasses import BoundingBox, BoundingBoxCollection
 from .datastructures.partial_designator import PartialDesignator
 from .graph_of_convex_sets import GraphOfConvexSets
@@ -86,7 +87,7 @@ class Parameterizer:
             self.variables_of_node[node] = variables
 
 
-    def plan_from_sample(self, model: ProbabilisticModel, sample: np.array) -> Plan:
+    def plan_from_sample(self, model: ProbabilisticModel, sample: np.array, world: World) -> Plan:
         """
         Create a sequential plan from a sample of all parameters.
 
@@ -95,6 +96,7 @@ class Parameterizer:
         :return: The executable, sequential plan
         """
         sub_plans = []
+        plan = SequentialPlan((world, None))
 
         for node in self.variables_of_node:
             flattened_parameters = []
@@ -103,10 +105,10 @@ class Parameterizer:
             resolved = node.action.reconstruct(flattened_parameters)
 
             kwargs = {key: getattr(resolved, key) for key in resolved._parameters}
-            sub_plans.append(Plan(ActionNode(designator_ref=PartialDesignator(node.action, **kwargs),
-                       action = node.action, kwargs=kwargs)))
+            plan.mount(Plan(ActionNode(designator_ref=PartialDesignator(node.action, **kwargs),
+                       action = node.action, kwargs=kwargs), world, plan))
 
-        return SequentialPlan(*sub_plans)
+        return plan
 
     def create_fully_factorized_distribution(self) -> ProbabilisticCircuit:
         """

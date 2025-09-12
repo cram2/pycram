@@ -1,11 +1,34 @@
 from __future__ import annotations
 
+import inspect
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from semantic_world.robots import AbstractRobot
+from semantic_world.world import World
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...plan import PlanNode, Plan
 
 
 @dataclass
 class BaseMotion(ABC):
+
+    # Is assigned in the __post_init method of the MotionNode
+    plan_node: PlanNode = field(init=False, default=None)
+
+    @property
+    def plan(self) -> Plan:
+        return self.plan_node.plan
+
+    @property
+    def world(self) -> World:
+        return self.plan.world
+
+    @property
+    def robot_view(self) -> AbstractRobot:
+        return self.plan.robot
 
     @abstractmethod
     def perform(self):
@@ -18,12 +41,13 @@ class BaseMotion(ABC):
         """
         Checks if types are missing or wrong
         """
+
         return
         # TODO include type checks for this again (use type guard?)
         #
         # right_types = get_type_hints(self)
         # attributes = self.__dict__.copy()
-        #
+        #`
         # missing = []
         # wrong_type = {}
         # current_type = {}

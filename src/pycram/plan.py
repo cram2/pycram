@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import inspect
 import time
-from copy import copy
 from dataclasses import field, dataclass
 from datetime import datetime
+from enum import IntEnum
 
 import networkx as nx
-from networkx.classes.reportviews import NodeView, OutEdgeView
-from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
-from random_events.product_algebra import Event
-
+import numpy as np
+import rustworkx as rx
+import rustworkx.visualization
+from mercurial.revset import children
+from semantic_world.robots import AbstractRobot
+from semantic_world.world import World
 from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
 from .datastructures.enums import TaskStatus
@@ -23,7 +24,12 @@ if TYPE_CHECKING:
     from .designator import BaseMotion, ActionDescription
 
 
-class Plan(nx.DiGraph):
+class PlotAlignment(IntEnum):
+    HORIZONTAL = 0
+    VERTICAL = 1
+
+
+class Plan:
     """
     Represents a plan structure, typically a tree, which can be changed at any point in time. Performing the plan will
     traverse the plan structure in depth first order and perform each PlanNode
@@ -33,14 +39,28 @@ class Plan(nx.DiGraph):
     on_start_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
     on_end_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
 
-    def __init__(self, root: PlanNode, super_plan: Plan = None):
+    def __init__(self, root: PlanNode, world: World, robot: AbstractRobot, super_plan: Plan = None):
         super().__init__()
+        self.plan_graph = rx.PyDiGraph()
+        self.node_indices = {}
         self.root: PlanNode = root
+        self.world = world
         self.super_plan: Plan = super_plan
         self.add_node(self.root)
         self.current_node: PlanNode = self.root
         self.on_start_callback = {}
         self.on_end_callback = {}
+        self.robot = robot
+        if self.super_plan:
+            self.super_plan.add_edge(self.super_plan.current_node, self.root)
+
+    @property
+    def nodes(self):
+        return self.plan_graph.nodes()
+
+    @property
+    def edges(self):
+        return self.plan_graph.edges()
 
     def mount(self, other: Plan, mount_node: PlanNode = None):
         """
@@ -55,8 +75,7 @@ class Plan(nx.DiGraph):
         self.add_edge(mount_node, other.root)
         for node in self.nodes:
             node.plan = self
-        if isinstance(other, SubPlan):
-            other.super_plan = self
+            node.world = self.world
 
     def merge_nodes(self, node1: PlanNode, node2: PlanNode):
         """
@@ -69,6 +88,19 @@ class Plan(nx.DiGraph):
             self.add_edge(node1, node)
         self.remove_node(node2)
 
+    def remove_node(self, node_for_removal: PlanNode):
+        """
+        Removes a node from the plan. If the node is not in the plan, it will be ignored.
+
+        :param node_for_removal: Node to be removed
+        """
+        if node_for_removal in self.nodes:
+            self.plan_graph.remove_node(node_for_removal.index)
+            node_for_removal.index = -1
+            node_for_removal.plan = None
+            node_for_removal.world = None
+
+
     def add_node(self, node_for_adding: PlanNode, **attr):
         """
         Adds a node to the plan. The node will not be connected to any other node of the plan.
@@ -76,10 +108,15 @@ class Plan(nx.DiGraph):
         :param node_for_adding: Node to be added
         :param attr: Additional attributes to be added to the node
         """
-        super().add_node(node_for_adding, **attr)
+        index = self.plan_graph.add_node(node_for_adding)
+        self.node_indices[node_for_adding] = index
         node_for_adding.plan = self
+        node_for_adding.world = self.world
 
-    def add_edge(self, u_of_edge, v_of_edge, **attr):
+        if self.super_plan:
+            self.super_plan.add_node(node_for_adding)
+
+    def add_edge(self, u_of_edge: PlanNode, v_of_edge: PlanNode, **attr):
         """
         Adds an edge to the plan. If one or both nodes are not in the plan, they will be added to the plan.
 
@@ -87,9 +124,13 @@ class Plan(nx.DiGraph):
         :param v_of_edge: Target node of the edge
         :param attr: Additional attributes to be added to the edge
         """
-        super().add_edge(u_of_edge, v_of_edge, **attr)
-        u_of_edge.plan = self
-        v_of_edge.plan = self
+        if u_of_edge not in self.nodes:
+            self.add_node(u_of_edge)
+        if v_of_edge not in self.nodes:
+            self.add_node(v_of_edge)
+        self.plan_graph.add_edge(self.node_indices[u_of_edge], self.node_indices[v_of_edge], (u_of_edge, v_of_edge))
+        if self.super_plan:
+            self.super_plan.add_edge(u_of_edge, v_of_edge)
 
     def add_edges_from(self, ebunch_to_add: Iterable[Tuple[PlanNode, PlanNode]], **attr):
         """
@@ -98,21 +139,18 @@ class Plan(nx.DiGraph):
         :param ebunch_to_add: Iterable of tuples of nodes to be added
         :param attr: Additional attributes to be added to the edges
         """
-        super().add_edges_from(ebunch_to_add, **attr)
-        for u_edge, v_edge in ebunch_to_add:
-            u_edge.plan = self
-            v_edge.plan = self
+        for u, v in ebunch_to_add:
+            self.add_edge(u, v)
 
     def add_nodes_from(self, nodes_for_adding: Iterable[PlanNode], **attr):
         """
         Adds nodes from an Iterable of nodes.
 
         :param nodes_for_adding: The iterable of nodes
-        :param attr: Addotional attributes to be added
+        :param attr: Additional attributes to be added
         """
-        super().add_nodes_from(nodes_for_adding, **attr)
         for node in nodes_for_adding:
-            node.plan = self
+            self.add_node(node)
 
     def insert_below(self, insert_node: PlanNode, insert_below: PlanNode):
         """
@@ -165,36 +203,62 @@ class Plan(nx.DiGraph):
     def actions(self) -> List[ActionNode]:
         return list(filter(None, [node if type(node) is ActionNode else None for node in self.nodes]))
 
-    def plot(self):
+    @property
+    def layers(self) -> List[List[PlanNode]]:
+        return rx.layers(self.plan_graph, [self.root.index], index_output=False)
+
+    def bfs_layout(self, scale: float = 1., align: PlotAlignment = PlotAlignment.VERTICAL) -> Dict[int, np.array]:
         """
-        Plots the plan using matplotlib and networkx. The plan is plotted as a tree with the root node at the bottom and
-        the children nodes above.
+        Generate a bfs layout for this circuit.
+
+        :return: A dict mapping the node indices to 2d coordinates.
+        """
+        layers = self.layers
+
+        pos = None
+        nodes = []
+        width = len(layers)
+        for i, layer in enumerate(layers):
+            height = len(layer)
+            xs = np.repeat(i, height)
+            ys = np.arange(0, height, dtype=float)
+            offset = ((width - 1) / 2, (height - 1) / 2)
+            layer_pos = np.column_stack([xs, ys]) - offset
+            if pos is None:
+                pos = layer_pos
+            else:
+                pos = np.concatenate([pos, layer_pos])
+            nodes.extend(layer)
+
+        # Find max length over all dimensions
+        pos -= pos.mean(axis=0)
+        lim = np.abs(pos).max()  # max coordinate for all axes
+        # rescale to (-scale, scale) in all directions, preserves aspect
+        if lim > 0:
+            pos *= scale / lim
+
+        if align == PlotAlignment.HORIZONTAL:
+            pos = pos[:, ::-1]  # swap x and y coords
+
+        pos = dict(zip([node.index for node in nodes], pos))
+        return pos
+
+    def plot_plan_structure(self, scale: float = 1., align: PlotAlignment = PlotAlignment.HORIZONTAL) -> None:
+        """
+        Plots the kinematic structure of the world.
+        The plot shows bodies as nodes and connections as edges in a directed graph.
         """
         import matplotlib.pyplot as plt
-
         # Create a new figure
         plt.figure(figsize=(12, 8))
 
-        # Use spring layout for node positioning
-        pos = nx.drawing.bfs_layout(self, start=self.root, align='horizontal')
+        pos = self.bfs_layout(scale=scale, align=align)
 
-        # Draw nodes (bodies)
-        nx.draw_networkx_nodes(self, pos,
-                               node_color='lightblue',
-                               node_size=2000)
+        rx.visualization.mpl_draw(self.plan_graph, pos=pos, labels=lambda body: str(body.action),
+                                  with_labels=True,
+                                  edge_labels=lambda edge: edge.__class__.__name__)
 
-        # Draw edges (connections)
-        edges = self.edges(data=True)
-        nx.draw_networkx_edges(self, pos,
-                               edge_color='gray',
-                               arrows=True,
-                               arrowsize=20)
-
-        # Add link names as labels
-        labels = {node: str(node) for node in self.nodes()}
-        nx.draw_networkx_labels(self, pos, labels)
-
-        plt.title("Plan Structure")
+        plt.title("World Kinematic Structure")
         plt.axis('off')  # Hide axes
         plt.show()
 
@@ -332,46 +396,6 @@ class Plan(nx.DiGraph):
         return labels
 
 
-class SubPlan(Plan):
-    """
-    A subplan is a plan which is mounted to another plan. It reflects changes and properties of the super plan
-    """
-
-    def __init__(self, root: PlanNode, super_plan: Plan = None):
-        """
-        :param root: The root node of the subplan
-        :param super_plan: The plan to which this subplan is mounted. If None, the subplan is a standalone plan.
-        """
-        super().__init__(root, super_plan)
-
-    @property
-    def nodes(self) -> List[PlanNode]:
-        return [self.root] + self.root.recursive_children
-
-    @property
-    def edges(self) -> List[Tuple[PlanNode, PlanNode]]:
-        return list(filter(None, [edge if edge[0] in self.nodes and edge[1] in self.nodes else None for edge in
-                                  self.super_plan.edges]))
-
-    def mount(self, other: Plan, mount_node: PlanNode = None):
-        self.super_plan.mount(other, mount_node)
-
-    def perform(self) -> Any:
-        self.root.perform()
-
-    def add_node(self, node_for_adding: PlanNode, **attr):
-        self.super_plan.add_node(node_for_adding, **attr)
-
-    def add_edge(self, u_of_edge, v_of_edge, **attr):
-        self.super_plan.add_edge(u_of_edge, v_of_edge, **attr)
-
-    def add_edges_from(self, ebunch_to_add: Iterable[Tuple[PlanNode, PlanNode]], **attr):
-        self.super_plan.add_edges_from(ebunch_to_add, **attr)
-
-    def add_nodes_from(self, nodes_for_adding: Iterable[PlanNode], **attr):
-        self.super_plan.add_nodes_from(nodes_for_adding, **attr)
-
-
 def managed_node(func: Callable) -> Callable:
     """
     Decorator which manages the state of a node, including the start and end time, status and reason of failure as well
@@ -445,25 +469,34 @@ class PlanNode:
     """
     The reason of failure if the action failed.
     """
-
+    result: Any = None
+    """
+    Result from the execution of this node
+    """
     plan: Plan = None
     """
     Reference to the plan to which this node belongs
     """
 
-    result: Any = None
-    """
-    Result from the execution of this node
-    """
+    @property
+    def index(self) -> int:
+        return self.plan.node_indices[self]
+
+    @index.setter
+    def index(self, value: int):
+        """
+        Sets the index of this node in the plan. This is used to set the index of the node in the plan graph.
+        """
+        self.plan.node_indices[self] = value
 
     @property
-    def parent(self) -> PlanNode:
+    def parent(self) -> Optional[PlanNode]:
         """
         The parent node of this node, None if this is the root node
 
         :return: The parent node
         """
-        return list(self.plan.predecessors(self))[0] if list(self.plan.predecessors(self)) else None
+        return self.plan.plan_graph.predecessors(self.index)[0] if self.plan.plan_graph.predecessors(self.index) else None
 
     @property
     def children(self) -> List[PlanNode]:
@@ -472,7 +505,9 @@ class PlanNode:
 
         :return:  A list of child nodes
         """
-        return list(self.plan.successors(self))
+        children = self.plan.plan_graph.successors(self.index)
+        children.reverse()
+        return children
 
     @property
     def recursive_children(self) -> List[PlanNode]:
@@ -481,7 +516,7 @@ class PlanNode:
 
         :return: A list of all nodes below this node
         """
-        return list(nx.descendants(self.plan, self))
+        return [self.plan.plan_graph[i] for i in rx.descendants(self.plan.plan_graph, self.index)]
 
     @property
     def subtree(self) -> Plan:
@@ -490,15 +525,10 @@ class PlanNode:
 
         :return: A new plan
         """
-        # copy_nodes = {node: node for node in self.plan.nodes}
-        graph = nx.DiGraph()
-        graph.add_nodes_from(self.plan.nodes)
-        graph.add_edges_from(self.plan.edges)
-        # The subgraph methods tries to create a new instance of the graph class it is give which in the case of Plan()
-        # would fail because of the "root" param, that's the reason for this weird conversion.
-        sub_graph = nx.subgraph(graph, [self] + self.recursive_children)
-        sub_tree = SubPlan(root=self, super_plan=self.plan)
-        return sub_tree
+        graph = self.plan.plan_graph.subgraph([self.index] + [child.index for child in self.recursive_children])
+        plan = Plan(root=self, world=self.plan.world, super_plan=self.plan.super_plan)
+        plan.plan_graph = graph
+        return plan
 
     @property
     def all_parents(self) -> List[PlanNode]:
@@ -507,7 +537,9 @@ class PlanNode:
 
         :return: A list of all nodes above this
         """
-        return list(nx.ancestors(self.plan, self))
+        all_parents = [self.plan.plan_graph[i] for i in rx.ancestors(self.plan.plan_graph, self.index)]
+        all_parents.reverse()
+        return all_parents
 
     @property
     def is_leaf(self) -> bool:
@@ -570,6 +602,9 @@ class DesignatorNode(PlanNode):
     """
     kwargs of the action in this node
     """
+
+    def __post_init__(self):
+        self.designator_ref.plan_node = self
 
     def __hash__(self):
         return id(self)
@@ -667,6 +702,9 @@ class MotionNode(DesignatorNode):
     Reference to the MotionDesignator
     """
 
+    def __post_init__(self):
+        self.designator_ref.plan_node = self
+
     def __hash__(self):
         return id(self)
 
@@ -688,27 +726,3 @@ class MotionNode(DesignatorNode):
 
     def flattened_parameters(self):
         return {}
-
-
-def with_plan(func: Callable) -> Callable:
-    """
-    Decorator which wrapps the decorated designator into a node, creates a new plan with the node as root and returns
-    the plan.
-
-    :param func: The decorator which should be inserted into a plan
-    :return: A plan with the designator as root node
-    """
-
-    def wrapper(*args, **kwargs) -> Plan:
-        designator = func(*args, **kwargs)
-        if designator.__class__.__name__ == "PartialDesignator":
-            node = ActionNode(designator_ref=designator, action=designator.performable, kwargs=designator.kwargs)
-        else:
-            kwargs = dict(inspect.signature(func).bind(*args, **kwargs).arguments)
-            node = MotionNode(designator_ref=designator, action=designator.__class__, kwargs=kwargs)
-        plan = Plan(root=node) if not Plan.current_plan else SubPlan(root=node, super_plan=Plan.current_plan)
-        if Plan.current_plan:
-            Plan.current_plan.mount(plan, Plan.current_plan.current_node)
-        return plan
-
-    return wrapper

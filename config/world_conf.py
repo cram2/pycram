@@ -4,8 +4,6 @@ from datetime import timedelta
 
 import yaml
 from typing_extensions import Tuple, Type, Dict, Optional
-from ..description import ObjectDescription
-from ..object_descriptors.urdf import ObjectDescription as URDF
 from ..utils import classproperty
 
 
@@ -56,7 +54,7 @@ class WorldConfig:
     Whether to update the poses from the simulator when getting the object poses.
     """
 
-    default_description_type: Type[ObjectDescription] = URDF
+    # default_description_type: Type[ObjectDescription] = URDF
     """
     The default description type for the objects.
     """
@@ -120,7 +118,7 @@ class WorldConfig:
     The maximum batch size for the rays when using the ray test batch.
     """
 
-    execution_delay: timedelta = timedelta(seconds=0)
+    execution_delay: timedelta = timedelta(seconds=0.2)
     """
     The delay between the execution of actions/motions to imitate real world execution time.
     """

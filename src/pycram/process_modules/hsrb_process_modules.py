@@ -5,7 +5,6 @@ from .default_process_modules import *
 # from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
 from ..robot_description import RobotDescription
 from ..process_module import ProcessModule
-from ..local_transformer import LocalTransformer
 from ..robot_plans import *
 from ..external_interfaces import giskard
 from ..ros import  logdebug

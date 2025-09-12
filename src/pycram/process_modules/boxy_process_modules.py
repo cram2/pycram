@@ -3,8 +3,6 @@ from .. import world_reasoning as btr
 from ..robot_plans import *
 from ..datastructures.enums import StaticJointState
 
-from ..datastructures.world import World
-from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_description import RobotDescription
 

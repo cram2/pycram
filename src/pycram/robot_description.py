@@ -1,32 +1,36 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import dataclasses
+from semantic_world.exceptions import ViewNotFoundError
+from semantic_world.robots import AbstractRobot, KinematicChain, Manipulator, Neck
+from semantic_world.world import World
+from semantic_world.world_description.world_entity import View
+
+
 import glob
 import importlib
 from os.path import dirname, basename, isfile, join
 import math
 from dataclasses import field
+from dataclasses import dataclass
 from enum import Enum
 from itertools import product
 
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-from typing_extensions import List, Dict, Union, Optional, Tuple, TYPE_CHECKING
+from typing_extensions import List, Dict, Union, Optional, Tuple, TYPE_CHECKING, TypeVar
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, Rotations
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState, \
     ApproachDirection, VerticalAlignment
-from .datastructures.pose import GraspDescription, PoseStamped
+from .datastructures.pose import PoseStamped
 from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
     get_robot_description_path
-from .object_descriptors.urdf import ObjectDescription as URDFObject
 from .ros import logerr
 from .tf_transformations import quaternion_multiply
 from .utils import suppress_stdout_stderr
 
-if TYPE_CHECKING:
-    from .datastructures.pose import Pose
+from urdf_parser_py.urdf import URDF as URDFObject
 
 class RobotDescriptionManager:
     """
@@ -354,7 +358,7 @@ class RobotDescription:
 
     def get_parent(self, name: str) -> str:
         """
-        Get the parent of a link or joint in the URDF. Always returns the imeadiate parent, for a link this is a joint
+        Get the parent of a link or joint in the URDF. Always returns the immediate parent, for a link this is a joint
         and vice versa.
 
         :param name: Name of the link or joint in the URDF
@@ -957,3 +961,95 @@ def create_manipulator_description(data: ManipulatorData,
                             relative_dir=data.gripper_relative_dir, opening_distance=data.opening_distance)
 
     return robot_description
+
+T = TypeVar('T', bound=View)
+
+@dataclass
+class ViewManager:
+
+    @staticmethod
+    def find_active_robots_for_world(world: World) -> List[AbstractRobot]:
+        """
+        Find all active robots for a given world.
+
+        :param world: The world to search for active robots.
+        :return: A list of active robots in the world.
+        """
+        robot_views = world.get_views_by_type(AbstractRobot)
+        all_robots = AbstractRobot.__subclasses__()
+        for robot_class in all_robots:
+            if robot_class not in [view.__class__ for view in robot_views]:
+                try:
+                    robot_class.from_world(world)
+                except Exception as e:
+                    # TODO: Better error check and handling, error when the robot is not in the world are expected
+                    pass
+
+        return world.get_views_by_type(AbstractRobot)
+
+    def find_robot_view_for_world(self, world: World) -> AbstractRobot:
+        """
+        Find the robot view for a given world. If there are multiple robots, the first one is returned.
+
+        :param world: The world to search for a robot view.
+        :return: The first robot view in the world.
+        """
+        robots = self.find_active_robots_for_world(world)
+        if not robots:
+            print("No robot found in the world.")
+        return robots[0] if robots else None
+
+    @staticmethod
+    def get_end_effector_view(arm: Arms, robot_view: AbstractRobot) -> Optional[Manipulator]:
+
+        for man in robot_view.manipulators:
+            if "left" in man.name.name and arm == Arms.LEFT:
+                return man
+            elif "right" in man.name.name and arm == Arms.RIGHT:
+                return man
+        return None
+
+    @staticmethod
+    def get_arm_view(arm: Arms, robot_view: AbstractRobot) -> Optional[KinematicChain]:
+        """
+        Get the arm view for a given arm and robot view.
+
+        :param arm: The arm to get the view for.
+        :param robot_view: The robot view to search in.
+        :return: The Manipulator object representing the arm.
+        """
+        for arm_chain in robot_view.manipulator_chains:
+            if "left" in arm_chain.name.name and arm == Arms.LEFT:
+                return arm_chain
+            elif "right" in arm_chain.name.name and arm == Arms.RIGHT:
+                return arm_chain
+        return None
+
+    @staticmethod
+    def get_neck_view(robot_view: AbstractRobot) -> Optional[Neck]:
+        """
+        Get the neck view for a given robot view.
+
+        :param robot_view: The robot view to search in.
+        :return: The Neck object representing the neck.
+        """
+        if getattr(robot_view, "neck", Neck):
+            return robot_view.neck
+        else:
+            raise ValueError(f"The robot view {robot_view} has no neck.")
+
+    @staticmethod
+    def get_view_in_other_world(view: T, other_world: World) -> Optional[T]:
+        """
+        Get the view in another world.
+
+        :param view: The view to search for.
+        :param other_world: The world to search in.
+        :return: The view in the other world, or None if not found.
+        """
+        try:
+            return view.from_world(other_world)
+        except ViewNotFoundError:
+            other_view = other_world.get_view_by_name(view.name)
+            if other_view is None:
+                return other_view.__class__.from_world(other_world)

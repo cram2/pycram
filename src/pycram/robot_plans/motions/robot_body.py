@@ -3,11 +3,9 @@ from typing import Optional
 
 from .base import BaseMotion
 from ...datastructures.pose import Vector3Stamped
-from ...plan import with_plan
 from ...process_module import ProcessModuleManager
 
 
-@with_plan
 @dataclass
 class MoveJointsMotion(BaseMotion):
     """
@@ -44,5 +42,5 @@ class MoveJointsMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.world)
         return pm_manager.move_joints().execute(self)

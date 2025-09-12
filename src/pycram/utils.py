@@ -10,16 +10,16 @@ from __future__ import annotations
 from inspect import isgeneratorfunction
 import os
 import math
+from typing import Union, Iterator
 
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
 
-from .tf_transformations import quaternion_about_axis, quaternion_multiply
+from .tf_transformations import quaternion_about_axis, quaternion_multiply, quaternion_matrix
 from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence, Any, Iterable, Optional
 
 from .datastructures.pose import PoseStamped
-from .local_transformer import LocalTransformer
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
@@ -85,7 +85,7 @@ def get_rays_from_min_max(min_bound: Sequence[float], max_bound: Sequence[float]
     return np.stack((rays_start, rays_end), axis=-1)
 
 
-def chunks(lst: List, n: int) -> List:
+def chunks(lst: Union[List, np.ndarray], n: int) -> Iterator[List]:
     """
     Yield successive n-sized chunks from lst.
 
@@ -652,11 +652,12 @@ def is_iterable(obj: Any) -> bool:
     return True
 
 
-def lazy_product(*iterables: Iterable) -> Iterable[Tuple]:
+def lazy_product(*iterables: Iterable, iter_names: List[str] = None) -> Iterable[Tuple]:
     """
     Lazily generate the cartesian product of the iterables.
 
     :param iterables: Iterable of iterables to construct product for.
+    :param iter_names: Optional names for the iterables for better error messages.
     :return: Iterable of tuples in the cartesian product.
     """
 
@@ -667,7 +668,7 @@ def lazy_product(*iterables: Iterable) -> Iterable[Tuple]:
         try:
             current_value.append(next(consumable_iterable))
         except StopIteration as e:
-            raise RuntimeError(f"No values in the iterable: {consumable_iterable} with attributes: {iterables[i].__dict__ if hasattr(iterables[i], '__dict__') else ''}")
+            raise RuntimeError(f"No values in the iterable: {consumable_iterable} for iterable '{iter_names[i] if iter_names else i}'")
 
     while True:
         yield tuple(current_value)
@@ -686,3 +687,23 @@ def lazy_product(*iterables: Iterable) -> Iterable[Tuple]:
                     current_value[index] = next(consumable_iterables[index])
                 except StopIteration as e:
                     raise StopIteration(f"No more values in the iterable: {iterables[index]}")
+
+
+def translate_pose_along_local_axis(pose: PoseStamped, axis: Union[List, np.ndarray], distance: float) -> PoseStamped:
+    """
+    Translate a pose along a given 3d vector (axis) by a given distance. The axis is given in the local coordinate
+    frame of the pose. The axis is normalized and then scaled by the distance.
+
+    :param pose: The pose that should be translated
+    :param axis: The local axis along which the translation should be performed
+    :param distance: The distance by which the pose should be translated
+
+    :return: The translated pose
+    """
+    normalized_translation_vector = np.array(axis) / np.linalg.norm(axis)
+
+    rot_matrix = quaternion_matrix(pose.orientation.to_list())[:3, :3]
+    translation_in_world = rot_matrix @ normalized_translation_vector
+    scaled_translation_vector = np.array(pose.position.to_list()) + translation_in_world * distance
+
+    return PoseStamped.from_list(pose.frame_id, list(scaled_translation_vector), pose.orientation.to_list())
