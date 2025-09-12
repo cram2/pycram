@@ -17,7 +17,7 @@ from ..robot_description import RobotDescription
 
 from typing_extensions import List, Dict, Callable, Optional
 from threading import Lock, RLock
-from pycram.ros import logging as log
+from ..ros import logging as log, node
 
 
 
@@ -59,16 +59,16 @@ def init_giskard_interface(func: Callable) -> Callable:
 
     def wrapper(*args, **kwargs):
 
-        from giskardpy.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
-        from giskard_msgs.msg import WorldBody, MoveResult, CollisionEntry
+        from giskardpy_ros.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
+        from giskard_msgs.msg import WorldBody, CollisionEntry
         from geometry_msgs.msg import PoseStamped as ROSPoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 
         global giskard_wrapper
         global giskard_update_service
         global is_init
-        if is_init and "/giskard" in get_node_names():
+        if is_init and "giskard" in get_node_names():
             return func(*args, **kwargs)
-        elif is_init and "/giskard" not in get_node_names():
+        elif is_init and "giskard" not in get_node_names():
             logwarn("Giskard node is not available anymore, could not initialize giskard interface")
             is_init = False
             giskard_wrapper = None
@@ -78,8 +78,8 @@ def init_giskard_interface(func: Callable) -> Callable:
             logwarn("Could not initialize the Giskard interface since the giskard_msgs are not imported")
             return
 
-        if "/giskard" in get_node_names():
-            giskard_wrapper = GiskardWrapper()
+        if "giskard" in get_node_names():
+            giskard_wrapper = GiskardWrapper(node)
             loginfo_once("Successfully initialized Giskard interface")
             is_init = True
         else:
@@ -103,6 +103,7 @@ def initial_adding_objects() -> None:
             continue
         name = obj.name
         if name not in groups:
+            print(obj)
             spawn_object(obj)
 
 
