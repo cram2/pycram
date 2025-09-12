@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from semantic_world.world_entity import Body
+from semantic_world.world_description.world_entity import Body
 
 from pycrap.ontologies import Location
 from .base import BaseMotion

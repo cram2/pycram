@@ -1,8 +1,8 @@
 from scipy.spatial.transform import Rotation as R
-from semantic_world.prefixed_name import PrefixedName
+from semantic_world.datastructures.prefixed_name import PrefixedName
 from semantic_world.robots import PR2, AbstractRobot
 from semantic_world.world import World
-from semantic_world.world_entity import Body
+from semantic_world.world_description.world_entity import Body
 from typing_extensions import TYPE_CHECKING
 
 from pycrap.urdf_parser import parse_furniture

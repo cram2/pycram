@@ -2,7 +2,7 @@ from copy import deepcopy
 
 import numpy as np
 from semantic_world.robots import AbstractRobot
-from semantic_world.world_entity import Body
+from semantic_world.world_description.world_entity import Body
 from trimesh import Trimesh
 from typing_extensions import List, Tuple, Optional, Union, Dict
 

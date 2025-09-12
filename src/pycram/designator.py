@@ -8,7 +8,7 @@ from datetime import timedelta
 from typing import get_type_hints
 
 from semantic_world.robots import AbstractRobot
-from semantic_world.world_entity import Body
+from semantic_world.world_description.world_entity import Body
 from typing_extensions import Type, List, Dict, Any, Optional, Callable, Self, Iterator
 
 from pycrap.ontologies import PhysicalObject, Agent

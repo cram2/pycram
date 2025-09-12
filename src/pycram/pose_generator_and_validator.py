@@ -4,8 +4,13 @@ from copy import deepcopy
 
 import numpy as np
 from semantic_world.collision_checking.collision_detector import CollisionCheck
-from semantic_world.ik_solver import MaxIterationsException, UnreachableException
-from semantic_world.world_entity import Body
+from semantic_world.world_description.connections import Connection6DoF
+from semantic_world.world_description.geometry import Box, Scale
+from semantic_world.spatial_computations.ik_solver import MaxIterationsException, UnreachableException
+from semantic_world.spatial_computations.raytracer import RayTracer
+from semantic_world.robots import AbstractRobot
+from semantic_world.spatial_types.spatial_types import TransformationMatrix
+from semantic_world.world_description.world_entity import Body
 from semantic_world.world import World
 
 from pycrap.ontologies import PhysicalObject
@@ -147,8 +152,9 @@ class PoseGenerator(Iterable[PoseStamped]):
         return quaternion
 
 
-def visibility_validator(robot: Body,
-                         object_or_pose: Union[Body, PoseStamped]) -> bool:
+def visibility_validator(robot: AbstractRobot,
+                         object_or_pose: Union[Body, PoseStamped],
+                         world: World) -> bool:
     """
     This method validates if the robot can see the target position from a given
     pose candidate. The target position can either be a position, in world coordinate
@@ -160,25 +166,23 @@ def visibility_validator(robot: Body,
     :param object_or_pose: The target position or object for which the pose candidate should be validated.
     :return: True if the target is visible for the robot, None in any other case.
     """
-    world = robot.world
-    robot_pose = robot.get_pose()
-
     if isinstance(object_or_pose, PoseStamped):
-        gen_obj_desc = ObjectDescription("viz_object", [0, 0, 0], [0.05, 0.05, 0.05])
-        obj = Object("viz_object", PhysicalObject, pose=object_or_pose, description=gen_obj_desc)
+        gen_body = Body(collision=[Box(scale=Scale(0.1, 0.1, 0.1))],)
+        with world.modify_world():
+            world.add_connection(Connection6DoF(world.root, gen_body, _world=world))
+        gen_body.parent_connection.origin = object_or_pose.to_spatial_type()
     else:
-        obj = object_or_pose
+        gen_body = object_or_pose
+    r_t = RayTracer(world)
+    camera = list(robot.neck.sensors)[0]
+    ray = r_t.ray_test(camera.bodies[0].global_pose.to_position().to_np()[:3], gen_body.global_pose.to_position().to_np()[:3])
 
-    obj_id = obj.id
+    with world.modify_world():
+        if isinstance(object_or_pose, PoseStamped):
+            world.remove_kinematic_structure_entity(gen_body)
 
-    camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link())
-    robot.set_pose(PoseStamped.from_list([100, 100, 0], [0, 0, 0, 1]))
-    ray = world.ray_test(camera_pose.position.to_list(), obj.get_pose().position.to_list())
-    robot.set_pose(robot_pose)
-    if isinstance(object_or_pose, PoseStamped):
-        world.remove_object(obj)
+    return ray[2][0] == gen_body
 
-    return ray.obj_id == obj_id
 
 
 def reachability_validator( root: Body,

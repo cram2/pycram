@@ -20,7 +20,8 @@ from semantic_world.collision_checking.trimesh_collision_detector import Trimesh
 from semantic_world.robots import AbstractRobot
 from semantic_world.spatial_types.spatial_types import TransformationMatrix
 from semantic_world.world import World
-from semantic_world.world_entity import Body
+from semantic_world.world_description.connections import FixedConnection
+from semantic_world.world_description.world_entity import Body
 from sortedcontainers import SortedSet
 from typing_extensions import List, Union, Iterable, Optional, Iterator, Dict, Tuple
 
@@ -180,7 +181,7 @@ class CostmapLocation(LocationDesignatorDescription):
         """
         return next(iter(self))
 
-    def setup_costmaps(self, target: PoseStamped, robot: AbstractRobot, visible_for, reachable_for) -> Costmap:
+    def setup_costmaps(self, target: PoseStamped, visible_for, reachable_for) -> Costmap:
         """
         Sets up the costmaps for the given target and robot. The costmaps are merged and stored in the final_map
 
@@ -193,12 +194,9 @@ class CostmapLocation(LocationDesignatorDescription):
         final_map = occupancy
 
         if visible_for:
-            # camera = robot.robot_description.get_default_camera()
-            robot_view = ViewManager.find_active_robots_for_world(self.world)
-            camera = robot_view.camera
-            visible = VisibilityCostmap(camera.minimal_height, camera.maximal_height, 200, 0.02,
-                                        PoseStamped.from_list(target.position.to_list()), target_object=target,
-                                        robot=robot)
+            camera = list(self.robot_view.neck.sensors)[0]
+            visible = VisibilityCostmap(camera.minimal_height, camera.maximal_height, self.world,200, 0.02,
+                                        target)
             final_map += visible
 
         if reachable_for:
@@ -246,7 +244,7 @@ class CostmapLocation(LocationDesignatorDescription):
         for params in self.generate_permutations():
             params_box = Box(params)
             # Target is either a pose or an object since the object is later needed for the visibility validator
-            target = params_box.target.copy() if isinstance(params_box.target, PoseStamped) else params_box.target
+            target = params_box.target.copy() if isinstance(params_box.target, PoseStamped) else PoseStamped.from_spatial_type(params_box.target.global_pose)
             test_world = deepcopy(self.world)
             test_world.name = "Test World"
 
@@ -262,7 +260,7 @@ class CostmapLocation(LocationDesignatorDescription):
             collision_matrix = self.create_collision_matrix(params_box.ignore_collision_with,
                                                             params_box.object_in_hand, test_world, test_robot)
 
-            final_map = self.setup_costmaps(target, robot_object, params_box.visible_for, params_box.reachable_for)
+            final_map = self.setup_costmaps(target, params_box.visible_for, params_box.reachable_for)
 
             for pose_candidate in PoseGenerator(final_map, number_of_samples=600):
                 pose_candidate.position.z = 0
@@ -275,7 +273,7 @@ class CostmapLocation(LocationDesignatorDescription):
                     yield pose_candidate
                     continue
 
-                if params_box.visible_for and not visibility_validator(test_robot, target):
+                if params_box.visible_for and not visibility_validator(test_robot, target, test_world):
                     continue
 
                 if not params_box.reachable_for:
@@ -309,7 +307,7 @@ class AccessingLocation(LocationDesignatorDescription):
     """
 
     def __init__(self, handle: Union[Body, Iterable[Body]],
-                 robot_desig: Union[Body, Iterable[Body]],
+                 robot_desig: Union[AbstractRobot, Iterable[AbstractRobot]],
                  arm: Union[List[Arms], Arms] = None,
                  prepose_distance: float = ActionConfig.grasping_prepose_distance):
         """
@@ -323,8 +321,8 @@ class AccessingLocation(LocationDesignatorDescription):
         PartialDesignator.__init__(self, AccessingLocation, handle=handle, robot_desig=robot_desig,
                                    arm=arm if arm is not None else [Arms.LEFT, Arms.RIGHT],
                                    prepose_distance=prepose_distance)
-        self.handle: ObjectDescription.Link = handle
-        self.robot: Object = robot_desig
+        self.handle: Body = handle
+        self.robot: AbstractRobot = robot_desig
         self.prepose_distance = prepose_distance
         self.arm = arm if arm is not None else [Arms.LEFT, Arms.RIGHT]
 
@@ -370,13 +368,13 @@ class AccessingLocation(LocationDesignatorDescription):
         """
         Sets up the costmaps for the given handle and robot. The costmaps are merged and stored in the final_map.
         """
-        ground_pose = PoseStamped.from_list(handle.pose.position.to_list())
+        ground_pose = PoseStamped.from_spatial_type(handle.global_pose)
         ground_pose.position.z = 0
-        occupancy = OccupancyCostmap(distance_to_obstacle=0.25, from_ros=False, size=200, resolution=0.02,
-                                     origin=ground_pose)
+        occupancy = OccupancyCostmap(distance_to_obstacle=0.25, size=200, resolution=0.02,
+                                     origin=ground_pose, world=handle._world)
         final_map = occupancy
 
-        gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
+        gaussian = GaussianCostmap(200, 15, handle._world, 0.02, ground_pose)
         final_map += gaussian
 
         return final_map
@@ -389,24 +387,30 @@ class AccessingLocation(LocationDesignatorDescription):
         :param final_map:
         :return:
         """
-        # Find a Joint that moves with the handle in the URDF tree
+        handle = params_box.handle
+        # compute the chain of connections only works top down,
+        handle_to_root_connections = list(
+            reversed(handle._world.compute_chain_of_connections(handle._world.root, handle)))
+        # Search for the first connection that is not a FixedConnection,
+        container_connection = list(filter(lambda c: not isinstance(c, FixedConnection), handle_to_root_connections))[0]
+
         container_joint = params_box.handle.parent_entity.find_joint_above_link(params_box.handle.name)
 
-        init_pose = link_pose_for_joint_config(params_box.handle.parent_entity, {
-            container_joint: params_box.handle.parent_entity.get_joint_limits(container_joint)[0]},
-                                               params_box.handle.name)
+        lower_limit = container_connection.dof.lower_limits.position
+        upper_limit = container_connection.dof.upper_limits.position
+
+        init_pose = link_pose_for_joint_config(params_box.handle, {
+            container_connection.dof.name.name: lower_limit})
 
         # Calculate the pose the handle would be in if the drawer was to be fully opened
-        goal_pose = link_pose_for_joint_config(params_box.handle.parent_entity, {
-            container_joint: params_box.handle.parent_entity.get_joint_limits(container_joint)[1] - 0.05},
-                                               params_box.handle.name)
+        goal_pose = link_pose_for_joint_config(params_box.handle, {
+            container_connection.dof.name.name: upper_limit})
 
         # Handle position for calculating rotation of the final pose
         half_pose = link_pose_for_joint_config(params_box.handle.parent_entity, {
-            container_joint: params_box.handle.parent_entity.get_joint_limits(container_joint)[1] / 1.5},
-                                               params_box.handle.name)
+            container_connection.dof.name.name: upper_limit / 1.5})
 
-        joint_type = params_box.handle.parent_entity.joints[container_joint].type
+        # joint_type = params_box.handle.parent_entity.joints[container_joint].type
 
         if joint_type == JointType.PRISMATIC:
             self.adjust_map_for_drawer_opening(final_map, init_pose, goal_pose)
@@ -460,7 +464,7 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
     Locations over semantic entities, like a table surface
     """
 
-    def __init__(self, link_name, part_of, for_object=None, edges_only: bool = False,
+    def __init__(self, body, for_object: Body = None, edges_only: bool = False,
                  horizontal_edges_only: bool = False, edge_size_in_meters: float = 0.06, height_offset: float = 0.0):
         """
         Creates a distribution over a link to sample poses which are on this link. Can be used, for example, to find
@@ -475,13 +479,12 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         :param edge_size_in_meters: Size of the edges in meters.
         """
         super().__init__()
-        PartialDesignator.__init__(self, SemanticCostmapLocation, link_name=link_name, part_of=part_of,
+        PartialDesignator.__init__(self, SemanticCostmapLocation, body=body,
                                    for_object=for_object, edges_only=edges_only,
                                    horizontal_edges_only=horizontal_edges_only, edge_size_in_meters=edge_size_in_meters,
                                    height_offset=height_offset)
-        self.link_name: str = link_name
-        self.part_of: Object = part_of
-        self.for_object: Optional[Object] = for_object
+        self.body: Body = body
+        self.for_object: Optional[Body] = for_object
         self.edges_only: bool = edges_only
         self.horizontal_edges_only: bool = horizontal_edges_only
         self.edge_size_in_meters: float = edge_size_in_meters
@@ -506,14 +509,17 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         for params in self.generate_permutations():
             params_box = Box(params)
 
-            self.sem_costmap = SemanticCostmap(params_box.part_of, params_box.link_name)
+            self.sem_costmap = SemanticCostmap(params_box.body)
             if params_box.edges_only or params_box.horizontal_edges_only:
                 self.sem_costmap = self.sem_costmap.get_edges_map(params_box.edge_size_in_meters,
                                                                   horizontal_only=params_box.horizontal_edges_only)
             height_offset = params_box.height_offset
             if params_box.for_object:
-                min_p, max_p = params_box.for_object.get_axis_aligned_bounding_box().get_min_max_points()
-                height_offset = (max_p.z - min_p.z) / 2
+                bb_points = params_box.for_object.as_bounding_box_collection_in_frame(params_box.for_object).get_points()
+                np_points = [point.to_np()[:3] for point in bb_points]
+                min_z = min(np_points, key=lambda p: p[2])[2]
+                max_z = max(np_points, key=lambda p: p[2])[2]
+                height_offset = (max_z - min_z) / 2
             for maybe_pose in PoseGenerator(self.sem_costmap):
                 maybe_pose.position.z += height_offset
                 yield maybe_pose

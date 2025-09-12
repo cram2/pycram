@@ -176,7 +176,7 @@ class CarryAction(ActionDescription):
         tip_normal = self.axis_to_vector3_stamped(self.tip_axis, link=self.tip_link)
         root_normal = self.axis_to_vector3_stamped(self.root_axis, link=self.root_link)
 
-        SequentialPlan(self.context,
+        SequentialPlan(self.context, self.robot_view,
                        MoveJointsMotion(names=list(joint_poses.keys()), positions=list(joint_poses.values()),
                                         align=self.align, tip_link=self.tip_link, tip_normal=tip_normal,
                                         root_link=self.root_link, root_normal=root_normal)).perform()

@@ -4,7 +4,7 @@ from __future__ import annotations
 from semantic_world.exceptions import ViewNotFoundError
 from semantic_world.robots import AbstractRobot, KinematicChain, Manipulator, Neck
 from semantic_world.world import World
-from semantic_world.world_entity import View
+from semantic_world.world_description.world_entity import View
 
 
 import glob

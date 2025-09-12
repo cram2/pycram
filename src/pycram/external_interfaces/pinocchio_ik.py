@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pinocchio
 from numpy.linalg import norm, solve
-from semantic_world.world_entity import Body
+from semantic_world.world_description.world_entity import Body
 from typing_extensions import List, Tuple, Dict
 
 from ..failures import IKError

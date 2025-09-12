@@ -7,7 +7,7 @@ from dataclasses import dataclass, field, fields
 from typing import Union
 
 import numpy as np
-from semantic_world.world_entity import Body
+from semantic_world.world_description.world_entity import Body
 from typing_extensions import Self, Tuple, Optional, List, TYPE_CHECKING, Any
 
 from .enums import AxisIdentifier, Arms, Grasp, ApproachDirection, VerticalAlignment

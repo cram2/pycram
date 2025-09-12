@@ -8,7 +8,7 @@ from typing import Tuple
 
 import numpy as np
 from semantic_world.robots import Manipulator, AbstractRobot
-from semantic_world.world_entity import View, Body
+from semantic_world.world_description.world_entity import View, Body
 from typing_extensions import Optional, Union, List
 from scipy.spatial.transform import Rotation as R
 

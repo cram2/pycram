@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from time import sleep
 from typing import Tuple
 
-from semantic_world.world_entity import Body
+from semantic_world.world_description.world_entity import Body
 from typing_extensions import Union, Optional, Iterable
 
 from ...motions.gripper import MoveTCPMotion

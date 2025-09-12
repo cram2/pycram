@@ -14,14 +14,15 @@ from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import P
 from random_events.interval import Interval, reals, closed_open, closed
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
-from semantic_world.raytracer import RayTracer
+from semantic_world.spatial_computations.raytracer import RayTracer
 from semantic_world.world import World
-from semantic_world.world_entity import Body
+from semantic_world.world_description.geometry import BoundingBoxCollection
+from semantic_world.world_description.world_entity import Body
 from typing_extensions import Tuple, List, Optional, Iterator
 
 from .datastructures.dataclasses import AxisAlignedBoundingBox
 from .datastructures.dataclasses import BoxVisualShape, Color
-from .datastructures.pose import PoseStamped
+from .datastructures.pose import PoseStamped, Point
 from .datastructures.pose import TransformStamped
 from .robot_description import ViewManager
 from .ros import logwarn
@@ -649,27 +650,24 @@ class SemanticCostmap(Costmap):
     table surface.
     """
 
-    def __init__(self, obj: Object, link_name: str, resolution: float = 0.02, world: Optional[World] = None):
+    def __init__(self, body: Body, resolution: float = 0.02):
         """
         Creates a semantic costmap for the given parameter. The semantic costmap will be on top of the link of the given
         Object.
 
-        :param obj: The object of which the link is a part
-        :param link_name: The link name, as stated in the description of the object
+        :param body: The body for which the costmap should be created.
         :param resolution: Resolution of the final costmap (how much meters one pixel represents)
-        :param world: The World from which the costmap should be created
         """
-        self.world: World = world if world else World.current_world
-        self.object: Object = obj
-        self.link: Link = obj.get_link(link_name)
+        self.world: World = body._world
+        self.body: Body = body
         self.resolution: float = resolution
-        self.origin: PoseStamped = obj.get_link_pose(link_name)
+        self.origin: PoseStamped = PoseStamped.from_spatial_type(self.body.global_pose)
         self.height: int = 0
         self.width: int = 0
         self.map: np.ndarray = []
         self.generate_map()
 
-        Costmap.__init__(self, resolution, self.height, self.width, self.origin, self.map)
+        Costmap.__init__(self, resolution, self.height, self.width, self.origin, self.map, self.world)
 
     def get_edges_map(self, margin_in_meters: float, horizontal_only: bool = False) -> Costmap:
         """
@@ -693,18 +691,45 @@ class SemanticCostmap(Costmap):
         Generates the semantic costmap according to the provided parameters. To do this the axis aligned bounding box (AABB)
         for the link name will be used. Height and width of the final Costmap will be the x and y sizes of the AABB.
         """
-        min_p, max_p = self.get_aabb_for_link().get_min_max_points()
-        self.height = int((max_p.x - min_p.x) // self.resolution)
-        self.width = int((max_p.y - min_p.y) // self.resolution)
-        self.map = np.ones((self.height, self.width))
+        bb_collection = self.body.as_bounding_box_collection_in_frame(self.body)
+        max_x = max([bb.max_x for bb in bb_collection.bounding_boxes]) // self.resolution
+        min_x = min([bb.min_x for bb in bb_collection.bounding_boxes]) // self.resolution
+        max_y = max([bb.max_y for bb in bb_collection.bounding_boxes]) // self.resolution
+        min_y = min([bb.min_y for bb in bb_collection.bounding_boxes]) // self.resolution
+        map = np.zeros((int((max_x - min_x)), int((max_y - min_y))))
+        for bb in bb_collection.bounding_boxes:
+            points_2d = np.dstack(np.mgrid[:map.shape[0], :map.shape[1]])
+            bb_min_x = (bb.min_x // self.resolution) + map.shape[0] // 2 + 1
+            bb_max_x = (bb.max_x // self.resolution) + map.shape[0] // 2 + 1
+            bb_min_y = (bb.min_y // self.resolution) + map.shape[1] // 2 + 1
+            bb_max_y = (bb.max_y // self.resolution) + map.shape[1] // 2 + 1
 
-    def get_aabb_for_link(self) -> AxisAlignedBoundingBox:
-        """
-        :return: The original untransformed (doesn't take the current pose of the link into consideration, since only
-        the size is important here not the pose) axis aligned bounding box (AABB) of the link provided when creating
-         this costmap.
-        """
-        return self.link.get_axis_aligned_bounding_box_from_geometry()
+            polygon = np.array([[bb_min_x, bb_max_x], [bb_min_x, bb_min_y], [bb_max_x, bb_min_y], [bb_max_x, bb_max_y]])
+
+            yy, xx = np.mgrid[:map.shape[0], :map.shape[1]]
+            polygon = np.array([[bb_min_y, bb_max_y], [bb_min_y, bb_min_x], [bb_max_y, bb_min_x], [bb_max_y, bb_max_x]])
+            points = np.vstack((xx.ravel(), yy.ravel())).T
+            mask = self.points_in_poly(points, polygon).reshape((map.shape[0], map.shape[1]))
+
+            map[mask] = 1
+        self.map = map
+        self.width = map.shape[1]
+        self.height = map.shape[0]
+
+    @staticmethod
+    def points_in_poly(points, poly):
+        # Ray casting algorithm for point-in-polygon
+        n = poly.shape[0]
+        inside = np.zeros(points.shape[0], dtype=bool)
+        x, y = points[:, 0], points[:, 1]
+        for i in range(n):
+            j = (i + 1) % n
+            xi, yi = poly[i]
+            xj, yj = poly[j]
+            intersect = ((yi > y) != (yj > y)) & \
+                        (x < (xj - xi) * (y - yi) / (yj - yi + 1e-12) + xi)
+            inside ^= intersect
+        return inside
 
 
 class AlgebraicSemanticCostmap(SemanticCostmap):

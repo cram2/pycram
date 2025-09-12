@@ -16,11 +16,6 @@ import plotly.graph_objects as go
 
 class CostmapTestCase(BulletWorldTestCase):
 
-    def test_raytest_bug(self):
-        for i in range(30):
-            o = OccupancyCostmap(distance_to_obstacle=0.2, from_ros=False, size=200, resolution=0.02,
-                                 origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
-
     def test_attachment_exclusion(self):
         self.kitchen.set_pose(PoseStamped.from_list([50, 50, 0]))
         self.robot.set_pose(PoseStamped.from_list([0, 0, 0]))

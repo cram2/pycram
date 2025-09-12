@@ -774,6 +774,12 @@ class BoundingBoxCollection:
         """
         return BoundingBoxCollection([box.bloat(x_amount, y_amount, z_amount) for box in self.bounding_boxes])
 
+    def get_points_list(self) -> List[List[float]]:
+        """
+        :return: The points of all bounding boxes in the collection as a list of lists of floats.
+        """
+        return [point for box in self.bounding_boxes for point in box.get_points_list()]
+
 
 @dataclass
 class CollisionCallbacks:

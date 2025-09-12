@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import timedelta
 
-from semantic_world.connections import Connection6DoF
-from semantic_world.world_entity import Body
+from semantic_world.world_description.connections import Connection6DoF
+from semantic_world.world_description.world_entity import Body
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from config.action_conf import ActionConfig
