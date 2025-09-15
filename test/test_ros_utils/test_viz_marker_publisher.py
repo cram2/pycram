@@ -14,7 +14,7 @@ from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher, ManualMark
 class TestVizMarkerPublisher(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mock_create_publisher = patch("pycram.ros_utils.viz_marker_publisher.create_publisher").start()
+        cls.mock_create_publisher = patch("pycram.ros_utils.marker_publisher_base.create_publisher").start()
         cls.mock_publisher = MagicMock()
         cls.mock_create_publisher.return_value = cls.mock_publisher
         cls.mock_world = patch("pycram.ros_utils.viz_marker_publisher.World").start()
@@ -35,8 +35,8 @@ class TestVizMarkerPublisher(unittest.TestCase):
         mock_world = self.mock_world
         mock_world.current_world.is_prospection_world = False
         viz = VizMarkerPublisher()
-        self.assertEqual(viz.pub, self.mock_publisher)
-        self.assertEqual(viz.topic_name, "/pycram/viz_marker")
+        self.assertEqual(viz.publisher, self.mock_publisher)
+        self.assertEqual(viz.topic, "/pycram/viz_marker")
         self.assertEqual(viz.interval, 0.1)
         self.assertEqual(viz.reference_frame, "map")
         self.assertEqual(viz.use_prospection_world, False)
@@ -48,7 +48,7 @@ class TestVizMarkerPublisher(unittest.TestCase):
         mock_world = self.mock_world
         viz = VizMarkerPublisher(use_prospection_world=True)
         self.assertEqual(viz.use_prospection_world, True)
-        self.assertEqual(viz.topic_name, "/pycram/prospection_viz_marker")
+        self.assertEqual(viz.topic, "/pycram/prospection_viz_marker")
         self.assertEqual(viz.main_world, mock_world.current_world.prospection_world)
 
     def test_initialization_is_prospection_world_is_true(self):
@@ -77,18 +77,18 @@ class TestVizMarkerPublisher(unittest.TestCase):
         viz.lock.acquire = MagicMock()
         viz.lock.release = MagicMock()
 
-        viz.pub.publish = MagicMock()
+        viz.publisher.publish = MagicMock()
 
         # Patch time.sleep to avoid delay
         with patch("time.sleep", return_value=None):
-            viz._publish()  # call the method directly (runs one loop then stops)
+            viz.visualize()  # call the method directly (runs one loop then stops)
 
         viz.lock.acquire.assert_called_once()
         viz.lock.release.assert_called_once()
 
         viz._make_marker_array.assert_called_once()
 
-        viz.pub.publish.assert_called_once_with(dummy_marker_array)
+        viz.publisher.publish.assert_called_once_with(dummy_marker_array)
 
     def test_make_marker_array_mesh_geometry(self):
         self.mock_create_publisher.return_value = MagicMock()
@@ -126,7 +126,7 @@ class TestVizMarkerPublisher(unittest.TestCase):
 
         viz_pub = VizMarkerPublisher(publish_visuals=False)
 
-        marker_array = viz_pub._make_marker_array()
+        marker_array = viz_pub._make_marker_array(viz_pub._get_data())
 
         self.assertIsInstance(marker_array, MarkerArray)
         self.assertEqual(len(marker_array.markers), 1)
@@ -160,7 +160,7 @@ class TestVizMarkerPublisher(unittest.TestCase):
         mock_world_instance.world_sync.world = mock_world_instance
 
         viz_pub = VizMarkerPublisher(publish_visuals=False)
-        marker_array = viz_pub._make_marker_array()
+        marker_array = viz_pub._make_marker_array(viz_pub._get_data())
 
         self.assertIsInstance(marker_array, MarkerArray)
         self.assertEqual(len(marker_array.markers), 0)
@@ -177,7 +177,7 @@ class TestVizMarkerPublisher(unittest.TestCase):
 class TestManualMarkerPublisher(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mock_create_publisher = patch("pycram.ros_utils.viz_marker_publisher.create_publisher").start()
+        cls.mock_create_publisher = patch("pycram.ros_utils.marker_publisher_base.create_publisher").start()
         cls.mock_publisher = MagicMock()
         cls.mock_create_publisher.return_value = cls.mock_publisher
 
@@ -203,16 +203,15 @@ class TestManualMarkerPublisher(unittest.TestCase):
     def test_initialization(self):
         manual_marker_publisher = ManualMarkerPublisher()
         self.assertIsNone(manual_marker_publisher.start_time)
-        self.assertEqual(manual_marker_publisher.marker_array_pub, self.mock_publisher)
+        self.assertEqual(manual_marker_publisher.publisher, self.mock_publisher)
         self.assertEqual(manual_marker_publisher.marker_array, MarkerArray())
         self.assertEqual(manual_marker_publisher.marker_overview, {})
         self.assertEqual(manual_marker_publisher.current_id, 0)
         self.assertEqual(manual_marker_publisher.interval, 0.1)
-        self.assertIsNone(manual_marker_publisher.log_message)
 
     def test_publish_pose_marker(self):
         with patch("pycram.ros_utils.viz_marker_publisher.loginfo") as mock_log:
-            self.publisher.publish(self.pose1)
+            self.publisher.visualize(self.pose1)
 
         self.assertEqual(len(self.publisher.marker_array.markers), 1)
         marker = self.publisher.marker_array.markers[0]
@@ -224,7 +223,7 @@ class TestManualMarkerPublisher(unittest.TestCase):
         self.assertIn("pose_marker", self.publisher.marker_overview)
 
         self.assertTrue(self.mock_publisher.publish.called)
-        mock_log.assert_called_with("Pose 'pose_marker' published")
+        mock_log.assert_called_with(f"Pose '{marker.ns}' published")
 
     def test_publish_object_marker(self):
         mock_bw_obj = MagicMock()
@@ -234,7 +233,7 @@ class TestManualMarkerPublisher(unittest.TestCase):
         mock_bw_obj.resolve.return_value = mock_resolved
 
         with patch("pycram.ros_utils.viz_marker_publisher.loginfo") as mock_log:
-            self.publisher.publish(self.pose1, bw_object=mock_bw_obj)
+            self.publisher.visualize(self.pose1, bw_object=mock_bw_obj)
 
         self.assertEqual(len(self.publisher.marker_array.markers), 1)
         marker = self.publisher.marker_array.markers[0]
@@ -246,7 +245,7 @@ class TestManualMarkerPublisher(unittest.TestCase):
         mock_log.assert_called_with("Object 'test_obj' published")
 
     def test_update_marker(self):
-        self.publisher._make_marker_array(name="test", marker_type=Marker.ARROW, marker_pose=self.pose1)
+        self.publisher._publish_pose(name="test", pose=self.pose1)
         marker_id = self.publisher.marker_overview["test"]
 
         result = self.publisher._update_marker(marker_id, new_pose=self.pose2)
@@ -265,7 +264,7 @@ class TestManualMarkerPublisher(unittest.TestCase):
         mock_warn.assert_called()
 
     def test_remove_marker_by_name(self):
-        self.publisher._make_marker_array(name="test", marker_type=Marker.ARROW, marker_pose=self.pose1)
+        self.publisher._publish_pose(name="test", pose=self.pose1)
 
         with patch("pycram.ros_utils.viz_marker_publisher.loginfo") as mock_log:
             self.publisher.remove_marker(name="test")
@@ -276,12 +275,12 @@ class TestManualMarkerPublisher(unittest.TestCase):
         mock_log.assert_called_with("Removed Marker 'test'")
 
     def test_remove_marker_by_object(self):
-        self.publisher._make_marker_array(name="test_obj", marker_type=Marker.ARROW, marker_pose=self.pose1)
-
         mock_bw_obj = MagicMock()
         mock_resolved = MagicMock()
         mock_resolved.name = "test_obj"
         mock_bw_obj.resolve.return_value = mock_resolved
+
+        self.publisher._publish_object(name="test_obj", pose=self.pose1, bw_object=mock_bw_obj)
 
         with patch("pycram.ros_utils.viz_marker_publisher.loginfo") as mock_log:
             self.publisher.remove_marker(bw_object=mock_bw_obj)
@@ -297,7 +296,7 @@ class TestManualMarkerPublisher(unittest.TestCase):
         mock_err.assert_called_with("No name for object given, cannot remove marker")
 
     def test_clear_all_marker(self):
-        self.publisher._make_marker_array(name="test", marker_type=Marker.ARROW, marker_pose=self.pose1)
+        self.publisher._publish_pose(name="test", pose=self.pose1)
 
         with patch("pycram.ros_utils.viz_marker_publisher.loginfo") as mock_log:
             self.publisher.clear_all_marker()
@@ -312,9 +311,9 @@ class TestManualMarkerPublisher(unittest.TestCase):
 class TestTrajectoryPublisher(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mock_create_publisher = patch("pycram.ros_utils.viz_marker_publisher.create_publisher").start()
+        cls.mock_create_publisher = patch("pycram.ros_utils.marker_publisher_base.create_publisher").start()
         cls.mock_publisher = MagicMock()
-        cls.mock_create_publisher.return_value = MagicMock(return_value=cls.mock_publisher)
+        cls.mock_create_publisher.return_value = cls.mock_publisher
 
     @classmethod
     def tearDownClass(cls):
@@ -322,10 +321,10 @@ class TestTrajectoryPublisher(unittest.TestCase):
 
     def test_publisher(self):
         trajectory_pub = TrajectoryPublisher()
-        self.assertEqual(trajectory_pub.publisher(), self.mock_publisher)
+        self.assertEqual(trajectory_pub.publisher, self.mock_publisher)
 
     def test_visualize_trajectory(self):
-        with patch("pycram.ros_utils.viz_marker_publisher.create_publisher") as mock_create_publisher:
+        with patch("pycram.ros_utils.marker_publisher_base.create_publisher") as mock_create_publisher:
             mock_publisher = MagicMock()
             mock_create_publisher.return_value = mock_publisher
 
@@ -350,7 +349,7 @@ class TestTrajectoryPublisher(unittest.TestCase):
             trajectory = [point_1, point_2, point_3]
 
             trajectory_pub = TrajectoryPublisher()
-            trajectory_pub.visualize_trajectory(trajectory)
+            trajectory_pub.visualize(trajectory)
 
             mock_publisher.publish.assert_called_once()
             pub_msgs = mock_publisher.publish.call_args[0][0]
@@ -373,7 +372,7 @@ class TestTrajectoryPublisher(unittest.TestCase):
             self.assertEqual(pub_msgs.markers[1].points[1].z, point_3.pose.position.z)
 
             for i, marker in enumerate(pub_msgs.markers):
-                self.assertEqual(marker.ns, "trajectory_arrows")
+                self.assertEqual(marker.ns, f"arrow_marker_{marker.id}")
                 self.assertEqual(marker.action, Marker.ADD)
                 self.assertEqual(marker.type, Marker.ARROW)
                 self.assertEqual(marker.id, i)
@@ -383,13 +382,12 @@ class TestTrajectoryPublisher(unittest.TestCase):
                 self.assertEqual(marker.color, ColorRGBA(r=1.0, g=0.0, b=1.0, a=1.0))
                 self.assertEqual(len(marker.points), 2)
 
-# TODO: Transform is returning none
 class TestBoundingBoxPublisher(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mock_create_publisher = patch("pycram.ros_utils.viz_marker_publisher.create_publisher").start()
+        cls.mock_create_publisher = patch("pycram.ros_utils.marker_publisher_base.create_publisher").start()
         cls.mock_publisher = MagicMock()
-        cls.mock_create_publisher.return_value = MagicMock(return_value=cls.mock_publisher)
+        cls.mock_create_publisher.return_value = cls.mock_publisher
 
     @classmethod
     def tearDownClass(cls):
@@ -397,10 +395,10 @@ class TestBoundingBoxPublisher(unittest.TestCase):
 
     def test_publisher(self):
         bounding_box_pub = BoundingBoxPublisher()
-        self.assertEqual(bounding_box_pub.publisher(), self.mock_publisher)
+        self.assertEqual(bounding_box_pub.publisher, self.mock_publisher)
 
     def test_visualization(self):
-        with patch("pycram.ros_utils.viz_marker_publisher.create_publisher") as mock_create_publisher:
+        with patch("pycram.ros_utils.marker_publisher_base.create_publisher") as mock_create_publisher:
             mock_publisher = MagicMock()
             mock_create_publisher.return_value = mock_publisher
 
@@ -423,7 +421,7 @@ class TestBoundingBoxPublisher(unittest.TestCase):
                 box = boxes.bounding_boxes[i]
                 self.assertEqual(marker.header.frame_id, box.transform.frame_id)
                 self.assertEqual(marker.id, i)
-                self.assertEqual(marker.ns, "bounding_boxes")
+                self.assertEqual(marker.ns, f"cube_marker_{marker.id}")
                 self.assertEqual(marker.action, Marker.ADD)
                 self.assertEqual(marker.type, Marker.CUBE)
                 self.assertEqual(marker.lifetime, Duration(60))
@@ -438,9 +436,9 @@ class TestBoundingBoxPublisher(unittest.TestCase):
 class TestCoordinateAxisPublisher(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mock_create_publisher = patch("pycram.ros_utils.viz_marker_publisher.create_publisher").start()
+        cls.mock_create_publisher = patch("pycram.ros_utils.marker_publisher_base.create_publisher").start()
         cls.mock_publisher = MagicMock()
-        cls.mock_create_publisher.return_value = MagicMock(return_value=cls.mock_publisher)
+        cls.mock_create_publisher.return_value = cls.mock_publisher
 
     @classmethod
     def tearDownClass(cls):
@@ -448,10 +446,10 @@ class TestCoordinateAxisPublisher(unittest.TestCase):
 
     def test_publisher(self):
         coordinate_axis_pub = CoordinateAxisPublisher()
-        self.assertEqual(coordinate_axis_pub.publisher(), self.mock_publisher)
+        self.assertEqual(coordinate_axis_pub.publisher, self.mock_publisher)
 
     def test_visualize(self):
-        with patch("pycram.ros_utils.viz_marker_publisher.create_publisher") as mock_create_publisher:
+        with patch("pycram.ros_utils.marker_publisher_base.create_publisher") as mock_create_publisher:
             mock_publisher = MagicMock()
             mock_create_publisher.return_value = mock_publisher
 
