@@ -2,6 +2,7 @@ import json
 import threading
 
 import geometry_msgs.msg
+import giskard_msgs
 import sys
 
 
@@ -213,14 +214,7 @@ def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> 'UpdateWorldResp
     with open(urdf_path) as f:
         urdf_string = f.read()
 
-    pose_xyz = pose.pose.position.to_list()
-    pose_xyzw = pose.pose.orientation.to_list()
-    pose = geometry_msgs.msg.PoseStamped()
-    pose.header.frame_id = 'map'
-    pose.pose.position.x, pose.pose.position.y, pose.pose.position.z = pose_xyz
-    pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w = pose_xyzw
-
-    return giskard_wrapper.world.add_urdf(name, urdf_string, pose)
+    return giskard_wrapper.world.add_urdf(name, urdf_string, pose.ros_message())
 
 @init_giskard_interface
 def spawn_box(name: str, size: tuple[float, float, float], pose: PoseStamped):
@@ -380,7 +374,7 @@ def achieve_cartesian_goal(goal_pose: 'PoseStamped', tip_link: str, root_link: s
     :return: MoveResult message for this goal
     """
     sync_worlds()
-    par_return = _manage_par_motion_goals(giskard_wrapper.motion_goals.add_cartesian_pose, goal_pose.ros_message(),
+    par_return = _manage_par_motion_goals(set_cart_goal, goal_pose.ros_message(),
                                           tip_link, root_link)
     if par_return:
         return par_return
@@ -651,7 +645,7 @@ def projection_cartesian_goal(goal_pose: 'PoseStamped', tip_link: str, root_link
     :return: MoveResult message for this goal
     """
     sync_worlds(projection=True)
-    giskard_wrapper.set_cart_goal(goal_pose.ros_message(), tip_link, root_link)
+    set_cart_goal(goal_pose.ros_message(), tip_link, root_link)
     return giskard_wrapper.projection()
 
 
@@ -671,10 +665,10 @@ def projection_cartesian_goal_with_approach(approach_pose: 'PoseStamped', goal_p
     """
     sync_worlds(projection=True)
     giskard_wrapper.motion_goals.allow_all_collisions()
-    giskard_wrapper.motion_goals.set_cart_goal(approach_pose.ros_message(), robot_base_link, "map")
+    set_cart_goal(approach_pose.ros_message(), robot_base_link, "map")
     giskard_wrapper.projection()
     giskard_wrapper.motion_goals.avoid_all_collisions()
-    giskard_wrapper.motion_goals.set_cart_goal(goal_pose.ros_message(), tip_link, root_link)
+    set_cart_goal(goal_pose.ros_message(), tip_link, root_link)
     return giskard_wrapper.projection()
 
 
@@ -848,15 +842,15 @@ def make_vector_stamped(vector: List[float]) -> 'Vector3Stamped':
 def set_straight_cart_goal(goal_pose: PoseStamped,
                            tip_link: str,
                            root_link: str,
-                           tip_group: Optional[str] = None,
-                           root_group: Optional[str] = None,
+                           tip_group: Optional[str] = "",
+                           root_group: Optional[str] = "",
                            reference_linear_velocity: Optional[float] = None,
                            reference_angular_velocity: Optional[float] = None,
                            weight: Optional[float] = None,
                            **kwargs):
-
-    #root_link = giskard_msgs.LinkName(name=root_link, group_name=root_group)
-    #tip_link = giskard_msgs.LinkName(name=tip_link, group_name=tip_group)
+    import giskard_msgs.msg
+    root_link = giskard_msgs.msg.LinkName(name=root_link, group_name=root_group)
+    tip_link = giskard_msgs.msg.LinkName(name=tip_link, group_name=tip_group)
     giskard_wrapper.motion_goals.add_cartesian_pose_straight(end_condition='',
                                                   goal_pose=goal_pose,
                                                   tip_link=tip_link,
@@ -865,6 +859,30 @@ def set_straight_cart_goal(goal_pose: PoseStamped,
                                                   reference_linear_velocity=reference_linear_velocity,
                                                   reference_angular_velocity=reference_angular_velocity,
                                                   **kwargs)
+@init_giskard_interface
+def set_cart_goal(goal_pose: PoseStamped,
+                  tip_link: str,
+                  root_link: str,
+                  tip_group: Optional[str] = "",
+                  root_group: Optional[str] = "",
+                  reference_linear_velocity: Optional[float] = None,
+                  reference_angular_velocity: Optional[float] = None,
+                  weight: Optional[float] = None,
+                  add_monitor: bool = True,
+                  **kwargs):
+    import giskard_msgs.msg
+    root_link = giskard_msgs.msg.LinkName(name=root_link, group_name=root_group)
+    tip_link = giskard_msgs.msg.LinkName(name=tip_link, group_name=tip_group)
+    giskard_wrapper.motion_goals.add_cartesian_pose(goal_pose=goal_pose,
+                                         tip_link=tip_link,
+                                         root_link=root_link,
+                                         reference_linear_velocity=reference_linear_velocity,
+                                         reference_angular_velocity=reference_angular_velocity,
+                                         weight=weight,
+                                         end_condition='',
+                                         **kwargs)
+
+
 
 @init_giskard_interface
 def execute(add_default=True):
