@@ -7,10 +7,11 @@ from datetime import timedelta
 import pytest
 
 from .datastructures.world import UseProspectionWorld
+from .multirobot import RobotManager
 from .worlds.bullet_world import BulletWorld
 from .world_concepts.world_object import Object
 from .datastructures.pose import PoseStamped
-from .robot_description import RobotDescription, RobotDescriptionManager
+from .robot_description import RobotDescriptionManager
 from .process_module import ProcessModule
 from .datastructures.enums import WorldMode
 from .object_descriptors.urdf import ObjectDescription
@@ -84,8 +85,8 @@ class BulletWorldTestCase(EmptyBulletWorldTestCase):
         rdm = RobotDescriptionManager()
         rdm.load_description("pr2")
         cls.milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
-        cls.robot = Object(RobotDescription.current_robot_description.name, Robot,
-                           RobotDescription.current_robot_description.name + cls.extension)
+        cls.robot = Object(RobotManager.get_robot_description().name, Robot,
+                           RobotManager.get_robot_description().name + cls.extension)
         cls.kitchen = Object("kitchen", Kitchen, "kitchen" + cls.extension)
         cls.cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
                             pose=PoseStamped.from_list([1.3, 0.7, 0.95]))

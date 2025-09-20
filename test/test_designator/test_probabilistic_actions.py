@@ -8,6 +8,7 @@ from sqlalchemy import select
 from pycram.datastructures.enums import TaskStatus
 from pycram.datastructures.pose import PoseStamped
 from pycram.designator import ObjectDesignatorDescription
+from pycram.multirobot import RobotManager
 from pycram.orm.ormatic_interface import Base, ResolvedActionNodeMappingDAO
 from pycram.robot_plans import MoveAndPickUpActionDescription, MoveAndPickUpAction
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUpParameterizer
@@ -15,7 +16,7 @@ from pycram.failures import PlanFailure
 from pycram.orm.logging_hooks import insert
 from pycram.plan import Plan, ResolvedActionNode, PlanNode
 from pycram.process_module import simulated_robot
-from pycram.robot_description import RobotDescriptionManager, RobotDescription
+from pycram.robot_description import RobotDescriptionManager
 from pycram.testing import EmptyBulletWorldTestCase
 from pycram.world_concepts.world_object import Object
 from pycrap.ontologies import Robot, Milk
@@ -36,8 +37,8 @@ class MoveAndPickUpTestCase(EmptyBulletWorldTestCase):
         rdm = RobotDescriptionManager()
         rdm.load_description("pr2")
         cls.milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([0, 1, 0.9]))
-        cls.robot = Object(RobotDescription.current_robot_description.name, Robot,
-                           RobotDescription.current_robot_description.name + cls.extension)
+        cls.robot = Object(RobotManager.get_robot_description().name, Robot,
+                           RobotManager.get_robot_description().name + cls.extension)
 
     def test_orm(self):
         odd = ObjectDesignatorDescription(types=[Milk])

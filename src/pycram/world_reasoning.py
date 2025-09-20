@@ -9,8 +9,9 @@ from .datastructures.pose import PoseStamped, TransformStamped
 from .datastructures.world import World, UseProspectionWorld
 from .datastructures.world_entity import PhysicalBody
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
+from .multirobot import RobotManager
 from .object_descriptors.generic import ObjectDescription as GenericObjectDescription
-from .robot_description import RobotDescription, KinematicChainDescription
+from .robot_description import KinematicChainDescription
 from .ros import logdebug, logwarn
 from .utils import RayTestUtils, chunks, get_rays_from_min_max
 from .world_concepts.world_object import Object, Link
@@ -107,7 +108,7 @@ def is_held_object(robot: Object, obj: Object, robot_contact_links: List[Link]) 
     """
     picked_object = False
     if obj in robot.attachments:
-        arm_chains = RobotDescription.current_robot_description.get_manipulator_chains()
+        arm_chains = RobotManager.get_robot_description().get_manipulator_chains()
         for chain in arm_chains:
             gripper_links = chain.end_effector.links
             if (robot.attachments[obj].parent_link.name in gripper_links
@@ -130,9 +131,9 @@ def get_visible_objects(
     :return: A segmentation mask of the objects that are visible and the pose of the point at exactly 2 meters in front of the camera in the direction of the front facing axis with respect to the world coordinate frame.
     """
     if front_facing_axis is None:
-        front_facing_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
+        front_facing_axis = RobotManager.get_robot_description().get_default_camera().front_facing_axis
 
-    camera_frame = RobotDescription.current_robot_description.get_camera_frame(World.robot.name)
+    camera_frame = RobotManager.get_robot_description().get_camera_frame(RobotManager.get_active_robot().name)
     world_to_cam = camera_pose.to_transform_stamped(camera_frame)
 
     cam_to_point = TransformStamped.from_list(list(np.multiply(front_facing_axis, 2)), [0, 0, 0, 1], camera_frame,
@@ -167,12 +168,12 @@ def visible(
     """
     with UseProspectionWorld():
         prospection_obj = World.current_world.get_prospection_object_for_object(obj)
-        if World.robot:
-            prospection_robot = World.current_world.get_prospection_object_for_object(World.robot)
+        if RobotManager.get_active_robot():
+            prospection_robot = World.current_world.get_prospection_object_for_object(RobotManager.get_active_robot())
 
         state_id = World.current_world.save_state()
         for obj in World.current_world.objects:
-            if obj == prospection_obj or (World.robot and obj == prospection_robot):
+            if obj == prospection_obj or (RobotManager.get_active_robot() and obj == prospection_robot):
                 continue
             else:
                 obj.set_pose(PoseStamped.from_list([100, 100, 0], [0, 0, 0, 1]), set_attachments=False)
@@ -213,7 +214,7 @@ def occluding(
     with UseProspectionWorld():
         state_id = World.current_world.save_state()
         for other_obj in World.current_world.objects:
-            if other_obj.name == World.current_world.robot.name:
+            if other_obj.name == RobotManager.get_active_robot().name:
                 continue
             elif obj.get_pose() == other_obj.get_pose():
                 obj = other_obj
@@ -370,13 +371,13 @@ def cast_a_ray_from_camera(max_distance: float = 10):
 
     :param max_distance: The maximum distance the ray should be cast if no object is found.
     """
-    camera_link_name = RobotDescription.current_robot_description.get_camera_link()
-    camera_link = World.robot.get_link(camera_link_name)
+    camera_link_name = RobotManager.get_robot_description().get_camera_link()
+    camera_link = RobotManager.get_active_robot().get_link(camera_link_name)
     camera_pose = camera_link.pose
-    camera_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
+    camera_axis = RobotManager.get_robot_description().get_default_camera().front_facing_axis
     target = np.array(camera_axis) * max_distance
     target_pose = PoseStamped.from_list(list(target), frame=camera_link.tf_frame)
-    target_pose = World.robot.local_transformer.transform_pose(target_pose, Frame.Map.value)
+    target_pose = RobotManager.get_active_robot().local_transformer.transform_pose(target_pose, Frame.Map.value)
     ray_result: RayResult = World.current_world.ray_test(camera_pose.position.to_list(),
                                                          target_pose.position.to_list())
     return ray_result
@@ -393,8 +394,8 @@ def has_gripper_grasped_body(arm: Arms, body: PhysicalBody) -> bool:
     :param body: The body for which the grasping should be checked.
     :return: True if the gripper has grasped the body, False otherwise.
     """
-    contact_links = body.get_contact_points_with_body(World.robot).get_all_bodies()
-    arm_chain = RobotDescription.current_robot_description.get_arm_chain(arm)
+    contact_links = body.get_contact_points_with_body(RobotManager.get_active_robot()).get_all_bodies()
+    arm_chain = RobotManager.get_robot_description().get_arm_chain(arm)
     fingers_link_names = arm_chain.end_effector.fingers_link_names
     if fingers_link_names:
         fingers_in_contact = [link.name in fingers_link_names for link in contact_links]
@@ -429,7 +430,7 @@ def is_body_between_fingers(body: PhysicalBody, fingers_link_names: List[str],
         # (e.g. concave objects)
         centroid = intersection.centroid
         for finger_name in fingers_link_names:
-            finger = World.robot.links[finger_name]
+            finger = RobotManager.get_active_robot().links[finger_name]
             result = World.current_world.ray_test(finger.position.to_list(), centroid)
             if not (result.intersected and result.obj_id == body.id):
                 return False
@@ -445,7 +446,7 @@ def get_empty_space_between_fingers(fingers_link_names: List[str]) -> Optional[T
     :param fingers_link_names: The names of the links that represent the fingers of the gripper.
     :return: The empty space between the fingers.
     """
-    fingers_links = [World.robot.links[link_name] for link_name in fingers_link_names]
+    fingers_links = [RobotManager.get_active_robot().links[link_name] for link_name in fingers_link_names]
     fingers_chs: List[Trimesh] = [link.get_convex_hull() for link in fingers_links]
     fingers_only_ch = fingers_chs[0].union(fingers_chs[1:])
     fingers_plus_empty_space = fingers_only_ch.convex_hull

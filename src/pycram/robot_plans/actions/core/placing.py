@@ -16,9 +16,10 @@ from ....description import Link
 from ....failures import ObjectNotPlacedAtTargetLocation, ObjectStillInContact
 from ....has_parameters import has_parameters
 from ....local_transformer import LocalTransformer
+from ....multirobot import RobotManager
 from ....plan import with_plan
 from ....robot_description import EndEffectorDescription
-from ....robot_description import RobotDescription, KinematicChainDescription
+from ....robot_description import KinematicChainDescription
 from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
 from ....validation.error_checkers import PoseErrorChecker
 from ....world_concepts.world_object import Object
@@ -61,7 +62,7 @@ class PlaceAction(ActionDescription):
 
     def plan(self) -> None:
         target_pose = self.object_designator.attachments[
-            World.robot].get_child_link_target_pose_given_parent(self.target_location)
+            RobotManager.get_active_robot()].get_child_link_target_pose_given_parent(self.target_location)
         pre_place_pose = target_pose.copy()
         pre_place_pose.position.z += 0.1
         MoveTCPMotion(pre_place_pose, self.arm).perform()
@@ -69,7 +70,7 @@ class PlaceAction(ActionDescription):
         MoveTCPMotion(target_pose, self.arm).perform()
 
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()
-        World.robot.detach(self.object_designator)
+        RobotManager.get_active_robot().detach(self.object_designator)
 
         retract_pose = LocalTransformer().translate_pose_along_local_axis(target_pose,
                                                                           self.end_effector.get_approach_axis(),
@@ -78,11 +79,11 @@ class PlaceAction(ActionDescription):
 
     @cached_property
     def gripper_link(self) -> Link:
-        return World.robot.links[self.arm_chain.get_tool_frame()]
+        return RobotManager.get_active_robot().links[self.arm_chain.get_tool_frame()]
 
     @cached_property
     def arm_chain(self) -> KinematicChainDescription:
-        return RobotDescription.current_robot_description.get_arm_chain(self.arm)
+        return RobotManager.get_robot_description().get_arm_chain(self.arm)
 
     @cached_property
     def end_effector(self) -> EndEffectorDescription:
@@ -103,10 +104,10 @@ class PlaceAction(ActionDescription):
         """
         Check if the object is still in contact with the robot after placing it.
         """
-        contact_links = self.object_designator.get_contact_points_with_body(World.robot).get_all_bodies()
+        contact_links = self.object_designator.get_contact_points_with_body(RobotManager.get_active_robot()).get_all_bodies()
         if contact_links:
             raise ObjectStillInContact(self.object_designator, contact_links,
-                                       self.target_location, World.robot, self.arm)
+                                       self.target_location, RobotManager.get_active_robot(), self.arm)
 
     def validate_placement_location(self):
         """
@@ -114,7 +115,7 @@ class PlaceAction(ActionDescription):
         """
         pose_error_checker = PoseErrorChecker(World.conf.get_pose_tolerance())
         if not pose_error_checker.is_error_acceptable(self.object_designator.pose, self.target_location):
-            raise ObjectNotPlacedAtTargetLocation(self.object_designator, self.target_location, World.robot, self.arm)
+            raise ObjectNotPlacedAtTargetLocation(self.object_designator, self.target_location, RobotManager.get_active_robot(), self.arm)
 
     @classmethod
     @with_plan

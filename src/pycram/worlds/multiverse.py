@@ -5,6 +5,8 @@ from pathlib import Path
 from time import sleep
 
 import numpy as np
+
+from ..multirobot import RobotManager
 from ..tf_transformations import quaternion_matrix
 from typing_extensions import List, Dict, Optional, Union, Tuple, Callable, Type
 
@@ -22,7 +24,6 @@ from ..datastructures.world_entity import PhysicalBody
 from ..description import Link, Joint
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.mjcf import ObjectDescription as MJCF, PrimitiveObjectFactory
-from ..robot_description import RobotDescription
 from ..ros import  logwarn
 from ..utils import RayTestUtils, wxyz_to_xyzw, xyzw_to_wxyz, adjust_camera_pose_based_on_target
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
@@ -178,8 +179,8 @@ class Multiverse(World):
         """
         Uses ray test to get the images for the target object. (target_pose is currently not used)
         """
-        camera_description = RobotDescription.current_robot_description.get_default_camera()
-        camera_frame = RobotDescription.current_robot_description.get_camera_frame(World.robot.name)
+        camera_description = RobotManager.get_robot_description().get_default_camera()
+        camera_frame = RobotManager.get_robot_description().get_camera_frame(World.robot.name)
         adjusted_cam_pose = adjust_camera_pose_based_on_target(cam_pose, target_pose, camera_description)
         return self.ray_test_utils.get_images_for_target(adjusted_cam_pose, camera_description, camera_frame,
                                                          size, camera_min_distance, camera_max_distance, plot)
@@ -416,7 +417,7 @@ class Multiverse(World):
             return False
 
         if (obj.is_a_robot and
-                RobotDescription.current_robot_description.virtual_mobile_base_joints is not None):
+                RobotManager.get_robot_description().virtual_mobile_base_joints is not None):
             obj.set_mobile_robot_pose(pose)
         else:
             self._set_body_pose(obj.name, pose)
@@ -432,7 +433,7 @@ class Multiverse(World):
         """
         for obj in objects.keys():
             if (obj.is_a_robot and
-                    RobotDescription.current_robot_description.virtual_mobile_base_joints is not None):
+                    RobotManager.get_robot_description().virtual_mobile_base_joints is not None):
                 obj.set_mobile_robot_pose(objects[obj])
         objects = {obj: pose for obj, pose in objects.items()
                    if not obj.is_a_robot and not obj.is_an_environment}

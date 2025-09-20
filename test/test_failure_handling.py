@@ -1,6 +1,7 @@
 import unittest
 from datetime import timedelta
 
+from pycram.multirobot import RobotManager
 from pycram.worlds.bullet_world import BulletWorld, Object
 from pycram.robot_plans  import ActionDescription
 from pycram.robot_plans import ParkArmsAction, ParkArmsActionDescription
@@ -8,7 +9,6 @@ from pycram.datastructures.enums import ObjectType, Arms, WorldMode
 from pycram.failure_handling import Retry
 from pycram.failures import PlanFailure
 from pycram.process_module import ProcessModule, simulated_robot
-from pycram.robot_description import RobotDescription
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycrap.ontologies import Robot
 
@@ -32,8 +32,8 @@ class FailureHandlingTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(WorldMode.DIRECT)
-        cls.robot = Object(RobotDescription.current_robot_description.name, Robot,
-                           RobotDescription.current_robot_description.name + extension)
+        cls.robot = Object(RobotManager.get_robot_description().name, Robot,
+                           RobotManager.get_robot_description().name + extension)
         ProcessModule.execution_delay = timedelta(seconds=0.5)
 
     def setUp(self):

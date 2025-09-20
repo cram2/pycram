@@ -6,10 +6,9 @@ from dataclasses import dataclass, field
 from typing_extensions import Type, Any, Optional, Callable
 
 from ...datastructures.pose import PoseStamped
-from ...datastructures.world import World
 from ...failures import PlanFailure
 from ...has_parameters import HasParameters
-from ...robot_description import RobotDescription
+from ...multirobot import RobotManager
 from pycrap.ontologies import Agent
 
 
@@ -90,7 +89,7 @@ class ActionDescription(HasParameters):
         return func
 
     def _update_robot_params(self, action: ActionDescription):
-        action.robot_position = World.robot.pose
-        action.robot_torso_height = World.robot.get_joint_position(
-            RobotDescription.current_robot_description.torso_joint)
-        action.robot_type = World.robot.obj_type
+        action.robot_position = RobotManager.get_active_robot().pose
+        action.robot_torso_height = RobotManager.get_active_robot().get_joint_position(
+            RobotManager.get_robot_description().torso_joint)
+        action.robot_type = RobotManager.get_active_robot().obj_type

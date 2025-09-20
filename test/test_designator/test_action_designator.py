@@ -11,7 +11,6 @@ from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, Object
     ObjectNotInGraspingArea, ObjectStillInContact, NavigationGoalNotReachedError, \
     PerceptionObjectNotFound, ContainerManipulationError
 from pycram.local_transformer import LocalTransformer
-from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp, DetectionTechnique, TorsoState, \
@@ -26,12 +25,12 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_move_torso(self):
         description = MoveTorsoActionDescription([TorsoState.HIGH])
-        torso_joint = RobotDescription.current_robot_description.torso_joint
+        torso_joint = RobotManager.get_robot_description().torso_joint
         self.assertEqual(description.resolve().torso_state, TorsoState.HIGH)
         self._test_validate_action_pre_perform(description, TorsoGoalNotReached)
         with simulated_robot:
             description.resolve().perform()
-        self.assertEqual(self.world.robot.get_joint_position(torso_joint),
+        self.assertEqual(RobotManager.get_active_robot().get_joint_position(torso_joint),
                          0.3)
 
     def test_set_gripper(self):
@@ -41,8 +40,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         # self.assertEqual(len(list(iter(description))), 2)
         with simulated_robot:
             description.resolve().perform()
-        for joint, state in RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT).get_static_gripper_state(GripperState.OPEN).items():
-            self.assertEqual(self.world.robot.get_joint_position(joint), state)
+        for joint, state in RobotManager.get_robot_description().get_arm_chain(Arms.LEFT).get_static_gripper_state(GripperState.OPEN).items():
+            self.assertEqual(RobotManager.get_active_robot().get_joint_position(joint), state)
 
 
     def test_park_arms(self):
@@ -51,13 +50,13 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self._test_validate_action_pre_perform(description, ConfigurationNotReached)
         with simulated_robot:
             description.resolve().perform()
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right",
+        for joint, pose in RobotManager.get_robot_description().get_static_joint_chain("right",
                                                                                              StaticJointState.Park).items():
-            joint_position = self.world.robot.get_joint_position(joint)
+            joint_position = RobotManager.get_active_robot().get_joint_position(joint)
             self.assertEqual(joint_position, pose)
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left",
+        for joint, pose in RobotManager.get_robot_description().get_static_joint_chain("left",
                                                                                              StaticJointState.Park).items():
-            self.assertEqual(self.world.robot.get_joint_position(joint), pose)
+            self.assertEqual(RobotManager.get_active_robot().get_joint_position(joint), pose)
 
     def test_navigate(self):
         description = NavigateActionDescription([PoseStamped.from_list([0.3, 0, 0], [0, 0, 0, 1])])
@@ -187,7 +186,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             self._test_validate_action_pre_perform(description, ObjectNotGraspedError)
             description.resolve().perform()
         dist = np.linalg.norm(
-            np.array(self.robot.get_link_position_as_list(RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_tool_frame())) -
+            np.array(self.robot.get_link_position_as_list(RobotManager.get_robot_description().get_arm_chain(Arms.RIGHT).get_tool_frame())) -
             np.array(self.milk.get_position_as_list()))
         self.assertTrue(dist < 0.01)
 
@@ -198,7 +197,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             self.assertAlmostEqual(milk_in_robot_frame.position.y, 0.)
 
     def test_move_tcp_waypoints(self):
-        tcp = RobotDescription.current_robot_description.get_arm_tool_frame(arm=Arms.RIGHT)
+        tcp = RobotManager.get_robot_description().get_arm_tool_frame(arm=Arms.RIGHT)
         gripper_pose = self.robot.links[tcp].pose
         path = []
         for i in range(1, 3):

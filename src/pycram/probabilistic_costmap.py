@@ -2,6 +2,7 @@ from enum import Enum, auto
 from functools import cached_property
 
 import numpy as np
+from .multirobot import RobotManager
 from .tf_transformations import quaternion_from_euler
 from random_events.interval import closed_open
 from typing_extensions import Optional, Type
@@ -83,7 +84,7 @@ class ProbabilisticCostmap:
         resolution = self.size.to(meter) / number_of_cells
 
         if costmap_type == OccupancyCostmap:
-            robot_bounding_box = self.world.robot.get_axis_aligned_bounding_box()
+            robot_bounding_box = RobotManager.get_active_robot().get_axis_aligned_bounding_box()
             distance_to_obstacle = max(robot_bounding_box.width, robot_bounding_box.depth) / 2
             self.costmap = OccupancyCostmap(
                 origin=self.origin,
@@ -93,7 +94,7 @@ class ProbabilisticCostmap:
                 from_ros=False,
                 world = self.world)
         elif costmap_type == VisibilityCostmap:
-            camera = list(self.world.robot_description.cameras.values())[0]
+            camera = list(RobotManager.get_robot_description().cameras.values())[0]
             self.costmap = VisibilityCostmap(
                 min_height=camera.minimal_height, max_height=camera.maximal_height, size=number_of_cells,
                 resolution=resolution.magnitude, origin=self.origin, world=self.world)

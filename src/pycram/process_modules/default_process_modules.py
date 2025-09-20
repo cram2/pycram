@@ -15,7 +15,7 @@ from ..failures import NavigationGoalNotReachedError
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..process_module import ProcessModule, ManagerBase
-from ..robot_description import RobotDescription
+from ..multirobot import RobotManager
 from ..ros import get_time
 from ..ros import logdebug, loginfo
 from ..tf_transformations import euler_from_quaternion
@@ -33,7 +33,7 @@ class DefaultNavigation(ProcessModule):
     """
 
     def _execute(self, desig: MoveMotion):
-        robot = World.robot
+        robot = RobotManager.get_active_robot()
         robot.set_pose(desig.target)
 
 
@@ -45,10 +45,10 @@ class DefaultMoveHead(ProcessModule):
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
-        robot = World.robot
+        robot = RobotManager.get_active_robot()
         local_transformer = LocalTransformer()
 
-        neck = RobotDescription.current_robot_description.get_neck()
+        neck = RobotManager.get_robot_description().get_neck()
         pan_link = neck["yaw"][0]
         tilt_link = neck["pitch"][0]
 
@@ -64,7 +64,7 @@ class DefaultMoveHead(ProcessModule):
 
         new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
 
-        tilt_offset = RobotDescription.current_robot_description.get_offset(tilt_joint)
+        tilt_offset = RobotManager.get_robot_description().get_offset(tilt_joint)
         if tilt_offset:
             tilt_offset_rotation = tilt_offset.orientation
             quaternion_list = [tilt_offset_rotation.x, tilt_offset_rotation.y, tilt_offset_rotation.z,
@@ -78,7 +78,7 @@ class DefaultMoveHead(ProcessModule):
         new_tilt = -np.arctan2(adjusted_pose_in_tilt[2],
                                np.sqrt(adjusted_pose_in_tilt[0] ** 2 + adjusted_pose_in_tilt[1] ** 2))
 
-        if RobotDescription.current_robot_description.name in {"iCub", "tiago_dual"}:
+        if RobotManager.get_robot_description().name in {"iCub", "tiago_dual"}:
             new_tilt = -new_tilt
 
         current_pan = robot.get_joint_position(pan_joint)
@@ -94,13 +94,13 @@ class DefaultMoveGripper(ProcessModule):
     """
 
     def _execute(self, desig: MoveGripperMotion):
-        robot_description = RobotDescription.current_robot_description
+        robot_description = RobotManager.get_robot_description()
         gripper = desig.gripper
         arm_chain = robot_description.get_arm_chain(gripper)
         if arm_chain.end_effector.gripper_object_name is not None:
             robot = World.current_world.get_object_by_name(arm_chain.end_effector.gripper_object_name)
         else:
-            robot = World.robot
+            robot = RobotManager.get_active_robot()
         motion = desig.motion
         robot.set_multiple_joint_positions(arm_chain.get_static_gripper_state(motion))
 
@@ -113,10 +113,10 @@ class DefaultDetecting(ProcessModule):
     """
 
     def _execute(self, designator: DetectingMotion):
-        robot = World.robot
-        cam_link_name = RobotDescription.current_robot_description.get_camera_link()
-        camera_description = RobotDescription.current_robot_description.cameras[
-            list(RobotDescription.current_robot_description.cameras.keys())[0]]
+        robot = RobotManager.get_active_robot()
+        cam_link_name = RobotManager.get_robot_description().get_camera_link()
+        camera_description = RobotManager.get_robot_description().cameras[
+            list(RobotManager.get_robot_description().cameras.keys())[0]]
         front_facing_axis = camera_description.front_facing_axis
         query_result = []
         world_objects = []
@@ -161,7 +161,7 @@ class DefaultMoveTCP(ProcessModule):
 
     def _execute(self, desig: MoveTCPMotion):
         target = desig.target
-        robot = World.robot
+        robot = RobotManager.get_active_robot()
 
         _move_arm_tcp(target, robot, desig.arm)
 
@@ -174,7 +174,7 @@ class DefaultMoveArmJoints(ProcessModule):
 
     def _execute(self, desig: MoveArmJointsMotion):
 
-        robot = World.robot
+        robot = RobotManager.get_active_robot()
         if desig.right_arm_poses:
             for joint, pose in desig.right_arm_poses.items():
                 robot.set_joint_position(joint, pose)
@@ -185,7 +185,7 @@ class DefaultMoveArmJoints(ProcessModule):
 
 class DefaultMoveJoints(ProcessModule):
     def _execute(self, desig: MoveJointsMotion):
-        robot = World.robot
+        robot = RobotManager.get_active_robot()
         for joint, pose in zip(desig.names, desig.positions):
             robot.set_joint_position(joint, pose)
 
@@ -214,7 +214,7 @@ class DefaultOpen(ProcessModule):
         goal_pose = link_pose_for_joint_config(part_of_object, {
             container_joint_name: max(lower_limit, upper_limit - 0.05)}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, World.robot, desig.arm)
+        _move_arm_tcp(goal_pose, RobotManager.get_active_robot(), desig.arm)
 
         part_of_object.set_joint_position(container_joint_name, upper_limit)
 
@@ -233,7 +233,7 @@ class DefaultClose(ProcessModule):
         goal_pose = link_pose_for_joint_config(part_of_object, {
             container_joint_name: lower_joint_limit}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, World.robot, desig.arm)
+        _move_arm_tcp(goal_pose, RobotManager.get_active_robot(), desig.arm)
 
         part_of_object.set_joint_position(container_joint_name, lower_joint_limit)
 
@@ -245,7 +245,7 @@ class DefaultMoveTCPWaypoints(ProcessModule):
 
     def _execute(self, desig: MoveTCPWaypointsMotion):
         waypoints = desig.waypoints
-        robot = World.robot
+        robot = RobotManager.get_active_robot()
         for waypoint in waypoints:
             _move_arm_tcp(waypoint, robot, desig.arm)
 
@@ -259,9 +259,9 @@ def _move_arm_tcp(target: PoseStamped, robot: Object, arm: Arms, tip_link: str =
     :param arm: Which arm to move
     """
     if tip_link is None:
-        tip_link = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
+        tip_link = RobotManager.get_robot_description().get_arm_chain(arm).get_tool_frame()
 
-    joints = RobotDescription.current_robot_description.get_arm_chain(arm).joints
+    joints = RobotManager.get_robot_description().get_arm_chain(arm).joints
 
     inv = request_ik(target, robot, joints, tip_link)
     _apply_ik(robot, inv)
@@ -302,7 +302,7 @@ class DefaultDetectingReal(ProcessModule):
                     obj_pose = PoseStamped.from_ros_message(query_result.res[i].pose)
                     pass
                 lt = LocalTransformer()
-                obj_pose.frame_id = World.robot.get_link_tf_frame(obj_pose.frame_id)
+                obj_pose.frame_id = RobotManager.get_active_robot().get_link_tf_frame(obj_pose.frame_id)
                 obj_pose_T_m = lt.transform_pose(obj_pose, "map")
 
                 obj_type = query_result.res[i].type
@@ -367,11 +367,11 @@ class DefaultNavigationReal(ProcessModule):
         # giskard.avoid_all_collisions()
         giskard.allow_self_collision()
         giskard.achieve_cartesian_goal(designator.target,
-                                       RobotDescription.current_robot_description.base_link,
+                                       RobotManager.get_robot_description().base_link,
                                        "map")
 
-        if not World.current_world.robot.pose.almost_equal(designator.target, 0.05, 3):
-            raise NavigationGoalNotReachedError(World.current_world.robot.pose, designator.target)
+        if not RobotManager.get_active_robot().pose.almost_equal(designator.target, 0.05, 3):
+            raise NavigationGoalNotReachedError(RobotManager.get_active_robot().pose, designator.target)
 
 
 class DefaultMoveHeadReal(ProcessModule):
@@ -382,10 +382,10 @@ class DefaultMoveHeadReal(ProcessModule):
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
-        robot = World.robot
+        robot = RobotManager.get_active_robot()
 
         local_transformer = LocalTransformer()
-        neck = RobotDescription.current_robot_description.get_neck()
+        neck = RobotManager.get_robot_description().get_neck()
         pan_link = neck["yaw"][0]
         tilt_link = neck["pitch"][0]
 
@@ -397,7 +397,7 @@ class DefaultMoveHeadReal(ProcessModule):
 
         new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
 
-        tilt_offset = RobotDescription.current_robot_description.get_offset(tilt_joint)
+        tilt_offset = RobotManager.get_robot_description().get_offset(tilt_joint)
         if tilt_offset:
             tilt_offset_rotation = tilt_offset.pose.orientation
             quaternion_list = [tilt_offset_rotation.x, tilt_offset_rotation.y, tilt_offset_rotation.z,
@@ -411,7 +411,7 @@ class DefaultMoveHeadReal(ProcessModule):
         new_tilt = -np.arctan2(adjusted_pose_in_tilt[2],
                                np.sqrt(adjusted_pose_in_tilt[0] ** 2 + adjusted_pose_in_tilt[1] ** 2))
 
-        if RobotDescription.current_robot_description.name in {"iCub", "tiago_dual"}:
+        if RobotManager.get_robot_description().name in {"iCub", "tiago_dual"}:
             new_tilt = -new_tilt
 
         current_pan = robot.get_joint_position(pan_joint)
@@ -431,7 +431,7 @@ class DefaultMoveTCPReal(ProcessModule):
     def _execute(self, designator: MoveTCPMotion):
         lt = LocalTransformer()
         pose_in_map = lt.transform_pose(designator.target, "map")
-        tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
+        tip_link = RobotManager.get_robot_description().get_arm_chain(designator.arm).get_tool_frame()
         root_link = "map"
 
         gripper_that_can_collide = designator.arm if designator.allow_gripper_collision else None
@@ -447,8 +447,8 @@ class DefaultMoveTCPReal(ProcessModule):
         elif designator.movement_type == MovementType.CARTESIAN:
             giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
                                            grippers_that_can_collide=gripper_that_can_collide)
-        if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.3, 3):
-            raise ToolPoseNotReachedError(World.current_world.robot.get_link_pose(tip_link), designator.target)
+        if not RobotManager.get_active_robot().get_link_pose(tip_link).almost_equal(designator.target, 0.3, 3):
+            raise ToolPoseNotReachedError(RobotManager.get_active_robot().get_link_pose(tip_link), designator.target)
 
 
 class DefaultMoveArmJointsReal(ProcessModule):
@@ -500,7 +500,7 @@ class DefaultOpenReal(ProcessModule):
 
     def _execute(self, designator: OpeningMotion):
         giskard.achieve_open_container_goal(
-            RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
+            RobotManager.get_robot_description().get_arm_chain(designator.arm).get_tool_frame(),
             designator.object_part.name)
 
 
@@ -511,7 +511,7 @@ class DefaultCloseReal(ProcessModule):
 
     def _execute(self, designator: ClosingMotion):
         giskard.achieve_close_container_goal(
-            RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
+            RobotManager.get_robot_description().get_arm_chain(designator.arm).get_tool_frame(),
             designator.object_part.name)
 
 
@@ -523,7 +523,7 @@ class DefaultMoveTCPWaypointsReal(ProcessModule):
     def _execute(self, designator: MoveTCPWaypointsMotion):
         lt = LocalTransformer()
         waypoints = [lt.transform_pose(x, "map") for x in designator.waypoints]
-        tip_link = RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame()
+        tip_link = RobotManager.get_robot_description().get_arm_chain(designator.arm).get_tool_frame()
         root_link = "map"
 
         giskard.avoid_all_collisions()

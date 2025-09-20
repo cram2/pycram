@@ -13,6 +13,7 @@ from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import P
 from random_events.interval import Interval, reals, closed_open, closed
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
+from .multirobot import RobotManager
 from .tf_transformations import quaternion_from_matrix, quaternion_from_euler
 from typing_extensions import Tuple, List, Optional, Iterator
 
@@ -462,10 +463,10 @@ class OccupancyCostmap(Costmap):
             while r_t is None:
                 r_t = World.current_world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
             j += len(n)
-            if World.robot:
-                attached_objs_id = [o.id for o in self.world.robot.attachments.keys()]
+            if RobotManager.get_active_robot():
+                attached_objs_id = [o.id for o in RobotManager.get_active_robot().attachments.keys()]
                 res[i:j] = [
-                    1 if ray.obj_id in [-1, self.world.robot.id, floor_id] + attached_objs_id else 0 for
+                    1 if ray.obj_id in [-1, RobotManager.get_active_robot().id, floor_id] + attached_objs_id else 0 for
                     ray in r_t]
             else:
                 res[i:j] = [1 if ray.obj_id in [-1, floor_id] else 0 for ray in r_t]
@@ -544,10 +545,10 @@ class VisibilityCostmap(Costmap):
         if robot:
             # this is done because otherwise the robot would interfere with the costmap
             current_pose = robot.get_pose()
-            robot.world.robot.set_pose(PoseStamped.from_list([current_pose.position.x, current_pose.position.y+1000, current_pose.position.z]))
+            robot.set_pose(PoseStamped.from_list([current_pose.position.x, current_pose.position.y+1000, current_pose.position.z]))
         self._generate_map()
         if robot:
-            robot.world.robot.set_pose(current_pose)
+            robot.set_pose(current_pose)
         Costmap.__init__(self, resolution, size, size, self.origin, self.map)
 
     @property

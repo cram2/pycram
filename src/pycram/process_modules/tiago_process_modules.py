@@ -8,7 +8,7 @@ from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModuleManager, ProcessModule
 from .default_process_modules import DefaultMoveGripper, DefaultMoveTCP, \
     DefaultNavigation, DefaultMoveHead, DefaultWorldStateDetecting
-from ..robot_description import RobotDescription
+from ..multirobot import RobotManager
 from ..ros import logdebug
 from ..external_interfaces import giskard
 from ..world_concepts.world_object import Object
@@ -18,21 +18,21 @@ from ..external_interfaces.robokudo import send_query
 class TiagoNavigationReal(ProcessModule):
     def _execute(self, designator: MoveMotion):
         logdebug(f"Sending goal to giskard to Move the robot")
-        giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
+        giskard.achieve_cartesian_goal(designator.target, RobotManager.get_robot_description().base_link, "map")
 
 
 class TiagoMoveHeadReal(ProcessModule):
     def _execute(self, designator: MoveMotion):
         target = designator.target
-        robot = World.robot
+        robot = RobotManager.get_active_robot()
 
         local_transformer = LocalTransformer()
 
-        pan_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[0]
-        tilt_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[1]
+        pan_link = RobotManager.get_robot_description().kinematic_chains["neck"].links[0]
+        tilt_link = RobotManager.get_robot_description().kinematic_chains["neck"].links[1]
 
-        pan_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[0]
-        tilt_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[1]
+        pan_joint = RobotManager.get_robot_description().kinematic_chains["neck"].joints[0]
+        tilt_joint = RobotManager.get_robot_description().kinematic_chains["neck"].joints[1]
         pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link))
         pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link))
 
@@ -54,7 +54,7 @@ class TiagoDetectingReal(ProcessModule):
         obj_pose = query_result["ClusterPoseBBAnnotator"]
 
         lt = LocalTransformer()
-        obj_pose = lt.transform_pose(obj_pose, World.robot.get_link_tf_frame("torso_lift_link"))
+        obj_pose = lt.transform_pose(obj_pose, RobotManager.get_active_robot().get_link_tf_frame("torso_lift_link"))
         obj_pose.orientation = [0, 0, 0, 1]
         obj_pose.position.x += 0.05
 
@@ -79,7 +79,7 @@ class TiagoMoveTCPReal(ProcessModule):
 
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm)
-        giskard.achieve_cartesian_goal(pose_in_map, RobotDescription.current_robot_description.get_arm_chain(
+        giskard.achieve_cartesian_goal(pose_in_map, RobotManager.get_robot_description().get_arm_chain(
             designator.arm).get_tool_frame(),
                                        "torso_lift_link")
 

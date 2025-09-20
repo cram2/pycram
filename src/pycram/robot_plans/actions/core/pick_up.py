@@ -20,9 +20,10 @@ from ....failures import ObjectNotGraspedError
 from ....failures import ObjectNotInGraspingArea
 from ....has_parameters import has_parameters
 from ....local_transformer import LocalTransformer
+from ....multirobot import RobotManager
 from ....plan import with_plan
 from ....robot_description import EndEffectorDescription
-from ....robot_description import RobotDescription, KinematicChainDescription
+from ....robot_description import KinematicChainDescription
 from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
 from ....ros import logwarn
 from ....world_concepts.world_object import Object
@@ -104,7 +105,7 @@ class ReachToPickUpAction(ActionDescription):
 
     @cached_property
     def arm_chain(self) -> KinematicChainDescription:
-        return RobotDescription.current_robot_description.get_arm_chain(self.arm)
+        return RobotManager.get_robot_description().get_arm_chain(self.arm)
 
     @cached_property
     def end_effector(self) -> EndEffectorDescription:
@@ -118,7 +119,7 @@ class ReachToPickUpAction(ActionDescription):
         if fingers_link_names:
             if not is_body_between_fingers(self.object_designator, fingers_link_names,
                                            method=FindBodyInRegionMethod.MultiRay):
-                raise ObjectNotInGraspingArea(self.object_designator, World.robot, self.arm, self.grasp_description)
+                raise ObjectNotInGraspingArea(self.object_designator, RobotManager.get_active_robot(), self.arm, self.grasp_description)
         else:
             logwarn(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
 
@@ -176,8 +177,8 @@ class PickUpAction(ActionDescription):
 
         MoveGripperMotion(motion=GripperState.CLOSE, gripper=self.arm).perform()
 
-        tool_frame = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
-        World.robot.attach(self.object_designator, tool_frame)
+        tool_frame = RobotManager.get_robot_description().get_arm_chain(self.arm).get_tool_frame()
+        RobotManager.get_active_robot().attach(self.object_designator, tool_frame)
 
         self.lift_object(distance=0.1)
 
@@ -196,18 +197,18 @@ class PickUpAction(ActionDescription):
         :return: The pose of the gripper.
         """
         gripper_link = self.arm_chain.get_tool_frame()
-        return World.robot.links[gripper_link].pose
+        return RobotManager.get_active_robot().links[gripper_link].pose
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """
         Check if picked up object is in contact with the gripper.
         """
         if not has_gripper_grasped_body(self.arm, self.object_designator):
-            raise ObjectNotGraspedError(self.object_designator, World.robot, self.arm, self.grasp_description)
+            raise ObjectNotGraspedError(self.object_designator, RobotManager.get_active_robot(), self.arm, self.grasp_description)
 
     @cached_property
     def arm_chain(self) -> KinematicChainDescription:
-        return RobotDescription.current_robot_description.get_arm_chain(self.arm)
+        return RobotManager.get_robot_description().get_arm_chain(self.arm)
 
     @classmethod
     @with_plan
@@ -241,10 +242,10 @@ class GraspingAction(ActionDescription):
     def plan(self) -> None:
         object_pose = self.object_designator.pose
         lt = LocalTransformer()
-        gripper_name = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
+        gripper_name = RobotManager.get_robot_description().get_arm_chain(self.arm).get_tool_frame()
 
         object_pose_in_gripper = lt.transform_pose(object_pose,
-                                                   World.robot.get_link_tf_frame(gripper_name))
+                                                   RobotManager.get_active_robot().get_link_tf_frame(gripper_name))
 
         pre_grasp = object_pose_in_gripper.copy()
         pre_grasp.pose.position.x -= self.prepose_distance
@@ -257,11 +258,11 @@ class GraspingAction(ActionDescription):
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         body = self.object_designator
-        contact_links = body.get_contact_points_with_body(World.robot).get_all_bodies()
-        arm_chain = RobotDescription.current_robot_description.get_arm_chain(self.arm)
+        contact_links = body.get_contact_points_with_body(RobotManager.get_active_robot()).get_all_bodies()
+        arm_chain = RobotManager.get_robot_description().get_arm_chain(self.arm)
         gripper_links = arm_chain.end_effector.links
         if not any([link.name in gripper_links for link in contact_links]):
-            raise ObjectNotGraspedError(self.object_designator, World.robot, self.arm, None)
+            raise ObjectNotGraspedError(self.object_designator, RobotManager.get_active_robot(), self.arm, None)
 
     @classmethod
     @with_plan

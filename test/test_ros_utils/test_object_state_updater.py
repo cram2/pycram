@@ -4,6 +4,9 @@ from unittest.mock import patch, MagicMock
 
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
+
+from pycram.multirobot import RobotManager
+from pycram.robot_description import RobotDescriptionManager
 from pycram.ros import Time
 from pycram.ros_utils.object_state_updater import RobotStateUpdater, EnvironmentStateUpdater
 from pycram.datastructures.pose import PoseStamped, Pose, Header
@@ -14,10 +17,11 @@ class TestObjectStateUpdater(unittest.TestCase):
         cls.mock_tf_listener = patch("pycram.ros_utils.object_state_updater.TransformListener").start()
         cls.mock_create_timer = patch("pycram.ros_utils.object_state_updater.create_timer").start()
         cls.mock_world = patch("pycram.ros_utils.object_state_updater.World").start()
+        cls.mock_robot = patch("pycram.ros_utils.object_state_updater.RobotManager.active_robot").start()
         cls.mock_get_joint_position = patch(
-            "pycram.ros_utils.object_state_updater.World.robot.get_joint_position").start()
+            "pycram.ros_utils.object_state_updater.RobotManager.active_robot.get_joint_position").start()
         cls.mock_robot_desc = patch(
-            "pycram.ros_utils.object_state_updater.RobotDescription.current_robot_description").start()
+            "pycram.ros_utils.object_state_updater.RobotManager.robot_description").start()
         cls.mock_wait_for_message = patch("pycram.ros_utils.object_state_updater.wait_for_message").start()
         cls.patcher_atexit = patch("pycram.ros_utils.object_state_updater.atexit.register", lambda x: None).start()
 
@@ -29,6 +33,7 @@ class TestObjectStateUpdater(unittest.TestCase):
         self.mock_tf_listener.reset_mock()
         self.mock_create_timer.reset_mock()
         self.mock_world.reset_mock()
+        self.mock_robot.reset_mock()
         self.mock_get_joint_position.reset_mock()
         self.mock_robot_desc.reset_mock()
         self.mock_wait_for_message.reset_mock()
@@ -69,8 +74,12 @@ class TestObjectStateUpdater(unittest.TestCase):
         mock_joint_state_timer = MagicMock()
         self.mock_create_timer.side_effect = [mock_tf_timer, mock_joint_state_timer]
 
+        self.mock_robot.active_robot.name = "mock_robot"
+        self.mock_robot_desc.current_robot_description.name = "mock_robot"
         self.mock_robot_desc.current_robot_description.base_link = "base_link"
-        robot_state_updater = RobotStateUpdater("/tf", "/joint_states")
+        RobotDescriptionManager().register_description(self.mock_robot_desc.current_robot_description)
+
+        robot_state_updater = RobotStateUpdater("/tf", "/joint_states", self.mock_robot.active_robot)
         robot_state_updater.tf_buffer = mock_buffer
 
         pose = Pose()
@@ -90,7 +99,7 @@ class TestObjectStateUpdater(unittest.TestCase):
         msg = TransformStamped()
         robot_state_updater._subscribe_tf(msg)
 
-        self.mock_world.robot.set_pose.assert_called_once_with(PoseStamped(pose, header))
+        self.mock_robot.active_robot.set_pose.assert_called_once_with(PoseStamped(pose, header))
 
     def test_subscribe_joint_state_robot_state_updater(self):
         mock_tf_timer = MagicMock()

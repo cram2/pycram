@@ -32,6 +32,7 @@ from ..designator import LocationDesignatorDescription
 from ..failures import RobotInCollision
 from ..graph_of_convex_sets import GraphOfConvexSets, plot_bounding_boxes_in_rviz
 from ..local_transformer import LocalTransformer
+from ..multirobot import RobotManager
 from ..object_descriptors.urdf import ObjectDescription
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, pose_sequence_reachability_validator, \
     collision_check, OrientationGenerator
@@ -98,7 +99,7 @@ def _create_target_sequence(grasp_description: GraspDescription, target: Union[P
             target_pose.rotate_by_quaternion(side_grasp.tolist())
 
         target_pose = object_in_hand.attachments[
-            World.robot].get_child_link_target_pose_given_parent(target_pose)
+            RobotManager.get_active_robot()].get_child_link_target_pose_given_parent(target_pose)
         approach_offset_cm = object_in_hand.get_approach_offset()
     else:
 
@@ -239,7 +240,7 @@ class CostmapLocation(LocationDesignatorDescription):
                 robot_object = params_box.visible_for if params_box.visible_for else params_box.reachable_for
                 test_robot = World.current_world.get_prospection_object_for_object(robot_object)
             else:
-                test_robot = World.current_world.robot
+                test_robot = RobotManager.get_active_robot()
 
             allowed_collision = self.create_allowed_collisions(params_box.ignore_collision_with,
                                                                params_box.object_in_hand)
@@ -765,9 +766,9 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         for params in self.generate_permutations():
 
             params_box = Box(params)
-            test_robot = World.current_world.get_prospection_object_for_object(World.current_world.robot)
+            test_robot = World.current_world.get_prospection_object_for_object(RobotManager.get_active_robot())
             # Using normal robot here because of prospection world bug that will be irrelevant after semantic world integration
-            test_robot = World.current_world.robot
+            test_robot = RobotManager.get_active_robot()
             world = World.current_world
 
             links: List[Link] = [params_box.part_of.links[link_name] for link_name in params_box.link_names]
@@ -958,7 +959,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
         rays_end = [[node.origin[0], node.origin[1], target_position.z + 0.2] for node in free_space_graph.nodes]
         rays_start = [[target_position.x, target_position.y, target_position.z + 0.2]] * len(rays_end)
 
-        robot = World.robot
+        robot = RobotManager.get_active_robot()
         robot_pose = robot.get_pose()
         robot.set_pose(
             PoseStamped.from_list([robot_pose.position.x, robot_pose.position.y, robot_pose.position.z + 100]))
@@ -1069,7 +1070,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
                 robot_object = params_box.visible_for if params_box.visible_for else params_box.reachable_for
                 test_robot = world.get_prospection_object_for_object(robot_object)
             else:
-                test_robot = world.robot
+                test_robot = RobotManager.get_active_robot()
 
             allowed_collision = self.create_allowed_collisions(params_box.ignore_collision_with,
                                                                params_box.object_in_hand)

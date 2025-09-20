@@ -2,6 +2,8 @@ import unittest
 import os
 from unittest.mock import patch, MagicMock
 from pycram.datastructures.enums import FilterConfig
+from pycram.multirobot import RobotManager
+
 try:
     from geometry_msgs.msg import WrenchStamped
     from pycram.ros_utils.force_torque_sensor import ForceTorqueSensor, ForceTorqueSensorSimulated
@@ -11,21 +13,23 @@ except ImportError:
 @unittest.skipIf("ROS_VERSION" not in os.environ, "ROS is not available")
 class ForceTorqueSensorTestCase(unittest.TestCase):
 
+    @patch('pycram.ros_utils.force_torque_sensor.RobotManager.active_robot')
     @patch('pycram.ros_utils.force_torque_sensor.World')
     @patch('pycram.ros_utils.force_torque_sensor.create_publisher')
-    def test_initialization_simulated_sensor(self, mock_create_publisher, mock_world):
-        mock_world.current_world.robot.joint_name_to_id = {'joint1': 1}
-        sensor = ForceTorqueSensorSimulated('joint1')
+    def test_initialization_simulated_sensor(self, mock_create_publisher, mock_world, mock_robot):
+        RobotManager.get_active_robot(mock_robot.active_robot).joint_name_to_id = {'joint1': 1}
+        sensor = ForceTorqueSensorSimulated('joint1', mock_robot.active_robot)
         self.assertEqual('joint1', 'joint1')
         self.assertIsNotNone(sensor.fts_pub)
         sensor._stop_publishing()
 
+    @patch('pycram.ros_utils.force_torque_sensor.RobotManager.active_robot')
     @patch('pycram.ros_utils.force_torque_sensor.World')
     @patch('pycram.ros_utils.force_torque_sensor.create_publisher')
-    def test_initialization_simulated_sensor_invalid_joint(self, mock_create_publisher, mock_world):
-        mock_world.current_world.robot.joint_name_to_id = {}
+    def test_initialization_simulated_sensor_invalid_joint(self, mock_create_publisher, mock_world, mock_robot):
+        RobotManager.get_active_robot(mock_robot.active_robot).joint_name_to_id = {}
         with self.assertRaises(RuntimeError):
-            ForceTorqueSensorSimulated('invalid_joint')
+            ForceTorqueSensorSimulated('invalid_joint', mock_robot.active_robot)
 
     def test_initialization_force_torque_sensor(self):
         sensor = ForceTorqueSensor('hsrb')

@@ -12,7 +12,7 @@ from ..world_concepts.world_object import Object
 from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
 from ..datastructures.pose import PoseStamped
-from ..robot_description import RobotDescription
+from ..multirobot import RobotManager
 from ..failures import IKError
 from ..external_interfaces.giskard import projection_cartesian_goal, allow_gripper_collision
 from .pinocchio_ik import compute_ik
@@ -76,7 +76,7 @@ def try_to_reach(pose_or_object: Union[PoseStamped, Object], prospection_robot: 
     """
     input_pose = pose_or_object.get_pose() if isinstance(pose_or_object, Object) else pose_or_object
 
-    arm_chain = list(filter(lambda chain: chain.get_tool_frame() == gripper_name, RobotDescription.current_robot_description.get_manipulator_chains()))[0]
+    arm_chain = list(filter(lambda chain: chain.get_tool_frame() == gripper_name, RobotManager.get_robot_description().get_manipulator_chains()))[0]
 
     joints = arm_chain.joints
 
@@ -145,7 +145,7 @@ def request_giskard_ik(target_pose: PoseStamped, robot: Object, gripper: str) ->
         dist = tip_pose.position.euclidean_distance(target_map.position)
 
         if dist > 0.01:
-            raise IKError(target_map, 'map', gripper, World.robot.get_pose(), robot.get_positions_of_all_joints())
+            raise IKError(target_map, 'map', gripper, RobotManager.get_active_robot().get_pose(), robot.get_positions_of_all_joints())
         return pose, robot_joint_states
 
 def request_pinocchio_ik(target_pose: PoseStamped, robot: Object, target_link: str, joints: List[str]) -> Dict[str, float]:
@@ -163,7 +163,7 @@ def request_pinocchio_ik(target_pose: PoseStamped, robot: Object, target_link: s
     target_pose = lt.transform_pose(target_pose_map, robot.tf_frame)
 
     # Get link after last joint in chain
-    wrist_link = RobotDescription.current_robot_description.get_child(joints[-1])
+    wrist_link = RobotManager.get_robot_description().get_child(joints[-1])
 
     wrist_tool_frame_offset = robot.get_transform_between_links(wrist_link, target_link)
     target_diff = target_pose.to_transform_stamped("target").inverse_times(wrist_tool_frame_offset).to_pose_stamped()

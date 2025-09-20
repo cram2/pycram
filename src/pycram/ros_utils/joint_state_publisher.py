@@ -5,6 +5,7 @@ import atexit
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 from ..datastructures.world import World
+from ..multirobot import RobotManager
 from ..ros import  Time
 from ..ros import  create_publisher
 
@@ -13,7 +14,7 @@ class JointStatePublisher:
     """
     Joint state publisher for the robot currently loaded in the World
     """
-    def __init__(self, joint_state_topic="/pycram/joint_state", interval=0.1):
+    def __init__(self, joint_state_topic="/pycram/joint_state", robot=None, interval=0.1):
         """
         Robot object is from :py:attr:`~pycram.world.World.robot` and current joint states are published to
         the given joint_state_topic as a JointState message.
@@ -22,6 +23,7 @@ class JointStatePublisher:
         :param interval: Interval at which the joint states should be published, in seconds
         """
         self.world = World.current_world
+        self.robot = robot
 
         self.joint_state_pub = create_publisher(joint_state_topic, JointState, queue_size=10)
         self.interval = interval
@@ -36,7 +38,7 @@ class JointStatePublisher:
         Publishes the current joint states of the :py:attr:`~pycram.world.World.robot` in an infinite loop.
         The joint states are published as long as the kill_event is not set by :py:meth:`~JointStatePublisher._stop_publishing`
         """
-        robot = World.robot
+        robot = RobotManager.get_active_robot(self.robot)
         joint_names = [joint_name for joint_name in robot.joint_name_to_id.keys()]
 
         while not self.kill_event.is_set():

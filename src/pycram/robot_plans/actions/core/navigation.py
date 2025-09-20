@@ -17,6 +17,7 @@ from ....failure_handling import try_action
 from ....failures import LookAtGoalNotReached
 from ....failures import NavigationGoalNotReachedError
 from ....has_parameters import has_parameters
+from ....multirobot import RobotManager
 from ....plan import with_plan
 from ....validation.error_checkers import PoseErrorChecker
 from ....world_reasoning import move_away_all_objects_to_create_empty_space, generate_object_at_target, \
@@ -45,8 +46,8 @@ class NavigateAction(ActionDescription):
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         pose_validator = PoseErrorChecker(World.conf.get_pose_tolerance())
-        if not pose_validator.is_error_acceptable(World.robot.pose, self.target_location):
-            raise NavigationGoalNotReachedError(World.robot.pose, self.target_location)
+        if not pose_validator.is_error_acceptable(RobotManager.get_active_robot().pose, self.target_location):
+            raise NavigationGoalNotReachedError(RobotManager.get_active_robot().pose, self.target_location)
 
     @classmethod
     @with_plan
@@ -79,14 +80,14 @@ class LookAtAction(ActionDescription):
         """
         return
         with UseProspectionWorld():
-            move_away_all_objects_to_create_empty_space(exclude_objects=[World.robot.name, "floor"])
+            move_away_all_objects_to_create_empty_space(exclude_objects=[RobotManager.get_active_robot().name, "floor"])
             # Create a virtual object at the target location, the current size is 40x40x40 cm which is very big in
             # my opinion, maybe this indicates that the looking at action is not accurate # TODO check this
             gen_obj = generate_object_at_target(self.target.position.to_list(), size=(0.4, 0.4, 0.4))
             ray_result = cast_a_ray_from_camera()
             gen_obj.remove()
             if not ray_result.intersected or ray_result.obj_id != gen_obj.id:
-                raise LookAtGoalNotReached(World.robot, self.target)
+                raise LookAtGoalNotReached(RobotManager.get_active_robot(), self.target)
 
     @classmethod
     @with_plan

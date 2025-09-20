@@ -4,6 +4,9 @@ from datetime import timedelta
 from unittest.mock import patch, MagicMock
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
+
+from pycram.multirobot import RobotManager
+from pycram.robot_description import RobotDescriptionManager
 from pycram.ros_utils.robot_state_updater import WorldStateUpdater
 
 class TestObjectStateUpdater(unittest.TestCase):
@@ -14,7 +17,7 @@ class TestObjectStateUpdater(unittest.TestCase):
         cls.mock_world = patch("pycram.ros_utils.robot_state_updater.World").start()
         cls.mock_create_timer = patch("pycram.ros_utils.robot_state_updater.create_timer").start()
         cls.mock_robot_desc = patch(
-            "pycram.ros_utils.robot_state_updater.RobotDescription.current_robot_description").start()
+            "pycram.ros_utils.robot_state_updater.RobotManager.robot_description").start()
         cls.mock_wait_for_message = patch("pycram.ros_utils.robot_state_updater.wait_for_message").start()
         cls.patcher_atexit = patch("pycram.ros_utils.robot_state_updater.atexit.register", lambda x: None).start()
 
@@ -85,15 +88,18 @@ class TestObjectStateUpdater(unittest.TestCase):
         mock_robot.is_an_environment = False
         mock_robot.is_an_object = False
 
+        self.mock_robot_desc.current_robot_description.name = "robot"
         self.mock_robot_desc.current_robot_description.base_link = "base_link"
 
         mock_world = MagicMock()
         mock_world.is_prospection_world = False
         mock_world.objects = [mock_robot]
-        mock_world.robot = mock_robot
+
+        RobotDescriptionManager().register_description(self.mock_robot_desc.current_robot_description)
+        RobotManager.add_robot(mock_robot)
 
         with patch("pycram.ros_utils.robot_state_updater.World.current_world", mock_world):
-            world_state_updater = WorldStateUpdater("/tf", "/joint_states")
+            world_state_updater = WorldStateUpdater("/tf", "/joint_states", robot=mock_robot)
             world_state_updater.tf_buffer = self.mock_buffer
 
             # Simulated TF transform as position and orientation lists
@@ -126,9 +132,9 @@ class TestObjectStateUpdater(unittest.TestCase):
 
         self.mock_wait_for_message.return_value = joint_msg
         mock_robot = MagicMock()
-        self.mock_world.robot = mock_robot
 
         world_state_updater = WorldStateUpdater("/tf", "/joint_states",
+                                                robot=mock_robot,
                                                 world=self.mock_world)
         world_state_updater._subscribe_joint_state(joint_msg)
 

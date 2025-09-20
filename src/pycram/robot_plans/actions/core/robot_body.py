@@ -12,8 +12,8 @@ from ....datastructures.pose import Vector3Stamped
 from ....datastructures.world import World
 from ....failures import TorsoGoalNotReached, ConfigurationNotReached
 from ....has_parameters import has_parameters
+from ....multirobot import RobotManager
 from ....plan import with_plan
-from ....robot_description import RobotDescription
 from ....robot_plans.actions.base import ActionDescription
 from ....robot_plans.motions.gripper import MoveGripperMotion
 from ....robot_plans.motions.robot_body import MoveJointsMotion
@@ -32,7 +32,7 @@ class MoveTorsoAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
+        joint_positions: dict = RobotManager.get_robot_description().get_static_joint_chain("torso",
                                                                                                   self.torso_state)
         MoveJointsMotion(list(joint_positions.keys()), list(joint_positions.values())).perform()
 
@@ -41,9 +41,9 @@ class MoveTorsoAction(ActionDescription):
         Create a goal validator for the joint positions and wait until the goal is achieved or the timeout is reached.
         """
 
-        joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
+        joint_positions: dict = RobotManager.get_robot_description().get_static_joint_chain("torso",
                                                                                                   self.torso_state)
-        validator = create_multiple_joint_goal_validator(World.current_world.robot, joint_positions)
+        validator = create_multiple_joint_goal_validator(RobotManager.get_active_robot(), joint_positions)
         validator.wait_until_goal_is_achieved(max_wait_time=max_wait_time,
                                               time_per_read=timedelta(milliseconds=20))
         if not validator.goal_achieved:
@@ -73,7 +73,7 @@ class SetGripperAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        arm_chains = RobotDescription.current_robot_description.get_arm_chain(self.gripper)
+        arm_chains = RobotManager.get_robot_description().get_arm_chain(self.gripper)
         if type(arm_chains) is not list:
             MoveGripperMotion(gripper=arm_chains.arm_type, motion=self.motion).perform()
         else:
@@ -116,11 +116,11 @@ class ParkArmsAction(ActionDescription):
         :return: The joint positions that should be set for the arm to be in the park position.
         """
         joint_poses = {}
-        arm_chains = RobotDescription.current_robot_description.get_arm_chain(self.arm)
+        arm_chains = RobotManager.get_robot_description().get_arm_chain(self.arm)
         if type(arm_chains) is not list:
             joint_poses = arm_chains.get_static_joint_states(StaticJointState.Park)
         else:
-            for arm_chain in RobotDescription.current_robot_description.get_arm_chain(self.arm):
+            for arm_chain in RobotManager.get_robot_description().get_arm_chain(self.arm):
                 joint_poses.update(arm_chain.get_static_joint_states(StaticJointState.Park))
         return joint_poses
 
@@ -129,7 +129,7 @@ class ParkArmsAction(ActionDescription):
         Create a goal validator for the joint positions and wait until the goal is achieved or the timeout is reached.
         """
         joint_poses = self.get_joint_poses()
-        validator = create_multiple_joint_goal_validator(World.current_world.robot, joint_poses)
+        validator = create_multiple_joint_goal_validator(RobotManager.get_active_robot(), joint_poses)
         validator.wait_until_goal_is_achieved(max_wait_time=max_wait_time,
                                               time_per_read=timedelta(milliseconds=20))
         if not validator.goal_achieved:
@@ -192,11 +192,11 @@ class CarryAction(ActionDescription):
         :return: The joint positions that should be set for the arm to be in the park position.
         """
         joint_poses = {}
-        arm_chains = RobotDescription.current_robot_description.get_arm_chain(self.arm)
+        arm_chains = RobotManager.get_robot_description().get_arm_chain(self.arm)
         if type(arm_chains) is not list:
             joint_poses = arm_chains.get_static_joint_states(StaticJointState.Park)
         else:
-            for arm_chain in RobotDescription.current_robot_description.get_arm_chain(self.arm):
+            for arm_chain in RobotManager.get_robot_description().get_arm_chain(self.arm):
                 joint_poses.update(arm_chain.get_static_joint_states(StaticJointState.Park))
         return joint_poses
 

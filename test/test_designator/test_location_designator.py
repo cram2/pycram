@@ -1,7 +1,6 @@
 
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators.location_designator import *
-from pycram.robot_description import RobotDescription
 from pycram.datastructures.pose import PoseStamped
 from pycram.testing import BulletWorldTestCase
 
@@ -11,9 +10,9 @@ from pycrap.ontologies import Apartment
 class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_reachability_costmap_location(self):
-        self.robot.set_joint_position(RobotDescription.current_robot_description.torso_joint, 0.3)
+        self.robot.set_joint_position(RobotManager.get_robot_description().torso_joint, 0.3)
         object_desig = ObjectDesignatorDescription(names=["milk"])
-        robot_desig = ObjectDesignatorDescription(names=[RobotDescription.current_robot_description.name])
+        robot_desig = ObjectDesignatorDescription(names=[RobotManager.get_robot_description().name])
         left_arm_park = {'l_shoulder_pan_joint': 1.712,
                          'l_shoulder_lift_joint': -0.264,
                          'l_upper_arm_roll_joint': 1.38,
@@ -37,7 +36,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         #self.assertTrue(Arms.LEFT == location.reachable_arm or Arms.RIGHT == location.reachable_arm)
 
     def test_reachability_pose_costmap_location(self):
-        robot_desig = ObjectDesignatorDescription(names=[RobotDescription.current_robot_description.name])
+        robot_desig = ObjectDesignatorDescription(names=[RobotManager.get_robot_description().name])
         left_arm_park = {'l_shoulder_pan_joint': 1.712,
                          'l_shoulder_lift_joint': -0.264,
                          'l_upper_arm_roll_joint': 1.38,
@@ -62,7 +61,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_visibility_costmap_location(self):
         object_desig = ObjectDesignatorDescription(names=["milk"])
-        robot_desig = ObjectDesignatorDescription(names=[RobotDescription.current_robot_description.name])
+        robot_desig = ObjectDesignatorDescription(names=[RobotManager.get_robot_description().name])
         left_arm_park = {'l_shoulder_pan_joint': 1.712,
                          'l_shoulder_lift_joint': -0.264,
                          'l_upper_arm_roll_joint': 1.38,
@@ -86,7 +85,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_visibility_pose_costmap_location(self):
         object_desig = ObjectDesignatorDescription(names=["milk"])
-        robot_desig = ObjectDesignatorDescription(names=[RobotDescription.current_robot_description.name])
+        robot_desig = ObjectDesignatorDescription(names=[RobotManager.get_robot_description().name])
         left_arm_park = {'l_shoulder_pan_joint': 1.712,
                          'l_shoulder_lift_joint': -0.264,
                          'l_upper_arm_roll_joint': 1.38,
@@ -109,7 +108,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertTrue(len(location.orientation.to_list()) == 4)
 
     def test_reachability_and_visibility_costmap_location(self):
-        self.robot.set_joint_position(RobotDescription.current_robot_description.torso_joint, 0.3)
+        self.robot.set_joint_position(RobotManager.get_robot_description().torso_joint, 0.3)
         left_arm_park = {'l_shoulder_pan_joint': 1.712,
                          'l_shoulder_lift_joint': -0.264,
                          'l_upper_arm_roll_joint': 1.38,
@@ -127,7 +126,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.robot.set_joint_positions(left_arm_park)
         self.robot.set_joint_positions(right_arm_park)
         object_desig = ObjectDesignatorDescription(names=["milk"])
-        robot_desig = ObjectDesignatorDescription(names=[RobotDescription.current_robot_description.name])
+        robot_desig = ObjectDesignatorDescription(names=[RobotManager.get_robot_description().name])
         location_desig = CostmapLocation(object_desig.resolve(), reachable_for=robot_desig.resolve(),
                                          visible_for=robot_desig.resolve())
         location = location_desig.resolve()
@@ -136,9 +135,9 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         #self.assertTrue(Arms.LEFT == location.reachable_arm or Arms.RIGHT == location.reachable_arm)
 
     def test_reachability_probabilistic_costmap_location(self):
-        self.robot.set_joint_position(RobotDescription.current_robot_description.torso_joint, 0.3)
+        self.robot.set_joint_position(RobotManager.get_robot_description().torso_joint, 0.3)
         object_desig = ObjectDesignatorDescription(names=["milk"])
-        robot_desig = ObjectDesignatorDescription(names=[RobotDescription.current_robot_description.name])
+        robot_desig = ObjectDesignatorDescription(names=[RobotManager.get_robot_description().name])
         left_arm_park = {'l_shoulder_pan_joint': 1.712,
                          'l_shoulder_lift_joint': -0.264,
                          'l_upper_arm_roll_joint': 1.38,
@@ -162,7 +161,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         #self.assertTrue(Arms.LEFT == location.reachable_arm or Arms.RIGHT == location.reachable_arm)
 
     def test_reachability_pose_probabilistic_costmap_location(self):
-        robot_desig = ObjectDesignatorDescription(names=[RobotDescription.current_robot_description.name])
+        robot_desig = ObjectDesignatorDescription(names=[RobotManager.get_robot_description().name])
         left_arm_park = {'l_shoulder_pan_joint': 1.712,
                          'l_shoulder_lift_joint': -0.264,
                          'l_upper_arm_roll_joint': 1.38,
@@ -187,7 +186,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_visibility_probabilistic_costmap_location(self):
         object_desig = ObjectDesignatorDescription(names=["milk"])
-        robot_desig = ObjectDesignatorDescription(names=[RobotDescription.current_robot_description.name])
+        robot_desig = ObjectDesignatorDescription(names=[RobotManager.get_robot_description().name])
         left_arm_park = {'l_shoulder_pan_joint': 1.712,
                          'l_shoulder_lift_joint': -0.264,
                          'l_upper_arm_roll_joint': 1.38,
@@ -211,7 +210,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_visibility_pose_probabilistic_costmap_location(self):
         object_desig = ObjectDesignatorDescription(names=["milk"])
-        robot_desig = ObjectDesignatorDescription(names=[RobotDescription.current_robot_description.name])
+        robot_desig = ObjectDesignatorDescription(names=[RobotManager.get_robot_description().name])
         left_arm_park = {'l_shoulder_pan_joint': 1.712,
                          'l_shoulder_lift_joint': -0.264,
                          'l_upper_arm_roll_joint': 1.38,
@@ -234,7 +233,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertTrue(len(location.orientation.to_list()) == 4)
 
     def test_reachability_and_visibility_probabilistic_costmap_location(self):
-        self.robot.set_joint_position(RobotDescription.current_robot_description.torso_joint, 0.3)
+        self.robot.set_joint_position(RobotManager.get_robot_description().torso_joint, 0.3)
         left_arm_park = {'l_shoulder_pan_joint': 1.712,
                          'l_shoulder_lift_joint': -0.264,
                          'l_upper_arm_roll_joint': 1.38,
@@ -252,7 +251,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.robot.set_joint_positions(left_arm_park)
         self.robot.set_joint_positions(right_arm_park)
         object_desig = ObjectDesignatorDescription(names=["milk"])
-        robot_desig = ObjectDesignatorDescription(names=[RobotDescription.current_robot_description.name])
+        robot_desig = ObjectDesignatorDescription(names=[RobotManager.get_robot_description().name])
         location_desig = ProbabilisticCostmapLocation(object_desig.resolve(), reachable_for=robot_desig.resolve(),
                                          visible_for=robot_desig.resolve())
         location = location_desig.resolve()

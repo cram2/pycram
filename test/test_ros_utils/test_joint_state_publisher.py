@@ -26,7 +26,7 @@ class TestJointStatePublisher(unittest.TestCase):
                                          lambda x: None).start()
         cls.patcher_atexit = patch("pycram.ros_utils.joint_state_publisher.atexit.register", lambda x: None).start()
 
-        cls.mock_world.robot = DummyRobot()
+        cls.mock_robot = DummyRobot()
 
         cls.mock_publisher = MagicMock()
         cls.mock_create_publisher.return_value = cls.mock_publisher
@@ -44,6 +44,7 @@ class TestJointStatePublisher(unittest.TestCase):
     def test_publish_sends_joint_state(self):
         publisher = JointStatePublisher.__new__(JointStatePublisher)
         publisher.world = self.mock_world
+        publisher.robot = self.mock_robot
         publisher.joint_state_pub = self.mock_publisher
         publisher.interval = 0.1
         publisher.kill_event = MagicMock()

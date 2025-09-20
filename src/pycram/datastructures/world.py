@@ -30,7 +30,7 @@ from ..datastructures.pose import PoseStamped, TransformStamped, Point
 from ..datastructures.world_entity import PhysicalBody, WorldEntity
 from ..failures import ProspectionObjectNotFound, ObjectNotFound
 from ..local_transformer import LocalTransformer
-from ..robot_description import RobotDescription
+from ..multirobot import RobotManager
 from ..ros import Time
 from ..ros import logwarn
 from ..validation.goal_validator import (GoalValidator,
@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
     from ..description import Link, Joint, ObjectDescription
     from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
+    from ..robot_description import RobotDescription
 
 
 class World(WorldEntity, ABC):
@@ -248,7 +249,7 @@ class World(WorldEntity, ABC):
         """
         Return the current robot description.
         """
-        return RobotDescription.current_robot_description
+        return RobotManager.get_robot_description()
 
     @property
     def robot_has_actuators(self) -> bool:
