@@ -526,7 +526,7 @@ class PlanNode:
         :return: A new plan
         """
         graph = self.plan.plan_graph.subgraph([self.index] + [child.index for child in self.recursive_children])
-        plan = Plan(root=self, world=self.plan.world, super_plan=self.plan.super_plan)
+        plan = Plan(root=self, world=self.plan.world, robot=self.plan.robot, super_plan=self.plan.super_plan)
         plan.plan_graph = graph
         return plan
 

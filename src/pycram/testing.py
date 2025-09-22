@@ -98,15 +98,8 @@ class BulletWorldTestCase(EmptyWorldTestCase):
         cls.context = cls.apartment_world, None
 
         cls.original_state_data = deepcopy(cls.apartment_world.state.data)
+        cls.world = cls.apartment_world
         # cls.original_state_data = cls.apartment_world.state.data.copy()
-
-    def setUp(self):
-        # self.world = deepcopy(self.apartment_world)
-        # self.context = (self.world, None)
-        # self.robot_view = PR2.from_world(self.world)
-        # viz_marker_publisher = VizMarkerPublisher(self.world, self.n)
-
-        self.world = self.apartment_world
 
     def tearDown(self):
         self.world.state.data = deepcopy(self.original_state_data)

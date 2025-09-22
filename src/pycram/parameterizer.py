@@ -13,6 +13,7 @@ from random_events.product_algebra import Event, SimpleEvent
 from random_events.set import Set
 from random_events.utils import recursive_subclasses
 from random_events.variable import Symbolic, Integer, Variable, Continuous
+from semantic_world.robots import AbstractRobot
 from sortedcontainers import SortedSet
 
 from semantic_world.world import World
@@ -96,7 +97,7 @@ class Parameterizer:
         :return: The executable, sequential plan
         """
         sub_plans = []
-        plan = SequentialPlan((world, None))
+        plan = SequentialPlan((world, None), world.get_views_by_type(AbstractRobot)[0])
 
         for node in self.variables_of_node:
             flattened_parameters = []
@@ -106,7 +107,7 @@ class Parameterizer:
 
             kwargs = {key: getattr(resolved, key) for key in resolved._parameters}
             plan.mount(Plan(ActionNode(designator_ref=PartialDesignator(node.action, **kwargs),
-                       action = node.action, kwargs=kwargs), world, plan))
+                       action = node.action, kwargs=kwargs), world, world.get_views_by_type(AbstractRobot)[0], plan))
 
         return plan
 
