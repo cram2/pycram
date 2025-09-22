@@ -16,7 +16,7 @@ from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
 from semantic_world.spatial_computations.raytracer import RayTracer
 from semantic_world.world import World
-from semantic_world.world_description.geometry import BoundingBoxCollection
+# from semantic_world.world_description.geometry import BoundingBoxCollection
 from semantic_world.world_description.world_entity import Body
 from typing_extensions import Tuple, List, Optional, Iterator
 

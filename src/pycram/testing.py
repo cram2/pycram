@@ -82,23 +82,36 @@ class BulletWorldTestCase(EmptyWorldTestCase):
         cls.pr2_sem_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots", "pr2.urdf")).parse()
         cls.apartment_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
         cls.milk_world = STLParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "milk.stl")).parse()
+        cls.cereal_world = STLParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "cereal_box.stl")).parse()
         cls.apartment_world.merge_world(cls.pr2_sem_world)
         cls.apartment_world.merge_world(cls.milk_world)
+        cls.apartment_world.merge_world(cls.cereal_world)
 
         cls.apartment_world.get_body_by_name("milk.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 2, 1, reference_frame=cls.apartment_world.root)
+        cls.apartment_world.get_body_by_name("cereal_box.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 1.8, 1, reference_frame=cls.apartment_world.root)
 
         cls.n = Node("test")
         # cls.viz_marker_publisher = VizMarkerPublisher(cls.apartment_world, n)
 
-        # cls.robot_view = PR2.from_world(cls.apartment_world)
+        cls.robot_view = PR2.from_world(cls.apartment_world)
 
-        # cls.context = cls.apartment_world, None
+        cls.context = cls.apartment_world, None
+
+        cls.original_state_data = deepcopy(cls.apartment_world.state.data)
+        # cls.original_state_data = cls.apartment_world.state.data.copy()
 
     def setUp(self):
-        self.world = deepcopy(self.apartment_world)
-        self.context = (self.world, None)
-        self.robot_view = PR2.from_world(self.world)
+        # self.world = deepcopy(self.apartment_world)
+        # self.context = (self.world, None)
+        # self.robot_view = PR2.from_world(self.world)
         # viz_marker_publisher = VizMarkerPublisher(self.world, self.n)
+
+        self.world = self.apartment_world
+
+    def tearDown(self):
+        self.world.state.data = deepcopy(self.original_state_data)
+        self.world.notify_state_change()
+
 
     @classmethod
     def tearDownClass(cls):

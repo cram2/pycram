@@ -528,7 +528,7 @@ class PoseStamped(HasParameters):
         """
         return PoseStamped.from_matrix(spatial_type.to_np(), spatial_type.reference_frame)
 
-    def to_transform_stamped(self, child_link_id: str) -> TransformStamped:
+    def to_transform_stamped(self, child_link_id: Body) -> TransformStamped:
         """
         Converts the PoseStamped to a TransformStamped given a frame to which the transform is pointing.
 
@@ -545,7 +545,7 @@ class PoseStamped(HasParameters):
 
         :return: A SpatialTransformationMatrix object representing the pose in 3D space.
         """
-        return SpatialTransformationMatrix.from_xyz_quat(pos_x=self.position.x, pos_y=self.position.y, pos_z=self.position.z, quat_x=self.orientation.x,
+        return SpatialTransformationMatrix.from_xyz_quaternion(pos_x=self.position.x, pos_y=self.position.y, pos_z=self.position.z, quat_x=self.orientation.x,
                                                             quat_y=self.orientation.y, quat_z=self.orientation.z, quat_w=self.orientation.w,
                                                             reference_frame=self.header.frame_id)
 

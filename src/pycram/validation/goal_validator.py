@@ -11,13 +11,7 @@ from ..datastructures.enums import JointType
 from ..ros import logerr, logwarn
 
 if TYPE_CHECKING:
-    from ..datastructures.world import World
-    from ..world_concepts.world_object import Object
     from ..datastructures.pose import PoseStamped
-    from ..description import ObjectDescription
-
-    Joint = ObjectDescription.Joint
-    Link = ObjectDescription.Link
 
 OptionalArgCallable = Union[Callable[[], Any], Callable[[Any], Any]]
 
