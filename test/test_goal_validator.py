@@ -47,12 +47,12 @@ class TestGoalValidator(BulletWorldTestCase):
 
     def test_single_position_goal_generic(self):
         goal_validator = GoalValidator(PositionErrorChecker(), lambda: PoseStamped.from_spatial_type(
-            self.world.get_body_by_name("cereal_box.stl").global_pose).position.to_list())
+            self.world.get_body_by_name("breakfast_cereal.stl").global_pose).position.to_list())
         self.validate_position_goal(goal_validator)
 
     def test_single_position_goal(self):
         goal_validator = PositionGoalValidator(lambda: PoseStamped.from_spatial_type(
-            self.world.get_body_by_name("cereal_box.stl").global_pose).position.to_list())
+            self.world.get_body_by_name("breakfast_cereal.stl").global_pose).position.to_list())
         self.validate_position_goal(goal_validator)
 
     def validate_position_goal(self, goal_validator):
@@ -61,14 +61,14 @@ class TestGoalValidator(BulletWorldTestCase):
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertAlmostEqual(float(goal_validator.current_error), 0.8)
-        self.world.get_body_by_name("cereal_box.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(3,
+        self.world.get_body_by_name("breakfast_cereal.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(3,
                                                                                                                    1.8,
                                                                                                                    1,
                                                                                                                    reference_frame=self.world.root)
         # self.cereal.set_position(cereal_goal_position)
         # self.assertEqual(self.cereal.get_position_as_list(), cereal_goal_position)
         self.assertEqual(
-            PoseStamped.from_spatial_type(self.world.get_body_by_name("cereal_box.stl").global_pose).position.to_list(),
+            PoseStamped.from_spatial_type(self.world.get_body_by_name("breakfast_cereal.stl").global_pose).position.to_list(),
             cereal_goal_position)
         self.assertTrue(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 1)
@@ -76,12 +76,12 @@ class TestGoalValidator(BulletWorldTestCase):
 
     def test_single_orientation_goal_generic(self):
         goal_validator = GoalValidator(OrientationErrorChecker(), lambda: PoseStamped.from_spatial_type(
-            self.world.get_body_by_name("cereal_box.stl").global_pose).orientation.to_list())
+            self.world.get_body_by_name("breakfast_cereal.stl").global_pose).orientation.to_list())
         self.validate_orientation_goal(goal_validator)
 
     def test_single_orientation_goal(self):
         goal_validator = OrientationGoalValidator(lambda: PoseStamped.from_spatial_type(
-            self.world.get_body_by_name("cereal_box.stl").global_pose).orientation.to_list())
+            self.world.get_body_by_name("breakfast_cereal.stl").global_pose).orientation.to_list())
         self.validate_orientation_goal(goal_validator)
 
     def validate_orientation_goal(self, goal_validator):
@@ -91,14 +91,14 @@ class TestGoalValidator(BulletWorldTestCase):
         self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertEqual(goal_validator.current_error, [np.pi / 2])
         self.world.get_body_by_name(
-            "cereal_box.stl").parent_connection.origin = TransformationMatrix.from_xyz_quaternion(
+            "breakfast_cereal.stl").parent_connection.origin = TransformationMatrix.from_xyz_quaternion(
             quat_x=cereal_goal_orientation[0],
             quat_y=cereal_goal_orientation[1],
             quat_z=cereal_goal_orientation[2],
             quat_w=cereal_goal_orientation[3],
             reference_frame=self.world.root)
         for v1, v2 in zip(PoseStamped.from_spatial_type(
-                self.world.get_body_by_name("cereal_box.stl").global_pose).orientation.to_list(),
+                self.world.get_body_by_name("breakfast_cereal.stl").global_pose).orientation.to_list(),
                           cereal_goal_orientation):
             self.assertAlmostEqual(v1, v2, places=5)
         self.assertTrue(goal_validator.goal_achieved)

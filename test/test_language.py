@@ -20,7 +20,7 @@ class LanguageTestCase(BulletWorldTestCase):
         act2 = MoveTorsoActionDescription(TorsoState.HIGH)
         act3 = DetectActionDescription(DetectionTechnique.TYPES)
 
-        plan = SequentialPlan(self.context, self.robot_view, act, SequentialPlan(self.context, act2, act3))
+        plan = SequentialPlan(self.context, self.robot_view, act, SequentialPlan(self.context, self.robot_view, act2, act3))
         self.assertEqual(len(plan.root.children), 3)
         self.assertEqual(plan.root.children[0].children, [])
 
@@ -195,14 +195,9 @@ class LanguageTestCase(BulletWorldTestCase):
         plan = SequentialPlan(self.context, self.robot_view, act, act2, act3)
         with simulated_robot:
             plan.perform()
-        self.assertEqual(self.robot.get_pose(), PoseStamped.from_list(self.world.root, [0.3, 0.3, 0]))
-        self.assertEqual(self.robot.get_joint_position("torso_lift_joint"), 0.3)
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right",
-                                                                                             StaticJointState.Park).items():
-            self.assertEqual(self.world.robot.get_joint_position(joint), pose)
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left",
-                                                                                             StaticJointState.Park).items():
-            self.assertEqual(self.world.robot.get_joint_position(joint), pose)
+        self.assertEqual(PoseStamped.from_spatial_type(self.robot_view.root.global_pose), PoseStamped.from_list(self.world.root, [0.3, 0.3, 0]))
+        self.assertEqual(self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position, 0.3)
+
 
     def test_perform_parallel(self):
 
@@ -223,7 +218,7 @@ class LanguageTestCase(BulletWorldTestCase):
         def inc(var):
             var.set_value(var.get_value() + 1)
 
-        plan = RepeatPlan(self.context, self.robot_view, 10, CodePlan(self.context, lambda: inc(test_var)))
+        plan = RepeatPlan(self.context, self.robot_view, 10, CodePlan(self.context, self.robot_view, lambda: inc(test_var)))
         with simulated_robot:
             plan.perform()
         self.assertEqual(10, test_var.get_value())

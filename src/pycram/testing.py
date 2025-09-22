@@ -82,13 +82,13 @@ class BulletWorldTestCase(EmptyWorldTestCase):
         cls.pr2_sem_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots", "pr2.urdf")).parse()
         cls.apartment_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
         cls.milk_world = STLParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "milk.stl")).parse()
-        cls.cereal_world = STLParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "cereal_box.stl")).parse()
+        cls.cereal_world = STLParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "breakfast_cereal.stl")).parse()
         cls.apartment_world.merge_world(cls.pr2_sem_world)
         cls.apartment_world.merge_world(cls.milk_world)
         cls.apartment_world.merge_world(cls.cereal_world)
 
         cls.apartment_world.get_body_by_name("milk.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 2, 1, reference_frame=cls.apartment_world.root)
-        cls.apartment_world.get_body_by_name("cereal_box.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 1.8, 1, reference_frame=cls.apartment_world.root)
+        cls.apartment_world.get_body_by_name("breakfast_cereal.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 1.8, 1, reference_frame=cls.apartment_world.root)
 
         cls.n = Node("test")
         # cls.viz_marker_publisher = VizMarkerPublisher(cls.apartment_world, n)

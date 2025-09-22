@@ -100,6 +100,8 @@ class Costmap:
         visual shapes.
         """
 
+        return
+
         #TODO: This needs to be fixed, when we have a visualization in the sem world
         if self.vis_ids != []:
             return
@@ -351,7 +353,7 @@ class OccupancyCostmap(Costmap):
         r_t = ray_tracer.ray_test(rays[:, 0], rays[:, 1])
         robot_view = ViewManager().find_robot_view_for_world(self.world)
         if robot_view:
-            res[r_t[1]] = [1 if r_t[2][i] in robot_view.bodies else 0 for i in range(len(r_t[1]))]
+            res[r_t[1]] = [1 if r_t[2][i] in self.world.get_bodies_of_branch(robot_view.root) else 0 for i in range(len(r_t[1]))]
         else:
             res[r_t[1]] = 0
 
@@ -691,7 +693,7 @@ class SemanticCostmap(Costmap):
         Generates the semantic costmap according to the provided parameters. To do this the axis aligned bounding box (AABB)
         for the link name will be used. Height and width of the final Costmap will be the x and y sizes of the AABB.
         """
-        bb_collection = self.body.as_bounding_box_collection_in_frame(self.body)
+        bb_collection = self.body.collision.as_bounding_box_collection_in_frame(self.body)
         max_x = max([bb.max_x for bb in bb_collection.bounding_boxes]) // self.resolution
         min_x = min([bb.min_x for bb in bb_collection.bounding_boxes]) // self.resolution
         max_y = max([bb.max_y for bb in bb_collection.bounding_boxes]) // self.resolution
@@ -761,9 +763,10 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
     The number of samples to generate for the iter.
     """
 
-    def __init__(self, object, urdf_link_name, world=None, number_of_samples=1000):
-        super().__init__(object, urdf_link_name, world=world)
+    def __init__(self, body: Body, number_of_samples=1000):
+        super().__init__(body, resolution=0.02)
         self.number_of_samples = number_of_samples
+        self.world = body._world
 
     def check_valid_area_exists(self):
         assert self.valid_area is not None, ("The map has to be created before semantics can be applied. "
@@ -876,7 +879,7 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
         position = [x, y, self.origin.position.z]
         angle = np.arctan2(position[1] - self.origin.position.y, position[0] - self.origin.position.x) + np.pi
         orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
-        return PoseStamped.from_list(position, orientation, self.origin.frame_id)
+        return PoseStamped.from_list(self.world.root, position, orientation)
 
     def __iter__(self) -> Iterator[PoseStamped]:
         model = self.as_distribution()

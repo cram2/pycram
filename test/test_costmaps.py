@@ -1,10 +1,12 @@
 import unittest
+from copy import deepcopy
 
 import numpy as np
 from random_events.variable import Continuous
 #  import plotly.graph_objects as go
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.interval import *
+from semantic_world.spatial_types import TransformationMatrix
 
 from pycram.testing import BulletWorldTestCase
 from pycram.costmaps import OccupancyCostmap, AlgebraicSemanticCostmap, VisibilityCostmap
@@ -17,20 +19,22 @@ import plotly.graph_objects as go
 class CostmapTestCase(BulletWorldTestCase):
 
     def test_attachment_exclusion(self):
-        self.kitchen.set_pose(PoseStamped.from_list([50, 50, 0]))
-        self.robot.set_pose(PoseStamped.from_list([0, 0, 0]))
-        self.milk.set_pose(PoseStamped.from_list([0.5, 0, 1]))
-        self.cereal.set_pose(PoseStamped.from_list([50, 50, 0]))
-        o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
-                             origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
-        self.assertEqual(np.sum(o.map[115:135, 90:110]), 0)
+        self.robot_view.root.parent_connection.origin = TransformationMatrix.from_xyz_rpy(-1.5, 1, 0, reference_frame=self.world.root)
+        self.world.get_body_by_name("milk.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(-1.8, 1, 1, reference_frame=self.world.root)
 
-        self.robot.attach(self.milk)
+        test_world = deepcopy(self.world)
+        with test_world.modify_world():
+            test_world.move_branch(test_world.get_body_by_name("milk.stl"), test_world.get_body_by_name("r_gripper_tool_frame"))
+        o = OccupancyCostmap(0.2, size=200, resolution=0.02,
+                             origin=PoseStamped.from_list(test_world.root, [-1.5, 1, 0], [0, 0, 0, 1]), world=test_world)
+
+        self.assertEqual(400, np.sum(o.map[90:110, 90:110]))
+
         self.assertTrue(np.sum(o.map[80:90, 90:110]) != 0)
 
     def test_partition_into_rectangles(self):
-        ocm = OccupancyCostmap(distance_to_obstacle=0.2, from_ros=False, size=200, resolution=0.02,
-                               origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
+        ocm = OccupancyCostmap(distance_to_obstacle=0.2, size=200, resolution=0.02,
+                               origin=PoseStamped.from_list(self.world.root,[0, 0, 0], [0, 0, 0, 1]), world=self.world)
         rectangles = ocm.partitioning_rectangles()
         ocm.visualize()
 
@@ -52,15 +56,15 @@ class CostmapTestCase(BulletWorldTestCase):
         self.assertTrue(event.is_disjoint())
 
     def test_visualize(self):
-        o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
-                             origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
+        o = OccupancyCostmap(0.2, size=200, resolution=0.02,
+                             origin=PoseStamped.from_list(self.world.root,[0, 0, 0], [0, 0, 0, 1]), world=self.world)
         o.visualize()
 
     def test_merge_costmap(self):
-        o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
-                             origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
-        o2 = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
-                              origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]))
+        o = OccupancyCostmap(0.2, size=200, resolution=0.02,
+                             origin=PoseStamped.from_list(self.world.root, [0, 0, 0], [0, 0, 0, 1]),world=self.world)
+        o2 = OccupancyCostmap(0.2, size=200, resolution=0.02,
+                              origin=PoseStamped.from_list(self.world.root, [0, 0, 0], [0, 0, 0, 1]), world=self.world)
         o3 = o + o2
         self.assertTrue(np.all(o.map == o3.map))
         o2.map[100:120, 100:120] = 0
@@ -75,14 +79,14 @@ class CostmapTestCase(BulletWorldTestCase):
 class SemanticCostmapTestCase(BulletWorldTestCase):
 
     def test_generate_map(self):
-        costmap = AlgebraicSemanticCostmap(self.kitchen, "kitchen_island_surface")
+        costmap = AlgebraicSemanticCostmap(self.world.get_body_by_name("island_countertop"))
         costmap.valid_area = costmap.valid_area.__deepcopy__() & costmap.left()
         costmap.valid_area = costmap.valid_area.__deepcopy__() & costmap.top()
         costmap.valid_area = costmap.valid_area.__deepcopy__() & costmap.border(0.2)
         self.assertEqual(len(costmap.valid_area.simple_sets), 2)
 
     def test_as_distribution(self):
-        costmap = AlgebraicSemanticCostmap(self.kitchen, "kitchen_island_surface")
+        costmap = AlgebraicSemanticCostmap(self.world.get_body_by_name("island_countertop"))
         costmap.valid_area = costmap.valid_area.__deepcopy__() & costmap.right() & costmap.bottom() & costmap.border(0.2)
         model = costmap.as_distribution()
         self.assertEqual(len(model.nodes()), 7)
@@ -93,7 +97,7 @@ class SemanticCostmapTestCase(BulletWorldTestCase):
         # fig.show()
 
     def test_iterate(self):
-        costmap = AlgebraicSemanticCostmap(self.kitchen, "kitchen_island_surface")
+        costmap = AlgebraicSemanticCostmap(self.world.get_body_by_name("island_countertop"))
         costmap.valid_area = costmap.valid_area.__deepcopy__() & costmap.left() & costmap.bottom() & costmap.border(0.2)
         for sample in iter(costmap):
             self.assertIsInstance(sample, PoseStamped)
@@ -103,10 +107,11 @@ class SemanticCostmapTestCase(BulletWorldTestCase):
 @unittest.skip("Wait for PM Upgrade to go live")
 class ProbabilisticCostmapTestCase(BulletWorldTestCase):
 
-    origin = PoseStamped.from_list([1.5, 1, 0], [0, 0, 0, 1])
+
 
     def setUp(self):
         super().setUp()
+        self.origin = PoseStamped.from_list(self.world.root, [1.5, 1, 0], [0, 0, 0, 1])
         self.costmap = ProbabilisticCostmap(self.origin, size = 200*centimeter)
 
     def test_setup(self):
