@@ -2,6 +2,9 @@ import time
 import threading
 import atexit
 
+from semantic_world.world import World
+from semantic_world.world_description.world_entity import Body
+
 from ..datastructures.pose import PoseStamped
 from ..datastructures.enums import ExecutionType
 from tf2_msgs.msg import TFMessage
@@ -14,7 +17,7 @@ class TFBroadcaster:
     """
     Broadcaster that publishes TF frames for every object in the World.
     """
-    def __init__(self, projection_namespace=ExecutionType.SIMULATED, odom_frame="odom", interval=0.1):
+    def __init__(self, world: World,  projection_namespace=ExecutionType.SIMULATED, odom_frame="odom", interval=0.1):
         """
         The broadcaster prefixes all published TF messages with a projection namespace to distinguish between the TF
         frames from the simulation and the one from the real robot.
@@ -23,7 +26,7 @@ class TFBroadcaster:
         :param odom_frame: Name of the statically published odom frame
         :param interval: Interval at which the TFs should be published, in seconds
         """
-        self.world = World.current_world
+        self.world = world
 
         self.tf_static_publisher = create_publisher("/tf_static", TFMessage, queue_size=10)
         self.tf_publisher = create_publisher("/tf", TFMessage, queue_size=10)
@@ -52,21 +55,16 @@ class TFBroadcaster:
         """
         Publishes the current pose of all objects in the World. As well as the poses of all links of these objects.
         """
-        for obj in self.world.objects:
-            pose = obj.get_pose()
-            pose.header.stamp = Time().now()
-            self._publish_pose(obj.tf_frame, pose)
-            for link in obj.link_name_to_id.keys():
-                link_pose = obj.get_link_pose(link)
-                link_pose.header.stamp = Time().now()
-                self._publish_pose(obj.get_link_tf_frame(link), link_pose)
+        for body in self.world.bodies:
+            pose = PoseStamped.from_spatial_type(body.global_pose)
+            self._publish_pose(f"{body.name.prefix}/{body.name.name}", pose)
 
     def _update_static_odom(self) -> None:
         """
         Publishes a static odom frame to the tf_static topic.
         """
         self._publish_pose(self.odom_frame,
-                           PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]), static=True)
+                           PoseStamped.from_list(self.world.root, [0, 0, 0], [0, 0, 0, 1]), static=True)
 
     def _publish_pose(self, child_frame_id: str, pose: PoseStamped, static=False) -> None:
         """
@@ -79,9 +77,10 @@ class TFBroadcaster:
         """
         frame_id = pose.frame_id
         if frame_id != child_frame_id:
-            tf_stamped = pose.to_transform_stamped(child_frame_id)
-            tf_stamped.frame_id = self.projection_namespace.name + "/" + tf_stamped.frame_id
-            tf_stamped.child_frame_id = self.projection_namespace.name + "/" + tf_stamped.child_frame_id
+            tf_stamped = pose.to_transform_stamped(None)
+            tf_stamped_msg = tf_stamped.ros_message()
+            tf_stamped_msg.header.frame_id = self.projection_namespace.name + "/" + tf_stamped.header.frame_id.name.name
+            tf_stamped_msg.child_frame_id = self.projection_namespace.name + "/" + tf_stamped.child_frame_id
             tf2_msg = TFMessage()
             tf2_msg.transforms.append(tf_stamped)
             if static:

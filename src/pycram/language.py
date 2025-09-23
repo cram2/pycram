@@ -19,10 +19,11 @@ from .fluent import Fluent
 from .failures import PlanFailure
 
 from .ros import sleep, loginfo
-from .plan import PlanNode, Plan, managed_node, ActionNode, MotionNode
+from .plan import PlanNode, Plan, managed_node, ActionNode, MotionNode, ResolvedActionNode
 
 if TYPE_CHECKING:
-    from .designator import ActionDescription
+    from .robot_plans.actions.base import ActionDescription
+
     from .robot_plans import BaseMotion
 
 class LanguagePlan(Plan):
@@ -30,7 +31,7 @@ class LanguagePlan(Plan):
     Base class for language plans
     """
 
-    def __init__(self, root: LanguageNode, world: World, plan: Plan, robot_view: AbstractRobot, *children: Union[Plan, PartialDesignator, BaseMotion] ):
+    def __init__(self, root: LanguageNode, world: World, plan: Plan, robot_view: AbstractRobot, *children: Union[Plan, PartialDesignator, BaseMotion, ActionDescription] ):
         """
         Creates a Language plan with the given root node and children. The root node als determines the behavior of the
         language plan
@@ -48,10 +49,15 @@ class LanguagePlan(Plan):
             elif isinstance(child, PartialDesignator):
                 node = ActionNode(designator_ref=child, action=child.performable, kwargs=child.kwargs)
                 self.add_edge(self.root, node)
+            elif "ActionDescription" in [c.__name__ for c in child.__class__.__mro__]:
+                node = ResolvedActionNode(designator_ref=child, action=child.__class__, kwargs=child.__dict__)
+                self.add_edge(self.root, node)
             elif "BaseMotion" in [c.__name__ for c in child.__class__.__mro__]:
                 kwargs = inspect.signature(child.__init__).bind(**child.__dict__).arguments
                 node = MotionNode(designator_ref=child, action=child.__class__, kwargs=kwargs)
                 self.add_edge(self.root, node)
+            else:
+                ValueError(f"Type: {child.__class__.__name__} is not supported as child of a LanguagePlan")
         self.simplify_language_nodes()
 
     def simplify_language_nodes(self):

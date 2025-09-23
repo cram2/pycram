@@ -2,10 +2,10 @@ import atexit
 import time
 import threading
 from geometry_msgs.msg import WrenchStamped
+from semantic_world.world import World
 from std_msgs.msg import Header
 
 from ..datastructures.enums import FilterConfig
-from ..datastructures.world import World
 from ..failures import SensorMonitoringCondition
 from ..filter import Butterworth
 from ..ros import  Time
@@ -19,24 +19,25 @@ class ForceTorqueSensorSimulated:
     to the given topic.
     """
 
-    def __init__(self, joint_name, fts_topic="/pycram/fts", interval=0.1):
+    def __init__(self, joint_name, world: World, fts_topic="/pycram/fts", interval=0.1):
         """
         The given joint_name has to be part of :py:attr:`~pycram.world.World.robot` otherwise a
         RuntimeError will be raised.
 
         :param joint_name: Name of the joint for which force-torque should be simulated
+        :param world: The world from which the force-torque values should be read
         :param fts_topic: Name of the ROS topic to which should be published
         :param interval: Interval at which the messages should be published, in seconds
         """
-        self.world = World.current_world
+        self.world = world
         self.fts_joint_idx = None
         self.joint_name = joint_name
-        if joint_name in self.world.robot.joint_name_to_id.keys():
-            self.fts_joint_idx = self.world.robot.joint_name_to_id[joint_name]
-        else:
-            raise RuntimeError(f"Could not register ForceTorqueSensor: Joint {joint_name}"
-                               f" does not exist in robot object")
-        self.world.enable_joint_force_torque_sensor(self.world.robot, self.fts_joint_idx)
+        # if joint_name in self.world.robot.joint_name_to_id.keys():
+        #     self.fts_joint_idx = self.world.robot.joint_name_to_id[joint_name]
+        # else:
+        #     raise RuntimeError(f"Could not register ForceTorqueSensor: Joint {joint_name}"
+        #                        f" does not exist in robot object")
+        # self.world.enable_joint_force_torque_sensor(self.world.robot, self.fts_joint_idx)
 
         self.fts_pub = create_publisher(fts_topic, WrenchStamped, queue_size=10)
         self.interval = interval
