@@ -140,8 +140,8 @@ class TestPose(BulletWorldTestCase):
         self.assertEqual(inverse_result.child_frame_id, self.world.root)
 
     def test_transform_multiplication_roration(self):
-        t1 = TransformStamped.from_list([1, 2, 3], [0, 0, 0, 1], self.world.root, self.robot_view.root)
-        t2 = TransformStamped.from_list([4, 5, 6], [0, 0, 0, 1], self.robot_view.root, self.world.get_body_by_name("r_gripper_tool_frame"))
+        t1 = TransformStamped.from_list([1, 1, 1], [0, 0, 1, 1], self.world.root, self.robot_view.root)
+        t2 = TransformStamped.from_list([1, 0, 0], [0, 0, 0, 1], self.robot_view.root, self.world.get_body_by_name("r_gripper_tool_frame"))
 
         result = t1 * t2
 
@@ -162,7 +162,7 @@ class TestPose(BulletWorldTestCase):
 
     def test_transform_multiplication_with_inverse(self):
         t1 = TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], self.world.root, self.robot_view.root)
-        t2 = TransformStamped.from_list([1, 0, 0], [0, 0, 0, 1], self.world.root, self.world.get_body_by_name("r_gripper_tool_frame"))
+        t2 = TransformStamped.from_list([2, 2, 1], [0, 0, -1, 1], self.world.root, self.world.get_body_by_name("r_gripper_tool_frame"))
         result = ~t1 * t2
 
         self.assertEqual(result.frame_id, self.robot_view.root)

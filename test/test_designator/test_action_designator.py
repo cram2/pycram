@@ -3,6 +3,8 @@ from copy import deepcopy
 
 import numpy as np
 import rustworkx
+from semantic_world.adapters.viz_marker import VizMarkerPublisher
+from semantic_world.robots import PR2
 
 from pycram.datastructures.enums import Arms, GripperState, DetectionTechnique, TorsoState, \
     StaticJointState, ApproachDirection, VerticalAlignment
@@ -15,6 +17,7 @@ from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, Object
 from pycram.process_module import simulated_robot
 from pycram.robot_plans.actions import *
 from pycram.robot_plans.motions import MoveTCPWaypointsMotion
+from pycram.ros import node
 from pycram.testing import BulletWorldTestCase
 from pycrap.ontologies import Milk
 import pycram.robot_descriptions.pr2_states
@@ -81,7 +84,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         performable = ReachToPickUpActionDescription(self.world.get_body_by_name("milk.stl"),
                                                      Arms.LEFT, grasp_description)
         plan = SequentialPlan(self.context,self.robot_view,
-                              NavigateActionDescription(PoseStamped.from_list(self.world.root, [1.8, 1.5, 0], [0, 0, 0, 1]), True),
+                              NavigateActionDescription(PoseStamped.from_list(self.world.root, [1.7, 1.5, 0], [0, 0, 0, 1]), True),
                               ParkArmsActionDescription(Arms.BOTH),
                               MoveTorsoActionDescription([TorsoState.HIGH]),
                               SetGripperActionDescription(Arms.LEFT, GripperState.OPEN),
@@ -90,25 +93,28 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             plan.perform()
 
     def test_pick_up(self):
-
+        test_world = deepcopy(self.world)
+        test_robot = PR2.from_world(test_world)
         grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
-        description = PickUpActionDescription(self.world.get_body_by_name("milk.stl"), [Arms.LEFT], [grasp_description])
+        description = PickUpActionDescription(test_world.get_body_by_name("milk.stl"), [Arms.LEFT], [grasp_description])
 
-        plan = SequentialPlan(self.context,self.robot_view,
-                              NavigateActionDescription(PoseStamped.from_list(self.world.root, [1.8, 1.5, 0], [0, 0, 0, 1]), True),
+        plan = SequentialPlan((test_world, None), test_robot,
+                              NavigateActionDescription(PoseStamped.from_list(test_world.root, [1.7, 1.5, 0], [0, 0, 0, 1]), True),
                               MoveTorsoActionDescription([TorsoState.HIGH]),
                               description)
         with simulated_robot:
             plan.perform()
-        self.assertTrue(self.world.get_connection(self.world.get_body_by_name("l_gripper_tool_frame"), self.world.get_body_by_name("milk.stl")) is not None)
+        self.assertTrue(test_world.get_connection(test_world.get_body_by_name("l_gripper_tool_frame"), test_world.get_body_by_name("milk.stl")) is not None)
 
     def test_place(self):
-        object_description = self.world.get_body_by_name("milk.stl")
-        description = PlaceActionDescription(object_description, PoseStamped.from_list(self.world.root, [2.2, 2, 1],
+        test_world = deepcopy(self.world)
+        test_robot = PR2.from_world(test_world)
+        object_description = test_world.get_body_by_name("milk.stl")
+        description = PlaceActionDescription(object_description, PoseStamped.from_list(test_world.root, [2.2, 2, 1],
                                                                                         [0, 0, 0, 1]),
                                              [Arms.LEFT])
-        plan = SequentialPlan(self.context,self.robot_view,
-                              NavigateActionDescription(PoseStamped.from_list(self.world.root, [1.8, 1.5, 0], [0, 0, 0, 1]), True),
+        plan = SequentialPlan((test_world, None), test_robot,
+                              NavigateActionDescription(PoseStamped.from_list(test_world.root, [1.7, 1.5, 0], [0, 0, 0, 1]), True),
                               MoveTorsoActionDescription([TorsoState.HIGH]),
                               PickUpActionDescription(object_description, Arms.LEFT,
                                                       GraspDescription(ApproachDirection.FRONT,
@@ -117,8 +123,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             plan.perform()
         with self.assertRaises(rustworkx.NoEdgeBetweenNodes):
-            self.assertTrue(self.world.get_connection(self.world.get_body_by_name("l_gripper_tool_frame"),
-                                                      self.world.get_body_by_name("milk.stl")) is None)
+            self.assertTrue(test_world.get_connection(test_world.get_body_by_name("l_gripper_tool_frame"),
+                                                      test_world.get_body_by_name("milk.stl")) is None)
 
     def test_look_at(self):
         description = LookAtAction.description([PoseStamped.from_list(self.world.root, [1, 0, 1])])

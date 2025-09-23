@@ -41,7 +41,7 @@ class SemanticWorldTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.pr2_sem_world = URDFParser(
-            os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots", "pr2.urdf")).parse()
+            os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots", "pr2_calibrated_with_ft.urdf")).parse()
         cls.apartment_world = URDFParser(
             os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
         cls.apartment_world.merge_world(cls.pr2_sem_world)
@@ -79,7 +79,7 @@ class BulletWorldTestCase(EmptyWorldTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.pr2_sem_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots", "pr2.urdf")).parse()
+        cls.pr2_sem_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots", "pr2_calibrated_with_ft.urdf")).parse()
         cls.apartment_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
         cls.milk_world = STLParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "milk.stl")).parse()
         cls.cereal_world = STLParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "breakfast_cereal.stl")).parse()
