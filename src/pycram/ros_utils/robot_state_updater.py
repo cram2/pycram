@@ -38,13 +38,14 @@ class WorldStateUpdater:
         self.tf_topic = tf_topic
         self.joint_state_topic = joint_state_topic
         self.world: Optional[World] = world
-        self.tf_timer = create_timer(Duration(update_rate.total_seconds()), self._subscribe_tf)
-        self.joint_state_timer = create_timer(Duration(update_rate.total_seconds()),
-                                              self._subscribe_joint_state)
+        self.tf_timer = create_timer(update_rate.total_seconds(), self._subscribe_tf)
+        self.joint_state_timer = create_timer(update_rate.total_seconds(), self._subscribe_joint_state)
+        self.joint_state_subscriber = node.create_subscription(JointState, joint_state_topic, self.joint_state_callback, 1)
+        self.joint_states = JointState()
 
         atexit.register(self._stop_subscription)
 
-    def _subscribe_tf(self, msg: TransformStamped) -> None:
+    def _subscribe_tf(self) -> None:
         """
         Callback for the TF timer, will do a lookup of the transform between map frame and the objects frames.
 
@@ -64,10 +65,15 @@ class WorldStateUpdater:
                 continue
             else:
                 tf_frame = obj.tf_frame
-            trans, rot = self.tf_buffer.lookup_transform("/map", tf_frame, Time(0.0))
+            transform = self.tf_buffer.lookup_transform("map", tf_frame, Time(0))
+            trans = [transform.transform.translation.x, transform.transform.translation.y,
+                     transform.transform.translation.z]
+            rot = [transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z,
+                   transform.transform.rotation.w]
+            print(trans, rot)
             obj.set_pose(PoseStamped.from_list(trans, rot))
 
-    def _subscribe_joint_state(self, msg: JointState) -> None:
+    def _subscribe_joint_state(self) -> None:
         """
         Sets the current joint configuration of the robot in the world to the configuration published on the
         topic. Since this uses rospy.wait_for_message which can have errors when used with threads there might be an
@@ -75,12 +81,18 @@ class WorldStateUpdater:
 
         :param msg: JointState message published to the topic.
         """
-        try:
-            msg = wait_for_message(self.joint_state_topic, JointState)
+        #try:
+        msg = self.joint_states
+        if msg:
             joint_positions = dict(zip(msg.name, msg.position))
+            print(joint_positions)
             World.robot.set_multiple_joint_positions(joint_positions)
-        except AttributeError:
-            pass
+        #except AttributeError:
+        #    pass
+
+    def joint_state_callback(self, msg):
+        self.joint_states = msg
+        return
 
     def _stop_subscription(self) -> None:
         """
@@ -88,4 +100,5 @@ class WorldStateUpdater:
         """
         self.tf_timer.shutdown()
         self.joint_state_timer.shutdown()
+        node.destroy_subscription(self.joint_state_topic)
 
