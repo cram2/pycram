@@ -12,6 +12,7 @@ from semantic_world.adapters.urdf import URDFParser
 from semantic_world.robots import PR2
 from semantic_world.spatial_types.spatial_types import TransformationMatrix
 from semantic_world.world import World
+from semantic_world.world_description.connections import OmniDrive
 
 from .datastructures.enums import WorldMode
 from .plan import Plan
@@ -86,6 +87,14 @@ class BulletWorldTestCase(EmptyWorldTestCase):
         cls.apartment_world.merge_world(cls.pr2_sem_world)
         cls.apartment_world.merge_world(cls.milk_world)
         cls.apartment_world.merge_world(cls.cereal_world)
+
+        with cls.apartment_world.modify_world():
+            pr2_root = cls.apartment_world.get_body_by_name("base_footprint")
+            apartment_root = cls.apartment_world.root
+            cls.apartment_world.remove_connection(pr2_root.parent_connection)
+            c_root_bf = OmniDrive(parent=apartment_root, child=pr2_root, _world=cls.apartment_world)
+            cls.apartment_world.add_connection(c_root_bf)
+
 
         cls.apartment_world.get_body_by_name("milk.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 2, 1, reference_frame=cls.apartment_world.root)
         cls.apartment_world.get_body_by_name("breakfast_cereal.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 1.8, 1, reference_frame=cls.apartment_world.root)

@@ -1,3 +1,4 @@
+from semantic_world.adapters.viz_marker import VizMarkerPublisher
 
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators.location_designator import *
@@ -5,10 +6,8 @@ from pycram.language import SequentialPlan
 from pycram.robot_description import RobotDescription
 from pycram.datastructures.pose import PoseStamped
 from pycram.robot_plans import NavigateActionDescription
+from pycram.ros import node
 from pycram.testing import BulletWorldTestCase
-
-from pycrap.ontologies import Apartment
-
 
 class TestActionDesignatorGrounding(BulletWorldTestCase):
 
@@ -28,7 +27,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                           'r_wrist_flex_joint': -0.07,
                           'r_wrist_roll_joint': 0.051}
         for name, state in arm_park.items():
-            self.world.state[name].position = state
+            self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position = 0.3
         self.world.notify_state_change()
 
@@ -55,7 +54,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                           'r_wrist_flex_joint': -0.07,
                           'r_wrist_roll_joint': 0.051}
         for name, state in arm_park.items():
-            self.world.state[name].position = state
+            self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         self.world.notify_state_change()
         location_desig = CostmapLocation(PoseStamped.from_list(self.world.root, [0.4, 0.6, 0.9], [0, 0, 0, 1]), reachable_for=self.robot_view)
         plan = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(location_desig))
@@ -80,7 +79,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                           'r_wrist_flex_joint': -0.07,
                           'r_wrist_roll_joint': 0.051}
         for name, state in arm_park.items():
-            self.world.state[name].position = state
+            self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         self.world.notify_state_change()
         location_desig = CostmapLocation(self.world.get_body_by_name("milk.stl"), visible_for=self.robot_view)
         plan = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(location_desig))
@@ -104,7 +103,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                           'r_wrist_flex_joint': -0.07,
                           'r_wrist_roll_joint': 0.051}
         for name, state in arm_park.items():
-            self.world.state[name].position = state
+            self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         self.world.notify_state_change()
         location_desig = CostmapLocation(PoseStamped.from_list(self.world.root, [1, 0, 1]), visible_for=self.robot_view)
         plan = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(location_desig))
@@ -128,7 +127,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                     'r_wrist_flex_joint': -0.07,
                     'r_wrist_roll_joint': 0.051}
         for name, state in arm_park.items():
-            self.world.state[name].position = state
+            self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position = 0.3
         self.world.notify_state_change()
         object_desig = ObjectDesignatorDescription(names=["milk"])
@@ -157,7 +156,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                     'r_wrist_flex_joint': -0.07,
                     'r_wrist_roll_joint': 0.051}
         for name, state in arm_park.items():
-            self.world.state[name].position = state
+            self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position = 0.3
         self.world.notify_state_change()
         location_desig = ProbabilisticCostmapLocation(self.world.get_body_by_name("milk.stl"), reachable_for=self.robot_view)
@@ -182,7 +181,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                     'r_wrist_flex_joint': -0.07,
                     'r_wrist_roll_joint': 0.051}
         for name, state in arm_park.items():
-            self.world.state[name].position = state
+            self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         location_desig = ProbabilisticCostmapLocation(PoseStamped.from_list(self.world.root, [0.4, 0.6, 0.9], [0, 0, 0, 1]), reachable_for=self.robot_view)
         location = location_desig.resolve()
         self.assertTrue(len(location.position.to_list()) == 3)
@@ -205,7 +204,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                     'r_wrist_flex_joint': -0.07,
                     'r_wrist_roll_joint': 0.051}
         for name, state in arm_park.items():
-            self.world.state[name].position = state
+            self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         location_desig = ProbabilisticCostmapLocation(self.world.get_body_by_name("milk.stl"), visible_for=self.robot_view)
         location = location_desig.resolve()
         self.assertTrue(len(location.position.to_list()) == 3)
@@ -227,7 +226,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                     'r_wrist_flex_joint': -0.07,
                     'r_wrist_roll_joint': 0.051}
         for name, state in arm_park.items():
-            self.world.state[name].position = state
+            self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         location_desig = ProbabilisticCostmapLocation(PoseStamped.from_list(self.world.root, [1, 0, 1]), visible_for=self.robot_view)
         location = location_desig.resolve()
         self.assertTrue(len(location.position.to_list()) == 3)
@@ -249,7 +248,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                     'r_wrist_flex_joint': -0.07,
                     'r_wrist_roll_joint': 0.051}
         for name, state in arm_park.items():
-            self.world.state[name].position = state
+            self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position = 0.3
         self.world.notify_state_change()
         location_desig = ProbabilisticCostmapLocation(self.world.get_body_by_name("milk.stl"), reachable_for=self.robot_view,
@@ -286,8 +285,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertTrue(len(location.orientation.to_list()) == 4)
 
     def test_accessing_location(self):
-
         location_desig = AccessingLocation(self.world.get_body_by_name("handle_cab10_t"), robot_desig=self.robot_view, arm=Arms.RIGHT)
+        plan = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(location_desig))
         access_pose = location_desig.resolve()
 
         self.assertTrue(len(access_pose.position.to_list()) == 3)

@@ -3,24 +3,23 @@ import random
 from copy import deepcopy
 
 import numpy as np
-from semantic_world.collision_checking.collision_detector import CollisionCheck
+from semantic_world.collision_checking.collision_detector import CollisionCheck, Collision, CollisionDetector
+from semantic_world.collision_checking.trimesh_collision_detector import TrimeshCollisionDetector
 from semantic_world.world_description.connections import Connection6DoF
 from semantic_world.world_description.geometry import Box, Scale
 from semantic_world.spatial_computations.ik_solver import MaxIterationsException, UnreachableException
 from semantic_world.spatial_computations.raytracer import RayTracer
 from semantic_world.robots import AbstractRobot
 from semantic_world.spatial_types.spatial_types import TransformationMatrix
-from semantic_world.world_description.world_entity import Body
+from semantic_world.world_description.world_entity import Body, KinematicStructureEntity
 from semantic_world.world import World
 
 from pycrap.ontologies import PhysicalObject
 from .tf_transformations import quaternion_from_euler
 from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional, Iterator
 
-from .datastructures.enums import Arms
 from .costmaps import Costmap, SemanticCostmap
 from .datastructures.pose import PoseStamped, TransformStamped
-from .external_interfaces.ik import request_ik
 from .failures import IKError, RobotInCollision
 from .robot_description import RobotDescription
 from .ros import logdebug
@@ -164,6 +163,7 @@ def visibility_validator(robot: AbstractRobot,
 
     :param robot: The robot object for which this should be validated
     :param object_or_pose: The target position or object for which the pose candidate should be validated.
+    :param world: The world in which the visibility should be validated.
     :return: True if the target is visible for the robot, None in any other case.
     """
     if isinstance(object_or_pose, PoseStamped):
@@ -186,10 +186,9 @@ def visibility_validator(robot: AbstractRobot,
 
 
 
-def reachability_validator( root: Body,
-                            tip: Body,
+def reachability_validator( root: KinematicStructureEntity,
+                            tip: KinematicStructureEntity,
                            target_pose: PoseStamped,
-                           arm: Arms,
                            world: World,
                            allowed_collision: List[CollisionCheck] = None
                            ) -> Optional[Dict[str, float]]:
@@ -212,8 +211,6 @@ def reachability_validator( root: Body,
     old_state = deepcopy(world.state.data)
     try:
         joint_states = world.compute_inverse_kinematics(root, tip, target_pose.to_spatial_type(), max_iterations=600)
-        print(joint_states)
-        logdebug(f"Robot {arm.name} can reach target pose")
         for dof, value in joint_states.items():
             world.state[dof.name].position = value
         world.notify_state_change()
@@ -223,18 +220,16 @@ def reachability_validator( root: Body,
 
         return joint_states
 
-    except (IKError, RobotInCollision, MaxIterationsException):
-        logdebug(f"Robot {arm.name} cannot reach pose without collision")
+    except (IKError, RobotInCollision, MaxIterationsException, UnreachableException):
         return None
     finally:
         world.state.data = old_state
         world.notify_state_change()
 
 
-def pose_sequence_reachability_validator(root: Body,
-                                         tip: Body,
+def pose_sequence_reachability_validator(root: KinematicStructureEntity,
+                                         tip: KinematicStructureEntity,
                                          target_sequence: List[PoseStamped],
-                                         arm: Arms,
                                          world: World,
                                          allowed_collision: List[CollisionCheck] = None
                                          ) -> bool:
@@ -244,10 +239,10 @@ def pose_sequence_reachability_validator(root: Body,
     robot stands at the position of the pose candidate. If there is a solution
     the validator returns The arm that can reach the target position and None in any other case.
 
-    :param robot: The robot object in the World for which the reachability should be validated.
+    :param root: The body which is the root of the kinematic chain to be used for ik.
+    :param tip: The body which is the tip of the kinematic chain to be used
     :param target_sequence: The target sequence of poses for which the reachability should be validated.
     :param world: The world in which the robot is located.
-    :param arm: The arm that should be checked for reachability.
     :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates
      to a list of links of which this object consists
 
@@ -255,7 +250,7 @@ def pose_sequence_reachability_validator(root: Body,
     """
     old_state = world.state.data
     for target_pose in target_sequence:
-        joint_states = reachability_validator(root, tip, target_pose, arm, world, allowed_collision)
+        joint_states = reachability_validator(root, tip, target_pose, world, allowed_collision)
         if joint_states is None:
             world.state.data = old_state
             world.notify_state_change()
@@ -268,28 +263,44 @@ def pose_sequence_reachability_validator(root: Body,
     return True
 
 
-# def collision_check(body_list: List[Body], allowed_collision: Dict[Body, List]):
-#     """
-#     This method checks if a given robot collides with any object within the world
-#     which it is not allowed to collide with.
-#     This is done checking iterating over every object within the world and checking
-#     if the robot collides with it. Careful the floor will be ignored.
-#     If there is a collision with an object that was not within the allowed collision
-#     list the function will raise a RobotInCollision exception.
-#
-#     :param robot: The robot object in the (Bullet)World where it should be checked if it collides with something
-#     :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates to a list of links of which this object consists
-#
-#     :raises: RobotInCollision if the robot collides with an object it is not allowed to collide with.
-#     """
-#     allowed_robot_links = allowed_collision.get(robot, [])
-#     for obj in World.current_world.objects:
-#         if obj.name == "floor":
-#             continue
-#         in_contact, contact_links = contact(robot, obj, return_links=True)
-#         if not in_contact:
-#             continue
-#
-#         allowed_links = allowed_collision.get(obj, [])
-#         if not all(link[0].name in allowed_robot_links or link[1].name in allowed_links for link in contact_links):
-#             raise RobotInCollision(f"Collision detected between {robot} and {obj}.")
+def collision_check(robot: AbstractRobot, allowed_collision: List[Body], world: World) -> List[Collision]:
+    """
+    This method checks if a given robot collides with any object within the world
+    which it is not allowed to collide with.
+    This is done checking iterating over every object within the world and checking
+    if the robot collides with it. Careful the floor will be ignored.
+    If there is a collision with an object that was not within the allowed collision
+    list the function will raise a RobotInCollision exception.
+
+    :param robot: The robot object in the (Bullet)World where it should be checked if it collides with something
+    :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates to a list of links of which this object consists
+    :param world: The world in which collision should be checked
+    :raises: RobotInCollision if the robot collides with an object it is not allowed to collide with.
+    """
+    collision_matrix = create_collision_matrix(allowed_collision, world, robot)
+
+    return world.collision_detector.check_collisions(collision_matrix)
+
+
+
+def create_collision_matrix(ignore_collision_with: List[Body], world: World,
+                            robot: AbstractRobot) -> List[CollisionCheck]:
+    """
+    CCreates a list of collision checks that should be performed
+
+    :param ignore_collision_with: List of objects for which collision should be ignored
+    :param world: The world in which the collision check should be performed
+    :param robot: The robot for which the collision check should be performed
+    :return: A list of collision checks that should be performed
+    """
+    collision_checks = []
+    attached_bodies = set(robot.bodies) - set(world.get_bodies_of_branch(robot.root))
+    allowed_collision_with = ignore_collision_with + list(attached_bodies)
+
+    for robot_body in robot.bodies_with_enabled_collision:
+        for world_body in world.bodies_with_enabled_collision:
+            if world_body in allowed_collision_with or robot_body in allowed_collision_with or world_body in robot.bodies:
+                continue
+            collision_checks.append(CollisionCheck(robot_body, world_body, 0.01, world))
+
+    return collision_checks

@@ -258,6 +258,9 @@ class Quaternion(HasParameters):
         """
         return cls(*quaternion_from_matrix(matrix))
 
+    def __eq__(self, other):
+        return self.almost_equal(other)
+
     # # TODO fix this
     # def __setattr__(self, key, value):
     #      object.__setattr__(self, key, value)
@@ -396,7 +399,7 @@ class Vector3Stamped(Vector3):
         self.header.frame_id = value
 
     def __repr__(self):
-        return f"Vector3: {[round(v, 3) for v in [self.x, self.y, self.z]]} in frame_id {self.frame_id}"
+        return f"Vector3: {[round(v, 3) for v in [self.x, self.y, self.z]]} in frame_id {self.frame_id.name}"
 
     def ros_message(self):
         """
@@ -462,7 +465,7 @@ class PoseStamped(HasParameters):
     def __repr__(self):
         return (f"Pose: {[round(v, 3) for v in [self.position.x, self.position.y, self.position.z]]}, "
                 f"{[round(v, 3) for v in [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]]} "
-                f"in frame_id {self.frame_id}")
+                f"in frame_id {self.frame_id.name}")
 
     def ros_message(self):
         """

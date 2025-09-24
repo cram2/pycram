@@ -15,6 +15,7 @@ from random_events.product_algebra import Event, SimpleEvent
 from random_events.set import Set
 from random_events.variable import Continuous, Symbolic
 from scipy.spatial import ConvexHull
+from semantic_world.adapters.viz_marker import VizMarkerPublisher
 from semantic_world.collision_checking.collision_detector import CollisionCheck
 from semantic_world.collision_checking.trimesh_collision_detector import TrimeshCollisionDetector
 from semantic_world.robots import AbstractRobot
@@ -35,10 +36,11 @@ from ..datastructures.pose import PoseStamped, GraspPose, Vector3
 from ..designator import LocationDesignatorDescription
 from ..failures import RobotInCollision
 from ..graph_of_convex_sets import GraphOfConvexSets
+from ..parameterizer import collision_free_event
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, pose_sequence_reachability_validator, \
-    OrientationGenerator
+    OrientationGenerator, collision_check
 from ..robot_description import ViewManager
-from ..ros import logerr
+from ..ros import logerr, node
 from ..utils import translate_pose_along_local_axis
 from ..world_reasoning import link_pose_for_joint_config
 
@@ -88,13 +90,13 @@ def _create_target_sequence(grasp_description: GraspDescription, target: Union[P
     grasp_quaternion = grasp_description.calculate_grasp_orientation(end_effector.front_facing_orientation.to_np())
     approach_axis = end_effector.front_facing_axis
 
-    target_pose = target.copy() if isinstance(target, PoseStamped) else \
+    target_pose = deepcopy(target) if isinstance(target, PoseStamped) else \
         grasp_description.get_grasp_pose(end_effector, target)
     # target.get_grasp_pose(end_effector, grasp_description)
 
     if object_in_hand:
         if rotation_agnostic:
-            robot_rotation = robot.root.global_pose.orientation
+            robot_rotation = PoseStamped.from_spatial_type(robot.root.global_pose).orientation
             target_pose.orientation = robot_rotation
             approach_direction = GraspDescription(grasp_description.approach_direction, VerticalAlignment.NoAlignment,
                                                   False)
@@ -118,7 +120,7 @@ def _create_target_sequence(grasp_description: GraspDescription, target: Union[P
         target_pose.rotate_by_quaternion(grasp_quaternion)
         approach_offset_cm = 0.1  # if isinstance(target, PoseStamped) else target.get_approach_offset()
 
-    lift_pose = target_pose.copy()
+    lift_pose = deepcopy(target_pose)
     lift_pose.position.z += 0.1
 
     retract_pose = translate_pose_along_local_axis(target_pose, approach_axis.to_np()[:3], -approach_offset_cm)
@@ -141,7 +143,7 @@ class CostmapLocation(LocationDesignatorDescription):
                  reachable_arm: Optional[Union[Iterable[Arms], Arms]] = None,
                  ignore_collision_with: Optional[Union[Iterable[Body], Body]] = None,
                  grasp_descriptions: Optional[Union[Iterable[GraspDescription], GraspDescription]] = None,
-                 object_in_hand: Optional[Union[Iterable[Body], Body]] = None,
+                 # object_in_hand: Optional[Union[Iterable[Body], Body]] = None,
                  rotation_agnostic: bool = False, ):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
@@ -165,7 +167,7 @@ class CostmapLocation(LocationDesignatorDescription):
                                    ignore_collision_with=ignore_collision_with if ignore_collision_with is not None else [
                                        []],
                                    grasp_descriptions=grasp_descriptions if grasp_descriptions is not None else [None],
-                                   object_in_hand=object_in_hand, rotation_agnostic=rotation_agnostic)
+                                   rotation_agnostic=rotation_agnostic)
         self.target: Union[PoseStamped, Body] = target
         self.reachable_for: Body = reachable_for
         self.visible_for: Body = visible_for
@@ -205,29 +207,6 @@ class CostmapLocation(LocationDesignatorDescription):
 
         return final_map
 
-    @staticmethod
-    def create_collision_matrix(ignore_collision_with: List[Body], object_in_hand: Body, world: World,
-                                robot: AbstractRobot) -> List[CollisionCheck]:
-        """
-        CCreates a list of collision checks that should be performed
-
-        :param ignore_collision_with: List of objects for which collision should be ignored
-        :param object_in_hand: An object that the robot might hold
-        :param world: The world in which the collision check should be performed
-        :param robot: The robot for which the collision check should be performed
-        :return: A list of collision checks that should be performed
-        """
-        collision_checks = []
-        allowed_collision_with = ignore_collision_with + ([object_in_hand] if object_in_hand else [])
-
-        for robot_body in robot.bodies_with_enabled_collision:
-            for world_body in world.bodies_with_enabled_collision:
-                if world_body in allowed_collision_with or robot_body in allowed_collision_with or world_body in robot.bodies:
-                    continue
-                collision_checks.append(CollisionCheck(robot_body, world_body, 0.01, world))
-
-        return collision_checks
-
     def __iter__(self) -> Iterator[PoseStamped]:
         """
         Generates positions for a given set of constrains from a costmap and returns
@@ -244,7 +223,7 @@ class CostmapLocation(LocationDesignatorDescription):
         for params in self.generate_permutations():
             params_box = Box(params)
             # Target is either a pose or an object since the object is later needed for the visibility validator
-            target = params_box.target.copy() if isinstance(params_box.target, PoseStamped) else PoseStamped.from_spatial_type(params_box.target.global_pose)
+            target = deepcopy(params_box.target) if isinstance(params_box.target, PoseStamped) else PoseStamped.from_spatial_type(params_box.target.global_pose)
             test_world = deepcopy(self.world)
             test_world.name = "Test World"
 
@@ -253,19 +232,18 @@ class CostmapLocation(LocationDesignatorDescription):
             else:
                 robot_object = ViewManager.find_active_robots_for_world(test_world)
 
-            collision_detector = TrimeshCollisionDetector(test_world)
-
             test_robot = ViewManager.get_view_in_other_world(robot_object, test_world)
 
-            collision_matrix = self.create_collision_matrix(params_box.ignore_collision_with,
-                                                            params_box.object_in_hand, test_world, test_robot)
+            object_in_hand = list(set(test_world.get_bodies_of_branch(test_robot.root)) - set(test_robot.bodies))[0]
 
             final_map = self.setup_costmaps(target, params_box.visible_for, params_box.reachable_for)
 
             for pose_candidate in PoseGenerator(final_map, number_of_samples=600):
                 pose_candidate.position.z = 0
                 test_robot.root.parent_connection.origin = pose_candidate.to_spatial_type()
-                collisions = collision_detector.check_collisions(collision_matrix)
+
+                collisions = collision_check(test_robot, allowed_collision=params_box.ignore_collision_with, world=test_world)
+
                 if collisions:
                     continue
 
@@ -293,8 +271,7 @@ class CostmapLocation(LocationDesignatorDescription):
                     ee = ViewManager.get_arm_view(params_box.reachable_arm, test_robot)
                     is_reachable = pose_sequence_reachability_validator(test_world.root, ee.manipulator.tool_frame,
                                                                         target_sequence,
-                                                                        arm=params_box.reachable_arm,
-                                                                        allowed_collision=collision_matrix,
+                                                                        allowed_collision=params_box.ignore_collision_with,
                                                                         world=test_world)
                     if is_reachable:
                         yield GraspPose(pose_candidate.pose, pose_candidate.header,
@@ -394,8 +371,6 @@ class AccessingLocation(LocationDesignatorDescription):
         # Search for the first connection that is not a FixedConnection,
         container_connection = list(filter(lambda c: not isinstance(c, FixedConnection), handle_to_root_connections))[0]
 
-        container_joint = params_box.handle.parent_entity.find_joint_above_link(params_box.handle.name)
-
         lower_limit = container_connection.dof.lower_limits.position
         upper_limit = container_connection.dof.upper_limits.position
 
@@ -407,13 +382,13 @@ class AccessingLocation(LocationDesignatorDescription):
             container_connection.dof.name.name: upper_limit})
 
         # Handle position for calculating rotation of the final pose
-        half_pose = link_pose_for_joint_config(params_box.handle.parent_entity, {
+        half_pose = link_pose_for_joint_config(params_box.handle, {
             container_connection.dof.name.name: upper_limit / 1.5})
 
         # joint_type = params_box.handle.parent_entity.joints[container_joint].type
 
-        if joint_type == JointType.PRISMATIC:
-            self.adjust_map_for_drawer_opening(final_map, init_pose, goal_pose)
+        # if joint_type == JointType.PRISMATIC:
+        #     self.adjust_map_for_drawer_opening(final_map, init_pose, goal_pose)
 
         target_sequence = [init_pose, half_pose, goal_pose]
         return target_sequence
@@ -434,29 +409,30 @@ class AccessingLocation(LocationDesignatorDescription):
             target_sequence = self.create_target_sequence(params_box, final_map)
             half_pose = target_sequence[1]
 
-            test_robot = World.current_world.get_prospection_object_for_object(params_box.robot_desig)
+            test_world = deepcopy(self.world)
+            test_robot = self.robot_view.from_world(test_world)
 
-            with UseProspectionWorld():
-                orientation_generator = lambda p, o: PoseGenerator.generate_orientation(p, half_pose)
-                for pose_candidate in PoseGenerator(final_map, number_of_samples=600,
-                                                    orientation_generator=orientation_generator):
-                    pose_candidate.position.z = 0
-                    test_robot.set_pose(pose_candidate)
-                    try:
-                        collision_check(test_robot, {})
-                    except RobotInCollision:
-                        continue
+            orientation_generator = lambda p, o: PoseGenerator.generate_orientation(p, half_pose)
+            for pose_candidate in PoseGenerator(final_map, number_of_samples=600,
+                                                orientation_generator=orientation_generator):
+                pose_candidate.position.z = 0
+                test_robot.root.parent_connection.origin = pose_candidate.to_spatial_type()
+                try:
+                    collision_check(test_robot, [], test_world)
+                except RobotInCollision:
+                    continue
 
-                    for arm_chain in test_robot.robot_description.get_manipulator_chains():
-                        grasp = arm_chain.end_effector.grasps[
-                            GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)]
-                        current_target_sequence = [pose.copy() for pose in target_sequence]
-                        [pose.rotate_by_quaternion(grasp) for pose in current_target_sequence]
+                for arm_chain in test_robot.manipulator_chains:
+                    grasp = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False).calculate_grasp_orientation(arm_chain.manipulator.front_facing_orientation.to_np())
+                    current_target_sequence = [deepcopy(pose) for pose in target_sequence]
+                    for pose in current_target_sequence:
+                        pose.rotate_by_quaternion(grasp)
 
-                        is_reachable = pose_sequence_reachability_validator(test_robot, current_target_sequence,
-                                                                            arm=arm_chain.arm_type)
-                        if is_reachable:
-                            yield pose_candidate
+                    is_reachable = pose_sequence_reachability_validator(test_world.root, arm_chain.manipulator.tool_frame,
+                                                                        current_target_sequence,
+                                                                        world=test_world)
+                    if is_reachable:
+                        yield pose_candidate
 
 
 class SemanticCostmapLocation(LocationDesignatorDescription):
