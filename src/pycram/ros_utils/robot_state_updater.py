@@ -70,7 +70,6 @@ class WorldStateUpdater:
                      transform.transform.translation.z]
             rot = [transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z,
                    transform.transform.rotation.w]
-            print(trans, rot)
             obj.set_pose(PoseStamped.from_list(trans, rot))
 
     def _subscribe_joint_state(self) -> None:
@@ -81,14 +80,13 @@ class WorldStateUpdater:
 
         :param msg: JointState message published to the topic.
         """
-        #try:
-        msg = self.joint_states
-        if msg:
-            joint_positions = dict(zip(msg.name, msg.position))
-            print(joint_positions)
-            World.robot.set_multiple_joint_positions(joint_positions)
-        #except AttributeError:
-        #    pass
+        try:
+            msg = self.joint_states
+            if msg:
+                joint_positions = dict(zip(msg.name, msg.position))
+                World.robot.set_multiple_joint_positions(joint_positions)
+        except AttributeError:
+            pass
 
     def joint_state_callback(self, msg):
         self.joint_states = msg

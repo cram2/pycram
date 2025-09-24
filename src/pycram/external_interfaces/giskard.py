@@ -1,8 +1,6 @@
 import json
 import threading
 
-import geometry_msgs.msg
-import giskard_msgs
 import sys
 
 
@@ -218,6 +216,7 @@ def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> 'UpdateWorldResp
 
 @init_giskard_interface
 def spawn_box(name: str, size: tuple[float, float, float], pose: PoseStamped):
+    import geometry_msgs.msg
 
     pose_xyz = pose.pose.position.to_list()
     pose_xyzw = pose.pose.orientation.to_list()
@@ -373,6 +372,7 @@ def achieve_cartesian_goal(goal_pose: 'PoseStamped', tip_link: str, root_link: s
     :param grippers_that_can_collide: The gripper(s) that should be allowed to collide.
     :return: MoveResult message for this goal
     """
+    print(goal_pose)
     sync_worlds()
     par_return = _manage_par_motion_goals(set_cart_goal, goal_pose.ros_message(),
                                           tip_link, root_link)
@@ -890,4 +890,4 @@ def execute(add_default=True):
         giskard_wrapper.add_default_end_motion_conditions()
         allow_self_collision()
         allow_all_collision()
-    return giskard_wrapper.execute()
+    return print(giskard_wrapper.execute().error)
