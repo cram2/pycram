@@ -5,12 +5,14 @@ from copy import deepcopy
 import numpy as np
 from semantic_world.collision_checking.collision_detector import CollisionCheck, Collision, CollisionDetector
 from semantic_world.collision_checking.trimesh_collision_detector import TrimeshCollisionDetector
+from semantic_world.datastructures.prefixed_name import PrefixedName
 from semantic_world.world_description.connections import Connection6DoF
 from semantic_world.world_description.geometry import Box, Scale
 from semantic_world.spatial_computations.ik_solver import MaxIterationsException, UnreachableException
 from semantic_world.spatial_computations.raytracer import RayTracer
 from semantic_world.robots import AbstractRobot
 from semantic_world.spatial_types.spatial_types import TransformationMatrix
+from semantic_world.world_description.shape_collection import ShapeCollection
 from semantic_world.world_description.world_entity import Body, KinematicStructureEntity
 from semantic_world.world import World
 
@@ -167,22 +169,24 @@ def visibility_validator(robot: AbstractRobot,
     :return: True if the target is visible for the robot, None in any other case.
     """
     if isinstance(object_or_pose, PoseStamped):
-        gen_body = Body(collision=[Box(scale=Scale(0.1, 0.1, 0.1))],)
+        gen_body = Body(name=PrefixedName("vist_test_obj", "pycram"), collision=ShapeCollection([Box(scale=Scale(0.1, 0.1, 0.1))]))
         with world.modify_world():
             world.add_connection(Connection6DoF(world.root, gen_body, _world=world))
         gen_body.parent_connection.origin = object_or_pose.to_spatial_type()
     else:
         gen_body = object_or_pose
-    r_t = RayTracer(world)
+    r_t = world.ray_tracer
     camera = list(robot.neck.sensors)[0]
-    ray = r_t.ray_test(camera.bodies[0].global_pose.to_position().to_np()[:3], gen_body.global_pose.to_position().to_np()[:3])
+    ray = r_t.ray_test(camera.bodies[0].global_pose.to_position().to_np()[:3], gen_body.global_pose.to_position().to_np()[:3], multiple_hits=True)
 
-    with world.modify_world():
-        if isinstance(object_or_pose, PoseStamped):
+    hit_bodies = [b for b in ray[2] if not b in robot.bodies]
+
+    if isinstance(object_or_pose, PoseStamped):
+        with world.modify_world():
             world.remove_connection(gen_body.parent_connection)
             world.remove_kinematic_structure_entity(gen_body)
 
-    return ray[2][0] == gen_body
+    return hit_bodies[0] == gen_body if len(hit_bodies) > 0 else False
 
 
 

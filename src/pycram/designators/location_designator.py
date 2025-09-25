@@ -138,8 +138,8 @@ class CostmapLocation(LocationDesignatorDescription):
     """
 
     def __init__(self, target: Union[PoseStamped, Body],
-                 reachable_for: Optional[Union[Iterable[Body], Body]] = None,
-                 visible_for: Optional[Union[Iterable[Body], Body]] = None,
+                 reachable_for: AbstractRobot = None,
+                 visible_for: AbstractRobot = None,
                  reachable_arm: Optional[Union[Iterable[Arms], Arms]] = None,
                  ignore_collision_with: Optional[Union[Iterable[Body], Body]] = None,
                  grasp_descriptions: Optional[Union[Iterable[GraspDescription], GraspDescription]] = None,
@@ -234,7 +234,8 @@ class CostmapLocation(LocationDesignatorDescription):
 
             test_robot = ViewManager.get_view_in_other_world(robot_object, test_world)
 
-            object_in_hand = list(set(test_world.get_bodies_of_branch(test_robot.root)) - set(test_robot.bodies))[0]
+            objects_in_hand = list(set(test_world.get_bodies_of_branch(test_robot.root)) - set(test_robot.bodies))
+            object_in_hand = objects_in_hand[0] if objects_in_hand else None
 
             final_map = self.setup_costmaps(target, params_box.visible_for, params_box.reachable_for)
 
@@ -265,7 +266,7 @@ class CostmapLocation(LocationDesignatorDescription):
                 for grasp_desc in grasp_descriptions:
 
                     target_sequence = _create_target_sequence(grasp_desc, target, test_robot,
-                                                              params_box.object_in_hand,
+                                                              object_in_hand,
                                                               params_box.reachable_arm,
                                                               params_box.rotation_agnostic)
                     ee = ViewManager.get_arm_view(params_box.reachable_arm, test_robot)
@@ -491,7 +492,7 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
                                                                   horizontal_only=params_box.horizontal_edges_only)
             height_offset = params_box.height_offset
             if params_box.for_object:
-                bb_points = params_box.for_object.as_bounding_box_collection_in_frame(params_box.for_object).get_points()
+                bb_points = params_box.for_object.collision.as_bounding_box_collection_in_frame(params_box.for_object).bounding_box().get_points()
                 np_points = [point.to_np()[:3] for point in bb_points]
                 min_z = min(np_points, key=lambda p: p[2])[2]
                 max_z = max(np_points, key=lambda p: p[2])[2]

@@ -9,6 +9,7 @@ import numpy as np
 import psutil
 import random_events
 from matplotlib import colors
+from mercurial.revset import origin
 from probabilistic_model.probabilistic_circuit.rx.helper import uniform_measure_of_event
 from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import ProbabilisticCircuit
 from random_events.interval import Interval, reals, closed_open, closed
@@ -471,7 +472,7 @@ class VisibilityCostmap(Costmap):
 
         r_t = RayTracer(self.world)
 
-        origin_copy = self.origin.copy()
+        origin_copy = deepcopy(self.origin)
 
         for _ in range(4):
             origin_copy.rotate_by_quaternion([0, 0, 1, 1])

@@ -105,7 +105,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         for name, state in arm_park.items():
             self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         self.world.notify_state_change()
-        location_desig = CostmapLocation(PoseStamped.from_list(self.world.root, [1, 0, 1]), visible_for=self.robot_view)
+        location_desig = CostmapLocation(PoseStamped.from_list(self.world.root, [2.2, 3, 1]), visible_for=self.robot_view)
         plan = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(location_desig))
         location = location_desig.resolve()
         self.assertTrue(len(location.position.to_list()) == 3)
@@ -130,10 +130,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position = 0.3
         self.world.notify_state_change()
-        object_desig = ObjectDesignatorDescription(names=["milk"])
-        robot_desig = ObjectDesignatorDescription(names=[RobotDescription.current_robot_description.name])
-        location_desig = CostmapLocation(object_desig.resolve(), reachable_for=robot_desig.resolve(),
-                                         visible_for=robot_desig.resolve())
+        location_desig = CostmapLocation(self.world.get_body_by_name("milk.stl"), reachable_for=self.robot_view,
+                                         visible_for=self.robot_view)
         plan = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(location_desig))
         location = location_desig.resolve()
         self.assertTrue(len(location.position.to_list()) == 3)
