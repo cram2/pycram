@@ -85,7 +85,7 @@ class WorldStateUpdater:
             if msg:
                 joint_positions = dict(zip(msg.name, msg.position))
                 World.robot.set_multiple_joint_positions(joint_positions)
-        except AttributeError:
+        except AttributeError or RuntimeError:
             pass
 
     def joint_state_callback(self, msg):
@@ -96,7 +96,7 @@ class WorldStateUpdater:
         """
         Stops the Timer for TF and joint states and therefore the updating of the robot in the world.
         """
-        self.tf_timer.shutdown()
-        self.joint_state_timer.shutdown()
+        self.tf_timer.cancel()
+        self.joint_state_timer.cancel()
         node.destroy_subscription(self.joint_state_topic)
 

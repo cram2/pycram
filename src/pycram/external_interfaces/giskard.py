@@ -20,9 +20,7 @@ from typing_extensions import List, Dict, Callable, Optional
 from threading import Lock, RLock
 from ..ros import logging as log, node
 
-from giskardpy_ros.python_interface.python_interface import GiskardWrapper
-
-giskard_wrapper : GiskardWrapper = None
+giskard_wrapper : None
 giskard_update_service = None
 is_init = False
 
