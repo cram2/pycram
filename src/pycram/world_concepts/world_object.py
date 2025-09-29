@@ -1160,12 +1160,14 @@ class Object(PhysicalBody, HasParameters):
         if already_moved_objects is None:
             already_moved_objects = []
 
-        for child in self.attachments:
+        attachments = self.attachments.copy()
+
+        for child in attachments:
 
             if child in already_moved_objects:
                 continue
 
-            attachment = self.attachments[child]
+            attachment = attachments[child]
             if attachment.loose:
                 self.update_attachment_with_object(child)
                 child.update_attachment_with_object(self)
