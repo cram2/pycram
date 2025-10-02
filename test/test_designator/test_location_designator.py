@@ -269,15 +269,15 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertTrue(len(location.orientation.to_list()) == 4)
 
     def test_probabilistic_semantic_location(self):
-        kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
-        location_desig = ProbabilisticSemanticLocation(["kitchen_island_surface"], kitchen_desig.resolve())
+        location_desig = ProbabilisticSemanticLocation([self.world.get_body_by_name("island_countertop")])
+        plan = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(location_desig))
         location = location_desig.resolve()
         self.assertTrue(len(location.position.to_list()) == 3)
         self.assertTrue(len(location.orientation.to_list()) == 4)
 
-        milk_desig = ObjectDesignatorDescription(names=["milk"])
-        location_desig = ProbabilisticSemanticLocation(["kitchen_island_surface"], kitchen_desig.resolve(),
-                                                 for_object=milk_desig.resolve())
+        location_desig = ProbabilisticSemanticLocation([self.world.get_body_by_name("island_countertop")],
+                                                 for_object=self.world.get_body_by_name("milk.stl"))
+        plan = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(location_desig))
         location = location_desig.resolve()
         self.assertTrue(len(location.position.to_list()) == 3)
         self.assertTrue(len(location.orientation.to_list()) == 4)

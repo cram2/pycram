@@ -250,16 +250,18 @@ class Plan:
         """
         import matplotlib.pyplot as plt
         # Create a new figure
-        plt.figure(figsize=(12, 8))
+        plt.figure(figsize=(15, 8))
 
         pos = self.bfs_layout(scale=scale, align=align)
 
-        rx.visualization.mpl_draw(self.plan_graph, pos=pos, labels=lambda body: str(body.action),
+        rx.visualization.mpl_draw(self.plan_graph, pos=pos, labels=lambda node: str(node),
                                   with_labels=True,
-                                  edge_labels=lambda edge: edge.__class__.__name__)
+                                  edge_labels=None)
 
-        plt.title("World Kinematic Structure")
+        plt.title("Plan Graph")
         plt.axis('off')  # Hide axes
+        plt.gca().invert_yaxis()
+        plt.gca().invert_xaxis()
         plt.show()
 
     @classmethod
