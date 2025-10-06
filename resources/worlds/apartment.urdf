@@ -47,9 +47,11 @@
       </geometry>
     </visual>
     <collision>
-          <geometry>
-            <mesh filename="package://iai_apartment/meshes/collision/walls.stl" />
+            <geometry>
+            <!-- <mesh filename="package://iai_apartment/meshes/collision/walls.stl" /> -->
+            <box size="1 1 1"/>
           </geometry>
+
     </collision>
   </link>
   <joint name="windows_joint" type="fixed">

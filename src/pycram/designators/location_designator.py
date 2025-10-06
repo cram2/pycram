@@ -786,8 +786,6 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
     def _create_link_circuit(
         self,
         surface_samples: List[Tuple[float, float]],
-        link_id_symbol: Symbolic,
-        link_id: int,
     ) -> ProbabilisticCircuit:
         """
         Creates a probabilistic circuit that samples navigation poses on a surface defined by the given surface samples.
@@ -812,17 +810,17 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
             # We are looking for a navigation sample, for which the surface sample and the link id are true (reachable)
             surface_x_p = make_dirac(self.surface_x, surface_sample[0])
             surface_y_p = make_dirac(self.surface_y, surface_sample[1])
-            target_link_id_p = make_dirac(link_id_symbol, link_id)
+            #target_link_id_p = make_dirac(link_id_symbol, link_id)
 
             # We create a Gaussian distribution around the surface sample, which is used to sample the
             # navigation poses.
-            x_p = GaussianDistribution(BoundingBox.x_variable, surface_sample[0], scale)
-            y_p = GaussianDistribution(BoundingBox.y_variable, surface_sample[1], scale)
+            x_p = GaussianDistribution(SpatialVariables.x.value, surface_sample[0], scale)
+            y_p = GaussianDistribution(SpatialVariables.y.value, surface_sample[1], scale)
 
             # Add all the variables to the circuit
             p_point_root.add_subcircuit(leaf(surface_x_p, link_circuit))
             p_point_root.add_subcircuit(leaf(surface_y_p, link_circuit))
-            p_point_root.add_subcircuit(leaf(target_link_id_p, link_circuit))
+            #p_point_root.add_subcircuit(leaf(target_link_id_p, link_circuit))
             p_point_root.add_subcircuit(leaf(x_p, link_circuit))
             p_point_root.add_subcircuit(leaf(y_p, link_circuit))
 
@@ -930,12 +928,12 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         target_node = free_space.node_of_point(Point3(*target_point, reference_frame=body._world.root))
         if target_node is None:
             return None
-        navigation_space_graph: GraphOfConvexSets = free_space.graph.subgraph(rx.dijkstra_shortest_paths(free_space, target_node))
-        navigation_space_graph: GraphOfConvexSets = nx.subgraph(
-            free_space, nx.shortest_path(free_space, target_node)
-        )
+        navigation_space_graph: GraphOfConvexSets = free_space.graph.subgraph(rx.dijkstra_shortest_paths(free_space.graph, free_space.box_to_index_map[target_node])[0])
+        #navigation_space_graph: GraphOfConvexSets = nx.subgraph(
+        #    free_space, nx.shortest_path(free_space, target_node)
+        #)
         navigation_space_event = Event(
-            *[node.simple_event for node in navigation_space_graph.nodes]
+            *[node.simple_event for node in navigation_space_graph.nodes()]
         )
         navigation_space_event.fill_missing_variables(
             SortedSet([self.surface_x, self.surface_y])
@@ -971,18 +969,18 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         # Create a search space around the link, which is the axis aligned bounding box of the link, bloated by
         # 1 meter in all directions
         # link_searchspace = link.get_axis_aligned_bounding_box().bloat(1, 1, 1).as_collection()
-        link_searchspace = body.collision.as_bounding_box_collection_in_frame(body)
+        link_searchspace = body.collision.as_bounding_box_collection_in_frame(body._world.root).bloat(1.5, 1.5, 1.5)
 
         # Calculate the minimal maximum bloat we can apply to the walls of the link
         # since our target node is above the link, bloating the walls too much causes the target node to be
         # unreachable
         link_width = (
-            body.collision.as_bounding_box_collection_in_frame(body)
+            body.collision.as_bounding_box_collection_in_frame(body._world.root)
             .bounding_box()
             .width
         )
         link_depth = (
-            body.collision.as_bounding_box_collection_in_frame(body)
+            body.collision.as_bounding_box_collection_in_frame(body._world.root)
             .bounding_box()
             .depth
         )
@@ -1016,7 +1014,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         surface_measure.log_likelihood(surface_samples)
 
         link_circuit = self._create_link_circuit(
-            surface_samples[:100], link_id_symbol, link.id
+            surface_samples[:100]
         )
 
         surface_event.fill_missing_variables(link_circuit.variables)
@@ -1026,7 +1024,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
     @staticmethod
     def _calculate_surface_z_coord(
-        test_robot, surface_coords: Tuple[float, float], link_id: int
+        test_robot: AbstractRobot, surface_coords: Tuple[float, float]
     ) -> Optional[float]:
         """
         Calculates the z-coordinate of the surface at the given surface coordinates on the link.
@@ -1043,12 +1041,9 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         surface_x_coord, surface_y_coord = surface_coords
         ray_start = [surface_x_coord, surface_y_coord, 2]
         ray_end = [surface_x_coord, surface_y_coord, -2.0]
-        result = test_robot.world.ray_test(ray_start, ray_end)
-        hit_body = result.link_id
-        hit_pos = result.hit_position[2]
+        result = test_robot._world.ray_tracer.ray_test(np.array(ray_start), np.array(ray_end))
+        hit_pos = result[0][0][2]
 
-        if hit_body != link_id:
-            return None
         return hit_pos
 
     def __iter__(self) -> Iterator[PoseStamped]:
@@ -1135,35 +1130,35 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
                         world_distribution.probabilistic_circuit.variables, sample
                     )
                 }
-                link_id = sample_dict[link_id_symbol.name]
                 surface_x_coord = sample_dict[self.surface_x.name]
                 surface_y_coord = sample_dict[self.surface_y.name]
-                nav_x = sample_dict[BoundingBox.x_variable.name]
-                nav_y = sample_dict[BoundingBox.y_variable.name]
+                nav_x = sample_dict[SpatialVariables.x.name]
+                nav_y = sample_dict[SpatialVariables.y.name]
 
                 surface_z_coord = self._calculate_surface_z_coord(
-                    test_robot, (surface_x_coord, surface_y_coord), link_id
+                    test_robot, (surface_x_coord, surface_y_coord)
                 )
                 if surface_z_coord is None:
                     continue
 
                 target_quat = OrientationGenerator.generate_random_orientation()
                 target_pose = PoseStamped.from_list(
+                    self.world.root,
                     [surface_x_coord, surface_y_coord, surface_z_coord],
                     target_quat,
-                    "map",
                 )
 
                 nav_quat = OrientationGenerator.generate_origin_orientation(
                     [nav_x, nav_y], target_pose
                 )
-                nav_pose = PoseStamped.from_list([nav_x, nav_y, 0], nav_quat, "map")
+                nav_pose = PoseStamped.from_list(self.world.root, [nav_x, nav_y, 0], nav_quat)
 
                 # Reject samples in which the robot is in collision with the environment despite the bloated obstacles,
                 # for example with the arms
-                test_robot.set_pose(nav_pose)
+                test_robot.root.parent_connection.origin = nav_pose.to_spatial_type()
+                #test_robot.set_pose(nav_pose)
                 try:
-                    collision_check(test_robot, {})
+                    collision_check(test_robot, [], test_world)
                 except RobotInCollision:
                     continue
 
