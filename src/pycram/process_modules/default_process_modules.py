@@ -365,7 +365,7 @@ class DefaultNavigationReal(ProcessModule):
         # query_pose_nav(designator.target)
         logdebug(f"Sending goal to giskard to Move the robot")
         # giskard.avoid_all_collisions()
-        giskard.allow_all_collision()
+        giskard.allow_self_collision()
         giskard.achieve_cartesian_goal(designator.target,
                                        RobotDescription.current_robot_description.base_link,
                                        "map")
@@ -418,7 +418,7 @@ class DefaultMoveHeadReal(ProcessModule):
         current_tilt = robot.get_joint_position(tilt_joint)
 
         # giskard.avoid_all_collisions()
-        giskard.giskard_wrapper.motion_goals.allow_collision()
+        giskard.allow_self_collision()
         giskard.achieve_joint_goal({pan_joint: new_pan + current_pan,
                                     tilt_joint: new_tilt + current_tilt})
 
@@ -437,7 +437,6 @@ class DefaultMoveTCPReal(ProcessModule):
         gripper_that_can_collide = designator.arm if designator.allow_gripper_collision else None
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm)
-            giskard.allow_all_collision()
 
         if designator.movement_type == MovementType.STRAIGHT_TRANSLATION:
             giskard.achieve_straight_translation_goal(pose_in_map.position.to_list(), tip_link, root_link)
@@ -446,7 +445,6 @@ class DefaultMoveTCPReal(ProcessModule):
         elif designator.movement_type == MovementType.TRANSLATION:
             giskard.achieve_translation_goal(pose_in_map.position.to_list(), tip_link, root_link)
         elif designator.movement_type == MovementType.CARTESIAN:
-            giskard.allow_all_collision()
             giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
                                            grippers_that_can_collide=gripper_that_can_collide)
         if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.3, 3):
@@ -465,7 +463,7 @@ class DefaultMoveArmJointsReal(ProcessModule):
         if designator.right_arm_poses:
             joint_goals.update(designator.right_arm_poses)
         # giskard.avoid_all_collisions()
-        giskard.allow_all_collision()
+        giskard.allow_self_collision()
         giskard.achieve_joint_goal(joint_goals)
 
 
@@ -482,7 +480,7 @@ class DefaultMoveJointsReal(ProcessModule):
         root_normal = designator.root_normal
         root_link = designator.root_link
         # giskard.avoid_all_collisions()
-        giskard.allow_all_collision()
+        giskard.allow_self_collision()
         giskard.achieve_joint_goal(name_to_position)
 
 
@@ -536,7 +534,6 @@ class DefaultMoveTCPWaypointsReal(ProcessModule):
         giskard.avoid_all_collisions()
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm)
-        giskard.allow_all_collision()
 
         giskard.achieve_cartesian_waypoints_goal(waypoints=waypoints,
                                                  tip_link=tip_link, root_link=root_link,

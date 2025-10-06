@@ -886,6 +886,6 @@ def set_cart_goal(goal_pose: PoseStamped,
 def execute(add_default=True):
     if add_default:
         giskard_wrapper.add_default_end_motion_conditions()
-        allow_self_collision()
-        allow_all_collision()
+        #allow_self_collision()
+        #allow_all_collision()
     return print(giskard_wrapper.execute().error)

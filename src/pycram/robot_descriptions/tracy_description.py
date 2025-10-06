@@ -109,8 +109,8 @@ right_gripper.add_static_joint_states(GripperState.CLOSE, {
 right_gripper.end_effector_type = GripperType.PARALLEL
 right_gripper.opening_distance = 0.085 * meter
 
-right_gripper.update_all_grasp_orientations([0.707, 0, 0.707, 0])
-left_gripper.update_all_grasp_orientations([0.707, 0, 0.707, 0])
+right_gripper.update_all_grasp_orientations([0.5, 0.5, 0.5, 0.5])
+left_gripper.update_all_grasp_orientations([0.5, 0.5, 0.5, 0.5])
 right_gripper.set_approach_axis([1, 0, 0])
 left_gripper.set_approach_axis([1, 0, 0])
 # Attach grippers to arms
