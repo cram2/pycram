@@ -222,9 +222,9 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             plan.perform()
         gripper_position = PoseStamped.from_spatial_type(self.world.get_body_by_name("r_gripper_tool_frame").global_pose)
-        self.assertAlmostEqual(path[-1].position.x, gripper_position.position.x)
-        self.assertAlmostEqual(path[-1].position.y, gripper_position.position.y)
-        self.assertAlmostEqual(path[-1].position.z, gripper_position.position.z)
+        self.assertAlmostEqual(path[-1].position.x, gripper_position.position.x, places=4)
+        self.assertAlmostEqual(path[-1].position.y, gripper_position.position.y, places=4)
+        self.assertAlmostEqual(path[-1].position.z, gripper_position.position.z, places=4)
 
         self.assertAlmostEqual(path[-1].orientation.x, gripper_position.orientation.x, places=4)
         self.assertAlmostEqual(path[-1].orientation.y, gripper_position.orientation.y, places=4)

@@ -29,7 +29,8 @@ class JointState:
         :param world: The world in which the robot is located.
         """
         for joint_name, joint_position in zip(self.joint_names, self.joint_positions):
-            world.state[world.get_degree_of_freedom_by_name(joint_name).name].position = joint_position
+            dof = list(world.get_connection_by_name(joint_name).dofs)[0]
+            world.state[dof.name].position = joint_position
         world.notify_state_change()
 
 
