@@ -16,6 +16,7 @@ from pycram.orm.casts import StringType
 from pycram.robot_plans.actions.composite import facing, searching, tool_based, transporting
 from pycrap.ontologies import PhysicalObject
 from pycram.orm.model import *
+from pycram.datastructures.dataclasses import ExecutionData
 
 # ----------------------------------------------------------------------------------------------------------------------
 # This script generates the ORM classes for the pycram package
@@ -26,6 +27,7 @@ from pycram.orm.model import *
 # create of classes that should be mapped
 classes = set(recursive_subclasses(AlternativeMapping))
 classes |= set(classes_of_module(pycram.datastructures.pose))
+classes |= {ExecutionData}
 # classes |= set(classes_of_module(action_designator)) | {ActionDescription}
 classes |= set(classes_of_module(facing))
 classes |= set(classes_of_module(searching))

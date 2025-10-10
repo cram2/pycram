@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import get_type_hints
 
-from entity_query_language import an, entity, let, contains
+from entity_query_language import an, entity, let, contains, symbolic_mode
 from semantic_world.reasoning.predicates import SpatialRelation
 from semantic_world.robots import AbstractRobot
 from semantic_world.world_description.world_entity import Body
@@ -221,7 +221,7 @@ class NamedObject(ObjectDesignatorDescription, PartialDesignator):
         :param name: The name of the object.
         """
         super().__init__()
-        PartialDesignator.__init__(self, ObjectDesignatorDescription, name=name)
+        PartialDesignator.__init__(self, ObjectDesignatorDescription, names=name)
 
     def __iter__(self) -> Iterator[Body]:
         """
@@ -230,9 +230,9 @@ class NamedObject(ObjectDesignatorDescription, PartialDesignator):
         :yield: A executed object designator_description
         """
         for params in self.generate_permutations():
-
-            query = an(entity(body := let(type_=Body, domain=self.world.bodies),
-                              contains(body.name.name, params['name'])))
+            with symbolic_mode():
+                query = an(entity(body := let(type_=Body, domain=self.world.bodies),
+                                  contains(body.name.name, params['names'])))
 
             for obj in query.evaluate():
                 yield obj

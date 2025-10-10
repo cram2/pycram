@@ -14,7 +14,9 @@ from semantic_world.robots import AbstractRobot
 from semantic_world.world import World
 from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
+from .datastructures.dataclasses import ExecutionData
 from .datastructures.enums import TaskStatus
+from .datastructures.pose import PoseStamped
 from .external_interfaces import giskard
 from .failures import PlanFailure
 from .has_parameters import leaf_types
@@ -688,7 +690,23 @@ class ResolvedActionNode(DesignatorNode):
 
         :return: The return value of the resolved ActionDesignator
         """
-        return self.designator_ref.perform()
+        robot_pose = PoseStamped.from_spatial_type(self.plan.robot.root.global_pose)
+        exec_data = ExecutionData(robot_pose, self.plan.world.state.data)
+        self.designator_ref.execution_data = exec_data
+        last_mod = self.plan.world._model_modification_blocks[-1]
+
+        result = self.designator_ref.perform()
+
+        exec_data.execution_end_pose = PoseStamped.from_spatial_type(self.plan.robot.root.global_pose)
+        exec_data.execution_end_world_state = self.plan.world.state.data
+        new_modifications = []
+        for i in range(len(self.plan.world._model_modification_blocks)):
+            if self.plan.world._model_modification_blocks[-i] is last_mod:
+                break
+            new_modifications.append(self.plan.world._model_modification_blocks[-i])
+        exec_data.modifications = new_modifications[::-1]
+
+        return result
 
     def __repr__(self, *args, **kwargs):
         return f"<Resolved {self.designator_ref.__class__.__name__}>"

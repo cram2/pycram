@@ -1,29 +1,24 @@
 import unittest
+from copy import deepcopy
 
 import sqlalchemy.sql.elements
 from sqlalchemy import create_engine, select, text
-from sqlalchemy.orm import registry, Session
+from sqlalchemy.orm import Session
 
-from pycram.datastructures.dataclasses import FrozenObject, Color
-from pycram.datastructures.enums import TorsoState, Arms, Grasp, DetectionTechnique, DetectionState, GripperState, \
-    WorldMode, ApproachDirection, VerticalAlignment
 from pycram.datastructures.grasp import GraspDescription
-from pycram.datastructures.pose import Vector3, Pose, PoseStamped
-from pycram.designator import ObjectDesignatorDescription
-from pycram.robot_plans import MoveTorsoActionDescription, ParkArmsAction, \
-    MoveTorsoAction, NavigateAction, PickUpAction, DetectActionDescription, DetectAction, \
-    PlaceActionDescription, TransportAction, PlaceAction, LookAtAction, SetGripperAction, OpenAction, CloseAction, \
-    ParkArmsActionDescription, TransportActionDescription, LookAtActionDescription, NavigateActionDescription, \
-    PickUpActionDescription, SetGripperActionDescription, OpenActionDescription, CloseActionDescription
+from pycram.datastructures.pose import Pose, PoseStamped
+from pycram.designator import ObjectDesignatorDescription, NamedObject
 from pycram.designators.object_designator import BelieveObject
 from pycram.language import SequentialPlan
 from pycram.orm.logging_hooks import insert
 from pycram.orm.ormatic_interface import *
-from pycram.plan import ResolvedActionNode
 from pycram.process_module import simulated_robot
-from pycram.robot_description import RobotDescription
+from pycram.robot_plans import MoveTorsoActionDescription, ParkArmsAction, \
+    DetectActionDescription, PlaceActionDescription, TransportAction, ParkArmsActionDescription, \
+    TransportActionDescription, LookAtActionDescription, NavigateActionDescription, \
+    PickUpActionDescription, SetGripperActionDescription, OpenActionDescription, CloseActionDescription
 from pycram.testing import BulletWorldTestCase
-from pycrap.ontologies import Milk, Apartment, Robot
+from pycrap.ontologies import Milk, Apartment
 
 
 class ORMaticBaseTestCaseMixin(BulletWorldTestCase):
@@ -49,17 +44,17 @@ class ORMaticBaseTestCaseMixin(BulletWorldTestCase):
 class PoseTestCases(ORMaticBaseTestCaseMixin):
 
     def plan(self):
-        object_description = ObjectDesignatorDescription(names=["milk"])
-        description = PlaceActionDescription(object_description, [PoseStamped
-                                             .from_list([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
-        torso_joint = RobotDescription.current_robot_description.torso_joint
-        self.assertEqual(description.resolve().object_designator.name, "milk")
         with simulated_robot:
-            plan = SequentialPlan(
-                NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
-                MoveTorsoActionDescription(TorsoState.HIGH),
-                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)),
-                description)
+            plan = SequentialPlan(self.context, self.robot_view,
+                                  NavigateActionDescription(
+                                      PoseStamped.from_list(self.world.root, [2, 2.2, 0], [0, 0, 0, 1]), True),
+                                  MoveTorsoActionDescription(TorsoState.HIGH),
+                                  PickUpActionDescription(NamedObject("milk.stl"), Arms.LEFT,
+                                                          GraspDescription(ApproachDirection.FRONT,
+                                                                           VerticalAlignment.NoAlignment, False)),
+                                  PlaceActionDescription(NamedObject("milk.stl"), [PoseStamped
+                                                         .from_list(self.world.root, [2.1, 2, 0.9], [0, 0, 0, 1])],
+                                                         [Arms.LEFT]))
             plan.perform()
         return plan
 
@@ -75,7 +70,7 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
         insert(plan, self.session)
         result = self.session.scalars(select(ActionDescriptionDAO)).all()
         self.assertTrue(
-            all([r.robot_position.pose is not None and r.robot_position.pose_id == r.robot_position.pose.id for r in
+            all([r.execution_data.execution_start_pose is not None and r.execution_data.execution_end_pose is not None for r in
                  result]))
 
     def test_pose_vs_pose_stamped(self):
@@ -85,7 +80,7 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
         pose_result = self.session.scalars(select(PoseDAO)).all()
         poses_from_pose_stamped_results = (self.session
                                            .scalars(select(PoseDAO)
-                                                    .where(
+        .where(
             PoseDAO.id.in_([r.pose_id for r in pose_stamped_result]))).all())
         self.assertTrue(all([r.pose is not None for r in pose_stamped_result]))
         self.assertTrue(all([r.position is not None and r.orientation is not None for r in pose_result]))
@@ -136,7 +131,8 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
                 ParkArmsActionDescription(Arms.BOTH),
                 PickUpActionDescription(object_description.resolve(), Arms.LEFT,
-                                        GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)),
+                                        GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment,
+                                                         False)),
                 NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1]), True),
                 PlaceActionDescription(object_description.resolve(),
                                        PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
@@ -158,7 +154,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
     def test_transportAction(self):
         object_description = ObjectDesignatorDescription(names=["milk"])
         action = TransportActionDescription(object_description.resolve(),
-                                 PoseStamped.from_list([1.3, 0.9, 0.9], [0, 0, 0, 1]), Arms.LEFT)
+                                            PoseStamped.from_list([1.3, 0.9, 0.9], [0, 0, 0, 1]), Arms.LEFT)
         with simulated_robot:
             action.perform()
         insert(action, self.session)
@@ -176,10 +172,13 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
             sp = SequentialPlan(
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
                 ParkArmsActionDescription(Arms.BOTH),
-                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)),
+                PickUpActionDescription(object_description.resolve(), Arms.LEFT,
+                                        GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment,
+                                                         False)),
                 NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1]), True),
-                PlaceActionDescription(object_description.resolve(), PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
-                            Arms.LEFT))
+                PlaceActionDescription(object_description.resolve(),
+                                       PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
+                                       Arms.LEFT))
             sp.perform()
         insert(sp, self.session)
         result = self.session.scalars(select(PickUpActionDAO)).first()
@@ -232,7 +231,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
             sp = SequentialPlan(
                 ParkArmsActionDescription(Arms.BOTH),
                 NavigateActionDescription(PoseStamped.from_list([1.81, 1.73, 0.0],
-                                                     [0.0, 0.0, 0.594, 0.804]), True),
+                                                                [0.0, 0.0, 0.594, 0.804]), True),
                 OpenActionDescription(handle_desig, arm=Arms.LEFT, grasping_prepose_distance=0.03),
                 CloseActionDescription(handle_desig, arm=Arms.LEFT, grasping_prepose_distance=0.03))
             sp.perform()
@@ -271,7 +270,8 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
     def test_type_casting(self):
         object_description = ObjectDesignatorDescription(names=["milk"], types=[Milk])
         action = PickUpActionDescription(object_description.resolve(), Arms.LEFT,
-                                GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False))
+                                         GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment,
+                                                          False))
         with simulated_robot:
             sp = SequentialPlan(
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
@@ -295,16 +295,19 @@ class RelationalAlgebraTestCase(ORMaticBaseTestCaseMixin):
             sp = SequentialPlan(
                 NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
                 ParkArmsActionDescription(Arms.BOTH),
-                PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)),
+                PickUpActionDescription(object_description.resolve(), Arms.LEFT,
+                                        GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment,
+                                                         False)),
                 NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1]), True),
-                PlaceActionDescription(object_description.resolve(), PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
+                PlaceActionDescription(object_description.resolve(),
+                                       PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
                                        Arms.LEFT))
             sp.perform()
         insert(sp, self.session)
 
-        filtered_navigate_results = self.session.scalars(select(NavigateActionDAO).where(NavigateActionDAO.id == 1)).all()
+        filtered_navigate_results = self.session.scalars(
+            select(NavigateActionDAO).where(NavigateActionDAO.id == 1)).all()
         self.assertEqual(1, len(filtered_navigate_results))
-
 
 # Tests for when views are fixed
 

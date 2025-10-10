@@ -7,6 +7,7 @@ from jedi.inference.gradual.typing import Tuple
 from semantic_world.robots import AbstractRobot
 from typing_extensions import Type, Any, Optional, Callable
 
+from ...datastructures.dataclasses import ExecutionData
 from ...datastructures.pose import PoseStamped
 from semantic_world.world import World
 from ...failures import PlanFailure
@@ -29,9 +30,11 @@ def record_object_pre_perform(action):
 
 @dataclass
 class ActionDescription(HasParameters):
-    robot_position: PoseStamped = field(init=False)
-    robot_torso_height: float = field(init=False)
-    robot_type: Type[Agent] = field(init=False)
+
+    execution_data: ExecutionData = field(init=False, repr=False)
+    """
+    Additional data that  is collected before and after the execution of the action.
+    """
 
     # Is assigned in the __post_init method of the ActionNode
     _plan_node: PlanNode = field(init=False, default=None)
