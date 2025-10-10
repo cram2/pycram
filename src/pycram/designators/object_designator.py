@@ -18,36 +18,6 @@ if TYPE_CHECKING:
     pass
 
 
-class OntologyObjectDesignatorDescription:
-    """
-    Description for Objects that can be found using ontological reasoning
-    """
-
-    search_result: List
-    """
-    The result from the search in the ontology.
-    """
-
-    def __init__(self, search_result: _SearchList):
-        self.search_result = list(search_result)
-
-    def __iter__(self) -> Iterable[Body]:
-        """
-        :return: The objects in the current world which match the search result in the 'is_a' relation.
-        """
-        for obj in World.current_world.objects:
-
-            # expand is_a of the object individual
-            is_a = obj.ontology_individual.is_a + [obj.ontology_individual]
-
-            # get the matching concepts
-            intersection = ([x for x in is_a if x in self.search_result])
-
-            # if it matches
-            if len(intersection) > 0:
-                yield obj
-
-
 class BelieveObject(ObjectDesignatorDescription):
     """
     Description for Objects that are only believed in.

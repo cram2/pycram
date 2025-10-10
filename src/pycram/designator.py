@@ -7,9 +7,11 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import get_type_hints
 
+from entity_query_language import an, entity, let, contains
+from semantic_world.reasoning.predicates import SpatialRelation
 from semantic_world.robots import AbstractRobot
 from semantic_world.world_description.world_entity import Body
-from typing_extensions import Type, List, Dict, Any, Optional, Callable, Self, Iterator
+from typing_extensions import Type, List, Dict, Any, Optional, Callable, Self, Iterator, Iterable, Union
 
 from pycrap.ontologies import PhysicalObject, Agent
 from .datastructures.enums import ObjectType
@@ -195,3 +197,42 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
         res.append(self.types[0])
         return res
 
+class EQLObjectDesignator(DesignatorDescription):
+    """
+    Description for objects found via an EQL query.
+    """
+    def __init__(self, eql_query):
+        super().__init__()
+        self.eql_query = eql_query
+
+    def __iter__(self) -> Iterator[Body]:
+        for obj in self.eql_query.evaluate():
+            yield obj
+
+class NamedObject(ObjectDesignatorDescription, PartialDesignator):
+    """
+    Description for objects with a specific name.
+    """
+
+    def __init__(self, name: Union[Iterable[str], str]):
+        """
+        Create a description for an object with a specific name.
+
+        :param name: The name of the object.
+        """
+        super().__init__()
+        PartialDesignator.__init__(self, ObjectDesignatorDescription, name=name)
+
+    def __iter__(self) -> Iterator[Body]:
+        """
+        Iterate through all possible objects fitting this description
+
+        :yield: A executed object designator_description
+        """
+        for params in self.generate_permutations():
+
+            query = an(entity(body := let(type_=Body, domain=self.world.bodies),
+                              contains(body.name.name, params['name'])))
+
+            for obj in query.evaluate():
+                yield obj
