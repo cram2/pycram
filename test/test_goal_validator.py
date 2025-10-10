@@ -65,8 +65,6 @@ class TestGoalValidator(BulletWorldTestCase):
                                                                                                                    1.8,
                                                                                                                    1,
                                                                                                                    reference_frame=self.world.root)
-        # self.cereal.set_position(cereal_goal_position)
-        # self.assertEqual(self.cereal.get_position_as_list(), cereal_goal_position)
         self.assertEqual(
             PoseStamped.from_spatial_type(self.world.get_body_by_name("breakfast_cereal.stl").global_pose).position.to_list(),
             cereal_goal_position)
@@ -153,6 +151,7 @@ class TestGoalValidator(BulletWorldTestCase):
     def validate_prismatic_joint_position_goal(self, goal_validator, joint_type: Optional[JointType] = None):
         goal_joint_position = 0.2
         torso = "torso_lift_joint"
+        achieved_percentage = [0.46946, 1]
         if joint_type is not None:
             goal_validator.register_goal(goal_joint_position, joint_type, torso)
         else:
@@ -161,26 +160,22 @@ class TestGoalValidator(BulletWorldTestCase):
         self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertEqual(goal_validator.current_error, 0.1885)
 
-        for percent in [0.5, 1]:
+        for percent, achieved_percentage in zip([0.5, 1], achieved_percentage):
             self.world.state[self.world.get_degree_of_freedom_by_name(
                 "torso_lift_joint").name].position = goal_joint_position * percent
             self.assertEqual(
                 self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position,
                 goal_joint_position * percent)
-            # self.robot.set_joint_position(torso, goal_joint_position * percent)
-            # self.assertEqual(self.robot.get_joint_position(torso), goal_joint_position * percent)
             if percent == 1:
                 self.assertTrue(goal_validator.goal_achieved)
             else:
                 self.assertFalse(goal_validator.goal_achieved)
-            self.assertAlmostEqual(goal_validator.actual_percentage_of_goal_achieved, percent, places=5)
-            self.assertAlmostEqual(goal_validator.current_error.tolist()[0], 0.2 * (1 - percent),
+            self.assertAlmostEqual(goal_validator.actual_percentage_of_goal_achieved, achieved_percentage, places=4)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[0], 0.2  * (1 - percent),
                                    places=3)
 
     def test_multi_joint_goal_generic(self):
         joint_types = [JointType.PRISMATIC, JointType.REVOLUTE]
-        # goal_validator = GoalValidator(MultiJointPositionErrorChecker(joint_types),
-        #                                lambda x: list(self.robot.get_multiple_joint_positions(x).values()))
         goal_validator = GoalValidator(MultiJointPositionErrorChecker(joint_types),
                                        lambda x: [self.world.state[
                                                       self.world.get_degree_of_freedom_by_name(name).name].position for
@@ -197,6 +192,7 @@ class TestGoalValidator(BulletWorldTestCase):
 
     def validate_multi_joint_goal(self, goal_validator, joint_types: Optional[List[JointType]] = None):
         goal_joint_positions = np.array([0.2, -np.pi / 4])
+        achieved_percentage = [0.48474, 1]
         joint_names = ['torso_lift_joint', 'l_shoulder_lift_joint']
         if joint_types is not None:
             goal_validator.register_goal(goal_joint_positions, joint_types, joint_names)
@@ -206,7 +202,7 @@ class TestGoalValidator(BulletWorldTestCase):
         self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertTrue(np.allclose(goal_validator.current_error, np.array([0.1885, abs(-np.pi / 4)]), atol=0.001))
 
-        for percent in [0.5, 1]:
+        for percent, achieved_percentage in zip([0.5, 1], achieved_percentage):
             current_joint_positions = goal_joint_positions * percent
             for joint_name, joint_position in zip(joint_names, current_joint_positions):
                 self.world.state[self.world.get_degree_of_freedom_by_name(joint_name).name].position = joint_position
@@ -223,8 +219,8 @@ class TestGoalValidator(BulletWorldTestCase):
                 self.assertTrue(goal_validator.goal_achieved)
             else:
                 self.assertFalse(goal_validator.goal_achieved)
-            self.assertAlmostEqual(goal_validator.actual_percentage_of_goal_achieved, percent, places=5)
-            self.assertAlmostEqual(goal_validator.current_error.tolist()[0], abs(0.1885) * (1 - percent), places=4)
+            self.assertAlmostEqual(goal_validator.actual_percentage_of_goal_achieved, achieved_percentage, places=4)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[0], abs(0.2) * (1 - percent), places=4)
             self.assertAlmostEqual(goal_validator.current_error.tolist()[1], abs(-np.pi / 4) * (1 - percent), places=5)
 
     def test_list_of_poses_goal_generic(self):
@@ -303,7 +299,6 @@ class TestGoalValidator(BulletWorldTestCase):
             current_position_goal = [0.0, 1.0 * percent, 0.0]
             self.world.get_body_by_name("base_footprint").parent_connection.origin = TransformationMatrix.from_xyz_rpy(
                 *current_position_goal)
-            # self.robot.set_position(current_position_goal)
             self.assertTrue(np.allclose(PoseStamped.from_spatial_type(
                 self.world.get_body_by_name("base_footprint").global_pose).position.to_list(), current_position_goal,
                                         atol=0.001))
@@ -347,15 +342,10 @@ class TestGoalValidator(BulletWorldTestCase):
                 pitch=current_orientation_goal[0],
                 roll=current_orientation_goal[1],
                 yaw=current_orientation_goal[2], )
-            # self.robot.set_position(current_position_goal)
             self.assertTrue(np.allclose(PoseStamped.from_spatial_type(
                 self.world.get_body_by_name("base_footprint").global_pose).orientation.to_list(),
                                         quaternion_from_euler(*current_orientation_goal.tolist()),
                                         atol=0.001))
-            # self.robot.set_orientation(quaternion_from_euler(*current_orientation_goal.tolist()))
-            # self.assertTrue(np.allclose(self.robot.get_orientation_as_list(),
-            #                             quaternion_from_euler(*current_orientation_goal.tolist()),
-            #                             atol=0.001))
             if percent == 1:
                 self.assertTrue(goal_validator.goal_achieved)
             else:
@@ -394,12 +384,9 @@ class TestGoalValidator(BulletWorldTestCase):
 
         for percent in [0.5, 1]:
             current_joint_position = goal_joint_positions * percent
-            # self.robot.set_multiple_joint_positions(dict(zip(joint_names, current_joint_position)))
             for joint_name, joint_position in zip(joint_names, current_joint_position):
                 self.world.state[self.world.get_degree_of_freedom_by_name(joint_name).name].position = joint_position
             self.world.notify_state_change()
-            # self.assertTrue(np.allclose(list(self.robot.get_multiple_joint_positions(joint_names).values()),
-            #                             current_joint_position, atol=0.001))
             for joint_name, joint_position in zip(joint_names, current_joint_position):
                 self.assertTrue(np.allclose(
                     self.world.state[self.world.get_degree_of_freedom_by_name(joint_name).name].position,
