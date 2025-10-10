@@ -50,7 +50,7 @@ def set_logger_format(logger_format: str):
     os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = logger_format
 
 def logwarn(message: str):
-    node.get_logger().warn(message)
+    node.get_logger().warning(message)
 
 def loginfo(message: str):
     node.get_logger().info(message)
@@ -62,7 +62,7 @@ def logdebug(message: str):
     node.get_logger().debug(message)
 
 def logwarn_once(message: str):
-    node.get_logger().warn(message, once=True)
+    node.get_logger().warning(message, once=True)
 
 def loginfo_once(message: str):
     node.get_logger().info(message, once=True)

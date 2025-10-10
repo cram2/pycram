@@ -74,8 +74,8 @@ class PlaceAction(ActionDescription):
         with self.world.modify_world():
             self.world.remove_connection(self.object_designator.parent_connection)
             connection = Connection6DoF(world_root, self.object_designator, _world=self.world)
-            connection.origin = obj_transform
             self.world.add_connection(connection)
+            connection.origin = obj_transform
 
         ee_view = ViewManager().get_end_effector_view(self.arm, self.robot_view)
 

@@ -87,6 +87,7 @@ class BulletWorldTestCase(EmptyWorldTestCase):
         cls.apartment_world.merge_world(cls.pr2_sem_world)
         cls.apartment_world.merge_world(cls.milk_world)
         cls.apartment_world.merge_world(cls.cereal_world)
+        print("parsed worlds")
 
         with cls.apartment_world.modify_world():
             pr2_root = cls.apartment_world.get_body_by_name("base_footprint")
@@ -100,6 +101,7 @@ class BulletWorldTestCase(EmptyWorldTestCase):
         cls.apartment_world.get_body_by_name("breakfast_cereal.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 1.8, 1, reference_frame=cls.apartment_world.root)
 
         cls.n = Node("test")
+        print("created node")
         # cls.viz_marker_publisher = VizMarkerPublisher(cls.apartment_world, n)
 
         cls.robot_view = PR2.from_world(cls.apartment_world)
@@ -109,10 +111,13 @@ class BulletWorldTestCase(EmptyWorldTestCase):
         cls.original_state_data = deepcopy(cls.apartment_world.state.data)
         cls.world = cls.apartment_world
         # cls.original_state_data = cls.apartment_world.state.data.copy()
+        print("setup class")
 
     def tearDown(self):
+        print("tear down")
         self.world.state.data = deepcopy(self.original_state_data)
         self.world.notify_state_change()
+
 
 
     @classmethod
