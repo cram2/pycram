@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import timedelta
 
@@ -37,30 +38,33 @@ class SearchAction(ActionDescription):
     """
 
     def plan(self) -> None:
+        SequentialPlan(self.context, self.robot_view,
         NavigateActionDescription(
-            CostmapLocation(target=self.target_location, visible_for=World.robot)).resolve().perform()
+            CostmapLocation(target=self.target_location, visible_for=self.robot_view))).perform()
 
-        lt = LocalTransformer()
-        target_base = lt.transform_pose(self.target_location, World.robot.tf_frame)
+        # lt = LocalTransformer()
+        # target_base = lt.transform_pose(self.target_location, World.robot.tf_frame)
 
-        target_base_left = target_base.copy()
+        target_base = PoseStamped.from_spatial_type(self.world.transform(self.target_location.to_spatial_type(), self.world.root))
+
+        target_base_left = deepcopy(target_base)
         target_base_left.pose.position.y -= 0.5
 
-        target_base_right = target_base.copy()
+        target_base_right = deepcopy(target_base)
         target_base_right.pose.position.y += 0.5
 
-        plan = TryInOrderPlan(self.context,
+        plan = TryInOrderPlan(self.context, self.robot_view,
             SequentialPlan(
-                self.context,
+                self.context, self.robot_view,
                 LookAtActionDescription(target_base_left),
                 DetectActionDescription(DetectionTechnique.TYPES,
                                         object_designator=BelieveObject(types=[self.object_type]))),
             SequentialPlan(
-                self.context,
+                self.context, self.robot_view,
                 LookAtActionDescription(target_base_right),
                 DetectActionDescription(DetectionTechnique.TYPES,
                                         object_designator=BelieveObject(types=[self.object_type]))),
-            SequentialPlan(self.context,
+            SequentialPlan(self.context, self.robot_view,
                 LookAtActionDescription(target_base),
                 DetectActionDescription(DetectionTechnique.TYPES,
                                         object_designator=BelieveObject(types=[self.object_type]))))

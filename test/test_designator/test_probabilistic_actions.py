@@ -8,6 +8,7 @@ from sqlalchemy import select
 from pycram.datastructures.enums import TaskStatus
 from pycram.datastructures.pose import PoseStamped
 from pycram.designator import ObjectDesignatorDescription
+from pycram.language import SequentialPlan
 from pycram.orm.ormatic_interface import Base, ResolvedActionNodeMappingDAO
 from pycram.robot_plans import MoveAndPickUpActionDescription, MoveAndPickUpAction
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUpParameterizer
@@ -39,9 +40,9 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
         #                    RobotDescription.current_robot_description.name + cls.extension)
 
     def test_orm(self):
-        odd = ObjectDesignatorDescription(types=[Milk])
-        mpa_description = MoveAndPickUpActionDescription(None, odd, None, None, None)
-        mpa = MoveAndPickUpParameterizer(mpa_description.root).create_action()
+        mpa_description = MoveAndPickUpActionDescription(None, [self.world.get_body_by_name("milk.stl")], None, None, None)
+        plan = SequentialPlan(self.context, self.robot_view, mpa_description)
+        mpa = MoveAndPickUpParameterizer(mpa_description).create_action()
 
         plan = Plan(ResolvedActionNode(designator_ref=mpa), self.world, self.robot_view)
 

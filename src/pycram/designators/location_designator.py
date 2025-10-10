@@ -1,7 +1,6 @@
 import dataclasses
 from copy import deepcopy
 
-import networkx as nx
 import numpy as np
 import rustworkx as rx
 from box import Box
@@ -35,7 +34,7 @@ from semantic_world.world_description.graph_of_convex_sets import GraphOfConvexS
 from semantic_world.world_description.shape_collection import BoundingBoxCollection
 from semantic_world.world_description.world_entity import Body
 from sortedcontainers import SortedSet
-from typing_extensions import List, Union, Iterable, Optional, Iterator, Dict, Tuple
+from typing_extensions import List, Union, Iterable, Optional, Iterator, Tuple
 
 from ..config.action_conf import ActionConfig
 from ..costmaps import (
@@ -145,17 +144,13 @@ def _create_target_sequence(
                     end_effector.front_facing_orientation.to_np()
                 )
             )
-            # side_grasp = np.array(robot.robot_description.get_arm_chain(reachable_arm).end_effector.grasps[
-            #                           approach_direction])
             side_grasp *= np.array([-1, -1, -1, 1])
             target_pose.rotate_by_quaternion(side_grasp.tolist())
 
-        target_pose = world.transform(
-            TransformationMatrix.from_point_rotation_matrix(
-                object_in_hand.global_pose[:3, 3], object_in_hand.global_pose[:3, :3]
-            ),
+        target_pose = PoseStamped.from_spatial_type(world.transform(
+            object_in_hand.global_pose,
             target_pose.frame_id,
-        )
+        ))
 
         # TODO: Find a good way to handle the approach offsets
         # approach_offset_cm = object_in_hand.get_approach_offset()
@@ -908,7 +903,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
             return None
 
         all_paths = rx.dijkstra_shortest_paths(free_space.graph, free_space.box_to_index_map[target_node])
-        navigation_space_graph = free_space.create_subgraph( [path for path in all_paths] )
+        navigation_space_graph = free_space.create_subgraph([path for path in all_paths])
         navigation_space_event = Event(
             *[node.simple_event for node in navigation_space_graph.graph.nodes()]
         )
@@ -1228,7 +1223,6 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
         """
         return next(iter(self))
 
-
     @staticmethod
     def _calculate_room_event(
             world: World, free_space_graph: GraphOfConvexSets, target_position: Vector3
@@ -1247,12 +1241,12 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
             for node in free_space_graph.graph.nodes()
         ])
         rays_start = np.array([
-                         [target_position.x, target_position.y, target_position.z + 0.2]
-                     ] * len(rays_end))
+                                  [target_position.x, target_position.y, target_position.z + 0.2]
+                              ] * len(rays_end))
 
         robot = world.get_views_by_type(AbstractRobot)[0]
         robot_pose = robot.root.global_pose
-        robot.root.parent_connection.origin = TransformationMatrix.from_xyz_quaternion(100 , 100, 0)
+        robot.root.parent_connection.origin = TransformationMatrix.from_xyz_quaternion(100, 100, 0)
 
         test = world.ray_tracer.ray_test(rays_start, rays_end)
         robot.root.parent_connection.origin = robot_pose
@@ -1261,7 +1255,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
 
         successful_hits = [
             [hx, hy] if (hx, hy) != (0.0, 0.0) else [rx, ry]
-            for (hx, hy, _ ), (rx, ry, _) in zip(hit_positions, rays_end)
+            for (hx, hy, _), (rx, ry, _) in zip(hit_positions, rays_end)
         ]
         hull = ConvexHull(successful_hits)
         A = hull.equations[:, :-1]
@@ -1325,8 +1319,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
                                                       reference_frame=self.world.root))
 
         all_paths = rx.dijkstra_shortest_paths(free_space.graph, free_space.box_to_index_map[target_node])
-        free_space_graph = free_space.create_subgraph( [path for path in all_paths] )
-
+        free_space_graph = free_space.create_subgraph([path for path in all_paths])
 
         room_condition = self._calculate_room_event(
             world, free_space_graph, target_position
@@ -1390,7 +1383,6 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
 
             self.test_world = deepcopy(self.world)
             self.test_world.name = "Test World"
-
 
             if params_box.visible_for or params_box.reachable_for:
                 robot_object = (
@@ -1465,8 +1457,8 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
                     [nav_x, nav_y], target_pose
                 )
                 pose_candidate = PoseStamped.from_list(self.world.root,
-                    [nav_x, nav_y, 0], nav_quat
-                )
+                                                       [nav_x, nav_y, 0], nav_quat
+                                                       )
                 test_robot.root.parent_connection.origin = pose_candidate.to_spatial_type()
                 # test_robot.set_pose(pose_candidate)
 
@@ -1502,7 +1494,8 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
                         test_robot,
                         params_box.object_in_hand,
                         params_box.reachable_arm,
-                        params_box.rotation_agnostic,
+                        self.test_world,
+                        rotation_agnostic=params_box.rotation_agnostic,
                     )
                     ee = ViewManager.get_arm_view(params_box.reachable_arm, test_robot)
                     is_reachable = pose_sequence_reachability_validator(

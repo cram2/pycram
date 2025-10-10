@@ -33,6 +33,7 @@ class DefaultNavigation(ProcessModule):
 
         connection = desig.world.get_connection(desig.world.root, robot_view.root)
         connection.origin = desig.target.to_spatial_type()
+        desig.world.notify_state_change()
 
 
 class DefaultMoveHead(ProcessModule):
@@ -95,6 +96,7 @@ class DefaultMoveGripper(ProcessModule):
         robot_view = ViewManager().find_robot_view_for_world(desig.world)
         gripper_state = JointStateManager().get_gripper_state(desig.gripper, desig.motion, robot_view)
         gripper_state.apply_to_world(desig.world)
+        desig.world.notify_state_change()\
 
 class DefaultDetecting(ProcessModule):
     """
