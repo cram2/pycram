@@ -21,7 +21,6 @@ from semantic_world.world import World
 from pycrap.ontologies import PhysicalObject
 from .datastructures.dataclasses import BoundingBox, BoundingBoxCollection
 from .datastructures.partial_designator import PartialDesignator
-from .graph_of_convex_sets import GraphOfConvexSets
 from .language import SequentialPlan
 from .plan import Plan, DesignatorNode, ActionNode
 

@@ -16,10 +16,10 @@ from pycram.orm.logging_hooks import insert
 from pycram.plan import Plan, ResolvedActionNode, PlanNode
 from pycram.process_module import simulated_robot
 from pycram.robot_description import RobotDescriptionManager, RobotDescription
-from pycram.testing import EmptyWorldTestCase
+from pycram.testing import EmptyWorldTestCase, BulletWorldTestCase
 from pycrap.ontologies import Robot, Milk
 
-class MoveAndPickUpTestCase(EmptyWorldTestCase):
+class MoveAndPickUpTestCase(BulletWorldTestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -32,18 +32,18 @@ class MoveAndPickUpTestCase(EmptyWorldTestCase):
         Base.metadata.create_all(bind=engine)
         cls.session = sqlalchemy.orm.sessionmaker(bind=engine)()
 
-        rdm = RobotDescriptionManager()
-        rdm.load_description("pr2")
-        cls.milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([0, 1, 0.9]))
-        cls.robot = Object(RobotDescription.current_robot_description.name, Robot,
-                           RobotDescription.current_robot_description.name + cls.extension)
+        # rdm = RobotDescriptionManager()
+        # rdm.load_description("pr2")
+        # cls.milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([0, 1, 0.9]))
+        # cls.robot = Object(RobotDescription.current_robot_description.name, Robot,
+        #                    RobotDescription.current_robot_description.name + cls.extension)
 
     def test_orm(self):
         odd = ObjectDesignatorDescription(types=[Milk])
         mpa_description = MoveAndPickUpActionDescription(None, odd, None, None, None)
         mpa = MoveAndPickUpParameterizer(mpa_description.root).create_action()
 
-        plan = Plan(ResolvedActionNode(designator_ref=mpa))
+        plan = Plan(ResolvedActionNode(designator_ref=mpa), self.world, self.robot_view)
 
         with simulated_robot:
             try:
