@@ -19,7 +19,7 @@ from ..failures import PlanFailure
 from ..language import LanguageNode, RepeatNode, TryInOrderNode, ParallelNode, TryAllNode, CodeNode, \
     MonitorNode
 from ..plan import ActionNode, MotionNode, PlanNode, ResolvedActionNode, DesignatorNode
-from ..robot_plans import ActionDescription
+from ..robot_plans import ActionDescription, BaseMotion
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -74,6 +74,7 @@ class DesignatorNodeMapping(AlternativeMapping[DesignatorNode]):
 @dataclass
 class ActionNodeMapping(AlternativeMapping[ActionNode]):
 
+    action: Type[ActionNode]
     status: TaskStatus = TaskStatus.CREATED
     start_time: Optional[datetime] = field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
@@ -86,6 +87,7 @@ class ActionNodeMapping(AlternativeMapping[ActionNode]):
         """
         return cls(
             status=obj.status,
+            action=obj.action,
             start_time=obj.start_time,
             end_time=obj.end_time,
             reason=obj.reason
@@ -94,6 +96,7 @@ class ActionNodeMapping(AlternativeMapping[ActionNode]):
 
 @dataclass
 class MotionNodeMapping(AlternativeMapping[MotionNode]):
+    action: Type[BaseMotion]
     status: TaskStatus = TaskStatus.CREATED
     start_time: Optional[datetime] = field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
@@ -106,6 +109,7 @@ class MotionNodeMapping(AlternativeMapping[MotionNode]):
         """
         return cls(
             status=obj.status,
+            action=obj.action,
             start_time=obj.start_time,
             end_time=obj.end_time,
             reason=obj.reason
@@ -116,6 +120,7 @@ class MotionNodeMapping(AlternativeMapping[MotionNode]):
 class ResolvedActionNodeMapping(AlternativeMapping[ResolvedActionNode]):
 
     designator_ref: ActionDescription
+    action: Type[ActionDescription]
 
     status: TaskStatus = TaskStatus.CREATED
     start_time: Optional[datetime] = field(default_factory=datetime.now)
@@ -129,6 +134,7 @@ class ResolvedActionNodeMapping(AlternativeMapping[ResolvedActionNode]):
         """
         return cls(
             designator_ref=obj.designator_ref,
+            action=obj.action,
             status=obj.status,
             start_time=obj.start_time,
             end_time=obj.end_time,

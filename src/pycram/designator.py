@@ -8,7 +8,6 @@ from datetime import timedelta
 from typing import get_type_hints
 
 from entity_query_language import an, entity, let, contains, symbolic_mode
-from semantic_world.reasoning.predicates import SpatialRelation
 from semantic_world.robots import AbstractRobot
 from semantic_world.world_description.world_entity import Body
 from typing_extensions import Type, List, Dict, Any, Optional, Callable, Self, Iterator, Iterable, Union

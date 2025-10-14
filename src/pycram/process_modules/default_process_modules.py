@@ -171,7 +171,7 @@ class DefaultMoveArmJoints(ProcessModule):
     list that should be applied or a pre-defined position can be used, such as "parking"
     """
 
-    def _execute(self, desig: MoveArmJointsMotion):
+    def _execute(self, desig: 'MoveArmJointsMotion'):
 
         if desig.right_arm_poses:
             for joint, position in desig.right_arm_poses.items():
@@ -458,7 +458,7 @@ class DefaultMoveArmJointsReal(ProcessModule):
     Moves the arm joints of the real robot to the given configuration while avoiding all collisions
     """
 
-    def _execute(self, designator: MoveArmJointsMotion):
+    def _execute(self, designator: 'MoveArmJointsMotion'):
         joint_goals = {}
         if designator.left_arm_poses:
             joint_goals.update(designator.left_arm_poses)

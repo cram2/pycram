@@ -14,7 +14,7 @@ from pycram.datastructures import grasp
 from pycram.language import SequentialNode
 from pycram.orm.casts import StringType
 from pycram.robot_plans.actions.composite import facing, searching, tool_based, transporting
-from pycrap.ontologies import PhysicalObject
+from pycram.robot_plans.motions import  container as motion_container, gripper as motion_gripper , misc as motion_misc, navigation as motion_navigation, robot_body as motion_robot_body
 from pycram.orm.model import *
 from pycram.datastructures.dataclasses import ExecutionData
 
@@ -40,6 +40,14 @@ classes |= set(classes_of_module(navigation))
 classes |= set(classes_of_module(placing))
 classes |= set(classes_of_module(robot_body)) | {ActionDescription}
 classes |= set(classes_of_module(grasp))
+
+# Motion Designator
+#classes |= set(classes_of_module(motion_gripper))
+#classes |= set(classes_of_module(motion_navigation))
+#classes |= set(classes_of_module(motion_container))
+#classes |= set(classes_of_module(motion_misc))
+#classes |= set(classes_of_module(motion_robot_body))
+
 classes |= {PlanNode, SequentialNode, RepeatNode}
 
 # remove classes that should not be mapped
