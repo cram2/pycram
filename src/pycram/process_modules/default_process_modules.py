@@ -29,9 +29,8 @@ class DefaultNavigation(ProcessModule):
     """
 
     def _execute(self, desig: MoveMotion):
-        robot_view = ViewManager().find_robot_view_for_world(desig.world)
 
-        connection = desig.world.get_connection(desig.world.root, robot_view.root)
+        connection = desig.world.get_connection(desig.world.root, desig.robot_view.root)
         connection.origin = desig.target.to_spatial_type()
         desig.world.notify_state_change()
 
@@ -44,8 +43,7 @@ class DefaultMoveHead(ProcessModule):
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
-        robot = ViewManager().find_robot_view_for_world(desig.world)
-        neck = ViewManager.get_neck_view(robot)
+        neck = ViewManager.get_neck_view(desig.robot_view)
 
         pan_link = neck.yaw_body
         tilt_link = neck.pitch_body
@@ -76,7 +74,7 @@ class DefaultMoveHead(ProcessModule):
         new_tilt = -np.arctan2(adjusted_pose_in_tilt[2],
                                np.sqrt(adjusted_pose_in_tilt[0] ** 2 + adjusted_pose_in_tilt[1] ** 2))
 
-        if robot.name in {"iCub", "tiago_dual"}:
+        if desig.robot_view.name in {"iCub", "tiago_dual"}:
             new_tilt = -new_tilt
 
         current_pan = pan_joint.position
@@ -93,8 +91,7 @@ class DefaultMoveGripper(ProcessModule):
     """
 
     def _execute(self, desig: MoveGripperMotion):
-        robot_view = ViewManager().find_robot_view_for_world(desig.world)
-        gripper_state = JointStateManager().get_gripper_state(desig.gripper, desig.motion, robot_view)
+        gripper_state = JointStateManager().get_gripper_state(desig.gripper, desig.motion, desig.robot_view)
         gripper_state.apply_to_world(desig.world)
         desig.world.notify_state_change()\
 
@@ -153,8 +150,7 @@ class DefaultMoveTCP(ProcessModule):
     """
 
     def _execute(self, desig: MoveTCPMotion):
-        robot_view = ViewManager().find_robot_view_for_world(desig.world)
-        arm = ViewManager.get_arm_view(desig.arm, robot_view)
+        arm = ViewManager.get_arm_view(desig.arm, desig.robot_view)
 
         target = desig.target.to_spatial_type()
 
@@ -211,7 +207,7 @@ class DefaultOpen(ProcessModule):
         goal_pose = link_pose_for_joint_config(desig.object_part, {
             container_connection.dof.name.name: max(lower_limit, upper_limit - 0.05)})
 
-        _move_arm_tcp(goal_pose, ViewManager().find_robot_view_for_world(desig.world), desig.arm, desig.world)
+        _move_arm_tcp(goal_pose, desig.robot_view, desig.arm, desig.world)
 
         container_connection.position = upper_limit
 
@@ -233,7 +229,7 @@ class DefaultClose(ProcessModule):
         goal_pose = link_pose_for_joint_config(desig.object_part, {
             container_connection.dof.name.name: min(lower_limit, upper_limit - 0.05)})
 
-        _move_arm_tcp(goal_pose, ViewManager().find_robot_view_for_world(desig.world), desig.arm, desig.world)
+        _move_arm_tcp(goal_pose, desig.robot_view, desig.arm, desig.world)
 
         container_connection.position = lower_limit
 
@@ -245,9 +241,8 @@ class DefaultMoveTCPWaypoints(ProcessModule):
 
     def _execute(self, desig: MoveTCPWaypointsMotion):
         waypoints = desig.waypoints
-        robot = ViewManager().find_robot_view_for_world(desig.world)
         for waypoint in waypoints:
-            _move_arm_tcp(waypoint, robot, desig.arm, desig.world)
+            _move_arm_tcp(waypoint, desig.robot_view, desig.arm, desig.world)
 
 
 def _move_arm_tcp(target: PoseStamped, robot: AbstractRobot, arm: Arms, world: World) -> None:

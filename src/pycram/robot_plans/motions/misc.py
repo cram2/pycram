@@ -35,7 +35,7 @@ class DetectingMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         obj_dict = pm_manager.detecting().execute(self)
         return obj_dict
 
@@ -52,5 +52,5 @@ class WorldStateDetectingMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         return pm_manager.world_state_detecting().execute(self)

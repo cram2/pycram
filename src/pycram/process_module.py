@@ -14,6 +14,7 @@ from threading import Lock
 import time
 from abc import ABC, abstractmethod
 
+from semantic_world.robots import AbstractRobot
 from semantic_world.world import World
 from typing_extensions import Callable, Any, Union, Optional, List
 
@@ -288,22 +289,21 @@ class ProcessModuleManager(ABC):
         self.available_pms.append(manager)
 
 
-    def get_manager(self, world: World) -> ManagerBase:
+    def get_manager(self, robot: AbstractRobot) -> ManagerBase:
         """
         Returns the Process Module manager for the currently loaded robot or None if there is no Manager.
 
         :return: ProcessModuleManager instance of the current robot
         """
         self.register_all_process_modules()
-        robot_view = ViewManager().find_robot_view_for_world(world)
         default_manager = None
 
         for pm_manager in self.available_pms:
-            if robot_view.name.name in pm_manager.robot_name:
+            if robot.name.name in pm_manager.robot_name:
                 return pm_manager
             if pm_manager.robot_name == "default":
                 default_manager = pm_manager
-        logwarn_once(f"No Process Module Manager found for robot: '{robot_view.name}' returning default process modules")
+        logwarn_once(f"No Process Module Manager found for robot: '{robot.name}' returning default process modules")
         return default_manager
 
         # manager = None

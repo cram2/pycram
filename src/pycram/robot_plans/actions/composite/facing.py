@@ -35,8 +35,7 @@ class FaceAtAction(ActionDescription):
 
     def plan(self) -> None:
         # get the robot position
-        robot_view = ViewManager().find_robot_view_for_world(self.world)
-        robot_position = PoseStamped.from_spatial_type(robot_view.root.global_pose)
+        robot_position = PoseStamped.from_spatial_type(self.robot_view.root.global_pose)
 
         # calculate orientation for robot to face the object
         angle = np.arctan2(robot_position.position.y - self.pose.position.y,

@@ -61,8 +61,7 @@ class ReachToPickUpAction(ActionDescription):
 
     def plan(self) -> None:
 
-        robot_view = ViewManager().find_robot_view_for_world(self.world)
-        end_effector = ViewManager.get_end_effector_view(self.arm, robot_view)
+        end_effector = ViewManager.get_end_effector_view(self.arm, self.robot_view)
 
         target_pose = self.grasp_description.get_grasp_pose(end_effector, self.object_designator)
         target_pre_pose = translate_pose_along_local_axis(target_pose, end_effector.front_facing_axis.to_np()[:3], ActionConfig.pick_up_prepose_distance)

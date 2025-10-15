@@ -259,7 +259,7 @@ class CostmapLocation(LocationDesignatorDescription):
         ground_pose = deepcopy(target)
         ground_pose.position.z = 0
 
-        occupancy = OccupancyCostmap(0.32, self.world, 200, 0.02, ground_pose)
+        occupancy = OccupancyCostmap(0.32, self.world, self.robot_view, 200, 0.02, ground_pose)
         final_map = occupancy
 
         if visible_for:
@@ -312,9 +312,9 @@ class CostmapLocation(LocationDesignatorDescription):
                     else params_box.reachable_for
                 )
             else:
-                robot_object = ViewManager.find_active_robots_for_world(test_world)
+                robot_object = None
 
-            test_robot = ViewManager.get_view_in_other_world(robot_object, test_world)
+            test_robot = robot_object.from_world(test_world)
 
             objects_in_hand = list(
                 set(
@@ -498,6 +498,7 @@ class AccessingLocation(LocationDesignatorDescription):
         ground_pose = PoseStamped.from_spatial_type(handle.global_pose)
         ground_pose.position.z = 0
         occupancy = OccupancyCostmap(
+            robot_view=self.robot_view,
             distance_to_obstacle=0.25,
             size=200,
             resolution=0.02,

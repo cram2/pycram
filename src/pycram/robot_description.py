@@ -968,38 +968,6 @@ T = TypeVar('T', bound=View)
 class ViewManager:
 
     @staticmethod
-    def find_active_robots_for_world(world: World) -> List[AbstractRobot]:
-        """
-        Find all active robots for a given world.
-
-        :param world: The world to search for active robots.
-        :return: A list of active robots in the world.
-        """
-        robot_views = world.get_views_by_type(AbstractRobot)
-        all_robots = AbstractRobot.__subclasses__()
-        for robot_class in all_robots:
-            if robot_class not in [view.__class__ for view in robot_views]:
-                try:
-                    robot_class.from_world(world)
-                except Exception as e:
-                    # TODO: Better error check and handling, error when the robot is not in the world are expected
-                    pass
-
-        return world.get_views_by_type(AbstractRobot)
-
-    def find_robot_view_for_world(self, world: World) -> AbstractRobot:
-        """
-        Find the robot view for a given world. If there are multiple robots, the first one is returned.
-
-        :param world: The world to search for a robot view.
-        :return: The first robot view in the world.
-        """
-        robots = self.find_active_robots_for_world(world)
-        if not robots:
-            print("No robot found in the world.")
-        return robots[0] if robots else None
-
-    @staticmethod
     def get_end_effector_view(arm: Arms, robot_view: AbstractRobot) -> Optional[Manipulator]:
 
         for man in robot_view.manipulators:
@@ -1037,19 +1005,3 @@ class ViewManager:
             return robot_view.neck
         else:
             raise ValueError(f"The robot view {robot_view} has no neck.")
-
-    @staticmethod
-    def get_view_in_other_world(view: T, other_world: World) -> Optional[T]:
-        """
-        Get the view in another world.
-
-        :param view: The view to search for.
-        :param other_world: The world to search in.
-        :return: The view in the other world, or None if not found.
-        """
-        try:
-            return view.from_world(other_world)
-        except ViewNotFoundError:
-            other_view = other_world.get_view_by_name(view.name)
-            if other_view is None:
-                return other_view.__class__.from_world(other_world)

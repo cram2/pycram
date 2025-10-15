@@ -17,6 +17,7 @@ from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import (
 from random_events.interval import Interval, reals, closed_open, closed
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
+from semantic_world.robots import AbstractRobot
 from semantic_world.spatial_computations.raytracer import RayTracer
 from semantic_world.world import World
 from semantic_world.world_description.world_entity import Body
@@ -334,6 +335,7 @@ class OccupancyCostmap(Costmap):
         self,
         distance_to_obstacle: float,
         world: World,
+        robot_view: AbstractRobot,
         size: Optional[int] = 100,
         resolution: Optional[float] = 0.02,
         origin: Optional[PoseStamped] = None,
@@ -356,6 +358,7 @@ class OccupancyCostmap(Costmap):
             is False.
         """
         self.world = world
+        self.robot_view = robot_view
 
         self.size = size
         self.origin = PoseStamped.from_list(self.world.root) if not origin else origin
@@ -397,14 +400,13 @@ class OccupancyCostmap(Costmap):
 
         ray_tracer = RayTracer(self.world)
         r_t = ray_tracer.ray_test(rays[:, 0], rays[:, 1])
-        robot_view = ViewManager().find_robot_view_for_world(self.world)
-        if robot_view:
+        if self.robot_view:
             res[r_t[1]] = [
                 (
                     1
                     if r_t[2][i]
                     in self.world.get_kinematic_structure_entities_of_branch(
-                        robot_view.root
+                        self.robot_view.root
                     )
                     else 0
                 )

@@ -23,7 +23,7 @@ class OpeningMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager(self.world)
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         return pm_manager.open().execute(self)
 
 
@@ -43,5 +43,5 @@ class ClosingMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager(self.world)
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         return pm_manager.close().execute(self)

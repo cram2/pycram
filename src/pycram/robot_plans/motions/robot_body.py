@@ -42,5 +42,5 @@ class MoveJointsMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager(self.world)
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         return pm_manager.move_joints().execute(self)

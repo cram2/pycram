@@ -22,7 +22,7 @@ class MoveMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager(self.world)
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         return pm_manager.navigate().execute(self)
 
 
@@ -34,5 +34,5 @@ class LookingMotion(BaseMotion):
     target: PoseStamped
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager(self.world)
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         return pm_manager.looking().execute(self)

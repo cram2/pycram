@@ -25,7 +25,7 @@ class CostmapTestCase(BulletWorldTestCase):
         test_world = deepcopy(self.world)
         with test_world.modify_world():
             test_world.move_branch(test_world.get_body_by_name("milk.stl"), test_world.get_body_by_name("r_gripper_tool_frame"))
-        o = OccupancyCostmap(0.2, size=200, resolution=0.02,
+        o = OccupancyCostmap(0.2, size=200, resolution=0.02, robot_view=self.robot_view,
                              origin=PoseStamped.from_list( [-1.5, 1, 0], [0, 0, 0, 1], test_world.root), world=test_world)
 
         self.assertEqual(400, np.sum(o.map[90:110, 90:110]))
@@ -33,7 +33,7 @@ class CostmapTestCase(BulletWorldTestCase):
         self.assertTrue(np.sum(o.map[80:90, 90:110]) != 0)
 
     def test_partition_into_rectangles(self):
-        ocm = OccupancyCostmap(distance_to_obstacle=0.2, size=200, resolution=0.02,
+        ocm = OccupancyCostmap(distance_to_obstacle=0.2, size=200, resolution=0.02, robot_view=self.robot_view,
                                origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1], self.world.root), world=self.world)
         rectangles = ocm.partitioning_rectangles()
         ocm.visualize()
@@ -56,14 +56,14 @@ class CostmapTestCase(BulletWorldTestCase):
         self.assertTrue(event.is_disjoint())
 
     def test_visualize(self):
-        o = OccupancyCostmap(0.2, size=200, resolution=0.02,
+        o = OccupancyCostmap(0.2, size=200, resolution=0.02, robot_view=self.robot_view,
                              origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1], self.world.root), world=self.world)
         o.visualize()
 
     def test_merge_costmap(self):
-        o = OccupancyCostmap(0.2, size=200, resolution=0.02,
+        o = OccupancyCostmap(0.2, size=200, resolution=0.02, robot_view=self.robot_view,
                              origin=PoseStamped.from_list( [0, 0, 0], [0, 0, 0, 1],self.world.root),world=self.world)
-        o2 = OccupancyCostmap(0.2, size=200, resolution=0.02,
+        o2 = OccupancyCostmap(0.2, size=200, resolution=0.02, robot_view=self.robot_view,
                               origin=PoseStamped.from_list( [0, 0, 0], [0, 0, 0, 1], self.world.root), world=self.world)
         o3 = o + o2
         self.assertTrue(np.all(o.map == o3.map))

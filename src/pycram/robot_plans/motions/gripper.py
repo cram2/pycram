@@ -59,7 +59,7 @@ class MoveArmJointsMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         return pm_manager.move_arm_joints().execute(self)
 
 
@@ -83,7 +83,7 @@ class MoveGripperMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager(self.world)
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         return pm_manager.move_gripper().execute(self)
 
 
@@ -111,7 +111,7 @@ class MoveTCPMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager(self.world)
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         try_motion(pm_manager.move_tcp(), self, ToolPoseNotReachedError)
 
 
@@ -139,5 +139,5 @@ class MoveTCPWaypointsMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager(self.world)
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         pm_manager.move_tcp_waypoints().execute(self)
