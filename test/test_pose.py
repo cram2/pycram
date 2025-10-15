@@ -17,7 +17,7 @@ class TestPose(BulletWorldTestCase):
 
 
     def test_pose_creation(self):
-        p = PoseStamped.from_list(self.world.root, [1, 2, 3], [0, 0, 0, 1])
+        p = PoseStamped.from_list([1, 2, 3], [0, 0, 0, 1], self.world.root)
 
         self.assertEqual(p.position.to_list(), [1, 2, 3])
         self.assertEqual(p.orientation.to_list(), [0, 0, 0, 1])
@@ -25,14 +25,14 @@ class TestPose(BulletWorldTestCase):
         self.assertEqual(p.pose.to_list(), [[1, 2, 3], [0, 0, 0, 1]])
 
     def test_pose_to_transform(self):
-        p = PoseStamped.from_list(self.world.root, [3, 2, 1], [0, 0, 1, 0])
+        p = PoseStamped.from_list( [3, 2, 1], [0, 0, 1, 0], self.world.root)
 
         transform = p.to_transform_stamped(self.world.get_body_by_name("r_gripper_tool_frame"))
 
         self.assertEqual(transform, TransformStamped.from_list([3, 2, 1], [0, 0, 1, 0], self.world.root, self.world.get_body_by_name("r_gripper_tool_frame")))
 
     def test_pose_edit(self):
-        p = PoseStamped.from_list(self.world.root, [3, 4, 5], [0, 1, 0, 0])
+        p = PoseStamped.from_list( [3, 4, 5], [0, 1, 0, 0],self.world.root)
 
         p.position = Vector3(1, 1, 1)
         self.assertEqual(p.position.to_list(), [1, 1, 1])
@@ -49,7 +49,7 @@ class TestPose(BulletWorldTestCase):
         self.assertEqual(p.orientation.to_list(), [0, 0, 1, 0])
 
     def test_pose_copy(self):
-        p1 = PoseStamped.from_list(self.world.root, [1, 2, 3], [0, 0, 0, 1])
+        p1 = PoseStamped.from_list( [1, 2, 3], [0, 0, 0, 1], self.world.root)
         p2 = deepcopy(p1)
 
         self.assertEqual(p1, p2)
@@ -96,8 +96,8 @@ class TestPose(BulletWorldTestCase):
         self.assertEqual(mul_t.translation.to_list(), [4, 4, 4])
 
     def test_is_facing_2d_axis(self):
-        a = PoseStamped.from_list(self.world.root, [0, 0, 0], [0, 0, 0, 1])  # facing +x
-        b = PoseStamped.from_list(self.world.root, [1, 0, 0], [0, 0, 0, 1])
+        a = PoseStamped.from_list( [0, 0, 0], [0, 0, 0, 1], self.world.root)  # facing +x
+        b = PoseStamped.from_list( [1, 0, 0], [0, 0, 0, 1], self.world.root)
 
         facing, angle = a.is_facing_2d_axis(b, axis=AxisIdentifier.X)
         self.assertTrue(facing)
@@ -109,8 +109,8 @@ class TestPose(BulletWorldTestCase):
         self.assertAlmostEqual(abs(angle_y), math.pi / 2, delta=1e-6)
 
     def test_is_facing_x_or_y(self):
-        a = PoseStamped.from_list(self.world.root, [0, 0, 0], [0, 0, 0, 1])
-        b = PoseStamped.from_list(self.world.root, [1, 0, 0], [0, 0, 0, 1])
+        a = PoseStamped.from_list( [0, 0, 0], [0, 0, 0, 1], self.world.root)
+        b = PoseStamped.from_list( [1, 0, 0], [0, 0, 0, 1], self.world.root)
 
         self.assertTrue(a.is_facing_x_or_y(b))
 

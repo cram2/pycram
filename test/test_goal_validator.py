@@ -29,7 +29,7 @@ class TestGoalValidator(BulletWorldTestCase):
         self.validate_pose_goal(pose_goal_validators)
 
     def validate_pose_goal(self, goal_validator):
-        milk_goal_pose = PoseStamped.from_list(self.world.root, [2.5, 2.4, 1])
+        milk_goal_pose = PoseStamped.from_list( [2.5, 2.4, 1], frame=self.world.root)
         goal_validator.register_goal(milk_goal_pose)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
@@ -241,8 +241,8 @@ class TestGoalValidator(BulletWorldTestCase):
         position_goal = [0.0, 1.0, 0.0]
         orientation_goal = np.array([0, 0, np.pi / 2])
         poses_goal = [
-            PoseStamped.from_list(self.world.root, position_goal, quaternion_from_euler(*orientation_goal.tolist())),
-            PoseStamped.from_list(self.world.root, position_goal, quaternion_from_euler(*orientation_goal.tolist()))]
+            PoseStamped.from_list( position_goal, quaternion_from_euler(*orientation_goal.tolist()), self.world.root),
+            PoseStamped.from_list( position_goal, quaternion_from_euler(*orientation_goal.tolist()), self.world.root)]
         goal_validator.register_goal(poses_goal)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
@@ -251,8 +251,8 @@ class TestGoalValidator(BulletWorldTestCase):
 
         for percent in [0.5, 1]:
             current_orientation_goal = orientation_goal * percent
-            current_pose_goal = PoseStamped.from_list(self.world.root, [0.0, 1.0 * percent, 0.0],
-                                                      quaternion_from_euler(*current_orientation_goal.tolist()))
+            current_pose_goal = PoseStamped.from_list( [0.0, 1.0 * percent, 0.0],
+                                                      quaternion_from_euler(*current_orientation_goal.tolist()), self.world.root)
             self.world.get_body_by_name("base_footprint").parent_connection.origin = current_pose_goal.to_spatial_type()
             self.assertTrue(np.allclose(PoseStamped.from_spatial_type(
                 self.world.get_body_by_name("base_footprint").global_pose).position.to_list(),

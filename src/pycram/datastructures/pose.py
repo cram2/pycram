@@ -491,7 +491,7 @@ class PoseStamped(HasParameters):
         return cls(pose=Pose(position=position, orientation=orientation), header=header)
 
     @classmethod
-    def from_list(cls, frame: Optional[Body], position: Optional[List[float]] = None, orientation: Optional[List[float]] = None) -> Self:
+    def from_list(cls, position: Optional[List[float]] = None, orientation: Optional[List[float]] = None, frame: Optional[Body] = None) -> Self:
         """
         Factory to create a PoseStamped from a list of position and orientation.
 
@@ -500,6 +500,8 @@ class PoseStamped(HasParameters):
         :param frame: Frame in which the pose is defined.
         :return: A new PoseStamped object.
         """
+        assert type(position) is list or position is None
+        assert type(orientation) is list or orientation is None or type(orientation) is tuple
         position = position or [0.0, 0.0, 0.0]
         orientation = orientation or [0.0, 0.0, 0.0, 1.0]
         return cls(pose=Pose.from_list(position, orientation),

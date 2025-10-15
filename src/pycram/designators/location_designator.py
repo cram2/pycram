@@ -1103,15 +1103,15 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
 
                 target_quat = OrientationGenerator.generate_random_orientation()
                 target_pose = PoseStamped.from_list(
-                    self.world.root,
                     [surface_x_coord, surface_y_coord, surface_z_coord],
                     target_quat,
+                    self.world.root
                 )
 
                 nav_quat = OrientationGenerator.generate_origin_orientation(
                     [nav_x, nav_y], target_pose
                 )
-                nav_pose = PoseStamped.from_list(self.world.root, [nav_x, nav_y, 0], nav_quat)
+                nav_pose = PoseStamped.from_list( [nav_x, nav_y, 0], nav_quat, self.world.root)
 
                 # Reject samples in which the robot is in collision with the environment despite the bloated obstacles,
                 # for example with the arms
@@ -1456,8 +1456,8 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
                 nav_quat = OrientationGenerator.generate_origin_orientation(
                     [nav_x, nav_y], target_pose
                 )
-                pose_candidate = PoseStamped.from_list(self.world.root,
-                                                       [nav_x, nav_y, 0], nav_quat
+                pose_candidate = PoseStamped.from_list(
+                                                       [nav_x, nav_y, 0], nav_quat, self.world.root
                                                        )
                 test_robot.root.parent_connection.origin = pose_candidate.to_spatial_type()
                 # test_robot.set_pose(pose_candidate)

@@ -706,4 +706,4 @@ def translate_pose_along_local_axis(pose: PoseStamped, axis: Union[List, np.ndar
     translation_in_world = rot_matrix @ normalized_translation_vector
     scaled_translation_vector = np.array(pose.position.to_list()) + translation_in_world * distance
 
-    return PoseStamped.from_list(pose.frame_id, list(scaled_translation_vector), pose.orientation.to_list())
+    return PoseStamped.from_list(list(scaled_translation_vector), pose.orientation.to_list(), pose.frame_id )

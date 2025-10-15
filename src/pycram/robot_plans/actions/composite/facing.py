@@ -44,7 +44,7 @@ class FaceAtAction(ActionDescription):
         orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
 
         # create new robot pose
-        new_robot_pose = PoseStamped.from_list(self.world.root, robot_position.position.to_list(), orientation)
+        new_robot_pose = PoseStamped.from_list( robot_position.position.to_list(), orientation, self.world.root)
 
         # turn robot
         SequentialPlan(self.context, self.robot_view,

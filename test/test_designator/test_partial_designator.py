@@ -81,12 +81,12 @@ class TestPartialActions(BulletWorldTestCase):
 
     def test_partial_navigate_action_perform(self):
         with simulated_robot:
-            move1 = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(PoseStamped.from_list(self.world.root, [1, 0, 0])))
+            move1 = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(PoseStamped.from_list([1, 0, 0], frame=self.world.root)))
             move1.perform()
             self.assertEqual(list(self.robot_view.root.global_pose.to_np()[:3, 3]), [1, 0, 0])
 
     def test_partial_navigate_action_multiple(self):
-        nav = NavigateActionDescription([PoseStamped.from_list(self.world.root, [1, 0, 0]), PoseStamped.from_list(self.world.root, [2, 0, 0]), PoseStamped.from_list(self.world.root, [3, 0, 0])])
+        nav = NavigateActionDescription([PoseStamped.from_list( [1, 0, 0], frame=self.world.root), PoseStamped.from_list( [2, 0, 0], frame=self.world.root), PoseStamped.from_list([3, 0, 0], frame=self.world.root)])
         nav_goals = [[1, 0, 0], [2, 0, 0], [3, 0, 0]]
         for i, action in enumerate(nav):
             with simulated_robot:

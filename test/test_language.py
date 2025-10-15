@@ -188,14 +188,14 @@ class LanguageTestCase(BulletWorldTestCase):
                                              SequentialPlan(self.context, self.robot_view, act, act2)))
 
     def test_perform_desig(self):
-        act = NavigateActionDescription([PoseStamped.from_list(self.world.root, [0.3, 0.3, 0])])
+        act = NavigateActionDescription([PoseStamped.from_list( [0.3, 0.3, 0], frame=self.world.root)])
         act2 = MoveTorsoActionDescription([TorsoState.HIGH])
         act3 = ParkArmsActionDescription([Arms.BOTH])
 
         plan = SequentialPlan(self.context, self.robot_view, act, act2, act3)
         with simulated_robot:
             plan.perform()
-        self.assertEqual(PoseStamped.from_spatial_type(self.robot_view.root.global_pose), PoseStamped.from_list(self.world.root, [0.3, 0.3, 0]))
+        self.assertEqual(PoseStamped.from_spatial_type(self.robot_view.root.global_pose), PoseStamped.from_list( [0.3, 0.3, 0], frame=self.world.root))
         self.assertEqual(self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position, 0.3)
 
 

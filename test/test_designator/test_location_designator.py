@@ -56,7 +56,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         for name, state in arm_park.items():
             self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         self.world.notify_state_change()
-        location_desig = CostmapLocation(PoseStamped.from_list(self.world.root, [2.2, 3, 1], [0, 0, 0, 1]), reachable_for=self.robot_view)
+        location_desig = CostmapLocation(PoseStamped.from_list([2.2, 3, 1], [0, 0, 0, 1], self.world.root), reachable_for=self.robot_view)
         plan = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(location_desig))
         location = location_desig.resolve()
         self.assertTrue(len(location.position.to_list()) == 3)
@@ -105,7 +105,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         for name, state in arm_park.items():
             self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
         self.world.notify_state_change()
-        location_desig = CostmapLocation(PoseStamped.from_list(self.world.root, [2.2, 3, 1]), visible_for=self.robot_view)
+        location_desig = CostmapLocation(PoseStamped.from_list([2.2, 3, 1], frame=self.world.root), visible_for=self.robot_view)
         plan = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(location_desig))
         location = location_desig.resolve()
         self.assertTrue(len(location.position.to_list()) == 3)
@@ -181,7 +181,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                     'r_wrist_roll_joint': 0.051}
         for name, state in arm_park.items():
             self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
-        location_desig = ProbabilisticCostmapLocation(PoseStamped.from_list(self.world.root, [0.4, 0.6, 0.9], [0, 0, 0, 1]), reachable_for=self.robot_view)
+        location_desig = ProbabilisticCostmapLocation(PoseStamped.from_list( [0.4, 0.6, 0.9], [0, 0, 0, 1], frame=self.world.root), reachable_for=self.robot_view)
         plan = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(location_desig))
         location = location_desig.resolve()
         self.assertTrue(len(location.position.to_list()) == 3)
@@ -228,7 +228,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                     'r_wrist_roll_joint': 0.051}
         for name, state in arm_park.items():
             self.world.state[self.world.get_degree_of_freedom_by_name(name).name].position = state
-        location_desig = ProbabilisticCostmapLocation(PoseStamped.from_list(self.world.root, [2, 2, 1]), visible_for=self.robot_view)
+        location_desig = ProbabilisticCostmapLocation(PoseStamped.from_list( [2, 2, 1], frame=self.world.root), visible_for=self.robot_view)
         plan = SequentialPlan(self.context, self.robot_view, NavigateActionDescription(location_desig))
         location = location_desig.resolve()
         self.assertTrue(len(location.position.to_list()) == 3)

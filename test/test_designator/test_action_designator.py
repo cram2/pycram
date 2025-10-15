@@ -66,11 +66,11 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
 
     def test_navigate(self):
-        description = NavigateActionDescription([PoseStamped.from_list(self.world.root, [0.3, 0, 0], [0, 0, 0, 1])])
+        description = NavigateActionDescription([PoseStamped.from_list( [0.3, 0, 0], [0, 0, 0, 1], self.world.root)])
         plan = SequentialPlan(self.context, self.robot_view, description)
         with simulated_robot:
             plan.perform()
-        self.assertEqual(description.resolve().target_location, PoseStamped.from_list(self.world.root, [0.3, 0, 0], [0, 0, 0, 1]))
+        self.assertEqual(description.resolve().target_location, PoseStamped.from_list( [0.3, 0, 0], [0, 0, 0, 1], self.world.root))
         # self.assertEqual(self.robot.get_pose(), PoseStamped.from_list([0.3, 0, 0]))
         expected_pose = np.eye(4)
         expected_pose[:3, 3] = [0.3, 0, 0]
@@ -84,7 +84,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         performable = ReachToPickUpActionDescription(self.world.get_body_by_name("milk.stl"),
                                                      Arms.LEFT, grasp_description)
         plan = SequentialPlan(self.context,self.robot_view,
-                              NavigateActionDescription(PoseStamped.from_list(self.world.root, [1.7, 1.5, 0], [0, 0, 0, 1]), True),
+                              NavigateActionDescription(PoseStamped.from_list( [1.7, 1.5, 0], [0, 0, 0, 1], self.world.root), True),
                               ParkArmsActionDescription(Arms.BOTH),
                               MoveTorsoActionDescription([TorsoState.HIGH]),
                               SetGripperActionDescription(Arms.LEFT, GripperState.OPEN),
@@ -99,7 +99,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         description = PickUpActionDescription(test_world.get_body_by_name("milk.stl"), [Arms.LEFT], [grasp_description])
 
         plan = SequentialPlan((test_world, None), test_robot,
-                              NavigateActionDescription(PoseStamped.from_list(test_world.root, [1.7, 1.5, 0], [0, 0, 0, 1]), True),
+                              NavigateActionDescription(PoseStamped.from_list([1.7, 1.5, 0], [0, 0, 0, 1], test_world.root), True),
                               MoveTorsoActionDescription([TorsoState.HIGH]),
                               description)
         with simulated_robot:
@@ -110,11 +110,11 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         test_world = deepcopy(self.world)
         test_robot = PR2.from_world(test_world)
         object_description = test_world.get_body_by_name("milk.stl")
-        description = PlaceActionDescription(object_description, PoseStamped.from_list(test_world.root, [2.2, 2, 1],
-                                                                                        [0, 0, 0, 1]),
+        description = PlaceActionDescription(object_description, PoseStamped.from_list( [2.2, 2, 1],
+                                                                                        [0, 0, 0, 1], test_world.root),
                                              [Arms.LEFT])
         plan = SequentialPlan((test_world, None), test_robot,
-                              NavigateActionDescription(PoseStamped.from_list(test_world.root, [1.7, 1.5, 0], [0, 0, 0, 1]), True),
+                              NavigateActionDescription(PoseStamped.from_list([1.7, 1.5, 0], [0, 0, 0, 1], test_world.root), True),
                               MoveTorsoActionDescription([TorsoState.HIGH]),
                               PickUpActionDescription(object_description, Arms.LEFT,
                                                       GraspDescription(ApproachDirection.FRONT,
@@ -127,8 +127,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                                                       test_world.get_body_by_name("milk.stl")) is None)
 
     def test_look_at(self):
-        description = LookAtAction.description([PoseStamped.from_list(self.world.root, [1, 0, 1])])
-        self.assertEqual(description.resolve().target, PoseStamped.from_list(self.world.root, [1, 0, 1]))
+        description = LookAtAction.description([PoseStamped.from_list([1, 0, 1], frame=self.world.root)])
+        self.assertEqual(description.resolve().target, PoseStamped.from_list([1, 0, 1], frame=self.world.root))
         plan = SequentialPlan(self.context,self.robot_view, description)
         with simulated_robot:
             # self._test_validate_action_pre_perform(description, LookAtGoalNotReached)
@@ -152,7 +152,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         plan = SequentialPlan(self.context,self.robot_view,
                               MoveTorsoActionDescription([TorsoState.HIGH]),
                             ParkArmsActionDescription(Arms.BOTH),
-                            NavigateActionDescription(PoseStamped.from_list(self.world.root, [1.75, 1.75, 0], [0, 0, 0.5, 1])),
+                            NavigateActionDescription(PoseStamped.from_list([1.75, 1.75, 0], [0, 0, 0.5, 1], self.world.root)),
                             OpenActionDescription(self.world.get_body_by_name("handle_cab10_t"), [Arms.LEFT]))
         with simulated_robot:
             plan.perform()
@@ -165,7 +165,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                               MoveTorsoActionDescription([TorsoState.HIGH]),
                               ParkArmsActionDescription(Arms.BOTH),
                               NavigateActionDescription(
-                                  PoseStamped.from_list(self.world.root, [1.75, 1.75, 0], [0, 0, 0.5, 1])),
+                                  PoseStamped.from_list( [1.75, 1.75, 0], [0, 0, 0.5, 1], self.world.root)),
                               CloseActionDescription(self.world.get_body_by_name("handle_cab10_t"), [Arms.LEFT]))
         with simulated_robot:
             plan.perform()
@@ -175,8 +175,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_transport(self):
         description = TransportActionDescription(self.world.get_body_by_name("milk.stl"),
-                                                 [PoseStamped.from_list(self.world.root, [3, 2.2, 0.95],
-                                                                        [0.0, 0.0, 1.0, 0.0])],
+                                                 [PoseStamped.from_list( [3, 2.2, 0.95],
+                                                                        [0.0, 0.0, 1.0, 0.0], self.world.root)],
                                                  [Arms.LEFT])
         plan = SequentialPlan(self.context,self.robot_view, MoveTorsoActionDescription([TorsoState.HIGH]),
                               description)
@@ -189,7 +189,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_grasping(self):
         description = GraspingActionDescription(self.world.get_body_by_name("milk.stl"), [Arms.RIGHT])
         plan = SequentialPlan(self.context,self.robot_view,
-                              NavigateActionDescription(PoseStamped.from_list(self.world.root, [1.8, 1.8, 0]), True),
+                              NavigateActionDescription(PoseStamped.from_list([1.8, 1.8, 0], frame=self.world.root), True),
                               description)
         with simulated_robot:
             plan.perform()
@@ -232,7 +232,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     @unittest.skip
     def test_search_action(self):
         plan = SequentialPlan(self.context,self.robot_view, MoveTorsoActionDescription([TorsoState.HIGH]),
-                              SearchActionDescription(PoseStamped.from_list(self.world.root, [2, 2, 1]), Milk))
+                              SearchActionDescription(PoseStamped.from_list( [2, 2, 1], self.world.root), Milk))
         with simulated_robot:
             milk = plan.perform()
         self.assertTrue(milk)

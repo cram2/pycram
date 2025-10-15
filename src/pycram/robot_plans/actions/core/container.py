@@ -39,7 +39,8 @@ class OpenAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        SequentialPlan(self.context, GraspingActionDescription(self.object_designator, self.arm,
+        SequentialPlan(self.context, self.robot_view,
+                       GraspingActionDescription(self.object_designator, self.arm,
                                                                                self.grasping_prepose_distance),
                        OpeningMotion(self.object_designator, self.arm),
 
@@ -84,7 +85,7 @@ class CloseAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        SequentialPlan(self.context,
+        SequentialPlan(self.context, self.robot_view,
                        GraspingActionDescription(self.object_designator, self.arm, self.grasping_prepose_distance),
                        ClosingMotion(self.object_designator, self.arm),
                        MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True)).perform()

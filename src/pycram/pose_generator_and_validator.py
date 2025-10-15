@@ -173,7 +173,7 @@ class PoseGenerator(Iterable[PoseStamped]):
                 map_to_point.translation.to_list(), self.costmap.origin
             )
             yield PoseStamped.from_list(
-                self.costmap.world.root, map_to_point.translation.to_list(), orientation
+                 map_to_point.translation.to_list(), orientation, self.costmap.world.root
             )
 
     @staticmethod

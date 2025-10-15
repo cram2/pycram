@@ -1062,7 +1062,7 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
             + np.pi
         )
         orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
-        return PoseStamped.from_list(self.world.root, position, orientation)
+        return PoseStamped.from_list( position, orientation,self.world.root)
 
     def __iter__(self) -> Iterator[PoseStamped]:
         model = self.as_distribution()
