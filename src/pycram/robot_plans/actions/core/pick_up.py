@@ -9,7 +9,6 @@ from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from ...motions.gripper import MoveGripperMotion, MoveTCPMotion
 from ....config.action_conf import ActionConfig
-from ....datastructures.dataclasses import FrozenObject
 from ....datastructures.enums import Arms, Grasp, GripperState, MovementType, \
     FindBodyInRegionMethod
 from ....datastructures.grasp import GraspDescription
@@ -49,11 +48,6 @@ class ReachToPickUpAction(ActionDescription):
     The grasp description that should be used for picking up the object
     """
 
-    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
-    """
-    The object at the time this Action got created. It is used to be a static, information holding entity. It is
-    not updated when the world object is changed.
-    """
     _pre_perform_callbacks = []
     """
     List to save the callbacks which should be called before performing the action.
@@ -134,12 +128,6 @@ class PickUpAction(ActionDescription):
     grasp_description: GraspDescription
     """
     The GraspDescription that should be used for picking up the object
-    """
-
-    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
-    """
-    The object at the time this Action got created. It is used to be a static, information holding entity. It is
-    not updated when the BulletWorld object is changed.
     """
 
     _pre_perform_callbacks = []

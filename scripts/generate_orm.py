@@ -6,6 +6,8 @@ from enum import Enum
 from ormatic.dao import AlternativeMapping
 from ormatic.ormatic import logger, ORMatic
 from ormatic.utils import recursive_subclasses, classes_of_module
+from semantic_world.world_description.world_entity import Body
+
 from pycram.robot_plans.actions.core import container, pick_up, misc, navigation, placing, robot_body
 from sqlalchemy import create_engine
 from sqlalchemy.orm import registry, Session
@@ -41,6 +43,9 @@ classes |= set(classes_of_module(placing))
 classes |= set(classes_of_module(robot_body)) | {ActionDescription}
 classes |= set(classes_of_module(grasp))
 
+# Semantic World Classes
+classes |=  {Body}
+
 # Motion Designator
 #classes |= set(classes_of_module(motion_gripper))
 #classes |= set(classes_of_module(motion_navigation))
@@ -65,7 +70,7 @@ def generate_orm():
     Generate the ORM classes for the pycram package.
     """
     # Create an ORMatic object with the classes to be mapped
-    ormatic = ORMatic(list(classes))
+    ormatic = ORMatic(list(classes), type_mappings={np.ndarray: NumpyType})
 
     # Generate the ORM classes
     ormatic.make_all_tables()

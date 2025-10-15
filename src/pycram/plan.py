@@ -12,6 +12,7 @@ import rustworkx.visualization
 from mercurial.revset import children
 from semantic_world.robots import AbstractRobot
 from semantic_world.world import World
+from semantic_world.world_description.world_entity import Body
 from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
 from .datastructures.dataclasses import ExecutionData
@@ -695,6 +696,13 @@ class ResolvedActionNode(DesignatorNode):
         self.designator_ref.execution_data = exec_data
         last_mod = self.plan.world._model_modification_blocks[-1]
 
+        manipulated_bodies = list(filter(lambda x: isinstance(x, Body), self.kwargs.values()))
+        manipulated_body = manipulated_bodies[0] if manipulated_bodies else None
+
+        if manipulated_body:
+            exec_data.manipulated_body = manipulated_body
+            exec_data.manipulated_body_pose_start = PoseStamped.from_spatial_type(manipulated_body.global_pose)
+
         result = self.designator_ref.perform()
 
         exec_data.execution_end_pose = PoseStamped.from_spatial_type(self.plan.robot.root.global_pose)
@@ -705,6 +713,9 @@ class ResolvedActionNode(DesignatorNode):
                 break
             new_modifications.append(self.plan.world._model_modification_blocks[-i])
         exec_data.modifications = new_modifications[::-1]
+
+        if manipulated_body:
+            exec_data.manipulated_body_pose_end = PoseStamped.from_spatial_type(manipulated_body.global_pose)
 
         return result
 

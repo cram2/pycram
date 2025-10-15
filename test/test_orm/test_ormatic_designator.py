@@ -1,6 +1,7 @@
 import unittest
 from copy import deepcopy
 
+import numpy as np
 import sqlalchemy.sql.elements
 from semantic_world.robots import PR2
 from sqlalchemy import create_engine, select, text
@@ -191,8 +192,6 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
             sp.perform()
         insert(sp, self.session)
         result = self.session.scalars(select(PickUpActionDAO)).first()
-        frozen_objects = self.session.scalars(select(FrozenObjectMappingDAO)).all()
-        self.assertIsNotNone(result.object_at_execution)
 
     @unittest.skip("frozen object dosen't work atm")
     def test_lookAt_and_detectAction(self):
@@ -290,6 +289,98 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         insert(sp, self.session)
         object_result = self.session.scalars(select(FrozenObjectMappingDAO)).all()
         self.assertEqual(len(object_result), 2)
+
+
+
+
+class ExecDataTest(ORMaticBaseTestCaseMixin):
+
+    def plan(self, test_world):
+        test_robot = PR2.from_world(test_world)
+        with simulated_robot:
+            with simulated_robot:
+                sp = SequentialPlan((test_world, None), test_robot,
+                                    NavigateActionDescription(
+                                        PoseStamped.from_list(test_world.root, [0.6, 0.4, 0], [0, 0, 0, 1]), True),
+                                    ParkArmsActionDescription(Arms.BOTH),
+                                    PickUpActionDescription(test_world.get_body_by_name("milk.stl"), Arms.LEFT,
+                                                            GraspDescription(ApproachDirection.FRONT,
+                                                                             VerticalAlignment.NoAlignment,
+                                                                             False)),
+                                    NavigateActionDescription(
+                                        PoseStamped.from_list(test_world.root, [1.3, 1, 0], [0, 0, 0, 1]), True),
+                                    MoveTorsoActionDescription(TorsoState.HIGH),
+                                    PlaceActionDescription(test_world.get_body_by_name("milk.stl"),
+                                                           PoseStamped.from_list(test_world.root, [2.0, 1.6, 1.],
+                                                                                 [0, 0, 0, 1]),
+                                                           Arms.LEFT))
+
+            sp.perform()
+        insert(sp, self.session)
+
+    def test_exec_creation(self):
+        plan = SequentialPlan(self.context, self.robot_view,
+                              NavigateActionDescription(PoseStamped.from_list(self.world.root, [0.6, 0.4, 0], [0, 0, 0, 1]), True),)
+
+        with simulated_robot:
+            plan.perform()
+        insert(plan, self.session)
+        exec_data = self.session.scalars(select(ExecutionDataDAO)).all()
+        self.assertIsNotNone(exec_data)
+
+    def test_pose(self):
+        plan = SequentialPlan(self.context, self.robot_view,
+                              NavigateActionDescription(
+                                  PoseStamped.from_list(self.world.root, [0.6, 0.4, 0], [0, 0, 0, 1]), True), )
+
+        with simulated_robot:
+            plan.perform()
+        insert(plan, self.session)
+        exec_data = self.session.scalars(select(ExecutionDataDAO)).all()[0]
+        self.assertIsNotNone(exec_data)
+        self.assertListEqual([0, 0, 0], PoseStampedDAO.from_dao(exec_data.execution_start_pose).pose.position.to_list())
+        self.assertListEqual([0.6, 0.4, 0], PoseStampedDAO.from_dao(exec_data.execution_end_pose).pose.position.to_list())
+
+    def test_manipulated_body_pose(self):
+        test_world = deepcopy(self.world)
+
+        self.plan(test_world)
+
+        pick_up = self.session.scalars(select(PickUpActionDAO)).all()[0]
+        place = self.session.scalars(select(PlaceActionDAO)).all()[0]
+        self.assertIsNotNone(pick_up.execution_data.manipulated_body_pose_start)
+        self.assertIsNotNone(pick_up.execution_data.manipulated_body_pose_end)
+        start_pose_pick = PoseStampedDAO.from_dao(pick_up.execution_data.manipulated_body_pose_start)
+        end_pose_pick = PoseStampedDAO.from_dao(pick_up.execution_data.manipulated_body_pose_end)
+        start_pose_place = PoseStampedDAO.from_dao(place.execution_data.manipulated_body_pose_start)
+        end_pose_place = PoseStampedDAO.from_dao(place.execution_data.manipulated_body_pose_end)
+
+        self.assertListEqual([2.2, 2, 1], start_pose_pick.position.to_list())
+        # Check that the end_pose of pick_up and start pose of place are not equal because of navigate in between
+        for pick, place in zip(end_pose_pick.position.to_list(), start_pose_place.position.to_list()):
+            self.assertNotEqual(pick, place)
+        np.testing.assert_almost_equal([2.0, 1.6, 1], end_pose_place.position.to_list())
+
+    def test_manipulated_body(self):
+        test_world = deepcopy(self.world)
+
+        self.plan(test_world)
+
+        pick_up = self.session.scalars(select(PickUpActionDAO)).all()[0]
+        self.assertIsNotNone(pick_up.execution_data.manipulated_body)
+        milk = BodyDAO.from_dao(pick_up.execution_data.manipulated_body)
+        # self.assertEqual(milk.name.name, "milk.stl")
+
+    def test_state(self):
+        plan = SequentialPlan(self.context, self.robot_view,
+                              NavigateActionDescription(
+                                  PoseStamped.from_list(self.world.root, [0.6, 0.4, 0], [0, 0, 0, 1]), True), )
+        with simulated_robot:
+            plan.perform()
+        insert(plan, self.session)
+        navigate = self.session.scalars(select(NavigateActionDAO)).all()[0]
+        self.assertIsNotNone(navigate.execution_data.execution_start_world_state)
+
 
 
 class RelationalAlgebraTestCase(ORMaticBaseTestCaseMixin):

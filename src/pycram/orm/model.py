@@ -4,8 +4,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Type, List
 
+import numpy as np
 from ormatic.dao import AlternativeMapping
 from random_events.utils import recursive_subclasses
+from sqlalchemy import TypeDecorator, types, Dialect
+from sqlalchemy.sql.type_api import _T
 from typing_extensions import Optional, Any, Dict
 
 from pycrap.ontologies import PhysicalObject
@@ -220,4 +223,20 @@ class MonitorNodeMapping(AlternativeMapping[MonitorNode]):
 #     @classproperty
 #     def explicit_mapping(cls) -> Type:
 #         return MonitorNode
+
+
+
+class NumpyType(TypeDecorator):
+    """
+    Type that casts field which are of numpy nd array type
+    """
+
+    impl = types.LargeBinary(4 * 1024 * 1024 * 1024 - 1)  # 4 GB max
+
+    def process_bind_param(self, value: np.ndarray, dialect):
+        array = value.astype(np.float64)
+        return array.tobytes()
+
+    def process_result_value(self, value: impl, dialect) -> Optional[np.ndarray]:
+        return np.frombuffer(value, dtype=np.float64)
 
