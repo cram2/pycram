@@ -11,7 +11,6 @@ from ..ros import get_node_names
 
 from ..datastructures.enums import JointType, ObjectType, Arms
 from ..datastructures.pose import PoseStamped
-from ..datastructures.dataclasses import MeshVisualShape
 from ..ros import get_service_proxy
 from ..robot_description import RobotDescription
 

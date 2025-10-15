@@ -13,13 +13,16 @@ from random_events.product_algebra import Event, SimpleEvent
 from random_events.set import Set
 from random_events.utils import recursive_subclasses
 from random_events.variable import Symbolic, Integer, Variable, Continuous
+from semantic_world.datastructures.variables import SpatialVariables
 from semantic_world.robots import AbstractRobot
+from semantic_world.world_description.geometry import BoundingBox
+from semantic_world.world_description.graph_of_convex_sets import GraphOfConvexSets
+from semantic_world.world_description.shape_collection import BoundingBoxCollection
 from sortedcontainers import SortedSet
 
 from semantic_world.world import World
 
 from pycrap.ontologies import PhysicalObject
-from .datastructures.dataclasses import BoundingBox, BoundingBoxCollection
 from .datastructures.partial_designator import PartialDesignator
 from .language import SequentialPlan
 from .plan import Plan, DesignatorNode, ActionNode
@@ -146,7 +149,8 @@ def collision_free_event(world: World, search_space: Optional[BoundingBoxCollect
         :return: An event that describes the free space.
         """
 
-        xy = SortedSet([BoundingBox.x_variable, BoundingBox.y_variable])
+        # xy = SortedSet([BoundingBox.x_variable, BoundingBox.y_variable])
+        xy = SpatialVariables.xy
 
         # create search space for calculations
         if search_space is None:
@@ -163,9 +167,9 @@ def collision_free_event(world: World, search_space: Optional[BoundingBoxCollect
         free_space = free_space.marginal(xy)
 
         # create floor level
-        z_event = SimpleEvent({BoundingBox.z_variable: singleton(0.)}).as_composite_set()
+        z_event = SimpleEvent({SpatialVariables.z.value: singleton(0.)}).as_composite_set()
         z_event.fill_missing_variables(xy)
-        free_space.fill_missing_variables(SortedSet([BoundingBox.z_variable]))
+        free_space.fill_missing_variables(SortedSet([SpatialVariables.z.value]))
         free_space &= z_event
 
         return free_space

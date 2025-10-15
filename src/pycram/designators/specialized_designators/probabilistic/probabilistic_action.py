@@ -10,12 +10,13 @@ from probabilistic_model.utils import MissingDict
 from random_events.product_algebra import SimpleEvent
 from random_events.set import Set
 from random_events.variable import Symbolic, Continuous
+from semantic_world.world_description.geometry import BoundingBox
 from semantic_world.world_description.world_entity import Body
 from sqlalchemy import select
 from typing_extensions import Optional, List
 
 from ....robot_plans import MoveAndPickUpAction
-from ....datastructures.dataclasses import BoundingBox
+# from ....datastructures.dataclasses import BoundingBox
 from ....datastructures.enums import Arms, Grasp, VerticalAlignment, ApproachDirection
 from ....datastructures.grasp import GraspDescription
 from ....datastructures.partial_designator import PartialDesignator

@@ -22,8 +22,8 @@ from semantic_world.world import World
 from semantic_world.world_description.world_entity import Body
 from typing_extensions import Tuple, List, Optional, Iterator
 
-from .datastructures.dataclasses import AxisAlignedBoundingBox
-from .datastructures.dataclasses import BoxVisualShape, Color
+# from .datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape
+from .datastructures.dataclasses import Color
 from .datastructures.pose import PoseStamped, Point
 from .datastructures.pose import TransformStamped
 from .robot_description import ViewManager
