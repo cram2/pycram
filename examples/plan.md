@@ -22,6 +22,19 @@ are associated with a designator and can be performed by the robot.
 We will now go through a simple example of how to create a plan using the PyCRAM language. To create a plan you always 
 need a language expression.
 
+# Setup a World 
+
+```python
+from pycram.process_module import simulated_robot
+from pycram.testing import setup_world
+from semantic_world.robots import PR2
+
+world = setup_world()
+
+pr2 = PR2.from_world(world)
+```
+
+
 ## Example Plan
 
 ```python
@@ -33,14 +46,14 @@ from pycram.language import SequentialPlan
 navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = SequentialPlan(navigate, park)
+plan = SequentialPlan((world, None), pr2, navigate, park)
 ```
 
 This will create a simple plan which has a SequentialNode as its root and two DesignatorNodes as its children. You can 
-plot the plan using the `plot` method.
+plot the plan using the `plot_plan_structure` method.
 
 ```python
-plan.plot()
+plan.plot_plan_structure()
 ```
 
 ## Arguments of Nodes
@@ -67,14 +80,6 @@ Plans can be executed using the `perform` method. This method will execute the p
 of Action Designators.
 
 ```python
-from pycram.process_module import simulated_robot
-from pycram.worlds.bullet_world import BulletWorld
-from pycram.world_concepts.world_object import Object
-from pycrap.ontologies import Robot
-
-world = BulletWorld()
-
-pr2 = Object("pr2", Robot, "pr2.urdf")
 
 with simulated_robot:
     plan.perform()

@@ -465,7 +465,7 @@ class PoseStamped(HasParameters):
     def __repr__(self):
         return (f"Pose: {[round(v, 3) for v in [self.position.x, self.position.y, self.position.z]]}, "
                 f"{[round(v, 3) for v in [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]]} "
-                f"in frame_id {self.frame_id.name}")
+                f"in frame_id {self.frame_id.name if self.frame_id is not None else None}")
 
     def ros_message(self):
         """

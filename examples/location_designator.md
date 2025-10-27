@@ -1,4 +1,4 @@
----
+from pycram.language import SequentialPlanfrom pycram.robot_plans import NavigateActionDescriptionfrom pycram.language import SequentialPlan---
 jupyter:
   jupytext:
     text_representation:
@@ -38,29 +38,12 @@ colliding with the environment. To do this we need a BulletWorld since the costm
 state of the BulletWorld.
 
 ```python
-from pycram.worlds.bullet_world import BulletWorld
-from pycram.world_concepts.world_object import Object
-from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import PoseStamped
-from pycrap.ontologies import Apartment, Robot, Milk
+from pycram.testing import setup_world
+from semantic_world.robots import PR2
 
-use_multiverse = False
-viz_marker_publisher = None
-if use_multiverse:
-    try:
-        from pycram.worlds.multiverse import Multiverse
 
-        world = Multiverse()
-    except ImportError:
-        raise ImportError("Multiverse is not installed, please install it to use it.")
-else:
-    from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
-
-    world = BulletWorld()
-    viz_marker_publisher = VizMarkerPublisher()
-
-apartment = Object("apartment", Apartment, "apartment.urdf")
-pr2 = Object("pr2", Robot, "pr2.urdf", pose=PoseStamped.from_list([1, 2, 0]))
+world = setup_world()
+pr2_view = PR2.from_world(world)
 ```
 
 Next up we will create the location designator description, the {meth}`~pycram.designators.location_designator.CostmapLocation` that we will be using needs a
@@ -70,18 +53,20 @@ that the robot should be able to see or reach.
 In this case we only want poses where the robot can be placed, this is the default behaviour of the location designator
 which we will be extending later.
 
+Since every designator in PyCRAM needs to be part of a plan we create a simple plan which contains our Location Designator.
+
 ```python
-from pycram.designators.location_designator import CostmapLocation
-
-target = apartment.get_pose()
-
-location_description = CostmapLocation(target)
-
-pose = location_description.resolve()
-
-if viz_marker_publisher is not None:
-    viz_marker_publisher._stop_publishing()
-print(pose)
+# from pycram.designators.location_designator import CostmapLocation
+# from pycram.language import SequentialPlan
+# from pycram.robot_plans import NavigateActionDescription
+# 
+# location_description = CostmapLocation(world.root)
+# 
+# location_description = SequentialPlan((world, None), pr2_view, NavigateActionDescription(location_description))
+# 
+# pose = location_description.resolve()
+# 
+# print(pose)
 ```
 
 ## Reachable
@@ -94,19 +79,19 @@ Since a robot is needed we will use the PR2 and use a milk as a target point for
 PR2 will be set to 0.2 since otherwise the arms of the robot will be too low to reach on the countertop.
 
 ```python
-pr2.set_joint_position("torso_lift_joint", 0.2)
-milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
+with world.modify_world():
+    world.state[world.get_degree_of_freedom_by_name("torso_lift_joint").name].position = 0.2
 
 ```
 
 ```python
 from pycram.designators.location_designator import CostmapLocation
 from pycram.designators.object_designator import BelieveObject
+from pycram.language import SequentialPlan
 
-target = BelieveObject(names=["milk"]).resolve()
-robot_desig = BelieveObject(names=["pr2"]).resolve()
+location_description = CostmapLocation(target=world.get_body_by_name("milk.stl"), reachable_for=pr2_view)
 
-location_description = CostmapLocation(target=target, reachable_for=robot_desig)
+SequentialPlan((world, None), pr2_view, location_description)
 
 print(location_description.resolve())
 ```

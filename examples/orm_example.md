@@ -40,30 +40,33 @@ from pycram.robot_plans import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms, ObjectType, Grasp, WorldMode, TorsoState
-from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.object_designator import *
 from pycram.datastructures.pose import PoseStamped
 from pycrap.ontologies import Robot, Kitchen, Milk, Cereal
 from pycram.language import SequentialPlan
+from pycram.testing import setup_world
+from semantic_world.robots import PR2
 
-world = BulletWorld(WorldMode.DIRECT)
-pr2 = Object("pr2", Robot, "pr2.urdf")
-kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
-milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
-cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=PoseStamped.from_list([1.3, 0.7, 0.95]))
-milk_desig = ObjectDesignatorDescription(names=["milk"])
-cereal_desig = ObjectDesignatorDescription(names=["cereal"])
-robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
-kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
+world = setup_world()
+pr2_view = PR2.from_world(world)
+# 
+# world = BulletWorld(WorldMode.DIRECT)
+# pr2 = Object("pr2", Robot, "pr2.urdf")
+# kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
+# milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
+# cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=PoseStamped.from_list([1.3, 0.7, 0.95]))
+# milk_desig = ObjectDesignatorDescription(names=["milk"])
+# cereal_desig = ObjectDesignatorDescription(names=["cereal"])
+# robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
+# kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
 
-object_description = ObjectDesignatorDescription(names=["milk"])
 with simulated_robot:
-    sp = SequentialPlan(
+    sp = SequentialPlan((world, None), pr2_view,
         NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
         ParkArmsActionDescription(Arms.BOTH),
-        PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)),
-        NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1]), True),
-        PlaceActionDescription(object_description.resolve(), PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
+        PickUpActionDescription(world.get_body_by_name("milk.stl"), Arms.LEFT, GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)),
+        NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.], [0, 0, 0, 1], world.root), True),
+        PlaceActionDescription(world.get_body_by_name("milk.stl"), PoseStamped.from_list([2.0, 1.6, 0.9], [0, 0, 0, 1], world.root),
                                Arms.LEFT))
     sp.perform()
 ```
@@ -115,8 +118,9 @@ from pycram.datastructures.dataclasses import FrozenObject
 from pycram.robot_plans import PickUpAction
 
 object_actions = (session.scalars(select(Vector3DAO)
-    .join(PickUpActionDAO.object_at_execution)
-    .join(FrozenObjectMappingDAO.pose)
+    # .join(PickUpActionDAO.object_at_execution)
+    # .join(FrozenObjectMappingDAO.pose)
+    .join(PickUpActionDAO.execution_data.manipulated_body_pose_start)
     .join(PoseStampedDAO.pose)
     .join(PoseDAO.position)).all())
 print(*object_actions, sep="\n")

@@ -1,4 +1,4 @@
----
+from copy import deepcopyfrom copy import deepcopy---
 jupyter:
   jupytext:
     text_representation:
@@ -25,13 +25,22 @@ message so if you are familiar with that this should be easy.
 
 * **Position:** A position means the position in cartesian space, so the x, y, and z coordinates.
 * **Orientation:** An orientation is the rotation in all three axes represented as a quaternion with x, y, z, w.
-* **Pose:** A pose is the combination of a position and an orientation. Poses in PyCRAM also contain a frame of
-  reference to which the position and orientation are relative.
+* **Pose:** A pose is the combination of a position and an orientation. 
+
+
+```python
+from pycram.testing import setup_world
+
+world = setup_world()
+```
+
+Poses in PyCRAM also contain a frame of reference to which the position and orientation are relative. This is given as 
+a Body in the world. For the "map" frame of a world you can use the root property.
 
 ```python
 from pycram.datastructures.pose import PoseStamped
 
-example_pose = PoseStamped.from_list([1, 2, 3], [0, 0, 0, 1], "map")
+example_pose = PoseStamped.from_list([1, 2, 3], [0, 0, 0, 1], world.root)
 print(example_pose)
 ```
 
@@ -46,7 +55,7 @@ default_pose = PoseStamped()
 print(default_pose)
 ```
 
-In case no parameter is provided the defualt parameter are:
+In case no parameter is provided the default parameter are:
 
 * position: ```[0, 0, 0]```
 * orientation: ```[o, 0, 0, 1]```
@@ -57,7 +66,7 @@ The following example will show how to access the data stored in a pose.
 ```python
 from pycram.datastructures.pose import PoseStamped
 
-example_pose = PoseStamped.from_list([1, 2, 3], [0, 0, 0, 1], "map")
+example_pose = PoseStamped.from_list([1, 2, 3], [0, 0, 0, 1], world.root)
 
 print(f"Access to a component of the position: {example_pose.position.y}")
 
@@ -79,7 +88,7 @@ You can also edit the data saved in a Pose, similar to how you access it.
 ```python
 from pycram.datastructures.pose import PoseStamped
 
-example_pose = PoseStamped.from_list([1, 2, 3], [0, 0, 0, 1], "map")
+example_pose = PoseStamped.from_list([1, 2, 3], [0, 0, 0, 1])
 
 # Edit a single component of the position 
 example_pose.position.x = 3
@@ -101,10 +110,11 @@ would affect the instanced passed to the method.
 
 ```python
 from pycram.datastructures.pose import PoseStamped
+from copy import deepcopy
 
-example_pose = PoseStamped.from_list([1, 2, 3], [0, 0, 0, 1], "map")
+example_pose = PoseStamped.from_list([1, 2, 3], [0, 0, 0, 1])
 
-copy_pose = example_pose.copy()
+copy_pose = deepcopy(example_pose)
 
 print(example_pose, "\n")
 print(copy_pose)
@@ -121,9 +131,9 @@ which represents the transformation from the ```map``` frame to the ```milk``` f
 ```python
 from pycram.datastructures.pose import PoseStamped
 
-milk_pose = PoseStamped.from_list([3, 4, 1], [1, 0, 0, 1], "map")
+milk_pose = PoseStamped.from_list([3, 4, 1], [1, 0, 0, 1], world.root)
 
-milk_transform = milk_pose.to_transform_stamped("milk")
+milk_transform = milk_pose.to_transform_stamped(world.get_body_by_name("milk.stl"))
 
 print(milk_transform)
 ```
@@ -145,7 +155,7 @@ as of TransformStamped which.
 ```python
 from pycram.datastructures.pose import TransformStamped
 
-example_transform = TransformStamped.from_list([1, 2, 2], [0, 0, 0, 1], "map", "object")
+example_transform = TransformStamped.from_list([1, 2, 2], [0, 0, 0, 1], world.root, world.get_body_by_name("milk.stl"))
 
 print(example_transform)
 ```
@@ -156,7 +166,7 @@ more details please look at the Pose example or the API documentation.
 ```python
 from pycram.datastructures.pose import TransformStamped
 
-example_transform = TransformStamped.from_list([2, 5, 1], [0, 0, 1, 1], "map", "object")
+example_transform = TransformStamped.from_list([2, 5, 1], [0, 0, 1, 1], world.root, world.get_body_by_name("milk.stl"))
 
 print(f"Access the rotation:\n{example_transform.rotation}", "\n")
 
@@ -177,16 +187,17 @@ Also like in Poses Transforms have a ```copy``` method which creates an exact co
 
 ```python
 from pycram.datastructures.pose import TransformStamped
+from copy import deepcopy
 
-milk_transform = TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], "map", "milk")
+milk_transform = TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], world.root, world.get_body_by_name("milk.stl"))
 
 milk_pose = milk_transform.to_pose_stamped()
 
 print(f"The converted pose:\n{milk_pose}", "\n")
 
-example_transform = TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], "map", "milk")
+example_transform = TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], world.root, world.get_body_by_name("milk.stl"))
 
-copy_transform = example_transform.copy()
+copy_transform = deepcopy(example_transform)
 
 print(f"The copied transform:\n{copy_transform}")
 ```
@@ -208,9 +219,9 @@ these two we get the Transform from ```map``` to ```milk``` frame.
 ```python
 from pycram.datastructures.pose import TransformStamped
 
-map_to_hand = TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], "map", "hand")
+map_to_hand = TransformStamped.from_list([1, 1, 1], [0, 0, 0, 1], world.root, world.get_body_by_name("r_gripper_tool_frame"))
 
-hand_to_milk = TransformStamped.from_list([0.1, 0.05, 0], [0, 0, 0, 1], "hand", "milk")
+hand_to_milk = TransformStamped.from_list([0.1, 0.05, 0], [0, 0, 0, 1], world.get_body_by_name("r_gripper_tool_frame"), world.get_body_by_name("milk.stl"))
 
 map_to_milk = map_to_hand * hand_to_milk
 
@@ -225,7 +236,7 @@ Transform from ```milk``` to ```map``` .
 ```python
 from pycram.datastructures.pose import TransformStamped
 
-map_to_milk = TransformStamped.from_list([1, 1, 0.5], [0, 0, 0, 1], "map", "milk")
+map_to_milk = TransformStamped.from_list([1, 1, 0.5], [0, 0, 0, 1], world.root, world.get_body_by_name("milk.stl"))
 
 milk_to_map = ~map_to_milk
 
@@ -241,9 +252,9 @@ and ```hand``` to ```milk```.
 ```python
 from pycram.datastructures.pose import TransformStamped
 
-map_to_milk = TransformStamped.from_list([1.1, 1.05, 1], [0, 0, 0, 1], "map", "milk")
+map_to_milk = TransformStamped.from_list([1.1, 1.05, 1], [0, 0, 0, 1], world.root, world.get_body_by_name("milk.stl"))
 
-hand_to_milk = TransformStamped.from_list([0.1, 0.05, 0], [0, 0, 0, 1], "hand", "milk")
+hand_to_milk = TransformStamped.from_list([0.1, 0.05, 0], [0, 0, 0, 1], world.get_body_by_name("r_gripper_tool_frame"), world.get_body_by_name("milk.stl"))
 
 map_to_milk = map_to_milk.inverse_times(hand_to_milk)
 

@@ -36,6 +36,34 @@ def cleanup_ros(self):
         if rclpy.ok():
             rclpy.shutdown()
 
+def setup_world() -> World:
+    pr2_sem_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots",
+                                                          "pr2_calibrated_with_ft.urdf")).parse()
+    apartment_world = URDFParser.from_file(
+        os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
+    milk_world = STLParser(
+        os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "milk.stl")).parse()
+    cereal_world = STLParser(
+        os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "breakfast_cereal.stl")).parse()
+    apartment_world.merge_world(pr2_sem_world)
+    apartment_world.merge_world(milk_world)
+    apartment_world.merge_world(cereal_world)
+
+    with apartment_world.modify_world():
+        pr2_root = apartment_world.get_body_by_name("base_footprint")
+        apartment_root = apartment_world.root
+        apartment_world.remove_connection(pr2_root.parent_connection)
+        c_root_bf = OmniDrive(parent=apartment_root, child=pr2_root, _world=apartment_world)
+        apartment_world.add_connection(c_root_bf)
+
+    apartment_world.get_body_by_name("milk.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2,
+                                                                                                                  2, 1,
+                                                                                                                  reference_frame=apartment_world.root)
+    apartment_world.get_body_by_name(
+        "breakfast_cereal.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 1.8, 1,
+                                                                                             reference_frame=apartment_world.root)
+    return apartment_world
+
 class SemanticWorldTestCase(unittest.TestCase):
     world: World
 
@@ -80,24 +108,8 @@ class BulletWorldTestCase(EmptyWorldTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.pr2_sem_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots", "pr2_calibrated_with_ft.urdf")).parse()
-        cls.apartment_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
-        cls.milk_world = STLParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "milk.stl")).parse()
-        cls.cereal_world = STLParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "breakfast_cereal.stl")).parse()
-        cls.apartment_world.merge_world(cls.pr2_sem_world)
-        cls.apartment_world.merge_world(cls.milk_world)
-        cls.apartment_world.merge_world(cls.cereal_world)
 
-        with cls.apartment_world.modify_world():
-            pr2_root = cls.apartment_world.get_body_by_name("base_footprint")
-            apartment_root = cls.apartment_world.root
-            cls.apartment_world.remove_connection(pr2_root.parent_connection)
-            c_root_bf = OmniDrive(parent=apartment_root, child=pr2_root, _world=cls.apartment_world)
-            cls.apartment_world.add_connection(c_root_bf)
-
-
-        cls.apartment_world.get_body_by_name("milk.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 2, 1, reference_frame=cls.apartment_world.root)
-        cls.apartment_world.get_body_by_name("breakfast_cereal.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 1.8, 1, reference_frame=cls.apartment_world.root)
+        cls.apartment_world = setup_world()
 
         cls.n = Node("test")
         # cls.viz_marker_publisher = VizMarkerPublisher(cls.apartment_world, n)

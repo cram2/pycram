@@ -22,14 +22,5 @@ class TestObjectDesignator(BulletWorldTestCase):
         self.assertEqual(obj.pose, frozen_copy.pose)
 
 
-class OntologyObjectDesignatorDescriptionTestCase(BulletWorldTestCase):
-
-    def test_type_query_for_food(self):
-        self.world.ontology.reason()
-        result = self.world.ontology.search(type=Food)
-        self.assertEqual(len(result), 2)
-
-
-
 if __name__ == '__main__':
     unittest.main()

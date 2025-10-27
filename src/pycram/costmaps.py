@@ -9,7 +9,6 @@ import numpy as np
 import psutil
 import random_events
 from matplotlib import colors
-from mercurial.revset import origin
 from probabilistic_model.probabilistic_circuit.rx.helper import uniform_measure_of_event
 from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import (
     ProbabilisticCircuit,

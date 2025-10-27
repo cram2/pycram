@@ -37,6 +37,19 @@ The Sequential plan is the only one which aborts the execution once an error is 
 When using the plan language a tree structure of the plan is created where the language expressions are nodes and
 designators are leafs. 
 
+# Setup the World
+
+If you are performing a plan with a simulated robot, you need a BulletWorld.
+
+```python
+from pycram.testing import setup_world
+from semantic_world.robots import PR2
+
+world = setup_world()
+pr2_view = PR2.from_world(world)
+```
+
+
 ## Sequential
 
 This language expression allows to execute designators one after another, if one of the designators raises an exception
@@ -53,13 +66,13 @@ from pycram.language import SequentialPlan
 navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = SequentialPlan(navigate, park)
+plan = SequentialPlan((world, None), pr2_view, navigate, park)
 ```
 
 With this simple plan created we can inspect it and render the created tree structure.
 
 ```python
-plan.plot()
+plan.plot_plan_structure()
 ```
 
 As you can see there is the root node which is the language expression and then there are the leafs which are the
@@ -69,21 +82,8 @@ without any error the ParkArmsAction will be executed.
 The plan can be executed by wrapping it inside a ```with simulated_robot``` environment and calling perform on the
 plan.
 
-If you are performing a plan with a simulated robot, you need a BulletWorld.
-
-```python
-from pycram.worlds.bullet_world import BulletWorld
-from pycram.world_concepts.world_object import Object
-from pycrap.ontologies import Robot
-
-world = BulletWorld()
-pr2 = Object("pr2", Robot, "pr2.urdf")
-```
-
 ```python
 from pycram.process_module import simulated_robot
-
-world.reset_world()
 
 with simulated_robot:
     plan.perform()
@@ -104,12 +104,10 @@ from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 from pycram.language import TryAllPLan
 
-world.reset_world()
-
 navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = TryAllPLan(navigate, park)
+plan = TryAllPLan((world, None), pr2_view, navigate, park)
 
 with simulated_robot:
     plan.perform()
@@ -143,12 +141,10 @@ from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 from pycram.language import ParallelPlan
 
-world.reset_world()
-
 navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = ParallelPlan(navigate, park)
+plan = ParallelPlan((world, None), pr2_view, navigate, park)
 
 with simulated_robot:
     plan.perform()
@@ -168,12 +164,10 @@ from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 from pycram.language import TryAllPLan
 
-world.reset_world()
-
 navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = TryAllPLan(navigate, park)
+plan = TryAllPLan((world, None), pr2_view, navigate, park)
 
 with simulated_robot:
     plan.perform()
@@ -198,13 +192,11 @@ from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 from pycram.language import SequentialPlan, ParallelPlan
 
-world.reset_world()
-
 navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
 park = ParkArmsActionDescription([Arms.BOTH])
 move_torso = MoveTorsoActionDescription([TorsoState.HIGH])
 
-plan = ParallelPlan(navigate, SequentialPlan(park, move_torso))
+plan = ParallelPlan((world, None), pr2_view, navigate, SequentialPlan((world, None), pr2_view, park, move_torso))
 
 with simulated_robot:
     plan.perform()
@@ -234,10 +226,10 @@ def code_test(param):
 
 
 park = ParkArmsActionDescription([Arms.BOTH])
-code = CodePlan(lambda: print("This is from the code object"))
-code_func = CodePlan(code_test, {"param": "Code function"})
+code = CodePlan((world, None), pr2_view, lambda: print("This is from the code object"))
+code_func = CodePlan((world, None), pr2_view, code_test, {"param": "Code function"})
 
-plan = ParallelPlan(park, code, code_func)
+plan = ParallelPlan((world, None), pr2_view, park, code, code_func)
 
 with simulated_robot:
     plan.perform()
@@ -268,9 +260,9 @@ def code_test():
 
 
 navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
-code_func = CodePlan(code_test)
+code_func = CodePlan((world, None), pr2_view, code_test)
 
-plan = ParallelPlan(navigate, code_func)
+plan = ParallelPlan((world, None), pr2_view, navigate, code_func)
 
 with simulated_robot:
     plan.perform()
@@ -297,7 +289,7 @@ from pycram.language import SequentialPlan, RepeatPlan
 move_torso_up = MoveTorsoActionDescription([TorsoState.HIGH, TorsoState.MID, TorsoState.LOW])
 move_torso_down = MoveTorsoActionDescription([TorsoState.LOW, TorsoState.MID, TorsoState.HIGH])
 
-plan = RepeatPlan(3, SequentialPlan(move_torso_up, move_torso_down))
+plan = RepeatPlan((world, None), pr2_view, 3, SequentialPlan((world, None), pr2_view, move_torso_up, move_torso_down))
 
 with simulated_robot:
     plan.perform()
@@ -330,7 +322,7 @@ def monitor_func():
     return True
 
 
-plan = MonitorPlan(monitor_func, RepeatPlan(3, SequentialPlan(move_torso_up, move_torso_down)))
+plan = MonitorPlan(monitor_func, (world, None), pr2_view, RepeatPlan((world, None), pr2_view, 3, SequentialPlan((world, None), pr2_view, move_torso_up, move_torso_down)))
 
 with simulated_robot:
     plan.perform()
@@ -355,16 +347,10 @@ def monitor_func():
 move_torso_up = MoveTorsoActionDescription([TorsoState.HIGH, TorsoState.MID, TorsoState.LOW])
 move_torso_down = MoveTorsoActionDescription([TorsoState.LOW, TorsoState.MID, TorsoState.HIGH])
 
-plan = MonitorPlan(monitor_func, RepeatPlan(3, SequentialPlan(move_torso_up, move_torso_down)), behavior="resume")
+plan = MonitorPlan(monitor_func, (world, None), pr2_view, RepeatPlan((world, None), pr2_view, 3, SequentialPlan((world, None), pr2_view, move_torso_up, move_torso_down)), behavior="resume")
 
 with simulated_robot:
     plan.perform()
 ```
 This will resume the execution of the monitored plan as soon as the condition is fulfilled.
 
-
-If you are finished with this example you can close the world with the cell below.
-
-```python
-world.exit()
-```
