@@ -6,7 +6,7 @@ import rustworkx
 from semantic_world.adapters.viz_marker import VizMarkerPublisher
 from semantic_world.robots import PR2
 
-from pycram.datastructures.enums import Arms, GripperState, DetectionTechnique, TorsoState, \
+from pycram.datastructures.enums import Arms, GripperState as GripperStateEnum, DetectionTechnique, TorsoState, \
     StaticJointState, ApproachDirection, VerticalAlignment
 from pycram.datastructures.pose import PoseStamped
 from pycram.designator import ObjectDesignatorDescription
@@ -37,13 +37,13 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
 
     def test_set_gripper(self):
-        description = SetGripperActionDescription([Arms.LEFT], [GripperState.OPEN, GripperState.CLOSE])
+        description = SetGripperActionDescription([Arms.LEFT], [GripperStateEnum.OPEN, GripperStateEnum.CLOSE])
         plan = SequentialPlan(self.context, self.robot_view, description)
         self.assertEqual(description.resolve().gripper, Arms.LEFT)
-        self.assertEqual(description.resolve().motion, GripperState.OPEN)
+        self.assertEqual(description.resolve().motion, GripperStateEnum.OPEN)
         with simulated_robot:
             plan.perform()
-        joint_state = JointStateManager().get_gripper_state(Arms.LEFT, GripperState.OPEN, self.robot_view)
+        joint_state = JointStateManager().get_gripper_state(Arms.LEFT, GripperStateEnum.OPEN, self.robot_view)
         for joint, state in zip(joint_state.joint_names, joint_state.joint_positions):
             dof = self.world.get_degree_of_freedom_by_name(joint)
             self.assertEqual(self.world.state[dof.name].position, state)
@@ -87,7 +87,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                               NavigateActionDescription(PoseStamped.from_list( [1.7, 1.5, 0], [0, 0, 0, 1], self.world.root), True),
                               ParkArmsActionDescription(Arms.BOTH),
                               MoveTorsoActionDescription([TorsoState.HIGH]),
-                              SetGripperActionDescription(Arms.LEFT, GripperState.OPEN),
+                              SetGripperActionDescription(Arms.LEFT, GripperStateEnum.OPEN),
                               performable)
         with simulated_robot:
             plan.perform()

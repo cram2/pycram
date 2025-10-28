@@ -15,9 +15,11 @@ from random_events.utils import recursive_subclasses
 from random_events.variable import Symbolic, Integer, Variable, Continuous
 from semantic_world.datastructures.variables import SpatialVariables
 from semantic_world.robots import AbstractRobot
+from semantic_world.spatial_types import TransformationMatrix
 from semantic_world.world_description.geometry import BoundingBox
 from semantic_world.world_description.graph_of_convex_sets import GraphOfConvexSets
 from semantic_world.world_description.shape_collection import BoundingBoxCollection
+from semantic_world.world_description.world_entity import EnvironmentView
 from sortedcontainers import SortedSet
 
 from semantic_world.world import World
@@ -154,14 +156,14 @@ def collision_free_event(world: World, search_space: Optional[BoundingBoxCollect
 
         # create search space for calculations
         if search_space is None:
-            search_space = BoundingBox(-np.inf, -np.inf, -np.inf,
-                                       np.inf, np.inf, np.inf).as_collection()
+            search_space = BoundingBoxCollection([BoundingBox(-np.inf, -np.inf, -np.inf,
+                                       np.inf, np.inf, np.inf, origin=TransformationMatrix(reference_frame=world.root))],)
 
         # remove the z axis
         search_event = search_space.event
 
         # get obstacles
-        obstacles = GraphOfConvexSets.obstacles_of_world(world, search_space)
+        obstacles = GraphOfConvexSets.obstacles_from_world(world, search_space)
 
         free_space = search_event - obstacles
         free_space = free_space.marginal(xy)

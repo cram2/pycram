@@ -304,9 +304,10 @@ class MoveAndPickUpAction(ActionDescription):
         self.pre_perform(record_object_pre_perform)
 
     def plan(self):
-        SequentialPlan(self.context,
+        obj_pose = PoseStamped.from_spatial_type(self.object_designator.global_pose)
+        SequentialPlan(self.context, self.robot_view,
                        NavigateActionDescription(self.standing_position, self.keep_joint_states),
-                       FaceAtActionDescription(self.object_designator.pose, self.keep_joint_states),
+                       FaceAtActionDescription(obj_pose, self.keep_joint_states),
                        PickUpActionDescription(self.object_designator, self.arm, self.grasp_description)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):

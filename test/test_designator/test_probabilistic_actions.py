@@ -42,9 +42,9 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
     def test_orm(self):
         mpa_description = MoveAndPickUpActionDescription(None, [self.world.get_body_by_name("milk.stl")], None, None, None)
         plan = SequentialPlan(self.context, self.robot_view, mpa_description)
-        mpa = MoveAndPickUpParameterizer(mpa_description).create_action()
+        mpa = MoveAndPickUpParameterizer(mpa_description, world=self.world).create_action()
 
-        plan = Plan(ResolvedActionNode(designator_ref=mpa), self.world, self.robot_view)
+        plan = Plan(ResolvedActionNode(designator_ref=mpa, kwargs={}, action=MoveAndPickUpAction), self.world, self.robot_view)
 
         with simulated_robot:
             try:
@@ -55,7 +55,7 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
         insert(plan, self.session)
 
         result = self.session.scalars(select(ResolvedActionNodeMappingDAO)).first()
-        self.assertEqual(result.status, TaskStatus.FAILED)
+        self.assertEqual(result.status, TaskStatus.SUCCEEDED)
 
 
 if __name__ == '__main__':
