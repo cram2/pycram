@@ -9,7 +9,6 @@ from pycram.robot_plans import PickUpAction, PickUpAction, SetGripperAction, \
     MoveTorsoAction, NavigateAction, MoveTorsoActionDescription, NavigateActionDescription, PickUpActionDescription
 from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import Arms, Grasp, GripperState, TorsoState, ApproachDirection, VerticalAlignment
-from pycrap.ontologies import Milk
 from pycram.utils import is_iterable, lazy_product
 from pycram.process_module import simulated_robot
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
 
-from semantic_world.world_description.world_entity import Body
+from semantic_world.world_description.world_entity import Body, KinematicStructureEntity
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from ...motions.misc import DetectingMotion
@@ -13,7 +13,6 @@ from ....failure_handling import try_action
 from ....failures import PerceptionObjectNotFound
 from ....has_parameters import has_parameters
 from ....robot_plans.actions.base import ActionDescription
-from pycrap.ontologies import Location
 
 
 @has_parameters
@@ -37,7 +36,7 @@ class DetectAction(ActionDescription):
     """
     The type of the object that should be detected, only considered if technique is equal to Type
     """
-    region: Optional[Location] = None
+    region: Optional[KinematicStructureEntity] = None
     """
     The region in which the object should be detected
     """

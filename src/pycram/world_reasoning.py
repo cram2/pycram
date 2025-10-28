@@ -6,7 +6,6 @@ from semantic_world.world_description.world_entity import Body
 from trimesh import Trimesh
 from typing_extensions import List, Tuple, Optional, Union, Dict
 
-from pycrap.ontologies import PhysicalObject
 from .datastructures.dataclasses import RayResult
 from .datastructures.enums import Arms, FindBodyInRegionMethod, Grasp, ApproachDirection, VerticalAlignment
 from .datastructures.pose import PoseStamped, TransformStamped

@@ -11,7 +11,6 @@ from sqlalchemy import TypeDecorator, types, Dialect
 from sqlalchemy.sql.type_api import _T
 from typing_extensions import Optional, Any, Dict
 
-from pycrap.ontologies import PhysicalObject
 from .casts import StringType
 from ..datastructures import grasp
 from ..datastructures import pose
@@ -185,24 +184,6 @@ class CodeNodeMapping(AlternativeMapping[CodeNode]):
         Convert a CodeNode to a CodeNodeDAO.
         """
         return cls(
-        )
-
-
-@dataclass
-class FrozenObjectMapping(AlternativeMapping[FrozenObject]):
-    name: str
-    concept: Type[PhysicalObject]
-    pose: Optional[PoseStamped]
-
-    @classmethod
-    def create_instance(cls, obj: FrozenObject):
-        """
-        Convert a FrozenObject to a FrozenObjectDAO.
-        """
-        return cls(
-            name=obj.name,
-            concept=obj.concept,
-            pose=obj.pose
         )
 
 

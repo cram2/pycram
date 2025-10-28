@@ -8,7 +8,6 @@ from pycram.failure_handling import Retry
 from pycram.failures import PlanFailure
 from pycram.process_module import ProcessModule, simulated_robot
 from pycram.robot_description import RobotDescription
-from pycrap.ontologies import Robot
 
 
 

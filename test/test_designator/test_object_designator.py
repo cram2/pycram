@@ -6,7 +6,6 @@ from pycram.designator import EQLObjectDesignator, NamedObject
 from pycram.designators.object_designator import *
 from pycram.language import SequentialPlan
 from pycram.testing import BulletWorldTestCase
-from pycrap.ontologies import Milk, Food
 
 
 class TestObjectDesignator(BulletWorldTestCase):

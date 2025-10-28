@@ -6,7 +6,6 @@ from functools import lru_cache
 import typing_extensions
 from typing_extensions import List, Dict, Union, Tuple, TYPE_CHECKING, get_origin, get_args
 
-from pycrap.ontologies import PhysicalObject
 from .ros import logwarn
 
 # Forward declaration of the class
@@ -17,7 +16,7 @@ if TYPE_CHECKING:
 
     ParameterDict = Dict[str, Union[LeafTypes, HasParameters]]
 
-leaf_types = (int, float, str, bool, enum.Enum, type, PhysicalObject)
+leaf_types = (int, float, str, bool, enum.Enum, type)
 
 
 class HasParametersMeta(type):

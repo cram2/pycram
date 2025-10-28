@@ -12,7 +12,6 @@ from semantic_world.robots import AbstractRobot
 from semantic_world.world_description.world_entity import Body
 from typing_extensions import Type, List, Dict, Any, Optional, Callable, Self, Iterator, Iterable, Union
 
-from pycrap.ontologies import PhysicalObject, Agent
 from .datastructures.enums import ObjectType
 from .datastructures.partial_designator import PartialDesignator
 from .datastructures.pose import PoseStamped

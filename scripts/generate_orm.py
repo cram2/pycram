@@ -60,9 +60,9 @@ classes -= set(recursive_subclasses(Enum))
 classes -= {m.original_class() for m in recursive_subclasses(AlternativeMapping)}
 
 # specify custom type mappings
-type_mappings = {
-    PhysicalObject: StringType(),
-}
+# type_mappings = {
+#     PhysicalObject: StringType(),
+# }
 
 
 def generate_orm():

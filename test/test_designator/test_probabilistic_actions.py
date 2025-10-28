@@ -18,7 +18,6 @@ from pycram.plan import Plan, ResolvedActionNode, PlanNode
 from pycram.process_module import simulated_robot
 from pycram.robot_description import RobotDescriptionManager, RobotDescription
 from pycram.testing import EmptyWorldTestCase, BulletWorldTestCase
-from pycrap.ontologies import Robot, Milk
 
 class MoveAndPickUpTestCase(BulletWorldTestCase):
 

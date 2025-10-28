@@ -5,7 +5,6 @@ from semantic_world.world import World
 from semantic_world.world_description.world_entity import Body
 from typing_extensions import TYPE_CHECKING
 
-from pycrap.urdf_parser import parse_furniture
 from ..datastructures.dataclasses import Colors
 from ..datastructures.enums import ExecutionType
 from ..external_interfaces import giskard

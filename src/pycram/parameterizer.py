@@ -24,7 +24,6 @@ from sortedcontainers import SortedSet
 
 from semantic_world.world import World
 
-from pycrap.ontologies import PhysicalObject
 from .datastructures.partial_designator import PartialDesignator
 from .language import SequentialPlan
 from .plan import Plan, DesignatorNode, ActionNode

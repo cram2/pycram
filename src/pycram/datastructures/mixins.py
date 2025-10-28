@@ -3,9 +3,6 @@ from __future__ import annotations
 import typing_extensions
 from typing_extensions import Type, Optional
 
-from pycrap.urdf_parser import parse_furniture
-from pycrap.ontologies import Base, PhysicalObject
-
 
 
 class HasConcept:

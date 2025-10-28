@@ -14,7 +14,6 @@ from ...failures import PlanFailure
 from ...has_parameters import HasParameters
 from ...plan import PlanNode, Plan
 from ...robot_description import RobotDescription
-from pycrap.ontologies import Agent
 
 
 def record_object_pre_perform(action):

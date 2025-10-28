@@ -1,4 +1,3 @@
-import pycrap
 from pycram.datastructures.dataclasses import Color
 from pycram.datastructures.enums import ObjectType, Arms, DetectionTechnique, VerticalAlignment, \
     ApproachDirection

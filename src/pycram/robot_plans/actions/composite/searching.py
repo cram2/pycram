@@ -4,9 +4,9 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import timedelta
 
+from semantic_world.world_description.world_entity import Body
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
-from pycrap.ontologies import PhysicalObject
 from ..core.misc import DetectActionDescription
 from ..core.navigation import LookAtActionDescription, NavigateActionDescription
 from ....datastructures.enums import DetectionTechnique
@@ -32,7 +32,7 @@ class SearchAction(ActionDescription):
     Location around which to look for a target object.
     """
 
-    object_type: Type[PhysicalObject]
+    object_type: Type[Body]
     """
     Type of the object which is searched for.
     """

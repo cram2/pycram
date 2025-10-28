@@ -21,14 +21,10 @@ from semantic_world.world_description.world_modification import WorldModelModifi
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, Self, \
     deprecated, Type
 
-from pycrap.ontologies import PhysicalObject
 from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp, ApproachDirection, VerticalAlignment
 from .pose import PoseStamped, Point, TransformStamped
 from ..ros import logwarn, logwarn_once
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
-
-if TYPE_CHECKING:
-    from ..world_concepts.constraints import Attachment
 
 
 @dataclass

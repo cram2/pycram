@@ -3,7 +3,6 @@ from ..world_concepts.world_object import Object, World
 from ..datastructures.enums import ObjectType
 from ..datastructures.pose import PoseStamped
 import gymnasium as gym
-import pycrap
 
 class PyCRAMGym(gym.Env):
     """

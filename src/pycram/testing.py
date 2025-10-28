@@ -17,10 +17,8 @@ from semantic_world.world_description.connections import OmniDrive
 from .datastructures.enums import WorldMode
 from .plan import Plan
 from .ros import loginfo, get_node_names
-from pycrap.ontologies import Milk, Robot, Kitchen, Cereal
 from .robot_descriptions.pr2_states import *
 try:
-    # from .ros_utils.viz_marker_publisher import VizMarkerPublisher
     from semantic_world.adapters.viz_marker import VizMarkerPublisher
 except ImportError:
     loginfo("Could not import VizMarkerPublisher. This is probably because you are not running ROS.")

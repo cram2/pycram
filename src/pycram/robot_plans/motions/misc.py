@@ -3,7 +3,6 @@ from typing import Optional
 
 from semantic_world.world_description.world_entity import Body
 
-from pycrap.ontologies import Location
 from .base import BaseMotion
 from ...datastructures.enums import DetectionTechnique, DetectionState, ObjectType
 from ...process_module import ProcessModuleManager
@@ -29,7 +28,7 @@ class DetectingMotion(BaseMotion):
     """
     Description of the object that should be detected
     """
-    region: Optional[Location] = None
+    region: Optional['Location'] = None
     """
     Region in which the object should be detected
     """

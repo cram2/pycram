@@ -19,7 +19,6 @@ from pycram.robot_plans.actions import *
 from pycram.robot_plans.motions import MoveTCPWaypointsMotion
 from pycram.ros import node
 from pycram.testing import BulletWorldTestCase
-from pycrap.ontologies import Milk
 import pycram.robot_descriptions.pr2_states
 
 

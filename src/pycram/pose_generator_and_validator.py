@@ -25,7 +25,6 @@ from semantic_world.world_description.shape_collection import ShapeCollection
 from semantic_world.world_description.world_entity import Body, KinematicStructureEntity
 from semantic_world.world import World
 
-from pycrap.ontologies import PhysicalObject
 from .tf_transformations import quaternion_from_euler
 from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional, Iterator
 

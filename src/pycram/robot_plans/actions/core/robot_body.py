@@ -7,7 +7,7 @@ from typing import Tuple, List
 
 from typing_extensions import Union, Optional, Type, Dict, Any, Iterable
 
-from ....datastructures.enums import Arms, GripperState, TorsoState, StaticJointState, AxisIdentifier
+from ....datastructures.enums import Arms, GripperState as GripperStateEnum, TorsoState, StaticJointState, AxisIdentifier
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import Vector3Stamped
 from ....failures import TorsoGoalNotReached, ConfigurationNotReached
@@ -71,7 +71,7 @@ class SetGripperAction(ActionDescription):
     """
     The gripper that should be set 
     """
-    motion: GripperState
+    motion: GripperStateEnum
     """
     The motion that should be set on the gripper
     """
