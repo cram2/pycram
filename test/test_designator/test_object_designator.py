@@ -1,25 +1,35 @@
 import unittest
 
+from entity_query_language import entity, let, and_, an, contains, symbolic_mode
+
+from pycram.designator import EQLObjectDesignator, NamedObject
 from pycram.designators.object_designator import *
+from pycram.language import SequentialPlan
 from pycram.testing import BulletWorldTestCase
 from pycrap.ontologies import Milk, Food
 
 
 class TestObjectDesignator(BulletWorldTestCase):
 
-    def test_object_grounding(self):
-        description = ObjectDesignatorDescription(["milk"], [Milk])
-        obj = description.ground()
+    def test_eql_designator(self):
+        with symbolic_mode():
+            milk_desig = EQLObjectDesignator(
+                an(entity(obj := let(type_=Body, domain=self.world.bodies),
+                            and_(contains( obj.name.name, "milk"),
+                                 obj.parent_connection.parent == self.world.root)))
+            )
+        found_milks = list(milk_desig)
+        self.assertEqual(1, len(found_milks))
+        self.assertEqual("milk.stl", found_milks[0].name.name)
+        self.assertEqual(self.world.get_body_by_name("milk.stl"), found_milks[0])
 
-        self.assertEqual(obj.name, "milk")
-        self.assertEqual(obj.obj_type, Milk)
-
-    def test_frozen_copy(self):
-        description = ObjectDesignatorDescription(["milk"], [Milk])
-        obj = description.ground()
-
-        frozen_copy = obj.frozen_copy()
-        self.assertEqual(obj.pose, frozen_copy.pose)
+    def test_named_object(self):
+        named_desig = NamedObject("milk.stl")
+        plan = SequentialPlan(self.context, self.robot_view, named_desig)
+        found_milks = list(named_desig)
+        self.assertEqual(1, len(found_milks))
+        self.assertEqual("milk.stl", found_milks[0].name.name)
+        self.assertEqual(self.world.get_body_by_name("milk.stl"), found_milks[0])
 
 
 if __name__ == '__main__':
