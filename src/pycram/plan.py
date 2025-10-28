@@ -659,6 +659,7 @@ class ActionNode(DesignatorNode):
         """
         if not self.action_iter:
             self.action_iter = iter(self.designator_ref)
+        print(self.action)
         resolved_action = next(self.action_iter)
         kwargs = {key: resolved_action.__getattribute__(key) for key in self.designator_ref.kwargs.keys()}
         resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__,

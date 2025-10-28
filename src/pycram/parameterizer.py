@@ -26,7 +26,7 @@ from semantic_world.world import World
 
 from .datastructures.partial_designator import PartialDesignator
 from .language import SequentialPlan
-from .plan import Plan, DesignatorNode, ActionNode
+from .plan import Plan, DesignatorNode, ActionNode, ResolvedActionNode
 
 
 @dataclass
@@ -109,8 +109,7 @@ class Parameterizer:
             resolved = node.action.reconstruct(flattened_parameters)
 
             kwargs = {key: getattr(resolved, key) for key in resolved._parameters}
-            plan.mount(Plan(ActionNode(designator_ref=PartialDesignator(node.action, **kwargs),
-                       action = node.action, kwargs=kwargs), world, world.get_views_by_type(AbstractRobot)[0], plan))
+            plan.add_edge(plan.root, ResolvedActionNode(designator_ref=resolved, kwargs=kwargs, action=resolved.__class__))
 
         return plan
 
