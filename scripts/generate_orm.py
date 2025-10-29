@@ -6,7 +6,7 @@ from enum import Enum
 from ormatic.dao import AlternativeMapping
 from ormatic.ormatic import logger, ORMatic
 from ormatic.utils import recursive_subclasses, classes_of_module
-from semantic_world.world_description.world_entity import Body
+from semantic_digital_twin.world_description.world_entity import Body
 
 from pycram.robot_plans.actions.core import container, pick_up, misc, navigation, placing, robot_body
 from sqlalchemy import create_engine

@@ -9,9 +9,9 @@ import networkx as nx
 import numpy as np
 import rustworkx as rx
 import rustworkx.visualization
-from semantic_world.robots import AbstractRobot
-from semantic_world.world import World
-from semantic_world.world_description.world_entity import Body
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
 from .datastructures.dataclasses import ExecutionData
@@ -659,7 +659,6 @@ class ActionNode(DesignatorNode):
         """
         if not self.action_iter:
             self.action_iter = iter(self.designator_ref)
-        print(self.action)
         resolved_action = next(self.action_iter)
         kwargs = {key: resolved_action.__getattribute__(key) for key in self.designator_ref.kwargs.keys()}
         resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__,

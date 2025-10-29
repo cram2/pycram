@@ -3,15 +3,13 @@ from copy import deepcopy
 
 import numpy as np
 import sqlalchemy.sql.elements
-from semantic_world.robots import PR2
+from semantic_digital_twin.robots.pr2 import PR2
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session
 
-from pycram.datastructures.enums import GripperState
 from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.pose import Pose, PoseStamped
 from pycram.designator import ObjectDesignatorDescription, NamedObject
-from pycram.designators.object_designator import BelieveObject
 from pycram.language import SequentialPlan
 from pycram.orm.logging_hooks import insert
 from pycram.orm.ormatic_interface import *
@@ -21,6 +19,7 @@ from pycram.robot_plans import MoveTorsoActionDescription, ParkArmsAction, \
     TransportActionDescription, LookAtActionDescription, NavigateActionDescription, \
     PickUpActionDescription, SetGripperActionDescription, OpenActionDescription, CloseActionDescription, NavigateAction
 from pycram.testing import BulletWorldTestCase
+from semantic_digital_twin.world import World
 
 
 class ORMaticBaseTestCaseMixin(BulletWorldTestCase):

@@ -1,4 +1,4 @@
-from pycram.language import SequentialPlanfrom pycram.language import SequentialPlanfrom pycram.language import SequentialPlanfrom pycram.language import SequentialPlanfrom semantic_world.adapters.urdf import URDFParser---
+from pycram.language import SequentialPlanfrom pycram.language import SequentialPlanfrom pycram.language import SequentialPlanfrom pycram.language import SequentialPlanfrom semantic_digital_twin.adapters.urdf import URDFParser---
 jupyter:
   jupytext:
     text_representation:
@@ -48,11 +48,11 @@ First, we need a BulletWorld with a robot.
 ```python
 import os
 
-from semantic_world.adapters.urdf import  URDFParser
-from semantic_world.adapters.mesh import STLParser
-from semantic_world.world import World
-from semantic_world.robots import PR2
-from semantic_world.spatial_types.spatial_types import TransformationMatrix
+from semantic_digital_twin.adapters.urdf import  URDFParser
+from semantic_digital_twin.adapters.mesh import STLParser
+from semantic_digital_twin.world import World
+from semantic_digital_twin.robots.pr2 import PR2
+from semantic_digital_twin.spatial_types.spatial_types import TransformationMatrix
 from pycram.datastructures.pose import PoseStamped
 from pycram.testing import setup_world
 

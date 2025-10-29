@@ -7,7 +7,7 @@ from dataclasses import dataclass, field, fields
 from typing import Union
 
 import numpy as np
-from semantic_world.world_description.world_entity import Body
+from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import Self, Tuple, Optional, List, TYPE_CHECKING, Any
 
 from .enums import AxisIdentifier, Arms, Grasp, ApproachDirection, VerticalAlignment
@@ -16,7 +16,7 @@ from ..ros import Time as ROSTime
 from ..tf_transformations import quaternion_multiply, translation_matrix, quaternion_matrix, inverse_matrix, \
     translation_from_matrix, quaternion_from_matrix
 
-from semantic_world.spatial_types.spatial_types import Vector3 as SpatialVector3, Quaternion as SpatialQuaternion, TransformationMatrix as SpatialTransformationMatrix
+from semantic_digital_twin.spatial_types.spatial_types import Vector3 as SpatialVector3, Quaternion as SpatialQuaternion, TransformationMatrix as SpatialTransformationMatrix
 
 if TYPE_CHECKING:
     from .grasp import GraspDescription, PreferredGraspAlignment

@@ -4,8 +4,8 @@ import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from semantic_world.robots import AbstractRobot
-from semantic_world.world import World
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.world import World
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:

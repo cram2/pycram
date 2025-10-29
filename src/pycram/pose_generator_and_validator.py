@@ -3,27 +3,27 @@ import random
 from copy import deepcopy
 
 import numpy as np
-from semantic_world.collision_checking.collision_detector import (
+from semantic_digital_twin.collision_checking.collision_detector import (
     CollisionCheck,
     Collision,
     CollisionDetector,
 )
-from semantic_world.collision_checking.trimesh_collision_detector import (
+from semantic_digital_twin.collision_checking.trimesh_collision_detector import (
     TrimeshCollisionDetector,
 )
-from semantic_world.datastructures.prefixed_name import PrefixedName
-from semantic_world.world_description.connections import Connection6DoF
-from semantic_world.world_description.geometry import Box, Scale
-from semantic_world.spatial_computations.ik_solver import (
+from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
+from semantic_digital_twin.world_description.connections import Connection6DoF
+from semantic_digital_twin.world_description.geometry import Box, Scale
+from semantic_digital_twin.spatial_computations.ik_solver import (
     MaxIterationsException,
     UnreachableException,
 )
-from semantic_world.spatial_computations.raytracer import RayTracer
-from semantic_world.robots import AbstractRobot
-from semantic_world.spatial_types.spatial_types import TransformationMatrix
-from semantic_world.world_description.shape_collection import ShapeCollection
-from semantic_world.world_description.world_entity import Body, KinematicStructureEntity
-from semantic_world.world import World
+from semantic_digital_twin.spatial_computations.raytracer import RayTracer
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.spatial_types.spatial_types import TransformationMatrix
+from semantic_digital_twin.world_description.shape_collection import ShapeCollection
+from semantic_digital_twin.world_description.world_entity import Body, KinematicStructureEntity
+from semantic_digital_twin.world import World
 
 from .tf_transformations import quaternion_from_euler
 from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional, Iterator

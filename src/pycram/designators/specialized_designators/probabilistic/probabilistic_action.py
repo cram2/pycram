@@ -10,11 +10,11 @@ from probabilistic_model.utils import MissingDict
 from random_events.product_algebra import SimpleEvent
 from random_events.set import Set
 from random_events.variable import Symbolic, Continuous
-from semantic_world.spatial_types import TransformationMatrix
-from semantic_world.world import World
-from semantic_world.world_description.geometry import BoundingBox
-from semantic_world.world_description.shape_collection import BoundingBoxCollection
-from semantic_world.world_description.world_entity import Body
+from semantic_digital_twin.spatial_types import TransformationMatrix
+from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.geometry import BoundingBox
+from semantic_digital_twin.world_description.shape_collection import BoundingBoxCollection
+from semantic_digital_twin.world_description.world_entity import Body
 from sqlalchemy import select
 from typing_extensions import Optional, List
 

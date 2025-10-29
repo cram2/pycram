@@ -6,8 +6,8 @@ import inspect
 from dataclasses import dataclass, field
 from queue import Queue
 
-from semantic_world.robots import AbstractRobot
-from semantic_world.world import World
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.world import World
 from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence, Type, \
     TYPE_CHECKING
 

@@ -4,7 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import timedelta
 
-from semantic_world.world_description.world_entity import Body
+from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from ..core.misc import DetectActionDescription

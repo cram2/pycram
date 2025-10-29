@@ -1,5 +1,5 @@
 import numpy as np
-from semantic_world.world_description.world_entity import Body
+from semantic_digital_twin.world_description.world_entity import Body
 
 from .. import tf_transformations
 from typing_extensions import List, Union, Tuple, Dict

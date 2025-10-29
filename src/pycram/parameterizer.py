@@ -13,20 +13,19 @@ from random_events.product_algebra import Event, SimpleEvent
 from random_events.set import Set
 from random_events.utils import recursive_subclasses
 from random_events.variable import Symbolic, Integer, Variable, Continuous
-from semantic_world.datastructures.variables import SpatialVariables
-from semantic_world.robots import AbstractRobot
-from semantic_world.spatial_types import TransformationMatrix
-from semantic_world.world_description.geometry import BoundingBox
-from semantic_world.world_description.graph_of_convex_sets import GraphOfConvexSets
-from semantic_world.world_description.shape_collection import BoundingBoxCollection
-from semantic_world.world_description.world_entity import EnvironmentView
+from semantic_digital_twin.datastructures.variables import SpatialVariables
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.spatial_types import TransformationMatrix
+from semantic_digital_twin.world_description.geometry import BoundingBox
+from semantic_digital_twin.world_description.graph_of_convex_sets import GraphOfConvexSets
+from semantic_digital_twin.world_description.shape_collection import BoundingBoxCollection
+from semantic_digital_twin.world_description.world_entity import SemanticEnvironmentAnnotation
 from sortedcontainers import SortedSet
 
-from semantic_world.world import World
+from semantic_digital_twin.world import World
 
-from .datastructures.partial_designator import PartialDesignator
 from .language import SequentialPlan
-from .plan import Plan, DesignatorNode, ActionNode, ResolvedActionNode
+from .plan import Plan, DesignatorNode, ResolvedActionNode
 
 
 @dataclass
@@ -100,7 +99,7 @@ class Parameterizer:
         :return: The executable, sequential plan
         """
         sub_plans = []
-        plan = SequentialPlan((world, None), world.get_views_by_type(AbstractRobot)[0])
+        plan = SequentialPlan((world, None), world.get_semantic_annotations_by_type(AbstractRobot)[0])
 
         for node in self.variables_of_node:
             flattened_parameters = []

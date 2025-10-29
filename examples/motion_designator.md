@@ -24,7 +24,7 @@ BulletWorld as well as a PR2 robot.
 
 ```python
 from pycram.testing import setup_world
-from semantic_world.robots import PR2
+from semantic_digital_twin.robots.pr2 import PR2
 
 
 world = setup_world()

@@ -45,7 +45,7 @@ from pycram.datastructures.pose import PoseStamped
 from pycrap.ontologies import Robot, Kitchen, Milk, Cereal
 from pycram.language import SequentialPlan
 from pycram.testing import setup_world
-from semantic_world.robots import PR2
+from semantic_digital_twin.robots.pr2 import PR2
 
 world = setup_world()
 pr2_view = PR2.from_world(world)

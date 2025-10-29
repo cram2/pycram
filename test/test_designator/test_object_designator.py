@@ -1,6 +1,7 @@
 import unittest
 
-from entity_query_language import entity, let, and_, an, contains, symbolic_mode
+from krrood.entity_query_language.entity import an, entity, let, and_, contains
+from krrood.entity_query_language.symbolic import symbolic_mode
 
 from pycram.designator import EQLObjectDesignator, NamedObject
 from pycram.designators.object_designator import *

@@ -1,28 +1,23 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from semantic_world.exceptions import ViewNotFoundError
-from semantic_world.robots import AbstractRobot, KinematicChain, Manipulator, Neck
-from semantic_world.world import World
-from semantic_world.world_description.world_entity import View
-
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot, KinematicChain, Manipulator, Neck
 
 import glob
 import importlib
 from os.path import dirname, basename, isfile, join
 import math
-from dataclasses import field
 from dataclasses import dataclass
 from enum import Enum
 from itertools import product
 
-import numpy as np
 from scipy.spatial.transform import Rotation as R
-from typing_extensions import List, Dict, Union, Optional, Tuple, TYPE_CHECKING, TypeVar
+from typing_extensions import List, Dict, Union, Optional, TypeVar
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, Rotations
-from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState, \
+from .datastructures.enums import Arms, GripperState, GripperType, JointType, DescriptionType, StaticJointState, \
     ApproachDirection, VerticalAlignment
+from .datastructures.grasp import GraspDescription
 from .datastructures.pose import PoseStamped
 from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
     get_robot_description_path
@@ -962,7 +957,6 @@ def create_manipulator_description(data: ManipulatorData,
 
     return robot_description
 
-T = TypeVar('T', bound=View)
 
 @dataclass
 class ViewManager:

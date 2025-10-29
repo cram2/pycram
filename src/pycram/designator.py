@@ -2,14 +2,12 @@
 from __future__ import annotations
 
 import inspect
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from datetime import timedelta
 from typing import get_type_hints
 
-from entity_query_language import an, entity, let, contains, symbolic_mode
-from semantic_world.robots import AbstractRobot
-from semantic_world.world_description.world_entity import Body
+from krrood.entity_query_language.entity import an, entity, contains, let
+from krrood.entity_query_language.symbolic import symbolic_mode
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import Type, List, Dict, Any, Optional, Callable, Self, Iterator, Iterable, Union
 
 from .datastructures.enums import ObjectType
@@ -19,7 +17,7 @@ from .datastructures.pose import PoseStamped
 from .plan import Plan, PlanNode
 from .utils import bcolors
 
-from semantic_world.world import World
+from semantic_digital_twin.world import World
 
 
 class DesignatorError(Exception):

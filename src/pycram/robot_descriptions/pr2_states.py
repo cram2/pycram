@@ -1,5 +1,5 @@
-from semantic_world.datastructures.prefixed_name import PrefixedName
-from semantic_world.robots import PR2
+from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
+from semantic_digital_twin.robots.pr2 import PR2
 
 from ..datastructures.enums import StaticJointState, Arms, GripperState as GripperStateEnum, TorsoState
 from ..joint_state import JointState, ArmState, GripperState, JointStateManager

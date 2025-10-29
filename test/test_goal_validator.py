@@ -1,5 +1,5 @@
 import numpy as np
-from semantic_world.spatial_types import TransformationMatrix
+from semantic_digital_twin.spatial_types import TransformationMatrix
 
 from pycram.tf_transformations import quaternion_from_euler
 from typing_extensions import Optional, List

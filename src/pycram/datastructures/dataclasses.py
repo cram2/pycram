@@ -16,8 +16,8 @@ from matplotlib import pyplot as plt
 from random_events.interval import closed, SimpleInterval, Bound
 from random_events.product_algebra import SimpleEvent, Event
 from random_events.variable import Continuous
-from semantic_world.world_description.world_entity import Body
-from semantic_world.world_description.world_modification import WorldModelModificationBlock
+from semantic_digital_twin.world_description.world_entity import Body
+from semantic_digital_twin.world_description.world_modification import WorldModelModificationBlock
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, Self, \
     deprecated, Type
 

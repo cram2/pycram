@@ -3,7 +3,7 @@ import threading
 
 import sys
 
-from semantic_world.world_description.world_entity import Body
+from semantic_digital_twin.world_description.world_entity import Body
 
 from ..ros import Time
 from ..ros import logwarn, loginfo_once, loginfo

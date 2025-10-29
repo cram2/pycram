@@ -3,8 +3,8 @@ import time
 import threading
 import atexit
 
-from semantic_world.robots import AbstractRobot
-from semantic_world.world import World
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.world import World
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 from ..ros import  Time
@@ -39,7 +39,7 @@ class JointStatePublisher:
         Publishes the current joint states of the :py:attr:`~pycram.world.World.robot` in an infinite loop.
         The joint states are published as long as the kill_event is not set by :py:meth:`~JointStatePublisher._stop_publishing`
         """
-        robot_views = self.world.get_views_by_type(AbstractRobot)
+        robot_views = self.world.get_semantic_annotations_by_type(AbstractRobot)
         dofs = {dof for robot_view in robot_views
                      for connection in self.world.get_connections_of_branch(robot_view.root)
                      for dof in connection.dofs}

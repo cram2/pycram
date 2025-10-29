@@ -5,7 +5,7 @@ from datetime import datetime
 
 from random_events.interval import closed
 from random_events.product_algebra import SimpleEvent, Event
-from semantic_world.adapters.urdf import URDFParser
+from semantic_digital_twin.adapters.urdf import URDFParser
 
 from pycram.datastructures.enums import TaskStatus
 from pycram.robot_plans import *

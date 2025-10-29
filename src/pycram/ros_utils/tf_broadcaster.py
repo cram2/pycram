@@ -2,8 +2,8 @@ import time
 import threading
 import atexit
 
-from semantic_world.world import World
-from semantic_world.world_description.world_entity import Body
+from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.world_entity import Body
 
 from ..datastructures.pose import PoseStamped
 from ..datastructures.enums import ExecutionType

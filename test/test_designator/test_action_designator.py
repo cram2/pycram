@@ -3,8 +3,8 @@ from copy import deepcopy
 
 import numpy as np
 import rustworkx
-from semantic_world.adapters.viz_marker import VizMarkerPublisher
-from semantic_world.robots import PR2
+from semantic_digital_twin.adapters.viz_marker import VizMarkerPublisher
+from semantic_digital_twin.robots.pr2 import PR2
 
 from pycram.datastructures.enums import Arms, GripperState as GripperStateEnum, DetectionTechnique, TorsoState, \
     StaticJointState, ApproachDirection, VerticalAlignment

@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 
 import numpy as np
-from semantic_world.world_description.world_entity import Body
+from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from .facing import FaceAtActionDescription

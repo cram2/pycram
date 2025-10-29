@@ -4,12 +4,12 @@ import abc
 from dataclasses import dataclass, field
 
 from jedi.inference.gradual.typing import Tuple
-from semantic_world.robots import AbstractRobot
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 from typing_extensions import Type, Any, Optional, Callable
 
 from ...datastructures.dataclasses import ExecutionData
 from ...datastructures.pose import PoseStamped
-from semantic_world.world import World
+from semantic_digital_twin.world import World
 from ...failures import PlanFailure
 from ...has_parameters import HasParameters
 from ...plan import PlanNode, Plan

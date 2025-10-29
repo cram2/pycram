@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Dict, Union, Type
 
-from semantic_world.datastructures.prefixed_name import PrefixedName
-from semantic_world.robots import AbstractRobot
-from semantic_world.world import World
+from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.world import World
 
 from .datastructures.enums import Arms, StaticJointState
 from .helper import Singleton

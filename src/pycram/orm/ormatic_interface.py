@@ -25,7 +25,7 @@ import pycram.robot_plans.actions.core.navigation
 import pycram.robot_plans.actions.core.pick_up
 import pycram.robot_plans.actions.core.placing
 import pycram.robot_plans.actions.core.robot_body
-import semantic_world.world_description.world_entity
+import semantic_digital_twin.world_description.world_entity
 from pycram.datastructures.enums import DetectionState, TaskStatus, DetectionTechnique, TorsoState, ApproachDirection, VerticalAlignment, GripperState, Arms, AxisIdentifier
 
 from ormatic.dao import DataAccessObject
@@ -204,7 +204,7 @@ class GraspDescriptionDAO(Base, DataAccessObject[pycram.datastructures.grasp.Gra
 
 
 
-class BodyDAO(Base, DataAccessObject[semantic_world.world_description.world_entity.Body]):
+class BodyDAO(Base, DataAccessObject[semantic_digital_twin.world_description.world_entity.Body]):
     __tablename__ = 'BodyDAO'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

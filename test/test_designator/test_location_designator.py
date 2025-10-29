@@ -1,4 +1,4 @@
-from semantic_world.adapters.viz_marker import VizMarkerPublisher
+from semantic_digital_twin.adapters.viz_marker import VizMarkerPublisher
 
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators.location_designator import *

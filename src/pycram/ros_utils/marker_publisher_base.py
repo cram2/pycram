@@ -7,7 +7,7 @@ from typing import List, Optional
 import numpy as np
 from geometry_msgs.msg import Vector3, Point, Pose
 from rclpy.publisher import Publisher
-from semantic_world.world_description.world_entity import Body
+from semantic_digital_twin.world_description.world_entity import Body
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 

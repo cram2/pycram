@@ -6,7 +6,7 @@ from random_events.variable import Continuous
 #  import plotly.graph_objects as go
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.interval import *
-from semantic_world.spatial_types import TransformationMatrix
+from semantic_digital_twin.spatial_types import TransformationMatrix
 
 from pycram.testing import BulletWorldTestCase
 from pycram.costmaps import OccupancyCostmap, AlgebraicSemanticCostmap, VisibilityCostmap

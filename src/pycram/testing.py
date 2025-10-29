@@ -7,19 +7,19 @@ from datetime import timedelta
 
 import pytest
 from rclpy.node import Node
-from semantic_world.adapters.mesh import STLParser
-from semantic_world.adapters.urdf import URDFParser
-from semantic_world.robots import PR2
-from semantic_world.spatial_types.spatial_types import TransformationMatrix
-from semantic_world.world import World
-from semantic_world.world_description.connections import OmniDrive
+from semantic_digital_twin.adapters.mesh import STLParser
+from semantic_digital_twin.adapters.urdf import URDFParser
+from semantic_digital_twin.robots.pr2 import PR2
+from semantic_digital_twin.spatial_types.spatial_types import TransformationMatrix
+from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.connections import OmniDrive
 
 from .datastructures.enums import WorldMode
 from .plan import Plan
 from .ros import loginfo, get_node_names
 from .robot_descriptions.pr2_states import *
 try:
-    from semantic_world.adapters.viz_marker import VizMarkerPublisher
+    from semantic_digital_twin.adapters.viz_marker import VizMarkerPublisher
 except ImportError:
     loginfo("Could not import VizMarkerPublisher. This is probably because you are not running ROS.")
 

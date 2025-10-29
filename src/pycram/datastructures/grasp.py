@@ -2,20 +2,18 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from functools import lru_cache
-from itertools import product
 from typing import Tuple
 
 import numpy as np
-from semantic_world.robots import Manipulator, AbstractRobot
-from semantic_world.world_description.world_entity import View, Body
+from semantic_digital_twin.robots.abstract_robot import Manipulator, AbstractRobot
+from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import Optional, Union, List
 from scipy.spatial.transform import Rotation as R
 
 from .dataclasses import Rotations
 from .enums import Grasp, AxisIdentifier, ApproachDirection, VerticalAlignment
-from .pose import PoseStamped, Pose, Vector3, Quaternion
-from ..has_parameters import HasParameters, has_parameters
+from .pose import PoseStamped, Vector3
+from ..has_parameters import HasParameters
 from ..tf_transformations import quaternion_multiply
 from ..utils import translate_pose_along_local_axis
 

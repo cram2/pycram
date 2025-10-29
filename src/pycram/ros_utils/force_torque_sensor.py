@@ -2,7 +2,7 @@ import atexit
 import time
 import threading
 from geometry_msgs.msg import WrenchStamped
-from semantic_world.world import World
+from semantic_digital_twin.world import World
 from std_msgs.msg import Header
 
 from ..datastructures.enums import FilterConfig
