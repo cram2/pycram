@@ -38,7 +38,7 @@ class SearchAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        SequentialPlan(self.context, self.robot_view,
+        SequentialPlan(self.context,
         NavigateActionDescription(
             CostmapLocation(target=self.target_location, visible_for=self.robot_view))).perform()
 
@@ -53,18 +53,18 @@ class SearchAction(ActionDescription):
         target_base_right = deepcopy(target_base)
         target_base_right.pose.position.y += 0.5
 
-        plan = TryInOrderPlan(self.context, self.robot_view,
+        plan = TryInOrderPlan(self.context,
             SequentialPlan(
-                self.context, self.robot_view,
+                self.context,
                 LookAtActionDescription(target_base_left),
                 DetectActionDescription(DetectionTechnique.TYPES,
                                         object_designator=BelieveObject(types=[self.object_type]))),
             SequentialPlan(
-                self.context, self.robot_view,
+                self.context,
                 LookAtActionDescription(target_base_right),
                 DetectActionDescription(DetectionTechnique.TYPES,
                                         object_designator=BelieveObject(types=[self.object_type]))),
-            SequentialPlan(self.context, self.robot_view,
+            SequentialPlan(self.context,
                 LookAtActionDescription(target_base),
                 DetectActionDescription(DetectionTechnique.TYPES,
                                         object_designator=BelieveObject(types=[self.object_type]))))

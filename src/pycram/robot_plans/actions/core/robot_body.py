@@ -38,7 +38,7 @@ class MoveTorsoAction(ActionDescription):
         jm = JointStateManager()
         joint_state = jm.get_joint_state(self.torso_state, self.robot_view)[0]
 
-        SequentialPlan(self.context, self.robot_view,
+        SequentialPlan(self.context,
                        MoveJointsMotion(joint_state.joint_names, joint_state.joint_positions)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
@@ -79,7 +79,7 @@ class SetGripperAction(ActionDescription):
     def plan(self) -> None:
         arms = [Arms.LEFT, Arms.RIGHT] if self.gripper == Arms.BOTH else [self.gripper]
         for arm in arms:
-            SequentialPlan(self.context, self.robot_view, MoveGripperMotion(gripper=arm, motion=self.motion)).perform()
+            SequentialPlan(self.context, MoveGripperMotion(gripper=arm, motion=self.motion)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
         """
@@ -109,7 +109,7 @@ class ParkArmsAction(ActionDescription):
     def plan(self) -> None:
         joint_names, joint_poses = self.get_joint_poses()
 
-        SequentialPlan(self.context, self.robot_view,
+        SequentialPlan(self.context,
                        MoveJointsMotion(names=joint_names, positions=joint_poses)).perform()
 
     def get_joint_poses(self) -> Tuple[List[str], List[float]]:
@@ -178,7 +178,7 @@ class CarryAction(ActionDescription):
         tip_normal = self.axis_to_vector3_stamped(self.tip_axis, link=self.tip_link)
         root_normal = self.axis_to_vector3_stamped(self.root_axis, link=self.root_link)
 
-        SequentialPlan(self.context, self.robot_view,
+        SequentialPlan(self.context,
                        MoveJointsMotion(names=list(joint_poses.keys()), positions=list(joint_poses.values()),
                                         align=self.align, tip_link=self.tip_link, tip_normal=tip_normal,
                                         root_link=self.root_link, root_normal=root_normal)).perform()

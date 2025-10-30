@@ -230,8 +230,8 @@ class CostmapLocation(LocationDesignatorDescription):
             rotation_agnostic=rotation_agnostic,
         )
         self.target: Union[PoseStamped, Body] = target
-        self.reachable_for: Body = reachable_for
-        self.visible_for: Body = visible_for
+        self.reachable_for: AbstractRobot = reachable_for
+        self.visible_for: AbstractRobot = visible_for
         self.reachable_arm: Optional[Arms] = reachable_arm
         self.ignore_collision_with = (
             ignore_collision_with if ignore_collision_with is not None else [[]]
@@ -1154,8 +1154,8 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
     def __init__(
             self,
             target: Union[PoseStamped, Body],
-            reachable_for: Optional[Union[Iterable[Body], Body]] = None,
-            visible_for: Optional[Union[Iterable[Body], Body]] = None,
+            reachable_for: Optional[Union[Iterable[AbstractRobot], Body]] = None,
+            visible_for: Optional[Union[Iterable[AbstractRobot], Body]] = None,
             reachable_arm: Optional[Union[Iterable[Arms], Arms]] = None,
             ignore_collision_with: Optional[Union[Iterable[Body], Body]] = None,
             grasp_descriptions: Optional[
@@ -1206,8 +1206,8 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
         # The resolution is divided by 2, since each sampled point is a center of a cell in the costmap
         self.costmap_resolution = costmap_resolution / 2
         self.target: Union[PoseStamped, Body] = target
-        self.reachable_for: Body = reachable_for
-        self.visible_for: Body = visible_for
+        self.reachable_for: AbstractRobot = reachable_for
+        self.visible_for: AbstractRobot = visible_for
         self.reachable_arm: Optional[Arms] = reachable_arm
         self.ignore_collision_with = (
             ignore_collision_with if ignore_collision_with is not None else [[]]

@@ -61,7 +61,7 @@ class PlaceAction(ActionDescription):
         pre_place_pose = self.world.transform(self.target_location.to_spatial_type(), self.world.root)
         pre_place_pose = PoseStamped.from_spatial_type(pre_place_pose)
         pre_place_pose.position.z += 0.1
-        SequentialPlan(self.context, self.robot_view,
+        SequentialPlan(self.context,
                        MoveTCPMotion(pre_place_pose, self.arm),
 
                        MoveTCPMotion(self.target_location, self.arm),
@@ -83,7 +83,7 @@ class PlaceAction(ActionDescription):
                                                        ee_view.front_facing_axis.to_np()[:3],
                                                        -ActionConfig.pick_up_prepose_distance)
 
-        SequentialPlan(self.context, self.robot_view,  MoveTCPMotion(retract_pose, self.arm)).perform()
+        SequentialPlan(self.context,   MoveTCPMotion(retract_pose, self.arm)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """

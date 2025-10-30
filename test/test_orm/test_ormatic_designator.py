@@ -7,6 +7,7 @@ from semantic_digital_twin.robots.pr2 import PR2
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session
 
+from pycram.datastructures.dataclasses import Context
 from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.pose import Pose, PoseStamped
 from pycram.designator import ObjectDesignatorDescription, NamedObject
@@ -48,7 +49,7 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
         test_world = deepcopy(self.world)
         test_robot = PR2.from_world(test_world)
         with simulated_robot:
-            plan = SequentialPlan((test_world, None), test_robot,
+            plan = SequentialPlan(Context.from_world(test_world),
                                   NavigateActionDescription(
                                       PoseStamped.from_list([2, 2.2, 0], [0, 0, 0, 1], test_world.root), True),
                                   MoveTorsoActionDescription(TorsoState.HIGH),
@@ -119,7 +120,7 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
 
 class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
     def test_code_designator_type(self):
-        action = SequentialPlan(self.context, self.robot_view,
+        action = SequentialPlan(self.context,
                                 NavigateActionDescription(PoseStamped.from_list( [0.6, 0.4, 0], [0, 0, 0, 1],self.world.root), True))
         with simulated_robot:
             action.perform()
@@ -134,7 +135,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         test_world = deepcopy(self.world)
         test_robot = PR2.from_world(test_world)
         with simulated_robot:
-            sp = SequentialPlan((test_world, None), test_robot,
+            sp = SequentialPlan(Context.from_world(test_world),
                 NavigateActionDescription(PoseStamped.from_list( [0.6, 0.4, 0], [0, 0, 0, 1],test_world.root), True),
                 ParkArmsActionDescription(Arms.BOTH),
                 PickUpActionDescription(test_world.get_body_by_name("milk.stl"), Arms.LEFT,
@@ -150,7 +151,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         self.assertEqual(len(result), 6)
 
     def test_parkArmsAction(self):
-        action = SequentialPlan(self.context, self.robot_view, ParkArmsActionDescription(Arms.BOTH))
+        action = SequentialPlan(self.context, ParkArmsActionDescription(Arms.BOTH))
         with simulated_robot:
             action.perform()
         insert(action, self.session)
@@ -161,7 +162,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
     def test_transportAction(self):
         test_world = deepcopy(self.world)
         test_robot = PR2.from_world(test_world)
-        action = SequentialPlan((test_world, None), test_robot, TransportActionDescription(test_world.get_body_by_name("milk.stl"),
+        action = SequentialPlan(Context.from_world(test_world), TransportActionDescription(test_world.get_body_by_name("milk.stl"),
                                             PoseStamped.from_list( [1.3, 0.9, 0.9], [0, 0, 0, 1], test_world.root), Arms.LEFT))
         with simulated_robot:
             action.perform()
@@ -178,7 +179,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         test_world = deepcopy(self.world)
         test_robot = PR2.from_world(test_world)
         with simulated_robot:
-            sp = SequentialPlan((test_world, None), test_robot,
+            sp = SequentialPlan(Context.from_world(test_world),
                 NavigateActionDescription(PoseStamped.from_list( [0.6, 0.4, 0], [0, 0, 0, 1],test_world.root), True),
                 ParkArmsActionDescription(Arms.BOTH),
                 PickUpActionDescription(test_world.get_body_by_name("milk.stl"), Arms.LEFT,
@@ -200,7 +201,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
                                          object_designator=object_description,
                                          region=None)
         with simulated_robot:
-            sp = SequentialPlan(self.context, self.robot_view,
+            sp = SequentialPlan(self.context,
                 ParkArmsActionDescription(Arms.BOTH),
                 NavigateActionDescription(PoseStamped.from_list( [0, 1, 0], [0, 0, 0, 1], self.world.root), True),
                 LookAtActionDescription(object_description.resolve().pose),
@@ -217,7 +218,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         self.assertEqual(result[0].object_at_execution.name, "milk")
 
     def test_setGripperAction(self):
-        action = SequentialPlan(self.context, self.robot_view, SetGripperActionDescription(Arms.LEFT, GripperState.OPEN))
+        action = SequentialPlan(self.context, SetGripperActionDescription(Arms.LEFT, GripperState.OPEN))
         with simulated_robot:
             action.perform()
         insert(action, self.session)
@@ -230,7 +231,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         test_world = deepcopy(self.world)
         test_robot = PR2.from_world(test_world)
         with simulated_robot:
-            sp = SequentialPlan( (test_world, None), test_robot,
+            sp = SequentialPlan( Context.from_world(test_world),
                 ParkArmsActionDescription(Arms.BOTH),
                 NavigateActionDescription(PoseStamped.from_list( [1.81, 1.73, 0.0],
                                                                 [0.0, 0.0, 0.594, 0.804],test_world.root), True),
@@ -275,7 +276,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
                                          GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment,
                                                           False))
         with simulated_robot:
-            sp = SequentialPlan(self.context, self.robot_view,
+            sp = SequentialPlan(self.context,
                 NavigateActionDescription(PoseStamped.from_list( [0.6, 0.4, 0], [0, 0, 0, 1], self.world.root), True),
                 ParkArmsActionDescription(Arms.BOTH),
                 action,
@@ -298,7 +299,7 @@ class ExecDataTest(ORMaticBaseTestCaseMixin):
         test_robot = PR2.from_world(test_world)
         with simulated_robot:
             with simulated_robot:
-                sp = SequentialPlan((test_world, None), test_robot,
+                sp = SequentialPlan(Context.from_world(test_world),
                                     NavigateActionDescription(
                                         PoseStamped.from_list( [0.6, 0.4, 0], [0, 0, 0, 1], test_world.root), True),
                                     ParkArmsActionDescription(Arms.BOTH),
@@ -318,7 +319,7 @@ class ExecDataTest(ORMaticBaseTestCaseMixin):
         insert(sp, self.session)
 
     def test_exec_creation(self):
-        plan = SequentialPlan(self.context, self.robot_view,
+        plan = SequentialPlan(self.context,
                               NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1], self.world.root), True),)
 
         with simulated_robot:
@@ -328,7 +329,7 @@ class ExecDataTest(ORMaticBaseTestCaseMixin):
         self.assertIsNotNone(exec_data)
 
     def test_pose(self):
-        plan = SequentialPlan(self.context, self.robot_view,
+        plan = SequentialPlan(self.context,
                               NavigateActionDescription(
                                   PoseStamped.from_list( [0.6, 0.4, 0], [0, 0, 0, 1], self.world.root), True), )
 
@@ -371,7 +372,7 @@ class ExecDataTest(ORMaticBaseTestCaseMixin):
         # self.assertEqual(milk.name.name, "milk.stl")
 
     def test_state(self):
-        plan = SequentialPlan(self.context, self.robot_view,
+        plan = SequentialPlan(self.context,
                               NavigateActionDescription(
                                   PoseStamped.from_list( [0.6, 0.4, 0], [0, 0, 0, 1],self.world.root), True), )
         with simulated_robot:
@@ -385,7 +386,7 @@ class ExecDataTest(ORMaticBaseTestCaseMixin):
 class RelationalAlgebraTestCase(ORMaticBaseTestCaseMixin):
     def test_filtering(self):
         with simulated_robot:
-            sp = SequentialPlan(self.context, self.robot_view,
+            sp = SequentialPlan(self.context,
                 NavigateActionDescription(PoseStamped.from_list( [0.6, 0.4, 0], [0, 0, 0, 1], self.world.root), True),
                 ParkArmsActionDescription(Arms.BOTH),
                 PickUpActionDescription(self.world.get_body_by_name("milk.stl"), Arms.LEFT,

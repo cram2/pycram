@@ -40,10 +40,10 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
 
     def test_orm(self):
         mpa_description = MoveAndPickUpActionDescription(None, [self.world.get_body_by_name("milk.stl")], None, None, None)
-        plan = SequentialPlan(self.context, self.robot_view, mpa_description)
+        plan = SequentialPlan(self.context, mpa_description)
         mpa = MoveAndPickUpParameterizer(mpa_description, world=self.world).create_action()
 
-        plan = Plan(ResolvedActionNode(designator_ref=mpa, kwargs={}, action=MoveAndPickUpAction), self.world, self.robot_view)
+        plan = Plan(ResolvedActionNode(designator_ref=mpa, kwargs={}, action=MoveAndPickUpAction), self.context)
 
         with simulated_robot:
             try:

@@ -9,12 +9,10 @@ import networkx as nx
 import numpy as np
 import rustworkx as rx
 import rustworkx.visualization
-from semantic_digital_twin.robots.abstract_robot import AbstractRobot
-from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
-from .datastructures.dataclasses import ExecutionData
+from .datastructures.dataclasses import ExecutionData, Context
 from .datastructures.enums import TaskStatus
 from .datastructures.pose import PoseStamped
 from .external_interfaces import giskard
@@ -41,18 +39,22 @@ class Plan:
     on_start_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
     on_end_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
 
-    def __init__(self, root: PlanNode, world: World, robot: AbstractRobot, super_plan: Plan = None):
+    def __init__(self, root: PlanNode,
+                 context: Context):  # world: World, robot: AbstractRobot, super_plan: Plan = None):
         super().__init__()
         self.plan_graph = rx.PyDiGraph()
         self.node_indices = {}
         self.root: PlanNode = root
-        self.world = world
-        self.super_plan: Plan = super_plan
+        # Context Management
+        self.context = context
+        self.world = context.world
+        self.robot = context.robot
+        self.super_plan: Plan = context.super_plan
+
         self.add_node(self.root)
         self.current_node: PlanNode = self.root
         self.on_start_callback = {}
         self.on_end_callback = {}
-        self.robot = robot
         if self.super_plan:
             self.super_plan.add_edge(self.super_plan.current_node, self.root)
 
@@ -101,7 +103,6 @@ class Plan:
             node_for_removal.index = -1
             node_for_removal.plan = None
             node_for_removal.world = None
-
 
     def add_node(self, node_for_adding: PlanNode, **attr):
         """
@@ -500,7 +501,8 @@ class PlanNode:
 
         :return: The parent node
         """
-        return self.plan.plan_graph.predecessors(self.index)[0] if self.plan.plan_graph.predecessors(self.index) else None
+        return self.plan.plan_graph.predecessors(self.index)[0] if self.plan.plan_graph.predecessors(
+            self.index) else None
 
     @property
     def children(self) -> List[PlanNode]:
@@ -530,7 +532,7 @@ class PlanNode:
         :return: A new plan
         """
         graph = self.plan.plan_graph.subgraph([self.index] + [child.index for child in self.recursive_children])
-        plan = Plan(root=self, world=self.plan.world, robot=self.plan.robot, super_plan=self.plan.super_plan)
+        plan = Plan(root=self, context=self.plan.context)
         plan.plan_graph = graph
         return plan
 

@@ -46,7 +46,7 @@ class FaceAtAction(ActionDescription):
         new_robot_pose = PoseStamped.from_list( robot_position.position.to_list(), orientation, self.world.root)
 
         # turn robot
-        SequentialPlan(self.context, self.robot_view,
+        SequentialPlan(self.context,
                        NavigateActionDescription(new_robot_pose, self.keep_joint_states),
                        # look at target
                        LookAtActionDescription(self.pose)).perform()

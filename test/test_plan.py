@@ -7,6 +7,7 @@ from random_events.interval import closed
 from random_events.product_algebra import SimpleEvent, Event
 from semantic_digital_twin.adapters.urdf import URDFParser
 
+from pycram.datastructures.dataclasses import Context
 from pycram.datastructures.enums import TaskStatus
 from pycram.robot_plans import *
 from pycram.language import SequentialPlan, ParallelPlan, CodeNode
@@ -21,10 +22,11 @@ class TestPlan(unittest.TestCase):
     def setUp(self):
         Plan.current_plan = None
         self.world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "resources", "robots", "pr2.urdf")).parse()
+        self.context = Context(self.world, None, None)
 
     def test_plan_construction(self):
         node = PlanNode()
-        plan = Plan(node, self.world, None, None)
+        plan = Plan(node, self.context)
         self.assertEqual(node, plan.root)
         self.assertEqual(len(plan.edges), 0)
         self.assertEqual(len(plan.nodes), 1)
@@ -33,7 +35,7 @@ class TestPlan(unittest.TestCase):
 
     def test_add_edge(self):
         node = PlanNode()
-        plan = Plan(node, self.world, None, None)
+        plan = Plan(node, self.context)
         node2 = PlanNode()
         plan.add_edge(node, node2)
         self.assertEqual(node, plan.root)
@@ -46,7 +48,7 @@ class TestPlan(unittest.TestCase):
 
     def test_add_node(self):
         node = PlanNode()
-        plan = Plan(node, self.world, None, None)
+        plan = Plan(node, self.context)
         node2 = PlanNode()
         plan.add_node(node2)
         self.assertEqual(node, plan.root)
@@ -57,9 +59,9 @@ class TestPlan(unittest.TestCase):
 
     def test_mount(self):
         plan1_node = PlanNode()
-        plan1 = Plan(plan1_node, self.world, None, None)
+        plan1 = Plan(plan1_node, self.context)
         plan2_node = PlanNode()
-        plan2 = Plan(plan2_node, self.world, None, None)
+        plan2 = Plan(plan2_node, self.context)
 
         plan1.mount(plan2)
         self.assertIn(plan2_node, plan1.nodes)
@@ -69,11 +71,11 @@ class TestPlan(unittest.TestCase):
         self.assertEqual(len(plan1.nodes), 2)
 
     def test_mount_specific_node(self):
-        plan = Plan(PlanNode(), self.world, None, None)
+        plan = Plan(PlanNode(), self.context)
         mount_node = PlanNode()
         plan.add_edge(plan.root, mount_node)
 
-        plan2 = Plan(PlanNode(), self.world, None, None)
+        plan2 = Plan(PlanNode(), self.context)
         plan.mount(plan2, mount_node)
 
         self.assertIn(plan2.root, plan.nodes)
@@ -82,10 +84,20 @@ class TestPlan(unittest.TestCase):
         self.assertEqual(len(plan.edges), 2)
         self.assertEqual(len(plan.nodes), 3)
 
+    def test_context_creation(self):
+        super_plan = Plan(PlanNode(), self.context)
+        context = Context(self.world, 1, super_plan)
+        plan = Plan(PlanNode(), context)
+        self.assertEqual(context, plan.context)
+        self.assertEqual(plan.world, self.world)
+        self.assertEqual(plan.robot, 1)
+        self.assertEqual(plan.super_plan, super_plan)
+
 
 class TestPlanNode(unittest.TestCase):
     def setUp(self):
         self.world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "resources", "robots", "pr2.urdf")).parse()
+        self.context = Context(self.world, None, None)
 
     def test_plan_node_creation(self):
         node = PlanNode()
@@ -96,7 +108,7 @@ class TestPlanNode(unittest.TestCase):
 
     def test_plan_node_parent(self):
         node = PlanNode()
-        plan = Plan(node, self.world, None, None)
+        plan = Plan(node, self.context)
         node2 = PlanNode()
         plan.add_edge(node, node2)
 
@@ -105,7 +117,7 @@ class TestPlanNode(unittest.TestCase):
 
     def test_plan_all_parents(self):
         node = PlanNode()
-        plan = Plan(node, self.world, None, None)
+        plan = Plan(node, self.context)
         node2 = PlanNode()
         plan.add_edge(node, node2)
         node3 = PlanNode()
@@ -117,7 +129,7 @@ class TestPlanNode(unittest.TestCase):
 
     def test_plan_node_children(self):
         node = PlanNode()
-        plan = Plan(node, self.world, None, None)
+        plan = Plan(node, self.context)
 
         self.assertEqual([], node.children)
 
@@ -131,7 +143,7 @@ class TestPlanNode(unittest.TestCase):
 
     def test_plan_node_recursive_children(self):
         node = PlanNode()
-        plan = Plan(node, self.world, None, None)
+        plan = Plan(node,self.context)
 
         self.assertEqual([], node.recursive_children)
 
@@ -145,7 +157,7 @@ class TestPlanNode(unittest.TestCase):
 
     def test_plan_node_is_leaf(self):
         node = PlanNode()
-        plan = Plan(node, self.world, None, None)
+        plan = Plan(node, self.context)
         node2 = PlanNode()
         plan.add_edge(node, node2)
 
@@ -156,7 +168,7 @@ class TestPlanNode(unittest.TestCase):
         node = PlanNode()
         node2 = PlanNode()
         node3 = PlanNode()
-        plan = Plan(node, self.world, None, None)
+        plan = Plan(node, self.context)
         plan.add_edge(node, node2)
         plan.add_edge(node2, node3)
 
@@ -175,7 +187,7 @@ class TestPlanInterrupt(BulletWorldTestCase):
 
             code_node = CodeNode(interrupt_plan)
             with simulated_robot:
-                SequentialPlan(self.context, self.robot_view, MoveTorsoActionDescription(TorsoState.HIGH), Plan(code_node, *self.context), MoveTorsoActionDescription([TorsoState.LOW])).perform()
+                SequentialPlan(self.context, MoveTorsoActionDescription(TorsoState.HIGH), Plan(code_node, self.context), MoveTorsoActionDescription([TorsoState.LOW])).perform()
 
             self.assertEqual(0.3, self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position)
 
@@ -194,10 +206,10 @@ class TestPlanInterrupt(BulletWorldTestCase):
 
             code_node = CodeNode(pause_plan)
             sleep_node = CodeNode(node_sleep)
-            robot_plan = SequentialPlan(self.context, self.robot_view, Plan(sleep_node, *self.context), MoveTorsoActionDescription([TorsoState.HIGH]))
+            robot_plan = SequentialPlan(self.context,  Plan(sleep_node, *self.context), MoveTorsoActionDescription([TorsoState.HIGH]))
 
             with simulated_robot:
-                ParallelPlan(self.context, self.robot_view, Plan(code_node, *self.context), robot_plan).perform()
+                ParallelPlan(self.context,  Plan(code_node, self.context), robot_plan).perform()
 
             self.assertEqual(0.3, self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position)
 
@@ -205,7 +217,7 @@ class TestPlanInterrupt(BulletWorldTestCase):
 class AlgebraTest(BulletWorldTestCase):
 
     def test_algebra(self):
-        sp = SequentialPlan(self.context, self.robot_view,
+        sp = SequentialPlan(self.context,
                             MoveTorsoActionDescription(None),
                             NavigateActionDescription(None),
                             MoveTorsoActionDescription(None))
@@ -240,6 +252,6 @@ class AlgebraTest(BulletWorldTestCase):
         for i in range(10):
             sample = conditional.sample(1)
 
-            resolved = p.plan_from_sample(conditional, sample[0], self.context[0])
+            resolved = p.plan_from_sample(conditional, sample[0], self.world)
             with simulated_robot:
                 resolved.perform()

@@ -14,6 +14,7 @@ from semantic_digital_twin.spatial_types.spatial_types import TransformationMatr
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import OmniDrive
 
+from .datastructures.dataclasses import Context
 from .datastructures.enums import WorldMode
 from .plan import Plan
 from .ros import loginfo, get_node_names
@@ -114,7 +115,7 @@ class BulletWorldTestCase(EmptyWorldTestCase):
 
         cls.robot_view = PR2.from_world(cls.apartment_world)
 
-        cls.context = cls.apartment_world, None
+        cls.context = Context(cls.apartment_world, cls.robot_view, None)
 
         cls.original_state_data = deepcopy(cls.apartment_world.state.data)
         cls.world = cls.apartment_world

@@ -66,7 +66,7 @@ class ReachToPickUpAction(ActionDescription):
         target_pose = self.grasp_description.get_grasp_pose(end_effector, self.object_designator)
         target_pre_pose = translate_pose_along_local_axis(target_pose, end_effector.front_facing_axis.to_np()[:3], ActionConfig.pick_up_prepose_distance)
 
-        SequentialPlan(self.context, self.robot_view, MoveGripperMotion(motion=GripperState.OPEN, gripper=self.arm)).perform()
+        SequentialPlan(self.context,  MoveGripperMotion(motion=GripperState.OPEN, gripper=self.arm)).perform()
 
         self.move_gripper_to_pose(target_pre_pose)
 
@@ -81,7 +81,7 @@ class ReachToPickUpAction(ActionDescription):
         :param movement_type: The type of movement that should be performed.
         :param add_vis_axis: If a visual axis should be added to the world.
         """
-        SequentialPlan(self.context, self.robot_view,
+        SequentialPlan(self.context,
                        MoveTCPMotion(pose, self.arm, allow_gripper_collision=False,
                                      movement_type=movement_type)).perform()
 
@@ -141,7 +141,7 @@ class PickUpAction(ActionDescription):
         self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
-        SequentialPlan(self.context, self.robot_view,
+        SequentialPlan(self.context,
                        ReachToPickUpActionDescription(self.object_designator, self.arm, self.grasp_description),
 
                        MoveGripperMotion(motion=GripperState.CLOSE, gripper=self.arm)).perform()
@@ -154,7 +154,7 @@ class PickUpAction(ActionDescription):
 
         lift_to_pose = PoseStamped().from_spatial_type(end_effector.tool_frame.global_pose)
         lift_to_pose.pose.position.z += 0.1
-        SequentialPlan(self.context, self.robot_view, MoveTCPMotion(lift_to_pose, self.arm, allow_gripper_collision=True)).perform()
+        SequentialPlan(self.context,  MoveTCPMotion(lift_to_pose, self.arm, allow_gripper_collision=True)).perform()
 
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
@@ -203,7 +203,7 @@ class GraspingAction(ActionDescription):
 
         object_pose_in_gripper.pose.position.x -= self.prepose_distance
 
-        SequentialPlan(self.context, self.robot_view, MoveTCPMotion(object_pose_in_gripper, self.arm),
+        SequentialPlan(self.context, MoveTCPMotion(object_pose_in_gripper, self.arm),
                        MoveGripperMotion(GripperState.OPEN, self.arm),
 
                        MoveTCPMotion(object_pose, self.arm, allow_gripper_collision=True),

@@ -67,35 +67,23 @@ class TransportAction(ActionDescription):
         self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
-        SequentialPlan(self.context, self.robot_view, ParkArmsActionDescription(Arms.BOTH)).perform()
+        SequentialPlan(self.context,  ParkArmsActionDescription(Arms.BOTH)).perform()
         pickup_loc = ProbabilisticCostmapLocation(target=self.object_designator,
                                                                  reachable_for=self.robot_view,
                                                                  reachable_arm=self.arm)
-        pl = SequentialPlan(self.context, self.robot_view,pickup_loc)
+        pl = SequentialPlan(self.context, pickup_loc)
         # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = pickup_loc.resolve()
         if not pickup_pose:
             raise ObjectUnfetchable(
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
 
-        SequentialPlan(self.context, self.robot_view, NavigateActionDescription(pickup_pose, True),
+        SequentialPlan(self.context,  NavigateActionDescription(pickup_pose, True),
                        PickUpActionDescription(self.object_designator, pickup_pose.arm,
                                                grasp_description=pickup_pose.grasp_description),
                        ParkArmsActionDescription(Arms.BOTH)).perform()
-        # try:
-        #     place_loc = ProbabilisticCostmapLocation(
-        #         target=self.target_location,
-        #         reachable_for=self.robot_view,
-        #         reachable_arm=pickup_pose.arm,
-        #         grasp_descriptions=[pickup_pose.grasp_description],
-        #         object_in_hand=self.object_designator,
-        #         rotation_agnostic=self.place_rotation_agnostic,
-        #     ).resolve()
-        # except StopIteration:
-        #     raise ReachabilityFailure(
-        #         self.object_designator, self.robot_view, pickup_pose.arm, pickup_pose.grasp_description)
 
-        SequentialPlan(self.context, self.robot_view,
+        SequentialPlan(self.context,
                        NavigateActionDescription(ProbabilisticCostmapLocation(
                            target=self.target_location,
                            reachable_for=self.robot_view,
@@ -120,7 +108,7 @@ class TransportAction(ActionDescription):
             side_grasp *= np.array([-1, -1, -1, 1])
             self.target_location.rotate_by_quaternion(side_grasp.tolist())
 
-        SequentialPlan(self.context, self.robot_view,
+        SequentialPlan(self.context,
                        PlaceActionDescription(self.object_designator, self.target_location, pickup_pose.arm),
                        ParkArmsActionDescription(Arms.BOTH)).perform()
 
@@ -173,7 +161,7 @@ class PickAndPlaceAction(ActionDescription):
         self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
-        SequentialPlan(self.context, self.robot_view,
+        SequentialPlan(self.context,
                        ParkArmsActionDescription(Arms.BOTH),
                        PickUpActionDescription(self.object_designator, self.arm,
                                                grasp_description=self.grasp_description),
@@ -305,7 +293,7 @@ class MoveAndPickUpAction(ActionDescription):
 
     def plan(self):
         obj_pose = PoseStamped.from_spatial_type(self.object_designator.global_pose)
-        SequentialPlan(self.context, self.robot_view,
+        SequentialPlan(self.context,
                        NavigateActionDescription(self.standing_position, self.keep_joint_states),
                        FaceAtActionDescription(obj_pose, self.keep_joint_states),
                        PickUpActionDescription(self.object_designator, self.arm, self.grasp_description)).perform()

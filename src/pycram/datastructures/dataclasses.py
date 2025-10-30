@@ -1,30 +1,67 @@
 from __future__ import annotations
 
-import itertools
 import math
-from abc import ABC, abstractmethod
-from copy import deepcopy, copy
+
 from dataclasses import dataclass, fields, field
 from enum import Enum
-from typing import Iterator
 
 import numpy as np
-import plotly.graph_objects as go
-import trimesh
-from matplotlib import pyplot as plt
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.world import World
 
-from random_events.interval import closed, SimpleInterval, Bound
-from random_events.product_algebra import SimpleEvent, Event
-from random_events.variable import Continuous
 from semantic_digital_twin.world_description.world_entity import Body
 from semantic_digital_twin.world_description.world_modification import WorldModelModificationBlock
-from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence, Self, \
-    deprecated, Type
+from typing_extensions import List, Optional, Callable, Dict, Any, Union, Sequence, \
+    deprecated, Type, TYPE_CHECKING
 
-from .enums import JointType, Shape, VirtualMobileBaseJointName, Grasp, ApproachDirection, VerticalAlignment
-from .pose import PoseStamped, Point, TransformStamped
-from ..ros import logwarn, logwarn_once
-from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
+from .enums import JointType, VirtualMobileBaseJointName, Grasp, ApproachDirection, VerticalAlignment
+from .pose import PoseStamped, Point
+
+if TYPE_CHECKING:
+    from ..plan import Plan
+
+
+@dataclass
+class Context:
+    """
+    A dataclass for storing the context of a plan
+    """
+    world: World
+    """
+    The world in which the plan is executed
+    """
+
+    robot: AbstractRobot
+    """
+    The semantic robot annotation which should execute the plan
+    """
+
+    super_plan: Optional[Plan] = field(default=None)
+    """
+    The plan of which this plan/designator is a part of
+    """
+
+    @classmethod
+    def from_world(cls, world: World, super_plan: Optional[Plan] = None):
+        """
+        Create a context from a world by getting the first robot in the world. There is no super plan in this case.
+
+        :param world: The world for which to create the context
+        :param super_plan: An optional super plan
+        :return: A context with the first robot in the world and no super plan
+        """
+        return cls(world=world, robot=world.get_semantic_annotations_by_type(AbstractRobot)[0], super_plan=super_plan)
+
+    @classmethod
+    def from_plan(cls, plan: Plan):
+        """
+        Create a context from a plan by getting the context information from the plan and setting the super plan to
+        the given plan.
+
+        :param plan: Plan from which to create the context
+        :return: A new context with the world and robot from the plan and the super plan set to the given plan
+        """
+        return cls(world=plan.world, robot=plan.robot, super_plan=plan)
 
 
 @dataclass

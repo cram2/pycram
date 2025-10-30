@@ -37,7 +37,7 @@ class NavigateAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        return SequentialPlan(self.context, self.robot_view, MoveMotion(self.target_location, self.keep_joint_states)).perform()
+        return SequentialPlan(self.context,  MoveMotion(self.target_location, self.keep_joint_states)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         pose_validator = PoseErrorChecker(World.conf.get_pose_tolerance())
@@ -65,7 +65,7 @@ class LookAtAction(ActionDescription):
     """
 
     def plan(self) -> None:
-        SequentialPlan(self.context, self.robot_view,  LookingMotion(target=self.target)).perform()
+        SequentialPlan(self.context,  LookingMotion(target=self.target)).perform()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         """

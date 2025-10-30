@@ -24,6 +24,7 @@ from sortedcontainers import SortedSet
 
 from semantic_digital_twin.world import World
 
+from .datastructures.dataclasses import Context
 from .language import SequentialPlan
 from .plan import Plan, DesignatorNode, ResolvedActionNode
 
@@ -99,7 +100,8 @@ class Parameterizer:
         :return: The executable, sequential plan
         """
         sub_plans = []
-        plan = SequentialPlan((world, None), world.get_semantic_annotations_by_type(AbstractRobot)[0])
+        context = Context(world, world.get_semantic_annotations_by_type(AbstractRobot)[0], None)
+        plan = SequentialPlan(context)
 
         for node in self.variables_of_node:
             flattened_parameters = []

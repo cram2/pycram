@@ -7,7 +7,7 @@ from jedi.inference.gradual.typing import Tuple
 from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 from typing_extensions import Type, Any, Optional, Callable
 
-from ...datastructures.dataclasses import ExecutionData
+from ...datastructures.dataclasses import ExecutionData, Context
 from ...datastructures.pose import PoseStamped
 from semantic_digital_twin.world import World
 from ...failures import PlanFailure
@@ -60,8 +60,8 @@ class ActionDescription(HasParameters):
         return self.plan_struct.world
 
     @property
-    def context(self) -> Tuple[World, Plan]:
-        return self.world, self.plan_struct
+    def context(self) -> Context:
+        return Context(self.world, self.robot_view, self.plan_struct)
 
     @property
     def robot_view(self) -> AbstractRobot:

@@ -11,6 +11,7 @@ from semantic_digital_twin.world import World
 from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple, Self, Sequence, Type, \
     TYPE_CHECKING
 
+from .datastructures.dataclasses import Context
 from .datastructures.enums import TaskStatus, MonitorBehavior
 import threading
 
@@ -31,7 +32,7 @@ class LanguagePlan(Plan):
     Base class for language plans
     """
 
-    def __init__(self, root: LanguageNode, world: World, plan: Plan, robot_view: AbstractRobot, *children: Union[Plan, PartialDesignator, BaseMotion, ActionDescription] ):
+    def __init__(self, root: LanguageNode, context: Context, *children: Union[Plan, PartialDesignator, BaseMotion, ActionDescription] ):
         """
         Creates a Language plan with the given root node and children. The root node als determines the behavior of the
         language plan
@@ -42,7 +43,7 @@ class LanguagePlan(Plan):
         :param plan: A plan of which this plan is a part of
         :param robot_view: The robot which is executing the plan
         """
-        super().__init__(root=root, world=world, super_plan=plan, robot=robot_view)
+        super().__init__(root=root, context=context)
         for child in children:
             if isinstance(child, Plan):
                 self.mount(child, self.root)
@@ -77,10 +78,9 @@ class SequentialPlan(LanguagePlan):
     Creates a plan which executes its children in sequential order
     """
 
-    def __init__(self, context: Tuple[World, Optional[Plan]], robot: AbstractRobot, *children: Union[Plan, PartialDesignator, BaseMotion] ) -> None:
+    def __init__(self, context: Context, *children: Union[Plan, PartialDesignator, BaseMotion] ) -> None:
         seq = SequentialNode()
-        world, plan = context
-        super().__init__(seq, world, plan, robot, *children)
+        super().__init__(seq, context, *children)
 
 
 class ParallelPlan(LanguagePlan):
@@ -92,7 +92,7 @@ class ParallelPlan(LanguagePlan):
     """
     A list of Actions which can't be part of a Parallel plan
     """
-    def __init__(self, context: Tuple[World, Plan], robot: AbstractRobot, *children: Union[Plan, PartialDesignator, BaseMotion], root: LanguageNode = None) -> None:
+    def __init__(self, context: Context, *children: Union[Plan, PartialDesignator, BaseMotion], root: LanguageNode = None) -> None:
         root = root or ParallelNode()
         all_child_actions = []
         for child in children:
@@ -108,39 +108,36 @@ class ParallelPlan(LanguagePlan):
             if action in self.parallel_blocklist:
                 raise AttributeError(f"You can't create a ParallelPlan with a {child.__class__.__name__}.")
 
-        world, plan = context
-        super().__init__(root, world, plan, robot, *children)
+        super().__init__(root, context, *children)
 
 class TryInOrderPlan(LanguagePlan):
     """
     Creates a plan that executes all children in sequential order but does not stop if one of them throws an error
     """
 
-    def __init__(self, context: Tuple[World, Plan], robot: AbstractRobot, *children: Union[Plan, PartialDesignator, BaseMotion] ) -> None:
+    def __init__(self, context: Context, *children: Union[Plan, PartialDesignator, BaseMotion] ) -> None:
         try_in_order = TryInOrderNode()
-        world, plan = context
-        super().__init__(try_in_order, world, plan, robot, *children)
+        super().__init__(try_in_order, context, *children)
 
 class TryAllPLan(ParallelPlan):
     """
     Creates a plan which executes all children in parallel but does not abort if one throws an error
     """
 
-    def __init__(self, context: Tuple[World, Plan], robot: AbstractRobot, *children: Union[Plan, PartialDesignator, BaseMotion] ) -> None:
+    def __init__(self, context: Context, *children: Union[Plan, PartialDesignator, BaseMotion] ) -> None:
         try_all = TryAllNode()
-        super().__init__(context, robot,*children, root=try_all)
+        super().__init__(context, *children, root=try_all)
 
 class RepeatPlan(LanguagePlan):
     """
     A plan which repeats all children a number of times
     """
 
-    def __init__(self, context: Tuple[World, Plan], robot: AbstractRobot, repeat=1, *children: Union[Plan, PartialDesignator, BaseMotion] ):
+    def __init__(self, context: Context, repeat=1, *children: Union[Plan, PartialDesignator, BaseMotion] ):
         if not isinstance(repeat, int):
             raise AttributeError(f"Repeat must be an integer")
         repeat = RepeatNode(repeat=repeat)
-        world, plan = context
-        super().__init__(repeat, world, plan, robot,*children)
+        super().__init__(repeat, context,*children)
 
 class MonitorPlan(LanguagePlan):
     """
@@ -152,20 +149,18 @@ class MonitorPlan(LanguagePlan):
     :behavior: The behavior of the monitor, either :py:attr:`~MonitorBehavior.INTERRUPT`, :py:attr:`~MonitorBehavior.PAUSE` or :py:attr:`~MonitorBehavior.RESUME`
     """
 
-    def __init__(self, condition, context: Tuple[World, Plan], robot: AbstractRobot, *children: Union[Plan, PartialDesignator, BaseMotion] , behavior=MonitorBehavior.INTERRUPT) -> None:
+    def __init__(self, condition, context: Context, *children: Union[Plan, PartialDesignator, BaseMotion] , behavior=MonitorBehavior.INTERRUPT) -> None:
         monitor = MonitorNode(condition=condition, behavior=behavior)
-        world, plan = context
-        super().__init__(monitor, world, plan, robot, *children)
+        super().__init__(monitor, context, *children)
 
 class CodePlan(LanguagePlan):
     """
     A Plan that contains a function to be executed. Mainly intended for debugging purposes
     """
-    def __init__(self, context: Tuple[World, Plan], robot: AbstractRobot,  func: Callable, kwargs: Dict[str, Any] = None) -> None:
+    def __init__(self, context: Context, func: Callable, kwargs: Dict[str, Any] = None) -> None:
         kwargs = kwargs or {}
         code = CodeNode(func, kwargs)
-        world, plan = context
-        super().__init__(code, world, plan, robot)
+        super().__init__(code, context)
 
 
 @dataclass
