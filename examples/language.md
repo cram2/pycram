@@ -44,9 +44,12 @@ If you are performing a plan with a simulated robot, you need a BulletWorld.
 ```python
 from pycram.testing import setup_world
 from semantic_digital_twin.robots.pr2 import PR2
+from pycram.datastructures.dataclasses import Context
 
 world = setup_world()
 pr2_view = PR2.from_world(world)
+
+context = Context(world, pr2_view)
 ```
 
 
@@ -66,7 +69,7 @@ from pycram.language import SequentialPlan
 navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = SequentialPlan((world, None), pr2_view, navigate, park)
+plan = SequentialPlan(context, navigate, park)
 ```
 
 With this simple plan created we can inspect it and render the created tree structure.
@@ -107,7 +110,7 @@ from pycram.language import TryAllPLan
 navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = TryAllPLan((world, None), pr2_view, navigate, park)
+plan = TryAllPLan(context, navigate, park)
 
 with simulated_robot:
     plan.perform()
@@ -144,7 +147,7 @@ from pycram.language import ParallelPlan
 navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = ParallelPlan((world, None), pr2_view, navigate, park)
+plan = ParallelPlan(context, navigate, park)
 
 with simulated_robot:
     plan.perform()
@@ -167,7 +170,7 @@ from pycram.language import TryAllPLan
 navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = TryAllPLan((world, None), pr2_view, navigate, park)
+plan = TryAllPLan(context, navigate, park)
 
 with simulated_robot:
     plan.perform()
@@ -196,7 +199,7 @@ navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
 park = ParkArmsActionDescription([Arms.BOTH])
 move_torso = MoveTorsoActionDescription([TorsoState.HIGH])
 
-plan = ParallelPlan((world, None), pr2_view, navigate, SequentialPlan((world, None), pr2_view, park, move_torso))
+plan = ParallelPlan(context, navigate, SequentialPlan(context, park, move_torso))
 
 with simulated_robot:
     plan.perform()
@@ -226,10 +229,10 @@ def code_test(param):
 
 
 park = ParkArmsActionDescription([Arms.BOTH])
-code = CodePlan((world, None), pr2_view, lambda: print("This is from the code object"))
-code_func = CodePlan((world, None), pr2_view, code_test, {"param": "Code function"})
+code = CodePlan(context, lambda: print("This is from the code object"))
+code_func = CodePlan(context, code_test, {"param": "Code function"})
 
-plan = ParallelPlan((world, None), pr2_view, park, code, code_func)
+plan = ParallelPlan(context, park, code, code_func)
 
 with simulated_robot:
     plan.perform()
@@ -260,9 +263,9 @@ def code_test():
 
 
 navigate = NavigateActionDescription([PoseStamped.from_list([1, 1, 0])])
-code_func = CodePlan((world, None), pr2_view, code_test)
+code_func = CodePlan(context, code_test)
 
-plan = ParallelPlan((world, None), pr2_view, navigate, code_func)
+plan = ParallelPlan(context, navigate, code_func)
 
 with simulated_robot:
     plan.perform()
@@ -289,7 +292,7 @@ from pycram.language import SequentialPlan, RepeatPlan
 move_torso_up = MoveTorsoActionDescription([TorsoState.HIGH, TorsoState.MID, TorsoState.LOW])
 move_torso_down = MoveTorsoActionDescription([TorsoState.LOW, TorsoState.MID, TorsoState.HIGH])
 
-plan = RepeatPlan((world, None), pr2_view, 3, SequentialPlan((world, None), pr2_view, move_torso_up, move_torso_down))
+plan = RepeatPlan(context, 3, SequentialPlan(context, move_torso_up, move_torso_down))
 
 with simulated_robot:
     plan.perform()
@@ -322,7 +325,7 @@ def monitor_func():
     return True
 
 
-plan = MonitorPlan(monitor_func, (world, None), pr2_view, RepeatPlan((world, None), pr2_view, 3, SequentialPlan((world, None), pr2_view, move_torso_up, move_torso_down)))
+plan = MonitorPlan(monitor_func, context, RepeatPlan(context, 3, SequentialPlan(context, move_torso_up, move_torso_down)))
 
 with simulated_robot:
     plan.perform()
@@ -347,7 +350,7 @@ def monitor_func():
 move_torso_up = MoveTorsoActionDescription([TorsoState.HIGH, TorsoState.MID, TorsoState.LOW])
 move_torso_down = MoveTorsoActionDescription([TorsoState.LOW, TorsoState.MID, TorsoState.HIGH])
 
-plan = MonitorPlan(monitor_func, (world, None), pr2_view, RepeatPlan((world, None), pr2_view, 3, SequentialPlan((world, None), pr2_view, move_torso_up, move_torso_down)), behavior="resume")
+plan = MonitorPlan(monitor_func, context, RepeatPlan(context, 3, SequentialPlan(context, move_torso_up, move_torso_down)), behavior="resume")
 
 with simulated_robot:
     plan.perform()

@@ -27,11 +27,14 @@ need a language expression.
 ```python
 from pycram.process_module import simulated_robot
 from pycram.testing import setup_world
+from pycram.datastructures.dataclasses import Context
 from semantic_digital_twin.robots.pr2 import PR2
 
 world = setup_world()
 
 pr2 = PR2.from_world(world)
+
+context = Context(world, pr2)
 ```
 
 
@@ -46,7 +49,7 @@ from pycram.language import SequentialPlan
 navigate = NavigateActionDescription(PoseStamped.from_list([1, 1, 0]))
 park = ParkArmsActionDescription([Arms.BOTH])
 
-plan = SequentialPlan((world, None), pr2, navigate, park)
+plan = SequentialPlan(context, navigate, park)
 ```
 
 This will create a simple plan which has a SequentialNode as its root and two DesignatorNodes as its children. You can 

@@ -194,7 +194,6 @@ class CostmapLocation(LocationDesignatorDescription):
             grasp_descriptions: Optional[
                 Union[Iterable[GraspDescription], GraspDescription]
             ] = None,
-            # object_in_hand: Optional[Union[Iterable[Body], Body]] = None,
             rotation_agnostic: bool = False,
     ):
         """
@@ -331,6 +330,7 @@ class CostmapLocation(LocationDesignatorDescription):
             )
 
             for pose_candidate in PoseGenerator(final_map, number_of_samples=600):
+                print(f"test for pose : {pose_candidate}")
                 pose_candidate.position.z = 0
                 test_robot.root.parent_connection.origin = (
                     pose_candidate.to_spatial_type()

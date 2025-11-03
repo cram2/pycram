@@ -1,4 +1,4 @@
----
+from pycram.robot_plans import MoveAndPickUpAction---
 jupyter:
   jupytext:
     text_representation:
@@ -46,14 +46,11 @@ from random_events.product_algebra import Event, SimpleEvent
 from pycram.robot_plans import MoveTorsoAction
 from pycram.failures import PlanFailure
 from pycram.designators.object_designator import ObjectDesignatorDescription
-from pycram.worlds.bullet_world import BulletWorld
-from pycram.world_concepts.world_object import Object
 from pycram.robot_descriptions import robot_description
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import PoseStamped
-from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.process_module import ProcessModule, simulated_robot
-from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUp, Arms, ApproachDirection
+from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUpParameterizer, MoveAndPickUpAction
 from datetime import timedelta
 
 np.random.seed(69)
@@ -74,22 +71,21 @@ mapper_registry = mapper_registry
 Now we construct an empty world with just a floating milk, where we can learn about PickUp actions.
 
 ```python
-from pycrap.ontologies import Robot, Milk
+from pycram.testing import setup_world
+from semantic_digital_twin.robots.pr2 import PR2
+from pycram.datastructures.dataclasses import Context
 
-world = BulletWorld(WorldMode.DIRECT)
-print(world.prospection_world)
-robot = Object("pr2", Robot, "pr2.urdf")
-milk = Object("milk", Milk, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-viz_marker_publisher = VizMarkerPublisher()
-viz_marker_publisher = VizMarkerPublisher()
-milk_description = ObjectDesignatorDescription(types=[Milk]).ground()
+world = setup_world()
+pr2 = PR2.from_world(world)
+context = Context(world, pr2)
+
 ```
 
 Next, we create a default, probabilistic model that describes how to pick up objects. We visualize the default policy.
 The default policy tries to pick up the object by standing close to it, but not too close.
 
 ```python
-fpa = MoveAndPickUp(milk_description, arms=[Arms.LEFT, Arms.RIGHT],
+fpa = MoveAndPickUpAction(milk_description, arms=[Arms.LEFT, Arms.RIGHT],
                     grasps=[ApproachDirection.FRONT.value, ApproachDirection.LEFT.value, ApproachDirection.RIGHT.value, VerticalAlignment.TOP.value])
 p_xy = fpa.policy.marginal([fpa.variables.relative_x, fpa.variables.relative_y])
 fig = go.Figure(p_xy.plot(), p_xy.plotly_layout())

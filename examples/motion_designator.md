@@ -24,11 +24,14 @@ BulletWorld as well as a PR2 robot.
 
 ```python
 from pycram.testing import setup_world
+from pycram.datastructures.dataclasses import Context
 from semantic_digital_twin.robots.pr2 import PR2
 
 
 world = setup_world()
 pr2_view = PR2.from_world(world)
+
+context = Context(world, pr2_view)
 ```
 
 ## Move
@@ -46,7 +49,7 @@ from pycram.language import SequentialPlan
 with simulated_robot:
     motion_description = MoveMotion(target=PoseStamped.from_list([1, 0, 0], [0, 0, 0, 1]))
 
-    SequentialPlan((world, None), pr2_view, motion_description).perform()
+    SequentialPlan(context, motion_description).perform()
 ```
 
 ## MoveTCP
@@ -62,7 +65,7 @@ from pycram.datastructures.enums import Arms
 with simulated_robot:
     motion_description = MoveTCPMotion(target=PoseStamped.from_list([0.5, 0.6, 0.6], [0, 0, 0, 1], world.root), arm=Arms.LEFT)
 
-    SequentialPlan((world, None), pr2_view, motion_description).perform()
+    SequentialPlan(context, motion_description).perform()
 ```
 
 ## Looking
@@ -77,7 +80,7 @@ from pycram.process_module import simulated_robot
 with simulated_robot:
     motion_description = LookingMotion(target=PoseStamped.from_list([1, 1, 1], [0, 0, 0, 1], world.root))
 
-    SequentialPlan((world, None), pr2_view, motion_description).perform()
+    SequentialPlan(context, motion_description).perform()
 ```
 
 ## Move Gripper
@@ -93,7 +96,7 @@ from pycram.datastructures.enums import Arms, GripperState
 with simulated_robot:
     motion_description = MoveGripperMotion(motion=GripperState.OPEN, gripper=Arms.LEFT)
 
-    SequentialPlan((world, None), pr2_view, motion_description).perform()
+    SequentialPlan(context, motion_description).perform()
 ```
 
 ## Detecting
@@ -137,7 +140,7 @@ from pycram.process_module import simulated_robot
 with simulated_robot:
     motion_description = MoveArmJointsMotion(right_arm_poses={"r_shoulder_pan_joint": -0.7})
 
-    SequentialPlan((world, None), pr2_view, motion_description).perform()
+    SequentialPlan(context, motion_description).perform()
 ```
 
 ## Move Joints
@@ -152,7 +155,5 @@ from pycram.process_module import simulated_robot
 with simulated_robot:
     motion_description = MoveJointsMotion(names=["torso_lift_joint", "r_shoulder_pan_joint"], positions=[0.2, -1.2])
 
-    SequentialPlan((world, None), pr2_view, motion_description).perform()
+    SequentialPlan(context, motion_description).perform()
 ```
-
-The following cell can be used after testing the examples, to close the BulletWorld.

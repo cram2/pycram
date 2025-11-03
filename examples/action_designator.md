@@ -45,6 +45,9 @@ We will start with a simple example of the {meth}`~pycram.robot_plans.NavigateAc
 
 First, we need a BulletWorld with a robot.
 
+All plans need a context in which they are performed, this context consists of the world as well as the robot that is to 
+perform the plan. 
+
 ```python
 import os
 
@@ -54,10 +57,13 @@ from semantic_digital_twin.world import World
 from semantic_digital_twin.robots.pr2 import PR2
 from semantic_digital_twin.spatial_types.spatial_types import TransformationMatrix
 from pycram.datastructures.pose import PoseStamped
+from pycram.datastructures.dataclasses import Context
 from pycram.testing import setup_world
 
 world = setup_world()
 pr2_view = PR2.from_world(world)
+
+context = Context(world, pr2_view)
 
 
 ```
@@ -77,7 +83,7 @@ pose = PoseStamped.from_list([1.3, 2, 0], [0, 0, 0, 1])
 navigate_description = NavigateActionDescription(target_location=[pose])
 
 # The plan containing the navigation designator
-plan = SequentialPlan((world, None), pr2_view, navigate_description)
+plan = SequentialPlan(context, navigate_description)
 ```
 
 What we now did was: create the pose where we want to move the robot, create a description describing a navigation with
@@ -117,7 +123,7 @@ torso_pose = TorsoState.HIGH
 
 torso_desig = MoveTorsoActionDescription([torso_pose])
 
-plan = SequentialPlan((world, None), pr2_view, torso_desig)
+plan = SequentialPlan(context, torso_desig)
 
 with simulated_robot:
     plan.perform()
@@ -139,7 +145,7 @@ gripper = Arms.RIGHT
 motion = GripperState.OPEN
 
 with simulated_robot:
-    SequentialPlan((world, None), pr2_view, SetGripperActionDescription(gripper=gripper, motion=[motion])).perform()
+    SequentialPlan(context, SetGripperActionDescription(gripper=gripper, motion=[motion])).perform()
 ```
 
 ## Park Arms
@@ -153,7 +159,7 @@ from pycram.datastructures.enums import Arms
 from pycram.language import SequentialPlan
 
 with simulated_robot:
-    SequentialPlan((world, None), pr2_view, ParkArmsActionDescription(Arms.BOTH)).perform()
+    SequentialPlan(context, ParkArmsActionDescription(Arms.BOTH)).perform()
 ```
 
 ## Pick Up and Place
@@ -177,7 +183,7 @@ from pycram.language import SequentialPlan
 arm = Arms.RIGHT
 
 with simulated_robot:
-    SequentialPlan((world, None), pr2_view,
+    SequentialPlan(context,
         ParkArmsActionDescription(Arms.BOTH),
     
         MoveTorsoActionDescription([TorsoState.HIGH]),
@@ -207,7 +213,7 @@ from pycram.datastructures.pose import PoseStamped
 
 target_location = PoseStamped.from_list([3, 2, 1], [0, 0, 0, 1], world.root)
 with simulated_robot:
-    SequentialPlan((world, None), pr2_view, LookAtActionDescription(target=[target_location])).perform()
+    SequentialPlan(context, LookAtActionDescription(target=[target_location])).perform()
 ```
 
 ## Detect
@@ -256,11 +262,11 @@ from pycram.datastructures.enums import Arms, TorsoState
 
 
 description = TransportActionDescription(world.get_body_by_name("milk.stl"),
-                                         [PoseStamped.from_list([2.4, 1.8, 1],
-                                                      [0, 0, 0, 1])],
+                                         [PoseStamped.from_list([3, 2.2, 0.95],
+                                                                [0.0, 0.0, 1.0, 0.0], world.root)],
                                          [Arms.LEFT])
 with simulated_robot:
-    SequentialPlan((world, None), pr2_view,
+    SequentialPlan(context,
         MoveTorsoActionDescription([TorsoState.HIGH]),
         description).perform()
 ```
@@ -282,7 +288,7 @@ from pycram.datastructures.pose import PoseStamped
 
 
 with simulated_robot:
-    SequentialPlan((world, None), pr2_view, 
+    SequentialPlan(context,
         MoveTorsoActionDescription([TorsoState.HIGH]),
         ParkArmsActionDescription([Arms.BOTH]),
         NavigateActionDescription([PoseStamped.from_list([1.7474915981292725, 2.6873629093170166, 0.0],
@@ -306,7 +312,7 @@ from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import PoseStamped
 
 with simulated_robot:
-    SequentialPlan((world, None), pr2_view, 
+    SequentialPlan(context,
         MoveTorsoActionDescription([TorsoState.HIGH]),
         ParkArmsActionDescription([Arms.BOTH]),
         NavigateActionDescription([PoseStamped.from_list([1.7474915981292725, 2.6873629093170166, 0.0],
