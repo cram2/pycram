@@ -14,7 +14,7 @@ from ..failures import NavigationGoalNotReachedError
 from ..process_module import ProcessModule, ManagerBase
 from ..robot_plans import *
 from ..ros import get_time
-from ..ros import logdebug, loginfo
+from ..logging import logdebug, loginfo
 from ..tf_transformations import euler_from_quaternion
 from ..world_reasoning import visible, link_pose_for_joint_config
 

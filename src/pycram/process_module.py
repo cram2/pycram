@@ -21,7 +21,7 @@ from typing_extensions import Callable, Any, Union, Optional, List
 from .robot_description import RobotDescription, ViewManager
 from typing_extensions import TYPE_CHECKING
 from .datastructures.enums import ExecutionType
-from .ros import logerr, logwarn_once
+from .logging import logerr, logwarn_once
 from .config.world_conf import WorldConfig
 
 if TYPE_CHECKING:

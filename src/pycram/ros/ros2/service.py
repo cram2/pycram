@@ -2,7 +2,7 @@ import time
 import rclpy.client
 
 from . import node
-from .logging import loginfo_once
+from ...logging import loginfo_once
 
 services = {}
 

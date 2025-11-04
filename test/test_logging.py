@@ -2,7 +2,7 @@ import sys
 import unittest
 
 from pycram.testing import BulletWorldTestCase
-from pycram.ros import set_logger_level, logwarn, logerr, logdebug
+from pycram.logging import set_logger_level, logwarn, logerr, logdebug
 from pycram.datastructures.enums import LoggerLevel
 
 

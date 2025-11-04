@@ -7,7 +7,7 @@ from ..process_module import ProcessModuleManager, ProcessModule
 from .default_process_modules import DefaultMoveGripper, DefaultMoveTCP, \
     DefaultNavigation, DefaultMoveHead
 from ..robot_description import RobotDescription
-from ..ros import logdebug
+from ..logging import logdebug
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import send_query
 

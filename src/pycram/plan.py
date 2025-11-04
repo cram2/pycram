@@ -18,7 +18,7 @@ from .datastructures.pose import PoseStamped
 from .external_interfaces import giskard
 from .failures import PlanFailure
 from .has_parameters import leaf_types
-from .ros import loginfo
+from .logging import loginfo
 
 if TYPE_CHECKING:
     from .designator import BaseMotion, ActionDescription

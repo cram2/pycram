@@ -21,7 +21,7 @@ from .datastructures.grasp import GraspDescription
 from .datastructures.pose import PoseStamped
 from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
     get_robot_description_path
-from .ros import logerr
+from .logging import logerr
 from .tf_transformations import quaternion_multiply
 from .utils import suppress_stdout_stderr
 

@@ -64,7 +64,7 @@ from ..pose_generator_and_validator import (
     collision_check,
 )
 from ..robot_description import ViewManager
-from ..ros import logerr
+from ..logging import logerr, logdebug
 from ..utils import translate_pose_along_local_axis
 from ..world_reasoning import link_pose_for_joint_config
 
@@ -330,7 +330,7 @@ class CostmapLocation(LocationDesignatorDescription):
             )
 
             for pose_candidate in PoseGenerator(final_map, number_of_samples=600):
-                print(f"test for pose : {pose_candidate}")
+                logdebug(f"Testing candidate pose at {pose_candidate}")
                 pose_candidate.position.z = 0
                 test_robot.root.parent_connection.origin = (
                     pose_candidate.to_spatial_type()
@@ -343,6 +343,7 @@ class CostmapLocation(LocationDesignatorDescription):
                 )
 
                 if collisions:
+                    logdebug(f"Candidate pose in collision, skipping")
                     continue
 
                 if not (params_box.reachable_for or params_box.visible_for):
@@ -352,6 +353,7 @@ class CostmapLocation(LocationDesignatorDescription):
                 if params_box.visible_for and not visibility_validator(
                         test_robot, target, test_world
                 ):
+                    logdebug(f"Candidate pose not visible, skipping")
                     continue
 
                 if not params_box.reachable_for:

@@ -11,7 +11,7 @@ from .datastructures.enums import Arms, FindBodyInRegionMethod, Grasp, ApproachD
 from .datastructures.pose import PoseStamped, TransformStamped
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .robot_description import RobotDescription, KinematicChainDescription
-from .ros import logdebug, logwarn
+from .logging import logdebug, logwarn
 from .utils import RayTestUtils, chunks, get_rays_from_min_max
 
 

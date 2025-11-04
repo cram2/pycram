@@ -22,12 +22,10 @@ from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import Tuple, List, Optional, Iterator
 
-# from .datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape
 from .datastructures.dataclasses import Color
-from .datastructures.pose import PoseStamped, Point
+from .datastructures.pose import PoseStamped
 from .datastructures.pose import TransformStamped
-from .robot_description import ViewManager
-from .ros import logwarn
+from .logging import logwarn
 from .tf_transformations import quaternion_from_euler
 
 try:

@@ -8,7 +8,7 @@ from typing_extensions import Dict, Optional, Tuple
 import xml.etree.ElementTree as ET
 
 from .datastructures.enums import DescriptionType
-from .ros import  loginfo
+from .logging import  loginfo
 
 
 class Singleton(type):

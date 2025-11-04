@@ -19,7 +19,8 @@ from .datastructures.partial_designator import PartialDesignator
 from .fluent import Fluent
 from .failures import PlanFailure
 
-from .ros import sleep, loginfo
+from .ros import sleep
+from .logging import loginfo
 from .plan import PlanNode, Plan, managed_node, ActionNode, MotionNode, ResolvedActionNode
 
 if TYPE_CHECKING:

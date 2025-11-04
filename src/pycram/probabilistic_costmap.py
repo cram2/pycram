@@ -11,7 +11,8 @@ from typing_extensions import Optional, Type
 from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
 import matplotlib.colorbar
 from .datastructures.pose import PoseStamped
-from .ros import create_publisher, Duration, loginfo
+from .ros import create_publisher, Duration
+from .logging import loginfo
 from .units import meter
 
 from pint import Quantity

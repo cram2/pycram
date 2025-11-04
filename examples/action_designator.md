@@ -1,4 +1,4 @@
-from pycram.language import SequentialPlanfrom pycram.language import SequentialPlanfrom pycram.language import SequentialPlanfrom pycram.language import SequentialPlanfrom semantic_digital_twin.adapters.urdf import URDFParser---
+---
 jupyter:
   jupytext:
     text_representation:

@@ -26,14 +26,12 @@ from semantic_digital_twin.world_description.world_entity import Body, Kinematic
 from semantic_digital_twin.world import World
 
 from .tf_transformations import quaternion_from_euler
-from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional, Iterator
+from typing_extensions import List, Union, Dict, Iterable, Optional, Iterator
 
-from .costmaps import Costmap, SemanticCostmap
+from .costmaps import Costmap
 from .datastructures.pose import PoseStamped, TransformStamped
 from .failures import IKError, RobotInCollision
-from .robot_description import RobotDescription
-from .ros import logdebug
-from .world_reasoning import contact
+from .logging import logdebug
 
 
 class OrientationGenerator:

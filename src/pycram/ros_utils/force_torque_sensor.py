@@ -6,10 +6,10 @@ from semantic_digital_twin.world import World
 from std_msgs.msg import Header
 
 from ..datastructures.enums import FilterConfig
-from ..failures import SensorMonitoringCondition
 from ..filter import Butterworth
 from ..ros import  Time
-from ..ros import  create_publisher, logdebug, loginfo_once, logerr, create_subscriber
+from ..ros import  create_publisher, loginfo_once, create_subscriber
+from ..logging import logdebug, logerr
 
 
 class ForceTorqueSensorSimulated:

@@ -6,7 +6,7 @@ from typing_extensions import List, Union, Tuple, Dict
 
 from ..ros import get_node_names
 from ..ros import  Duration, ServiceException
-from ..ros import  loginfo_once, logerr
+from ..logging import  loginfo_once, logerr
 from ..utils import _apply_ik
 from ..datastructures.pose import PoseStamped
 from ..robot_description import RobotDescription

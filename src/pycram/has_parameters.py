@@ -6,7 +6,7 @@ from functools import lru_cache
 import typing_extensions
 from typing_extensions import List, Dict, Union, Tuple, TYPE_CHECKING, get_origin, get_args
 
-from .ros import logwarn
+from .logging import logwarn
 
 # Forward declaration of the class
 HasParameters = object

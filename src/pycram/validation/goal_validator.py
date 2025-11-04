@@ -8,7 +8,7 @@ from typing_extensions import Any, Callable, Optional, Union, Iterable, Dict, TY
 from .error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, SingleValueErrorChecker
 from ..datastructures.enums import JointType
-from ..ros import logerr, logwarn
+from ..logging import logerr, logwarn
 
 if TYPE_CHECKING:
     from ..datastructures.pose import PoseStamped

@@ -6,7 +6,7 @@ import sys
 from semantic_digital_twin.world_description.world_entity import Body
 
 from ..ros import Time
-from ..ros import logwarn, loginfo_once, loginfo
+from ..logging import logwarn, loginfo_once, loginfo
 from ..ros import get_node_names
 
 from ..datastructures.enums import JointType, ObjectType, Arms
@@ -16,7 +16,7 @@ from ..robot_description import RobotDescription
 
 from typing_extensions import List, Dict, Callable, Optional
 from threading import Lock, RLock
-from ..ros import logging as log, node
+from ..ros import node
 
 
 

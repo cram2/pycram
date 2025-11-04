@@ -3,11 +3,10 @@ from typing_extensions import Any
 
 from .default_process_modules import *
 # from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
-from ..robot_description import RobotDescription
 from ..process_module import ProcessModule
 from ..robot_plans import *
 from ..external_interfaces import giskard
-from ..ros import  logdebug
+from ..logging import  logdebug
 try:
     from pydub import AudioSegment
     from pydub.playback import play

@@ -7,7 +7,7 @@ except ImportError:
 from ..designators.object_designator import *
 import json
 
-from ..ros import  loginfo, logwarn
+from ..logging import  loginfo, logwarn
 
 
 

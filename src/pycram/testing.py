@@ -17,7 +17,7 @@ from semantic_digital_twin.world_description.connections import OmniDrive
 from .datastructures.dataclasses import Context
 from .datastructures.enums import WorldMode
 from .plan import Plan
-from .ros import loginfo, get_node_names
+from .logging import loginfo
 from .robot_descriptions.pr2_states import *
 try:
     from semantic_digital_twin.adapters.viz_marker import VizMarkerPublisher
