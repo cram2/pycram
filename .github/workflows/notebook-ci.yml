@@ -18,7 +18,7 @@ defaults:
     working-directory: .
 
 jobs:
-  test-and-build:
+  test-notebooks:
     name: Test Jupyter Notebooks
     runs-on: ubuntu-22.04
     container:

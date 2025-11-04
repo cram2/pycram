@@ -21,7 +21,8 @@ on:
         description: "Run tmate session"
 
 jobs:
-  build_and_run_tests:
+  test:
+    name: Run PyCRAM Tests
     runs-on: ubuntu-24.04
     container:
       image: "pycram/pycram:jazzy"
