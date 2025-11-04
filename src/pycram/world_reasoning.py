@@ -9,7 +9,6 @@ from typing_extensions import List, Tuple, Optional, Union, Dict
 from .datastructures.dataclasses import RayResult
 from .datastructures.enums import Arms, FindBodyInRegionMethod, Grasp, ApproachDirection, VerticalAlignment
 from .datastructures.pose import PoseStamped, TransformStamped
-from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .robot_description import RobotDescription, KinematicChainDescription
 from .logging import logdebug, logwarn
 from .utils import RayTestUtils, chunks, get_rays_from_min_max

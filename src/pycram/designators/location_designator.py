@@ -752,7 +752,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
         """
         super().__init__()
         PartialDesignator.__init__(
-            self, ProbabilisticSemanticLocation, bodies=[bodies], for_object=for_object
+            self, ProbabilisticSemanticLocation, bodies=bodies, for_object=for_object
         )
         self.sort_samples = sort_sampels
         self.uniform_sampling = uniform_sampling
