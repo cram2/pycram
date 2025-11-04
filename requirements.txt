@@ -17,3 +17,4 @@ pillow
 polytope
 krrood
 semantic_digital_twin
+rustworkx_utils

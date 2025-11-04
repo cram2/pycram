@@ -9,7 +9,7 @@ ARG OVERLAY_WS=/opt/ros/overlay_ws
 WORKDIR $OVERLAY_WS/src
 SHELL ["/bin/bash", "-c"]
 
-RUN apt update && apt install python3.12-venv ros-jazzy-xacro python3-vcstool git ros-dev-tools default-jre -y
+RUN apt update && apt install python3.12-venv ros-jazzy-xacro python3-vcstool git ros-dev-tools default-jre graphviz -y
 RUN vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/rosinstall/pycram-ros2-https.rosinstall
 RUN git clone -b ros-jazzy https://github.com/code-iai/iai_robots.git
 RUN source /opt/ros/jazzy/setup.bash && cd $OVERLAY_WS && colcon build --symlink-install
