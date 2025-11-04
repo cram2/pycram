@@ -23,7 +23,6 @@ from random_events.polytope import Polytope, NoOptimalSolutionError
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
 from scipy.spatial import ConvexHull
-from semantic_digital_twin.adapters.viz_marker import VizMarkerPublisher
 from semantic_digital_twin.datastructures.variables import SpatialVariables
 from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 from semantic_digital_twin.spatial_types import Point3
@@ -297,8 +296,6 @@ class CostmapLocation(LocationDesignatorDescription):
         for params in self.generate_permutations():
             test_world = deepcopy(self.world)
             test_world.name = "Test World"
-
-            v = VizMarkerPublisher(test_world, node)
 
             params_box = Box(params)
             # Target is either a pose or an object since the object is later needed for the visibility validator
@@ -1050,24 +1047,24 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
             world_pc = ProbabilisticCircuit()
             world_distribution = SumUnit(probabilistic_circuit=world_pc)
 
-            for body in params_box.bodies:
+            # for body in params_box.bodies:
 
-                conditioned_link_circuit, p_condition = (
-                    self._create_distribution_for_link(body)
-                )
+            conditioned_link_circuit, p_condition = (
+                self._create_distribution_for_link(params_box.bodies)
+            )
 
-                if conditioned_link_circuit is None:
-                    continue
+            if conditioned_link_circuit is None:
+                continue
 
-                if self.uniform_sampling:
-                    log_weight = 0.0
+            if self.uniform_sampling:
+                log_weight = 0.0
 
-                else:
-                    log_weight = np.log(p_condition)
+            else:
+                log_weight = np.log(p_condition)
 
-                temp_root = conditioned_link_circuit.root
-                remap = world_pc.add_from_subgraph(conditioned_link_circuit.graph)
-                world_distribution.add_subcircuit(remap[temp_root.index], log_weight)
+            temp_root = conditioned_link_circuit.root
+            remap = world_pc.add_from_subgraph(conditioned_link_circuit.graph)
+            world_distribution.add_subcircuit(remap[temp_root.index], log_weight)
 
             world_distribution.probabilistic_circuit.normalize()
 

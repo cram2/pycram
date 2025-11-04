@@ -89,7 +89,7 @@ from pycram.datastructures.enums import Arms, TorsoState
 with simulated_robot:
     SequentialPlan(context, 
                    ParkArmsActionDescription(Arms.BOTH),
-                   MoveTorsoActionDescription(TorsoState.HIGH))
+                   MoveTorsoActionDescription(TorsoState.HIGH)).perform()
 
 ```
 
@@ -146,12 +146,8 @@ need to execute the following cell.
 from pycram.designators.location_designator import SemanticCostmapLocation
 from pycram.designators.object_designator import BelieveObject
 
-kitchen_desig = BelieveObject(names=["apartment"]).resolve()
-milk_desig = BelieveObject(names=["milk"]).resolve()
-
-counter_name = "counter_sink_stove" if use_multiverse else "island_countertop"
-location_description = SemanticCostmapLocation(world.get_body_by_name(counter_name),
-                                               for_object=milk_desig)
+location_description = SemanticCostmapLocation(world.get_body_by_name("island_countertop"),
+                                               for_object=world.get_body_by_name("milk.stl"))
 
 plan = SequentialPlan(context, location_description)
 
@@ -166,9 +162,8 @@ of link names instead of a single link name, which allows us to sample from mult
 ```python
 from pycram.designators.location_designator import ProbabilisticSemanticLocation
 
-counter_name = "counter_sink_stove" if use_multiverse else "island_countertop"
-location_description = ProbabilisticSemanticLocation(world.get_body_by_name(counter_name),
-                                                    for_object=milk_desig)
+location_description = ProbabilisticSemanticLocation(world.get_body_by_name("island_countertop"),
+                                                    for_object=world.get_body_by_name("milk.stl"))
 
 plan = SequentialPlan(context, location_description)
 
@@ -188,13 +183,14 @@ from pycram.designators.location_designator import CostmapLocation
 from pycram.designators.object_designator import BelieveObject
 from pycram.language import SequentialPlan
 
-
 location_description = CostmapLocation(target=world.get_body_by_name("milk.stl"), visible_for=pr2_view)
 plan = SequentialPlan(context, location_description)
 
 
-for pose in location_description:
+for i, pose in enumerate(location_description):
     print(pose)
+    if i > 3:
+        break
 ```
 
 Similar to the ProbabilisticSemanticLocation, the ProbabilisticCostmapLocation can be used as an alternative to the
@@ -209,8 +205,10 @@ from pycram.language import SequentialPlan
 location_description = ProbabilisticCostmapLocation(target=world.get_body_by_name("milk.stl"), visible_for=pr2_view)
 plan = SequentialPlan(context, location_description)
 
-for pose in location_description:
+for i, pose in enumerate(location_description):
     print(pose)
+    if i > 3:
+        break
 ```
 
 ## Accessing Locations
@@ -226,31 +224,8 @@ from pycram.designators.object_designator import *
 from pycram.designators.location_designator import *
 from pycram.language import SequentialPlan
 
-handle_name = "cabinet10_drawer1_handle" if use_multiverse else "handle_cab10_t"
-
-access_location = AccessingLocation(world.get_body_by_name(handle_name), pr2_view)
+access_location = AccessingLocation(world.get_body_by_name("handle_cab10_t"), pr2_view)
 plan = SequentialPlan(context, access_location)
 
-print(access_location)
-```
-
-## Giskard Location
-
-Some robots like the HSR or the Stretch2 need a full-body ik solver to utilize the whole body. For this case
-the {meth}`~pycram.designators.specialized_designators.location.giskard_location.GiskardLocation` can be used. This location designator uses giskard as an ik solver to find a pose for the
-robot to reach a target pose.
-
-**Note:** The GiskardLocation relies on Giskard, therefore Giskard needs to run in order for this Location Designator to
-work.
-
-```python
-from pycram.ros import get_node_names
-if "/giskard" in get_node_names():
-
-    from pycram.designators.specialized_designators.location.giskard_location import GiskardLocation
-    
-    robot_desig = BelieveObject(names=["pr2"]).resolve()
-    
-    loc = GiskardLocation(target=PoseStamped.from_list([1, 1, 1]), reachable_for=robot_desig).resolve()
-    print(loc)
+print(access_location.resolve())
 ```
