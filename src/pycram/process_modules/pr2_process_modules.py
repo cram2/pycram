@@ -3,7 +3,7 @@ from ..datastructures.enums import GripperState, Arms, ExecutionType
 from ..robot_plans import MoveGripperMotion
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..ros import Duration, create_action_client
-from ..ros import  loginfo, logwarn, logdebug
+from ..logging import  loginfo, logwarn, logdebug
 
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2

@@ -21,7 +21,7 @@ from ....language import SequentialPlan
 from ....robot_description import EndEffectorDescription, ViewManager
 from ....robot_description import RobotDescription, KinematicChainDescription
 from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
-from ....ros import logwarn
+from ....logging import logwarn
 from ....utils import translate_pose_along_local_axis
 from ....world_reasoning import has_gripper_grasped_body, is_body_between_fingers
 

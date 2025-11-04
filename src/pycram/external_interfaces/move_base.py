@@ -1,7 +1,7 @@
 import sys
 
 from ..ros import  create_action_client
-from ..ros import  logwarn, loginfo
+from ..logging import  logwarn, loginfo
 from ..ros import  get_node_names
 
 from typing import Callable

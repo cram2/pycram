@@ -23,6 +23,7 @@ from random_events.polytope import Polytope, NoOptimalSolutionError
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
 from scipy.spatial import ConvexHull
+from semantic_digital_twin.adapters.viz_marker import VizMarkerPublisher
 from semantic_digital_twin.datastructures.variables import SpatialVariables
 from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 from semantic_digital_twin.spatial_types import Point3
@@ -67,6 +68,7 @@ from ..robot_description import ViewManager
 from ..logging import logerr, logdebug
 from ..utils import translate_pose_along_local_axis
 from ..world_reasoning import link_pose_for_joint_config
+from ..ros import node
 
 
 class Location(LocationDesignatorDescription):
@@ -295,6 +297,8 @@ class CostmapLocation(LocationDesignatorDescription):
         for params in self.generate_permutations():
             test_world = deepcopy(self.world)
             test_world.name = "Test World"
+
+            v = VizMarkerPublisher(test_world, node)
 
             params_box = Box(params)
             # Target is either a pose or an object since the object is later needed for the visibility validator

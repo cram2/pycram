@@ -1,7 +1,7 @@
 from ..datastructures.dataclasses import ManipulatorData
 from ..helper import get_robot_urdf_and_mjcf_file_paths, find_multiverse_resources_path
 from ..robot_description import RobotDescriptionManager, create_manipulator_description
-from ..ros import  logwarn, loginfo
+from ..logging import  logwarn, loginfo
 
 data = ManipulatorData(
     name="ur5e",

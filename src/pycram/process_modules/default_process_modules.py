@@ -1,8 +1,6 @@
 from scipy.spatial.transform import Rotation as R
-from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
-from semantic_digital_twin.robots.pr2 import PR2, AbstractRobot
+from semantic_digital_twin.robots.pr2 import AbstractRobot
 from semantic_digital_twin.world import World
-from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import TYPE_CHECKING
 
 from ..datastructures.dataclasses import Colors
@@ -10,7 +8,6 @@ from ..datastructures.enums import ExecutionType
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import query_all_objects, query_object, query_human, query_specific_region, \
     query_human_attributes, query_waving_human
-from ..failures import NavigationGoalNotReachedError
 from ..process_module import ProcessModule, ManagerBase
 from ..robot_plans import *
 from ..ros import get_time
@@ -186,7 +183,7 @@ class DefaultMoveJoints(ProcessModule):
             dof = desig.world.get_degree_of_freedom_by_name(joint)
             desig.world.state[dof.name].position = position
         desig.world.notify_state_change()
-
+        logdebug(f"Moved joints {desig.names} to positions {desig.positions}")
 
 class DefaultOpen(ProcessModule):
     """

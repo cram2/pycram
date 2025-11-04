@@ -4,7 +4,8 @@ from __future__ import print_function
 import sys
 import json
 from typing import Callable
-from ..ros import logwarn, loginfo, get_node_names, wait_for_service, get_service_proxy, ServiceException
+from ..ros import get_node_names, wait_for_service, get_service_proxy, ServiceException
+from ..logging import logwarn, loginfo
 try:
     from iai_apartment_kitchen_msgs.srv import Authenticateuser
 except ModuleNotFoundError as e:
