@@ -1,4 +1,3 @@
-gitpython>=3.1.37
 scipy
 SQLAlchemy #orm
 sqlacodegen==3.0.0 #orm
@@ -6,17 +5,15 @@ ormatic>=1.1.1 # orm
 tqdm==4.66.3
 psutil~=5.9.0
 typing_extensions>=4.10.0
-owlready2>=0.45
 trimesh==4.6.0
 deprecated
 probabilistic_model>=7.1.0 # just until semantic world is integrated
 random_events>=4.1.18
 pint>=0.21.1
-gymnasium
 transforms3d
 python-box
 rustworkx
 pillow
 polytope
-ortools
-entity_query_language
+krrood
+semantic_digital_twin
