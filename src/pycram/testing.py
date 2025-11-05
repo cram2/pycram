@@ -44,16 +44,15 @@ def setup_world() -> World:
         os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "milk.stl")).parse()
     cereal_world = STLParser(
         os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "breakfast_cereal.stl")).parse()
-    apartment_world.merge_world(pr2_sem_world)
+    # apartment_world.merge_world(pr2_sem_world)
     apartment_world.merge_world(milk_world)
     apartment_world.merge_world(cereal_world)
 
     with apartment_world.modify_world():
-        pr2_root = apartment_world.get_body_by_name("base_footprint")
+        pr2_root = pr2_sem_world.get_body_by_name("base_footprint")
         apartment_root = apartment_world.root
-        apartment_world.remove_connection(pr2_root.parent_connection)
-        c_root_bf = OmniDrive(parent=apartment_root, child=pr2_root, _world=apartment_world)
-        apartment_world.add_connection(c_root_bf)
+        c_root_bf = OmniDrive.create_with_dofs(parent=apartment_root, child=pr2_root, world=apartment_world)
+        apartment_world.merge_world(pr2_sem_world, c_root_bf)
 
     apartment_world.get_body_by_name("milk.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2,
                                                                                                                   2, 1,

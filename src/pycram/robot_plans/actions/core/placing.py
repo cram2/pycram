@@ -73,7 +73,7 @@ class PlaceAction(ActionDescription):
         obj_transform = self.world.compute_forward_kinematics(world_root, self.object_designator)
         with self.world.modify_world():
             self.world.remove_connection(self.object_designator.parent_connection)
-            connection = Connection6DoF(world_root, self.object_designator, _world=self.world)
+            connection = Connection6DoF.create_with_dofs(parent=world_root, child=self.object_designator, world=self.world)
             self.world.add_connection(connection)
             connection.origin = obj_transform
 
