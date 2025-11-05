@@ -11,7 +11,7 @@ import rustworkx as rx
 import rustworkx.visualization
 import logging
 from semantic_digital_twin.world_description.world_entity import Body
-from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
+from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator, Union
 
 from .datastructures.dataclasses import ExecutionData, Context
 from .datastructures.enums import TaskStatus
@@ -21,7 +21,7 @@ from .failures import PlanFailure
 from .has_parameters import leaf_types
 
 if TYPE_CHECKING:
-    from .designator import BaseMotion, ActionDescription
+    from .robot_plans import BaseMotion, ActionDescription
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +35,24 @@ class Plan:
     Represents a plan structure, typically a tree, which can be changed at any point in time. Performing the plan will
     traverse the plan structure in depth first order and perform each PlanNode
     """
-    current_plan: Plan = None
+    current_plan: Optional[Plan] = None
+    """
+    The plan that is currently being performed
+    """
 
-    on_start_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
-    on_end_callback: Dict[Optional[Type[ActionDescription]], List[Callable]] = {}
+    current_node: Optional[PlanNode] = None
+    """
+    The node, of the current_plan, that is currently being performed
+    """
+
+    on_start_callback: Dict[Optional[Union[Type[ActionDescription], Type[PlanNode]]], List[Callable]] = {}
+    """
+    Callbacks to be called when a node of the given type is started.
+    """
+    on_end_callback: Dict[Optional[Union[Type[ActionDescription], Type[PlanNode]]], List[Callable]] = {}
+    """
+    Callbacks to be called when a node of the given type is ended.
+    """
 
     def __init__(self, root: PlanNode,
                  context: Context):  # world: World, robot: AbstractRobot, super_plan: Plan = None):
@@ -259,8 +273,7 @@ class Plan:
         pos = self.bfs_layout(scale=scale, align=align)
 
         rx.visualization.mpl_draw(self.plan_graph, pos=pos, labels=lambda node: str(node),
-                                  with_labels=True,
-                                  edge_labels=None)
+                                  with_labels=True)
 
         plt.title("Plan Graph")
         plt.axis('off')  # Hide axes
@@ -475,11 +488,11 @@ class PlanNode:
     """
     The reason of failure if the action failed.
     """
-    result: Any = None
+    result: Optional[Any] = None
     """
     Result from the execution of this node
     """
-    plan: Plan = None
+    plan: Optional[Plan] = None
     """
     Reference to the plan to which this node belongs
     """
@@ -681,7 +694,7 @@ class ResolvedActionNode(DesignatorNode):
     """
     designator_ref: ActionDescription = None
 
-    action: ActionDescription = None
+    action: Type[ActionDescription] = None
 
     def __hash__(self):
         return id(self)
@@ -704,6 +717,7 @@ class ResolvedActionNode(DesignatorNode):
         if manipulated_body:
             exec_data.manipulated_body = manipulated_body
             exec_data.manipulated_body_pose_start = PoseStamped.from_spatial_type(manipulated_body.global_pose)
+            exec_data.manipulated_body_name = str(manipulated_body.name)
 
         result = self.designator_ref.perform()
 

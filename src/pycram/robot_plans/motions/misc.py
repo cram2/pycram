@@ -38,18 +38,3 @@ class DetectingMotion(BaseMotion):
         obj_dict = pm_manager.detecting().execute(self)
         return obj_dict
 
-
-@dataclass
-class WorldStateDetectingMotion(BaseMotion):
-    """
-    Detects an object based on the world state.
-    """
-
-    object_type: ObjectType
-    """
-    Object type that should be detected
-    """
-
-    def perform(self):
-        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
-        return pm_manager.world_state_detecting().execute(self)

@@ -9,25 +9,24 @@ from __future__ import annotations
 import glob
 import importlib
 import logging
-from os.path import dirname, basename, isfile, join
-from datetime import timedelta
-from threading import Lock
 import time
 from abc import ABC, abstractmethod
+from datetime import timedelta
+from os.path import dirname, basename, isfile, join
+from threading import Lock
 
 from semantic_digital_twin.robots.abstract_robot import AbstractRobot
-from semantic_digital_twin.world import World
-from typing_extensions import Callable, Any, Union, Optional, List
-
-from .robot_description import RobotDescription, ViewManager
+from typing_extensions import Callable, Any, Optional, List
 from typing_extensions import TYPE_CHECKING
-from .datastructures.enums import ExecutionType
+
 from .config.world_conf import WorldConfig
+from .datastructures.enums import ExecutionType
 
 if TYPE_CHECKING:
     from pycram.robot_plans.motions import BaseMotion
 
 logger = logging.getLogger(__name__)
+
 
 class ProcessModule:
     """
@@ -271,7 +270,6 @@ class ProcessModuleManager(ABC):
         Registers the Process modules for this robot. The name of the robot has to match the name given in the robot
         description.
 
-        :param robot_name: Name of the robot for which these Process Modules are intended
         """
         if self._initialized:
             return
@@ -288,7 +286,6 @@ class ProcessModuleManager(ABC):
         if not isinstance(manager, ManagerBase):
             raise TypeError(f"Expected ProcessModuleManager, got {type(manager)}")
         self.available_pms.append(manager)
-
 
     def get_manager(self, robot: AbstractRobot) -> ManagerBase:
         """

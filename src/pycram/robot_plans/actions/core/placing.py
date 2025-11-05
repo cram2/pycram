@@ -9,7 +9,6 @@ from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from ....config.action_conf import ActionConfig
 from ...motions.gripper import MoveTCPMotion, MoveGripperMotion
-from ....datastructures.dataclasses import FrozenObject
 from ....datastructures.enums import Arms, GripperState
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
@@ -17,7 +16,7 @@ from ....failures import ObjectNotPlacedAtTargetLocation, ObjectStillInContact
 from ....has_parameters import has_parameters
 from ....language import SequentialPlan
 from ....robot_description import ViewManager
-from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
+from ....robot_plans.actions.base import ActionDescription
 from ....utils import translate_pose_along_local_axis
 from ....validation.error_checkers import PoseErrorChecker
 
@@ -41,11 +40,6 @@ class PlaceAction(ActionDescription):
     """
     Arm that is currently holding the object
     """
-    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
-    """
-    The object at the time this Action got created. It is used to be a static, information holding entity. It is
-    not updated when the BulletWorld object is changed.
-    """
     _pre_perform_callbacks = []
     """
     List to save the callbacks which should be called before performing the action.
@@ -53,9 +47,6 @@ class PlaceAction(ActionDescription):
 
     def __post_init__(self):
         super().__post_init__()
-
-        # Store the object's data copy at execution
-        self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
         pre_place_pose = self.world.transform(self.target_location.to_spatial_type(), self.world.root)

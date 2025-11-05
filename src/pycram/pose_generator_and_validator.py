@@ -1,8 +1,5 @@
-import random
-from copy import deepcopy
-
-import random
 import logging
+import random
 from copy import deepcopy
 
 import numpy as np
@@ -18,10 +15,11 @@ from semantic_digital_twin.spatial_computations.ik_solver import (
 )
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import Connection6DoF
+from semantic_digital_twin.world_description.degree_of_freedom import DegreeOfFreedom
 from semantic_digital_twin.world_description.geometry import Box, Scale
 from semantic_digital_twin.world_description.shape_collection import ShapeCollection
 from semantic_digital_twin.world_description.world_entity import Body, KinematicStructureEntity
-from typing_extensions import List, Union, Dict, Iterable, Optional, Iterator
+from typing_extensions import List, Union, Dict, Iterable, Optional, Iterator, Callable
 
 from .costmaps import Costmap
 from .datastructures.pose import PoseStamped, TransformStamped
@@ -29,6 +27,7 @@ from .failures import IKError, RobotInCollision
 from .tf_transformations import quaternion_from_euler
 
 logger = logging.getLogger(__name__)
+
 
 class OrientationGenerator:
     """
@@ -91,9 +90,9 @@ class PoseGenerator(Iterable[PoseStamped]):
     def __init__(
             self,
             costmap: Costmap,
-            number_of_samples=100,
-            orientation_generator=None,
-            randomize=False,
+            number_of_samples: int = 100,
+            orientation_generator: Callable[[PoseStamped, PoseStamped], List[float]] = None,
+            randomize: bool = False,
     ):
         """
         :param costmap: The costmap from which poses should be sampled.
@@ -153,12 +152,12 @@ class PoseGenerator(Iterable[PoseStamped]):
                 continue
             # The position is calculated by creating a vector from the 2D position in the costmap (given by x and y)
             # and the center of the costmap (since this is the origin). This vector is then turned into a transformation
-            # and muiltiplied with the transformation of the origin.
+            # and multiplied with the transformation of the origin.
             vector_to_origin = (center - ind) * self.costmap.resolution
             point_to_origin = TransformStamped.from_list(
-                [*vector_to_origin, 0], frame="point", child_frame_id="origin"
+                [*vector_to_origin, 0],
             )
-            origin_to_map = ~self.costmap.origin.to_transform_stamped("origin")
+            origin_to_map = ~self.costmap.origin.to_transform_stamped(None)
             point_to_map = point_to_origin * origin_to_map
             map_to_point = ~point_to_map
 
@@ -242,7 +241,7 @@ def reachability_validator(
         target_pose: PoseStamped,
         world: World,
         allowed_collision: List[CollisionCheck] = None,
-) -> Optional[Dict[str, float]]:
+) -> Optional[Dict[DegreeOfFreedom, float]]:
     """
     This method validates if a target position is reachable for the robot.
     This is done by asking the ik solver if there is a valid solution if the

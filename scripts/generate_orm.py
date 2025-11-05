@@ -13,7 +13,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import registry, Session
 import pycram.datastructures.pose
 from pycram.datastructures import grasp
-from pycram.language import SequentialNode
+from pycram.language import SequentialNode, RepeatNode
 from pycram.orm.casts import StringType
 from pycram.robot_plans.actions.composite import facing, searching, tool_based, transporting
 from pycram.robot_plans.motions import  container as motion_container, gripper as motion_gripper , misc as motion_misc, navigation as motion_navigation, robot_body as motion_robot_body

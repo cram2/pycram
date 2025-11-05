@@ -3,33 +3,18 @@ from __future__ import annotations
 import abc
 from dataclasses import dataclass, field
 
-from jedi.inference.gradual.typing import Tuple
 from semantic_digital_twin.robots.abstract_robot import AbstractRobot
-from typing_extensions import Type, Any, Optional, Callable
+from semantic_digital_twin.world import World
+from typing_extensions import Any, Optional, Callable
 
 from ...datastructures.dataclasses import ExecutionData, Context
-from ...datastructures.pose import PoseStamped
-from semantic_digital_twin.world import World
 from ...failures import PlanFailure
 from ...has_parameters import HasParameters
 from ...plan import PlanNode, Plan
-from ...robot_description import RobotDescription
 
-
-def record_object_pre_perform(action):
-    """
-    Record the object before the action is performed.
-
-    This should be appended to the pre performs of every action that interacts with an object.
-    """
-    # for every field in the action that is an object
-    # write it to a dict mapping the OG field name to the frozen copy
-    # action.object_at_execution = action.object_designator.frozen_copy()
-    pass
 
 @dataclass
 class ActionDescription(HasParameters):
-
     execution_data: ExecutionData = field(init=False, repr=False)
     """
     Additional data that  is collected before and after the execution of the action.
@@ -123,9 +108,3 @@ class ActionDescription(HasParameters):
     def post_perform(cls, func) -> Callable:
         cls._post_perform_callbacks.append(func)
         return func
-
-    def _update_robot_params(self, action: ActionDescription):
-        action.robot_position = World.robot.pose
-        action.robot_torso_height = World.robot.get_joint_position(
-            RobotDescription.current_robot_description.torso_joint)
-        action.robot_type = World.robot.obj_type

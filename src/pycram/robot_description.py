@@ -66,7 +66,7 @@ class RobotDescriptionManager:
             if name in self.descriptions[key].urdf_object.name or key in name.lower():
                 self.descriptions[key].load()
                 return self.descriptions[key]
-        error(f"Robot description {name} not found")
+        logger.error(f"Robot description {name} not found")
 
     def register_description(self, description: RobotDescription):
         """

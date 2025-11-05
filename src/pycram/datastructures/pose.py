@@ -3,24 +3,22 @@ from __future__ import annotations
 import copy
 import datetime
 import math
-from dataclasses import dataclass, field, fields
-from typing import Union
+from dataclasses import dataclass, field
 
 import numpy as np
+from semantic_digital_twin.spatial_types.spatial_types import Vector3 as SpatialVector3, \
+    Quaternion as SpatialQuaternion, TransformationMatrix as SpatialTransformationMatrix
 from semantic_digital_twin.world_description.world_entity import Body
-from typing_extensions import Self, Tuple, Optional, List, TYPE_CHECKING, Any
+from typing_extensions import Self, Tuple, Optional, List, TYPE_CHECKING
 
-from .enums import AxisIdentifier, Arms, Grasp, ApproachDirection, VerticalAlignment
+from .enums import AxisIdentifier, Arms
 from ..has_parameters import has_parameters, HasParameters
 from ..ros import Time as ROSTime
 from ..tf_transformations import quaternion_multiply, translation_matrix, quaternion_matrix, inverse_matrix, \
     translation_from_matrix, quaternion_from_matrix
 
-from semantic_digital_twin.spatial_types.spatial_types import Vector3 as SpatialVector3, Quaternion as SpatialQuaternion, TransformationMatrix as SpatialTransformationMatrix
-
 if TYPE_CHECKING:
-    from .grasp import GraspDescription, PreferredGraspAlignment
-
+    from .grasp import GraspDescription
 
 
 @has_parameters
@@ -61,7 +59,8 @@ class Vector3(HasParameters):
         return [self.x, self.y, self.z]
 
     def to_spatial_type(self, reference_frame: Body = None) -> SpatialVector3:
-        return SpatialVector3(x_init=float(self.x), y_init=float(self.y), z_init=self.z, reference_frame=reference_frame)
+        return SpatialVector3(x_init=float(self.x), y_init=float(self.y), z_init=self.z,
+                              reference_frame=reference_frame)
 
     def round(self, decimals: int = 4):
         """
@@ -300,8 +299,10 @@ class Pose(HasParameters):
         return [self.position.to_list(), self.orientation.to_list()]
 
     def to_spatial_type(self) -> SpatialTransformationMatrix:
-        return SpatialTransformationMatrix.from_xyz_quaternion(pos_x=self.position.x, pos_y=self.position.y, pos_z=self.position.z, quat_x=self.orientation.x,
-                                                         quat_y=self.orientation.y, quat_z=self.orientation.z, quat_w=self.orientation.w)
+        return SpatialTransformationMatrix.from_xyz_quaternion(pos_x=self.position.x, pos_y=self.position.y,
+                                                               pos_z=self.position.z, quat_x=self.orientation.x,
+                                                               quat_y=self.orientation.y, quat_z=self.orientation.z,
+                                                               quat_w=self.orientation.w)
 
     def round(self, decimals: int = 4):
         """
@@ -376,10 +377,11 @@ class Header:
         from std_msgs.msg import Header as ROSHeader
         split_time = str(self.stamp.timestamp()).split(".")
         stamp = ROSTime(int(split_time[0]), int(split_time[1]))
-        return ROSHeader(frame_id=self.frame_id, stamp=stamp)
+        return ROSHeader(frame_id=self.frame_id.name.name, stamp=stamp)
 
     def __deepcopy__(self, memo):
         return Header(frame_id=self.frame_id, stamp=self.stamp, sequence=self.sequence)
+
 
 @has_parameters
 @dataclass
@@ -426,7 +428,8 @@ class Vector3Stamped(Vector3):
         return cls(x=message.vector.x, y=message.vector.y, z=message.vector.z, header=header)
 
     def to_spatial_type(self) -> SpatialVector3:
-        return SpatialVector3(x_init=float(self.x), y_init=float(self.y), z_init=self.z, reference_frame=self.header.frame_id)
+        return SpatialVector3(x_init=float(self.x), y_init=float(self.y), z_init=self.z,
+                              reference_frame=self.header.frame_id)
 
 
 @has_parameters
@@ -491,7 +494,8 @@ class PoseStamped(HasParameters):
         return cls(pose=Pose(position=position, orientation=orientation), header=header)
 
     @classmethod
-    def from_list(cls, position: Optional[List[float]] = None, orientation: Optional[List[float]] = None, frame: Optional[Body] = None) -> Self:
+    def from_list(cls, position: Optional[List[float]] = None, orientation: Optional[List[float]] = None,
+                  frame: Optional[Body] = None) -> Self:
         """
         Factory to create a PoseStamped from a list of position and orientation.
 
@@ -546,9 +550,11 @@ class PoseStamped(HasParameters):
 
         :return: A SpatialTransformationMatrix object representing the pose in 3D space.
         """
-        return SpatialTransformationMatrix.from_xyz_quaternion(pos_x=self.position.x, pos_y=self.position.y, pos_z=self.position.z, quat_x=self.orientation.x,
-                                                            quat_y=self.orientation.y, quat_z=self.orientation.z, quat_w=self.orientation.w,
-                                                            reference_frame=self.header.frame_id)
+        return SpatialTransformationMatrix.from_xyz_quaternion(pos_x=self.position.x, pos_y=self.position.y,
+                                                               pos_z=self.position.z, quat_x=self.orientation.x,
+                                                               quat_y=self.orientation.y, quat_z=self.orientation.z,
+                                                               quat_w=self.orientation.w,
+                                                               reference_frame=self.header.frame_id)
 
     def round(self, decimals: int = 4):
         """
@@ -750,7 +756,6 @@ class TransformStamped(PoseStamped):
     def __deepcopy__(self, memo):
         return TransformStamped(copy.deepcopy(self.pose), copy.deepcopy(self.header), self.child_frame_id)
 
-
     @classmethod
     def from_list(cls, translation: List[float] = None, rotation: List[float] = None, frame: Body = None,
                   child_frame_id: Body = None) -> Self:
@@ -777,7 +782,7 @@ class TransformStamped(PoseStamped):
         """
         from geometry_msgs.msg import TransformStamped as ROSTransformStamped
         return ROSTransformStamped(transform=self.transform.ros_message(), header=self.header.ros_message(),
-                                   child_frame_id=self.child_frame_id)
+                                   child_frame_id=self.child_frame_id.name.name)
 
     def to_pose_stamped(self) -> PoseStamped:
         """
@@ -794,9 +799,12 @@ class TransformStamped(PoseStamped):
 
         :return: A SpatialTransformationMatrix object representing the transform in 3D space.
         """
-        return SpatialTransformationMatrix.from_xyz_quaternion(pos_x=self.translation.x, pos_y=self.translation.y, pos_z=self.translation.z,
-                                                            quat_x=self.rotation.x, quat_y=self.rotation.y, quat_z=self.rotation.z, quat_w=self.rotation.w,
-                                                            reference_frame=self.header.frame_id, child_frame=self.child_frame_id)
+        return SpatialTransformationMatrix.from_xyz_quaternion(pos_x=self.translation.x, pos_y=self.translation.y,
+                                                               pos_z=self.translation.z,
+                                                               quat_x=self.rotation.x, quat_y=self.rotation.y,
+                                                               quat_z=self.rotation.z, quat_w=self.rotation.w,
+                                                               reference_frame=self.header.frame_id,
+                                                               child_frame=self.child_frame_id)
 
     def inverse_times(self, other: TransformStamped) -> Self:
         """

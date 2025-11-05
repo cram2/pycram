@@ -17,6 +17,7 @@ from ..utils import link_pose_for_joint_config
 
 if TYPE_CHECKING:
     from ..designators.object_designator import ObjectDesignatorDescription
+
 logger = logging.getLogger(__name__)
 
 class DefaultNavigation(ProcessModule):
@@ -361,8 +362,8 @@ class DefaultNavigationReal(ProcessModule):
                                        RobotDescription.current_robot_description.base_link,
                                        "map")
 
-        if not World.current_world.robot.pose.almost_equal(designator.target, 0.05, 3):
-            raise NavigationGoalNotReachedError(World.current_world.robot.pose, designator.target)
+        if not PoseStamped.from_spatial_type(designator.robot_view.root.global_pose).almost_equal(designator.target, 0.05, 3):
+            raise NavigationGoalNotReachedError(PoseStamped.from_spatial_type(designator.robot_view.root.global_pose), designator.target)
 
 
 class DefaultMoveHeadReal(ProcessModule):
@@ -373,7 +374,7 @@ class DefaultMoveHeadReal(ProcessModule):
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
-        robot = desig.world.get_views_by_type(AbstractRobot)
+        robot = desig.world.get_semantic_annotations_by_type(AbstractRobot)
 
         neck = RobotDescription.current_robot_description.get_neck()
         pan_link = neck["yaw"][0]
@@ -382,12 +383,12 @@ class DefaultMoveHeadReal(ProcessModule):
         pan_joint = neck["yaw"][1]
         tilt_joint = neck["pitch"][1]
 
-        pose_in_map = desig.world.transform_pose(target.to_spatial_type(), desig.world.root)
+        pose_in_map = desig.world.transform(target.to_spatial_type(), desig.world.root)
 
         pose_in_pan = \
-            desig.world.transform(pose_in_map.to_spatial_type(), desig.world.get_body_by_name(pan_link)).to_np()[:3, 3]
+            desig.world.transform(pose_in_map, desig.world.get_body_by_name(pan_link)).to_np()[:3, 3]
         pose_in_tilt = \
-            desig.world.transform(pose_in_map.to_spatial_type(), desig.world.get_body_by_name(tilt_link)).to_np()[:3, 3]
+            desig.world.transform(pose_in_map, desig.world.get_body_by_name(tilt_link)).to_np()[:3, 3]
 
         new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
 
@@ -408,8 +409,9 @@ class DefaultMoveHeadReal(ProcessModule):
         if RobotDescription.current_robot_description.name in {"iCub", "tiago_dual"}:
             new_tilt = -new_tilt
 
-        current_pan = robot.get_joint_position(pan_joint)
-        current_tilt = robot.get_joint_position(tilt_joint)
+        current_pan = desig.world.state[desig.world.get_degree_of_freedom_by_name(pan_joint).name].position
+        current_tilt = desig.world.state[desig.world.get_degree_of_freedom_by_name(tilt_joint).name].position
+
 
         # giskard.avoid_all_collisions()
         giskard.allow_self_collision()
@@ -440,8 +442,8 @@ class DefaultMoveTCPReal(ProcessModule):
         elif designator.movement_type == MovementType.CARTESIAN:
             giskard.achieve_cartesian_goal(pose_in_map, tip_link, root_link,
                                            grippers_that_can_collide=gripper_that_can_collide)
-        if not World.current_world.robot.get_link_pose(tip_link).almost_equal(designator.target, 0.3, 3):
-            raise ToolPoseNotReachedError(World.current_world.robot.get_link_pose(tip_link), designator.target)
+        if not PoseStamped.from_spatial_type(designator.world.get_body_by_name(tip_link).global_pose).almost_equal(designator.target, 0.3, 3):
+            raise ToolPoseNotReachedError(PoseStamped.from_spatial_type(designator.world.get_body_by_name(tip_link).global_pose), designator.target)
 
 
 class DefaultMoveArmJointsReal(ProcessModule):

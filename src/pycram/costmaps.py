@@ -193,13 +193,13 @@ class Costmap:
         :return: The length of the consecutive line of entries greater than zero.
         """
         width = map.shape[1]
-        lenght = 0
+        length = 0
         for i in range(start[1], width):
             if map[start[0]][i] > 0:
-                lenght += 1
+                length += 1
             else:
-                return lenght
-        return lenght
+                return length
+        return length
 
     def _find_max_box_height(
         self, start: Tuple[int, int], length: int, map: np.ndarray
@@ -471,7 +471,6 @@ class VisibilityCostmap(Costmap):
             costmap should be created.
         :param world: The World for which the costmap should be created.
         :param target_object: The object that should be visible.
-        :param robot: The robot for which the visibility costmap should be created.
         """
         if (11 * size**2 + size**3) * 2 > psutil.virtual_memory().available:
             raise OSError("Not enough free RAM to calculate a costmap of this size")
@@ -754,7 +753,7 @@ class SemanticCostmap(Costmap):
         self.origin: PoseStamped = PoseStamped.from_spatial_type(self.body.global_pose)
         self.height: int = 0
         self.width: int = 0
-        self.map: np.ndarray = []
+        self.map: np.ndarray = np.zeros((self.height, self.width))
         self.generate_map()
 
         Costmap.__init__(
@@ -778,7 +777,7 @@ class SemanticCostmap(Costmap):
         if not horizontal_only:
             mask[:, :edge_tolerance] = 1
             mask[:, -edge_tolerance:] = 1
-        return Costmap(self.resolution, self.height, self.width, self.origin, mask)
+        return Costmap(self.resolution, self.height, self.width, self.origin, mask, self.world)
 
     def generate_map(self) -> None:
         """

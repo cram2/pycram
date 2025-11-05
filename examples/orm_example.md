@@ -105,7 +105,6 @@ In practice, the join would look like this:
 
 ```python
 from pycram.datastructures.pose import Vector3, Pose, PoseStamped
-from pycram.datastructures.dataclasses import FrozenObject
 from pycram.robot_plans import PickUpAction
 
 object_actions = (session.scalars(select(Vector3DAO)
@@ -121,13 +120,13 @@ so we only have to join on the attributes that hold the relationship.
 This is a huge advantage over writing sql queries by hand, since we do not have to worry about the join conditions. 
 This is a strong tool, but it is crucial to use it properly. 
 Very important to note: The order of the joins matters! 
-For instance, if we joined the Pose table with the FrozenObject table first, and placed the join between 
-the PickUpAction table and the FrozenObject table second, sqlalchemy would have selected the Pose not from the join 
-between all three tables, but rather from a join between the Pose and the FrozenObject table + from a join between 
+For instance, if we joined the Pose table with the Execution data table first, and placed the join between 
+the PickUpAction table and the Execution data table second, sqlalchemy would have selected the Pose not from the join 
+between all three tables, but rather from a join between the Pose and the Execution data table + from a join between 
 the PickUpAction table and the Object table. 
 These mistakes can lead to wrong results or even to errors (the above-mentioned example would actually lead to an error 
-due to the FrozenObject table being accessed twice in two separate joins in the same query and therefore the column 
-names of the FrozenObject tables would have been ambiguous and could not be used by sqlalchemy to join).
+due to the Execution data table being accessed twice in two separate joins in the same query and therefore the column 
+names of the Execution data tables would have been ambiguous and could not be used by sqlalchemy to join).
 
 Make sure to check out the other examples of ORM querying.
 
@@ -159,9 +158,8 @@ from dataclasses import dataclass
 from ormatic.dao import AlternativeMapping
 from pycram.datastructures.enums import Arms
 from pycram.datastructures.grasp import GraspDescription
-from pycram.robot_plans import PickUpAction as PickUpActionDesignator
+from pycram.robot_plans import PickUpAction as PickUpActionDesignator, ActionDescription
 from typing_extensions import Optional
-from pycram.datastructures.dataclasses import FrozenObject
 
 
 # create new dataclass, it has to inherit from ORMaticExplicitMapping
@@ -171,7 +169,6 @@ class PickUpActionDesignatorMapping(ActionDescription, AlternativeMapping[PickUp
   arm: Arms
   prepose_distance: float
   grasp_description: GraspDescription
-  object_at_execution: Optional[FrozenObject]
 
 ```
 

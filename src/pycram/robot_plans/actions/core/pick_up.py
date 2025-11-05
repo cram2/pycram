@@ -21,7 +21,7 @@ from ....has_parameters import has_parameters
 from ....language import SequentialPlan
 from ....robot_description import EndEffectorDescription, ViewManager
 from ....robot_description import RobotDescription, KinematicChainDescription
-from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
+from ....robot_plans.actions.base import ActionDescription
 from ....utils import translate_pose_along_local_axis
 
 logger = logging.getLogger(__name__)
@@ -56,8 +56,6 @@ class ReachToPickUpAction(ActionDescription):
     def __post_init__(self):
         super().__post_init__()
 
-        # Store the object's data copy at execution
-        self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
 
@@ -137,8 +135,6 @@ class PickUpAction(ActionDescription):
     def __post_init__(self):
         super().__post_init__()
 
-        # Store the object's data copy at execution
-        self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
         SequentialPlan(self.context,

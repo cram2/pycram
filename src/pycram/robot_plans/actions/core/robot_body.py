@@ -7,20 +7,18 @@ from typing import Tuple, List
 
 from typing_extensions import Union, Optional, Type, Dict, Any, Iterable
 
-from ....datastructures.enums import Arms, GripperState as GripperStateEnum, TorsoState, StaticJointState, AxisIdentifier
+from ....datastructures.enums import AxisIdentifier
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import Vector3Stamped
 from ....failures import TorsoGoalNotReached, ConfigurationNotReached
 from ....has_parameters import has_parameters
-from ....joint_state import JointStateManager
 from ....language import SequentialPlan
-from ....robot_description import RobotDescription, ViewManager
+from ....robot_description import RobotDescription
+from ....robot_descriptions.pr2_states import *
 from ....robot_plans.actions.base import ActionDescription
 from ....robot_plans.motions.gripper import MoveGripperMotion
 from ....robot_plans.motions.robot_body import MoveJointsMotion
 from ....validation.goal_validator import create_multiple_joint_goal_validator
-
-from ....robot_descriptions.pr2_states import *
 
 
 @has_parameters

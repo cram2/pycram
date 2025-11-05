@@ -3,7 +3,10 @@ from functools import cached_property
 
 import numpy as np
 import logging
+
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.shape_collection import BoundingBoxCollection
 
 from .tf_transformations import quaternion_from_euler
 from random_events.interval import closed_open
@@ -75,7 +78,8 @@ class ProbabilisticCostmap:
                  size: Quantity = 2 * meter,
                  max_cells = 10000,
                  costmap_type: Type[Costmap] = OccupancyCostmap,
-                 world: Optional[World] = None):
+                 world: Optional[World] = None,
+                 robot: AbstractRobot = None):
 
         self.world = world
         self.origin = origin
@@ -86,16 +90,17 @@ class ProbabilisticCostmap:
         resolution = self.size.to(meter) / number_of_cells
 
         if costmap_type == OccupancyCostmap:
-            robot_bounding_box = self.world.robot.get_axis_aligned_bounding_box()
+            robot_bounding_box = BoundingBoxCollection([body.collision.as_bounding_box_collection_in_frame(self.world.root).bounding_box() for body in robot.bodies]).bounding_box()
             distance_to_obstacle = max(robot_bounding_box.width, robot_bounding_box.depth) / 2
             self.costmap = OccupancyCostmap(
                 origin=self.origin,
                 distance_to_obstacle=distance_to_obstacle,
                 size=number_of_cells,
                 resolution=resolution.magnitude,
-                world = self.world)
+                world = self.world,
+                robot_view=robot)
         elif costmap_type == VisibilityCostmap:
-            camera = list(self.world.robot_description.cameras.values())[0]
+            camera = robot.sensors[0]
             self.costmap = VisibilityCostmap(
                 min_height=camera.minimal_height, max_height=camera.maximal_height, size=number_of_cells,
                 resolution=resolution.magnitude, origin=self.origin, world=self.world)

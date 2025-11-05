@@ -1,15 +1,16 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING, TypeVar, Generic, Iterator, Iterable, AnyStr
 from inspect import signature
 
-# from ..designator import DesignatorDescription
+from typing_extensions import List, Tuple, Any, Dict, TypeVar, Iterator, Iterable
+
 from ..has_parameters import leaf_types, HasParameters
 from ..plan import PlanNode
 from ..utils import is_iterable, lazy_product
 
 T = TypeVar('T')
+
 
 class PartialDesignator(Iterable[T]):
     """
@@ -51,7 +52,8 @@ class PartialDesignator(Iterable[T]):
         # We use the init of the performable class since typing for the whole class messes up the signature of the class.
         # This is not optimal since "self" needs to be filtered from the parameter list but it works.
         sig = signature(self.performable.__init__)
-        params_without_self = list(filter(None, [param if name != "self" else None for name, param in sig.parameters.items()]))
+        params_without_self = list(
+            filter(None, [param if name != "self" else None for name, param in sig.parameters.items()]))
         sig_without_self = sig.replace(parameters=params_without_self)
         self.kwargs = dict(sig_without_self.bind_partial(*args, **kwargs).arguments)
         for key in dict(signature(self.performable).parameters).keys():
@@ -106,7 +108,7 @@ class PartialDesignator(Iterable[T]):
         missing = {k: v for k, v in self.kwargs.items() if v is None}
         return list(missing.keys())
 
-    def resolve(self) -> T():
+    def resolve(self) -> T:
         """
         Returns the Designator with the first set of parameters
 
@@ -168,8 +170,3 @@ class PartialDesignator(Iterable[T]):
         for key, value in self.kwargs.items():
             if "DesignatorDescription" in [c.__name__ for c in value.__class__.__mro__]:
                 value.plan_node = self._plan_node
-
-
-
-
-

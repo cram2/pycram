@@ -7,17 +7,14 @@ from typing import get_type_hints
 from krrood.entity_query_language.entity import an, entity, contains, let
 from krrood.entity_query_language.symbolic import symbolic_mode
 from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
-from typing_extensions import Type, List, Dict, Any, Optional, Callable, Self, Iterator, Iterable, Union
+from typing_extensions import List, Dict, Any, Optional, Iterator, Iterable, Union
 
-from .datastructures.enums import ObjectType
 from .datastructures.partial_designator import PartialDesignator
 from .datastructures.pose import PoseStamped
-
 from .plan import Plan, PlanNode
 from .utils import bcolors
-
-from semantic_digital_twin.world import World
 
 
 class DesignatorError(Exception):
@@ -50,11 +47,11 @@ class ResolutionError(Exception):
 
 
 class DesignatorDescription:
-    """
-    :ivar resolve: The specialized_designators function to use for this designator_description, defaults to self.ground
-    """
 
     plan_node: PlanNode = None
+    """
+    The plan node to which this designator_description belongs.
+    """
 
     @property
     def plan(self) -> Plan:
@@ -101,7 +98,6 @@ class DesignatorDescription:
         """
         return self
 
-
     def copy(self) -> DesignatorDescription:
         return self
 
@@ -128,7 +124,6 @@ class DesignatorDescription:
         return get_type_hints(cls.__init__)
 
 
-
 class LocationDesignatorDescription(DesignatorDescription, PartialDesignator):
     """
     Parent class of location designator_description descriptions.
@@ -150,16 +145,14 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
     Descriptions hold possible parameter ranges for object designators.
     """
 
-    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None):
+    def __init__(self, names: Optional[List[str]] = None):
         """
         Base of all object designator_description descriptions. Every object designator_description has the name and type of the object.
 
         :param names: A list of names that could describe the object
-        :param types: A list of types that could represent the object
         """
         super().__init__()
-        PartialDesignator.__init__(self, ObjectDesignatorDescription, names=names, types=types)
-        self.types: Optional[List[ObjectType]] = types
+        PartialDesignator.__init__(self, ObjectDesignatorDescription, names=names)
         self.names: Optional[List[str]] = names
 
     def ground(self) -> Body:
@@ -190,13 +183,15 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
 
     def flatten(self) -> List:
         res = [None] * 7
-        res.append(self.types[0])
+        res.append(self.names)
         return res
+
 
 class EQLObjectDesignator(DesignatorDescription):
     """
     Description for objects found via an EQL query.
     """
+
     def __init__(self, eql_query):
         super().__init__()
         self.eql_query = eql_query
@@ -204,6 +199,7 @@ class EQLObjectDesignator(DesignatorDescription):
     def __iter__(self) -> Iterator[Body]:
         for obj in self.eql_query.evaluate():
             yield obj
+
 
 class NamedObject(ObjectDesignatorDescription, PartialDesignator):
     """

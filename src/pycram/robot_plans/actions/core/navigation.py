@@ -71,15 +71,6 @@ class LookAtAction(ActionDescription):
         creating a ray from the camera and checking if it intersects with the object.
         """
         return
-        with UseProspectionWorld():
-            move_away_all_objects_to_create_empty_space(exclude_objects=[World.robot.name, "floor"])
-            # Create a virtual object at the target location, the current size is 40x40x40 cm which is very big in
-            # my opinion, maybe this indicates that the looking at action is not accurate # TODO check this
-            gen_obj = generate_object_at_target(self.target.position.to_list(), size=(0.4, 0.4, 0.4))
-            ray_result = cast_a_ray_from_camera()
-            gen_obj.remove()
-            if not ray_result.intersected or ray_result.obj_id != gen_obj.id:
-                raise LookAtGoalNotReached(World.robot, self.target)
 
     @classmethod
     def description(cls, target: Union[Iterable[PoseStamped], PoseStamped]) -> PartialDesignator[Type[LookAtAction]]:

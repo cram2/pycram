@@ -11,7 +11,6 @@ from .facing import FaceAtActionDescription
 from ..core import ParkArmsActionDescription, NavigateActionDescription, PickUpActionDescription, \
     PlaceActionDescription
 from ....config.action_conf import ActionConfig
-from ....datastructures.dataclasses import FrozenObject
 from ....datastructures.enums import Arms, Grasp, VerticalAlignment
 from ....datastructures.grasp import GraspDescription
 from ....datastructures.partial_designator import PartialDesignator
@@ -22,7 +21,7 @@ from ....failures import ObjectUnfetchable, ConfigurationNotReached
 from ....has_parameters import has_parameters
 from ....language import SequentialPlan
 from ....robot_description import RobotDescription
-from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
+from ....robot_plans.actions.base import ActionDescription
 
 
 @has_parameters
@@ -49,12 +48,6 @@ class TransportAction(ActionDescription):
     If True, the robot will place the object in the same orientation as it is itself, no matter how the object was grasped.
     """
 
-    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
-    """
-    The object at the time this Action got created. It is used to be a static, information holding entity. It is
-    not updated when the BulletWorld object is changed.
-    """
-
     _pre_perform_callbacks = []
     """
     List to save the callbacks which should be called before performing the action.
@@ -63,8 +56,6 @@ class TransportAction(ActionDescription):
     def __post_init__(self):
         super().__post_init__()
 
-        # Store the object's data copy at execution
-        self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
         SequentialPlan(self.context,  ParkArmsActionDescription(Arms.BOTH)).perform()
@@ -157,8 +148,6 @@ class PickAndPlaceAction(ActionDescription):
     def __post_init__(self):
         super().__post_init__()
 
-        # Store the object's data copy at execution
-        self.pre_perform(record_object_pre_perform)
 
     def plan(self) -> None:
         SequentialPlan(self.context,
@@ -274,12 +263,6 @@ class MoveAndPickUpAction(ActionDescription):
     Keep the joint states of the robot the same during the navigation.
     """
 
-    object_at_execution: Optional[FrozenObject] = field(init=False, repr=False, default=None)
-    """
-    The object at the time this Action got created. It is used to be a static, information holding entity. It is
-    not updated when the BulletWorld object is changed.
-    """
-
     _pre_perform_callbacks = []
     """
     List to save the callbacks which should be called before performing the action.
@@ -288,8 +271,6 @@ class MoveAndPickUpAction(ActionDescription):
     def __post_init__(self):
         super().__post_init__()
 
-        # Store the object's data copy at execution
-        self.pre_perform(record_object_pre_perform)
 
     def plan(self):
         obj_pose = PoseStamped.from_spatial_type(self.object_designator.global_pose)

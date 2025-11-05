@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional, Dict, List
 
+from semantic_digital_twin.world_description.world_entity import Body
+
 from .base import BaseMotion
 from ...datastructures.enums import Arms, GripperState, MovementType, WaypointsMovementType
 from ...datastructures.grasp import GraspDescription
@@ -8,39 +10,44 @@ from ...datastructures.pose import PoseStamped
 from ...failure_handling import try_motion
 from ...failures import ToolPoseNotReachedError
 from ...process_module import ProcessModuleManager
+from ...robot_description import ViewManager
+from ...utils import translate_pose_along_local_axis
 
 
-# class ReachMotion(BaseMotion):
-#     """
-#     """
-#     object_designator: Object
-#     """
-#     Object designator_description describing the object that should be picked up
-#     """
-#     arm: Arms
-#     """
-#     The arm that should be used for pick up
-#     """
-#     grasp_description: GraspDescription
-#     """
-#     The grasp description that should be used for picking up the object
-#     """
-#     movement_type: MovementType = MovementType.CARTESIAN
-#     """
-#     The type of movement that should be performed.
-#     """
-#
-#     def perform(self):
-#         target_pose = self.object_designator.get_grasp_pose(self.end_effector, self.grasp_description)
-#         target_pose.rotate_by_quaternion(self.end_effector.grasps[self.grasp_description])
-#         #todo: Symantic World- LocalTransformer
-#         target_pre_pose = LocalTransformer().translate_pose_along_local_axis(target_pose,
-#                                                                              self.end_effector.get_approach_axis(),
-#                                                                              -self.object_designator.get_approach_offset())
-#
-#         pose = self.local_transformer.transform_pose(target_pre_pose, Frame.Map.value)
-#
-#         MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=self.movement_type).perform()
+class ReachMotion(BaseMotion):
+    """
+    """
+    object_designator: Body
+    """
+    Object designator_description describing the object that should be picked up
+    """
+    arm: Arms
+    """
+    The arm that should be used for pick up
+    """
+    grasp_description: GraspDescription
+    """
+    The grasp description that should be used for picking up the object
+    """
+    movement_type: MovementType = MovementType.CARTESIAN
+    """
+    The type of movement that should be performed.
+    """
+
+    def perform(self):
+        end_effector = ViewManager.get_end_effector_view(self.arm, self.robot_view)
+
+        target_pose = GraspDescription.get_grasp_pose(self.grasp_description, end_effector, self.object_designator)
+        target_pose.rotate_by_quaternion(GraspDescription.calculate_grasp_orientation(self.grasp_description,
+                                                                                      end_effector.front_facing_orientation.to_np()[
+                                                                                          :3]))
+        target_pre_pose = translate_pose_along_local_axis(target_pose,
+                                                          end_effector.front_facing_axis.to_np(),
+                                                          -self.object_designator.get_approach_offset())
+
+        pose = PoseStamped.from_spatial_type(self.world.transform(target_pre_pose.to_spatial_type(),self.world.root))
+
+        MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=self.movement_type).perform()
 
 
 @dataclass

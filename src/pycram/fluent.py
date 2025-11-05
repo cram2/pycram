@@ -179,28 +179,28 @@ class Fluent:
         return fluent
 
     def __lt__(self, other: Fluent) -> Fluent:
-        """Overload the < comparsion operator.
+        """Overload the < comparison operator.
 
         :param other: -- the other operand.
         """
         return self._compare(operator.lt, other)
 
     def __leq__(self, other: Fluent) -> Fluent:
-        """Overload the <= comparsion operator.
+        """Overload the <= comparison operator.
 
         :param other: the other operand.
         """
         return self._compare(operator.leq, other)
 
     def __eq__(self, other: Fluent) -> Fluent:
-        """Overload the == comparsion operator.
+        """Overload the == comparison operator.
 
         :param other: the other operand.
         """
         return self._compare(operator.eq, other)
 
     def __ne__(self, other: Fluent) -> Fluent:
-        """Overload the != comparsion operator.
+        """Overload the != comparison operator.
 
         :param other: the other operand.
         """

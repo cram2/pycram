@@ -12,7 +12,6 @@ from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
 from ....has_parameters import has_parameters
 from ....language import SequentialPlan
-from ....robot_description import ViewManager
 from ....robot_plans.actions.base import ActionDescription
 from ....tf_transformations import quaternion_from_euler
 
@@ -43,7 +42,7 @@ class FaceAtAction(ActionDescription):
         orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
 
         # create new robot pose
-        new_robot_pose = PoseStamped.from_list( robot_position.position.to_list(), orientation, self.world.root)
+        new_robot_pose = PoseStamped.from_list(robot_position.position.to_list(), orientation, self.world.root)
 
         # turn robot
         SequentialPlan(self.context,

@@ -45,7 +45,6 @@ from ..costmaps import (
     GaussianCostmap,
     Costmap,
 )
-# from ..datastructures.dataclasses import BoundingBox, AxisAlignedBoundingBox, BoundingBoxCollection
 from ..datastructures.enums import (
     Arms,
     Grasp,
@@ -68,6 +67,7 @@ from ..robot_description import ViewManager
 from ..utils import translate_pose_along_local_axis, link_pose_for_joint_config
 
 logger = logging.getLogger(__name__)
+
 
 class Location(LocationDesignatorDescription):
     """
@@ -207,7 +207,6 @@ class CostmapLocation(LocationDesignatorDescription):
         :param reachable_arm: An optional arm with which the target should be reached
         :param ignore_collision_with: List of objects that should be ignored for collision checking.
         :param grasp_descriptions: List of grasps that should be tried to reach the target pose
-        :param object_in_hand: Object that is currently in the hand of the robot
         :param rotation_agnostic: If True, the target pose is adjusted so that it is pointing to the robot
         """
         super().__init__()
@@ -639,8 +638,6 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         poses that are on a table. Optionally an object can be given for which poses should be calculated, in that case
         the poses are calculated such that the bottom of the object is on the link.
 
-        :param link_name: Name of the link for which a distribution should be calculated
-        :param part_of: Object of which the urdf link is a part
         :param for_object: Optional object that should be placed at the found location
         :param edges_only: If True, only the edges of the link are considered
         :param horizontal_edges_only: If True, only the horizontal edges of the link are considered
@@ -1084,8 +1081,6 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
                 for name, old_color in zip(params_box.link_names, old_colors):
                     params_box.part_of.set_link_color(name, old_color)
 
-            # TODO: Use Prospection World here in the future, but currently there is annoying context management, causing
-            #       subsequent actions to be executed in the Prospection World, causing problems with detecting etc
             for sample in samples:
                 sample_dict = {
                     var.name: val
@@ -1114,7 +1109,7 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
                 nav_quat = OrientationGenerator.generate_origin_orientation(
                     [nav_x, nav_y], target_pose
                 )
-                nav_pose = PoseStamped.from_list( [nav_x, nav_y, 0], nav_quat, self.world.root)
+                nav_pose = PoseStamped.from_list([nav_x, nav_y, 0], nav_quat, self.world.root)
 
                 # Reject samples in which the robot is in collision with the environment despite the bloated obstacles,
                 # for example with the arms
@@ -1156,8 +1151,8 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
     def __init__(
             self,
             target: Union[PoseStamped, Body],
-            reachable_for: Optional[Union[Iterable[AbstractRobot], Body]] = None,
-            visible_for: Optional[Union[Iterable[AbstractRobot], Body]] = None,
+            reachable_for: Optional[Union[Iterable[AbstractRobot], AbstractRobot]] = None,
+            visible_for: Optional[Union[Iterable[AbstractRobot], AbstractRobot]] = None,
             reachable_arm: Optional[Union[Iterable[Arms], Arms]] = None,
             ignore_collision_with: Optional[Union[Iterable[Body], Body]] = None,
             grasp_descriptions: Optional[
@@ -1460,8 +1455,8 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
                     [nav_x, nav_y], target_pose
                 )
                 pose_candidate = PoseStamped.from_list(
-                                                       [nav_x, nav_y, 0], nav_quat, self.world.root
-                                                       )
+                    [nav_x, nav_y, 0], nav_quat, self.world.root
+                )
                 test_robot.root.parent_connection.origin = pose_candidate.to_spatial_type()
                 # test_robot.set_pose(pose_candidate)
 
