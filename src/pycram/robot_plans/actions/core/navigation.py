@@ -16,8 +16,6 @@ from ....failures import NavigationGoalNotReachedError
 from ....has_parameters import has_parameters
 from ....language import SequentialPlan
 from ....validation.error_checkers import PoseErrorChecker
-from ....world_reasoning import move_away_all_objects_to_create_empty_space, generate_object_at_target, \
-    cast_a_ray_from_camera
 
 @has_parameters
 @dataclass

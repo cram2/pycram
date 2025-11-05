@@ -13,7 +13,7 @@ from ..process_module import ProcessModule, ManagerBase
 from ..robot_plans import *
 from ..ros import get_time
 from ..tf_transformations import euler_from_quaternion
-from ..world_reasoning import visible, link_pose_for_joint_config
+from ..utils import link_pose_for_joint_config
 
 if TYPE_CHECKING:
     from ..designators.object_designator import ObjectDesignatorDescription

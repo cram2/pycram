@@ -7,6 +7,8 @@ Classes:
 GeneratorList -- implementation of generator list wrappers.
 """
 from __future__ import annotations
+
+from copy import deepcopy
 from inspect import isgeneratorfunction
 import os
 import math
@@ -15,6 +17,7 @@ from typing import Union, Iterator
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
+from semantic_digital_twin.world_description.world_entity import Body
 
 from .tf_transformations import quaternion_about_axis, quaternion_multiply, quaternion_matrix
 from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence, Any, Iterable, Optional
@@ -24,6 +27,27 @@ from .datastructures.pose import PoseStamped
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
     from .robot_description import CameraDescription
+
+
+
+def link_pose_for_joint_config(
+        obj: Body,
+        joint_config: Dict[str, float]) -> PoseStamped:
+    """
+    Get the pose a link would be in if the given joint configuration would be applied to the object.
+    This is done by using the respective object in the prospection world and applying the joint configuration
+    to this one. After applying the joint configuration the link position is taken from there.
+
+    :param obj: The body for which the pose should be calculated
+    :param joint_config: Dict with the goal joint configuration
+    :return: The pose of the link after applying the joint configuration
+    """
+    reasoning_world = deepcopy(obj._world)
+    for joint_name, joint_pose in joint_config.items():
+        reasoning_world.state[reasoning_world.get_degree_of_freedom_by_name(joint_name).name].position = joint_pose
+    reasoning_world.notify_state_change()
+    pose = reasoning_world.get_body_by_name(obj.name).global_pose
+    return PoseStamped.from_spatial_type(pose)
 
 
 def get_rays_from_min_max(min_bound: Sequence[float], max_bound: Sequence[float], step_size_in_meters: float = 0.01) \

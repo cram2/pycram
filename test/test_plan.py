@@ -1,10 +1,7 @@
 import os
-import time
 import unittest
-import logging
 from datetime import datetime
 
-from random_events.interval import closed
 from random_events.product_algebra import SimpleEvent, Event
 from semantic_digital_twin.adapters.urdf import URDFParser
 
@@ -17,20 +14,12 @@ from pycram.plan import PlanNode, Plan
 from pycram.process_module import simulated_robot
 from pycram.testing import BulletWorldTestCase
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
 class TestPlan(unittest.TestCase):
 
     def setUp(self):
         Plan.current_plan = None
         self.world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "resources", "robots", "pr2.urdf")).parse()
         self.context = Context(self.world, None, None)
-
-    def test_log(self):
-        logger.warning("This is a warning message")
-        logger.info("This is an info message")
-        logger.debug("This is a debug message")
 
     def test_plan_construction(self):
         node = PlanNode()

@@ -65,8 +65,7 @@ from ..pose_generator_and_validator import (
     collision_check,
 )
 from ..robot_description import ViewManager
-from ..utils import translate_pose_along_local_axis
-from ..world_reasoning import link_pose_for_joint_config
+from ..utils import translate_pose_along_local_axis, link_pose_for_joint_config
 
 logger = logging.getLogger(__name__)
 
