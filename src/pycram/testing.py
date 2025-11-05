@@ -1,15 +1,13 @@
+import logging
 import os
-import threading
 import time
 import unittest
 from copy import deepcopy
-from datetime import timedelta
 
 import pytest
 from rclpy.node import Node
 from semantic_digital_twin.adapters.mesh import STLParser
 from semantic_digital_twin.adapters.urdf import URDFParser
-from semantic_digital_twin.robots.pr2 import PR2
 from semantic_digital_twin.spatial_types.spatial_types import TransformationMatrix
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import OmniDrive
@@ -17,12 +15,15 @@ from semantic_digital_twin.world_description.connections import OmniDrive
 from .datastructures.dataclasses import Context
 from .datastructures.enums import WorldMode
 from .plan import Plan
-from .logging import loginfo
 from .robot_descriptions.pr2_states import *
+
+logger = logging.getLogger(__name__)
+
 try:
     from semantic_digital_twin.adapters.viz_marker import VizMarkerPublisher
 except ImportError:
-    loginfo("Could not import VizMarkerPublisher. This is probably because you are not running ROS.")
+    logger.info("Could not import VizMarkerPublisher. This is probably because you are not running ROS.")
+
 
 @pytest.fixture(autouse=True, scope="session")
 def cleanup_ros(self):
@@ -35,9 +36,10 @@ def cleanup_ros(self):
         if rclpy.ok():
             rclpy.shutdown()
 
+
 def setup_world() -> World:
     pr2_sem_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots",
-                                                          "pr2_calibrated_with_ft.urdf")).parse()
+                                                      "pr2_calibrated_with_ft.urdf")).parse()
     apartment_world = URDFParser.from_file(
         os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
     milk_world = STLParser(
@@ -55,12 +57,13 @@ def setup_world() -> World:
         apartment_world.merge_world(pr2_sem_world, c_root_bf)
 
     apartment_world.get_body_by_name("milk.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2,
-                                                                                                                  2, 1,
-                                                                                                                  reference_frame=apartment_world.root)
+                                                                                                              2, 1,
+                                                                                                              reference_frame=apartment_world.root)
     apartment_world.get_body_by_name(
         "breakfast_cereal.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 1.8, 1,
                                                                                              reference_frame=apartment_world.root)
     return apartment_world
+
 
 class SemanticWorldTestCase(unittest.TestCase):
     world: World
@@ -68,11 +71,11 @@ class SemanticWorldTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.pr2_sem_world = URDFParser(
-            os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots", "pr2_calibrated_with_ft.urdf")).parse()
+            os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots",
+                         "pr2_calibrated_with_ft.urdf")).parse()
         cls.apartment_world = URDFParser(
             os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
         cls.apartment_world.merge_world(cls.pr2_sem_world)
-
 
 
 class EmptyWorldTestCase(unittest.TestCase):
@@ -81,7 +84,7 @@ class EmptyWorldTestCase(unittest.TestCase):
     """
 
     world: World
-    #viz_marker_publisher: VizMarkerPublisher
+    # viz_marker_publisher: VizMarkerPublisher
     render_mode = WorldMode.DIRECT
 
     @classmethod
@@ -92,7 +95,6 @@ class EmptyWorldTestCase(unittest.TestCase):
 
     def setUp(self):
         Plan.current_plan = None
-
 
     def tearDown(self):
         time.sleep(0.05)
@@ -124,12 +126,11 @@ class BulletWorldTestCase(EmptyWorldTestCase):
         self.world.state.data = deepcopy(self.original_state_data)
         self.world.notify_state_change()
 
-
-
     @classmethod
     def tearDownClass(cls):
         pass
         # cls.viz_marker_publisher._stop_publishing()
+
 
 class BulletWorldGUITestCase(BulletWorldTestCase):
     render_mode = WorldMode.GUI

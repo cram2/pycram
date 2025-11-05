@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import atexit
 import inspect
+import logging
 from dataclasses import dataclass, field
 from queue import Queue
 
@@ -20,13 +21,14 @@ from .fluent import Fluent
 from .failures import PlanFailure
 
 from .ros import sleep
-from .logging import loginfo
 from .plan import PlanNode, Plan, managed_node, ActionNode, MotionNode, ResolvedActionNode
 
 if TYPE_CHECKING:
     from .robot_plans.actions.base import ActionDescription
 
     from .robot_plans import BaseMotion
+
+logger = logging.getLogger(__name__)
 
 class LanguagePlan(Plan):
     """
@@ -195,7 +197,7 @@ class SequentialNode(LanguageNode):
         """
         result = None
         try:
-            loginfo(f"Executing {self}")
+            logger.info(f"Executing {self}")
             result = self.perform_sequential(self.children)
             self.status = TaskStatus.SUCCEEDED
         except PlanFailure as e:

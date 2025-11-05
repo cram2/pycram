@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import glob
 import importlib
+import logging
 from os.path import dirname, basename, isfile, join
 from datetime import timedelta
 from threading import Lock
@@ -21,12 +22,12 @@ from typing_extensions import Callable, Any, Union, Optional, List
 from .robot_description import RobotDescription, ViewManager
 from typing_extensions import TYPE_CHECKING
 from .datastructures.enums import ExecutionType
-from .logging import logerr, logwarn_once
 from .config.world_conf import WorldConfig
 
 if TYPE_CHECKING:
     from pycram.robot_plans.motions import BaseMotion
 
+logger = logging.getLogger(__name__)
 
 class ProcessModule:
     """
@@ -303,7 +304,7 @@ class ProcessModuleManager(ABC):
                 return pm_manager
             if pm_manager.robot_name == "default":
                 default_manager = pm_manager
-        logwarn_once(f"No Process Module Manager found for robot: '{robot.name}' returning default process modules")
+        logger.warning(f"No Process Module Manager found for robot: '{robot.name}' returning default process modules")
         return default_manager
 
         # manager = None

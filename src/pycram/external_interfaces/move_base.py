@@ -1,11 +1,12 @@
 import sys
+import logging
 
 from ..ros import  create_action_client
-from ..logging import  logwarn, loginfo
 from ..ros import  get_node_names
 
 from typing import Callable
 
+logger = logging.getLogger(__name__)
 
 # Global variables for shared resources
 nav_action_client = None
@@ -15,7 +16,7 @@ is_init = False
 def create_nav_action_client():
     """Creates a new action client for the move_base interface."""
     client = create_action_client("move_base", MoveBaseAction)
-    loginfo("Waiting for move_base action server")
+    logger.info("Waiting for move_base action server")
     client.wait_for_server()
     return client
 
@@ -35,15 +36,15 @@ def init_nav_interface(func: Callable) -> Callable:
             return func(*args, **kwargs)
 
         if "move_base_msgs" not in sys.modules:
-            logwarn("Could not initialize the navigation interface: move_base_msgs not imported")
+            logger.warning("Could not initialize the navigation interface: move_base_msgs not imported")
             return
 
         if "/move_base" in get_node_names():
             nav_action_client = create_nav_action_client()
-            loginfo("Successfully initialized navigation interface")
+            logger.info("Successfully initialized navigation interface")
             is_init = True
         else:
-            logwarn("Move_base is not running, could not initialize navigation interface")
+            logger.warning("Move_base is not running, could not initialize navigation interface")
             return
 
         return func(*args, **kwargs)
@@ -58,10 +59,10 @@ def query_pose_nav(navpose: 'PoseStamped'):
     global query_result
 
     def active_callback():
-        loginfo("Sent query to move_base")
+        logger.info("Sent query to move_base")
 
     def done_callback(state, result):
-        loginfo("Finished moving")
+        logger.info("Finished moving")
         global query_result
         query_result = result
 

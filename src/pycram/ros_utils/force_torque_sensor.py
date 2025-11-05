@@ -1,6 +1,7 @@
 import atexit
 import time
 import threading
+import logging
 from geometry_msgs.msg import WrenchStamped
 from semantic_digital_twin.world import World
 from std_msgs.msg import Header
@@ -8,9 +9,9 @@ from std_msgs.msg import Header
 from ..datastructures.enums import FilterConfig
 from ..filter import Butterworth
 from ..ros import  Time
-from ..ros import  create_publisher, loginfo_once, create_subscriber
-from ..logging import logdebug, logerr
+from ..ros import  create_publisher, create_subscriber
 
+logger = logging.getLogger(__name__)
 
 class ForceTorqueSensorSimulated:
     """
@@ -141,7 +142,7 @@ class ForceTorqueSensor:
 
             self.wrench_topic_name = raw_data
         else:
-            logerr(f'{self.robot_name} is not supported')
+            logger.error(f'{self.robot_name} is not supported')
 
     def _get_rospy_data(self, data_compensated: WrenchStamped):
         if self.init_data:
@@ -159,7 +160,7 @@ class ForceTorqueSensor:
         self.prev_values.pop(0)
 
         if self.debug:
-            logdebug(
+            logger.debug(
                 f'x: {data_compensated.wrench.force.x}, '
                 f'y: {data_compensated.wrench.force.y}, '
                 f'z: {data_compensated.wrench.force.z}')
@@ -244,7 +245,7 @@ class ForceTorqueSensor:
 
     def human_touch_monitoring(self, plan):
         while True:
-            loginfo_once("Now monitoring for human touch")
+            logger.info("Now monitoring for human touch")
             if self.robot_name == 'pr2':
                 der = self.get_derivative()
                 if abs(der.wrench.torque.x) > 4:

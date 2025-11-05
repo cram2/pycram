@@ -11,7 +11,7 @@ try:
     from knowrob_designator.msg import DesignatorExecutionFinished, DesignatorExecutionStart, DesignatorInit, \
         DesignatorResolutionFinished, DesignatorResolutionStart, ObjectDesignator
 except ImportError:
-    loginfo("Could not import knowrob_designator.msg")
+    info("Could not import knowrob_designator.msg")
 
 desig_execution_start = create_publisher("knowrob/designator_execution_started", DesignatorExecutionStart)
 desig_execution_finished = create_publisher("knowrob/designator_execution_finished", DesignatorExecutionFinished)

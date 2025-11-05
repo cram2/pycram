@@ -1,8 +1,10 @@
 from . import node
-from ...logging import logwarn
+import logging
 import rclpy
 from rcl_interfaces.srv import GetParameters
 from ament_index_python.packages import get_package_share_directory
+
+logger = logging.getLogger(__name__)
 
 def get_node_names(namespace=None):
     """
@@ -14,7 +16,7 @@ def get_node_names(namespace=None):
     return node.get_node_names()
 
 def create_ros_pack(ros_paths=None):
-    logwarn("create_ros_pack is not implemented in ROS 2. Please use get_ros_package_path.")
+    logger.warning("create_ros_pack is not implemented in ROS 2. Please use get_ros_package_path.")
     return None
 
 def get_ros_package_path(package_name):

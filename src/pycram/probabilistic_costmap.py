@@ -2,6 +2,7 @@ from enum import Enum, auto
 from functools import cached_property
 
 import numpy as np
+import logging
 from semantic_digital_twin.world import World
 
 from .tf_transformations import quaternion_from_euler
@@ -12,7 +13,6 @@ from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
 import matplotlib.colorbar
 from .datastructures.pose import PoseStamped
 from .ros import create_publisher, Duration
-from .logging import loginfo
 from .units import meter
 
 from pint import Quantity
@@ -21,13 +21,14 @@ from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import P
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
 
+logger = logging.getLogger(__name__)
+
 try:
     from std_msgs.msg import ColorRGBA
     from visualization_msgs.msg import Marker, MarkerArray
 except ImportError:
-    loginfo("Could not import visualization_msgs.msg.Marker and std_msgs.msg.ColorRGBA. "
+    logger.info("Could not import visualization_msgs.msg.Marker and std_msgs.msg.ColorRGBA. "
             "This is probably because you are not running ROS.")
-
 
 
 class Filter(Enum):
@@ -121,10 +122,6 @@ class ProbabilisticCostmap:
         """
         Create a probabilistic circuit from the costmap.
         """
-        # self.distribution = fully_factorized([self.x, self.y], {self.x: self.origin.position.x,
-        #                                                     self.y: self.origin.position.y},
-        #                                      {self.x: 1, self.y: 1})
-        # self.distribution, _ = self.distribution.conditional(self.create_event_from_map())
         self.distribution = uniform_measure_of_event(self.create_event_from_map())
 
     def sample_to_pose(self, sample: np.ndarray) -> PoseStamped:

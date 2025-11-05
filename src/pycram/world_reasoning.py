@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 import numpy as np
+import logging
 from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 from semantic_digital_twin.world_description.world_entity import Body
 from trimesh import Trimesh
@@ -10,9 +11,9 @@ from .datastructures.dataclasses import RayResult
 from .datastructures.enums import Arms, FindBodyInRegionMethod, Grasp, ApproachDirection, VerticalAlignment
 from .datastructures.pose import PoseStamped, TransformStamped
 from .robot_description import RobotDescription, KinematicChainDescription
-from .logging import logdebug, logwarn
 from .utils import RayTestUtils, chunks, get_rays_from_min_max
 
+logger = logging.getLogger(__name__)
 
 def stable(obj: Body) -> bool:
     """
@@ -85,10 +86,10 @@ def prospect_robot_contact(robot: Body, ignore_collision_with: Optional[List[Bod
                 continue
             in_contact, contact_links = contact(prospection_robot, obj, return_links=True)
             if in_contact and not is_held_object(prospection_robot, obj, [links[0] for links in contact_links]):
-                logdebug(f"Robot is in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
+                debug(f"Robot is in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
                          f"at position {pose.position.to_list()} and z_angle {pose.z_angle}")
                 return True
-            logdebug(f"Robot is not in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
+            debug(f"Robot is not in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
                      f"at position {pose.position.to_list()} and z_angle {pose.z_angle}")
     return False
 
@@ -410,7 +411,7 @@ def has_gripper_grasped_body(arm: Arms, body: Body) -> bool:
         if len(fingers_in_contact) >= 2:
             return True
     else:
-        logwarn(f"It is not possible to be certain of grasping if gripper fingers are not defined.")
+        logger.warning(f"It is not possible to be certain of grasping if gripper fingers are not defined.")
         gripper_link_names = arm_chain.end_effector.links
         if any([link.name in gripper_link_names for link in contact_links]):
             return True

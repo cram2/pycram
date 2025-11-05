@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import psutil
 import random_events
+import logging
 from matplotlib import colors
 from probabilistic_model.probabilistic_circuit.rx.helper import uniform_measure_of_event
 from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import (
@@ -25,7 +26,6 @@ from typing_extensions import Tuple, List, Optional, Iterator
 from .datastructures.dataclasses import Color
 from .datastructures.pose import PoseStamped
 from .datastructures.pose import TransformStamped
-from .logging import logwarn
 from .tf_transformations import quaternion_from_euler
 
 try:
@@ -33,6 +33,7 @@ try:
 except ImportError:
     pass
 
+logger = logging.getLogger(__name__)
 
 @dataclass
 class Rectangle:
@@ -263,7 +264,7 @@ class Costmap:
             new_map = (new_map / np.max(new_map)).reshape((self.height, self.width))
         else:
             new_map = new_map.reshape((self.height, self.width))
-            logwarn("Merged costmap is empty.")
+            logger.warning("Merged costmap is empty.")
         return Costmap(
             self.resolution, self.height, self.width, self.origin, new_map, self.world
         )
@@ -492,49 +493,6 @@ class VisibilityCostmap(Costmap):
         Costmap.__init__(
             self, resolution, size, size, self.origin, self.map, self.world
         )
-
-    @property
-    def target_object(self) -> Optional[Object]:
-        return self._target_object
-
-    @target_object.setter
-    def target_object(self, target_object: Optional[Object]) -> None:
-        if target_object is not None and not isinstance(target_object, PoseStamped):
-            self._target_object = World.current_world.get_prospection_object_for_object(
-                target_object
-            )
-            self.target_original_pose = self._target_object.pose
-        else:
-            self._target_object = None
-            self.target_original_pose = None
-
-    def move_target_and_robot_far_away(self):
-        if self.target_object is not None:
-            self.target_object.set_pose(
-                PoseStamped.from_list(
-                    [
-                        self.origin.position.x + self.size * self.resolution * 2,
-                        self.origin.position.y + self.size * self.resolution * 2,
-                        self.target_original_pose.position.z,
-                    ]
-                )
-            )
-        if self.robot is not None:
-            self.robot.set_pose(
-                PoseStamped.from_list(
-                    [
-                        self.origin.position.x + self.size * self.resolution * 3,
-                        self.origin.position.y + self.size * self.resolution * 3,
-                        self.robot_original_pose.position.z,
-                    ]
-                )
-            )
-
-    def return_target_and_robot_to_their_original_position(self):
-        if self.target_original_pose is not None:
-            self.target_object.set_pose(self.target_original_pose)
-        if self.robot_original_pose is not None:
-            self.robot.set_pose(self.robot_original_pose)
 
     def _create_images(self) -> List[np.ndarray]:
         """

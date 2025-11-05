@@ -9,6 +9,7 @@ import networkx as nx
 import numpy as np
 import rustworkx as rx
 import rustworkx.visualization
+import logging
 from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator
 
@@ -18,11 +19,11 @@ from .datastructures.pose import PoseStamped
 from .external_interfaces import giskard
 from .failures import PlanFailure
 from .has_parameters import leaf_types
-from .logging import loginfo
 
 if TYPE_CHECKING:
     from .designator import BaseMotion, ActionDescription
 
+logger = logging.getLogger(__name__)
 
 class PlotAlignment(IntEnum):
     HORIZONTAL = 0
@@ -575,7 +576,7 @@ class PlanNode:
         Interrupts the execution of this node and all nodes below
         """
         self.status = TaskStatus.INTERRUPTED
-        loginfo(f"Interrupted node: {str(self)}")
+        logger.info(f"Interrupted node: {str(self)}")
         if giskard.giskard_wrapper:
             giskard.giskard_wrapper.interrupt()
 

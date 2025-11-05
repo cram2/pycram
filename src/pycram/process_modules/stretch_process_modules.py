@@ -1,8 +1,10 @@
+import logging
 from .default_process_modules import *
 from ..robot_plans import *
 from ..external_interfaces.robokudo import *
 from ..robot_description import RobotDescription
 
+logger = logging.getLogger(__name__)
 
 class StretchMoveHead(ProcessModule):
     """
@@ -40,7 +42,7 @@ class StretchNavigationReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveMotion) -> Any:
-        logdebug(f"Sending goal to giskard to Move the robot")
+        logger.debug(f"Sending goal to giskard to Move the robot")
         giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
 
 

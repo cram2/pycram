@@ -1,3 +1,4 @@
+import logging
 from scipy.spatial.transform import Rotation as R
 from semantic_digital_twin.robots.pr2 import AbstractRobot
 from semantic_digital_twin.world import World
@@ -11,13 +12,12 @@ from ..external_interfaces.robokudo import query_all_objects, query_object, quer
 from ..process_module import ProcessModule, ManagerBase
 from ..robot_plans import *
 from ..ros import get_time
-from ..logging import logdebug, loginfo
 from ..tf_transformations import euler_from_quaternion
 from ..world_reasoning import visible, link_pose_for_joint_config
 
 if TYPE_CHECKING:
     from ..designators.object_designator import ObjectDesignatorDescription
-
+logger = logging.getLogger(__name__)
 
 class DefaultNavigation(ProcessModule):
     """
@@ -183,7 +183,7 @@ class DefaultMoveJoints(ProcessModule):
             dof = desig.world.get_degree_of_freedom_by_name(joint)
             desig.world.state[dof.name].position = position
         desig.world.notify_state_change()
-        logdebug(f"Moved joints {desig.names} to positions {desig.positions}")
+        logger.debug(f"Moved joints {desig.names} to positions {desig.positions}")
 
 class DefaultOpen(ProcessModule):
     """
@@ -316,7 +316,7 @@ class DefaultDetectingReal(ProcessModule):
                 # Check if the object type is a subclass of the classes in the objects module (pycrap)
                 type_concept = parse_furniture(obj_type)
                 if type_concept is None:
-                    loginfo(f"No class name contains the string '{obj_type}'")
+                    logger.info(f"No class name contains the string '{obj_type}'")
                     type_concept = PhysicalObject
 
                 obj_name = obj_type + "" + str(get_time())
@@ -354,7 +354,7 @@ class DefaultNavigationReal(ProcessModule):
     def _execute(self, designator: MoveMotion):
         # logdebug(f"Sending goal to movebase to Move the robot")
         # query_pose_nav(designator.target)
-        logdebug(f"Sending goal to giskard to Move the robot")
+        logger.debug(f"Sending goal to giskard to Move the robot")
         # giskard.avoid_all_collisions()
         giskard.allow_self_collision()
         giskard.achieve_cartesian_goal(designator.target,

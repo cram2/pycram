@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import timedelta
 
@@ -21,10 +22,10 @@ from ....language import SequentialPlan
 from ....robot_description import EndEffectorDescription, ViewManager
 from ....robot_description import RobotDescription, KinematicChainDescription
 from ....robot_plans.actions.base import ActionDescription, record_object_pre_perform
-from ....logging import logwarn
 from ....utils import translate_pose_along_local_axis
 from ....world_reasoning import has_gripper_grasped_body, is_body_between_fingers
 
+logger = logging.getLogger(__name__)
 
 @has_parameters
 @dataclass
@@ -95,7 +96,7 @@ class ReachToPickUpAction(ActionDescription):
                                            method=FindBodyInRegionMethod.MultiRay):
                 raise ObjectNotInGraspingArea(self.object_designator, World.robot, self.arm, self.grasp_description)
         else:
-            logwarn(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
+            logger.warning(f"Cannot validate reaching to pick up action for arm {self.arm} as no finger links are defined.")
 
     @classmethod
     def description(cls, object_designator: Union[Iterable[Body], Body],

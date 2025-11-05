@@ -1,5 +1,6 @@
 import traceback
 import sqlalchemy
+import logging
 try:
     from .ormatic_interface import mapper_registry
 except ImportError:
@@ -7,8 +8,7 @@ except ImportError:
 from ..designators.object_designator import *
 import json
 
-from ..logging import  loginfo, logwarn
-
+logger = logging.getLogger(__name__)
 
 
 def write_database_to_file(in_sessionmaker: sqlalchemy.orm.sessionmaker, filename: str,
@@ -43,9 +43,9 @@ def print_database(in_sessionmaker: sqlalchemy.orm.sessionmaker):
             try:
                 smt = sqlalchemy.select('*').select_from(table)
                 result = session.execute(smt).all()
-                loginfo("Table: {}\tcontent:{}".format(table, result))
+                logger.info("Table: {}\tcontent:{}".format(table, result))
             except sqlalchemy.exc.ArgumentError as e:
-                logwarn(e)
+                logger.warning(e)
 
 
 def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
@@ -79,7 +79,7 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
                 results = destination_session.execute(sqlalchemy.select(table))
                 for column_object in results:  # iterate over all columns
                     if column_object.__getattr__(key.name) in all_source_key_values:
-                        loginfo(
+                        logger.info(
                             "Found primary_key collision in table {} value: {} max value in memory {}".format(table,
                                                                                                               column_object.__getattr__(
                                                                                                                   key.name),
@@ -92,8 +92,8 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
                         highest_free_key_value += 1
             destination_session.commit()  # commit after every table
         except AttributeError as e:
-            logwarn("Possible found abstract ORM class {}".format(e.__name__))
-            logwarn(e)
+            logger.warning("Possible found abstract ORM class {}".format(e.__name__))
+            logger.warning(e)
     destination_session.close()
 
 
@@ -140,7 +140,7 @@ def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
                     "SELECT con.oid, con.conname, con.contype, con.confupdtype, con.confdeltype, con.confmatchtype, pg_get_constraintdef(con.oid) FROM pg_catalog.pg_constraint con INNER JOIN pg_catalog.pg_class rel ON rel.oid = con.conrelid INNER JOIN pg_catalog.pg_namespace nsp ON nsp.oid = connamespace WHERE rel.relname = '{}';".format(
                         table))
                 response = session.execute(foreign_key_statement)
-                loginfo(25 * '~' + "{}".format(table) + 25 * '~')
+                logger.info(25 * '~' + "{}".format(table) + 25 * '~')
                 for line in response:
                     if line.conname.endswith("fkey"):
                         if 'a' in line.confupdtype:  # a --> no action | if there is no action we set it to cascading
@@ -159,7 +159,7 @@ def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
                                 alter_statement)  # There is no real data coming back for this
                             session.commit()
             except AttributeError:
-                loginfo("Attribute Error: {} has no attribute __tablename__".format(table))
+                logger.info("Attribute Error: {} has no attribute __tablename__".format(table))
 
 
 def migrate_neems(source_session_maker: sqlalchemy.orm.sessionmaker,

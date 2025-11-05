@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 from copy import deepcopy
 
 import numpy as np
@@ -64,11 +65,10 @@ from ..pose_generator_and_validator import (
     collision_check,
 )
 from ..robot_description import ViewManager
-from ..logging import logerr, logdebug
 from ..utils import translate_pose_along_local_axis
 from ..world_reasoning import link_pose_for_joint_config
-from ..ros import node
 
+logger = logging.getLogger(__name__)
 
 class Location(LocationDesignatorDescription):
     """
@@ -331,7 +331,7 @@ class CostmapLocation(LocationDesignatorDescription):
             )
 
             for pose_candidate in PoseGenerator(final_map, number_of_samples=600):
-                logdebug(f"Testing candidate pose at {pose_candidate}")
+                logger.debug(f"Testing candidate pose at {pose_candidate}")
                 pose_candidate.position.z = 0
                 test_robot.root.parent_connection.origin = (
                     pose_candidate.to_spatial_type()
@@ -344,7 +344,7 @@ class CostmapLocation(LocationDesignatorDescription):
                 )
 
                 if collisions:
-                    logdebug(f"Candidate pose in collision, skipping")
+                    logger.debug(f"Candidate pose in collision, skipping")
                     continue
 
                 if not (params_box.reachable_for or params_box.visible_for):
@@ -354,7 +354,7 @@ class CostmapLocation(LocationDesignatorDescription):
                 if params_box.visible_for and not visibility_validator(
                         test_robot, target, test_world
                 ):
-                    logdebug(f"Candidate pose not visible, skipping")
+                    logger.debug(f"Candidate pose not visible, skipping")
                     continue
 
                 if not params_box.reachable_for:
@@ -1272,7 +1272,7 @@ class ProbabilisticCostmapLocation(LocationDesignatorDescription):
         try:
             room_event = poly.inner_box_approximation(minimum_volume=0.1)
         except NoOptimalSolutionError as e:
-            logerr(f"No optimal solution found for Polytope: {poly}")
+            logger.error(f"No optimal solution found for Polytope: {poly}")
             room_event = poly.to_simple_event().as_composite_set()
         room_event = room_event.update_variables(
             {

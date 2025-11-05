@@ -5,6 +5,7 @@ from semantic_digital_twin.robots.abstract_robot import AbstractRobot, Kinematic
 
 import glob
 import importlib
+import logging
 from os.path import dirname, basename, isfile, join
 import math
 from dataclasses import dataclass
@@ -21,11 +22,12 @@ from .datastructures.grasp import GraspDescription
 from .datastructures.pose import PoseStamped
 from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
     get_robot_description_path
-from .logging import logerr
 from .tf_transformations import quaternion_multiply
 from .utils import suppress_stdout_stderr
 
 from urdf_parser_py.urdf import URDF as URDFObject
+
+logger = logging.getLogger(__name__)
 
 class RobotDescriptionManager:
     """
@@ -64,7 +66,7 @@ class RobotDescriptionManager:
             if name in self.descriptions[key].urdf_object.name or key in name.lower():
                 self.descriptions[key].load()
                 return self.descriptions[key]
-        logerr(f"Robot description {name} not found")
+        error(f"Robot description {name} not found")
 
     def register_description(self, description: RobotDescription):
         """
@@ -345,7 +347,7 @@ class RobotDescription:
         :return: The offset of the Joint
         """
         if name not in self.urdf_object.joint_map.keys():
-            logerr(f"The name: {name} is not part of this robot URDF")
+            logger.error(f"The name: {name} is not part of this robot URDF")
             return PoseStamped()
 
         offset = self.urdf_object.joint_map[name].origin
@@ -651,7 +653,7 @@ class KinematicChainDescription:
         try:
             return self.static_joint_states[name]
         except KeyError:
-            logerr(f"Static joint states for chain {name} not found")
+            logger.error(f"Static joint states for chain {name} not found")
 
     def get_tool_frame(self) -> str:
         """

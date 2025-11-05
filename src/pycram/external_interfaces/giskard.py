@@ -1,12 +1,12 @@
 import json
 import threading
+import logging
 
 import sys
 
 from semantic_digital_twin.world_description.world_entity import Body
 
 from ..ros import Time
-from ..logging import logwarn, loginfo_once, loginfo
 from ..ros import get_node_names
 
 from ..datastructures.enums import JointType, ObjectType, Arms
@@ -18,7 +18,7 @@ from typing_extensions import List, Dict, Callable, Optional
 from threading import Lock, RLock
 from ..ros import node
 
-
+logger = logging.getLogger(__name__)
 
 giskard_wrapper = None
 giskard_update_service = None
@@ -68,21 +68,21 @@ def init_giskard_interface(func: Callable) -> Callable:
         if is_init and "giskard" in get_node_names():
             return func(*args, **kwargs)
         elif is_init and "giskard" not in get_node_names():
-            logwarn("Giskard node is not available anymore, could not initialize giskard interface")
+            logger.warning("Giskard node is not available anymore, could not initialize giskard interface")
             is_init = False
             giskard_wrapper = None
             return
 
         if "giskard_msgs" not in sys.modules:
-            logwarn("Could not initialize the Giskard interface since the giskard_msgs are not imported")
+            logger.warning("Could not initialize the Giskard interface since the giskard_msgs are not imported")
             return
 
         if "giskard" in get_node_names():
             giskard_wrapper = GiskardWrapper(node)
-            loginfo_once("Successfully initialized Giskard interface")
+            logger.info("Successfully initialized Giskard interface")
             is_init = True
         else:
-            logwarn("Giskard is not running, could not initialize Giskard interface")
+            logger.warning("Giskard is not running, could not initialize Giskard interface")
             return
         return func(*args, **kwargs)
     return wrapper
@@ -177,7 +177,7 @@ def spawn_object(object: Body) -> None:
             spawn_mesh(object.name, filename, object.get_pose())
     else:
         ww = spawn_urdf(object.name, object.path, object.get_pose())
-        log.loginfo("GiskardSpawnURDF Return value: {} ObjectName:{}".format(ww,object.name))
+        log.info("GiskardSpawnURDF Return value: {} ObjectName:{}".format(ww, object.name))
 
 
 @init_giskard_interface

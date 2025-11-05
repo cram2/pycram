@@ -1,3 +1,4 @@
+import logging
 from .default_process_modules import *
 
 from ..datastructures.enums import ExecutionType, ObjectType
@@ -7,14 +8,14 @@ from ..process_module import ProcessModuleManager, ProcessModule
 from .default_process_modules import DefaultMoveGripper, DefaultMoveTCP, \
     DefaultNavigation, DefaultMoveHead
 from ..robot_description import RobotDescription
-from ..logging import logdebug
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import send_query
 
+logger = logging.getLogger(__name__)
 
 class TiagoNavigationReal(ProcessModule):
     def _execute(self, designator: MoveMotion):
-        logdebug(f"Sending goal to giskard to Move the robot")
+        logger.debug(f"Sending goal to giskard to Move the robot")
         giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
 
 

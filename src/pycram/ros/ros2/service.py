@@ -1,9 +1,10 @@
 import time
 import rclpy.client
+import logging
 
 from . import node
-from ...logging import loginfo_once
 
+logger = logging.getLogger(__name__)
 services = {}
 
 class ServiceProxy:
@@ -28,5 +29,5 @@ def get_service_proxy(topic_name: str, service_message) -> rclpy.client.Client:
 def wait_for_service(topic_name: str, service_message):
     if not topic_name in services:
         service = get_service_proxy(topic_name, service_message)
-    loginfo_once(f"Waiting for service: {topic_name}")
+    logger.info(f"Waiting for service: {topic_name}")
     services[topic_name].wait_for_service()
