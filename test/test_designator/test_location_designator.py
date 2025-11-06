@@ -6,7 +6,6 @@ from pycram.language import SequentialPlan
 from pycram.robot_description import RobotDescription
 from pycram.datastructures.pose import PoseStamped
 from pycram.robot_plans import NavigateActionDescription
-from pycram.ros import node
 from pycram.testing import BulletWorldTestCase
 
 class TestActionDesignatorGrounding(BulletWorldTestCase):

@@ -19,7 +19,7 @@ from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 from typing_extensions import Callable, Any, Optional, List
 from typing_extensions import TYPE_CHECKING
 
-from .config.world_conf import WorldConfig
+from .config.action_conf import ActionConfig
 from .datastructures.enums import ExecutionType
 
 if TYPE_CHECKING:
@@ -33,7 +33,7 @@ class ProcessModule:
     Implementation of process modules. Process modules are the part that communicate with the outer world to execute
      designators.
     """
-    execution_delay: Optional[timedelta] = WorldConfig.execution_delay
+    execution_delay: Optional[timedelta] = ActionConfig.execution_delay
     """
     Adds a delay after executing a process module, to make the execution in simulation more realistic
     """
@@ -81,7 +81,7 @@ class RealRobot:
 
     def __init__(self):
         self.pre: ExecutionType = ExecutionType.REAL
-        self.pre_delay: timedelta = WorldConfig.execution_delay
+        self.pre_delay: timedelta = ActionConfig.execution_delay
 
     def __enter__(self):
         """

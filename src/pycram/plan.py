@@ -709,7 +709,7 @@ class ResolvedActionNode(DesignatorNode):
         robot_pose = PoseStamped.from_spatial_type(self.plan.robot.root.global_pose)
         exec_data = ExecutionData(robot_pose, self.plan.world.state.data)
         self.designator_ref.execution_data = exec_data
-        last_mod = self.plan.world._model_modification_blocks[-1]
+        last_mod = self.plan.world._model_manager.model_modification_blocks[-1]
 
         manipulated_bodies = list(filter(lambda x: isinstance(x, Body), self.kwargs.values()))
         manipulated_body = manipulated_bodies[0] if manipulated_bodies else None
@@ -724,10 +724,10 @@ class ResolvedActionNode(DesignatorNode):
         exec_data.execution_end_pose = PoseStamped.from_spatial_type(self.plan.robot.root.global_pose)
         exec_data.execution_end_world_state = self.plan.world.state.data
         new_modifications = []
-        for i in range(len(self.plan.world._model_modification_blocks)):
-            if self.plan.world._model_modification_blocks[-i] is last_mod:
+        for i in range(len(self.plan.world._model_manager.model_modification_blocks)):
+            if self.plan.world._model_manager.model_modification_blocks[-i] is last_mod:
                 break
-            new_modifications.append(self.plan.world._model_modification_blocks[-i])
+            new_modifications.append(self.plan.world._model_manager.model_modification_blocks[-i])
         exec_data.modifications = new_modifications[::-1]
 
         if manipulated_body:

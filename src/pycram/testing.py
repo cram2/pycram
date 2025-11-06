@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 import time
 import unittest
 from copy import deepcopy
@@ -9,6 +10,7 @@ from rclpy.node import Node
 from semantic_digital_twin.adapters.mesh import STLParser
 from semantic_digital_twin.adapters.urdf import URDFParser
 from semantic_digital_twin.spatial_types.spatial_types import TransformationMatrix
+from semantic_digital_twin.utils import rclpy_installed
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import OmniDrive
 
@@ -26,15 +28,48 @@ except ImportError:
 
 
 @pytest.fixture(autouse=True, scope="session")
-def cleanup_ros(self):
+def cleanup_ros():
     """
     Fixture to ensure that ROS is properly cleaned up after all tests.
     """
-    yield
     if os.environ.get('ROS_VERSION') == '2':
         import rclpy
+        if not rclpy.ok():
+            rclpy.init()
+    yield
+    if os.environ.get('ROS_VERSION') == '2':
         if rclpy.ok():
             rclpy.shutdown()
+
+@pytest.fixture(scope="function")
+def rclpy_node():
+    if not rclpy_installed():
+        pytest.skip("ROS not installed")
+    import rclpy
+    from rclpy.executors import SingleThreadedExecutor
+
+    rclpy.init()
+    node = rclpy.create_node("test_node")
+
+    executor = SingleThreadedExecutor()
+    executor.add_node(node)
+
+    thread = threading.Thread(target=executor.spin, daemon=True, name="rclpy-executor")
+    thread.start()
+    time.sleep(0.1)
+    try:
+        yield node
+    finally:
+        # Stop executor cleanly and wait for the thread to exit
+        executor.shutdown()
+        thread.join(timeout=2.0)
+
+        # Remove the node from the executor and destroy it
+        # (executor.shutdown() takes care of spinning; add_node is safe to keep as-is)
+        node.destroy_node()
+
+        # Shut down the ROS client library
+        rclpy.shutdown()
 
 
 def setup_world() -> World:
@@ -111,25 +146,16 @@ class BulletWorldTestCase(EmptyWorldTestCase):
 
         cls.apartment_world = setup_world()
 
-        cls.n = Node("test")
-        # cls.viz_marker_publisher = VizMarkerPublisher(cls.apartment_world, n)
-
         cls.robot_view = PR2.from_world(cls.apartment_world)
 
         cls.context = Context(cls.apartment_world, cls.robot_view, None)
 
         cls.original_state_data = deepcopy(cls.apartment_world.state.data)
         cls.world = cls.apartment_world
-        # cls.original_state_data = cls.apartment_world.state.data.copy()
 
     def tearDown(self):
         self.world.state.data = deepcopy(self.original_state_data)
         self.world.notify_state_change()
-
-    @classmethod
-    def tearDownClass(cls):
-        pass
-        # cls.viz_marker_publisher._stop_publishing()
 
 
 class BulletWorldGUITestCase(BulletWorldTestCase):

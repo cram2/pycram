@@ -2,13 +2,11 @@ import time
 import rclpy.client
 import logging
 
-from . import node
-
 logger = logging.getLogger(__name__)
 services = {}
 
 class ServiceProxy:
-    def __init__(self, topic_name, service_message):
+    def __init__(self, topic_name, service_message, node):
         self.service = node.create_client(service_message, topic_name)
         self.message_type = service_message
     def __call__(self, *args, **kwargs):

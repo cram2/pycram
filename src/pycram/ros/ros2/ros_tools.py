@@ -1,4 +1,3 @@
-from . import node
 import logging
 import rclpy
 from rcl_interfaces.srv import GetParameters
@@ -6,7 +5,7 @@ from ament_index_python.packages import get_package_share_directory
 
 logger = logging.getLogger(__name__)
 
-def get_node_names(namespace=None):
+def get_node_names(node, namespace=None):
     """
     Get the names of all nodes in the ROS system.
 
@@ -22,7 +21,7 @@ def create_ros_pack(ros_paths=None):
 def get_ros_package_path(package_name):
     return get_package_share_directory(package_name=package_name)
 
-def get_parameter(name):
+def get_parameter(name, node):
     try:
         node_names_and_namespaces = node.get_node_names_and_namespaces()
         for node_name, namespace in node_names_and_namespaces:
@@ -39,7 +38,7 @@ def get_parameter(name):
     except Exception as e:
         print(f"Failed to get parameter '{name}': {e}")
 
-def wait_for_message(topic_name, msg_type):
+def wait_for_message(topic_name, msg_type, node):
     last_message = None
     def sub_callback(msg):
         global last_message
@@ -49,10 +48,10 @@ def wait_for_message(topic_name, msg_type):
     sub = node.create_subscription(msg_type, topic_name, sub_callback())
     return last_message
 
-def is_master_online():
+def is_master_online(node):
     return node is not None
 
-def sleep(duration):
+def sleep(duration, node):
     """
     Sleep for a given duration.
 
@@ -61,10 +60,10 @@ def sleep(duration):
     rate = node.create_rate(1 / duration)
     rate.sleep()
 
-def get_time():
+def get_time(node):
     return node.get_time()
 
-def create_timer(duration, callback, oneshot=False):
+def create_timer(duration, callback, node, oneshot=False):
     timer = node.create_timer(duration, callback, autostart=True)
     return timer
 

@@ -11,13 +11,14 @@ from tf2_msgs.msg import TFMessage
 
 from ..ros import  create_publisher
 from ..ros import  Time
+from pycram.testing import cleanup_ros
 
 
 class TFBroadcaster:
     """
     Broadcaster that publishes TF frames for every object in the World.
     """
-    def __init__(self, world: World,  projection_namespace=ExecutionType.SIMULATED, odom_frame="odom", interval=0.1):
+    def __init__(self, world: World, node, projection_namespace=ExecutionType.SIMULATED, odom_frame="odom", interval=0.1):
         """
         The broadcaster prefixes all published TF messages with a projection namespace to distinguish between the TF
         frames from the simulation and the one from the real robot.
@@ -27,9 +28,10 @@ class TFBroadcaster:
         :param interval: Interval at which the TFs should be published, in seconds
         """
         self.world = world
+        self.node = node
 
-        self.tf_static_publisher = create_publisher("/tf_static", TFMessage, queue_size=10)
-        self.tf_publisher = create_publisher("/tf", TFMessage, queue_size=10)
+        self.tf_static_publisher = create_publisher("/tf_static", TFMessage, node, queue_size=10)
+        self.tf_publisher = create_publisher("/tf", TFMessage, node, queue_size=10)
         self.thread = threading.Thread(target=self._publish, daemon=True)
         self.kill_event = threading.Event()
         self.interval = interval
@@ -64,7 +66,7 @@ class TFBroadcaster:
         Publishes a static odom frame to the tf_static topic.
         """
         self._publish_pose(self.odom_frame,
-                           PoseStamped.from_list(self.world.root, [0, 0, 0], [0, 0, 0, 1]), static=True)
+                           PoseStamped.from_list( [0, 0, 0], [0, 0, 0, 1], self.world.root,), static=True)
 
     def _publish_pose(self, child_frame_id: str, pose: PoseStamped, static=False) -> None:
         """

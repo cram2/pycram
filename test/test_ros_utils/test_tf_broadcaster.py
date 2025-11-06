@@ -7,13 +7,14 @@ import rclpy.publisher
 from tf2_msgs.msg import TFMessage
 from pycram.datastructures.enums import ExecutionType
 from pycram.ros_utils.tf_broadcaster import TFBroadcaster
-from pycram.testing import BulletWorldTestCase
+from pycram.testing import BulletWorldTestCase, cleanup_ros
 
 
 class TestTFBroadcaster(BulletWorldTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.node = rclpy.create_node("tf_broadcaster_test_node")
         cls.mock_publisher = MagicMock()
 
 
@@ -22,7 +23,7 @@ class TestTFBroadcaster(BulletWorldTestCase):
         patch.stopall()
 
     def test_initialization(self):
-        broadcaster = TFBroadcaster(self.world)
+        broadcaster = TFBroadcaster(self.world, self.node)
         self.assertIsNotNone(broadcaster.tf_publisher)
         self.assertIsNotNone(broadcaster.tf_static_publisher)
         self.assertIsInstance(broadcaster.tf_publisher, rclpy.publisher.Publisher)
@@ -32,7 +33,7 @@ class TestTFBroadcaster(BulletWorldTestCase):
         self.assertEqual(broadcaster.projection_namespace, ExecutionType.SIMULATED)
 
     def test_update_static_odom_calls_publish_pose(self):
-        broadcaster = TFBroadcaster(self.world)
+        broadcaster = TFBroadcaster(self.world, self.node)
         broadcaster.tf_publisher = MagicMock()
         broadcaster.tf_static_publisher = MagicMock()
         broadcaster.projection_namespace = ExecutionType.SIMULATED
@@ -45,7 +46,7 @@ class TestTFBroadcaster(BulletWorldTestCase):
             broadcaster._publish_pose.assert_called_once_with("odom", mock_pose, static=True)
 
     def test_update_objects_publishes_all_objects_and_links(self):
-        broadcaster = TFBroadcaster(self.world)
+        broadcaster = TFBroadcaster(self.world, self.node)
         # broadcaster.world = MagicMock()
         broadcaster.tf_publisher = MagicMock()
         broadcaster.tf_static_publisher = MagicMock()
@@ -64,7 +65,7 @@ class TestTFBroadcaster(BulletWorldTestCase):
         self.assertEqual(broadcaster._publish_pose.call_args_list[0][0][0], "apartment/apartment_root")
 
     def test_update_objects_with_no_objects(self):
-        broadcaster = TFBroadcaster(self.world)
+        broadcaster = TFBroadcaster(self.world, self.node)
         broadcaster.world = MagicMock()
         broadcaster.world.objects = []
         broadcaster._publish_pose = MagicMock()
@@ -73,7 +74,7 @@ class TestTFBroadcaster(BulletWorldTestCase):
         broadcaster._publish_pose.assert_not_called()
 
     def test_publish_pose_calls_correct_publisher(self):
-        broadcaster = TFBroadcaster(self.world)
+        broadcaster = TFBroadcaster(self.world, self.node)
         broadcaster.tf_publisher = MagicMock()
         broadcaster.tf_static_publisher = MagicMock()
         broadcaster.projection_namespace = ExecutionType.SIMULATED
@@ -91,7 +92,7 @@ class TestTFBroadcaster(BulletWorldTestCase):
         broadcaster.tf_publisher.publish.assert_called_once()
 
     def test_publish_loop_runs_once(self):
-        broadcaster = TFBroadcaster(self.world)
+        broadcaster = TFBroadcaster(self.world, self.node)
         broadcaster.kill_event = MagicMock()
         broadcaster.kill_event.is_set.side_effect = chain([False], repeat(True))
         broadcaster.update = MagicMock()
@@ -102,7 +103,7 @@ class TestTFBroadcaster(BulletWorldTestCase):
         broadcaster.update.assert_called_once()
 
     def test_stop_publishing(self):
-        broadcaster = TFBroadcaster(self.world)
+        broadcaster = TFBroadcaster(self.world, self.node)
         broadcaster.kill_event = MagicMock()
         broadcaster.thread = MagicMock()
 

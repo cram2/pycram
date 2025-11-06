@@ -16,7 +16,6 @@ from ..robot_description import RobotDescription
 
 from typing_extensions import List, Dict, Callable, Optional
 from threading import Lock, RLock
-from ..ros import node
 
 logger = logging.getLogger(__name__)
 
