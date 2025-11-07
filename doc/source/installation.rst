@@ -7,11 +7,7 @@ Installation Guide
 Compatability
 =============
 
-PyCRAM is compatible and tested with **ROS1 Noetic/ Ubuntu20.04** and **ROS2 Jazzy/ Ubuntu24.04**.
-ROS2 Humble/ Ubuntu22.04 is not usable since the creation of messages is more strict and some problems
-may arise.
-
-**Support for ROS1 Noetic/ Ubuntu20.04 will be dropped in July 25**
+PyCRAM is compatible and tested with **ROS2 Jazzy/ Ubuntu24.04**.
 
 
 ============
@@ -119,82 +115,6 @@ Now you can install PyCRAM into your ROS workspace.
 
 Afterwards continue with the steps under `Step 6: Python Dependencies`_.
 
-5. Step: Manual Install on Ubuntu 20.04 (ROS Noetic)
-====================================================
-.. _install_pycram_20:
-
-At first you need to install the catkin tools so we can use the ´´´colcon build´´´ command:
-
-.. code-block:: shell
-
-    apt install python3-catkin-tools
-
-Now we can setup a ROS workspace into which PyCRAM can be cloned.
-
-.. code-block:: shell
-
-    mkdir -p ~/workspace/ros/src
-    cd workspace/ros
-    catkin build
-    source devel/setup.bash
-
-If ``catkin build`` does not work this probably means that you did not source your ROS installation.
-Source it by invoking:
-
-.. code-block:: shell
-
-    source /opt/ros/noetic/setup.bash
-
-Now you can install PyCRAM into your ROS workspace.
-
-.. code-block:: shell
-
-    cd ~/workspace/ros/src
-    vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/rosinstall/pycram.rosinstall --recursive
-    rosdep update
-    rosdep install --ignore-src --from-paths . -r
-    cd ..
-    catkin build
-    source devel/setup.bash
-    echo "source ~/workspace/ros/devel/setup.bash" >> ~/.bashrc
-
-The cloning and setting up can take several minutes. After the command finishes you should see a number of repositories
-in your ROS workspace.
-
-The cloned repository contains the source code for PyCRAM as well as two short demos which demonstrate how to use it.
-
-Step 5.1: Building your ROS workspace
--------------------------------------
-
-.. _build-ws:
-
-Building and sourcing your ROS workspace using catkin compiles all ROS packages and manages the appending to the
-respective PATH variables. This is necessary to be able to import PyCRAM via the Python import system and to find the
-robot descriptions in the launch file.
-
-If you have been following the tutorial steps until now you can skip this part.
-
-You can build your ROS workspace with the following commands:
-
-.. code-block:: shell
-
-    cd ~/workspace/ros
-    catkin build
-    source devel/setup.bash
-
-Afterwards continue with the steps under `Step 6: Python Dependencies`_.
-
-Step 5.2: Using PyCRAM in ROS1
-------------------------------
-
-If you want to use PyCRAM on a system running ROS1 you need to start a roscore beforehand, you can do this by running
-the following command in a terminal:
-
-.. code-block:: shell
-
-    roscore
-
-
 Step 6: Python Dependencies
 ===========================
 
@@ -246,13 +166,6 @@ To further test the installation you can run the tests for action designator wit
 
 Step 8. Using PyCRAM
 ====================
-
-**If you are using PyCRAM on a ROS1 system (e.g. Ubuntu20.04) you have to start up a roscore before using PyCRAM to
-avoid errors. You can start a roscore by typing the following command in a terminal:**
-
-.. code-block:: shell
-
-    roscore
 
 To use PyCRAM you can do this simply by importing PyCRAM in your project.
 

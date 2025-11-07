@@ -22,7 +22,7 @@ sys.path.append(os.path.abspath("./_ext"))
 # -- Project information -----------------------------------------------------
 
 project = 'pycram'
-copyright = '2023, Jonas Dech'
+copyright = '2025, Jonas Dech'
 author = 'Jonas Dech'
 
 # The short X.Y version
