@@ -14,6 +14,8 @@ parts:
     - file: plan.rst
     - file: designators.rst
     - file: orm_concept.rst
+    - file: abstract_robot.rst
+    - file: process_modules.rst
     - file: costmap.rst
     - file: notebooks.rst
   - caption: Adding a new Robot
