@@ -26,6 +26,10 @@ jobs:
       - name: Checkout 🛎
         uses: actions/checkout@v3
 
+      - name: Install Graphviz
+        run: |
+          apt install graphviz graphviz-dev -y
+
       - name: Update pip and setuptools 🍼
         run: |
           pip install -U pip setuptools
