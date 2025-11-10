@@ -28,7 +28,7 @@ jobs:
 
       - name: Install Graphviz
         run: |
-          apt install graphviz graphviz-dev -y
+          sudo apt install graphviz graphviz-dev -y
 
       - name: Update pip and setuptools 🍼
         run: |
