@@ -1,4 +1,5 @@
 import os
+from dataclasses import is_dataclass
 from enum import Enum
 
 import semantic_digital_twin.orm.ormatic_interface
@@ -6,7 +7,9 @@ from krrood.class_diagrams import ClassDiagram
 from krrood.ormatic.ormatic import ORMatic
 from krrood.ormatic.utils import get_classes_of_ormatic_interface
 from ormatic.utils import recursive_subclasses, classes_of_module
+from semantic_digital_twin.world import WorldModelManager
 from semantic_digital_twin.world_description.world_entity import Body
+from semantic_digital_twin.world_description.world_modification import (WorldModelModificationBlock, WorldModelModification)
 
 import pycram.datastructures.pose
 from pycram.datastructures import grasp
@@ -30,7 +33,6 @@ classes, alternative_mappings, type_mappings = get_classes_of_ormatic_interface(
 classes = set(classes)
 
 # create of classes that should be mapped
-classes |= set(recursive_subclasses(AlternativeMapping))
 classes |= set(classes_of_module(pycram.datastructures.pose))
 classes |= {ExecutionData}
 # classes |= set(classes_of_module(action_designator)) | {ActionDescription}
@@ -45,6 +47,8 @@ classes |= set(classes_of_module(navigation))
 classes |= set(classes_of_module(placing))
 classes |= set(classes_of_module(robot_body)) | {ActionDescription}
 classes |= set(classes_of_module(grasp))
+classes |= {WorldModelModificationBlock, WorldModelModification}
+
 
 # Semantic World Classes
 classes |= {Body}
@@ -56,11 +60,22 @@ classes |= {Body}
 # classes |= set(classes_of_module(motion_misc))
 # classes |= set(classes_of_module(motion_robot_body))
 
-classes |= {PlanNode, SequentialNode, RepeatNode}
+classes |= {PlanNode, SequentialNode, RepeatNode, ResolvedActionNode}
+classes -= {WorldModelManager}
 
-# remove classes that should not be mapped
-classes -= set(recursive_subclasses(Enum))
-classes -= {m.original_class() for m in recursive_subclasses(AlternativeMapping)}
+# keep only dataclasses that are NOT AlternativeMapping subclasses
+classes = {
+    c for c in classes if is_dataclass(c) and not issubclass(c, AlternativeMapping)
+}
+
+
+alternative_mappings += [
+    am
+    for am in recursive_subclasses(AlternativeMapping)
+    if am.original_class() in classes
+]
+alternative_mappings = list(set(alternative_mappings))
+print(alternative_mappings)
 
 # create the new ormatic interface
 class_diagram = ClassDiagram(

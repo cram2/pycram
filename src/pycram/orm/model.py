@@ -3,7 +3,8 @@ from datetime import datetime
 from typing import Type
 
 import numpy as np
-from ormatic.dao import AlternativeMapping
+from krrood.ormatic.dao import AlternativeMapping, T
+from ..datastructures.pose import Quaternion
 from sqlalchemy import TypeDecorator, types
 from typing_extensions import Optional
 
@@ -23,6 +24,16 @@ from ..robot_plans import ActionDescription, BaseMotion
 #            One attribute equals one column. Please refer to the ORMatic documentation for more information.
 # ----------------------------------------------------------------------------------------------------------------------
 
+@dataclass
+class PyCRAMQuaternionMapping(AlternativeMapping[Quaternion]):
+    x: float = 0
+    y: float = 0
+    z: float = 0
+    w: float = 1
+
+    @classmethod
+    def create_instance(cls, obj: T):
+        return Quaternion(obj.x, obj.y, obj.z, obj.w)
 
 @dataclass
 class PlanNodeMapping(AlternativeMapping[PlanNode]):
