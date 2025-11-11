@@ -3,6 +3,8 @@ from copy import deepcopy
 
 import numpy as np
 import sqlalchemy.sql.elements
+from pycram.datastructures.enums import TorsoState, ApproachDirection, Arms, VerticalAlignment, DetectionTechnique, \
+    DetectionState, GripperState
 from semantic_digital_twin.robots.pr2 import PR2
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session

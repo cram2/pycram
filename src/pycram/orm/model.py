@@ -1,18 +1,24 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Type
+from typing import Type, List, Self
 
 import numpy as np
 from krrood.ormatic.dao import AlternativeMapping, T
-from ..datastructures.pose import Quaternion
 from sqlalchemy import TypeDecorator, types
 from typing_extensions import Optional
 
 from ..datastructures.enums import TaskStatus
+from ..datastructures.pose import Quaternion
 from ..failures import PlanFailure
-from ..language import TryInOrderNode, ParallelNode, TryAllNode, CodeNode, \
-    MonitorNode
-from ..plan import ActionNode, MotionNode, PlanNode, ResolvedActionNode, DesignatorNode
+from ..language import TryInOrderNode, ParallelNode, TryAllNode, CodeNode, MonitorNode
+from ..plan import (
+    ActionNode,
+    MotionNode,
+    PlanNode,
+    ResolvedActionNode,
+    DesignatorNode,
+    Plan,
+)
 from ..robot_plans import ActionDescription, BaseMotion
 
 
@@ -24,6 +30,7 @@ from ..robot_plans import ActionDescription, BaseMotion
 #            One attribute equals one column. Please refer to the ORMatic documentation for more information.
 # ----------------------------------------------------------------------------------------------------------------------
 
+
 @dataclass
 class PyCRAMQuaternionMapping(AlternativeMapping[Quaternion]):
     x: float = 0
@@ -34,6 +41,10 @@ class PyCRAMQuaternionMapping(AlternativeMapping[Quaternion]):
     @classmethod
     def create_instance(cls, obj: T):
         return Quaternion(obj.x, obj.y, obj.z, obj.w)
+
+    def create_from_dao(self) -> T:
+        return Quaternion(self.x, self.y, self.z, self.w)
+
 
 @dataclass
 class PlanNodeMapping(AlternativeMapping[PlanNode]):
@@ -51,8 +62,11 @@ class PlanNodeMapping(AlternativeMapping[PlanNode]):
             status=obj.status,
             start_time=obj.start_time,
             end_time=obj.end_time,
-            reason=obj.reason
+            reason=obj.reason,
         )
+
+    def create_from_dao(self) -> T:
+        raise NotImplementedError()
 
 
 @dataclass
@@ -71,8 +85,11 @@ class DesignatorNodeMapping(AlternativeMapping[DesignatorNode]):
             status=obj.status,
             start_time=obj.start_time,
             end_time=obj.end_time,
-            reason=obj.reason
+            reason=obj.reason,
         )
+
+    def create_from_dao(self) -> T:
+        raise NotImplementedError()
 
 
 @dataclass
@@ -93,8 +110,11 @@ class ActionNodeMapping(AlternativeMapping[ActionNode]):
             action=obj.action,
             start_time=obj.start_time,
             end_time=obj.end_time,
-            reason=obj.reason
+            reason=obj.reason,
         )
+
+    def create_from_dao(self) -> T:
+        raise NotImplementedError()
 
 
 @dataclass
@@ -115,8 +135,11 @@ class MotionNodeMapping(AlternativeMapping[MotionNode]):
             action=obj.action,
             start_time=obj.start_time,
             end_time=obj.end_time,
-            reason=obj.reason
+            reason=obj.reason,
         )
+
+    def create_from_dao(self) -> T:
+        raise NotImplementedError()
 
 
 @dataclass
@@ -140,8 +163,11 @@ class ResolvedActionNodeMapping(AlternativeMapping[ResolvedActionNode]):
             status=obj.status,
             start_time=obj.start_time,
             end_time=obj.end_time,
-            reason=obj.reason
+            reason=obj.reason,
         )
+
+    def create_from_dao(self) -> T:
+        raise NotImplementedError()
 
 
 @dataclass
@@ -154,6 +180,9 @@ class TryInOrderMapping(AlternativeMapping[TryInOrderNode]):
         """
         return cls()
 
+    def create_from_dao(self) -> T:
+        raise NotImplementedError()
+
 
 @dataclass
 class ParallelNodeMapping(AlternativeMapping[ParallelNode]):
@@ -164,6 +193,9 @@ class ParallelNodeMapping(AlternativeMapping[ParallelNode]):
         Convert a ParallelNode to a ParallelNodeDAO.
         """
         return cls()
+
+    def create_from_dao(self) -> T:
+        raise NotImplementedError()
 
 
 @dataclass
@@ -176,6 +208,9 @@ class TryAllNodeMapping(AlternativeMapping[TryAllNode]):
         """
         return cls()
 
+    def create_from_dao(self) -> T:
+        raise NotImplementedError()
+
 
 @dataclass
 class CodeNodeMapping(AlternativeMapping[CodeNode]):
@@ -185,8 +220,10 @@ class CodeNodeMapping(AlternativeMapping[CodeNode]):
         """
         Convert a CodeNode to a CodeNodeDAO.
         """
-        return cls(
-        )
+        return cls()
+
+    def create_from_dao(self) -> T:
+        raise NotImplementedError()
 
 
 @dataclass
@@ -197,6 +234,17 @@ class MonitorNodeMapping(AlternativeMapping[MonitorNode]):
         """
         Convert a MonitorNode to a MonitorNodeDAO.
         """
+        return cls()
+
+    def create_from_dao(self) -> T:
+        raise NotImplementedError()
+
+
+@dataclass
+class PlanMapping(AlternativeMapping[Plan]):
+    nodes: List[PlanNode]
+
+    def create_instance(cls, obj: T) -> Self:
         return cls()
 
 
