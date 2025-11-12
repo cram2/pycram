@@ -49,7 +49,7 @@ class PyCRAMQuaternionMapping(AlternativeMapping[Quaternion]):
 @dataclass
 class PlanNodeMapping(AlternativeMapping[PlanNode]):
     status: TaskStatus = TaskStatus.CREATED
-    start_time: Optional[datetime] = field(default_factory=datetime.now)
+    start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     reason: Optional[PlanFailure] = None
 
@@ -70,11 +70,7 @@ class PlanNodeMapping(AlternativeMapping[PlanNode]):
 
 
 @dataclass
-class DesignatorNodeMapping(AlternativeMapping[DesignatorNode]):
-    status: TaskStatus = TaskStatus.CREATED
-    start_time: Optional[datetime] = field(default_factory=datetime.now)
-    end_time: Optional[datetime] = None
-    reason: Optional[PlanFailure] = None
+class DesignatorNodeMapping(PlanNodeMapping, AlternativeMapping[DesignatorNode]):
 
     @classmethod
     def create_instance(cls, obj: DesignatorNode):
@@ -93,12 +89,8 @@ class DesignatorNodeMapping(AlternativeMapping[DesignatorNode]):
 
 
 @dataclass
-class ActionNodeMapping(AlternativeMapping[ActionNode]):
-    action: Type[ActionNode]
-    status: TaskStatus = TaskStatus.CREATED
-    start_time: Optional[datetime] = field(default_factory=datetime.now)
-    end_time: Optional[datetime] = None
-    reason: Optional[PlanFailure] = None
+class ActionNodeMapping(DesignatorNodeMapping, AlternativeMapping[ActionNode]):
+    action: ActionDescription = None
 
     @classmethod
     def create_instance(cls, obj: ActionNode):
@@ -118,53 +110,43 @@ class ActionNodeMapping(AlternativeMapping[ActionNode]):
 
 
 @dataclass
-class MotionNodeMapping(AlternativeMapping[MotionNode]):
-    action: Type[BaseMotion]
-    status: TaskStatus = TaskStatus.CREATED
-    start_time: Optional[datetime] = field(default_factory=datetime.now)
-    end_time: Optional[datetime] = None
-    reason: Optional[PlanFailure] = None
+class MotionNodeMapping(DesignatorNodeMapping, AlternativeMapping[MotionNode]):
 
-    @classmethod
-    def create_instance(cls, obj: MotionNode):
-        """
-        Convert a MotionNode to a MotionNodeDAO.
-        """
-        return cls(
-            status=obj.status,
-            action=obj.action,
-            start_time=obj.start_time,
-            end_time=obj.end_time,
-            reason=obj.reason,
-        )
+    # @classmethod
+    # def create_instance(cls, obj: MotionNode):
+    #     """
+    #     Convert a MotionNode to a MotionNodeDAO.
+    #     """
+    #     return cls(
+    #         status=obj.status,
+    #         action=obj.action,
+    #         start_time=obj.start_time,
+    #         end_time=obj.end_time,
+    #         reason=obj.reason,
+    #     )
 
     def create_from_dao(self) -> T:
         raise NotImplementedError()
 
 
 @dataclass
-class ResolvedActionNodeMapping(AlternativeMapping[ResolvedActionNode]):
-    designator_ref: ActionDescription
-    action: Type[ActionDescription]
+class ResolvedActionNodeMapping(
+    DesignatorNodeMapping, AlternativeMapping[ResolvedActionNode]
+):
 
-    status: TaskStatus = TaskStatus.CREATED
-    start_time: Optional[datetime] = field(default_factory=datetime.now)
-    end_time: Optional[datetime] = None
-    reason: Optional[PlanFailure] = None
-
-    @classmethod
-    def create_instance(cls, obj: ResolvedActionNode):
-        """
-        Convert a ResolvedActionNode to a ResolvedActionNodeDAO.
-        """
-        return cls(
-            designator_ref=obj.designator_ref,
-            action=obj.action,
-            status=obj.status,
-            start_time=obj.start_time,
-            end_time=obj.end_time,
-            reason=obj.reason,
-        )
+    # @classmethod
+    # def create_instance(cls, obj: ResolvedActionNode):
+    #     """
+    #     Convert a ResolvedActionNode to a ResolvedActionNodeDAO.
+    #     """
+    #     return cls(
+    #         designator_ref=obj.designator_ref,
+    #         action=obj.action,
+    #         status=obj.status,
+    #         start_time=obj.start_time,
+    #         end_time=obj.end_time,
+    #         reason=obj.reason,
+    #     )
 
     def create_from_dao(self) -> T:
         raise NotImplementedError()

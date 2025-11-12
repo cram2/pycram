@@ -17,7 +17,7 @@ from semantic_digital_twin.world_description.world_modification import (
 import pycram.datastructures.pose
 from pycram.datastructures import grasp
 from pycram.datastructures.dataclasses import ExecutionData
-from pycram.language import SequentialNode, RepeatNode
+from pycram.language import SequentialNode, RepeatNode, LanguageNode
 from pycram.orm.model import *
 from pycram.robot_plans.actions.composite import (
     facing,
@@ -76,7 +76,7 @@ classes |= {Body}
 # classes |= set(classes_of_module(motion_misc))
 # classes |= set(classes_of_module(motion_robot_body))
 
-classes |= {PlanNode, SequentialNode, RepeatNode, ResolvedActionNode, Plan, PlanEdge}
+classes |= {PlanNode, SequentialNode, RepeatNode, ResolvedActionNode, Plan, PlanEdge, LanguageNode}
 classes -= {WorldModelManager}
 
 alternative_mappings += [am for am in recursive_subclasses(AlternativeMapping)]
