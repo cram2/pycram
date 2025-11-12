@@ -1,11 +1,7 @@
 from dataclasses import dataclass
-from typing import Optional
 
-from semantic_digital_twin.world_description.world_entity import Body, SemanticAnnotation, Region
-
-from perception import PerceptionQuery
+from ...perception import PerceptionQuery
 from .base import BaseMotion
-from ...datastructures.enums import DetectionTechnique, DetectionState, ObjectType
 from ...process_module import ProcessModuleManager
 
 

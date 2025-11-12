@@ -9,7 +9,7 @@ from semantic_digital_twin.world_description.world_entity import Region, \
     SemanticAnnotation, SemanticEnvironmentAnnotation
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
-from perception import PerceptionQuery
+from ....perception import PerceptionQuery
 from ....datastructures.enums import DetectionTechnique, DetectionState
 from ....datastructures.partial_designator import PartialDesignator
 from ....has_parameters import has_parameters

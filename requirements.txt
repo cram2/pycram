@@ -1,12 +1,9 @@
 scipy
 SQLAlchemy #orm
 sqlacodegen==3.0.0 #orm
-ormatic>=1.1.1 # orm
 tqdm==4.66.3
 psutil~=5.9.0
 typing_extensions>=4.10.0
-trimesh==4.6.0
-deprecated
 probabilistic_model>=7.1.0 # just until semantic world is integrated
 random_events>=4.1.18
 numpy
@@ -15,7 +12,7 @@ transforms3d
 python-box
 rustworkx
 pillow
-polytope
+polytope # needed for random events
 krrood
 semantic_digital_twin
 rustworkx_utils
