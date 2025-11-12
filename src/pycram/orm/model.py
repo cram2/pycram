@@ -239,8 +239,7 @@ class PlanMapping(AlternativeMapping[Plan]):
         Convert a MonitorNode to a MonitorNodeDAO.
         """
         return cls(
-            obj.nodes,
-            [PlanEdge(parent=parent, child=child) for parent, child in obj.edges],
+            obj.nodes, [PlanEdge(parent=edge[0], child=edge[1]) for edge in obj.edges]
         )
 
     def create_from_dao(self) -> T:
