@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from semantic_digital_twin.world_description.world_entity import Body
+from semantic_digital_twin.world_description.world_entity import Body, SemanticAnnotation, Region
 
+from perception import PerceptionQuery
 from .base import BaseMotion
 from ...datastructures.enums import DetectionTechnique, DetectionState, ObjectType
 from ...process_module import ProcessModuleManager
@@ -16,21 +17,9 @@ class DetectingMotion(BaseMotion):
     returns: ObjectDesignatorDescription.Object or Error: PerceptionObjectNotFound
     """
 
-    technique: DetectionTechnique
+    query: PerceptionQuery
     """
-    Detection technique that should be used
-    """
-    state: DetectionState
-    """
-    State of the detection
-    """
-    object_designator_description: Optional[Body] = None
-    """
-    Description of the object that should be detected
-    """
-    region: Optional['Location'] = None
-    """
-    Region in which the object should be detected
+    Query for the perception system that should be answered
     """
 
     def perform(self):

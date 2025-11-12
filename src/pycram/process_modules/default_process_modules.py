@@ -100,45 +100,7 @@ class DefaultDetecting(ProcessModule):
     """
 
     def _execute(self, designator: DetectingMotion):
-        robot = World.robot
-        cam_link_name = RobotDescription.current_robot_description.get_camera_link()
-        camera_description = RobotDescription.current_robot_description.cameras[
-            list(RobotDescription.current_robot_description.cameras.keys())[0]]
-        front_facing_axis = camera_description.front_facing_axis
-        query_result = []
-        world_objects = []
-
-        if designator.technique == DetectionTechnique.TYPES:
-            try:
-                object_types = designator.object_designator_description.obj_type
-            except AttributeError:
-                raise AttributeError("The object designator does not contain a type attribute")
-
-            list1 = World.current_world.get_object_by_type(object_types)
-            world_objects = world_objects + list1
-        elif designator.technique == DetectionTechnique.ALL:
-            world_objects = World.current_world.get_scene_objects()
-        elif designator.technique == DetectionTechnique.HUMAN:
-            raise NotImplementedError("Detection by human is not yet implemented in simulation")
-        elif designator.technique == DetectionTechnique.REGION:
-            raise NotImplementedError("Detection by region is not yet implemented in simulation")
-        elif designator.technique == DetectionTechnique.HUMAN_ATTRIBUTES:
-            raise NotImplementedError("Detection by human attributes is not yet implemented in simulation")
-        elif designator.technique == DetectionTechnique.HUMAN_WAVING:
-            raise NotImplementedError("Detection by waving human is not yet implemented in simulation")
-        for obj in world_objects:
-            if visible(obj, robot.get_link_pose(cam_link_name), front_facing_axis):
-                query_result.append(obj)
-        if query_result is None:
-            raise PerceptionObjectNotFound(
-                f"Could not find an object with the type {object_types} in the FOV of the robot")
-        else:
-            object_dict = []
-
-            for obj in query_result:
-                object_dict.append(obj)
-
-            return object_dict
+        return designator.query.from_world()
 
 
 class DefaultMoveTCP(ProcessModule):

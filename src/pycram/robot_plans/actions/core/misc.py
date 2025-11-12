@@ -3,14 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
 
-from semantic_digital_twin.world_description.world_entity import Body, KinematicStructureEntity
+from semantic_digital_twin.spatial_types import TransformationMatrix
+from semantic_digital_twin.world_description.geometry import BoundingBox
+from semantic_digital_twin.world_description.world_entity import Region, \
+    SemanticAnnotation, SemanticEnvironmentAnnotation
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
-from ...motions.misc import DetectingMotion
+from perception import PerceptionQuery
 from ....datastructures.enums import DetectionTechnique, DetectionState
 from ....datastructures.partial_designator import PartialDesignator
-from ....failure_handling import try_action
-from ....failures import PerceptionObjectNotFound
 from ....has_parameters import has_parameters
 from ....robot_plans.actions.base import ActionDescription
 
@@ -32,28 +33,30 @@ class DetectAction(ActionDescription):
     """
     The state of the detection, e.g Start Stop for continues perception
     """
-    object_designator: Optional[Body] = None
+    object_sem_annotation: Optional[Type[SemanticAnnotation]] = None
     """
     The type of the object that should be detected, only considered if technique is equal to Type
     """
-    region: Optional[KinematicStructureEntity] = None
+    region: Optional[Region] = None
     """
     The region in which the object should be detected
-    """
-
-    _pre_perform_callbacks = []
-    """
-    List to save the callbacks which should be called before performing the action.
     """
 
     def __post_init__(self):
         super().__post_init__()
 
-
     def plan(self) -> None:
-        return try_action(DetectingMotion(technique=self.technique, state=self.state,
-                                          object_designator_description=self.object_designator,
-                                          region=self.region), PerceptionObjectNotFound)
+        if not self.object_sem_annotation and self.region:
+            raise AttributeError("Either a Semantic Annotation or a Region must be provided.")
+        region_bb = self.region.area.as_bounding_box_collection_in_frame(
+            self.robot_view.root).bounding_box if self.region else BoundingBox(
+            origin=TransformationMatrix(reference_frame=self.robot_view.root), min_x=-1, min_y=-1, min_z=0, max_x=3,
+            max_y=3, max_z=3)
+        if not self.object_sem_annotation:
+            self.object_sem_annotation = SemanticEnvironmentAnnotation
+        query = PerceptionQuery(self.object_sem_annotation, region_bb, self.robot_view, self.world)
+
+        return query.from_world()
 
     def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
         return
@@ -63,12 +66,12 @@ class DetectAction(ActionDescription):
     @classmethod
     def description(cls, technique: Union[Iterable[DetectionTechnique], DetectionTechnique],
                     state: Union[Iterable[DetectionState], DetectionState] = None,
-                    object_designator: Union[Iterable[Body], Body] = None,
-                    region: Union[Iterable[Location], Location] = None) -> PartialDesignator[Type[DetectAction]]:
+                    object_sem_annotation: Union[Iterable[Type[SemanticAnnotation]], Type[SemanticAnnotation]] = None,
+                    region: Union[Iterable[Region], Region] = None) -> PartialDesignator[Type[DetectAction]]:
         return PartialDesignator(DetectAction, technique=technique,
                                  state=state,
-                                 object_designator=object_designator,
+                                 object_sem_annotation=object_sem_annotation,
                                  region=region)
 
-DetectActionDescription = DetectAction.description
 
+DetectActionDescription = DetectAction.description

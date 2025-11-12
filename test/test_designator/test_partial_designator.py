@@ -67,7 +67,7 @@ class TestPartialDesignator(BulletWorldTestCase):
         self.assertTrue(all([isinstance(p, PickUpAction) for p in performables]))
         self.assertEqual([p.arm for p in performables], [Arms.RIGHT, Arms.RIGHT, Arms.LEFT, Arms.LEFT])
         self.assertEqual([p.grasp_description for p in performables], [grasp_description_front, grasp_description_top, grasp_description_front, grasp_description_top])
-        self.assertEqual([p.object_designator for p in performables], [self.world.get_body_by_name("milk.stl")] * 4)
+        self.assertEqual([p.object_sem_annotation for p in performables], [self.world.get_body_by_name("milk.stl")] * 4)
 
 class TestPartialActions(BulletWorldTestCase):
 

@@ -9,6 +9,7 @@ import pytest
 from rclpy.node import Node
 from semantic_digital_twin.adapters.mesh import STLParser
 from semantic_digital_twin.adapters.urdf import URDFParser
+from semantic_digital_twin.semantic_annotations.semantic_annotations import Milk
 from semantic_digital_twin.spatial_types.spatial_types import TransformationMatrix
 from semantic_digital_twin.utils import rclpy_installed
 from semantic_digital_twin.world import World
@@ -97,6 +98,10 @@ def setup_world() -> World:
     apartment_world.get_body_by_name(
         "breakfast_cereal.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.2, 1.8, 1,
                                                                                              reference_frame=apartment_world.root)
+    milk_view = Milk(body=apartment_world.get_body_by_name("milk.stl"))
+    with apartment_world.modify_world():
+        apartment_world.add_semantic_annotation(milk_view)
+
     return apartment_world
 
 

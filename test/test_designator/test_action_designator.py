@@ -1,9 +1,9 @@
 import unittest
 
 import rustworkx
+from semantic_digital_twin.semantic_annotations.semantic_annotations import Milk
 
 from pycram.datastructures.dataclasses import Context
-from pycram.designator import ObjectDesignatorDescription
 from pycram.process_module import simulated_robot
 from pycram.robot_plans.actions import *
 from pycram.robot_plans.motions import MoveTCPWaypointsMotion
@@ -24,7 +24,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_set_gripper(self):
         description = SetGripperActionDescription([Arms.LEFT], [GripperStateEnum.OPEN, GripperStateEnum.CLOSE])
-        plan = SequentialPlan(self.context,  description)
+        plan = SequentialPlan(self.context, description)
         self.assertEqual(description.resolve().gripper, Arms.LEFT)
         self.assertEqual(description.resolve().motion, GripperStateEnum.OPEN)
         with simulated_robot:
@@ -36,7 +36,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_park_arms(self):
         description = ParkArmsActionDescription([Arms.BOTH])
-        plan = SequentialPlan(self.context,  description)
+        plan = SequentialPlan(self.context, description)
         self.assertEqual(description.resolve().arm, Arms.BOTH)
         with simulated_robot:
             plan.perform()
@@ -51,7 +51,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_navigate(self):
         description = NavigateActionDescription([PoseStamped.from_list([0.3, 0, 0], [0, 0, 0, 1], self.world.root)])
-        plan = SequentialPlan(self.context,  description)
+        plan = SequentialPlan(self.context, description)
         with simulated_robot:
             plan.perform()
         self.assertEqual(description.resolve().target_location,
@@ -83,7 +83,6 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         test_robot = PR2.from_world(test_world)
         grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
         description = PickUpActionDescription(test_world.get_body_by_name("milk.stl"), [Arms.LEFT], [grasp_description])
-
 
         plan = SequentialPlan(Context.from_world(test_world),
                               NavigateActionDescription(
@@ -119,24 +118,23 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_look_at(self):
         description = LookAtAction.description([PoseStamped.from_list([1, 0, 1], frame=self.world.root)])
         self.assertEqual(description.resolve().target, PoseStamped.from_list([1, 0, 1], frame=self.world.root))
-        plan = SequentialPlan(self.context,  description)
+        plan = SequentialPlan(self.context, description)
         with simulated_robot:
             # self._test_validate_action_pre_perform(description, LookAtGoalNotReached)
             plan.perform()
 
-    @unittest.skip("validation isn't working")
     def test_detect(self):
-        self.kitchen.set_pose(PoseStamped.from_list([10, 10, 0]))
-        self.milk.set_pose(PoseStamped.from_list([1.5, 0, 1.2]))
-        object_description = ObjectDesignatorDescription(types=[Milk])
-        description = DetectActionDescription(technique=DetectionTechnique.TYPES, object_designator=object_description)
-        plan = SequentialPlan(self.context,  description)
+        milk_body = self.world.get_body_by_name("milk.stl")
+        self.robot_view.root.parent_connection.origin = TransformationMatrix.from_xyz_rpy(1.5, 2, 0,
+                                                                                          reference_frame=self.world.root)
+
+        description = DetectActionDescription(technique=DetectionTechnique.TYPES, object_sem_annotation=Milk, )
+        plan = SequentialPlan(self.context, description)
         with simulated_robot:
             detected_object = plan.perform()
 
-        self.assertEqual(detected_object[0].name, "milk")
-        self.assertEqual(detected_object[0].obj_type, Milk)
-        self.assertEqual(detected_object[0].world, self.milk.world)
+        self.assertEqual(detected_object[0].name.name, "milk.stl")
+        self.assertIs(detected_object[0], milk_body)
 
     def test_open(self):
         plan = SequentialPlan(self.context,
@@ -171,7 +169,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                                                  [PoseStamped.from_list([3, 2.2, 0.95],
                                                                         [0.0, 0.0, 1.0, 0.0], self.world.root)],
                                                  [Arms.LEFT])
-        plan = SequentialPlan(self.context,  MoveTorsoActionDescription([TorsoState.HIGH]),
+        plan = SequentialPlan(self.context, MoveTorsoActionDescription([TorsoState.HIGH]),
                               description)
         with simulated_robot:
             plan.perform()
@@ -194,7 +192,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_facing(self):
         with simulated_robot:
             milk_pose = PoseStamped.from_spatial_type(self.world.get_body_by_name("milk.stl").global_pose)
-            plan = SequentialPlan(self.context,  FaceAtActionDescription(milk_pose, True))
+            plan = SequentialPlan(self.context, FaceAtActionDescription(milk_pose, True))
             plan.perform()
             milk_in_robot_frame = self.world.transform(self.world.get_body_by_name("milk.stl").global_pose,
                                                        self.robot_view.root)
