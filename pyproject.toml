@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.pyrefly]
+project-includes = ["**/*"]
+project-excludes = ["**/*venv/**/*"]
+
+[project]
+name = "pycram-robotics"
+authors = [
+    { name="Jonas Dech", email="jdech@uni-bremen.de" },
+
+]
+description = "A Python library for cognitive robot control."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+]
+keywords=["robotics"]
+dynamic = ["version", "dependencies"]
+license = { text = "GPL-3.0-only" }
+
+[project.urls]
+"Source" = 'https://github.com/cram2/pycram'
+"Bug Tracker" = 'https://github.com/cram2/pycram/issues'
+
+[tool.setuptools.packages.find]
+where = ["src"]  # list of folders that contain the packages (["."] by default)
+include = ["pycram*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pycram.__version__"}
+dependencies = {file = "requirements.txt"}
