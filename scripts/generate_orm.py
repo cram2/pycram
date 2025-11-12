@@ -1,12 +1,12 @@
 import os
 from dataclasses import is_dataclass
-from enum import Enum
 
 import semantic_digital_twin.orm.ormatic_interface
 from krrood.class_diagrams import ClassDiagram
 from krrood.ormatic.ormatic import ORMatic
 from krrood.ormatic.utils import get_classes_of_ormatic_interface, classes_of_module
 from krrood.utils import recursive_subclasses
+
 from semantic_digital_twin.world import WorldModelManager
 from semantic_digital_twin.world_description.world_entity import Body
 from semantic_digital_twin.world_description.world_modification import (
@@ -33,6 +33,7 @@ from pycram.robot_plans.actions.core import (
     placing,
     robot_body,
 )
+from krrood.ormatic.dao import AlternativeMapping
 
 # ----------------------------------------------------------------------------------------------------------------------
 # This script generates the ORM classes for the pycram package
@@ -75,21 +76,23 @@ classes |= {Body}
 # classes |= set(classes_of_module(motion_misc))
 # classes |= set(classes_of_module(motion_robot_body))
 
-classes |= {PlanNode, SequentialNode, RepeatNode, ResolvedActionNode}
+classes |= {PlanNode, SequentialNode, RepeatNode, ResolvedActionNode, Plan, PlanEdge}
 classes -= {WorldModelManager}
 
+alternative_mappings += [am for am in recursive_subclasses(AlternativeMapping)]
+alternative_mappings = list(set(alternative_mappings))
 # keep only dataclasses that are NOT AlternativeMapping subclasses
 classes = {
     c for c in classes if is_dataclass(c) and not issubclass(c, AlternativeMapping)
 }
+classes |= {am.original_class() for am in recursive_subclasses(AlternativeMapping)}
 
-
-alternative_mappings += [
+alternative_mappings = [
     am
     for am in recursive_subclasses(AlternativeMapping)
     if am.original_class() in classes
 ]
-alternative_mappings = list(set(alternative_mappings))
+
 
 # create the new ormatic interface
 class_diagram = ClassDiagram(

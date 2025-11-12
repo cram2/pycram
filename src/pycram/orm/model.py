@@ -258,7 +258,7 @@ class PlanMapping(AlternativeMapping[Plan]):
         """
         return cls(
             obj.nodes,
-            [PlanEdge(parent=parent, child=child) for parent, child, data in obj.edges],
+            [PlanEdge(parent=parent, child=child) for parent, child in obj.edges],
         )
 
     def create_from_dao(self) -> T:

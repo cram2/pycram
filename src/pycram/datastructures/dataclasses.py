@@ -80,32 +80,32 @@ class ExecutionData:
     The world state at the start of execution of an action designator
     """
 
-    execution_end_pose: PoseStamped  = None
+    execution_end_pose: Optional[PoseStamped]  = None
     """
     The pose of the robot at the end of executing an action designator
     """
 
-    execution_end_world_state: np.ndarray = None
+    execution_end_world_state: Optional[np.ndarray] = None
     """
     The world state at the end of executing an action designator
     """
 
-    added_world_modifications: List[WorldModelModificationBlock] = None
+    added_world_modifications: List[WorldModelModificationBlock] = field(default_factory=list)
     """
     A list of World modification blocks that were added during the execution of the action designator
     """
 
-    manipulated_body_pose_start: PoseStamped = None
+    manipulated_body_pose_start: Optional[PoseStamped] = None
     """
     Start pose of the manipulated Body if there was one
     """
 
-    manipulated_body_pose_end: PoseStamped = None
+    manipulated_body_pose_end: Optional[PoseStamped] = None
     """
     End pose of the manipulated Body if there was one
     """
 
-    manipulated_body: Body = None
+    manipulated_body: Optional[Body] = None
     """
     Reference to the manipulated body 
     """
