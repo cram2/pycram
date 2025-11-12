@@ -134,7 +134,7 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
         pose_result = self.session.scalars(select(PoseDAO)).all()
         poses_from_pose_stamped_results = self.session.scalars(
             select(PoseDAO).where(
-                PoseDAO.id.in_([r.pose_id for r in pose_stamped_result])
+                PoseDAO.database_id.in_([r.pose_id for r in pose_stamped_result])
             )
         ).all()
         self.assertTrue(all([r.pose is not None for r in pose_stamped_result]))
@@ -147,7 +147,7 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
             )
         )
         self.assertEqual(len(poses_from_pose_stamped_results), len(pose_result))
-        self.assertEqual(pose_stamped_result[0].pose_id, pose_result[0].id)
+        self.assertEqual(pose_stamped_result[0].pose_id, pose_result[0].database_id)
 
     def test_pose_creation(self):
         pose = Pose()
@@ -159,7 +159,7 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
         pose.orientation.z = 6.0
         pose.orientation.w = 7.0
 
-        pose_dao = PoseDAO.to_dao(pose)
+        pose_dao = to_dao(pose)
 
         self.session.add(pose_dao.position)
         self.session.add(pose_dao.orientation)
@@ -173,7 +173,7 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
         self.assertEqual(pose_result.position.x, 1.0)
         self.assertEqual(pose_result.position.y, 2.0)
         self.assertEqual(pose_result.position.z, 3.0)
-        self.assertEqual(pose_result.id, raw_pose[0][0])
+        self.assertEqual(pose_result.database_id, raw_pose[0][0])
 
 
 class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):

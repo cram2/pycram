@@ -1075,6 +1075,10 @@ class PlanMappingDAO(Base, DataAccessObject[pycram.orm.model.PlanMapping]):
         Integer, primary_key=True, use_existing_column=True
     )
 
+    polymorphic_type: Mapped[str] = mapped_column(
+        String(255), nullable=False, use_existing_column=True
+    )
+
     nodes: Mapped[typing.List[PlanNodeMappingDAO]] = relationship(
         "PlanNodeMappingDAO",
         foreign_keys="[PlanNodeMappingDAO.planmappingdao_nodes_id]",
@@ -1085,6 +1089,75 @@ class PlanMappingDAO(Base, DataAccessObject[pycram.orm.model.PlanMapping]):
         foreign_keys="[PlanEdgeDAO.planmappingdao_edges_id]",
         post_update=True,
     )
+
+    __mapper_args__ = {
+        "polymorphic_on": "polymorphic_type",
+        "polymorphic_identity": "PlanMappingDAO",
+    }
+
+
+class LanguagePlanDAO(PlanMappingDAO, DataAccessObject[pycram.language.LanguagePlan]):
+
+    __tablename__ = "LanguagePlanDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(PlanMappingDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "LanguagePlanDAO",
+        "inherit_condition": database_id == PlanMappingDAO.database_id,
+    }
+
+
+class CodePlanDAO(LanguagePlanDAO, DataAccessObject[pycram.language.CodePlan]):
+
+    __tablename__ = "CodePlanDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(LanguagePlanDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "CodePlanDAO",
+        "inherit_condition": database_id == LanguagePlanDAO.database_id,
+    }
+
+
+class MonitorPlanDAO(LanguagePlanDAO, DataAccessObject[pycram.language.MonitorPlan]):
+
+    __tablename__ = "MonitorPlanDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(LanguagePlanDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "MonitorPlanDAO",
+        "inherit_condition": database_id == LanguagePlanDAO.database_id,
+    }
+
+
+class ParallelPlanDAO(LanguagePlanDAO, DataAccessObject[pycram.language.ParallelPlan]):
+
+    __tablename__ = "ParallelPlanDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(LanguagePlanDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ParallelPlanDAO",
+        "inherit_condition": database_id == LanguagePlanDAO.database_id,
+    }
 
 
 class PlanEdgeDAO(Base, DataAccessObject[pycram.orm.model.PlanEdge]):
@@ -1496,6 +1569,22 @@ class PrefixedNameDAO(
     )
 
 
+class PyCRAMQuaternionMappingDAO(
+    Base, DataAccessObject[pycram.orm.model.PyCRAMQuaternionMapping]
+):
+
+    __tablename__ = "PyCRAMQuaternionMappingDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        Integer, primary_key=True, use_existing_column=True
+    )
+
+    x: Mapped[builtins.float] = mapped_column(use_existing_column=True)
+    y: Mapped[builtins.float] = mapped_column(use_existing_column=True)
+    z: Mapped[builtins.float] = mapped_column(use_existing_column=True)
+    w: Mapped[builtins.float] = mapped_column(use_existing_column=True)
+
+
 class QuaternionMappingDAO(
     Base, DataAccessObject[semantic_digital_twin.orm.model.QuaternionMapping]
 ):
@@ -1523,22 +1612,6 @@ class QuaternionMappingDAO(
         foreign_keys=[reference_frame_id],
         post_update=True,
     )
-
-
-class PyCRAMQuaternionMappingDAO(
-    Base, DataAccessObject[pycram.orm.model.PyCRAMQuaternionMapping]
-):
-
-    __tablename__ = "PyCRAMQuaternionMappingDAO"
-
-    database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
-    )
-
-    x: Mapped[builtins.float] = mapped_column(use_existing_column=True)
-    y: Mapped[builtins.float] = mapped_column(use_existing_column=True)
-    z: Mapped[builtins.float] = mapped_column(use_existing_column=True)
-    w: Mapped[builtins.float] = mapped_column(use_existing_column=True)
 
 
 class ReachToPickUpActionDAO(
@@ -1582,6 +1655,22 @@ class ReachToPickUpActionDAO(
     __mapper_args__ = {
         "polymorphic_identity": "ReachToPickUpActionDAO",
         "inherit_condition": database_id == ActionDescriptionDAO.database_id,
+    }
+
+
+class RepeatPlanDAO(LanguagePlanDAO, DataAccessObject[pycram.language.RepeatPlan]):
+
+    __tablename__ = "RepeatPlanDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(LanguagePlanDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "RepeatPlanDAO",
+        "inherit_condition": database_id == LanguagePlanDAO.database_id,
     }
 
 
@@ -1741,6 +1830,24 @@ class RepeatNodeDAO(SequentialNodeDAO, DataAccessObject[pycram.language.RepeatNo
     __mapper_args__ = {
         "polymorphic_identity": "RepeatNodeDAO",
         "inherit_condition": database_id == SequentialNodeDAO.database_id,
+    }
+
+
+class SequentialPlanDAO(
+    LanguagePlanDAO, DataAccessObject[pycram.language.SequentialPlan]
+):
+
+    __tablename__ = "SequentialPlanDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(LanguagePlanDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "SequentialPlanDAO",
+        "inherit_condition": database_id == LanguagePlanDAO.database_id,
     }
 
 
@@ -2239,6 +2346,22 @@ class TryAllNodeMappingDAO(
     }
 
 
+class TryAllPLanDAO(ParallelPlanDAO, DataAccessObject[pycram.language.TryAllPLan]):
+
+    __tablename__ = "TryAllPLanDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ParallelPlanDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "TryAllPLanDAO",
+        "inherit_condition": database_id == ParallelPlanDAO.database_id,
+    }
+
+
 class TryInOrderMappingDAO(
     SequentialNodeDAO, DataAccessObject[pycram.orm.model.TryInOrderMapping]
 ):
@@ -2257,25 +2380,21 @@ class TryInOrderMappingDAO(
     }
 
 
-class Vector3DAO(Base, DataAccessObject[pycram.datastructures.pose.Vector3]):
+class TryInOrderPlanDAO(
+    LanguagePlanDAO, DataAccessObject[pycram.language.TryInOrderPlan]
+):
 
-    __tablename__ = "Vector3DAO"
+    __tablename__ = "TryInOrderPlanDAO"
 
     database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
-    )
-
-    x: Mapped[builtins.float] = mapped_column(use_existing_column=True)
-    y: Mapped[builtins.float] = mapped_column(use_existing_column=True)
-    z: Mapped[builtins.float] = mapped_column(use_existing_column=True)
-
-    polymorphic_type: Mapped[str] = mapped_column(
-        String(255), nullable=False, use_existing_column=True
+        ForeignKey(LanguagePlanDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
     )
 
     __mapper_args__ = {
-        "polymorphic_on": "polymorphic_type",
-        "polymorphic_identity": "Vector3DAO",
+        "polymorphic_identity": "TryInOrderPlanDAO",
+        "inherit_condition": database_id == LanguagePlanDAO.database_id,
     }
 
 
@@ -2305,6 +2424,28 @@ class Vector3MappingDAO(
         foreign_keys=[reference_frame_id],
         post_update=True,
     )
+
+
+class Vector3DAO(Base, DataAccessObject[pycram.datastructures.pose.Vector3]):
+
+    __tablename__ = "Vector3DAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        Integer, primary_key=True, use_existing_column=True
+    )
+
+    x: Mapped[builtins.float] = mapped_column(use_existing_column=True)
+    y: Mapped[builtins.float] = mapped_column(use_existing_column=True)
+    z: Mapped[builtins.float] = mapped_column(use_existing_column=True)
+
+    polymorphic_type: Mapped[str] = mapped_column(
+        String(255), nullable=False, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_on": "polymorphic_type",
+        "polymorphic_identity": "Vector3DAO",
+    }
 
 
 class Vector3StampedDAO(
@@ -5310,12 +5451,12 @@ class ManipulatorDAO(
         use_existing_column=True,
     )
     front_facing_orientation_id: Mapped[int] = mapped_column(
-        ForeignKey("QuaternionMappingDAO.database_id", use_alter=True),
+        ForeignKey("PyCRAMQuaternionMappingDAO.database_id", use_alter=True),
         nullable=True,
         use_existing_column=True,
     )
     front_facing_axis_id: Mapped[int] = mapped_column(
-        ForeignKey("Vector3DAO.database_id", use_alter=True),
+        ForeignKey("Vector3MappingDAO.database_id", use_alter=True),
         nullable=True,
         use_existing_column=True,
     )
@@ -5323,14 +5464,14 @@ class ManipulatorDAO(
     tool_frame: Mapped[BodyDAO] = relationship(
         "BodyDAO", uselist=False, foreign_keys=[tool_frame_id], post_update=True
     )
-    front_facing_orientation: Mapped[QuaternionMappingDAO] = relationship(
-        "QuaternionMappingDAO",
+    front_facing_orientation: Mapped[PyCRAMQuaternionMappingDAO] = relationship(
+        "PyCRAMQuaternionMappingDAO",
         uselist=False,
         foreign_keys=[front_facing_orientation_id],
         post_update=True,
     )
-    front_facing_axis: Mapped[Vector3DAO] = relationship(
-        "Vector3DAO",
+    front_facing_axis: Mapped[Vector3MappingDAO] = relationship(
+        "Vector3MappingDAO",
         uselist=False,
         foreign_keys=[front_facing_axis_id],
         post_update=True,
@@ -5423,7 +5564,7 @@ class CameraDAO(
     maximal_height: Mapped[builtins.float] = mapped_column(use_existing_column=True)
 
     forward_facing_axis_id: Mapped[int] = mapped_column(
-        ForeignKey("Vector3DAO.database_id", use_alter=True),
+        ForeignKey("Vector3MappingDAO.database_id", use_alter=True),
         nullable=True,
         use_existing_column=True,
     )
@@ -5433,8 +5574,8 @@ class CameraDAO(
         use_existing_column=True,
     )
 
-    forward_facing_axis: Mapped[Vector3DAO] = relationship(
-        "Vector3DAO",
+    forward_facing_axis: Mapped[Vector3MappingDAO] = relationship(
+        "Vector3MappingDAO",
         uselist=False,
         foreign_keys=[forward_facing_axis_id],
         post_update=True,
