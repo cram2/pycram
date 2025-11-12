@@ -241,11 +241,28 @@ class MonitorNodeMapping(AlternativeMapping[MonitorNode]):
 
 
 @dataclass
+class PlanEdge:
+    parent: PlanNode
+    child: PlanNode
+
+
+@dataclass
 class PlanMapping(AlternativeMapping[Plan]):
     nodes: List[PlanNode]
+    edges: List[PlanEdge]
 
-    def create_instance(cls, obj: T) -> Self:
-        return cls()
+    @classmethod
+    def create_instance(cls, obj: Plan):
+        """
+        Convert a MonitorNode to a MonitorNodeDAO.
+        """
+        return cls(
+            obj.nodes,
+            [PlanEdge(parent=parent, child=child) for parent, child, data in obj.edges],
+        )
+
+    def create_from_dao(self) -> T:
+        raise NotImplementedError()
 
 
 #

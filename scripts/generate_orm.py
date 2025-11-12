@@ -5,19 +5,34 @@ from enum import Enum
 import semantic_digital_twin.orm.ormatic_interface
 from krrood.class_diagrams import ClassDiagram
 from krrood.ormatic.ormatic import ORMatic
-from krrood.ormatic.utils import get_classes_of_ormatic_interface
-from ormatic.utils import recursive_subclasses, classes_of_module
+from krrood.ormatic.utils import get_classes_of_ormatic_interface, classes_of_module
+from krrood.utils import recursive_subclasses
 from semantic_digital_twin.world import WorldModelManager
 from semantic_digital_twin.world_description.world_entity import Body
-from semantic_digital_twin.world_description.world_modification import (WorldModelModificationBlock, WorldModelModification)
+from semantic_digital_twin.world_description.world_modification import (
+    WorldModelModificationBlock,
+    WorldModelModification,
+)
 
 import pycram.datastructures.pose
 from pycram.datastructures import grasp
 from pycram.datastructures.dataclasses import ExecutionData
 from pycram.language import SequentialNode, RepeatNode
 from pycram.orm.model import *
-from pycram.robot_plans.actions.composite import facing, searching, tool_based, transporting
-from pycram.robot_plans.actions.core import container, pick_up, misc, navigation, placing, robot_body
+from pycram.robot_plans.actions.composite import (
+    facing,
+    searching,
+    tool_based,
+    transporting,
+)
+from pycram.robot_plans.actions.core import (
+    container,
+    pick_up,
+    misc,
+    navigation,
+    placing,
+    robot_body,
+)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # This script generates the ORM classes for the pycram package
@@ -75,7 +90,6 @@ alternative_mappings += [
     if am.original_class() in classes
 ]
 alternative_mappings = list(set(alternative_mappings))
-print(alternative_mappings)
 
 # create the new ormatic interface
 class_diagram = ClassDiagram(
@@ -90,15 +104,19 @@ def generate_orm():
     Generate the ORM classes for the pycram package.
     """
     # Create an ORMatic object with the classes to be mapped
-    ormatic = ORMatic(class_diagram, type_mappings=type_mappings, alternative_mappings=alternative_mappings)
+    ormatic = ORMatic(
+        class_diagram,
+        type_mappings=type_mappings,
+        alternative_mappings=alternative_mappings,
+    )
 
     # Generate the ORM classes
     ormatic.make_all_tables()
 
-    path = os.path.abspath(os.path.join(os.getcwd(), '../src/pycram/orm/'))
-    with open(os.path.join(path, 'ormatic_interface.py'), 'w') as f:
+    path = os.path.abspath(os.path.join(os.getcwd(), "../src/pycram/orm/"))
+    with open(os.path.join(path, "ormatic_interface.py"), "w") as f:
         ormatic.to_sqlalchemy_file(f)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     generate_orm()
