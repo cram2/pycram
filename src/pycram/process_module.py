@@ -23,7 +23,7 @@ from .config.action_conf import ActionConfig
 from .datastructures.enums import ExecutionType
 
 if TYPE_CHECKING:
-    from pycram.robot_plans.motions import BaseMotion
+    from .robot_plans.motions import BaseMotion
 
 logger = logging.getLogger(__name__)
 

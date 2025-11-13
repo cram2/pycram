@@ -17,11 +17,11 @@ try:
 except ImportError:
     Multiverse = type(None)
 
-try:
-    from control_msgs.msg import GripperCommandGoal, GripperCommandAction
-except ImportError:
-    if Multiverse is not None:
-        logger.warning("Import for control_msgs for gripper in Multiverse failed")
+# try:
+#     from control_msgs.msg import GripperCommandGoal, GripperCommandAction
+# except ImportError:
+#     if Multiverse is not None:
+#         logger.warning("Import for control_msgs for gripper in Multiverse failed")
 
 try:
     from ..worlds import Multiverse

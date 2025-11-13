@@ -2,14 +2,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import timedelta
+from itertools import chain
+from typing import List
 
 import numpy as np
+from krrood.entity_query_language.entity import an, entity, let, contains, and_, in_
+from krrood.entity_query_language.symbolic import symbolic_mode
+from semantic_digital_twin.reasoning.predicates import InsideOf
+from semantic_digital_twin.semantic_annotations.semantic_annotations import Handle, Drawer
 from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from .facing import FaceAtActionDescription
 from ..core import ParkArmsActionDescription, NavigateActionDescription, PickUpActionDescription, \
-    PlaceActionDescription
+    PlaceActionDescription, OpenActionDescription
 from ....config.action_conf import ActionConfig
 from ....datastructures.enums import Arms, Grasp, VerticalAlignment
 from ....datastructures.grasp import GraspDescription
@@ -56,12 +62,26 @@ class TransportAction(ActionDescription):
     def __post_init__(self):
         super().__post_init__()
 
+    def inside_container(self) -> List[Body]:
+        bodies = []
+        for body in self.world.bodies:
+            if body == self.object_designator:
+                continue
+            if InsideOf(self.object_designator, body).compute_containment_ratio() > 0.9:
+                bodies.append(body)
+        return bodies
 
     def plan(self) -> None:
-        SequentialPlan(self.context,  ParkArmsActionDescription(Arms.BOTH)).perform()
+        if containers := self.inside_container():
+            for container in containers:
+                sem_anno = container.get_semantic_annotations_by_type(Drawer)
+                if sem_anno:
+                    SequentialPlan(self.context,
+                               OpenActionDescription(sem_anno[0].handle.body, self.arm)).perform()
+        SequentialPlan(self.context, ParkArmsActionDescription(Arms.BOTH)).perform()
         pickup_loc = ProbabilisticCostmapLocation(target=self.object_designator,
-                                                                 reachable_for=self.robot_view,
-                                                                 reachable_arm=self.arm)
+                                                  reachable_for=self.robot_view,
+                                                  reachable_arm=self.arm)
         pl = SequentialPlan(self.context, pickup_loc)
         # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = pickup_loc.resolve()
@@ -69,7 +89,7 @@ class TransportAction(ActionDescription):
             raise ObjectUnfetchable(
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
 
-        SequentialPlan(self.context,  NavigateActionDescription(pickup_pose, True),
+        SequentialPlan(self.context, NavigateActionDescription(pickup_pose, True),
                        PickUpActionDescription(self.object_designator, pickup_pose.arm,
                                                grasp_description=pickup_pose.grasp_description),
                        ParkArmsActionDescription(Arms.BOTH)).perform()
@@ -147,7 +167,6 @@ class PickAndPlaceAction(ActionDescription):
 
     def __post_init__(self):
         super().__post_init__()
-
 
     def plan(self) -> None:
         SequentialPlan(self.context,
@@ -270,7 +289,6 @@ class MoveAndPickUpAction(ActionDescription):
 
     def __post_init__(self):
         super().__post_init__()
-
 
     def plan(self):
         obj_pose = PoseStamped.from_spatial_type(self.object_designator.global_pose)
