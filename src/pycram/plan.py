@@ -4,6 +4,7 @@ import time
 from dataclasses import field, dataclass
 from datetime import datetime
 from enum import IntEnum
+from typing import ClassVar
 
 import networkx as nx
 import numpy as np
@@ -11,7 +12,19 @@ import rustworkx as rx
 import rustworkx.visualization
 import logging
 from semantic_digital_twin.world_description.world_entity import Body
-from typing_extensions import Optional, Callable, Any, Dict, List, Iterable, TYPE_CHECKING, Type, Tuple, Iterator, Union
+from typing_extensions import (
+    Optional,
+    Callable,
+    Any,
+    Dict,
+    List,
+    Iterable,
+    TYPE_CHECKING,
+    Type,
+    Tuple,
+    Iterator,
+    Union,
+)
 
 from .datastructures.dataclasses import ExecutionData, Context
 from .datastructures.enums import TaskStatus
@@ -25,16 +38,19 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
 class PlotAlignment(IntEnum):
     HORIZONTAL = 0
     VERTICAL = 1
 
 
+@dataclass
 class Plan:
     """
     Represents a plan structure, typically a tree, which can be changed at any point in time. Performing the plan will
     traverse the plan structure in depth first order and perform each PlanNode
     """
+
     current_plan: Optional[Plan] = None
     """
     The plan that is currently being performed
@@ -45,17 +61,22 @@ class Plan:
     The node, of the current_plan, that is currently being performed
     """
 
-    on_start_callback: Dict[Optional[Union[Type[ActionDescription], Type[PlanNode]]], List[Callable]] = {}
+    on_start_callback: ClassVar[
+        Dict[Optional[Union[Type[ActionDescription], Type[PlanNode]]], List[Callable]]
+    ] = {}
     """
     Callbacks to be called when a node of the given type is started.
     """
-    on_end_callback: Dict[Optional[Union[Type[ActionDescription], Type[PlanNode]]], List[Callable]] = {}
+    on_end_callback: ClassVar[
+        Dict[Optional[Union[Type[ActionDescription], Type[PlanNode]]], List[Callable]]
+    ] = {}
     """
     Callbacks to be called when a node of the given type is ended.
     """
 
-    def __init__(self, root: PlanNode,
-                 context: Context):  # world: World, robot: AbstractRobot, super_plan: Plan = None):
+    def __init__(
+        self, root: PlanNode, context: Context
+    ):  # world: World, robot: AbstractRobot, super_plan: Plan = None):
         super().__init__()
         self.plan_graph = rx.PyDiGraph()
         self.node_indices = {}
@@ -146,11 +167,17 @@ class Plan:
             self.add_node(u_of_edge)
         if v_of_edge not in self.nodes:
             self.add_node(v_of_edge)
-        self.plan_graph.add_edge(self.node_indices[u_of_edge], self.node_indices[v_of_edge], (u_of_edge, v_of_edge))
+        self.plan_graph.add_edge(
+            self.node_indices[u_of_edge],
+            self.node_indices[v_of_edge],
+            (u_of_edge, v_of_edge),
+        )
         if self.super_plan:
             self.super_plan.add_edge(u_of_edge, v_of_edge)
 
-    def add_edges_from(self, ebunch_to_add: Iterable[Tuple[PlanNode, PlanNode]], **attr):
+    def add_edges_from(
+        self, ebunch_to_add: Iterable[Tuple[PlanNode, PlanNode]], **attr
+    ):
         """
         Adds edges to the plan from an iterable of tuples. If one or both nodes are not in the plan, they will be added to the plan.
 
@@ -219,13 +246,20 @@ class Plan:
 
     @property
     def actions(self) -> List[ActionNode]:
-        return list(filter(None, [node if type(node) is ActionNode else None for node in self.nodes]))
+        return list(
+            filter(
+                None,
+                [node if type(node) is ActionNode else None for node in self.nodes],
+            )
+        )
 
     @property
     def layers(self) -> List[List[PlanNode]]:
         return rx.layers(self.plan_graph, [self.root.index], index_output=False)
 
-    def bfs_layout(self, scale: float = 1., align: PlotAlignment = PlotAlignment.VERTICAL) -> Dict[int, np.array]:
+    def bfs_layout(
+        self, scale: float = 1.0, align: PlotAlignment = PlotAlignment.VERTICAL
+    ) -> Dict[int, np.array]:
         """
         Generate a bfs layout for this circuit.
 
@@ -261,29 +295,36 @@ class Plan:
         pos = dict(zip([node.index for node in nodes], pos))
         return pos
 
-    def plot_plan_structure(self, scale: float = 1., align: PlotAlignment = PlotAlignment.HORIZONTAL) -> None:
+    def plot_plan_structure(
+        self, scale: float = 1.0, align: PlotAlignment = PlotAlignment.HORIZONTAL
+    ) -> None:
         """
         Plots the kinematic structure of the world.
         The plot shows bodies as nodes and connections as edges in a directed graph.
         """
         import matplotlib.pyplot as plt
+
         # Create a new figure
         plt.figure(figsize=(15, 8))
 
         pos = self.bfs_layout(scale=scale, align=align)
 
-        rx.visualization.mpl_draw(self.plan_graph, pos=pos, labels=lambda node: str(node),
-                                  with_labels=True)
+        rx.visualization.mpl_draw(
+            self.plan_graph, pos=pos, labels=lambda node: str(node), with_labels=True
+        )
 
         plt.title("Plan Graph")
-        plt.axis('off')  # Hide axes
+        plt.axis("off")  # Hide axes
         plt.gca().invert_yaxis()
         plt.gca().invert_xaxis()
         plt.show()
 
     @classmethod
-    def add_on_start_callback(cls, callback: Callable[[PlanNode], None],
-                              action_type: Optional[Type[ActionDescription], Type[PlanNode]] = None):
+    def add_on_start_callback(
+        cls,
+        callback: Callable[[PlanNode], None],
+        action_type: Optional[Type[ActionDescription], Type[PlanNode]] = None,
+    ):
         """
         Adds a callback to be called when an action of the given type is started.
 
@@ -297,8 +338,11 @@ class Plan:
         cls.on_start_callback[action_type].append(callback)
 
     @classmethod
-    def add_on_end_callback(cls, callback: Callable[[PlanNode], None],
-                            action_type: Optional[Type[ActionDescription], Type[PlanNode]] = None):
+    def add_on_end_callback(
+        cls,
+        callback: Callable[[PlanNode], None],
+        action_type: Optional[Type[ActionDescription], Type[PlanNode]] = None,
+    ):
         """
         Adds a callback to be called when an action of the given type is ended.
 
@@ -312,8 +356,11 @@ class Plan:
         cls.on_end_callback[action_type].append(callback)
 
     @classmethod
-    def remove_on_start_callback(cls, callback: Callable[[PlanNode], None],
-                                 action_type: Optional[Type[ActionDescription], Type[PlanNode]] = None):
+    def remove_on_start_callback(
+        cls,
+        callback: Callable[[PlanNode], None],
+        action_type: Optional[Type[ActionDescription], Type[PlanNode]] = None,
+    ):
         """
         Removes a callback to be called when an action of the given type is started.
 
@@ -324,8 +371,11 @@ class Plan:
             cls.on_start_callback[action_type].remove(callback)
 
     @classmethod
-    def remove_on_end_callback(cls, callback: Callable[[PlanNode], None],
-                               action_type: Optional[Type[ActionDescription], Type[PlanNode]] = None):
+    def remove_on_end_callback(
+        cls,
+        callback: Callable[[PlanNode], None],
+        action_type: Optional[Type[ActionDescription], Type[PlanNode]] = None,
+    ):
         """
         Removes a callback to be called when an action of the given type is ended.
 
@@ -348,10 +398,14 @@ class Plan:
         graph = nx.DiGraph()
         graph.add_nodes_from(hash_nodes.keys())
         graph.add_edges_from(edges)
-        node_colors = {TaskStatus.CREATED: "lightgrey", TaskStatus.RUNNING: "lightblue",
-                       TaskStatus.SUCCEEDED: "lightgreen",
-                       TaskStatus.FAILED: "lightcoral", TaskStatus.INTERRUPTED: "lightpink",
-                       TaskStatus.SLEEPING: "lightyellow"}
+        node_colors = {
+            TaskStatus.CREATED: "lightgrey",
+            TaskStatus.RUNNING: "lightblue",
+            TaskStatus.SUCCEEDED: "lightgreen",
+            TaskStatus.FAILED: "lightcoral",
+            TaskStatus.INTERRUPTED: "lightpink",
+            TaskStatus.SLEEPING: "lightyellow",
+        }
 
         for v in graph:
             for attr in attributes:
@@ -371,21 +425,34 @@ class Plan:
         """
         attributes = attributes or ["status", "start_time"]
         from bokeh.plotting import figure, from_networkx, show
-        from bokeh.models import (HoverTool, NodesAndLinkedEdges)
+        from bokeh.models import HoverTool, NodesAndLinkedEdges
 
-        p = figure(x_range=(-2, 2), y_range=(-2, 2),
-                   width=1700, height=950,
-                   x_axis_location=None, y_axis_location=None, toolbar_location="below",
-                   title="Plan Visualization", background_fill_color="#efefef", )
+        p = figure(
+            x_range=(-2, 2),
+            y_range=(-2, 2),
+            width=1700,
+            height=950,
+            x_axis_location=None,
+            y_axis_location=None,
+            toolbar_location="below",
+            title="Plan Visualization",
+            background_fill_color="#efefef",
+        )
         node_hover_tool = HoverTool(
-            tooltips=[("node_type", "@node_type")] + [(attr, "@" + attr) for attr in attributes])
+            tooltips=[("node_type", "@node_type")]
+            + [(attr, "@" + attr) for attr in attributes]
+        )
         p.add_tools(node_hover_tool)
 
         p.grid.grid_line_color = None
         p.add_layout(self._create_labels())
 
-        graph = from_networkx(self._create_pure_networkx_graph(attributes), nx.drawing.bfs_layout,
-                              start=hash(self.root), align='horizontal')
+        graph = from_networkx(
+            self._create_pure_networkx_graph(attributes),
+            nx.drawing.bfs_layout,
+            start=hash(self.root),
+            align="horizontal",
+        )
         graph.selection_policy = NodesAndLinkedEdges()
         graph.inspection_policy = NodesAndLinkedEdges()
 
@@ -402,16 +469,22 @@ class Plan:
         :return: A LabelSet object which can be added to a bokeh plot.
         """
         from bokeh.models import ColumnDataSource, LabelSet
+
         hash_nodes = {hash(node): node for node in self.nodes}
-        layout = nx.drawing.bfs_layout(self._create_pure_networkx_graph([]), start=hash(self.root), align='horizontal')
+        layout = nx.drawing.bfs_layout(
+            self._create_pure_networkx_graph([]),
+            start=hash(self.root),
+            align="horizontal",
+        )
         x = [pose[0] for pose in layout.values()]
         y = [pose[1] for pose in layout.values()]
         name = [str(hash_nodes[node].action.__name__) for node in layout.keys()]
-        label_dict = {'x': x, 'y': y, 'names': name}
+        label_dict = {"x": x, "y": y, "names": name}
 
         data_source = ColumnDataSource(data=label_dict)
-        labels = LabelSet(x='x', y='y', text='names',
-                          x_offset=-55, y_offset=10, source=data_source)
+        labels = LabelSet(
+            x="x", y="y", text="names", x_offset=-55, y_offset=10, source=data_source
+        )
         return labels
 
 
@@ -428,12 +501,16 @@ def managed_node(func: Callable) -> Callable:
         def wait(node):
             continue_execution = False
             while not continue_execution:
-                all_parents_status = [parent.status for parent in node.all_parents] + [node.status]
+                all_parents_status = [parent.status for parent in node.all_parents] + [
+                    node.status
+                ]
                 if TaskStatus.SLEEPING not in all_parents_status:
                     continue_execution = True
                 time.sleep(0.1)
 
-        all_parents_status = [parent.status for parent in node.all_parents] + [node.status]
+        all_parents_status = [parent.status for parent in node.all_parents] + [
+            node.status
+        ]
         if TaskStatus.INTERRUPTED in all_parents_status:
             return
         elif TaskStatus.SLEEPING in all_parents_status:
@@ -441,10 +518,16 @@ def managed_node(func: Callable) -> Callable:
 
         node.status = TaskStatus.RUNNING
         node.start_time = datetime.now()
-        on_start_callbacks = (Plan.on_start_callback.get(node.action, []) +
-                              Plan.on_start_callback.get(None, []) + Plan.on_start_callback.get(node.__class__, []))
-        on_end_callbacks = (Plan.on_end_callback.get(node.action, []) +
-                            Plan.on_end_callback.get(None, []) + Plan.on_end_callback.get(node.__class__, []))
+        on_start_callbacks = (
+            Plan.on_start_callback.get(node.action, [])
+            + Plan.on_start_callback.get(None, [])
+            + Plan.on_start_callback.get(node.__class__, [])
+        )
+        on_end_callbacks = (
+            Plan.on_end_callback.get(node.action, [])
+            + Plan.on_end_callback.get(None, [])
+            + Plan.on_end_callback.get(node.__class__, [])
+        )
         for call_back in on_start_callbacks:
             call_back(node)
         result = None
@@ -515,8 +598,11 @@ class PlanNode:
 
         :return: The parent node
         """
-        return self.plan.plan_graph.predecessors(self.index)[0] if self.plan.plan_graph.predecessors(
-            self.index) else None
+        return (
+            self.plan.plan_graph.predecessors(self.index)[0]
+            if self.plan.plan_graph.predecessors(self.index)
+            else None
+        )
 
     @property
     def children(self) -> List[PlanNode]:
@@ -536,7 +622,10 @@ class PlanNode:
 
         :return: A list of all nodes below this node
         """
-        return [self.plan.plan_graph[i] for i in rx.descendants(self.plan.plan_graph, self.index)]
+        return [
+            self.plan.plan_graph[i]
+            for i in rx.descendants(self.plan.plan_graph, self.index)
+        ]
 
     @property
     def subtree(self) -> Plan:
@@ -545,7 +634,9 @@ class PlanNode:
 
         :return: A new plan
         """
-        graph = self.plan.plan_graph.subgraph([self.index] + [child.index for child in self.recursive_children])
+        graph = self.plan.plan_graph.subgraph(
+            [self.index] + [child.index for child in self.recursive_children]
+        )
         plan = Plan(root=self, context=self.plan.context)
         plan.plan_graph = graph
         return plan
@@ -557,7 +648,10 @@ class PlanNode:
 
         :return: A list of all nodes above this
         """
-        all_parents = [self.plan.plan_graph[i] for i in rx.ancestors(self.plan.plan_graph, self.index)]
+        all_parents = [
+            self.plan.plan_graph[i]
+            for i in rx.ancestors(self.plan.plan_graph, self.index)
+        ]
         all_parents.reverse()
         return all_parents
 
@@ -655,6 +749,7 @@ class ActionNode(DesignatorNode):
     """
     A node in the plan representing an ActionDesignator description
     """
+
     action_iter: Iterator[ActionDescription] = None
     """
     Iterator over the current evaluation state of the ActionDesignator Description
@@ -676,9 +771,15 @@ class ActionNode(DesignatorNode):
         if not self.action_iter:
             self.action_iter = iter(self.designator_ref)
         resolved_action = next(self.action_iter)
-        kwargs = {key: resolved_action.__getattribute__(key) for key in self.designator_ref.kwargs.keys()}
-        resolved_action_node = ResolvedActionNode(designator_ref=resolved_action, action=resolved_action.__class__,
-                                                  kwargs=kwargs)
+        kwargs = {
+            key: resolved_action.__getattribute__(key)
+            for key in self.designator_ref.kwargs.keys()
+        }
+        resolved_action_node = ResolvedActionNode(
+            designator_ref=resolved_action,
+            action=resolved_action.__class__,
+            kwargs=kwargs,
+        )
         self.plan.add_edge(self, resolved_action_node)
 
         return resolved_action_node.perform()
@@ -692,6 +793,7 @@ class ResolvedActionNode(DesignatorNode):
     """
     A node representing a resolved ActionDesignator with fully specified parameters
     """
+
     designator_ref: ActionDescription = None
 
     action: Type[ActionDescription] = None
@@ -711,27 +813,37 @@ class ResolvedActionNode(DesignatorNode):
         self.designator_ref.execution_data = exec_data
         last_mod = self.plan.world._model_manager.model_modification_blocks[-1]
 
-        manipulated_bodies = list(filter(lambda x: isinstance(x, Body), self.kwargs.values()))
+        manipulated_bodies = list(
+            filter(lambda x: isinstance(x, Body), self.kwargs.values())
+        )
         manipulated_body = manipulated_bodies[0] if manipulated_bodies else None
 
         if manipulated_body:
             exec_data.manipulated_body = manipulated_body
-            exec_data.manipulated_body_pose_start = PoseStamped.from_spatial_type(manipulated_body.global_pose)
+            exec_data.manipulated_body_pose_start = PoseStamped.from_spatial_type(
+                manipulated_body.global_pose
+            )
             exec_data.manipulated_body_name = str(manipulated_body.name)
 
         result = self.designator_ref.perform()
 
-        exec_data.execution_end_pose = PoseStamped.from_spatial_type(self.plan.robot.root.global_pose)
+        exec_data.execution_end_pose = PoseStamped.from_spatial_type(
+            self.plan.robot.root.global_pose
+        )
         exec_data.execution_end_world_state = self.plan.world.state.data
         new_modifications = []
         for i in range(len(self.plan.world._model_manager.model_modification_blocks)):
             if self.plan.world._model_manager.model_modification_blocks[-i] is last_mod:
                 break
-            new_modifications.append(self.plan.world._model_manager.model_modification_blocks[-i])
+            new_modifications.append(
+                self.plan.world._model_manager.model_modification_blocks[-i]
+            )
         exec_data.modifications = new_modifications[::-1]
 
         if manipulated_body:
-            exec_data.manipulated_body_pose_end = PoseStamped.from_spatial_type(manipulated_body.global_pose)
+            exec_data.manipulated_body_pose_end = PoseStamped.from_spatial_type(
+                manipulated_body.global_pose
+            )
 
         return result
 
@@ -744,6 +856,7 @@ class MotionNode(DesignatorNode):
     """
     A node in the plan representing a MotionDesignator
     """
+
     designator_ref: BaseMotion = None
     """
     Reference to the MotionDesignator
