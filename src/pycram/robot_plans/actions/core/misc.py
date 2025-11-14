@@ -33,7 +33,7 @@ class DetectAction(ActionDescription):
     """
     The state of the detection, e.g Start Stop for continues perception
     """
-    object_sem_annotation: Optional[Type[SemanticAnnotation]] = None
+    object_sem_annotation: Type[SemanticAnnotation] = None
     """
     The type of the object that should be detected, only considered if technique is equal to Type
     """

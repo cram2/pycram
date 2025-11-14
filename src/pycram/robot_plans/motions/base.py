@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
 from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 from semantic_digital_twin.world import World
 from typing_extensions import TYPE_CHECKING
+
+from ...motion_statecharts import AlternativeMotionMapping
 
 if TYPE_CHECKING:
     from ...plan import PlanNode, Plan
@@ -29,6 +30,23 @@ class BaseMotion(ABC):
     @property
     def robot_view(self) -> AbstractRobot:
         return self.plan.robot
+
+    @property
+    def motion_chart(self):
+        alternative = AlternativeMotionMapping.check_for_alternative(self.robot_view, self)
+        if alternative is not None:
+            return alternative
+        else:
+            return self._motion_chart
+
+    @abstractmethod
+    @property
+    def _motion_chart(self):
+        """
+        Returns the motion chart that is used to perform this motion.
+        Will be overwritten by each motion.
+        """
+        pass
 
     @abstractmethod
     def perform(self):
