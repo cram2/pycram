@@ -43,7 +43,7 @@ The concrete grounded instance is what is grounded from the description and subs
 
 You can of the description and grounded layers like this:
 
-.. image:: ../images/designators.png
+.. image:: _static/images/designators.png
    :alt: Designator Layers
    :align: center
    :width: 70%

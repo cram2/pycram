@@ -8,24 +8,21 @@
 [![Example Tests](https://github.com/cram2/pycram/actions/workflows/notebook-test-ci.yml/badge.svg)](https://github.com/cram2/pycram/actions/workflows/notebook-test-ci.yml/badge.svg)
 
 
-
 ## Key Features
 
-- 🧠⚡ Plan smarter, faster: compose and execute high‑level robot tasks with clear structure.
-- 🛡️ Resilient execution: built‑in monitoring, introspection, and recovery workflows.
-- 🎲 Embrace uncertainty: defer key choices to run time based on what the robot perceives.
-- 🔁 Always have a plan B: automatic fallbacks when the first strategy doesn’t work.
-- 🧰📐 Portable by design: separate intent from implementation so plans move across robots and setups.
-- ✍️→⚙️ Intent vs. execution: describe what to achieve; swap how it’s achieved without rewriting plans.
-- 🧪⚡ Iterate rapidly: simulate scenarios quickly, with or without graphics, before touching hardware.
-- 👀📡 Understand at a glance: visualization that reveals goals, state, and environment clearly.
-- 🤝 Flexible integration: connect to common robotics ecosystems when you need hardware and sensors.
-- 🧠📚 Semantic reasoning: work with concepts and relationships, not just numbers and coordinates.
-- 🧭🦾 Motion building blocks: ready‑to‑use navigation and manipulation skills to assemble bigger behaviors.
-- ✅🧪 Continuous verification: tests and runnable examples to keep changes reliable.
-- 🚀📗 Learn by doing: curated demos, notebooks, and virtual labs for fast onboarding.
-- 📊🗃️ Improve with data: log outcomes, analyze performance, and refine strategies over time.
-- 1️⃣➡️🤖🤖 One plan, many robots: run the same high‑level logic on different platforms.
+- Intent-based task specification: express “what” to do using designators; the framework decides the concrete “how” at run time.
+- Late binding and adaptability: defer grounding of actions, motions, objects, and locations until execution to match the current world and robot state.
+- Composable plans: build behaviors as trees of plan nodes with clear control-flow constructs (sequential, parallel, retry, repeat, monitor).
+- Introspection and observability: plans track node status, timing, and context for debugging, visualization, and monitoring.
+- ORM-backed persistence: automatically capture plans, actions, spatial data, and outcomes in a relational schema for analysis and reproducibility.
+- Reusable across robots: separate intent from embodiment so the same high-level logic can target different platforms.
+- Motion building blocks: ready-to-use motion designators (e.g., TCP and gripper control) compose into higher-level actions like pick-up and transport.
+- World model integration: operate over bodies, links, transforms, and semantic annotations; reason about objects and places, not only coordinates.
+- Simulation-first workflow: run end-to-end plans in simulation for rapid iteration, with optional visualization.
+- Clear validation points: action and motion steps can declare pre/post conditions to verify success (e.g., object grasped).
+- Data-driven improvement: stored execution traces support benchmarking, failure analysis, and experiment tracking.
+- Modular and extensible: define custom designators, actions, and plan patterns while leveraging the common orchestration and logging.
+- Tested examples and demos: runnable scenarios (e.g., PR2 pick-and-place) illustrate typical workflows and best practices.
 
 ## Why it matters
 - ✅ Fewer brittle hacks, more reusable intent.
@@ -40,11 +37,8 @@ The recommended installation method is via `pip`:
 pip install pycram-robotics
 ```
 
-For an alternative installation from source, use the automated script:
-
-```bash
-curl -s https://raw.githubusercontent.com/cram2/pycram/dev/scripts/install.sh | bash
-```
+While this works out-of-the-box to execute the examples or tests PyCRAM needs a ROS installation to load URDFs or use the 
+visualization with RViz2. Look at the detailed installation instructions for more infos.  
 
 Detailed installation instructions and manual setup guides are available [here](https://pycram.readthedocs.io/en/latest/installation.html).
 

@@ -79,7 +79,7 @@ origin is the pose, around which the costmap is centered.
 
 You can see an image of the final Occupancy costmap with an inflation radius of 0.2 m below.
 
-.. image:: ../images/occupancy_costmap.png
+.. image:: _static/images/occupancy_costmap.png
 
 ------------------
 Visibility Costmap
@@ -124,7 +124,7 @@ for which the visibility is calculated.
 
 A simple visibility costmap with two objects can be seen below.
 
-.. image:: ../images/visibility_costmap.png
+.. image:: _static/images/visibility_costmap.png
 
 ----------------
 Gaussian Costmap
@@ -163,7 +163,7 @@ other costmaps.
 A plot of the gaussian costmap can be seen below. This is a matplotlib plot of the costmap to better show the
 distribution.
 
-.. image:: ../images/gaussian_costmap.png
+.. image:: _static/images/gaussian_costmap.png
 
 
 ----------------
@@ -192,7 +192,7 @@ the resulting costmap can also be specified.
 
 The image below show a semantic costmap created for a table.
 
-.. image:: ../images/semantic_costmap.png
+.. image:: _static/images/semantic_costmap.png
 
 
 --------------------------
@@ -215,7 +215,7 @@ done as follows:
 
 The result of this operation can be seen in the image below.
 
-.. image:: ../images/algebraic_costmap.png
+.. image:: _static/images/algebraic_costmap.png
 
 -------------------------
 Visualization of Costmaps
