@@ -168,7 +168,6 @@ class PickAndPlaceAction(ActionDescription):
         ParkArmsActionDescription(Arms.BOTH).perform()
         PickUpActionDescription(self.object_designator, self.arm,
                      grasp_description=self.grasp_description).perform()
-        ParkArmsActionDescription(Arms.BOTH).perform()
         PlaceActionDescription(self.object_designator, self.target_location, self.arm).perform()
         ParkArmsActionDescription(Arms.BOTH).perform()
 

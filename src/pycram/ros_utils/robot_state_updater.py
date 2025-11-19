@@ -75,8 +75,7 @@ class WorldStateUpdater:
     def _subscribe_joint_state(self) -> None:
         """
         Sets the current joint configuration of the robot in the world to the configuration published on the
-        topic. Since this uses rospy.wait_for_message which can have errors when used with threads there might be an
-        attribute error in the rospy implementation.
+        topic.
 
         :param msg: JointState message published to the topic.
         """

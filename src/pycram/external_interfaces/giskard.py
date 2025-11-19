@@ -214,6 +214,13 @@ def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> 'UpdateWorldResp
 
 @init_giskard_interface
 def spawn_box(name: str, size: tuple[float, float, float], pose: PoseStamped):
+    """
+    Spawns a box in giskard's belief state.
+
+    :param name: Name of the spawned box
+    :param size: Size of the spawned box
+    :param pose: Pose in which the box should be spawned
+    """
     import geometry_msgs.msg
 
     pose_xyz = pose.pose.position.to_list()
@@ -708,6 +715,9 @@ def allow_gripper_collision(gripper: Arms, at_goal: bool = False) -> None:
 
 @init_giskard_interface
 def allow_all_collision():
+    """
+    Will allow the robot collision with everything.
+    """
     giskard_wrapper.motion_goals.allow_all_collisions()
 
 @init_giskard_interface
@@ -846,6 +856,25 @@ def set_straight_cart_goal(goal_pose: PoseStamped,
                            reference_angular_velocity: Optional[float] = None,
                            weight: Optional[float] = None,
                            **kwargs):
+    """
+    Wrapper around the add_cartesian_pose_straight function that includes functionality of the old python interface of
+    giskardpy_ros
+
+    This goal will use the kinematic chain between root and tip link to move tip link into the goal pose.
+    The max velocities enforce a strict limit, but require a lot of additional constraints, thus making the
+    system noticeably slower.
+    The reference velocities don't enforce a strict limit, but also don't require any additional constraints.
+    In contrast to set_cart_goal, this tries to move the tip_link in a straight line to the goal_point.
+    :param root_link: name of the root link of the kin chain
+    :param tip_link: name of the tip link of the kin chain
+    :param goal_pose: the goal pose
+    :param tip_group: a group name, where to search for tip_link, only required to avoid name conflicts
+    :param root_group: a group name, where to search for root_link, only required to avoid name conflicts
+    :param reference_linear_velocity: m/s
+    :param reference_angular_velocity: rad/s
+    :param weight: default WEIGHT_ABOVE_CA
+    :param add_monitor: if True, adds a monitor as end_condition to check if the goal was reached.
+    """
     import giskard_msgs.msg
     root_link = giskard_msgs.msg.LinkName(name=root_link, group_name=root_group)
     tip_link = giskard_msgs.msg.LinkName(name=tip_link, group_name=tip_group)
@@ -866,8 +895,24 @@ def set_cart_goal(goal_pose: PoseStamped,
                   reference_linear_velocity: Optional[float] = None,
                   reference_angular_velocity: Optional[float] = None,
                   weight: Optional[float] = None,
-                  add_monitor: bool = True,
                   **kwargs):
+    """
+    Wrapper around the add_cartesian_pose function that includes functionality of the old python interface of
+    giskardpy_ros
+
+    This goal will use the kinematic chain between root and tip link to move tip link into the goal pose.
+    The max velocities enforce a strict limit, but require a lot of additional constraints, thus making the
+    system noticeably slower.
+    The reference velocities don't enforce a strict limit, but also don't require any additional constraints.
+    :param root_link: name of the root link of the kin chain
+    :param tip_link: name of the tip link of the kin chain
+    :param goal_pose: the goal pose
+    :param root_group: a group name, where to search for root_link, only required to avoid name conflicts
+    :param tip_group: a group name, where to search for tip_link, only required to avoid name conflicts
+    :param reference_linear_velocity: m/s
+    :param reference_angular_velocity: rad/s
+    :param weight: default WEIGHT_ABOVE_CA
+    """
     import giskard_msgs.msg
     root_link = giskard_msgs.msg.LinkName(name=root_link, group_name=root_group)
     tip_link = giskard_msgs.msg.LinkName(name=tip_link, group_name=tip_group)
@@ -883,9 +928,16 @@ def set_cart_goal(goal_pose: PoseStamped,
 
 
 @init_giskard_interface
-def execute(add_default=True):
+def execute(add_default=True, allow_collision=True):
+    """
+    Wrapper around the execute function to add default end conditions for the motions if needed or to allow collisions
+
+    :param add_default: add default end conditions to the motions
+    :param allow_collision: allow all collisions for the robot
+    """
     if add_default:
         giskard_wrapper.add_default_end_motion_conditions()
-        #allow_self_collision()
-        #allow_all_collision()
+        if allow_collision:
+            allow_self_collision()
+            allow_all_collision()
     return print(giskard_wrapper.execute().error)
