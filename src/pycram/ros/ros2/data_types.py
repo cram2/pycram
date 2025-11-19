@@ -19,6 +19,13 @@ class Time(builtin_interfaces.msg.Time):
     def to_sec(self):
         return self.sec()[0]
 
+    def __add__(self, other):
+        if isinstance(other, self.__class__):
+            return Time(self.sec + other.sec, self.nanosec + other.nanosec)
+        elif isinstance(other, builtin_interfaces.msg.Duration):
+            return Time(self.sec + other.sec, self.nanosec + other.nanosec)
+        else:
+            raise NotImplementedError()
 # def Time(time=0.0):
 #
 #     return rclpy.time.Time(nanoseconds=time)

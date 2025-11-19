@@ -2,13 +2,14 @@ import atexit
 
 import time
 
+from rclpy.time import Time, Duration
 from tf2_ros import Buffer, TransformListener
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
 from ..datastructures.world import World
 from ..robot_description import RobotDescription
 from ..datastructures.pose import PoseStamped
-from ..ros import  Time, Duration, sleep
+from ..ros import  sleep
 from ..ros import  wait_for_message, create_timer, node
 
 
@@ -38,25 +39,27 @@ class RobotStateUpdater:
         sleep(1)
         self.tf_topic = tf_topic
         self.joint_state_topic = joint_state_topic
-        self.tf_timer = create_timer(Duration(0.1), self._subscribe_tf)
-        self.joint_state_timer = create_timer(Duration(0.1), self._subscribe_joint_state)
+        self.tf_timer = create_timer(0.1, self._subscribe_tf)
+        self.joint_state_timer = create_timer(0.1, self._subscribe_joint_state)
 
         atexit.register(self._stop_subscription)
 
-    def _subscribe_tf(self, msg: TransformStamped) -> None:
+    def _subscribe_tf(self) -> None:
         """
         Callback for the TF timer, will do a lookup of the transform between map frame and the robot base frame.
 
         :param msg: TransformStamped message published to the topic
         """
         self.tf_buffer.wait_for_transform_async("map", RobotDescription.current_robot_description.base_link,
-                                                Time(0.0))
-        trans, rot = self.tf_buffer.lookup_transform("map",
+                                                Time())
+        ret = self.tf_buffer.lookup_transform("map",
                                                      RobotDescription.current_robot_description.base_link,
-                                                     Time(0.0), Duration(5))
-        World.robot.set_pose(PoseStamped(trans, rot))
+                                                     Time(), Duration(seconds=5))
+        trans = [ret.transform.translation.x, ret.transform.translation.y, ret.transform.translation.z]
+        rot = [ret.transform.rotation.x, ret.transform.rotation.y, ret.transform.rotation.z, ret.transform.rotation.w]
+        World.robot.set_pose(PoseStamped.from_list(trans, rot))
 
-    def _subscribe_joint_state(self, msg: JointState) -> None:
+    def _subscribe_joint_state(self) -> None:
         """
         Sets the current joint configuration of the robot in the world to the configuration published on the
         topic. Since this uses rospy.wait_for_message which can have errors when used with threads there might be an
@@ -75,8 +78,8 @@ class RobotStateUpdater:
         """
         Stops the Timer for TF and joint states and therefore the updating of the robot in the world.
         """
-        self.tf_timer.shutdown()
-        self.joint_state_timer.shutdown()
+        self.tf_timer.cancel()
+        self.joint_state_timer.cancel()
 
 
 class EnvironmentStateUpdater:
@@ -104,7 +107,7 @@ class EnvironmentStateUpdater:
         self.tf_topic = tf_topic
         self.joint_state_topic = joint_state_topic
 
-        self.joint_state_timer = create_timer(Duration(0.1), self._subscribe_joint_state)
+        self.joint_state_timer = create_timer(Duration(seconds=0.1), self._subscribe_joint_state)
 
         atexit.register(self._stop_subscription)
 

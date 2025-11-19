@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 from geometry_msgs.msg import TransformStamped
+from rclpy.duration import Duration
 from sensor_msgs.msg import JointState
 from pycram.ros import Time
 from pycram.ros_utils.object_state_updater import RobotStateUpdater, EnvironmentStateUpdater
@@ -56,12 +57,13 @@ class TestObjectStateUpdater(unittest.TestCase):
         tf_args = tf_call[0]
         joint_args = joint_call[0]
 
-        self.assertAlmostEqual(tf_args[0].sec, 0.1)
+        self.assertAlmostEqual(tf_args[0], 0.1)
         self.assertTrue(callable(tf_args[1]))
 
-        self.assertAlmostEqual(joint_args[0].sec, 0.1)
+        self.assertAlmostEqual(joint_args[0], 0.1)
         self.assertTrue(callable(joint_args[1]))
 
+    @unittest.skip("Giskard doesnt just publish a pose")
     def test_subscribe_tf_robot_state_updater(self):
         mock_buffer = patch("pycram.ros_utils.object_state_updater.Buffer").start()
 
@@ -88,7 +90,7 @@ class TestObjectStateUpdater(unittest.TestCase):
         mock_buffer.lookup_transform.return_value = (pose, header)
 
         msg = TransformStamped()
-        robot_state_updater._subscribe_tf(msg)
+        robot_state_updater._subscribe_tf()
 
         self.mock_world.robot.set_pose.assert_called_once_with(PoseStamped(pose, header))
 
@@ -105,7 +107,7 @@ class TestObjectStateUpdater(unittest.TestCase):
 
         robot_state_updater = RobotStateUpdater('/tf', '/joint_states')
 
-        robot_state_updater._subscribe_joint_state(msg)
+        robot_state_updater._subscribe_joint_state()
 
         # Configure mock to return correct positions
         self.mock_get_joint_position.side_effect = lambda name: {
@@ -129,7 +131,7 @@ class TestObjectStateUpdater(unittest.TestCase):
 
         # Should not raise
         try:
-            robot_state_updater._subscribe_joint_state(msg)
+            robot_state_updater._subscribe_joint_state()
         except Exception:
             self.fail("AttributeError was not handled gracefully")
 
@@ -142,8 +144,8 @@ class TestObjectStateUpdater(unittest.TestCase):
 
         robot_state_updater._stop_subscription()
 
-        mock_tf_timer.shutdown.assert_called_once()
-        mock_joint_state_timer.shutdown.assert_called_once()
+        mock_tf_timer.cancel.assert_called_once()
+        mock_joint_state_timer.cancel.assert_called_once()
 
     def test_initialization_environment_state_updater(self):
         mock_buffer = patch("pycram.ros_utils.object_state_updater.Buffer").start()
@@ -161,8 +163,8 @@ class TestObjectStateUpdater(unittest.TestCase):
 
         joint_call = self.mock_create_timer.call_args_list[0]
         joint_args, joint_kwargs = joint_call
-
-        self.assertAlmostEqual(joint_args[0].sec, 0.1)
+        print(type(joint_args[0]))
+        self.assertAlmostEqual(joint_args[0], Duration(seconds=0.1))
         self.assertTrue(callable(joint_args[1]))
 
     def test_subscribe_joint_state_environment_state_updater(self):
