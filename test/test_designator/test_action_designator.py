@@ -1,7 +1,7 @@
 import unittest
 
 import rustworkx
-from semantic_digital_twin.semantic_annotations.semantic_annotations import Milk
+from semantic_digital_twin.adapters.procthor.procthor_semantic_annotations import Milk
 
 from pycram.datastructures.dataclasses import Context
 from pycram.process_module import simulated_robot

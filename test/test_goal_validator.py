@@ -16,7 +16,15 @@ from pycram.validation.goal_validator import GoalValidator, PoseGoalValidator, \
     MultiPoseGoalValidator, MultiPositionGoalValidator, MultiOrientationGoalValidator
 
 
-class TestGoalValidator(BulletWorldTestCase):
+class GoalTestCase(BulletWorldTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.robot_view.root.parent_connection.origin = TransformationMatrix.from_xyz_quaternion()
+        self.world.get_body_by_name("milk.stl").parent_connection.origin = TransformationMatrix.from_xyz_quaternion(2.2, 2, 1)
+        self.world.get_body_by_name("breakfast_cereal.stl").parent_connection.origin = TransformationMatrix.from_xyz_quaternion(2.2, 1.8, 1)
+
+class TestGoalValidator(GoalTestCase):
 
     def test_single_pose_goal(self):
         pose_goal_validators = PoseGoalValidator(

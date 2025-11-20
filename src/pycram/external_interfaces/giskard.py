@@ -3,6 +3,7 @@ import sys
 from threading import Lock, RLock
 
 from geometry_msgs.msg import PointStamped, QuaternionStamped, Vector3Stamped
+from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import List, Dict, Callable, Optional
 
 from ..datastructures.enums import Arms
@@ -13,9 +14,8 @@ from ..ros import get_node_names
 
 logger = logging.getLogger(__name__)
 
-from giskardpy_ros.python_interface.python_interface import GiskardWrapper
 
-giskard_wrapper: GiskardWrapper = None
+giskard_wrapper = None
 is_init = False
 
 giskard_lock = Lock()
@@ -68,7 +68,7 @@ def init_giskard_interface(func: Callable) -> Callable:
             return
 
         if "giskard" in get_node_names():
-            giskard_wrapper: GiskardWrapper = GiskardWrapper(node)
+            giskard_wrapper = GiskardWrapper(node)
             logger.info("Successfully initialized Giskard interface")
             is_init = True
         else:
@@ -471,7 +471,7 @@ def allow_self_collision() -> None:
 
 
 @init_giskard_interface
-def avoid_collisions(object1: Object, object2: Object) -> None:
+def avoid_collisions(object1: Body, object2: Body) -> None:
     """
     Will avoid collision between the two objects for the next goal.
 
