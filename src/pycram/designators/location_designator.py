@@ -257,18 +257,19 @@ class CostmapLocation(LocationDesignatorDescription):
         ground_pose = deepcopy(target)
         ground_pose.position.z = 0
 
-        occupancy = OccupancyCostmap(0.32, self.world, self.robot_view, 200, 0.02, ground_pose)
+        occupancy = OccupancyCostmap(distance_to_obstacle=0.32, world=self.world, robot_view=self.robot_view, width=200, height=200,  resolution=0.02, origin=ground_pose)
         final_map = occupancy
 
         if visible_for:
             camera = list(self.robot_view.neck.sensors)[0]
             visible = VisibilityCostmap(
-                camera.minimal_height,
-                camera.maximal_height,
-                self.world,
-                200,
-                0.02,
-                target,
+                min_height=camera.minimal_height,
+                max_height=camera.maximal_height,
+                world=self.world,
+                width=200,
+                height=200,
+                resolution=0.02,
+                origin=target,
             )
             final_map += visible
 
@@ -501,7 +502,8 @@ class AccessingLocation(LocationDesignatorDescription):
         occupancy = OccupancyCostmap(
             robot_view=self.robot_view,
             distance_to_obstacle=0.25,
-            size=200,
+            width=200,
+            height=200,
             resolution=0.02,
             origin=ground_pose,
             world=handle._world,
@@ -791,7 +793,6 @@ class ProbabilisticSemanticLocation(LocationDesignatorDescription):
             # We are looking for a navigation sample, for which the surface sample and the link id are true (reachable)
             surface_x_p = make_dirac(self.surface_x, surface_sample[0])
             surface_y_p = make_dirac(self.surface_y, surface_sample[1])
-            # target_link_id_p = make_dirac(link_id_symbol, link_id)
 
             # We create a Gaussian distribution around the surface sample, which is used to sample the
             # navigation poses.

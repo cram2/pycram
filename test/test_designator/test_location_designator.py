@@ -6,9 +6,9 @@ from pycram.language import SequentialPlan
 from pycram.robot_description import RobotDescription
 from pycram.datastructures.pose import PoseStamped
 from pycram.robot_plans import NavigateActionDescription
-from pycram.testing import BulletWorldTestCase
+from pycram.testing import ApartmentWorldTestCase
 
-class TestActionDesignatorGrounding(BulletWorldTestCase):
+class TestActionDesignatorGrounding(ApartmentWorldTestCase):
 
     def test_reachability_costmap_location(self):
         arm_park = {'l_shoulder_pan_joint': 1.712,

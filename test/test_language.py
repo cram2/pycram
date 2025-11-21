@@ -10,10 +10,10 @@ from pycram.language import ParallelPlan, TryAllPLan, MonitorPlan, MonitorNode, 
     SequentialNode, RepeatPlan, CodePlan, TryAllNode
 from pycram.process_module import simulated_robot
 from pycram.robot_plans import *
-from pycram.testing import BulletWorldTestCase
+from pycram.testing import ApartmentWorldTestCase
 
 
-class LanguageTestCase(BulletWorldTestCase):
+class LanguageTestCase(ApartmentWorldTestCase):
 
     def test_simplify_tree(self):
         act = NavigateActionDescription(PoseStamped())

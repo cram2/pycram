@@ -4,7 +4,7 @@ from semantic_digital_twin.spatial_types import TransformationMatrix
 from pycram.tf_transformations import quaternion_from_euler
 from typing_extensions import Optional, List
 
-from pycram.testing import BulletWorldTestCase
+from pycram.testing import ApartmentWorldTestCase
 from pycram.datastructures.enums import JointType
 from pycram.datastructures.pose import PoseStamped
 from pycram.robot_description import RobotDescription
@@ -16,7 +16,7 @@ from pycram.validation.goal_validator import GoalValidator, PoseGoalValidator, \
     MultiPoseGoalValidator, MultiPositionGoalValidator, MultiOrientationGoalValidator
 
 
-class GoalTestCase(BulletWorldTestCase):
+class GoalTestCase(ApartmentWorldTestCase):
 
     def setUp(self):
         super().setUp()

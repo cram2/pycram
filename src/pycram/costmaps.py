@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -61,43 +62,42 @@ class Rectangle:
         self.y_upper *= y_factor
 
 
+@dataclass
 class Costmap:
     """
     The base class of all Costmaps which implements the visualization of costmaps
     in the World.
     """
 
-    def __init__(
-        self,
-        resolution: float,
-        height: int,
-        width: int,
-        origin: PoseStamped,
-        map: np.ndarray,
-        world: World,
-    ):
-        """
-        The constructor of the base class of all Costmaps.
+    resolution: float
+    """
+    The distance in metre in the real-world which is represented by a single entry in the costmap. 
+    """
+    height: int
+    """
+    Height of the costmap.
+    """
+    width: int
+    """
+    Width of the costmap.
+    """
+    origin: PoseStamped = field(kw_only=True, default_factory=lambda: PoseStamped())
+    """
+    Origin pose of the costmap.
+    """
+    map: np.ndarray = field(default_factory=lambda : np.zeros((10, 10)), kw_only=True)
+    """
+    Numpy array representing the costmap.
+    """
+    world: World
+    """
+    The world from which this costmap was created.
+    """
+    vis_ids: List[int] = field(default_factory=list, init=False)
 
-        :param resolution: The distance in metre in the real-world which is
-         represented by a single entry in the costmap.
-        :param height: The height of the costmap.
-        :param width: The width of the costmap.
-        :param origin: The origin of the costmap, in world coordinate frame. The origin of the costmap is located in the
-         centre of the costmap.
-        :param map: The costmap represents as a 2D numpy array.
-        :param world: The World for which the costmap should be created.
-        """
-        self.world = world
-        self.resolution: float = resolution
-        self.size: int = height
-        self.height: int = height
-        self.width: int = width
-        self.origin: PoseStamped = PoseStamped.from_spatial_type(
-            self.world.transform(origin.to_spatial_type(), self.world.root)
-        )
-        self.map: np.ndarray = map
-        self.vis_ids: List[int] = []
+    # @property
+    # def size(self) -> Tuple[int, int]:
+    #     return self.height, self.width
 
     def visualize(self) -> None:
         """
@@ -239,7 +239,7 @@ class Costmap:
         :param other_cm: The other costmap with which this costmap should be merged.
         :return: A new costmap that contains the merged values
         """
-        if self.size != other_cm.size:
+        if self.width != other_cm.width or self.height != other_cm.height:
             raise ValueError("You can only merge costmaps of the same size.")
         elif (
             self.origin.position.x != other_cm.origin.position.x
@@ -266,7 +266,7 @@ class Costmap:
             new_map = new_map.reshape((self.height, self.width))
             logger.warning("Merged costmap is empty.")
         return Costmap(
-            self.resolution, self.height, self.width, self.origin, new_map, self.world
+            resolution=self.resolution, height=self.height, width=self.width, origin=self.origin, map=new_map, world=self.world
         )
 
     def __add__(self, other: Costmap) -> Costmap:
@@ -323,70 +323,37 @@ class Costmap:
         return rectangles
 
 
+@dataclass
 class OccupancyCostmap(Costmap):
     """
     The occupancy Costmap represents a map of the environment where obstacles or
     positions which are inaccessible for a robot have a value of -1.
     """
+    distance_to_obstacle: float
 
-    def __init__(
-        self,
-        distance_to_obstacle: float,
-        world: World,
-        robot_view: AbstractRobot,
-        size: Optional[int] = 100,
-        resolution: Optional[float] = 0.02,
-        origin: Optional[PoseStamped] = None,
-    ):
+    robot_view: AbstractRobot
+
+    _distance_to_obstacle_index: int = field(init=False, default=None)
+
+    def __post_init__(self):
+        self._distance_to_obstacle_index = max(int(self.distance_to_obstacle / self.resolution), 1)
+        self.map = self._create_from_world()
+
+    def create_ray_mask_around_origin(self):
         """
-        Constructor for the Occupancy costmap, the actual costmap is received
-        from the ROS map_server and wrapped by this class. Meta-data about the
-        costmap is also received from the map_server.
+        Determines the occupied space around the origin position using ray testing. A ray is cast from the ground
+        straight up 10m and if it hits something the position is considered occupied.
 
-        :param distance_to_obstacle: The distance by which the obstacles should be
-            inflated. Meaning that obstacles in the costmap are growing bigger by this
-            distance.
-        :param size: The length of the side of the costmap. The costmap will be created
-            as a square. This will only be used if from_ros is False.
-        :param resolution: The resolution of this costmap. This determines how much
-            meter one pixel in the costmap represents. This is only used if from_ros
-            is False.
-        :param origin: This determines the origin of the costmap. The origin will
-            be in the middle of the costmap. This parameter is only used if from_ros
-            is False.
-        """
-        self.world = world
-        self.robot_view = robot_view
-
-        self.size = size
-        self.origin = PoseStamped.from_list(self.world.root) if not origin else origin
-        self.origin = PoseStamped.from_spatial_type(
-            self.world.transform(self.origin.to_spatial_type(), self.world.root)
-        )
-        self.resolution = resolution
-        self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
-        self.map = self._create_from_world(size, resolution)
-        Costmap.__init__(
-            self, resolution, size, size, self.origin, self.map, self.world
-        )
-
-    def _create_from_world(self, size: int, resolution: float) -> np.ndarray:
-        """
-        Creates an Occupancy Costmap for the specified World.
-        This map marks every position as valid that has no object above it. After
-        creating the costmap the distance to obstacle parameter is applied.
-
-        :param size: The size of this costmap. The size specifies the length of one side of the costmap. The costmap is created as a square.
-        :param resolution: The resolution of this costmap. This determines how much meter a pixel in the costmap represents.
+        :return: A 2d numpy array of the occupied space
         """
         origin_position = self.origin.position.to_list()
         # Generate 2d grid with indices
         indices = np.concatenate(
             np.dstack(
-                np.mgrid[int(-size / 2) : int(size / 2), int(-size / 2) : int(size / 2)]
+                np.mgrid[int(-self.width / 2): int(self.width / 2), int(-self.width / 2): int(self.width / 2)]
             ),
             axis=0,
-        ) * resolution + np.array(origin_position[:2])
+        ) * self.resolution + np.array(origin_position[:2])
         # Add the z-coordinate to the grid, which is either 0 or 10
         indices_0 = np.pad(indices, (0, 1), mode="constant", constant_values=5)[:-1]
         indices_10 = np.pad(indices, (0, 1), mode="constant", constant_values=0)[:-1]
@@ -403,7 +370,7 @@ class OccupancyCostmap(Costmap):
                 (
                     1
                     if r_t[2][i]
-                    in self.world.get_kinematic_structure_entities_of_branch(
+                       in self.world.get_kinematic_structure_entities_of_branch(
                         self.robot_view.root
                     )
                     else 0
@@ -413,13 +380,17 @@ class OccupancyCostmap(Costmap):
         else:
             res[r_t[1]] = 0
 
-        res = np.flip(np.reshape(np.array(res), (size, size)))
+        res = np.flip(np.reshape(np.array(res), (self.width, self.width)))
+        return res
 
-        map = np.pad(
-            res, (int(self.distance_obstacle / 2), int(self.distance_obstacle / 2))
-        )
+    def inflate_obstacles(self, map: np.ndarray):
+        """
+        Inflates found obstacles in the environment by the distance_to_obstacle factor.
 
-        sub_shape = (self.distance_obstacle * 2, self.distance_obstacle * 2)
+        :param map: Map of obstacles to inflate.
+        :return: The map with inflated obstacles.
+        """
+        sub_shape = (self._distance_to_obstacle_index * 2, self._distance_to_obstacle_index * 2)
         view_shape = tuple(np.subtract(map.shape, sub_shape) + 1) + sub_shape
         strides = map.strides + map.strides
 
@@ -427,71 +398,99 @@ class OccupancyCostmap(Costmap):
         sub_matrices = sub_matrices.reshape(sub_matrices.shape[:-2] + (-1,))
 
         sum = np.sum(sub_matrices, axis=2)
-        map = (sum == (self.distance_obstacle * 2) ** 2).astype("int16")
+        map = (sum == (self._distance_to_obstacle_index * 2) ** 2).astype("int16")
+        return map
+
+    def _create_from_world(self) -> np.ndarray:
+        """
+        Creates an Occupancy Costmap for the specified World.
+        This map marks every position as valid that has no object above it. After
+        creating the costmap the distance to obstacle parameter is applied.
+        """
+
+        res = self.create_ray_mask_around_origin()
+
+        map = np.pad(
+            res, (int(self._distance_to_obstacle_index / 2), int(self._distance_to_obstacle_index / 2))
+        )
+
+        map = self.inflate_obstacles(map)
         # The map loses some size due to the strides and because I dont want to
         # deal with indices outside of the index range
-        offset = self.size - map.shape[0]
+        offset = self.width - map.shape[0]
         odd = 0 if offset % 2 == 0 else 1
         map = np.pad(map, (offset // 2, offset // 2 + odd))
 
         return np.flip(map)
 
 
+@dataclass
 class VisibilityCostmap(Costmap):
     """
     A costmap that represents the visibility of a specific point for every position around
     this point. For a detailed explanation on how the creation of the costmap works
     please look here: `PhD Thesis (page 173) <https://mediatum.ub.tum.de/doc/1239461/1239461.pdf>`_
     """
+    min_height: float
 
-    def __init__(
-        self,
-        min_height: float,
-        max_height: float,
-        world: Optional[World],
-        size: Optional[int] = 100,
-        resolution: Optional[float] = 0.02,
-        origin: Optional[PoseStamped] = None,
-        target_object: Optional[Body] = None,
-    ):
-        """
-        Visibility Costmaps show for every position around the origin pose if the origin can be seen from this pose.
-        The costmap is able to deal with height differences of the camera while in a single position, for example, if
-        the robot has a movable torso.
+    max_height: float
 
-        :param min_height: This is the minimal height the camera can be. This parameter
-            is mostly relevant if the vertical position of the camera can change.
-        :param max_height: This is the maximal height the camera can be. This is
-            mostly relevant if the vertical position of the camera can change.
-        :param size: The length of the side of the costmap, the costmap is created
-            as a square.
-        :param resolution: This parameter specifies how much meter a pixel in the
-            costmap represents.
-        :param origin: The pose in world coordinate frame around which the
-            costmap should be created.
-        :param world: The World for which the costmap should be created.
-        :param target_object: The object that should be visible.
-        """
-        if (11 * size**2 + size**3) * 2 > psutil.virtual_memory().available:
-            raise OSError("Not enough free RAM to calculate a costmap of this size")
+    target_object: Optional[Union[Body, PoseStamped]] = None
 
-        self.world = world
-        self.map = np.zeros((size, size))
-        self.size = size
-        self.resolution = resolution
-        # for pr2 = 1.27
-        self.max_height: float = max_height
-        # for pr2 = 1.6
-        self.min_height: float = min_height
+    def __post_init__(self):
         self.origin: PoseStamped = (
-            PoseStamped.from_list(self.world.root) if not origin else origin
-        )
-        self.target_object: Optional[Body] = target_object
-
+                    PoseStamped.from_list(self.world.root) if not self.origin else self.origin
+                )
         self._generate_map()
-        Costmap.__init__(
-            self, resolution, size, size, self.origin, self.map, self.world
-        )
+
+    # def __init__(
+    #     self,
+    #     min_height: float,
+    #     max_height: float,
+    #     world: Optional[World],
+    #     size: Optional[int] = 100,
+    #     resolution: Optional[float] = 0.02,
+    #     origin: Optional[PoseStamped] = None,
+    #     target_object: Optional[Body] = None,
+    # ):
+    #     """
+    #     Visibility Costmaps show for every position around the origin pose if the origin can be seen from this pose.
+    #     The costmap is able to deal with height differences of the camera while in a single position, for example, if
+    #     the robot has a movable torso.
+    #
+    #     :param min_height: This is the minimal height the camera can be. This parameter
+    #         is mostly relevant if the vertical position of the camera can change.
+    #     :param max_height: This is the maximal height the camera can be. This is
+    #         mostly relevant if the vertical position of the camera can change.
+    #     :param size: The length of the side of the costmap, the costmap is created
+    #         as a square.
+    #     :param resolution: This parameter specifies how much meter a pixel in the
+    #         costmap represents.
+    #     :param origin: The pose in world coordinate frame around which the
+    #         costmap should be created.
+    #     :param world: The World for which the costmap should be created.
+    #     :param target_object: The object that should be visible.
+    #     """
+    #     if (11 * size**2 + size**3) * 2 > psutil.virtual_memory().available:
+    #         raise OSError("Not enough free RAM to calculate a costmap of this size")
+    #
+    #     self.world = world
+    #     self.map = np.zeros((size, size))
+    #     self.size = size
+    #     self.resolution = resolution
+    #     # for pr2 = 1.27
+    #     self.max_height: float = max_height
+    #     # for pr2 = 1.6
+    #     self.min_height: float = min_height
+    #     self.origin: PoseStamped = (
+    #         PoseStamped.from_list(self.world.root) if not origin else origin
+    #     )
+    #     self.target_object: Optional[Body] = target_object
+    #
+    #     self._generate_map()
+    #     # Costmap.__init__(
+    #     #     self, resolution, size, size, self.origin, self.map, self.world
+    #     # )
 
     def _create_images(self) -> List[np.ndarray]:
         """
@@ -512,22 +511,11 @@ class VisibilityCostmap(Costmap):
             origin_copy.rotate_by_quaternion([0, 0, 1, 1])
             images.append(
                 r_t.create_depth_map(
-                    origin_copy.to_spatial_type(), resolution=self.size
+                    origin_copy.to_spatial_type(), resolution=self.width
                 )
             )
 
         return images
-
-    def _depth_buffer_to_meter(self, buffer: np.ndarray) -> np.ndarray:
-        """
-        Converts the depth images generated by the World to represent
-        each position in metre.
-
-        :return: The depth image in metre
-        """
-        near = 0.2
-        far = 100
-        return far * near / (far - (far - near) * buffer)
 
     def _generate_map(self):
         """
@@ -542,12 +530,12 @@ class VisibilityCostmap(Costmap):
         tan = (
             np.arctan2(
                 np.mgrid[
-                    -int(self.size / 2) : int(self.size / 2),
-                    -int(self.size / 2) : int(self.size / 2),
+                    -int(self.width / 2) : int(self.width / 2),
+                    -int(self.width / 2) : int(self.width / 2),
                 ][0],
                 np.mgrid[
-                    -int(self.size / 2) : int(self.size / 2),
-                    -int(self.size / 2) : int(self.size / 2),
+                    -int(self.width / 2) : int(self.width / 2),
+                    -int(self.width / 2) : int(self.width / 2),
                 ][1],
             )
             + np.pi
@@ -564,21 +552,21 @@ class VisibilityCostmap(Costmap):
         res[np.logical_and(tan >= np.pi * 0.75, tan < np.pi * 1.25)] = 2
         res[np.logical_and(tan >= np.pi * 0.25, tan < np.pi * 0.75)] = 1
 
-        indices = np.dstack(np.mgrid[0 : self.size, 0 : self.size])
+        indices = np.dstack(np.mgrid[0 : self.width, 0 : self.width])
         depth_indices = np.zeros(indices.shape)
         # x-value of index: res == n, :1
         # y-value of index: res == n, 1:2
 
         # (y, size-x-1) for index between 1.25 pi and 1.75 pi
         depth_indices[res == 3, :1] = indices[res == 3, 1:2]
-        depth_indices[res == 3, 1:2] = self.size - indices[res == 3, :1] - 1
+        depth_indices[res == 3, 1:2] = self.width - indices[res == 3, :1] - 1
 
         # (size-x-1, y) for index between 0.75 pi and 1.25 pi
-        depth_indices[res == 2, :1] = self.size - indices[res == 2, :1] - 1
+        depth_indices[res == 2, :1] = self.width - indices[res == 2, :1] - 1
         depth_indices[res == 2, 1:2] = indices[res == 2, 1:2]
 
         # (size-y-1, x) for index between 0.25 pi and 0.75 pi
-        depth_indices[res == 1, :1] = self.size - indices[res == 1, 1:2] - 1
+        depth_indices[res == 1, :1] = self.width - indices[res == 1, 1:2] - 1
         depth_indices[res == 1, 1:2] = indices[res == 1, :1]
 
         # (x, y) for index between 0.25 pi and 1.75 pi
@@ -586,21 +574,21 @@ class VisibilityCostmap(Costmap):
         depth_indices[res == 0, 1:2] = indices[res == 0, 1:2]
 
         # Convert back to origin in the middle of the costmap
-        depth_indices[:, :, :1] -= self.size / 2
-        depth_indices[:, :, 1:2] = np.absolute(self.size / 2 - depth_indices[:, :, 1:2])
+        depth_indices[:, :, :1] -= self.width / 2
+        depth_indices[:, :, 1:2] = np.absolute(self.width / 2 - depth_indices[:, :, 1:2])
 
         # Sets the y index for the coordinates of the middle of the costmap to 1,
         # the computed value is 0 which would cause an error in the next step where
         # the calculation divides the x coordinates by the y coordinates
-        depth_indices[int(self.size / 2), int(self.size / 2), 1] = 1
+        depth_indices[int(self.width / 2), int(self.width / 2), 1] = 1
 
         # Calculate columns for the respective position in the costmap
         columns = (
             np.around(
-                ((depth_indices[:, :, :1] / depth_indices[:, :, 1:2]) * (self.size / 2))
-                + self.size / 2
+                ((depth_indices[:, :, :1] / depth_indices[:, :, 1:2]) * (self.width / 2))
+                + self.width / 2
             )
-            .reshape((self.size, self.size))
+            .reshape((self.width, self.width))
             .astype("int16")
         )
 
@@ -610,8 +598,8 @@ class VisibilityCostmap(Costmap):
             np.linalg.norm(
                 np.dstack(
                     np.mgrid[
-                        -int(self.size / 2) : int(self.size / 2),
-                        -int(self.size / 2) : int(self.size / 2),
+                        -int(self.width / 2) : int(self.width / 2),
+                        -int(self.width / 2) : int(self.width / 2),
                     ]
                 ),
                 axis=2,
@@ -627,18 +615,18 @@ class VisibilityCostmap(Costmap):
         # coordinate
         r_min = (
             np.arctan((self.min_height - self.origin.position.z) / distances)
-            * self.size
-        ) + self.size / 2
+            * self.width
+        ) + self.width / 2
         r_max = (
             np.arctan((self.max_height - self.origin.position.z) / distances)
-            * self.size
-        ) + self.size / 2
+            * self.width
+        ) + self.width / 2
 
-        r_min = np.minimum(np.around(r_min), self.size - 1).astype("int16")
-        r_max = np.minimum(np.around(r_max), self.size - 1).astype("int16")
+        r_min = np.minimum(np.around(r_min), self.width - 1).astype("int16")
+        r_max = np.minimum(np.around(r_max), self.width - 1).astype("int16")
 
-        rs = np.dstack((r_min, r_max + 1)).reshape((self.size**2, 2))
-        r = np.arange(self.size)
+        rs = np.dstack((r_min, r_max + 1)).reshape((self.width**2, 2))
+        r = np.arange(self.width)
         # Calculates a mask from the r_min and r_max values. This mask is for every
         # coordinate respectively and determines which values from the computed column
         # of the depth image should be taken into account for the costmap.
@@ -647,11 +635,11 @@ class VisibilityCostmap(Costmap):
         # values of the depth image make up the value of the visibility costmap at this
         # point.
         mask = ((rs[:, 0, None] <= r) & (rs[:, 1, None] > r)).reshape(
-            (self.size, self.size, self.size)
+            (self.width, self.width, self.width)
         )
 
-        values = np.zeros((self.size, self.size))
-        map = np.zeros((self.size, self.size))
+        values = np.zeros((self.width, self.width))
+        map = np.zeros((self.width, self.width))
         # This is done to iterate over the depth images one at a time
         for i in range(4):
             row_masks = mask[res == i].T
@@ -662,7 +650,7 @@ class VisibilityCostmap(Costmap):
             # respective coordinates. This does not take the row ranges into account.
             values = (
                 depth_imgs[i][:, columns[res == i].flatten()]
-                < np.tile(distances[res == i][:, None], (1, self.size)).T
+                < np.tile(distances[res == i][:, None], (1, self.width)).T
                 * self.resolution
             )
             # This applies the created mask of the row ranges to the values of
@@ -713,13 +701,16 @@ class GaussianCostmap(Costmap):
             center - cut_dist : center + cut_dist, center - cut_dist : center + cut_dist
         ] = 0
         self.size: float = mean
+        self.width = int(self.size)
+        self.height = int(self.size)
+        self.resolution: float = resolution
         self.world = world
         self.origin: PoseStamped = (
             PoseStamped.from_list(self.world.root) if not origin else origin
         )
-        Costmap.__init__(
-            self, resolution, mean, mean, self.origin, self.map, self.world
-        )
+        # Costmap.__init__(
+        #     self, resolution, mean, mean, self.origin, self.map, self.world
+        # )
 
     def _gaussian_window(self, mean: int, std: float) -> np.ndarray:
         """
@@ -756,9 +747,6 @@ class SemanticCostmap(Costmap):
         self.map: np.ndarray = np.zeros((self.height, self.width))
         self.generate_map()
 
-        Costmap.__init__(
-            self, resolution, self.height, self.width, self.origin, self.map, self.world
-        )
 
     def get_edges_map(
         self, margin_in_meters: float, horizontal_only: bool = False

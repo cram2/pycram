@@ -41,11 +41,11 @@ from pycram.robot_plans import (
     CloseActionDescription,
     NavigateAction,
 )
-from pycram.testing import BulletWorldTestCase
+from pycram.testing import ApartmentWorldTestCase
 from semantic_digital_twin.world import World
 
 
-class ORMaticBaseTestCaseMixin(BulletWorldTestCase):
+class ORMaticBaseTestCaseMixin(ApartmentWorldTestCase):
     engine: sqlalchemy.engine
     session: Session
 

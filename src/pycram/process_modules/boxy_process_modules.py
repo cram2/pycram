@@ -74,7 +74,7 @@ class BoxyDetecting(ProcessModule):
 
     def _execute(self, desig):
         robot = World.robot
-        object_type = desig.object_type
+        object_type = desig.object_sem_annotation
         # Should be "wide_stereo_optical_frame"
         cam_link_name = RobotDescription.current_robot_description.get_camera_link()
         # should be [0, 0, 1]

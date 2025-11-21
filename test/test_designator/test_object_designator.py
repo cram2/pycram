@@ -6,10 +6,10 @@ from krrood.entity_query_language.symbolic import symbolic_mode
 from pycram.designator import EQLObjectDesignator, NamedObject
 from pycram.designators.object_designator import *
 from pycram.language import SequentialPlan
-from pycram.testing import BulletWorldTestCase
+from pycram.testing import ApartmentWorldTestCase
 
 
-class TestObjectDesignator(BulletWorldTestCase):
+class TestObjectDesignator(ApartmentWorldTestCase):
 
     def test_eql_designator(self):
         with symbolic_mode():

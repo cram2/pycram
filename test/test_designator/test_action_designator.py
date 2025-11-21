@@ -7,10 +7,10 @@ from pycram.datastructures.dataclasses import Context
 from pycram.process_module import simulated_robot
 from pycram.robot_plans.actions import *
 from pycram.robot_plans.motions import MoveTCPWaypointsMotion
-from pycram.testing import BulletWorldTestCase
+from pycram.testing import ApartmentWorldTestCase
 
 
-class TestActionDesignatorGrounding(BulletWorldTestCase):
+class TestActionDesignatorGrounding(ApartmentWorldTestCase):
     """Testcase for the grounding methods of action designators."""
 
     def test_move_torso(self):

@@ -4,7 +4,7 @@ from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.partial_designator import PartialDesignator
 from pycram.datastructures.pose import PoseStamped
 from pycram.language import SequentialPlan
-from pycram.testing import BulletWorldTestCase
+from pycram.testing import ApartmentWorldTestCase
 from pycram.robot_plans import PickUpAction, PickUpAction, SetGripperAction, \
     MoveTorsoAction, NavigateAction, MoveTorsoActionDescription, NavigateActionDescription, PickUpActionDescription
 from pycram.designators.object_designator import BelieveObject
@@ -12,7 +12,7 @@ from pycram.datastructures.enums import Arms, Grasp, GripperState, TorsoState, A
 from pycram.utils import is_iterable, lazy_product
 from pycram.process_module import simulated_robot
 
-class TestPartialDesignator(BulletWorldTestCase):
+class TestPartialDesignator(ApartmentWorldTestCase):
     def test_partial_desig_construction(self):
         test_object = BelieveObject(names=["milk"])
         partial_desig = PartialDesignator(PickUpAction, test_object, arm=Arms.RIGHT)
@@ -69,7 +69,7 @@ class TestPartialDesignator(BulletWorldTestCase):
         self.assertEqual([p.grasp_description for p in performables], [grasp_description_front, grasp_description_top, grasp_description_front, grasp_description_top])
         self.assertEqual([p.object_designator for p in performables], [self.world.get_body_by_name("milk.stl")] * 4)
 
-class TestPartialActions(BulletWorldTestCase):
+class TestPartialActions(ApartmentWorldTestCase):
 
     def test_partial_movetorso_action(self):
         move1 = MoveTorsoActionDescription(TorsoState.HIGH).resolve()

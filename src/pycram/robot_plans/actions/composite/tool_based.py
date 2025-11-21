@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from time import sleep
 from typing import Tuple
 
-from semantic_digital_twin.world_description.world_entity import Body
+from semantic_digital_twin.world_description.world_entity import Body, SemanticAnnotation
 from typing_extensions import Union, Optional, Iterable
 
 from ...motions.gripper import MoveTCPMotion
@@ -28,7 +28,7 @@ class MixingAction(ActionDescription):
     """
     The object to be mixed.
     """
-    tool: Body
+    tool: SemanticAnnotation
     """
     The tool to be used for mixing.
     """
@@ -61,7 +61,7 @@ class MixingAction(ActionDescription):
         World.current_world.remove_vis_axis()
 
     @classmethod
-    def description(cls, object_: Union[Iterable[Body], Body], tool: Union[Iterable[Body], Body],
+    def description(cls, object_: Union[Iterable[Body], Body], tool: Union[Iterable[SemanticAnnotation], SemanticAnnotation],
                     arm: Optional[Union[Iterable[Arms], Arms]] = None,
                     technique: Optional[Union[Iterable[str], str]] = None):
         return PartialDesignator(cls, object_=object_, tool=tool, arm=arm, technique=technique)
@@ -78,7 +78,7 @@ class PouringAction(ActionDescription):
     """
     The object over which the pouring action is performed.
     """
-    tool: Body
+    tool: SemanticAnnotation
     """
     The tool used for pouring, e.g., a jug or a bottle.
     """
@@ -123,7 +123,7 @@ class PouringAction(ActionDescription):
         World.current_world.remove_vis_axis()
 
     @classmethod
-    def description(cls, object_: Union[Iterable[Body], Body], tool: Union[Iterable[Body], Body],
+    def description(cls, object_: Union[Iterable[Body], Body], tool: Union[Iterable[SemanticAnnotation], SemanticAnnotation],
                     arm: Optional[Union[Iterable[Arms], Arms]] = None,
                     technique: Optional[Union[Iterable[str], str]] = None,
                     angle: Optional[Union[Iterable[float], float]] = 90):
@@ -139,7 +139,7 @@ class CuttingAction(ActionDescription):
     """
     The object to be cut.
     """
-    tool: Body
+    tool: SemanticAnnotation
     """
     The tool used for cutting, e.g., a knife or a saw.
     """
@@ -194,7 +194,7 @@ class CuttingAction(ActionDescription):
             lift_pose.pose.position.z += height
 
     @classmethod
-    def description(cls, object_: Union[Iterable[Body], Body], tool: Union[Iterable[Body], Body],
+    def description(cls, object_: Union[Iterable[Body], Body], tool: Union[Iterable[SemanticAnnotation], SemanticAnnotation],
                     arm: Optional[Union[Iterable[Arms], Arms]] = None,
                     technique: Optional[Union[Iterable[str], str]] = None, slice_thickness: Optional[float] = 0.03):
         return PartialDesignator(cls, object_=object_, tool=tool, arm=arm, technique=technique,

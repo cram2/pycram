@@ -14,6 +14,7 @@ from ...robot_description import ViewManager
 from ...utils import translate_pose_along_local_axis
 
 
+@dataclass
 class ReachMotion(BaseMotion):
     """
     """

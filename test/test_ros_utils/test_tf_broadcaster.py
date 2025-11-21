@@ -7,10 +7,10 @@ import rclpy.publisher
 from tf2_msgs.msg import TFMessage
 from pycram.datastructures.enums import ExecutionType
 from pycram.ros_utils.tf_broadcaster import TFBroadcaster
-from pycram.testing import BulletWorldTestCase, cleanup_ros
+from pycram.testing import ApartmentWorldTestCase, cleanup_ros
 
 
-class TestTFBroadcaster(BulletWorldTestCase):
+class TestTFBroadcaster(ApartmentWorldTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

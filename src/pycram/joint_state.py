@@ -16,12 +16,24 @@ class JointState:
     Represents a named joint state of a robot. For example, the park position of the arms.
     """
     name: PrefixedName
+    """
+    Name of the joint state
+    """
 
     joint_names: List[str]
+    """
+    Names of the joints in this state
+    """
 
     joint_positions: List[float]
+    """
+    position of the joints in this state, must correspond to the joint_names
+    """
 
     state_type: Enum = None
+    """
+    Enum type of the joints tate (e.g., Park, Open)
+    """
 
     def apply_to_world(self, world: World):
         """

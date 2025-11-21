@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import inspect
+from dataclasses import dataclass
 from typing import get_type_hints
 
 from krrood.entity_query_language.entity import an, entity, contains, let
@@ -58,10 +59,10 @@ class DesignatorDescription:
         """
         Returns the plan that this designator_description is part of.
         """
-        if self.plan_node is not None:
-            return self.plan_node.plan
-        else:
+        if self.plan_node is None:
             raise ValueError("This designator_description is not part of a plan.")
+
+        return self.plan_node.plan
 
     @property
     def robot_view(self) -> AbstractRobot:
@@ -187,6 +188,7 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
         return res
 
 
+@dataclass
 class EQLObjectDesignator(DesignatorDescription):
     """
     Description for objects found via an EQL query.

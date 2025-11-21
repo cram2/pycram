@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 import rclpy.publisher
 from sensor_msgs.msg import JointState
 from pycram.ros_utils.joint_state_publisher import JointStatePublisher
-from pycram.testing import BulletWorldTestCase, cleanup_ros
+from pycram.testing import ApartmentWorldTestCase, cleanup_ros
 
 
 class DummyRobot:
@@ -18,7 +18,7 @@ class DummyRobot:
         return self.joint_states[joint_name]
 
 
-class TestJointStatePublisher(BulletWorldTestCase):
+class TestJointStatePublisher(ApartmentWorldTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

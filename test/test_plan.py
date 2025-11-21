@@ -12,7 +12,7 @@ from pycram.language import SequentialPlan, ParallelPlan, CodeNode
 from pycram.parameterizer import Parameterizer
 from pycram.plan import PlanNode, Plan
 from pycram.process_module import simulated_robot
-from pycram.testing import BulletWorldTestCase
+from pycram.testing import ApartmentWorldTestCase
 
 class TestPlan(unittest.TestCase):
 
@@ -176,7 +176,7 @@ class TestPlanNode(unittest.TestCase):
         self.assertEqual(len(sub_tree.edges), 1)
         self.assertIn((node2, node3), sub_tree.edges)
 
-class TestPlanInterrupt(BulletWorldTestCase):
+class TestPlanInterrupt(ApartmentWorldTestCase):
         def test_interrupt_plan(self):
 
             def interrupt_plan():
@@ -211,7 +211,7 @@ class TestPlanInterrupt(BulletWorldTestCase):
             self.assertEqual(0.3, self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position)
 
 
-class AlgebraTest(BulletWorldTestCase):
+class AlgebraTest(ApartmentWorldTestCase):
 
     def test_algebra(self):
         sp = SequentialPlan(self.context,

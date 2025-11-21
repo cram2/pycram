@@ -33,12 +33,6 @@ class ForceTorqueSensorSimulated:
         self.world = world
         self.fts_joint_idx = None
         self.joint_name = joint_name
-        # if joint_name in self.world.robot.joint_name_to_id.keys():
-        #     self.fts_joint_idx = self.world.robot.joint_name_to_id[joint_name]
-        # else:
-        #     raise RuntimeError(f"Could not register ForceTorqueSensor: Joint {joint_name}"
-        #                        f" does not exist in robot object")
-        # self.world.enable_joint_force_torque_sensor(self.world.robot, self.fts_joint_idx)
 
         self.fts_pub = create_publisher(fts_topic, WrenchStamped, queue_size=10)
         self.interval = interval

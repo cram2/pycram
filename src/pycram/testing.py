@@ -141,7 +141,7 @@ class EmptyWorldTestCase(unittest.TestCase):
         time.sleep(0.05)
 
 
-class BulletWorldTestCase(EmptyWorldTestCase):
+class ApartmentWorldTestCase(EmptyWorldTestCase):
     """
     Class for unit tests that require a bullet-world with a PR2, kitchen, milk and cereal.
     """
@@ -163,6 +163,3 @@ class BulletWorldTestCase(EmptyWorldTestCase):
         self.world.state.data = deepcopy(self.original_state_data)
         self.world.notify_state_change()
 
-
-class BulletWorldGUITestCase(BulletWorldTestCase):
-    render_mode = WorldMode.GUI

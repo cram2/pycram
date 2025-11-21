@@ -8,7 +8,7 @@ from random_events.product_algebra import Event, SimpleEvent
 from random_events.interval import *
 from semantic_digital_twin.spatial_types import TransformationMatrix
 
-from pycram.testing import BulletWorldTestCase
+from pycram.testing import ApartmentWorldTestCase
 from pycram.costmaps import OccupancyCostmap, AlgebraicSemanticCostmap, VisibilityCostmap
 from pycram.probabilistic_costmap import ProbabilisticCostmap
 from pycram.units import meter, centimeter
@@ -16,7 +16,7 @@ from pycram.datastructures.pose import PoseStamped
 import plotly.graph_objects as go
 
 
-class CostmapTestCase(BulletWorldTestCase):
+class CostmapTestCase(ApartmentWorldTestCase):
 
     def test_attachment_exclusion(self):
         self.robot_view.root.parent_connection.origin = TransformationMatrix.from_xyz_rpy(-1.5, 1, 0, reference_frame=self.world.root)
@@ -25,7 +25,7 @@ class CostmapTestCase(BulletWorldTestCase):
         test_world = deepcopy(self.world)
         with test_world.modify_world():
             test_world.move_branch(test_world.get_body_by_name("milk.stl"), test_world.get_body_by_name("r_gripper_tool_frame"))
-        o = OccupancyCostmap(0.2, size=200, resolution=0.02, robot_view=self.robot_view,
+        o = OccupancyCostmap(distance_to_obstacle=0.2, height=200, width=200, resolution=0.02, robot_view=self.robot_view,
                              origin=PoseStamped.from_list( [-1.5, 1, 0], [0, 0, 0, 1], test_world.root), world=test_world)
 
         self.assertEqual(400, np.sum(o.map[90:110, 90:110]))
@@ -33,7 +33,7 @@ class CostmapTestCase(BulletWorldTestCase):
         self.assertTrue(np.sum(o.map[80:90, 90:110]) != 0)
 
     def test_partition_into_rectangles(self):
-        ocm = OccupancyCostmap(distance_to_obstacle=0.2, size=200, resolution=0.02, robot_view=self.robot_view,
+        ocm = OccupancyCostmap(distance_to_obstacle=0.2,  height=200, width=200, resolution=0.02, robot_view=self.robot_view,
                                origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1], self.world.root), world=self.world)
         rectangles = ocm.partitioning_rectangles()
         ocm.visualize()
@@ -56,14 +56,14 @@ class CostmapTestCase(BulletWorldTestCase):
         self.assertTrue(event.is_disjoint())
 
     def test_visualize(self):
-        o = OccupancyCostmap(0.2, size=200, resolution=0.02, robot_view=self.robot_view,
+        o = OccupancyCostmap(distance_to_obstacle=0.2,  height=200, width=200, resolution=0.02, robot_view=self.robot_view,
                              origin=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1], self.world.root), world=self.world)
         o.visualize()
 
     def test_merge_costmap(self):
-        o = OccupancyCostmap(0.2, size=200, resolution=0.02, robot_view=self.robot_view,
+        o = OccupancyCostmap(distance_to_obstacle=0.2, height=200, width=200, resolution=0.02, robot_view=self.robot_view,
                              origin=PoseStamped.from_list( [0, 0, 0], [0, 0, 0, 1],self.world.root),world=self.world)
-        o2 = OccupancyCostmap(0.2, size=200, resolution=0.02, robot_view=self.robot_view,
+        o2 = OccupancyCostmap(distance_to_obstacle=0.2,  height=200, width=200, resolution=0.02, robot_view=self.robot_view,
                               origin=PoseStamped.from_list( [0, 0, 0], [0, 0, 0, 1], self.world.root), world=self.world)
         o3 = o + o2
         self.assertTrue(np.all(o.map == o3.map))
@@ -76,7 +76,7 @@ class CostmapTestCase(BulletWorldTestCase):
         self.assertTrue(np.all(o3.map == o2.map))
 
 
-class SemanticCostmapTestCase(BulletWorldTestCase):
+class SemanticCostmapTestCase(ApartmentWorldTestCase):
 
     def test_generate_map(self):
         costmap = AlgebraicSemanticCostmap(self.world.get_body_by_name("island_countertop"))
@@ -105,7 +105,7 @@ class SemanticCostmapTestCase(BulletWorldTestCase):
 
 
 @unittest.skip("Wait for PM Upgrade to go live")
-class ProbabilisticCostmapTestCase(BulletWorldTestCase):
+class ProbabilisticCostmapTestCase(ApartmentWorldTestCase):
 
 
 

@@ -5,10 +5,10 @@ from copy import deepcopy
 import numpy as np
 
 from pycram.datastructures.pose import PoseStamped, TransformStamped, Quaternion, Vector3, AxisIdentifier
-from pycram.testing import BulletWorldTestCase
+from pycram.testing import ApartmentWorldTestCase
 
 
-class TestPose(BulletWorldTestCase):
+class TestPose(ApartmentWorldTestCase):
 
     @classmethod
     def setUpClass(cls):

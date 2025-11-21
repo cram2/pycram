@@ -304,36 +304,6 @@ class ProcessModuleManager(ABC):
         logger.warning(f"No Process Module Manager found for robot: '{robot.name}' returning default process modules")
         return default_manager
 
-        # manager = None
-        # _default_manager = None
-        # if not self.execution_type:
-        #     raise RuntimeError(
-        #         f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
-        #
-        # robot_description = RobotDescription.current_robot_description
-        # chains = robot_description.get_manipulator_chains()
-        # gripper_name = [chain.end_effector.gripper_object_name for chain in chains
-        #                 if chain.end_effector.gripper_object_name]
-        # gripper_name = gripper_name[0] if len(gripper_name) > 0 else None
-        #
-        # for pm_manager in self.available_pms:
-        #     if pm_manager.robot_name == robot_description.name or\
-        #             ((pm_manager.robot_name == gripper_name) and gripper_name):
-        #         manager = pm_manager
-        #     if pm_manager.robot_name == "default":
-        #         _default_manager = pm_manager
-        #
-        # if manager:
-        #     return manager
-        # elif _default_manager:
-        #     logwarn_once(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
-        #                        f", using default process modules")
-        #     return _default_manager
-        # else:
-        #     logerr(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
-        #                  f", and no default process modules available")
-        #     return None
-
     @staticmethod
     def register_all_process_modules():
         modules = glob.glob(join(dirname(__file__) + "/process_modules", "*.py"))

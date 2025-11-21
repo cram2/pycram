@@ -2,14 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import timedelta
-from itertools import chain
 from typing import List
 
 import numpy as np
-from krrood.entity_query_language.entity import an, entity, let, contains, and_, in_
-from krrood.entity_query_language.symbolic import symbolic_mode
 from semantic_digital_twin.reasoning.predicates import InsideOf
-from semantic_digital_twin.semantic_annotations.semantic_annotations import Handle, Drawer
+from semantic_digital_twin.semantic_annotations.semantic_annotations import Drawer
 from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
@@ -77,7 +74,7 @@ class TransportAction(ActionDescription):
                 sem_anno = container.get_semantic_annotations_by_type(Drawer)
                 if sem_anno:
                     SequentialPlan(self.context,
-                               OpenActionDescription(sem_anno[0].handle.body, self.arm)).perform()
+                                   OpenActionDescription(sem_anno[0].handle.body, self.arm)).perform()
         SequentialPlan(self.context, ParkArmsActionDescription(Arms.BOTH)).perform()
         pickup_loc = ProbabilisticCostmapLocation(target=self.object_designator,
                                                   reachable_for=self.robot_view,
@@ -92,9 +89,7 @@ class TransportAction(ActionDescription):
         SequentialPlan(self.context, NavigateActionDescription(pickup_pose, True),
                        PickUpActionDescription(self.object_designator, pickup_pose.arm,
                                                grasp_description=pickup_pose.grasp_description),
-                       ParkArmsActionDescription(Arms.BOTH)).perform()
-
-        SequentialPlan(self.context,
+                       ParkArmsActionDescription(Arms.BOTH),
                        NavigateActionDescription(ProbabilisticCostmapLocation(
                            target=self.target_location,
                            reachable_for=self.robot_view,
@@ -103,6 +98,16 @@ class TransportAction(ActionDescription):
                            object_in_hand=self.object_designator,
                            rotation_agnostic=self.place_rotation_agnostic,
                        ), True)).perform()
+
+        # SequentialPlan(self.context,
+        #                NavigateActionDescription(ProbabilisticCostmapLocation(
+        #                    target=self.target_location,
+        #                    reachable_for=self.robot_view,
+        #                    reachable_arm=pickup_pose.arm,
+        #                    grasp_descriptions=[pickup_pose.grasp_description],
+        #                    object_in_hand=self.object_designator,
+        #                    rotation_agnostic=self.place_rotation_agnostic,
+        #                ), True)).perform()
 
         if self.place_rotation_agnostic:
             # Placing rotation agnostic currently means that the robot will position its gripper in the same orientation
