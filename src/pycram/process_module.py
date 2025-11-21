@@ -8,21 +8,24 @@ from __future__ import annotations
 
 import glob
 import importlib
-from os.path import dirname, basename, isfile, join
-from datetime import timedelta
-from threading import Lock
+import logging
 import time
 from abc import ABC, abstractmethod
-from typing_extensions import Callable, Any, Union, Optional, List
+from datetime import timedelta
+from os.path import dirname, basename, isfile, join
+from threading import Lock
 
-from .robot_description import RobotDescription
-from .datastructures.world import World
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from typing_extensions import Callable, Any, Optional, List
 from typing_extensions import TYPE_CHECKING
+
+from .config.action_conf import ActionConfig
 from .datastructures.enums import ExecutionType
-from .ros import logerr, logwarn_once
 
 if TYPE_CHECKING:
-    from pycram.robot_plans.motions.motion_designator import BaseMotion
+    from .robot_plans.motions import BaseMotion
+
+logger = logging.getLogger(__name__)
 
 
 class ProcessModule:
@@ -30,7 +33,7 @@ class ProcessModule:
     Implementation of process modules. Process modules are the part that communicate with the outer world to execute
      designators.
     """
-    execution_delay: Optional[timedelta] = World.conf.execution_delay
+    execution_delay: Optional[timedelta] = ActionConfig.execution_delay
     """
     Adds a delay after executing a process module, to make the execution in simulation more realistic
     """
@@ -78,7 +81,7 @@ class RealRobot:
 
     def __init__(self):
         self.pre: ExecutionType = ExecutionType.REAL
-        self.pre_delay: timedelta = World.conf.execution_delay
+        self.pre_delay: timedelta = ActionConfig.execution_delay
 
     def __enter__(self):
         """
@@ -267,7 +270,6 @@ class ProcessModuleManager(ABC):
         Registers the Process modules for this robot. The name of the robot has to match the name given in the robot
         description.
 
-        :param robot_name: Name of the robot for which these Process Modules are intended
         """
         if self._initialized:
             return
@@ -285,43 +287,22 @@ class ProcessModuleManager(ABC):
             raise TypeError(f"Expected ProcessModuleManager, got {type(manager)}")
         self.available_pms.append(manager)
 
-
-    def get_manager(self) -> Union[ManagerBase, None]:
+    def get_manager(self, robot: AbstractRobot) -> ManagerBase:
         """
         Returns the Process Module manager for the currently loaded robot or None if there is no Manager.
 
         :return: ProcessModuleManager instance of the current robot
         """
         self.register_all_process_modules()
-        manager = None
-        _default_manager = None
-        if not self.execution_type:
-            raise RuntimeError(
-                f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
-
-        robot_description = RobotDescription.current_robot_description
-        chains = robot_description.get_manipulator_chains()
-        gripper_name = [chain.end_effector.gripper_object_name for chain in chains
-                        if chain.end_effector.gripper_object_name]
-        gripper_name = gripper_name[0] if len(gripper_name) > 0 else None
+        default_manager = None
 
         for pm_manager in self.available_pms:
-            if pm_manager.robot_name == robot_description.name or\
-                    ((pm_manager.robot_name == gripper_name) and gripper_name):
-                manager = pm_manager
+            if robot.name.name in pm_manager.robot_name:
+                return pm_manager
             if pm_manager.robot_name == "default":
-                _default_manager = pm_manager
-
-        if manager:
-            return manager
-        elif _default_manager:
-            logwarn_once(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
-                               f", using default process modules")
-            return _default_manager
-        else:
-            logerr(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
-                         f", and no default process modules available")
-            return None
+                default_manager = pm_manager
+        logger.warning(f"No Process Module Manager found for robot: '{robot.name}' returning default process modules")
+        return default_manager
 
     @staticmethod
     def register_all_process_modules():
@@ -404,16 +385,6 @@ class ManagerBase(ABC):
         with respect to the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for moving the arm joints
-        """
-        pass
-
-    @abstractmethod
-    def world_state_detecting(self) -> ProcessModule:
-        """
-        Get the Process Module for detecting an object using the world state with respect to the
-        :py:attr:`~ProcessModuleManager.execution_type`
-
-        :return: The Process Module for world state detecting
         """
         pass
 

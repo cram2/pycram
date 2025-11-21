@@ -6,8 +6,9 @@ from functools import lru_cache
 import typing_extensions
 from typing_extensions import List, Dict, Union, Tuple, TYPE_CHECKING, get_origin, get_args
 
-from pycrap.ontologies import PhysicalObject
-from .ros import logwarn
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Forward declaration of the class
 HasParameters = object
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
 
     ParameterDict = Dict[str, Union[LeafTypes, HasParameters]]
 
-leaf_types = (int, float, str, bool, enum.Enum, type, PhysicalObject)
+leaf_types = (int, float, str, bool, enum.Enum, type)
 
 
 class HasParametersMeta(type):
@@ -74,7 +75,7 @@ class HasParametersMeta(type):
                 if issubclass(field_type, leaf_types) or issubclass(field_type, HasParameters):
                     target_class._parameters[field_name] = field_type
             except TypeError as e:
-                logwarn(f"Filed type in {target_class.__name__} is not a leaf type: {field_type}")
+                logger.warning(f"Filed type in {target_class.__name__} is not a leaf type: {field_type}")
 
 
 class HasParameters(metaclass=HasParametersMeta):

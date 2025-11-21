@@ -38,29 +38,14 @@ colliding with the environment. To do this we need a BulletWorld since the costm
 state of the BulletWorld.
 
 ```python
-from pycram.worlds.bullet_world import BulletWorld
-from pycram.world_concepts.world_object import Object
-from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import PoseStamped
-from pycrap.ontologies import Apartment, Robot, Milk
+from pycram.testing import setup_world
+from pycram.datastructures.dataclasses import Context
+from semantic_digital_twin.robots.pr2 import PR2
 
-use_multiverse = False
-viz_marker_publisher = None
-if use_multiverse:
-    try:
-        from pycram.worlds.multiverse import Multiverse
 
-        world = Multiverse()
-    except ImportError:
-        raise ImportError("Multiverse is not installed, please install it to use it.")
-else:
-    from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
-
-    world = BulletWorld()
-    viz_marker_publisher = VizMarkerPublisher()
-
-apartment = Object("apartment", Apartment, "apartment.urdf")
-pr2 = Object("pr2", Robot, "pr2.urdf", pose=PoseStamped.from_list([1, 2, 0]))
+world = setup_world()
+pr2_view = PR2.from_world(world)
+context = Context(world, pr2_view)
 ```
 
 Next up we will create the location designator description, the {meth}`~pycram.designators.location_designator.CostmapLocation` that we will be using needs a
@@ -70,18 +55,20 @@ that the robot should be able to see or reach.
 In this case we only want poses where the robot can be placed, this is the default behaviour of the location designator
 which we will be extending later.
 
+Since every designator in PyCRAM needs to be part of a plan we create a simple plan which contains our Location Designator.
+
 ```python
-from pycram.designators.location_designator import CostmapLocation
-
-target = apartment.get_pose()
-
-location_description = CostmapLocation(target)
-
-pose = location_description.resolve()
-
-if viz_marker_publisher is not None:
-    viz_marker_publisher._stop_publishing()
-print(pose)
+# from pycram.designators.location_designator import CostmapLocation
+# from pycram.language import SequentialPlan
+# from pycram.robot_plans import NavigateActionDescription
+# 
+# location_description = CostmapLocation(world.root)
+# 
+# location_description = SequentialPlan((world, None), pr2_view, NavigateActionDescription(location_description))
+# 
+# pose = location_description.resolve()
+# 
+# print(pose)
 ```
 
 ## Reachable
@@ -94,19 +81,26 @@ Since a robot is needed we will use the PR2 and use a milk as a target point for
 PR2 will be set to 0.2 since otherwise the arms of the robot will be too low to reach on the countertop.
 
 ```python
-pr2.set_joint_position("torso_lift_joint", 0.2)
-milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
+from pycram.process_module import simulated_robot
+from pycram.language import SequentialPlan
+from pycram.robot_plans.actions import ParkArmsActionDescription, MoveTorsoActionDescription
+from pycram.datastructures.enums import Arms, TorsoState
+
+with simulated_robot:
+    SequentialPlan(context, 
+                   ParkArmsActionDescription(Arms.BOTH),
+                   MoveTorsoActionDescription(TorsoState.HIGH)).perform()
 
 ```
 
 ```python
 from pycram.designators.location_designator import CostmapLocation
 from pycram.designators.object_designator import BelieveObject
+from pycram.language import SequentialPlan
 
-target = BelieveObject(names=["milk"]).resolve()
-robot_desig = BelieveObject(names=["pr2"]).resolve()
+location_description = CostmapLocation(target=world.get_body_by_name("milk.stl"), reachable_for=pr2_view)
 
-location_description = CostmapLocation(target=target, reachable_for=robot_desig)
+SequentialPlan(context, location_description)
 
 print(location_description.resolve())
 ```
@@ -126,11 +120,11 @@ designator you can spawn them with the following cell.
 ```python
 from pycram.designators.location_designator import CostmapLocation
 from pycram.designators.object_designator import BelieveObject
+from pycram.language import SequentialPlan
 
-target = BelieveObject(names=["milk"]).resolve()
-robot_desig = BelieveObject(names=["pr2"]).resolve()
+location_description = CostmapLocation(target=world.get_body_by_name("milk.stl"), visible_for=pr2_view)
 
-location_description = CostmapLocation(target=target, visible_for=robot_desig)
+plan = SequentialPlan(context, location_description)
 
 print(location_description.resolve())
 ```
@@ -152,13 +146,10 @@ need to execute the following cell.
 from pycram.designators.location_designator import SemanticCostmapLocation
 from pycram.designators.object_designator import BelieveObject
 
-kitchen_desig = BelieveObject(names=["apartment"]).resolve()
-milk_desig = BelieveObject(names=["milk"]).resolve()
+location_description = SemanticCostmapLocation(world.get_body_by_name("island_countertop"),
+                                               for_object=world.get_body_by_name("milk.stl"))
 
-counter_name = "counter_sink_stove" if use_multiverse else "island_countertop"
-location_description = SemanticCostmapLocation(link_name=counter_name,
-                                               part_of=kitchen_desig,
-                                               for_object=milk_desig)
+plan = SequentialPlan(context, location_description)
 
 print(location_description.resolve())
 ```
@@ -171,10 +162,10 @@ of link names instead of a single link name, which allows us to sample from mult
 ```python
 from pycram.designators.location_designator import ProbabilisticSemanticLocation
 
-counter_name = "counter_sink_stove" if use_multiverse else "island_countertop"
-location_description = ProbabilisticSemanticLocation(link_names=[counter_name],
-                                                    part_of=kitchen_desig,
-                                                    for_object=milk_desig)
+location_description = ProbabilisticSemanticLocation(world.get_body_by_name("island_countertop"),
+                                                    for_object=world.get_body_by_name("milk.stl"))
+
+plan = SequentialPlan(context, location_description)
 
 print(location_description.resolve())
 ```
@@ -190,14 +181,16 @@ already have a milk spawned in you world you can ignore the following cell.
 ```python
 from pycram.designators.location_designator import CostmapLocation
 from pycram.designators.object_designator import BelieveObject
+from pycram.language import SequentialPlan
 
-target = BelieveObject(names=["milk"]).resolve()
-robot_desig = BelieveObject(names=["pr2"]).resolve()
+location_description = CostmapLocation(target=world.get_body_by_name("milk.stl"), visible_for=pr2_view)
+plan = SequentialPlan(context, location_description)
 
-location_description = CostmapLocation(target=target, visible_for=robot_desig)
 
-for pose in location_description:
+for i, pose in enumerate(location_description):
     print(pose)
+    if i > 3:
+        break
 ```
 
 Similar to the ProbabilisticSemanticLocation, the ProbabilisticCostmapLocation can be used as an alternative to the
@@ -207,14 +200,15 @@ same interface as the CostmapLocation.
 ```python
 from pycram.designators.location_designator import ProbabilisticCostmapLocation
 from pycram.designators.object_designator import BelieveObject
+from pycram.language import SequentialPlan
 
-target = BelieveObject(names=["milk"]).resolve()
-robot_desig = BelieveObject(names=["pr2"]).resolve()
+location_description = ProbabilisticCostmapLocation(target=world.get_body_by_name("milk.stl"), visible_for=pr2_view)
+plan = SequentialPlan(context, location_description)
 
-location_description = ProbabilisticCostmapLocation(target=target, visible_for=robot_desig)
-
-for pose in location_description:
+for i, pose in enumerate(location_description):
     print(pose)
+    if i > 3:
+        break
 ```
 
 ## Accessing Locations
@@ -228,41 +222,10 @@ spawned it in a previous example. Furthermore, we need a robot, so we also spawn
 ```python
 from pycram.designators.object_designator import *
 from pycram.designators.location_designator import *
+from pycram.language import SequentialPlan
 
-apartment_desig = BelieveObject(names=["apartment"])
-handle_name = "cabinet10_drawer1_handle" if use_multiverse else "handle_cab10_t"
-handle_desig = ObjectPart(names=[handle_name], part_of=apartment_desig.resolve())
-robot_desig = BelieveObject(types=[Robot])
+access_location = AccessingLocation(world.get_body_by_name("handle_cab10_t"), pr2_view)
+plan = SequentialPlan(context, access_location)
 
-access_location = AccessingLocation(handle_desig.resolve(), robot_desig.resolve()).resolve()
-print(access_location)
-```
-
-## Giskard Location
-
-Some robots like the HSR or the Stretch2 need a full-body ik solver to utilize the whole body. For this case
-the {meth}`~pycram.designators.specialized_designators.location.giskard_location.GiskardLocation` can be used. This location designator uses giskard as an ik solver to find a pose for the
-robot to reach a target pose.
-
-**Note:** The GiskardLocation relies on Giskard, therefore Giskard needs to run in order for this Location Designator to
-work.
-
-```python
-from pycram.ros import get_node_names
-if "/giskard" in get_node_names():
-
-    from pycram.designators.specialized_designators.location.giskard_location import GiskardLocation
-    
-    robot_desig = BelieveObject(names=["pr2"]).resolve()
-    
-    loc = GiskardLocation(target=PoseStamped.from_list([1, 1, 1]), reachable_for=robot_desig).resolve()
-    print(loc)
-```
-
-If you are finished with this example you can close the world with the following cell:
-
-```python
-if viz_marker_publisher is not None:
-    viz_marker_publisher._stop_publishing()
-world.exit()
+print(access_location.resolve())
 ```

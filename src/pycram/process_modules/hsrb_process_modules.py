@@ -1,22 +1,21 @@
+import logging
 from threading import Lock
 from typing_extensions import Any
 
 from .default_process_modules import *
 # from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
-from ..robot_description import RobotDescription
 from ..process_module import ProcessModule
-from ..local_transformer import LocalTransformer
 from ..robot_plans import *
 from ..external_interfaces import giskard
-from ..ros import  logdebug
+
+logger = logging.getLogger(__name__)
 try:
     from pydub import AudioSegment
     from pydub.playback import play
     from gtts import gTTS
 except ImportError:
-    logdebug("pydub and gtts are not installed. HSR speech simulated will not work.")
+    logger.debug("pydub and gtts are not installed. HSR speech simulated will not work.")
 
-import io
 
 
 
@@ -32,7 +31,7 @@ class HSRBNavigationReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveMotion) -> Any:
-        logdebug(f"Sending goal to giskard to Move the robot")
+        logger.debug(f"Sending goal to giskard to Move the robot")
         # giskard.achieve_cartesian_goal(designator.target, robot_description.base_link, "map")
         # todome fix this
         # queryPoseNav(designator.target)
@@ -136,7 +135,7 @@ class HSRBNavigationSemiReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveMotion) -> Any:
-        logdebug(f"Sending goal to giskard to Move the robot")
+        logger.debug(f"Sending goal to giskard to Move the robot")
         giskard.teleport_robot(designator.target)
 
 

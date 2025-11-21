@@ -32,90 +32,55 @@ resolved return a specific instance.
 For all following examples we need a BulletWorld, so let's create one.
 
 ```python
-from pycram.worlds.bullet_world import BulletWorld
-from pycram.world_concepts.world_object import Object
-from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import PoseStamped
+from pycram.testing import setup_world
 
-world = BulletWorld(WorldMode.DIRECT)
+world = setup_world()
 ```
 
-## Believe Object
+# Using the Entity Query Language
+To query the belief state for certain objects we use the Entity Query Language (EQL) which is part of the KRROOD project. 
+For a more detailed documentation check out their website (https://github.com/code-iai/krrood/tree/main).
 
-This object designator is used to describe objects that are located in the BulletWorld. So objects that are in the
-belief state, hence the name. In the future when there is a perception interface, there will be a ```RealObject```
-description which will be used to describe objects in the real world.
-
-Since {meth}`~pycram.designators.object_designator.BelieveObject` describes Objects in the BulletWorld we create a few.
+To query for a body for example the milk bottle we need to create a query. 
 
 ```python
-from pycrap.ontologies import Milk, Cereal, Kitchen, Spoon
-kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
-milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
-cereal = Object("froot_loops", Cereal, "breakfast_cereal.stl", pose=PoseStamped.from_list([1.3, 0.9, 0.95]))
-spoon = Object("spoon", Spoon, "spoon.stl", pose=PoseStamped.from_list([1.3, 1.1, 0.87]))
-```
+from krrood.entity_query_language.entity import an, entity, contains, let
+from krrood.entity_query_language.symbolic import symbolic_mode
+from semantic_digital_twin.world_description.world_entity import Body
 
-Now that we have objects we can create an object designator to describe them. For the start we want an object designator
-only describing the milk. Since all objects have unique names we can create an object designator using a list with only
-the name of the object.
+with symbolic_mode():
+    query = an(entity(body := let(type_=Body, domain=world.bodies),
+                                  contains(body.name.name, "milk")))
+```
+This query searches in all bodies of the world, this is defined by the ```let``` in the first line. The next lines define 
+constrains of this body, in this case we check the name of each body if it contains the string "milk". 
+
+This only defines a query but does not evaluate it. To evaluate the query and get a body satisfying the constrains we 
+can just call ```evaluate``` on it. 
 
 ```python
-from pycram.designators.object_designator import BelieveObject
-
-object_description = BelieveObject(names=["milk"])
-
-print(object_description.resolve())
+print(query.evaluate())
 ```
 
-You can also use the type to describe objects, so now we want to have an object designator that describes every food in
-the world.
-
-```python
-from pycram.designators.object_designator import BelieveObject
-
-object_description = BelieveObject(types=[Milk, Cereal])
-
-print(object_description.resolve())
-```
-
-## Object Part
-
-Part of object designators can be used to describe something as part of another object. For example, you could describe
-a specific drawer as part of the kitchen. This is necessary since the drawer is no single BulletWorld Object but rather
-a link of the kitchen which is a BulletWorld Object.
-
-For this example we need just need the kitchen, if you didn't spawn it in the previous example you can spawn it with the
-following cell.
-
-```python
-from pycram.designators.object_designator import ObjectPart, BelieveObject
-
-kitchen_desig = BelieveObject(names=["kitchen"]).resolve()
-
-object_description = ObjectPart(names=["sink_area_left_upper_drawer_main"], part_of=kitchen_desig)
-
-print(object_description.resolve())
-```
 
 ## Object Designators as Generators
 
-Similar to location designators object designators can be used as generators to iterate through every object that they
-are describing. We will see this at the example of an object designator describing every type of food.
+Depending on the query there could be more than one solution. For example a query searching for all bodies whose name 
+contains the sub-string "cabinet" would yield multiple results. 
 
-For this we need some objects, so if you didn't already spawn them you can use the next cell for this.
+We first need a query with multiple results. 
 
 ```python
-from pycram.designators.object_designator import BelieveObject
+from krrood.entity_query_language.entity import an, entity, contains, let
+from krrood.entity_query_language.symbolic import symbolic_mode
+from semantic_digital_twin.world_description.world_entity import Body
 
-object_description = BelieveObject(types=[Milk, Cereal])
-
-for obj in object_description:
-    print(obj, "\n")
+with symbolic_mode():
+    query = an(entity(body := let(type_=Body, domain=world.bodies),
+                                  contains(body.name.name, "cabinet")))
 ```
 
-To close the world use the following exit function.
-
 ```python
-world.exit()
+for cabinet in query.evaluate():
+    print(cabinet)
 ```

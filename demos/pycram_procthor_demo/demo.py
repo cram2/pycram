@@ -19,7 +19,7 @@ from pycrap.ontologies import Robot, Apartment, Milk, Cereal, Bowl, Spoon
 
 procthor_interface = ProcTHORInterface(base_url="https://user.informatik.uni-bremen.de/~luc_kro/procthor_environments/")
 resource_path, sampled_world = procthor_interface.sample_environment(keep_environment=True)
-loginfo(f'Processing apartment:{sampled_world}')
+info(f'Processing apartment:{sampled_world}')
 
 np.random.seed(420)
 extension = ObjectDescription.get_file_extension()
@@ -53,7 +53,7 @@ known_obj_names_procthor = ['wall_', 'kitchen_', 'bathroom_', 'livingroom_', 'be
 potential_surfaces = ['table_area_main', 'kitchen_island', 'coffee_table', 'bedside_table', 'island_countertop'] + potential_surfaces_procthor
 available_surfaces = [link for link in apartment_links if any(surf in link.lower() for surf in potential_surfaces)]
 used_surfaces = random.sample(available_surfaces, k=min(len(available_surfaces), 3))
-loginfo(f"Used surfaces in {sampled_world}: {used_surfaces}")
+info(f"Used surfaces in {sampled_world}: {used_surfaces}")
 
 start_time = time.time_ns()
 
@@ -97,11 +97,11 @@ try:
                          ParkArmsActionDescription(Arms.BOTH)),
         )
         sp.perform()
-        loginfo("ProcTHOR demo completed successfully.")
+        info("ProcTHOR demo completed successfully.")
 except Exception as e:
-    logerr(f"The ProcTHOR demo failed with the following error: {e}")
+    error(f"The ProcTHOR demo failed with the following error: {e}")
 
-loginfo(f"Time taken to complete: {(time.time_ns() - start_time) / 1e9} seconds")
+info(f"Time taken to complete: {(time.time_ns() - start_time) / 1e9} seconds")
 
 [shutil.rmtree(d) for d in glob.glob("../../tmp/dataset_house_*") if os.path.isdir(d)]
 

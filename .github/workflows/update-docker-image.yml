@@ -10,6 +10,7 @@ on:
 
 jobs:
   build_and_push_docker_image:
+    name: Build and upload Docker Image
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

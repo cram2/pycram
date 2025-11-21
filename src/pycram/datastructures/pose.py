@@ -3,22 +3,22 @@ from __future__ import annotations
 import copy
 import datetime
 import math
-from dataclasses import dataclass, field, fields
-from typing import Union
+from dataclasses import dataclass, field
 
 import numpy as np
-from scipy.spatial.transform import Rotation as R
-from typing_extensions import Self, Tuple, Optional, List, TYPE_CHECKING, Any
+from semantic_digital_twin.spatial_types.spatial_types import Vector3 as SpatialVector3, \
+    Quaternion as SpatialQuaternion, TransformationMatrix as SpatialTransformationMatrix
+from semantic_digital_twin.world_description.world_entity import Body
+from typing_extensions import Self, Tuple, Optional, List, TYPE_CHECKING
 
-from .enums import AxisIdentifier, Arms, Grasp, ApproachDirection, VerticalAlignment
-from .grasp import GraspDescription, PreferredGraspAlignment
+from .enums import AxisIdentifier, Arms
 from ..has_parameters import has_parameters, HasParameters
 from ..ros import Time as ROSTime
 from ..tf_transformations import quaternion_multiply, translation_matrix, quaternion_matrix, inverse_matrix, \
     translation_from_matrix, quaternion_from_matrix
 
 if TYPE_CHECKING:
-    from ..world_concepts.world_object import Object
+    from .grasp import GraspDescription
 
 
 @has_parameters
@@ -57,6 +57,10 @@ class Vector3(HasParameters):
         :return: A list containing the x, y and z coordinates.
         """
         return [self.x, self.y, self.z]
+
+    def to_spatial_type(self, reference_frame: Body = None) -> SpatialVector3:
+        return SpatialVector3(x_init=float(self.x), y_init=float(self.y), z_init=self.z,
+                              reference_frame=reference_frame)
 
     def round(self, decimals: int = 4):
         """
@@ -195,6 +199,14 @@ class Quaternion(HasParameters):
         """
         return np.array(self.to_list())
 
+    def to_spatial_type(self) -> SpatialQuaternion:
+        """
+        Convert the quaternion to a SpatialQuaternion.
+
+        :return: A SpatialQuaternion object containing the x, y, z and w components.
+        """
+        return SpatialQuaternion(x_init=float(self.x), y_init=float(self.y), z_init=float(self.z), w_init=float(self.w))
+
     def round(self, decimals: int = 4):
         """
         Rounds the components of the quaternion to the specified number of decimal places.
@@ -235,6 +247,19 @@ class Quaternion(HasParameters):
         """
         return cls(*quaternion)
 
+    @classmethod
+    def from_matrix(cls, matrix: np.ndarray) -> Self:
+        """
+        Create a Quaternion from a 3x3 rotation matrix.
+
+        :param matrix: A 3x3 rotation matrix as numpy array.
+        :return: A Quaternion object created from the matrix.
+        """
+        return cls(*quaternion_from_matrix(matrix))
+
+    def __eq__(self, other):
+        return self.almost_equal(other)
+
     # # TODO fix this
     # def __setattr__(self, key, value):
     #      object.__setattr__(self, key, value)
@@ -273,13 +298,11 @@ class Pose(HasParameters):
         """
         return [self.position.to_list(), self.orientation.to_list()]
 
-    def copy(self) -> Self:
-        """
-        Create a deep copy of the pose.
-
-        :return: A new Pose object that is a copy of this pose.
-        """
-        return copy.deepcopy(self)
+    def to_spatial_type(self) -> SpatialTransformationMatrix:
+        return SpatialTransformationMatrix.from_xyz_quaternion(pos_x=self.position.x, pos_y=self.position.y,
+                                                               pos_z=self.position.z, quat_x=self.orientation.x,
+                                                               quat_y=self.orientation.y, quat_z=self.orientation.z,
+                                                               quat_w=self.orientation.w)
 
     def round(self, decimals: int = 4):
         """
@@ -341,7 +364,7 @@ class Header:
     """
     A header with a timestamp.
     """
-    frame_id: str = "map"
+    frame_id: Body = field(default=None)
     stamp: datetime.datetime = field(default_factory=datetime.datetime.now, compare=False)
     sequence: int = field(default=0, compare=False)
 
@@ -354,7 +377,11 @@ class Header:
         from std_msgs.msg import Header as ROSHeader
         split_time = str(self.stamp.timestamp()).split(".")
         stamp = ROSTime(int(split_time[0]), int(split_time[1]))
-        return ROSHeader(frame_id=self.frame_id, stamp=stamp)
+        return ROSHeader(frame_id=self.frame_id.name.name, stamp=stamp)
+
+    def __deepcopy__(self, memo):
+        return Header(frame_id=self.frame_id, stamp=self.stamp, sequence=self.sequence)
+
 
 @has_parameters
 @dataclass
@@ -370,11 +397,11 @@ class Vector3Stamped(Vector3):
         return self.header.frame_id
 
     @frame_id.setter
-    def frame_id(self, value: str):
+    def frame_id(self, value: Body):
         self.header.frame_id = value
 
     def __repr__(self):
-        return f"Vector3: {[round(v, 3) for v in [self.x, self.y, self.z]]} in frame_id {self.frame_id}"
+        return f"Vector3: {[round(v, 3) for v in [self.x, self.y, self.z]]} in frame_id {self.frame_id.name}"
 
     def ros_message(self):
         """
@@ -399,6 +426,11 @@ class Vector3Stamped(Vector3):
         """
         header = Header(frame_id=message.header.frame_id, stamp=message.header.stamp)
         return cls(x=message.vector.x, y=message.vector.y, z=message.vector.z, header=header)
+
+    def to_spatial_type(self) -> SpatialVector3:
+        return SpatialVector3(x_init=float(self.x), y_init=float(self.y), z_init=self.z,
+                              reference_frame=self.header.frame_id)
+
 
 @has_parameters
 @dataclass
@@ -430,13 +462,13 @@ class PoseStamped(HasParameters):
         return self.header.frame_id
 
     @frame_id.setter
-    def frame_id(self, value: str):
+    def frame_id(self, value: Body):
         self.header.frame_id = value
 
     def __repr__(self):
         return (f"Pose: {[round(v, 3) for v in [self.position.x, self.position.y, self.position.z]]}, "
                 f"{[round(v, 3) for v in [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]]} "
-                f"in frame_id {self.frame_id}")
+                f"in frame_id {self.frame_id.name if self.frame_id is not None else None}")
 
     def ros_message(self):
         """
@@ -463,7 +495,7 @@ class PoseStamped(HasParameters):
 
     @classmethod
     def from_list(cls, position: Optional[List[float]] = None, orientation: Optional[List[float]] = None,
-                  frame: Optional[str] = "map") -> Self:
+                  frame: Optional[Body] = None) -> Self:
         """
         Factory to create a PoseStamped from a list of position and orientation.
 
@@ -472,12 +504,36 @@ class PoseStamped(HasParameters):
         :param frame: Frame in which the pose is defined.
         :return: A new PoseStamped object.
         """
+        assert type(position) is list or position is None
+        assert type(orientation) is list or orientation is None or type(orientation) is tuple
         position = position or [0.0, 0.0, 0.0]
         orientation = orientation or [0.0, 0.0, 0.0, 1.0]
         return cls(pose=Pose.from_list(position, orientation),
                    header=Header(frame_id=frame, stamp=datetime.datetime.now()))
 
-    def to_transform_stamped(self, child_link_id: str) -> TransformStamped:
+    @classmethod
+    def from_matrix(cls, matrix: np.ndarray, frame: Body) -> Self:
+        """
+        Create a PoseStamped from a 4x4 transformation matrix and a frame.
+
+        :param matrix: A 4x4 transformation matrix as numpy array.
+        :param frame: The frame in which the pose is defined.
+        :return: A PoseStamped object created from the matrix and frame.
+        """
+        pose = Pose.from_matrix(matrix)
+        return cls(pose=pose, header=Header(frame_id=frame, stamp=datetime.datetime.now()))
+
+    @classmethod
+    def from_spatial_type(cls, spatial_type: SpatialTransformationMatrix) -> Self:
+        """
+        Create a PoseStamped from a SpatialTransformationMatrix and a frame.
+
+        :param spatial_type: A SpatialTransformationMatrix object.
+        :return: A PoseStamped object created from the spatial type and frame.
+        """
+        return PoseStamped.from_matrix(spatial_type.to_np(), spatial_type.reference_frame)
+
+    def to_transform_stamped(self, child_link_id: Body) -> TransformStamped:
         """
         Converts the PoseStamped to a TransformStamped given a frame to which the transform is pointing.
 
@@ -488,6 +544,18 @@ class PoseStamped(HasParameters):
                                 pose=Transform.from_list(self.position.to_list(), self.orientation.to_list()),
                                 child_frame_id=child_link_id)
 
+    def to_spatial_type(self) -> SpatialTransformationMatrix:
+        """
+        Converts the PoseStamped to a SpatialTransformationMatrix.
+
+        :return: A SpatialTransformationMatrix object representing the pose in 3D space.
+        """
+        return SpatialTransformationMatrix.from_xyz_quaternion(pos_x=self.position.x, pos_y=self.position.y,
+                                                               pos_z=self.position.z, quat_x=self.orientation.x,
+                                                               quat_y=self.orientation.y, quat_z=self.orientation.z,
+                                                               quat_w=self.orientation.w,
+                                                               reference_frame=self.header.frame_id)
+
     def round(self, decimals: int = 4):
         """
         Rounds the components of the pose (position and orientation) to the specified number of decimal places.
@@ -497,14 +565,6 @@ class PoseStamped(HasParameters):
         self.position.round(decimals)
         self.orientation.round(decimals)
 
-    def copy(self) -> Self:
-        """
-        Create a deep copy of the PoseStamped object.
-
-        :return: A new PoseStamped object that is a copy of this object.
-        """
-        return copy.deepcopy(self)
-
     def to_list(self):
         """
         Convert the pose to a list of [position, orientation, frame_id].
@@ -512,104 +572,6 @@ class PoseStamped(HasParameters):
         :return: A list of [pose, frame_id].
         """
         return [self.pose.to_list(), self.frame_id]
-
-    @staticmethod
-    def calculate_closest_faces(pose_to_robot_vector: Vector3,
-                                specified_grasp_axis: AxisIdentifier = AxisIdentifier.Undefined) \
-            -> Union[Tuple[ApproachDirection, ApproachDirection], Tuple[VerticalAlignment, VerticalAlignment]]:
-        """
-        Determines the faces of the object based on the input vector.
-
-        If `specified_grasp_axis` is None, it calculates the primary and secondary faces based on the vector's magnitude
-        determining which sides of the object are most aligned with the robot. This will either be the x, y plane for side faces
-        or the z axis for top/bottom faces.
-        If `specified_grasp_axis` is provided, it only considers the specified axis and calculates the faces aligned
-        with that axis.
-
-        :param pose_to_robot_vector: A 3D vector representing one of the robot's axes in the pose's frame, with
-                              irrelevant components set to np.nan.
-        :param specified_grasp_axis: Specifies a specific axis (e.g., X, Y, Z) to focus on.
-
-        :return: A tuple of two Grasp enums representing the primary and secondary faces.
-        """
-        all_axes = [AxisIdentifier.X, AxisIdentifier.Y, AxisIdentifier.Z]
-
-        if not specified_grasp_axis == AxisIdentifier.Undefined:
-            valid_axes = [specified_grasp_axis]
-        else:
-            valid_axes = [axis for axis in all_axes if
-                          not np.isnan(pose_to_robot_vector.to_list()[axis.value.index(1)])]
-
-        object_to_robot_vector = np.array(pose_to_robot_vector.to_list()) + 1e-9
-        sorted_axes = sorted(valid_axes, key=lambda axis: abs(object_to_robot_vector[axis.value.index(1)]),
-                             reverse=True)
-
-        primary_axis: AxisIdentifier = sorted_axes[0]
-        primary_sign = int(np.sign(object_to_robot_vector[primary_axis.value.index(1)]))
-
-        primary_axis_class = VerticalAlignment if primary_axis == AxisIdentifier.Z else ApproachDirection
-        primary_face = primary_axis_class.from_axis_direction(primary_axis, primary_sign)
-
-        if len(sorted_axes) > 1:
-            secondary_axis: AxisIdentifier = sorted_axes[1]
-            secondary_sign = int(np.sign(object_to_robot_vector[secondary_axis.value.index(1)]))
-        else:
-            secondary_axis: AxisIdentifier = primary_axis
-            secondary_sign = -primary_sign
-
-        secondary_axis_class = VerticalAlignment if secondary_axis == AxisIdentifier.Z else ApproachDirection
-        secondary_face = secondary_axis_class.from_axis_direction(secondary_axis, secondary_sign)
-
-
-        return primary_face, secondary_face
-
-    def calculate_grasp_descriptions(self, robot: Object, grasp_alignment: Optional[PreferredGraspAlignment] = None) -> \
-            List[GraspDescription]:
-        """
-        This method determines the possible grasp configurations (approach axis and vertical alignment) of the self,
-        taking into account the self's orientation, position, and whether the gripper should be rotated by 90°.
-
-        :param robot: The robot for which the grasp configurations are being calculated.
-        :param grasp_alignment: An optional PreferredGraspAlignment object that specifies preferred grasp axis,
-
-        :return: A sorted list of GraspDescription instances representing all grasp permutations.
-        """
-        objectTmap = self
-
-        robot_pose = robot.get_pose()
-
-        if grasp_alignment:
-            side_axis = grasp_alignment.preferred_axis
-            vertical = grasp_alignment.with_vertical_alignment
-            rotated_gripper = grasp_alignment.with_rotated_gripper
-        else:
-            side_axis, vertical, rotated_gripper = AxisIdentifier.Undefined, False, False
-
-        object_to_robot_vector_world = objectTmap.position.vector_to_position(robot_pose.position)
-        orientation = objectTmap.orientation.to_list()
-
-        mapRobject = R.from_quat(orientation).as_matrix()
-        objectRmap = mapRobject.T
-
-        object_to_robot_vector_local = objectRmap.dot(object_to_robot_vector_world.to_numpy())
-        vector_x, vector_y, vector_z = object_to_robot_vector_local
-
-        vector_side = Vector3(vector_x, vector_y, np.nan)
-        side_faces = self.calculate_closest_faces(vector_side, side_axis)
-
-        vector_vertical = Vector3(np.nan, np.nan, vector_z)
-        if vertical:
-            vertical_faces = self.calculate_closest_faces(vector_vertical)
-        else:
-            vertical_faces = [VerticalAlignment.NoAlignment]
-
-        grasp_configs = [
-            GraspDescription(approach_direction=side, vertical_alignment=top_face, rotate_gripper=rotated_gripper)
-            for top_face in vertical_faces
-            for side in side_faces
-        ]
-
-        return grasp_configs
 
     def almost_equal(self, other: PoseStamped, position_tolerance: float = 1e-6,
                      orientation_tolerance: float = 1e-5) -> bool:
@@ -666,7 +628,6 @@ class PoseStamped(HasParameters):
 
         result = {a: self.is_facing_2d_axis(pose_b, axis=a) for a in (AxisIdentifier.X, AxisIdentifier.Y)}
         return any(r[0] for r in result.values())
-
 
 
 @dataclass
@@ -735,7 +696,7 @@ class Transform(Pose):
 @has_parameters
 @dataclass
 class TransformStamped(PoseStamped):
-    child_frame_id: str = field(default_factory=str)
+    child_frame_id: Body = field(default_factory=str)
     """
     Target frame id of the transform.
     """
@@ -792,9 +753,12 @@ class TransformStamped(PoseStamped):
         result.transform = self.transform * other.transform
         return result
 
+    def __deepcopy__(self, memo):
+        return TransformStamped(copy.deepcopy(self.pose), copy.deepcopy(self.header), self.child_frame_id)
+
     @classmethod
-    def from_list(cls, translation: List[float] = None, rotation: List[float] = None, frame: str = "map",
-                  child_frame_id="") -> Self:
+    def from_list(cls, translation: List[float] = None, rotation: List[float] = None, frame: Body = None,
+                  child_frame_id: Body = None) -> Self:
         """
         Factory to create a TransformStamped from a list of position and orientation.
 
@@ -818,7 +782,7 @@ class TransformStamped(PoseStamped):
         """
         from geometry_msgs.msg import TransformStamped as ROSTransformStamped
         return ROSTransformStamped(transform=self.transform.ros_message(), header=self.header.ros_message(),
-                                   child_frame_id=self.child_frame_id)
+                                   child_frame_id=self.child_frame_id.name.name)
 
     def to_pose_stamped(self) -> PoseStamped:
         """
@@ -828,6 +792,19 @@ class TransformStamped(PoseStamped):
         """
         p = Pose(self.pose.position, self.pose.orientation)
         return PoseStamped(p, self.header)
+
+    def to_spatial_type(self) -> SpatialTransformationMatrix:
+        """
+        Converts the TransformStamped to a SpatialTransformationMatrix.
+
+        :return: A SpatialTransformationMatrix object representing the transform in 3D space.
+        """
+        return SpatialTransformationMatrix.from_xyz_quaternion(pos_x=self.translation.x, pos_y=self.translation.y,
+                                                               pos_z=self.translation.z,
+                                                               quat_x=self.rotation.x, quat_y=self.rotation.y,
+                                                               quat_z=self.rotation.z, quat_w=self.rotation.w,
+                                                               reference_frame=self.header.frame_id,
+                                                               child_frame=self.child_frame_id)
 
     def inverse_times(self, other: TransformStamped) -> Self:
         """
@@ -840,7 +817,7 @@ class TransformStamped(PoseStamped):
         return self * ~other
 
 
-@has_parameters
+# @has_parameters
 @dataclass
 class GraspPose(PoseStamped):
     """

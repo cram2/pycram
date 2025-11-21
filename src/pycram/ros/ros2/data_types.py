@@ -1,6 +1,5 @@
 import builtin_interfaces.msg
 import rclpy
-from . import node
 import builtin_interfaces
 
 class Time(builtin_interfaces.msg.Time):
@@ -11,7 +10,7 @@ class Time(builtin_interfaces.msg.Time):
         super().__init__(sec=time)
 
     @classmethod
-    def now(cls):
+    def now(cls, node):
         return builtin_interfaces.msg.Time(**dict(zip(["sec", "nanosec"], node.get_clock().now().seconds_nanoseconds())))
         # return cls(*node.get_clock().now().seconds_nanoseconds())
         #return node.get_clock().now()

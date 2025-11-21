@@ -1,10 +1,11 @@
+import logging
 from .default_process_modules import *
 from ..datastructures.enums import GripperState, Arms, ExecutionType
-from ..datastructures.world import World
 from ..robot_plans import MoveGripperMotion
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..ros import Duration, create_action_client
-from ..ros import  loginfo, logwarn, logdebug
+
+logger = logging.getLogger(__name__)
 
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
@@ -16,11 +17,11 @@ try:
 except ImportError:
     Multiverse = type(None)
 
-try:
-    from control_msgs.msg import GripperCommandGoal, GripperCommandAction
-except ImportError:
-    if Multiverse is not None:
-        logwarn("Import for control_msgs for gripper in Multiverse failed")
+# try:
+#     from control_msgs.msg import GripperCommandGoal, GripperCommandAction
+# except ImportError:
+#     if Multiverse is not None:
+#         logger.warning("Import for control_msgs for gripper in Multiverse failed")
 
 try:
     from ..worlds import Multiverse
@@ -30,7 +31,7 @@ except ImportError:
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
 except ImportError:
-    logdebug("Pr2GripperCommandGoal not found")
+    logger.debug("Pr2GripperCommandGoal not found")
 
 class Pr2MoveGripperMultiverse(ProcessModule):
     """
@@ -39,13 +40,13 @@ class Pr2MoveGripperMultiverse(ProcessModule):
 
     def _execute(self, designator: MoveGripperMotion):
         def activate_callback():
-            loginfo("Started gripper Movement")
+            logger.info("Started gripper Movement")
 
         def done_callback(state, result):
-            loginfo(f"Reached goal {designator.motion}: {result.reached_goal}")
+            logger.info(f"Reached goal {designator.motion}: {result.reached_goal}")
 
         def feedback_callback(msg):
-            loginfo(f"Gripper Action Feedback: {msg}")
+            logger.info(f"Gripper Action Feedback: {msg}")
 
         goal = GripperCommandGoal()
         goal.command.position = 0.0 if designator.motion == GripperState.CLOSE else 0.4
@@ -55,7 +56,7 @@ class Pr2MoveGripperMultiverse(ProcessModule):
         else:
             controller_topic = "/real/pr2/left_gripper_controller/gripper_cmd"
         client = create_action_client(controller_topic, GripperCommandAction)
-        loginfo("Waiting for action server")
+        logger.info("Waiting for action server")
         client.wait_for_server()
         client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
         wait = client.wait_for_result(Duration(5))
@@ -68,10 +69,10 @@ class Pr2MoveGripperReal(ProcessModule):
 
     def _execute(self, designator: MoveGripperMotion):
         def activate_callback():
-            loginfo("Started gripper Movement")
+            logger.info("Started gripper Movement")
 
         def done_callback(state, result):
-            loginfo(f"Reached goal {designator.motion}")
+            logger.info(f"Reached goal {designator.motion}")
 
         def feedback_callback(msg):
             pass
@@ -90,7 +91,7 @@ class Pr2MoveGripperReal(ProcessModule):
         else:
             controller_topic = "l_gripper_controller/gripper_action"
         client = create_action_client(controller_topic, Pr2GripperCommandAction)
-        loginfo("Waiting for action server")
+        logger.info("Waiting for action server")
         client.wait_for_server()
         client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
         wait = client.wait_for_result()

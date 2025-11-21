@@ -1,10 +1,7 @@
 from .default_process_modules import *
-from .. import world_reasoning as btr
 from ..robot_plans import *
 from ..datastructures.enums import StaticJointState
 
-from ..datastructures.world import World
-from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_description import RobotDescription
 
@@ -77,7 +74,7 @@ class BoxyDetecting(ProcessModule):
 
     def _execute(self, desig):
         robot = World.robot
-        object_type = desig.object_type
+        object_type = desig.object_sem_annotation
         # Should be "wide_stereo_optical_frame"
         cam_link_name = RobotDescription.current_robot_description.get_camera_link()
         # should be [0, 0, 1]

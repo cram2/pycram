@@ -2,23 +2,20 @@
 from __future__ import annotations
 
 import inspect
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from datetime import timedelta
+from dataclasses import dataclass
 from typing import get_type_hints
 
-from typing_extensions import Type, List, Dict, Any, Optional, Callable, Self, Iterator
+from krrood.entity_query_language.entity import an, entity, contains, let
+from krrood.entity_query_language.symbolic import symbolic_mode
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.world_entity import Body
+from typing_extensions import List, Dict, Any, Optional, Iterator, Iterable, Union
 
-from pycrap.ontologies import PhysicalObject, Agent
-from .datastructures.enums import ObjectType
 from .datastructures.partial_designator import PartialDesignator
 from .datastructures.pose import PoseStamped
-from .datastructures.world import World
-from .failures import PlanFailure
-from .has_parameters import HasParameters
-from .robot_description import RobotDescription
+from .plan import Plan, PlanNode
 from .utils import bcolors
-from .world_concepts.world_object import Object as WorldObject, Object
 
 
 class DesignatorError(Exception):
@@ -51,9 +48,41 @@ class ResolutionError(Exception):
 
 
 class DesignatorDescription:
+
+    plan_node: PlanNode = None
     """
-    :ivar resolve: The specialized_designators function to use for this designator_description, defaults to self.ground
+    The plan node to which this designator_description belongs.
     """
+
+    @property
+    def plan(self) -> Plan:
+        """
+        Returns the plan that this designator_description is part of.
+        """
+        if self.plan_node is None:
+            raise ValueError("This designator_description is not part of a plan.")
+
+        return self.plan_node.plan
+
+    @property
+    def robot_view(self) -> AbstractRobot:
+        """
+        Returns the robot that this designator_description is part of.
+        """
+        if self.plan_node is not None:
+            return self.plan.robot
+        else:
+            raise ValueError("This designator_description is not part of a plan.")
+
+    @property
+    def world(self) -> World:
+        """
+        Returns the world that this designator_description is part of.
+        """
+        if self.plan_node is not None:
+            return self.plan_node.plan.world
+        else:
+            raise ValueError("This designator_description is not part of a plan.")
 
     def __init__(self):
         """
@@ -64,34 +93,11 @@ class DesignatorDescription:
     def resolve(self):
         return self.ground()
 
-    def make_dictionary(self, properties: List[str]):
-        """
-        Creates a dictionary of this description with only the given properties
-        included.
-
-        :param properties: A list of properties that should be included in the dictionary.
-                            The given properties have to be an attribute of this description.
-        :return: A dictionary with the properties as keys.
-        """
-        attributes = self.__dict__
-        ret = {}
-        for att in attributes.keys():
-            if att in properties:
-                ret[att] = attributes[att]
-        return ret
-
     def ground(self) -> Any:
         """
         Should be overwritten with an actual grounding function which infers missing properties.
         """
         return self
-
-    def get_slots(self) -> List[str]:
-        """
-        :return: a list of all slots of this description. Can be used for inspecting different descriptions and
-         debugging.
-        """
-        return list(self.__dict__.keys())
 
     def copy(self) -> DesignatorDescription:
         return self
@@ -119,8 +125,6 @@ class DesignatorDescription:
         return get_type_hints(cls.__init__)
 
 
-
-
 class LocationDesignatorDescription(DesignatorDescription, PartialDesignator):
     """
     Parent class of location designator_description descriptions.
@@ -142,19 +146,17 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
     Descriptions hold possible parameter ranges for object designators.
     """
 
-    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[Type[PhysicalObject]]] = None):
+    def __init__(self, names: Optional[List[str]] = None):
         """
         Base of all object designator_description descriptions. Every object designator_description has the name and type of the object.
 
         :param names: A list of names that could describe the object
-        :param types: A list of types that could represent the object
         """
         super().__init__()
-        PartialDesignator.__init__(self, ObjectDesignatorDescription, names=names, types=types)
-        self.types: Optional[List[ObjectType]] = types
+        PartialDesignator.__init__(self, ObjectDesignatorDescription, names=names)
         self.names: Optional[List[str]] = names
 
-    def ground(self) -> WorldObject:
+    def ground(self) -> Body:
         """
         Return the first object from the world that fits the description.
 
@@ -162,7 +164,7 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
         """
         return next(iter(self))
 
-    def __iter__(self) -> Iterator[WorldObject]:
+    def __iter__(self) -> Iterator[Body]:
         """
         Iterate through all possible objects fitting this description
 
@@ -171,14 +173,10 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
         for params in self.generate_permutations():
 
             # for every world object
-            for obj in World.current_world.objects:
+            for obj in self.world.bodies:
 
                 # skip if name does not match specification
                 if self.names and obj.name not in params.values():
-                    continue
-
-                # skip if type does not match specification
-                if self.types and obj.obj_type not in params.values():
                     continue
 
                 # yield self.Object(obj.name, obj.obj_type, obj)
@@ -186,6 +184,49 @@ class ObjectDesignatorDescription(DesignatorDescription, PartialDesignator):
 
     def flatten(self) -> List:
         res = [None] * 7
-        res.append(self.types[0])
+        res.append(self.names)
         return res
 
+
+@dataclass
+class EQLObjectDesignator(DesignatorDescription):
+    """
+    Description for objects found via an EQL query.
+    """
+
+    def __init__(self, eql_query):
+        super().__init__()
+        self.eql_query = eql_query
+
+    def __iter__(self) -> Iterator[Body]:
+        for obj in self.eql_query.evaluate():
+            yield obj
+
+
+class NamedObject(ObjectDesignatorDescription, PartialDesignator):
+    """
+    Description for objects with a specific name.
+    """
+
+    def __init__(self, name: Union[Iterable[str], str]):
+        """
+        Create a description for an object with a specific name.
+
+        :param name: The name of the object.
+        """
+        super().__init__()
+        PartialDesignator.__init__(self, ObjectDesignatorDescription, names=name)
+
+    def __iter__(self) -> Iterator[Body]:
+        """
+        Iterate through all possible objects fitting this description
+
+        :yield: A executed object designator_description
+        """
+        for params in self.generate_permutations():
+            with symbolic_mode():
+                query = an(entity(body := let(type_=Body, domain=self.world.bodies),
+                                  contains(body.name.name, params['names'])))
+
+            for obj in query.evaluate():
+                yield obj

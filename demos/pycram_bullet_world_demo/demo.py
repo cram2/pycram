@@ -1,54 +1,62 @@
-from pycram.language import SequentialPlan, ParallelPlan, CodePlan
-from pycram.worlds.bullet_world import BulletWorld
-from pycram.designators.location_designator import *
-from pycram.designators.object_designator import *
-from pycram.datastructures.enums import WorldMode
+import os
+
+from semantic_digital_twin.adapters.mesh import STLParser
+from semantic_digital_twin.reasoning.world_reasoner import WorldReasoner
+from semantic_digital_twin.robots.pr2 import PR2
+from semantic_digital_twin.semantic_annotations.semantic_annotations import Container
+from semantic_digital_twin.adapters.procthor.procthor_semantic_annotations import Milk, Bowl, Spoon
+from semantic_digital_twin.spatial_types import TransformationMatrix
+from semantic_digital_twin.world_description.connections import FixedConnection
+
+from pycram.datastructures.dataclasses import Context
+from pycram.datastructures.enums import TorsoState, Arms
 from pycram.datastructures.pose import PoseStamped
-from pycram.process_module import simulated_robot, with_simulated_robot, ProcessModule
-from pycram.object_descriptors.urdf import ObjectDescription as URDFObjectDescription
-from pycram.world_concepts.world_object import Object
-from pycram.datastructures.dataclasses import Color
-from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
-from pycrap.ontologies import Robot, Apartment, Milk, Cereal, Spoon, Bowl
-import numpy as np
-from pycram.robot_plans import *
+from pycram.language import SequentialPlan
+from pycram.process_module import simulated_robot
+from pycram.robot_plans import MoveTorsoActionDescription, TransportActionDescription
+from pycram.robot_plans import ParkArmsActionDescription
+from pycram.testing import setup_world
 
-np.random.seed(420)
-extension = URDFObjectDescription.get_file_extension()
-world = BulletWorld(WorldMode.GUI)
-viz = VizMarkerPublisher()
+world = setup_world()
 
-robot = Object("pr2", Robot, f"pr2{extension}", pose=PoseStamped.from_list([1, 2, 0]))
-apartment = Object("apartment", Apartment, f"apartment{extension}")
+spoon = STLParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "spoon.stl")).parse()
+bowl = STLParser(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "bowl.stl")).parse()
 
-milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([2.5, 2, 1.02], [0, 0, 0, 1]),
-              color=Color(1, 0, 0, 1))
-cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
-                pose=PoseStamped.from_list([2.45, 2.4, 1.05], [0, 0, 0, 1]), color=Color(0, 1, 0, 1))
-spoon = Object("spoon", Spoon, "spoon.stl", pose=PoseStamped.from_list([2.4, 2.24, 0.85]),
-               color=Color(0, 0, 1, 1))
-bowl = Object("bowl", Bowl, "bowl.stl", pose=PoseStamped.from_list([2.35, 2.2, 0.98]),
-              color=Color(1, 1, 0, 1))
-apartment.attach(spoon, 'cabinet10_drawer_top')
+with world.modify_world():
+    world.merge_world_at_pose(bowl, TransformationMatrix.from_xyz_quaternion(2.4, 2.2, 1, reference_frame=world.root))
+    connection = FixedConnection(parent=world.get_body_by_name("cabinet10_drawer_top"), child=spoon.root)
+    world.merge_world(spoon, connection)
+
+try:
+    import rclpy
+
+    rclpy.init()
+    from semantic_digital_twin.adapters.viz_marker import VizMarkerPublisher
+
+    v = VizMarkerPublisher(world, rclpy.create_node("viz_marker"))
+except ImportError:
+    pass
+
+pr2 = PR2.from_world(world)
+context = Context.from_world(world)
+
+
+with world.modify_world():
+    world_reasoner = WorldReasoner(world)
+    world_reasoner.reason()
+    world.add_semantic_annotations([Bowl(body=world.get_body_by_name("bowl.stl")),
+                                    Spoon(body=world.get_body_by_name("spoon.stl"))
+                                    ])
+
+plan = SequentialPlan(context,
+                      ParkArmsActionDescription(Arms.BOTH),
+                      MoveTorsoActionDescription(TorsoState.HIGH),
+                      TransportActionDescription(world.get_body_by_name("milk.stl"),
+                                                 PoseStamped.from_list([4.9, 3.3, 0.8], frame=world.root), Arms.LEFT),
+                      TransportActionDescription(world.get_body_by_name("spoon.stl"),
+                                                 PoseStamped.from_list([5.1, 3.3, 0.75], [0, 0, 1, 1], frame=world.root), Arms.LEFT),
+                      TransportActionDescription(world.get_body_by_name("bowl.stl"),
+                                                 PoseStamped.from_list([5, 3.3, 0.75], frame=world.root), Arms.LEFT))
 
 with simulated_robot:
-    sp = SequentialPlan(
-        ParallelPlan(MoveTorsoActionDescription(TorsoState.HIGH),
-                     ParkArmsActionDescription(Arms.BOTH)),
-
-        TransportActionDescription(ResolutionStrategyObject(
-            strategy=SearchActionDescription(PoseStamped.from_list([2.4, 1.5, 1]), Milk)),
-            PoseStamped.from_list([4.8, 3.55, 0.8]), Arms.LEFT),
-        TransportActionDescription(ResolutionStrategyObject(
-            strategy=SearchActionDescription(PoseStamped.from_list([2.4, 1.5, 1]), Cereal)),
-            PoseStamped.from_list([5.2, 3.4, 0.8], [0, 0, 1, 1]), Arms.LEFT),
-        TransportActionDescription(ResolutionStrategyObject(
-            strategy=SearchActionDescription(PoseStamped.from_list([2.4, 1.5, 1]), Bowl)),
-            PoseStamped.from_list([5, 3.3, 0.8], [0, 0, 1, 1]), Arms.LEFT))
-
-    sp.perform()
-
-
-
-viz._stop_publishing()
-world.exit()
+    plan.perform()

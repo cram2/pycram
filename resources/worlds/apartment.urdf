@@ -46,11 +46,13 @@
         <mesh filename="package://iai_apartment/meshes/visual/walls.dae"/>
       </geometry>
     </visual>
-    <!--collision>
-          <geometry>
-            <mesh filename="package://iai_apartment/meshes/collision/walls.stl" />
+    <collision>
+            <geometry>
+            <!-- <mesh filename="package://iai_apartment/meshes/collision/walls.stl" /> -->
+            <box size="1 1 1"/>
           </geometry>
-        </collision-->
+
+    </collision>
   </link>
   <joint name="windows_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 -0.2"/>

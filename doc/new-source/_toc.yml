@@ -2,7 +2,7 @@
 # Learn more at https://jupyterbook.org/customize/toc.html
 
 format: jb-book
-root: index.rst
+root: index.md
 parts:
   - caption: Getting Started
     chapters:
@@ -86,4 +86,4 @@ parts:
 
   - caption: API
     chapters:
-    - file: autoapi/pycram/index.rst
+    - file: autoapi/pycram/index.md

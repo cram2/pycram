@@ -5,8 +5,8 @@ from .datastructures.enums import TaskStatus
 from .designator import DesignatorDescription
 from .failures import PlanFailure
 from threading import Lock
-from typing_extensions import Union, Tuple, Any, List, Optional, Type, Callable, TYPE_CHECKING
-from .language import LanguageMixin, MonitorNode, MonitorPlan
+from typing_extensions import Union, Any, List, Optional, Type, Callable, TYPE_CHECKING
+from .language import MonitorNode, MonitorPlan
 from .plan import Plan
 from .process_module import ProcessModule
 if TYPE_CHECKING:
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 
-class FailureHandling(LanguageMixin):
+class FailureHandling():
     """
     Base class for failure handling mechanisms in automated systems or workflows.
 
@@ -67,7 +67,7 @@ class Retry(FailureHandling):
         super().__init__(plan)
         self.max_tries = max_tries
 
-    def perform(self) -> List[Any]:
+    def perform(self):
         """
         Implementation of the retry mechanism.
 
@@ -78,7 +78,7 @@ class Retry(FailureHandling):
         :raises PlanFailure: If all retry attempts fail.
         """
         tries = 0
-        for action in iter(self.plan):
+        for action in iter(self.plan.current_node):
             tries += 1
             try:
                 action.perform()

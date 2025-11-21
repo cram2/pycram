@@ -1,32 +1,33 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import dataclasses
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot, KinematicChain, Manipulator, Neck
+
 import glob
 import importlib
+import logging
 from os.path import dirname, basename, isfile, join
 import math
-from dataclasses import field
+from dataclasses import dataclass
 from enum import Enum
 from itertools import product
 
-import numpy as np
 from scipy.spatial.transform import Rotation as R
-from typing_extensions import List, Dict, Union, Optional, Tuple, TYPE_CHECKING
+from typing_extensions import List, Dict, Union, Optional, TypeVar
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, Rotations
-from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType, DescriptionType, StaticJointState, \
+from .datastructures.enums import Arms, GripperState, GripperType, JointType, DescriptionType, StaticJointState, \
     ApproachDirection, VerticalAlignment
-from .datastructures.pose import GraspDescription, PoseStamped
+from .datastructures.grasp import GraspDescription
+from .datastructures.pose import PoseStamped
 from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
     get_robot_description_path
-from .object_descriptors.urdf import ObjectDescription as URDFObject
-from .ros import logerr
 from .tf_transformations import quaternion_multiply
 from .utils import suppress_stdout_stderr
 
-if TYPE_CHECKING:
-    from .datastructures.pose import Pose
+from urdf_parser_py.urdf import URDF as URDFObject
+
+logger = logging.getLogger(__name__)
 
 class RobotDescriptionManager:
     """
@@ -65,7 +66,7 @@ class RobotDescriptionManager:
             if name in self.descriptions[key].urdf_object.name or key in name.lower():
                 self.descriptions[key].load()
                 return self.descriptions[key]
-        logerr(f"Robot description {name} not found")
+        logger.error(f"Robot description {name} not found")
 
     def register_description(self, description: RobotDescription):
         """
@@ -346,7 +347,7 @@ class RobotDescription:
         :return: The offset of the Joint
         """
         if name not in self.urdf_object.joint_map.keys():
-            logerr(f"The name: {name} is not part of this robot URDF")
+            logger.error(f"The name: {name} is not part of this robot URDF")
             return PoseStamped()
 
         offset = self.urdf_object.joint_map[name].origin
@@ -354,7 +355,7 @@ class RobotDescription:
 
     def get_parent(self, name: str) -> str:
         """
-        Get the parent of a link or joint in the URDF. Always returns the imeadiate parent, for a link this is a joint
+        Get the parent of a link or joint in the URDF. Always returns the immediate parent, for a link this is a joint
         and vice versa.
 
         :param name: Name of the link or joint in the URDF
@@ -652,7 +653,7 @@ class KinematicChainDescription:
         try:
             return self.static_joint_states[name]
         except KeyError:
-            logerr(f"Static joint states for chain {name} not found")
+            logger.error(f"Static joint states for chain {name} not found")
 
     def get_tool_frame(self) -> str:
         """
@@ -957,3 +958,46 @@ def create_manipulator_description(data: ManipulatorData,
                             relative_dir=data.gripper_relative_dir, opening_distance=data.opening_distance)
 
     return robot_description
+
+
+@dataclass
+class ViewManager:
+
+    @staticmethod
+    def get_end_effector_view(arm: Arms, robot_view: AbstractRobot) -> Optional[Manipulator]:
+
+        for man in robot_view.manipulators:
+            if "left" in man.name.name and arm == Arms.LEFT:
+                return man
+            elif "right" in man.name.name and arm == Arms.RIGHT:
+                return man
+        return None
+
+    @staticmethod
+    def get_arm_view(arm: Arms, robot_view: AbstractRobot) -> Optional[KinematicChain]:
+        """
+        Get the arm view for a given arm and robot view.
+
+        :param arm: The arm to get the view for.
+        :param robot_view: The robot view to search in.
+        :return: The Manipulator object representing the arm.
+        """
+        for arm_chain in robot_view.manipulator_chains:
+            if "left" in arm_chain.name.name and arm == Arms.LEFT:
+                return arm_chain
+            elif "right" in arm_chain.name.name and arm == Arms.RIGHT:
+                return arm_chain
+        return None
+
+    @staticmethod
+    def get_neck_view(robot_view: AbstractRobot) -> Optional[Neck]:
+        """
+        Get the neck view for a given robot view.
+
+        :param robot_view: The robot view to search in.
+        :return: The Neck object representing the neck.
+        """
+        if getattr(robot_view, "neck", Neck):
+            return robot_view.neck
+        else:
+            raise ValueError(f"The robot view {robot_view} has no neck.")

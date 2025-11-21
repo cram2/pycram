@@ -7,6 +7,7 @@ from typing import List, Optional
 import numpy as np
 from geometry_msgs.msg import Vector3, Point, Pose
 from rclpy.publisher import Publisher
+from semantic_digital_twin.world_description.world_entity import Body
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -16,7 +17,6 @@ from ..datastructures.pose import PoseStamped, TransformStamped
 from ..ros import  Duration, Time
 from ..ros import  create_publisher
 from ..tf_transformations import quaternion_multiply
-from ..world_concepts.world_object import Object
 
 
 @dataclass
@@ -177,7 +177,7 @@ class MarkerPublisherBase(ABC):
         return marker
 
     def _create_geometry_marker(self, geom: MeshVisualShape | CylinderVisualShape | BoxVisualShape | SphereVisualShape,
-                                obj: Object, link: str, i: int, link_pose_with_origin: TransformStamped, reference_frame: str,
+                                obj: Body, link: str, i: int, link_pose_with_origin: TransformStamped, reference_frame: str,
                                 use_prospection_world: Optional[bool] = False) -> Marker:
         """
         Creates a Marker for the given geometry type.

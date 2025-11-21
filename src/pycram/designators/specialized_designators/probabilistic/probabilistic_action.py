@@ -10,19 +10,21 @@ from probabilistic_model.utils import MissingDict
 from random_events.product_algebra import SimpleEvent
 from random_events.set import Set
 from random_events.variable import Symbolic, Continuous
+from semantic_digital_twin.spatial_types import TransformationMatrix
+from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.geometry import BoundingBox
+from semantic_digital_twin.world_description.shape_collection import BoundingBoxCollection
+from semantic_digital_twin.world_description.world_entity import Body
 from sqlalchemy import select
 from typing_extensions import Optional, List
 
 from ....robot_plans import MoveAndPickUpAction
-from ....datastructures.dataclasses import BoundingBox
 from ....datastructures.enums import Arms, Grasp, VerticalAlignment, ApproachDirection
 from ....datastructures.grasp import GraspDescription
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
-from ....datastructures.world import World
 from ....parameterizer import collision_free_event
 from ....utils import classproperty
-from ....world_concepts.world_object import Object
 
 
 class Variables(enum.Enum):
@@ -85,29 +87,35 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
 
     partial: PartialDesignator[MoveAndPickUpAction]
 
-    def collision_free_condition_for_object(self, obj: Object):
+    world: World
+
+    def collision_free_condition_for_object(self, obj: Body):
         search_space_size = 1.
-        search_space = BoundingBox(min_x=obj.pose.position.x - search_space_size,
-                                   min_y=obj.pose.position.y - search_space_size,
-                                   min_z=obj.pose.position.z - search_space_size,
-                                   max_x=obj.pose.position.x + search_space_size,
-                                   max_y=obj.pose.position.y + search_space_size,
-                                   max_z=obj.pose.position.z + search_space_size).as_collection()
-        navigate_conditions = collision_free_event(obj.world, search_space)
+        obj_pose = PoseStamped.from_spatial_type(obj.global_pose)
+        search_space = BoundingBox(min_x=obj_pose.pose.position.x - search_space_size,
+                                   min_y=obj_pose.pose.position.y - search_space_size,
+                                   min_z=obj_pose.pose.position.z - search_space_size,
+                                   max_x=obj_pose.pose.position.x + search_space_size,
+                                   max_y=obj_pose.pose.position.y + search_space_size,
+                                   max_z=obj_pose.pose.position.z + search_space_size,
+                                   origin=TransformationMatrix(reference_frame=self.world.root))
+        bb_collection = BoundingBoxCollection([search_space], reference_frame=self.world.root)
+        navigate_conditions = collision_free_event(obj._world, bb_collection)
         return navigate_conditions
 
-    def accessing_distribution_for_object(self, obj: Object, object_variable: Symbolic) -> ProbabilisticCircuit:
+    def accessing_distribution_for_object(self, obj: Body, object_variable: Symbolic) -> ProbabilisticCircuit:
         model = self.default_policy()
 
         # add object distribution her
-        p_object = SymbolicDistribution(object_variable, MissingDict(float, {obj.id: 1.}))
+        p_object = SymbolicDistribution(object_variable, MissingDict(float, {obj.index: 1.}))
         root = model.root
         new_root = ProductUnit(probabilistic_circuit=model)
         new_root.add_subcircuit(leaf(p_object, model))
         new_root.add_subcircuit(root)
 
         # move model to position of the object
-        model.translate({self.variables.x.value: obj.pose.position.x, self.variables.y.value: obj.pose.position.y})
+        obj_pose = PoseStamped.from_spatial_type(obj.global_pose)
+        model.translate({self.variables.x.value: obj_pose.pose.position.x, self.variables.y.value: obj_pose.pose.position.y})
 
         # apply collision-free condition
         condition = self.collision_free_condition_for_object(obj)
@@ -129,9 +137,9 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
 
         return conditional
 
-    @classproperty
-    def object_variable(cls) -> Symbolic:
-        return Symbolic("object_designator", Set.from_iterable([obj.id for obj in World.current_world.objects]))
+    @property
+    def object_variable(self) -> Symbolic:
+        return Symbolic("object_designator", Set.from_iterable([obj.index for obj in self.world.bodies]))
 
     def create_distribution(self):
 
@@ -162,7 +170,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
 
     def sample_to_action(self, sample: List, model: ProbabilisticCircuit) -> MoveAndPickUpAction:
         sample_dict = {variable: value for variable, value in zip(model.variables, sample)}
-        obj = World.current_world.get_object_by_id(sample_dict[self.object_variable])
+        obj = self.world.kinematic_structure[int(sample_dict[self.object_variable])]
 
         standing_position = PoseStamped.from_list(
             [sample_dict[self.variables.x.value], sample_dict[self.variables.y.value], 0.])

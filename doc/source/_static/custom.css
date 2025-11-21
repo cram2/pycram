@@ -1,0 +1,20 @@
+/* By default, hide the dark-only image */
+.only-dark {
+    display: none;
+}
+
+/* When the theme is set to 'dark', hide the light-only image and show the dark-only image */
+html[data-theme="dark"] .only-light {
+    display: none;
+}
+html[data-theme="dark"] .only-dark {
+    display: block; /* or display: inline-block; depending on your layout needs */
+}
+
+/* To ensure it works correctly within the flex container */
+.only-light, .only-dark {
+    /* If the images are direct children of the flex container, they should have flex properties */
+    /* In your case, they are inside the div with flex: 1, which works fine. */
+    /* But we need to make sure the one that is displayed uses the full width like your original code */
+    width: 100%;
+}

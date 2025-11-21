@@ -1,16 +1,18 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING, TypeVar, Generic, Iterator, Iterable, AnyStr
 from inspect import signature
 
+from typing_extensions import List, Tuple, Any, Dict, TypeVar, Iterator, Iterable
+
 from ..has_parameters import leaf_types, HasParameters
-from ..language import LanguageMixin
+from ..plan import PlanNode
 from ..utils import is_iterable, lazy_product
 
 T = TypeVar('T')
 
-class PartialDesignator(LanguageMixin, Iterable[T]):
+
+class PartialDesignator(Iterable[T]):
     """
     A partial designator_description is somewhat between a DesignatorDescription and a specified designator_description. Basically it is a
     partially initialized specified designator_description which can take a list of input arguments (like a DesignatorDescription)
@@ -40,12 +42,18 @@ class PartialDesignator(LanguageMixin, Iterable[T]):
     Keyword arguments that are passed to the performable
     """
 
+    _plan_node: PlanNode = None
+    """
+    Reference to the PlanNode that is used to execute the performable
+    """
+
     def __init__(self, performable: T, *args, **kwargs):
         self.performable = performable
         # We use the init of the performable class since typing for the whole class messes up the signature of the class.
         # This is not optimal since "self" needs to be filtered from the parameter list but it works.
         sig = signature(self.performable.__init__)
-        params_without_self = list(filter(None, [param if name != "self" else None for name, param in sig.parameters.items()]))
+        params_without_self = list(
+            filter(None, [param if name != "self" else None for name, param in sig.parameters.items()]))
         sig_without_self = sig.replace(parameters=params_without_self)
         self.kwargs = dict(sig_without_self.bind_partial(*args, **kwargs).arguments)
         for key in dict(signature(self.performable).parameters).keys():
@@ -88,7 +96,7 @@ class PartialDesignator(LanguageMixin, Iterable[T]):
         :yields: A list with a possible permutation of the given arguments
         """
         iter_list = [x if is_iterable(x) and not type(x) == str else [x] for x in self.kwargs.values()]
-        for combination in lazy_product(*iter_list):
+        for combination in lazy_product(*iter_list, iter_names=list(self.kwargs.keys())):
             yield dict(zip(self.kwargs.keys(), combination))
 
     def missing_parameter(self) -> List[str]:
@@ -100,7 +108,7 @@ class PartialDesignator(LanguageMixin, Iterable[T]):
         missing = {k: v for k, v in self.kwargs.items() if v is None}
         return list(missing.keys())
 
-    def resolve(self) -> T():
+    def resolve(self) -> T:
         """
         Returns the Designator with the first set of parameters
 
@@ -140,7 +148,25 @@ class PartialDesignator(LanguageMixin, Iterable[T]):
         """
         return self.performable.flatten_parameters()
 
+    @property
+    def plan_node(self) -> PlanNode:
+        """
+        Returns the PlanNode that is used to execute the performable.
 
+        :return: The PlanNode that is used to execute the performable.
+        """
+        return self._plan_node
 
+    @plan_node.setter
+    def plan_node(self, value: PlanNode):
+        """
+        Sets the PlanNode that is used to execute the performable.
 
-
+        :param value: The PlanNode that is used to execute the performable.
+        """
+        if not isinstance(value, PlanNode):
+            raise TypeError("plan_node must be an instance of PlanNode")
+        self._plan_node = value
+        for key, value in self.kwargs.items():
+            if "DesignatorDescription" in [c.__name__ for c in value.__class__.__mro__]:
+                value.plan_node = self._plan_node

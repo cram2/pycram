@@ -1,31 +1,18 @@
-gitpython>=3.1.37
-pycram_bullet==3.2.8
 scipy
-pytransform3d
 SQLAlchemy #orm
 sqlacodegen==3.0.0 #orm
-ormatic>=1.1.1 # orm
 tqdm==4.66.3
 psutil~=5.9.0
 typing_extensions>=4.10.0
-owlready2>=0.45
-dm_control # MJCF
-trimesh==4.6.0
-deprecated
 probabilistic_model>=7.1.0 # just until semantic world is integrated
 random_events>=4.1.18
+numpy
 pint>=0.21.1
-gymnasium
-pin==2.7.0
-inflection>=0.5.1
-manifold3d==3.0.1
 transforms3d
 python-box
-urdf_parser_py
-networkx
-bs4 # ProcThor
+rustworkx
 pillow
-polytope
-ortools
-scipy
-rtree==1.4.0
+polytope # needed for random events
+krrood
+semantic_digital_twin
+rustworkx_utils

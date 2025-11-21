@@ -1,17 +1,19 @@
+import logging
 from typing_extensions import Any
 
 from .default_process_modules import *
 from ..datastructures.enums import GripperState, ExecutionType
-from ..datastructures.world import World
 from ..robot_plans import MoveGripperMotion
 from ..process_module import ProcessModuleManager
 from ..robot_descriptions.ur5e_controlled_description import data as ur5e_data
 from ..ros import create_publisher
 
+logger = logging.getLogger(__name__)
+
 try:
     from std_msgs.msg import Float64
 except ImportError:
-    loginfo ("Float64 message type not found, make sure to install std_msgs package")
+    logger.info ("Float64 message type not found, make sure to install std_msgs package")
 
 class RobotiqMoveGripperReal(DefaultMoveGripperReal):
     """

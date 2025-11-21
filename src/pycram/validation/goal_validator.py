@@ -3,22 +3,17 @@ from datetime import timedelta
 from time import sleep, time
 
 import numpy as np
+import logging
 from typing_extensions import Any, Callable, Optional, Union, Iterable, Dict, TYPE_CHECKING, Tuple
 
 from .error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, SingleValueErrorChecker
 from ..datastructures.enums import JointType
-from ..ros import logerr, logwarn
 
 if TYPE_CHECKING:
-    from ..datastructures.world import World
-    from ..world_concepts.world_object import Object
     from ..datastructures.pose import PoseStamped
-    from ..description import ObjectDescription
 
-    Joint = ObjectDescription.Joint
-    Link = ObjectDescription.Link
-
+logger = logging.getLogger(__name__)
 OptionalArgCallable = Union[Callable[[], Any], Callable[[Any], Any]]
 
 
@@ -82,7 +77,7 @@ class GoalValidator:
         :param time_per_read: The time to wait between each read.
         """
         if self.goal_value is None:
-            logwarn("Goal value is None, skipping waiting for goal to be achieved")
+            logger.warning("Goal value is None, skipping waiting for goal to be achieved")
             return  # Skip if goal value is None
         start_time = time()
         current = self.current_value
@@ -94,10 +89,10 @@ class GoalValidator:
                       f" seconds, the current value is {current}, error is {self.current_error}, percentage" \
                       f" of goal achieved is {self.percentage_of_goal_achieved}"
                 if self.raise_error:
-                    logerr(msg)
+                    logger.error(msg)
                     raise TimeoutError(msg)
                 else:
-                    logwarn(msg)
+                    logger.warning(msg)
                     break
             sleep(time_per_read.total_seconds())
             current = self.current_value
@@ -177,7 +172,7 @@ class GoalValidator:
             try:
                 return self.current_value_getter()
             except Exception as e:
-                logerr(f"Error while getting current value: {e}")
+                logger.error(f"Error while getting current value: {e}")
                 return None
 
     @property
@@ -494,7 +489,7 @@ def validate_object_pose(pose_setter_func):
             return pose_setter_func(world, obj, pose)
 
         if obj is None:
-            logerr("Object should not be None")
+            logger.error("Object should not be None")
             return False
         pose_goal_validator = PoseGoalValidator(world.get_object_pose, world.conf.get_pose_tolerance(),
                                                 world.conf.acceptable_percentage_of_goal)

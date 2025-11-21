@@ -3,11 +3,10 @@ from typing import Optional
 
 from .base import BaseMotion
 from ...datastructures.pose import Vector3Stamped
-from ...plan import with_plan
 from ...process_module import ProcessModuleManager
+# from giskardpy.motion_statechart.tasks.joint_tasks import JointPositionList
 
 
-@with_plan
 @dataclass
 class MoveJointsMotion(BaseMotion):
     """
@@ -44,5 +43,10 @@ class MoveJointsMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         return pm_manager.move_joints().execute(self)
+
+    # @property
+    # def _motion_chart(self):
+    #     dofs = [self.world.get_degree_of_freedom_by_name(name) for name in self.names]
+    #     return JointPositionList(dict(zip(dofs, self.positions)))

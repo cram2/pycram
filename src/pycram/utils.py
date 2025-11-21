@@ -7,23 +7,46 @@ Classes:
 GeneratorList -- implementation of generator list wrappers.
 """
 from __future__ import annotations
+
+from copy import deepcopy
 from inspect import isgeneratorfunction
 import os
 import math
+from typing import Union, Iterator
 
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
+from semantic_digital_twin.world_description.world_entity import Body
 
-from .tf_transformations import quaternion_about_axis, quaternion_multiply
-from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence, Any, Iterable, Optional
+from .tf_transformations import quaternion_about_axis, quaternion_multiply, quaternion_matrix
+from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence, Any, Iterable
 
 from .datastructures.pose import PoseStamped
-from .local_transformer import LocalTransformer
 
 if TYPE_CHECKING:
-    from .world_concepts.world_object import Object
     from .robot_description import CameraDescription
+
+
+
+def link_pose_for_joint_config(
+        obj: Body,
+        joint_config: Dict[str, float]) -> PoseStamped:
+    """
+    Get the pose a link would be in if the given joint configuration would be applied to the object.
+    This is done by using the respective object in the prospection world and applying the joint configuration
+    to this one. After applying the joint configuration the link position is taken from there.
+
+    :param obj: The body for which the pose should be calculated
+    :param joint_config: Dict with the goal joint configuration
+    :return: The pose of the link after applying the joint configuration
+    """
+    reasoning_world = deepcopy(obj._world)
+    for joint_name, joint_pose in joint_config.items():
+        reasoning_world.state[reasoning_world.get_degree_of_freedom_by_name(joint_name).name].position = joint_pose
+    reasoning_world.notify_state_change()
+    pose = reasoning_world.get_body_by_name(obj.name).global_pose
+    return PoseStamped.from_spatial_type(pose)
 
 
 def get_rays_from_min_max(min_bound: Sequence[float], max_bound: Sequence[float], step_size_in_meters: float = 0.01) \
@@ -85,7 +108,7 @@ def get_rays_from_min_max(min_bound: Sequence[float], max_bound: Sequence[float]
     return np.stack((rays_start, rays_end), axis=-1)
 
 
-def chunks(lst: List, n: int) -> List:
+def chunks(lst: Union[List, np.ndarray], n: int) -> Iterator[List]:
     """
     Yield successive n-sized chunks from lst.
 
@@ -114,19 +137,6 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-
-
-def _apply_ik(robot: 'Object', pose_and_joint_poses: Tuple[PoseStamped, Dict[str, float]]) -> None:
-    """
-    Apllies a list of joint poses calculated by an inverse kinematics solver to a robot
-
-    :param robot: The robot the joint poses should be applied on
-    :param pose_and_joint_poses: The base pose and joint states as returned by the ik solver
-    :return: None
-    """
-    pose, joint_states = pose_and_joint_poses
-    robot.set_pose(pose)
-    robot.set_multiple_joint_positions(joint_states)
 
 
 class GeneratorList:
@@ -319,249 +329,6 @@ def get_axis_angle_between_two_vectors(v1: np.ndarray, v2: np.ndarray) -> Tuple[
     return axis, angle
 
 
-class RayTestUtils:
-
-    def __init__(self, ray_test_batch: Callable, object_id_to_name: Dict = None):
-        """
-        Initialize the ray test helper.
-        """
-        self.local_transformer = LocalTransformer()
-        self.ray_test_batch = ray_test_batch
-        self.object_id_to_name = object_id_to_name
-
-    def get_images_for_target(self, cam_pose: PoseStamped,
-                              camera_description: 'CameraDescription',
-                              camera_frame: str,
-                              size: int = 256,
-                              camera_min_distance: float = 0.1,
-                              camera_max_distance: int = 3,
-                              plot: bool = False) -> List[np.ndarray]:
-        """
-        Note: The returned color image is a repeated depth image in 3 channels.
-        """
-
-        # get the list of start positions of the rays.
-        rays_start_positions = self.get_camera_rays_start_positions(camera_description, camera_frame, cam_pose, size,
-                                                                    camera_min_distance).tolist()
-
-        # get the list of end positions of the rays
-        rays_end_positions = self.get_camera_rays_end_positions(camera_description, camera_frame, cam_pose, size,
-                                                                camera_max_distance).tolist()
-
-        # apply the ray test
-        ray_test_results = self.ray_test_batch(rays_start_positions, rays_end_positions, return_distance=True)
-
-        object_ids = [result.obj_id for result in ray_test_results]
-        distances = [result.distance for result in ray_test_results]
-        # construct the images/masks
-        segmentation_mask = self.construct_segmentation_mask_from_ray_test_object_ids(object_ids, size)
-        depth_image = self.construct_depth_image_from_ray_test_distances(distances, size) + camera_min_distance
-        color_depth_image = self.construct_color_image_from_depth_image(depth_image)
-
-        if plot:
-            self.plot_segmentation_mask(segmentation_mask)
-            self.plot_depth_image(depth_image)
-
-        return [color_depth_image, depth_image, segmentation_mask]
-
-    @staticmethod
-    def construct_segmentation_mask_from_ray_test_object_ids(object_ids: List[int], size: int) -> np.ndarray:
-        """
-        Construct a segmentation mask from the object ids returned by the ray test.
-
-        :param object_ids: The object ids.
-        :param size: The size of the grid.
-        :return: The segmentation mask.
-        """
-        return np.array(object_ids).squeeze(axis=1).reshape(size, size)
-
-    @staticmethod
-    def construct_depth_image_from_ray_test_distances(distances: List[float], size: int) -> np.ndarray:
-        """
-        Construct a depth image from the distances returned by the ray test.
-
-        :param distances: The distances.
-        :param size: The size of the grid.
-        :return: The depth image.
-        """
-        return np.array(distances).reshape(size, size)
-
-    @staticmethod
-    def construct_color_image_from_depth_image(depth_image: np.ndarray) -> np.ndarray:
-        """
-        Construct a color image from the depth image.
-
-        :param depth_image: The depth image.
-        :return: The color image.
-        """
-        min_distance = np.min(depth_image)
-        max_distance = np.max(depth_image)
-        normalized_depth_image = (depth_image - min_distance) * 255 / (max_distance - min_distance)
-        return np.repeat(normalized_depth_image[:, :, np.newaxis], 3, axis=2).astype(np.uint8)
-
-    def get_camera_rays_start_positions(self, camera_description: 'CameraDescription', camera_frame: str,
-                                        camera_pose: PoseStamped, size: int,
-                                        camera_min_distance: float) -> np.ndarray:
-
-        # get the start pose of the rays from the camera pose and minimum distance.
-        start_pose = self.get_camera_rays_start_pose(camera_description, camera_frame, camera_pose, camera_min_distance)
-
-        # get the list of start positions of the rays.
-        return np.repeat(np.array([start_pose.position.to_list()]), size * size, axis=0)
-
-    def get_camera_rays_start_pose(self, camera_description: 'CameraDescription', camera_frame: str, camera_pose: PoseStamped,
-                                   camera_min_distance: float) -> PoseStamped:
-        """
-        Get the start position of the camera rays, which is the camera pose shifted by the minimum distance of the
-        camera.
-
-        :param camera_description: The camera description.
-        :param camera_frame: The camera tf frame.
-        :param camera_pose: The camera pose.
-        :param camera_min_distance: The minimum distance from which the camera can see.
-        """
-        camera_transform = camera_pose.to_transform_stamped("camera_pose")
-        self.local_transformer.update_transforms([camera_transform])
-        camera_pose_in_camera_frame = PoseStamped(frame_id="camera_pose")
-        # camera_pose_in_camera_frame = self.local_transformer.transform_pose(camera_pose, camera_frame)
-        start_position = (np.array(camera_description.front_facing_axis) * camera_min_distance
-                          + np.array(camera_pose_in_camera_frame.position.to_list()))
-        start_pose = PoseStamped(start_position.tolist(), camera_pose_in_camera_frame.orientation.to_list(), "camera_pose")
-        return self.local_transformer.transform_pose(start_pose, "map")
-
-    def get_camera_rays_end_positions(self, camera_description: 'CameraDescription', camera_frame: str,
-                                      camera_pose: PoseStamped, size: int, camera_max_distance: float = 3.0) -> np.ndarray:
-        """
-        Get the end positions of the camera rays.
-
-        :param camera_description: The camera description.
-        :param camera_frame: The camera frame.
-        :param camera_pose: The camera pose.
-        :param size: The size of the grid.
-        :param camera_max_distance: The maximum distance of the camera.
-        :return: The end positions of the camera rays.
-        """
-        rays_horizontal_angles, rays_vertical_angles = self.construct_grid_of_camera_rays_angles(camera_description,
-                                                                                                 size)
-        rays_end_positions = self.get_end_positions_of_rays_from_angles_and_distance(rays_vertical_angles,
-                                                                                     rays_horizontal_angles,
-                                                                                     camera_max_distance)
-        return self.transform_points_from_camera_frame_to_world_frame(camera_pose, camera_frame, rays_end_positions)
-
-    @staticmethod
-    def transform_points_from_camera_frame_to_world_frame(camera_pose: PoseStamped, camera_frame: str,
-                                                          points: np.ndarray) -> np.ndarray:
-        """
-        Transform points from the camera frame to the world frame.
-
-        :param camera_pose: The camera pose.
-        :param camera_frame: The camera frame.
-        :param points: The points to transform.
-        :return: The transformed points.
-        """
-        cam_to_world_transform = camera_pose.to_transform_stamped("camera_pose")
-        return cam_to_world_transform.apply_transform_to_array_of_points(points)
-
-    @staticmethod
-    def get_end_positions_of_rays_from_angles_and_distance(vertical_angles: np.ndarray, horizontal_angles: np.ndarray,
-                                                           distance: float) -> np.ndarray:
-        """
-        Get the end positions of the rays from the angles and the distance.
-
-        :param vertical_angles: The vertical angles of the rays.
-        :param horizontal_angles: The horizontal angles of the rays.
-        :param distance: The distance of the rays.
-        :return: The end positions of the rays.
-        """
-        rays_end_positions_x = distance * np.cos(vertical_angles) * np.sin(horizontal_angles)
-        rays_end_positions_x = rays_end_positions_x.reshape(-1)
-        rays_end_positions_z = distance * np.cos(vertical_angles) * np.cos(horizontal_angles)
-        rays_end_positions_z = rays_end_positions_z.reshape(-1)
-        rays_end_positions_y = distance * np.sin(vertical_angles)
-        rays_end_positions_y = rays_end_positions_y.reshape(-1)
-        return np.stack((rays_end_positions_x, rays_end_positions_y, rays_end_positions_z), axis=1)
-
-    @staticmethod
-    def construct_grid_of_camera_rays_angles(camera_description: 'CameraDescription',
-                                             size: int) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Construct a 2D grid of camera rays angles.
-
-        :param camera_description: The camera description.
-        :param size: The size of the grid.
-        :return: The 2D grid of the horizontal and the vertical angles of the camera rays.
-        """
-        # get the camera fov angles
-        camera_horizontal_fov = camera_description.horizontal_angle
-        camera_vertical_fov = camera_description.vertical_angle
-
-        # construct a 2d grid of rays angles
-        rays_horizontal_angles = np.linspace(-camera_horizontal_fov / 2, camera_horizontal_fov / 2, size)
-        rays_horizontal_angles = np.tile(rays_horizontal_angles, (size, 1))
-        rays_vertical_angles = np.linspace(-camera_vertical_fov / 2, camera_vertical_fov / 2, size)
-        rays_vertical_angles = np.tile(rays_vertical_angles, (size, 1)).T
-        return rays_horizontal_angles, rays_vertical_angles
-
-    @staticmethod
-    def plot_segmentation_mask(segmentation_mask,
-                               object_id_to_name: Dict[int, str] = None):
-        """
-        Plot the segmentation mask with different colors for each object.
-
-        :param segmentation_mask: The segmentation mask.
-        :param object_id_to_name: The mapping from object id to object name.
-        """
-        if object_id_to_name is None:
-            object_id_to_name = {uid: str(uid) for uid in np.unique(segmentation_mask)}
-
-        # Create a custom color map
-        unique_ids = np.unique(segmentation_mask)
-        unique_ids = unique_ids[unique_ids != -1]  # Exclude -1 values
-
-        # Create a color map that assigns a unique color to each ID
-        colors = plt.cm.get_cmap('tab20', len(unique_ids))  # Use tab20 colormap for distinct colors
-        color_dict = {uid: colors(i) for i, uid in enumerate(unique_ids)}
-
-        # Map each ID to its corresponding color
-        mask_shape = segmentation_mask.shape
-        segmentation_colored = np.zeros((mask_shape[0], mask_shape[1], 3))
-
-        for uid in unique_ids:
-            segmentation_colored[segmentation_mask == uid] = color_dict[uid][:3]  # Ignore the alpha channel
-
-        # Create a colormap for the color bar
-        cmap = mcolors.ListedColormap([color_dict[uid][:3] for uid in unique_ids])
-        norm = mcolors.BoundaryNorm(boundaries=np.arange(len(unique_ids) + 1) - 0.5, ncolors=len(unique_ids))
-
-        # Plot the colored segmentation mask
-        fig, ax = plt.subplots()
-        _ = ax.imshow(segmentation_colored)
-        ax.axis('off')  # Hide axes
-        ax.set_title('Segmentation Mask with Different Colors for Each Object')
-
-        # Create color bar
-        cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, ticks=np.arange(len(unique_ids)))
-        cbar.ax.set_yticklabels(
-            [object_id_to_name[uid] for uid in unique_ids])  # Label the color bar with object IDs
-        cbar.set_label('Object Name')
-
-        plt.show()
-
-    @staticmethod
-    def plot_depth_image(depth_image):
-        # Plot the depth image
-        fig, ax = plt.subplots()
-        cax = ax.imshow(depth_image, cmap='viridis', vmin=0, vmax=np.max(depth_image))
-        ax.axis('off')  # Hide axes
-        ax.set_title('Depth Image')
-
-        # Create color bar
-        cbar = fig.colorbar(cax, ax=ax)
-        cbar.set_label('Depth Value')
-
-        plt.show()
-
-
 def wxyz_to_xyzw(wxyz: List[float]) -> List[float]:
     """
     Convert a quaternion from WXYZ to XYZW format.
@@ -652,11 +419,12 @@ def is_iterable(obj: Any) -> bool:
     return True
 
 
-def lazy_product(*iterables: Iterable) -> Iterable[Tuple]:
+def lazy_product(*iterables: Iterable, iter_names: List[str] = None) -> Iterable[Tuple]:
     """
     Lazily generate the cartesian product of the iterables.
 
     :param iterables: Iterable of iterables to construct product for.
+    :param iter_names: Optional names for the iterables for better error messages.
     :return: Iterable of tuples in the cartesian product.
     """
 
@@ -667,7 +435,7 @@ def lazy_product(*iterables: Iterable) -> Iterable[Tuple]:
         try:
             current_value.append(next(consumable_iterable))
         except StopIteration as e:
-            raise RuntimeError(f"No values in the iterable: {consumable_iterable} with attributes: {iterables[i].__dict__ if hasattr(iterables[i], '__dict__') else ''}")
+            raise RuntimeError(f"No values in the iterable: {consumable_iterable} for iterable '{iter_names[i] if iter_names else i}'")
 
     while True:
         yield tuple(current_value)
@@ -686,3 +454,23 @@ def lazy_product(*iterables: Iterable) -> Iterable[Tuple]:
                     current_value[index] = next(consumable_iterables[index])
                 except StopIteration as e:
                     raise StopIteration(f"No more values in the iterable: {iterables[index]}")
+
+
+def translate_pose_along_local_axis(pose: PoseStamped, axis: Union[List, np.ndarray], distance: float) -> PoseStamped:
+    """
+    Translate a pose along a given 3d vector (axis) by a given distance. The axis is given in the local coordinate
+    frame of the pose. The axis is normalized and then scaled by the distance.
+
+    :param pose: The pose that should be translated
+    :param axis: The local axis along which the translation should be performed
+    :param distance: The distance by which the pose should be translated
+
+    :return: The translated pose
+    """
+    normalized_translation_vector = np.array(axis) / np.linalg.norm(axis)
+
+    rot_matrix = quaternion_matrix(pose.orientation.to_list())[:3, :3]
+    translation_in_world = rot_matrix @ normalized_translation_vector
+    scaled_translation_vector = np.array(pose.position.to_list()) + translation_in_world * distance
+
+    return PoseStamped.from_list(list(scaled_translation_vector), pose.orientation.to_list(), pose.frame_id )

@@ -6,13 +6,11 @@ from geometry_msgs.msg import Vector3
 from owlready2 import Thing
 
 from ....robot_plans import PickUpAction, PickUpAction
-from ....local_transformer import LocalTransformer
-from ....datastructures.world import World
 from ....datastructures.pose import PoseStamped, TransformStamped
 from ....datastructures.enums import Arms, Grasp
 from ....robot_description import RobotDescription, KinematicChainDescription
 from ....designator import ObjectDesignatorDescription
-from ....ros import loginfo
+from ....logging import info
 
 
 class DualArmPickupAction(PickUpAction):
@@ -51,7 +49,7 @@ class DualArmPickupAction(PickUpAction):
         else:
             obj_desig = self.object_designator_description.resolve()
 
-        loginfo("Calculating closest gripper to object {}".format(obj_desig.name))
+        info("Calculating closest gripper to object {}".format(obj_desig.name))
 
         local_transformer = LocalTransformer()
 
@@ -65,11 +63,11 @@ class DualArmPickupAction(PickUpAction):
             object_T_gripper: PoseStamped = local_transformer.transform_pose(object_pose, gripper_frame)
             object_V_gripper: Vector3 = object_T_gripper.pose.position  # translation vector
             distance = norm(array([object_V_gripper.x, object_V_gripper.y, object_V_gripper.z]))
-            loginfo(f"Distance between {gripper} and {obj_desig.name}: {distance}")
+            info(f"Distance between {gripper} and {obj_desig.name}: {distance}")
             distances.append(distance)
 
         min_index = distances.index(min(distances))
         winner = self.gripper_list[min_index]
-        loginfo(f"Winner is {winner.arm_type.name} with distance {min(distances):.2f}")
+        info(f"Winner is {winner.arm_type.name} with distance {min(distances):.2f}")
 
         return PickUpAction(object_designator=obj_desig, arm=winner.arm_type, grasp=self.grasps[0])

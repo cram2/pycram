@@ -1,4 +1,4 @@
----
+from pycram.language import SequentialPlan---
 jupyter:
   jupytext:
     text_representation:
@@ -23,15 +23,15 @@ Since motion designators perform a motion on the robot, we need a robot which we
 BulletWorld as well as a PR2 robot.
 
 ```python
-from pycram.worlds.bullet_world import BulletWorld
-from pycram.world_concepts.world_object import Object
-from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import PoseStamped
-from pycrap.ontologies import Robot, Milk
+from pycram.testing import setup_world
+from pycram.datastructures.dataclasses import Context
+from semantic_digital_twin.robots.pr2 import PR2
 
-world = BulletWorld(WorldMode.DIRECT)
-pr2 = Object("pr2", Robot, "pr2.urdf")
-milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.5, 0, 1]))
+
+world = setup_world()
+pr2_view = PR2.from_world(world)
+
+context = Context(world, pr2_view)
 ```
 
 ## Move
@@ -44,15 +44,12 @@ designator.
 from pycram.datastructures.pose import PoseStamped
 from pycram.robot_plans.motions import MoveMotion
 from pycram.process_module import simulated_robot
+from pycram.language import SequentialPlan
 
 with simulated_robot:
     motion_description = MoveMotion(target=PoseStamped.from_list([1, 0, 0], [0, 0, 0, 1]))
 
-    motion_description.perform()
-```
-
-```python
-world.reset_world()
+    SequentialPlan(context, motion_description).perform()
 ```
 
 ## MoveTCP
@@ -66,9 +63,9 @@ from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms
 
 with simulated_robot:
-    motion_description = MoveTCPMotion(target=PoseStamped.from_list([0.5, 0.6, 0.6], [0, 0, 0, 1]), arm=Arms.LEFT)
+    motion_description = MoveTCPMotion(target=PoseStamped.from_list([0.5, 0.6, 0.6], [0, 0, 0, 1], world.root), arm=Arms.LEFT)
 
-    motion_description.perform()
+    SequentialPlan(context, motion_description).perform()
 ```
 
 ## Looking
@@ -81,9 +78,9 @@ from pycram.robot_plans.motions import LookingMotion
 from pycram.process_module import simulated_robot
 
 with simulated_robot:
-    motion_description = LookingMotion(target=PoseStamped.from_list([1, 1, 1], [0, 0, 0, 1]))
+    motion_description = LookingMotion(target=PoseStamped.from_list([1, 1, 1], [0, 0, 0, 1], world.root))
 
-    motion_description.perform()
+    SequentialPlan(context, motion_description).perform()
 ```
 
 ## Move Gripper
@@ -99,7 +96,7 @@ from pycram.datastructures.enums import Arms, GripperState
 with simulated_robot:
     motion_description = MoveGripperMotion(motion=GripperState.OPEN, gripper=Arms.LEFT)
 
-    motion_description.perform()
+    SequentialPlan(context, motion_description).perform()
 ```
 
 ## Detecting
@@ -112,23 +109,23 @@ technique and state of the detection. You can also optional specify a region in 
 Since we need an object that we can detect, we will spawn a milk for this.
 
 ```python
-from pycram.robot_plans.motions import DetectingMotion, LookingMotion
-from pycram.process_module import simulated_robot
-from pycram.datastructures.pose import PoseStamped
-from pycram.datastructures.enums import DetectionTechnique, DetectionState
-from pycram.designators.object_designator import BelieveObject
-
-with simulated_robot:
-    LookingMotion(target=PoseStamped.from_list([1.5, 0, 1], [0, 0, 0, 1])).perform()
-
-    motion_description = DetectingMotion(technique=DetectionTechnique.TYPES,
-                                         state=DetectionState.START,
-                                         object_designator_description=BelieveObject(types=[Milk]).resolve(),
-                                         region=None)
-
-    obj = motion_description.perform()
-
-    print(obj[0])
+# from pycram.robot_plans.motions import DetectingMotion, LookingMotion
+# from pycram.process_module import simulated_robot
+# from pycram.datastructures.pose import PoseStamped
+# from pycram.datastructures.enums import DetectionTechnique, DetectionState
+# from pycram.designators.object_designator import BelieveObject
+# 
+# with simulated_robot:
+#     LookingMotion(target=PoseStamped.from_list([1.5, 0, 1], [0, 0, 0, 1])).perform()
+# 
+#     motion_description = DetectingMotion(technique=DetectionTechnique.TYPES,
+#                                          state=DetectionState.START,
+#                                          object_designator_description=BelieveObject(types=[Milk]).resolve(),
+#                                          region=None)
+# 
+#     obj = motion_description.perform()
+# 
+#     print(obj[0])
 ```
 
 ## Move Arm Joints
@@ -143,27 +140,7 @@ from pycram.process_module import simulated_robot
 with simulated_robot:
     motion_description = MoveArmJointsMotion(right_arm_poses={"r_shoulder_pan_joint": -0.7})
 
-    motion_description.perform()
-```
-
-## World State Detecting
-
-World state detecting is also used to detect objects, however, the object is not required to be in the FOV of the robot.
-As long as the object is somewhere in the belief state (BulletWorld) a resolved object designator will be returned.
-
-Sine we want to detect something we will spawn an object that we can detect. If you already spawned the milk from the
-previous example, you can skip this step.
-
-```python
-from pycram.robot_plans.motions import WorldStateDetectingMotion
-from pycram.process_module import simulated_robot
-
-with simulated_robot:
-    motion_description = WorldStateDetectingMotion(object_type=Milk)
-
-    obj = motion_description.perform()
-
-    print(obj)
+    SequentialPlan(context, motion_description).perform()
 ```
 
 ## Move Joints
@@ -178,11 +155,5 @@ from pycram.process_module import simulated_robot
 with simulated_robot:
     motion_description = MoveJointsMotion(names=["torso_lift_joint", "r_shoulder_pan_joint"], positions=[0.2, -1.2])
 
-    motion_description.perform()
-```
-
-The following cell can be used after testing the examples, to close the BulletWorld.
-
-```python
-world.exit()
+    SequentialPlan(context, motion_description).perform()
 ```

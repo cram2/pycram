@@ -1,0 +1,55 @@
+name: Build Jupyter-Book documentation 📖
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - master
+      - dev
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+defaults:
+  run:
+    shell: bash
+    working-directory: .
+
+jobs:
+  test-and-build:
+    name: Build Jupyter-Book documentation
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout 🛎
+        uses: actions/checkout@v3
+
+      - name: Install Graphviz
+        run: |
+          sudo apt install graphviz graphviz-dev -y
+
+      - name: Update pip and setuptools 🍼
+        run: |
+          pip install -U pip setuptools
+
+      # ----------------------------------------------------------------------------------------------------------------
+
+      - name: Install Jupyter-Book  dependencies 🍼
+        uses: py-actions/py-dependency-install@v4
+        with:
+          path: "requirements.txt"
+
+      # ----------------------------------------------------------------------------------------------------------------
+      - name: Install Jupyter-Book  dependencies 📚
+        uses: py-actions/py-dependency-install@v4
+        with:
+          path: "doc/requirements.txt"
+
+      # ----------------------------------------------------------------------------------------------------------------
+      - name: Build Jupyter-Book  documentation 📝
+        working-directory: ./doc
+        run: |
+          cd source
+          jupyter-book build .

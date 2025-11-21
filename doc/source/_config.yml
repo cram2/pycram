@@ -7,7 +7,7 @@
 # Book settings
 title                       : PyCRAM # The title of the doc. Will be placed in the left navbar.
 author                      : Jonas Dech  # The author of the doc
-copyright                   : "2024"  # Copyright year to be placed in the footer
+copyright                   : "2025"  # Copyright year to be placed in the footer
 logo                        : "../images/pycram_logo.png"  # A path to the doc logo
 
 # Force re-execution of notebooks on each build.
@@ -50,6 +50,10 @@ sphinx:
     autosummary_generate: False
     html_js_files:
       - https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js
+    html_theme_options:
+      logo:
+        image_light: ../images/new_pycram_logo_clean.svg
+        image_dark: ../images/new_pycram_logo_clean_dark.svg
     autoapi_dirs: ['../../src']
     autoapi_add_toctree_entry: True
     mathjax_path: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

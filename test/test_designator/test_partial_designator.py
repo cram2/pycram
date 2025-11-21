@@ -3,16 +3,16 @@ import unittest
 from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.partial_designator import PartialDesignator
 from pycram.datastructures.pose import PoseStamped
-from pycram.testing import BulletWorldTestCase
+from pycram.language import SequentialPlan
+from pycram.testing import ApartmentWorldTestCase
 from pycram.robot_plans import PickUpAction, PickUpAction, SetGripperAction, \
     MoveTorsoAction, NavigateAction, MoveTorsoActionDescription, NavigateActionDescription, PickUpActionDescription
 from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import Arms, Grasp, GripperState, TorsoState, ApproachDirection, VerticalAlignment
-from pycrap.ontologies import Milk
 from pycram.utils import is_iterable, lazy_product
 from pycram.process_module import simulated_robot
 
-class TestPartialDesignator(BulletWorldTestCase):
+class TestPartialDesignator(ApartmentWorldTestCase):
     def test_partial_desig_construction(self):
         test_object = BelieveObject(names=["milk"])
         partial_desig = PartialDesignator(PickUpAction, test_object, arm=Arms.RIGHT)
@@ -59,9 +59,7 @@ class TestPartialDesignator(BulletWorldTestCase):
         self.assertEqual({"gripper": Arms.LEFT, "motion": GripperState.OPEN}, list(permutations)[0])
 
     def test_partial_desig_iter(self):
-        test_object = BelieveObject(names=["milk"])
-        test_object_resolved = test_object.resolve()
-        partial_desig =  PartialDesignator(PickUpAction, test_object, arm=[Arms.RIGHT, Arms.LEFT])
+        partial_desig =  PartialDesignator(PickUpAction, self.world.get_body_by_name("milk.stl"), arm=[Arms.RIGHT, Arms.LEFT])
         grasp_description_front = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
         grasp_description_top = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
         performables = list(partial_desig(grasp_description=[grasp_description_front,grasp_description_top]))
@@ -69,43 +67,42 @@ class TestPartialDesignator(BulletWorldTestCase):
         self.assertTrue(all([isinstance(p, PickUpAction) for p in performables]))
         self.assertEqual([p.arm for p in performables], [Arms.RIGHT, Arms.RIGHT, Arms.LEFT, Arms.LEFT])
         self.assertEqual([p.grasp_description for p in performables], [grasp_description_front, grasp_description_top, grasp_description_front, grasp_description_top])
-        self.assertEqual([p.object_designator for p in performables], [test_object_resolved] * 4)
+        self.assertEqual([p.object_designator for p in performables], [self.world.get_body_by_name("milk.stl")] * 4)
 
-class TestPartialActions(BulletWorldTestCase):
+class TestPartialActions(ApartmentWorldTestCase):
 
     def test_partial_movetorso_action(self):
         move1 = MoveTorsoActionDescription(TorsoState.HIGH).resolve()
         self.assertEqual(move1.torso_state, TorsoState.HIGH)
-        move2 = MoveTorsoActionDescription([TorsoState.HIGH, TorsoState.MID]).root.designator_ref
+        move2 = MoveTorsoActionDescription([TorsoState.HIGH, TorsoState.MID])
         for action in move2:
             self.assertTrue(action.torso_state in [TorsoState.HIGH, TorsoState.MID])
 
     def test_partial_navigate_action_perform(self):
         with simulated_robot:
-            move1 = NavigateActionDescription(PoseStamped.from_list([1, 0, 0])).resolve().perform()
-            self.assertEqual(self.robot.pose.position.to_list(), [1, 0, 0])
+            move1 = SequentialPlan(self.context,  NavigateActionDescription(PoseStamped.from_list([1, 0, 0], frame=self.world.root)))
+            move1.perform()
+            self.assertEqual(list(self.robot_view.root.global_pose.to_np()[:3, 3]), [1, 0, 0])
 
     def test_partial_navigate_action_multiple(self):
-        nav = NavigateActionDescription([PoseStamped.from_list([1, 0, 0]), PoseStamped.from_list([2, 0, 0]), PoseStamped.from_list([3, 0, 0])])
+        nav = NavigateActionDescription([PoseStamped.from_list( [1, 0, 0], frame=self.world.root), PoseStamped.from_list( [2, 0, 0], frame=self.world.root), PoseStamped.from_list([3, 0, 0], frame=self.world.root)])
         nav_goals = [[1, 0, 0], [2, 0, 0], [3, 0, 0]]
-        for i, action in enumerate(nav.root.designator_ref):
+        for i, action in enumerate(nav):
             with simulated_robot:
-                action.perform()
-                self.assertEqual(self.robot.pose.position.to_list(), nav_goals[i])
+                SequentialPlan(self.context,  action).perform()
+                self.assertEqual(nav_goals[i], list(self.robot_view.root.global_pose.to_np()[:3, 3]) )
 
     def test_partial_pickup_action(self):
-        milk_desig = BelieveObject(names=["milk"])
         grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
-        pick = PickUpActionDescription(milk_desig, [Arms.LEFT, Arms.RIGHT], grasp_description)
+        pick = PickUpActionDescription(self.world.get_body_by_name("milk.stl"), [Arms.LEFT, Arms.RIGHT], grasp_description)
         pick_action = pick.resolve()
-        self.assertEqual(pick_action.object_designator.obj_type, Milk)
+        self.assertEqual(pick_action.object_designator, self.world.get_body_by_name("milk.stl"))
         self.assertEqual(pick_action.arm, Arms.LEFT)
         self.assertEqual(pick_action.grasp_description, grasp_description)
 
     def test_partial_pickup_action_insert_param(self):
-        milk_desig = BelieveObject(names=["milk"])
         grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
-        pick = PickUpActionDescription(milk_desig, [Arms.LEFT, Arms.RIGHT]).root.designator_ref
+        pick = PickUpActionDescription(self.world.get_body_by_name("milk.stl"), [Arms.LEFT, Arms.RIGHT])
         pick_action = pick(grasp_description=grasp_description).resolve()
         self.assertEqual(pick_action.grasp_description, grasp_description)
 

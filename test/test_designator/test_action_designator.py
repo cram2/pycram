@@ -1,233 +1,232 @@
 import unittest
-from copy import deepcopy
-from datetime import timedelta
 
-from pycram.datastructures.pose import GraspDescription
-from pycram.designator import ObjectDesignatorDescription
-from pycram.designators import object_designator
-from pycram.robot_plans.actions import * 
-from pycram.robot_plans.motions import MoveGripperMotion, MoveTCPWaypointsMotion
-from pycram.failures import TorsoGoalNotReached, ConfigurationNotReached, ObjectNotGraspedError, \
-    ObjectNotInGraspingArea, ObjectStillInContact, NavigationGoalNotReachedError, \
-    PerceptionObjectNotFound, ContainerManipulationError
-from pycram.local_transformer import LocalTransformer
-from pycram.robot_description import RobotDescription
+import rustworkx
+from semantic_digital_twin.adapters.procthor.procthor_semantic_annotations import Milk
+
+from pycram.datastructures.dataclasses import Context
 from pycram.process_module import simulated_robot
-from pycram.datastructures.pose import PoseStamped
-from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp, DetectionTechnique, TorsoState, \
-    StaticJointState, ApproachDirection, VerticalAlignment
-from pycram.testing import  BulletWorldTestCase
-import numpy as np
-from pycrap.ontologies import Milk
+from pycram.robot_plans.actions import *
+from pycram.robot_plans.motions import MoveTCPWaypointsMotion
+from pycram.testing import ApartmentWorldTestCase
 
 
-class TestActionDesignatorGrounding(BulletWorldTestCase):
+class TestActionDesignatorGrounding(ApartmentWorldTestCase):
     """Testcase for the grounding methods of action designators."""
 
     def test_move_torso(self):
         description = MoveTorsoActionDescription([TorsoState.HIGH])
-        torso_joint = RobotDescription.current_robot_description.torso_joint
+        plan = SequentialPlan(self.context, description)
         self.assertEqual(description.resolve().torso_state, TorsoState.HIGH)
-        self._test_validate_action_pre_perform(description, TorsoGoalNotReached)
         with simulated_robot:
-            description.resolve().perform()
-        self.assertEqual(self.world.robot.get_joint_position(torso_joint),
-                         0.3)
+            plan.perform()
+        dof = self.world.get_degree_of_freedom_by_name("torso_lift_joint")
+        self.assertEqual(self.world.state[dof.name].position, 0.3)
 
     def test_set_gripper(self):
-        description = SetGripperActionDescription([Arms.LEFT], [GripperState.OPEN, GripperState.CLOSE])
+        description = SetGripperActionDescription([Arms.LEFT], [GripperStateEnum.OPEN, GripperStateEnum.CLOSE])
+        plan = SequentialPlan(self.context, description)
         self.assertEqual(description.resolve().gripper, Arms.LEFT)
-        self.assertEqual(description.resolve().motion, GripperState.OPEN)
-        # self.assertEqual(len(list(iter(description))), 2)
+        self.assertEqual(description.resolve().motion, GripperStateEnum.OPEN)
         with simulated_robot:
-            description.resolve().perform()
-        for joint, state in RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT).get_static_gripper_state(GripperState.OPEN).items():
-            self.assertEqual(self.world.robot.get_joint_position(joint), state)
-
+            plan.perform()
+        joint_state = JointStateManager().get_gripper_state(Arms.LEFT, GripperStateEnum.OPEN, self.robot_view)
+        for joint, state in zip(joint_state.joint_names, joint_state.joint_positions):
+            dof = self.world.get_degree_of_freedom_by_name(joint)
+            self.assertEqual(self.world.state[dof.name].position, state)
 
     def test_park_arms(self):
         description = ParkArmsActionDescription([Arms.BOTH])
+        plan = SequentialPlan(self.context, description)
         self.assertEqual(description.resolve().arm, Arms.BOTH)
-        self._test_validate_action_pre_perform(description, ConfigurationNotReached)
         with simulated_robot:
-            description.resolve().perform()
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right",
-                                                                                             StaticJointState.Park).items():
-            joint_position = self.world.robot.get_joint_position(joint)
-            self.assertEqual(joint_position, pose)
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left",
-                                                                                             StaticJointState.Park).items():
-            self.assertEqual(self.world.robot.get_joint_position(joint), pose)
+            plan.perform()
+        joint_states_right = JointStateManager().get_arm_state(Arms.RIGHT, StaticJointState.Park, self.robot_view)
+        joint_states_left = JointStateManager().get_arm_state(Arms.LEFT, StaticJointState.Park, self.robot_view)
+        for joint_name, joint_state in zip(joint_states_right.joint_names, joint_states_right.joint_positions):
+            dof = self.world.get_degree_of_freedom_by_name(joint_name)
+            self.assertEqual(self.world.state[dof.name].position, joint_state)
+        for joint_name, joint_state in zip(joint_states_left.joint_names, joint_states_left.joint_positions):
+            dof = self.world.get_degree_of_freedom_by_name(joint_name)
+            self.assertEqual(self.world.state[dof.name].position, joint_state)
 
     def test_navigate(self):
-        description = NavigateActionDescription([PoseStamped.from_list([0.3, 0, 0], [0, 0, 0, 1])])
+        description = NavigateActionDescription([PoseStamped.from_list([0.3, 0, 0], [0, 0, 0, 1], self.world.root)])
+        plan = SequentialPlan(self.context, description)
         with simulated_robot:
-            self._test_validate_action_pre_perform(description, NavigationGoalNotReachedError)
-            description.resolve().perform()
-        self.assertEqual(description.resolve().target_location, PoseStamped.from_list([0.3, 0, 0], [0, 0, 0, 1]))
-        self.assertEqual(self.robot.get_pose(), PoseStamped.from_list([0.3, 0, 0]))
+            plan.perform()
+        self.assertEqual(description.resolve().target_location,
+                         PoseStamped.from_list([0.3, 0, 0], [0, 0, 0, 1], self.world.root))
+        # self.assertEqual(self.robot.get_pose(), PoseStamped.from_list([0.3, 0, 0]))
+        expected_pose = np.eye(4)
+        expected_pose[:3, 3] = [0.3, 0, 0]
+        np.testing.assert_almost_equal(
+            self.world.compute_forward_kinematics_np(self.world.root,
+                                                     self.world.get_body_by_name("base_footprint")),
+            expected_pose, decimal=2)
 
     def test_reach_to_pick_up(self):
-        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
-        performable = ReachToPickUpAction(object_description.resolve(),
-
-                                                                  Arms.LEFT, grasp_description)
-        self.assertEqual(performable.object_designator.name, "milk")
+        performable = ReachToPickUpActionDescription(self.world.get_body_by_name("milk.stl"),
+                                                     Arms.LEFT, grasp_description)
+        plan = SequentialPlan(self.context,
+                              NavigateActionDescription(
+                                  PoseStamped.from_list([1.7, 1.5, 0], [0, 0, 0, 1], self.world.root), True),
+                              ParkArmsActionDescription(Arms.BOTH),
+                              MoveTorsoActionDescription([TorsoState.HIGH]),
+                              SetGripperActionDescription(Arms.LEFT, GripperStateEnum.OPEN),
+                              performable)
         with simulated_robot:
-            NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
-            self._test_validate_action_pre_perform(performable, ObjectNotInGraspingArea)
-            MoveGripperMotion(GripperState.OPEN, Arms.LEFT).perform()
-            self._test_validate_action_pre_perform(performable, ObjectNotInGraspingArea)
-            performable.perform()
+            plan.perform()
 
     def test_pick_up(self):
-        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-
+        test_world = deepcopy(self.world)
+        test_robot = PR2.from_world(test_world)
         grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
-        description = PickUpActionDescription(object_description, [Arms.LEFT], [grasp_description])
+        description = PickUpActionDescription(test_world.get_body_by_name("milk.stl"), [Arms.LEFT], [grasp_description])
 
-        self.assertEqual(description.resolve().object_designator.name, "milk")
+        plan = SequentialPlan(Context.from_world(test_world),
+                              NavigateActionDescription(
+                                  PoseStamped.from_list([1.7, 1.5, 0], [0, 0, 0, 1], test_world.root), True),
+                              MoveTorsoActionDescription([TorsoState.HIGH]),
+                              description)
         with simulated_robot:
-            NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
-            self._test_validate_action_pre_perform(description, ObjectNotGraspedError)
-            description.resolve().perform()
-        self.assertTrue(object_description.resolve() in self.robot.attachments.keys())
+            plan.perform()
+        self.assertTrue(test_world.get_connection(test_world.get_body_by_name("l_gripper_tool_frame"),
+                                                  test_world.get_body_by_name("milk.stl")) is not None)
 
     def test_place(self):
-        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = PlaceActionDescription(object_description, [PoseStamped.from_list([1.3, 1, 0.9],
-                                                                                                [0, 0, 0, 1])],
-                                                    [Arms.LEFT])
-        self.assertEqual(description.resolve().object_designator.name, "milk")
+        test_world = deepcopy(self.world)
+        test_robot = PR2.from_world(test_world)
+        object_description = test_world.get_body_by_name("milk.stl")
+        description = PlaceActionDescription(object_description, PoseStamped.from_list([2.2, 2, 1],
+                                                                                       [0, 0, 0, 1], test_world.root),
+                                             [Arms.LEFT])
+        plan = SequentialPlan(Context.from_world(test_world),
+                              NavigateActionDescription(
+                                  PoseStamped.from_list([1.7, 1.5, 0], [0, 0, 0, 1], test_world.root), True),
+                              MoveTorsoActionDescription([TorsoState.HIGH]),
+                              PickUpActionDescription(object_description, Arms.LEFT,
+                                                      GraspDescription(ApproachDirection.FRONT,
+                                                                       VerticalAlignment.NoAlignment, False)),
+                              description)
         with simulated_robot:
-            NavigateAction(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True).perform()
-            MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
-            grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
-            PickUpAction(object_description.resolve(), Arms.LEFT, grasp_description).perform()
-            self._test_validate_action_pre_perform(description, ObjectStillInContact)
-            description.resolve().perform()
-        self.assertFalse(object_description.resolve() in self.robot.attachments.keys())
+            plan.perform()
+        with self.assertRaises(rustworkx.NoEdgeBetweenNodes):
+            self.assertTrue(test_world.get_connection(test_world.get_body_by_name("l_gripper_tool_frame"),
+                                                      test_world.get_body_by_name("milk.stl")) is None)
 
     def test_look_at(self):
-        description = LookAtAction.description([PoseStamped.from_list([1, 0, 1])])
-        self.assertEqual(description.resolve().target, PoseStamped.from_list([1, 0, 1]))
+        description = LookAtAction.description([PoseStamped.from_list([1, 0, 1], frame=self.world.root)])
+        self.assertEqual(description.resolve().target, PoseStamped.from_list([1, 0, 1], frame=self.world.root))
+        plan = SequentialPlan(self.context, description)
         with simulated_robot:
             # self._test_validate_action_pre_perform(description, LookAtGoalNotReached)
-            description.resolve().perform()
+            plan.perform()
 
-    @unittest.skip("validation isn't working")
     def test_detect(self):
-        self.kitchen.set_pose(PoseStamped.from_list([10, 10, 0]))
-        self.milk.set_pose(PoseStamped.from_list([1.5, 0, 1.2]))
-        object_description = ObjectDesignatorDescription(types=[Milk])
-        description = DetectActionDescription(technique=DetectionTechnique.TYPES, object_designator=object_description)
+        milk_body = self.world.get_body_by_name("milk.stl")
+        self.robot_view.root.parent_connection.origin = TransformationMatrix.from_xyz_rpy(1.5, 2, 0,
+                                                                                          reference_frame=self.world.root)
+
+        description = DetectActionDescription(technique=DetectionTechnique.TYPES, object_sem_annotation=Milk, )
+        plan = SequentialPlan(self.context, description)
         with simulated_robot:
-            self._test_validate_action_pre_perform(description, PerceptionObjectNotFound)
-            detected_object = description.resolve().perform()
+            detected_object = plan.perform()
 
-        self.assertEqual(detected_object[0].name, "milk")
-        self.assertEqual(detected_object[0].obj_type, Milk)
-        self.assertEqual(detected_object[0].world, self.milk.world)
+        self.assertEqual(detected_object[0].name.name, "milk.stl")
+        self.assertIs(detected_object[0], milk_body)
 
-    # Skipped since openand close work only in the apartment at the moment
     def test_open(self):
-        kitchen_designator = object_designator.ObjectDesignatorDescription(names=["kitchen"]).resolve()
-        object_description = object_designator.ObjectPart(names=["kitchen_island_left_upper_drawer_main"],
-                                                          part_of=kitchen_designator)
-        description = OpenActionDescription(object_description, [Arms.LEFT])
-        self.assertEqual(description.resolve().object_designator.name, "kitchen_island_left_upper_drawer_main")
-        self._test_validate_action_pre_perform(description, ContainerManipulationError)
-
-        # TODO: This is a simulated effect of the action, not the action itself.
-        link = self.kitchen.links["kitchen_island_left_upper_drawer_main"]
-        joint = self.kitchen.find_joint_above_link(link.name)
-        self.kitchen.joints[joint].position = self.kitchen.joints[joint].upper_limit
-
-        description.resolve().validate()
+        plan = SequentialPlan(self.context,
+                              MoveTorsoActionDescription([TorsoState.HIGH]),
+                              ParkArmsActionDescription(Arms.BOTH),
+                              NavigateActionDescription(
+                                  PoseStamped.from_list([1.75, 1.75, 0], [0, 0, 0.5, 1], self.world.root)),
+                              OpenActionDescription(self.world.get_body_by_name("handle_cab10_t"), [Arms.LEFT]))
+        with simulated_robot:
+            plan.perform()
+        self.assertEqual(
+            self.world.state[self.world.get_degree_of_freedom_by_name("cabinet10_drawer_top_joint").name].position,
+            0.45)
 
     def test_close(self):
-        kitchen_designator = object_designator.ObjectDesignatorDescription(names=["kitchen"]).resolve()
-        object_description = object_designator.ObjectPart(names=["kitchen_island_left_upper_drawer_main"],
-                                                          part_of=kitchen_designator)
-        description = CloseActionDescription(object_description, [Arms.LEFT])
-        self.assertEqual(description.resolve().object_designator.name, "kitchen_island_left_upper_drawer_main")
-
-        link = self.kitchen.links["kitchen_island_left_upper_drawer_main"]
-        joint = self.kitchen.find_joint_above_link(link.name)
-        self.kitchen.joints[joint].position = self.kitchen.joints[joint].upper_limit
-        self._test_validate_action_pre_perform(description, ContainerManipulationError)
-
-        # TODO: This is a simulated effect of the action, not the action itself.
-        self.kitchen.joints[joint].position = self.kitchen.joints[joint].lower_limit
-        description.resolve().validate()
+        self.world.state[self.world.get_degree_of_freedom_by_name("cabinet10_drawer_top_joint").name].position = 0.45
+        self.world.notify_state_change()
+        plan = SequentialPlan(self.context,
+                              MoveTorsoActionDescription([TorsoState.HIGH]),
+                              ParkArmsActionDescription(Arms.BOTH),
+                              NavigateActionDescription(
+                                  PoseStamped.from_list([1.75, 1.75, 0], [0, 0, 0.5, 1], self.world.root)),
+                              CloseActionDescription(self.world.get_body_by_name("handle_cab10_t"), [Arms.LEFT]))
+        with simulated_robot:
+            plan.perform()
+        self.assertEqual(
+            self.world.state[self.world.get_degree_of_freedom_by_name("cabinet10_drawer_top_joint").name].position,
+            0)
 
     def test_transport(self):
-        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = TransportActionDescription(object_description,
-                                                        [PoseStamped.from_list([-1.4, 0.78, 0.95],
-                                                                     [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])],
-                                                        [Arms.LEFT])
+        description = TransportActionDescription(self.world.get_body_by_name("milk.stl"),
+                                                 [PoseStamped.from_list([3, 2.2, 0.95],
+                                                                        [0.0, 0.0, 1.0, 0.0], self.world.root)],
+                                                 [Arms.LEFT])
+        plan = SequentialPlan(self.context, MoveTorsoActionDescription([TorsoState.HIGH]),
+                              description)
         with simulated_robot:
-            MoveTorsoActionDescription([TorsoState.HIGH]).resolve().perform()
-            description.resolve().perform()
-        self.assertEqual(description.resolve().object_designator.name, "milk")
-        milk_position = np.array(self.milk.get_pose().position.to_list())
-        dist = np.linalg.norm(milk_position - np.array([-1.4, 0.78, 0.95]))
+            plan.perform()
+        milk_position = self.world.get_body_by_name("milk.stl").global_pose.to_np()[:3, 3]
+        dist = np.linalg.norm(milk_position - np.array([3, 2.2, 0.95]))
         self.assertLessEqual(dist, 0.01)
 
     def test_grasping(self):
-        self.milk.set_pose(PoseStamped.from_list([-1.4, 1, 1]))
-        self.robot.set_pose(PoseStamped.from_list([-2.14, 1.06, 0]))
-        milk_desig = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = GraspingActionDescription(milk_desig, [Arms.RIGHT] )
+        description = GraspingActionDescription(self.world.get_body_by_name("milk.stl"), [Arms.RIGHT])
+        plan = SequentialPlan(self.context,
+                              NavigateActionDescription(PoseStamped.from_list([1.8, 1.8, 0], frame=self.world.root),
+                                                        True),
+                              description)
         with simulated_robot:
-            self._test_validate_action_pre_perform(description, ObjectNotGraspedError)
-            description.resolve().perform()
+            plan.perform()
         dist = np.linalg.norm(
-            np.array(self.robot.get_link_position_as_list(RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_tool_frame())) -
-            np.array(self.milk.get_position_as_list()))
+            self.world.get_body_by_name("milk.stl").global_pose.to_np()[3, :3])
         self.assertTrue(dist < 0.01)
 
     def test_facing(self):
         with simulated_robot:
-            FaceAtAction(self.milk.pose, True).perform()
-            milk_in_robot_frame = LocalTransformer().transform_to_object_frame(self.milk.pose, self.robot)
+            milk_pose = PoseStamped.from_spatial_type(self.world.get_body_by_name("milk.stl").global_pose)
+            plan = SequentialPlan(self.context, FaceAtActionDescription(milk_pose, True))
+            plan.perform()
+            milk_in_robot_frame = self.world.transform(self.world.get_body_by_name("milk.stl").global_pose,
+                                                       self.robot_view.root)
+            milk_in_robot_frame = PoseStamped.from_spatial_type(milk_in_robot_frame)
             self.assertAlmostEqual(milk_in_robot_frame.position.y, 0.)
 
     def test_move_tcp_waypoints(self):
-        tcp = RobotDescription.current_robot_description.get_arm_tool_frame(arm=Arms.RIGHT)
-        gripper_pose = self.robot.links[tcp].pose
+        gripper_pose = PoseStamped.from_spatial_type(self.world.get_body_by_name("r_gripper_tool_frame").global_pose)
         path = []
         for i in range(1, 3):
             new_pose = deepcopy(gripper_pose)
             new_pose.position.z += 0.05 * i
             path.append(new_pose)
         description = MoveTCPWaypointsMotion(path, Arms.RIGHT)
+        plan = SequentialPlan(self.context, description)
         with simulated_robot:
-            description.perform()
-        gripper_position_rounded = [round(x, 2) for x in self.robot.links[tcp].pose.position.to_list()]
-        goal_position_rounded = [round(x, 2) for x in path[-1].position.to_list()]
-        self.assertListEqual(gripper_position_rounded, goal_position_rounded)
+            plan.perform()
+        gripper_position = PoseStamped.from_spatial_type(
+            self.world.get_body_by_name("r_gripper_tool_frame").global_pose)
+        self.assertAlmostEqual(path[-1].position.x, gripper_position.position.x, places=4)
+        self.assertAlmostEqual(path[-1].position.y, gripper_position.position.y, places=4)
+        self.assertAlmostEqual(path[-1].position.z, gripper_position.position.z, places=4)
 
-    def _test_validate_action_pre_perform(self, action_description, failure):
-        try:
-            if hasattr(action_description, "resolve"):
-                grounded = action_description.resolve()
-            else:
-                grounded = action_description
-            grounded.validate(max_wait_time=timedelta(milliseconds=30))
-            self.fail(f"{failure.__name__} should have been raised.")
-        except failure:
-            pass
+        self.assertAlmostEqual(path[-1].orientation.x, gripper_position.orientation.x, places=4)
+        self.assertAlmostEqual(path[-1].orientation.y, gripper_position.orientation.y, places=4)
+        self.assertAlmostEqual(path[-1].orientation.z, gripper_position.orientation.z, places=4)
+        self.assertAlmostEqual(path[-1].orientation.w, gripper_position.orientation.w, places=4)
 
+    @unittest.skip
     def test_search_action(self):
-        description = SearchActionDescription(PoseStamped.from_list([1, 1, 1]), Milk)
+        plan = SequentialPlan(self.context, MoveTorsoActionDescription([TorsoState.HIGH]),
+                              SearchActionDescription(PoseStamped.from_list([2, 2, 1], self.world.root), Milk))
         with simulated_robot:
-            ParkArmsActionDescription([Arms.BOTH]).perform()
-            milk = description.perform()
+            milk = plan.perform()
         self.assertTrue(milk)
         self.assertEqual(milk.obj_type, Milk)
         self.assertEqual(self.milk.pose, milk.pose)

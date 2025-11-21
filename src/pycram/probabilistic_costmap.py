@@ -2,15 +2,20 @@ from enum import Enum, auto
 from functools import cached_property
 
 import numpy as np
+import logging
+
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.shape_collection import BoundingBoxCollection
+
 from .tf_transformations import quaternion_from_euler
 from random_events.interval import closed_open
 from typing_extensions import Optional, Type
 
-from .datastructures.world import World
 from .costmaps import Costmap, OccupancyCostmap, VisibilityCostmap
 import matplotlib.colorbar
 from .datastructures.pose import PoseStamped
-from .ros import create_publisher, Duration, loginfo
+from .ros import create_publisher, Duration
 from .units import meter
 
 from pint import Quantity
@@ -19,13 +24,14 @@ from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import P
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
 
+logger = logging.getLogger(__name__)
+
 try:
     from std_msgs.msg import ColorRGBA
     from visualization_msgs.msg import Marker, MarkerArray
 except ImportError:
-    loginfo("Could not import visualization_msgs.msg.Marker and std_msgs.msg.ColorRGBA. "
+    logger.info("Could not import visualization_msgs.msg.Marker and std_msgs.msg.ColorRGBA. "
             "This is probably because you are not running ROS.")
-
 
 
 class Filter(Enum):
@@ -72,9 +78,10 @@ class ProbabilisticCostmap:
                  size: Quantity = 2 * meter,
                  max_cells = 10000,
                  costmap_type: Type[Costmap] = OccupancyCostmap,
-                 world: Optional[World] = None):
+                 world: Optional[World] = None,
+                 robot: AbstractRobot = None):
 
-        self.world = world if world else World.current_world
+        self.world = world
         self.origin = origin
         self.size = size
 
@@ -83,17 +90,17 @@ class ProbabilisticCostmap:
         resolution = self.size.to(meter) / number_of_cells
 
         if costmap_type == OccupancyCostmap:
-            robot_bounding_box = self.world.robot.get_axis_aligned_bounding_box()
+            robot_bounding_box = BoundingBoxCollection([body.collision.as_bounding_box_collection_in_frame(self.world.root).bounding_box() for body in robot.bodies]).bounding_box()
             distance_to_obstacle = max(robot_bounding_box.width, robot_bounding_box.depth) / 2
             self.costmap = OccupancyCostmap(
                 origin=self.origin,
                 distance_to_obstacle=distance_to_obstacle,
                 size=number_of_cells,
                 resolution=resolution.magnitude,
-                from_ros=False,
-                world = self.world)
+                world = self.world,
+                robot_view=robot)
         elif costmap_type == VisibilityCostmap:
-            camera = list(self.world.robot_description.cameras.values())[0]
+            camera = robot.sensors[0]
             self.costmap = VisibilityCostmap(
                 min_height=camera.minimal_height, max_height=camera.maximal_height, size=number_of_cells,
                 resolution=resolution.magnitude, origin=self.origin, world=self.world)
@@ -120,10 +127,6 @@ class ProbabilisticCostmap:
         """
         Create a probabilistic circuit from the costmap.
         """
-        # self.distribution = fully_factorized([self.x, self.y], {self.x: self.origin.position.x,
-        #                                                     self.y: self.origin.position.y},
-        #                                      {self.x: 1, self.y: 1})
-        # self.distribution, _ = self.distribution.conditional(self.create_event_from_map())
         self.distribution = uniform_measure_of_event(self.create_event_from_map())
 
     def sample_to_pose(self, sample: np.ndarray) -> PoseStamped:

@@ -2,11 +2,9 @@ from dataclasses import dataclass
 
 from .base import BaseMotion
 from ...datastructures.pose import PoseStamped
-from ...plan import with_plan
 from ...process_module import ProcessModuleManager
 
 
-@with_plan
 @dataclass
 class MoveMotion(BaseMotion):
     """
@@ -24,11 +22,10 @@ class MoveMotion(BaseMotion):
     """
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         return pm_manager.navigate().execute(self)
 
 
-@with_plan
 @dataclass
 class LookingMotion(BaseMotion):
     """
@@ -37,5 +34,5 @@ class LookingMotion(BaseMotion):
     target: PoseStamped
 
     def perform(self):
-        pm_manager = ProcessModuleManager().get_manager()
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         return pm_manager.looking().execute(self)

@@ -51,10 +51,6 @@ class FindBodyInRegionMethod(Enum):
     """
 
 
-class Frame(Enum):
-    Map = "map"
-
-
 class StaticJointState(Enum):
     Park = "park"
 
@@ -79,8 +75,11 @@ class ExecutionType(Enum):
     SEMI_REAL = auto()
 
 
-class Arms(int, Enum):
+class Arms(IntEnum):
     """Enum for Arms."""
+    # LEFT = "left"
+    # RIGHT = "right"
+    # BOTH = "both"
     LEFT = 0
     RIGHT = 1
     BOTH = 2
@@ -154,6 +153,13 @@ class ApproachDirection(Grasp, Enum):
     BACK = (AxisIdentifier.X, 1)
     RIGHT = (AxisIdentifier.Y, -1)
     LEFT = (AxisIdentifier.Y, 1)
+
+    @property
+    def axis(self) -> AxisIdentifier:
+        """
+        Returns the axis of the approach direction.
+        """
+        return self.value[0]
 
 class VerticalAlignment(Grasp, Enum):
     """

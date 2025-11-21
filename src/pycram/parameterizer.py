@@ -1,4 +1,3 @@
-import copy
 import itertools
 from dataclasses import dataclass, field
 from enum import Enum
@@ -13,15 +12,18 @@ from random_events.product_algebra import Event, SimpleEvent
 from random_events.set import Set
 from random_events.utils import recursive_subclasses
 from random_events.variable import Symbolic, Integer, Variable, Continuous
+from semantic_digital_twin.datastructures.variables import SpatialVariables
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.spatial_types import TransformationMatrix
+from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.geometry import BoundingBox
+from semantic_digital_twin.world_description.graph_of_convex_sets import GraphOfConvexSets
+from semantic_digital_twin.world_description.shape_collection import BoundingBoxCollection
 from sortedcontainers import SortedSet
 
-from pycrap.ontologies import PhysicalObject
-from .datastructures.world import World
-from .datastructures.dataclasses import BoundingBox, BoundingBoxCollection
-from .datastructures.partial_designator import PartialDesignator
-from .graph_of_convex_sets import GraphOfConvexSets
+from .datastructures.dataclasses import Context
 from .language import SequentialPlan
-from .plan import Plan, DesignatorNode, ActionNode
+from .plan import Plan, DesignatorNode, ResolvedActionNode
 
 
 @dataclass
@@ -63,7 +65,7 @@ class Parameterizer:
         :param name: The name of the variable.
         :return: The variable.
         """
-        return [v for v  in self.variables if v.name == name][0]
+        return [v for v in self.variables if v.name == name][0]
 
     def make_parameters(self):
         """
@@ -85,16 +87,18 @@ class Parameterizer:
                 variables.append(variable)
             self.variables_of_node[node] = variables
 
-
-    def plan_from_sample(self, model: ProbabilisticModel, sample: np.array) -> Plan:
+    def plan_from_sample(self, model: ProbabilisticModel, sample: np.ndarray, world: World) -> Plan:
         """
         Create a sequential plan from a sample of all parameters.
 
         :param model: The model that generated the sample.
         :param sample: The sample to generate the plan from.
+        :param world: The world to create the plan in.
         :return: The executable, sequential plan
         """
         sub_plans = []
+        context = Context(world, world.get_semantic_annotations_by_type(AbstractRobot)[0], None)
+        plan = SequentialPlan(context)
 
         for node in self.variables_of_node:
             flattened_parameters = []
@@ -103,10 +107,10 @@ class Parameterizer:
             resolved = node.action.reconstruct(flattened_parameters)
 
             kwargs = {key: getattr(resolved, key) for key in resolved._parameters}
-            sub_plans.append(Plan(ActionNode(designator_ref=PartialDesignator(node.action, **kwargs),
-                       action = node.action, kwargs=kwargs)))
+            plan.add_edge(plan.root,
+                          ResolvedActionNode(designator_ref=resolved, kwargs=kwargs, action=resolved.__class__))
 
-        return SequentialPlan(*sub_plans)
+        return plan
 
     def create_fully_factorized_distribution(self) -> ProbabilisticCircuit:
         """
@@ -136,45 +140,51 @@ class Parameterizer:
         result.fill_missing_variables(self.variables)
         return result
 
+
 def collision_free_event(world: World, search_space: Optional[BoundingBoxCollection] = None) -> Event:
-        """
-        Create an event that describes the free space of the world.
-        :param world: The world to create the event from.
-        :param search_space: The search space to limit the collision free event to.
-        :return: An event that describes the free space.
-        """
+    """
+    Create an event that describes the free space of the world.
+    :param world: The world to create the event from.
+    :param search_space: The search space to limit the collision free event to.
+    :return: An event that describes the free space.
+    """
 
-        xy = SortedSet([BoundingBox.x_variable, BoundingBox.y_variable])
+    # xy = SortedSet([BoundingBox.x_variable, BoundingBox.y_variable])
+    xy = SpatialVariables.xy
 
-        # create search space for calculations
-        if search_space is None:
-            search_space = BoundingBox(-np.inf, -np.inf, -np.inf,
-                                       np.inf, np.inf, np.inf).as_collection()
+    # create search space for calculations
+    if search_space is None:
+        search_space = BoundingBoxCollection([BoundingBox(-np.inf, -np.inf, -np.inf,
+                                                          np.inf, np.inf, np.inf,
+                                                          origin=TransformationMatrix(reference_frame=world.root))], )
 
-        # remove the z axis
-        search_event = search_space.event
+    # remove the z axis
+    search_event = search_space.event
 
-        # get obstacles
-        obstacles = GraphOfConvexSets.obstacles_of_world(world, search_space)
+    # get obstacles
+    obstacles = GraphOfConvexSets.obstacles_from_world(world, search_space)
 
-        free_space = search_event - obstacles
-        free_space = free_space.marginal(xy)
+    free_space = search_event - obstacles
+    free_space = free_space.marginal(xy)
 
-        # create floor level
-        z_event = SimpleEvent({BoundingBox.z_variable: singleton(0.)}).as_composite_set()
-        z_event.fill_missing_variables(xy)
-        free_space.fill_missing_variables(SortedSet([BoundingBox.z_variable]))
-        free_space &= z_event
+    # create floor level
+    z_event = SimpleEvent({SpatialVariables.z.value: singleton(0.)}).as_composite_set()
+    z_event.fill_missing_variables(xy)
+    free_space.fill_missing_variables(SortedSet([SpatialVariables.z.value]))
+    free_space &= z_event
 
-        return free_space
+    return free_space
+
 
 def update_variables_of_simple_event(event: SimpleEvent, new_variables: Dict[Variable, Variable]) -> SimpleEvent:
     return SimpleEvent({
         new_variables.get(variable, variable): value for variable, value in event.items()
     })
 
+
 def update_variables_of_event(event: Event, new_variables: Dict[Variable, Variable]) -> Event:
     return Event([update_variables_of_simple_event(simple_event, new_variables) for simple_event in event.simple_sets])
+
 
 def leaf_type_to_variable(name: str, leaf_type: Type) -> Variable:
     """
@@ -191,9 +201,5 @@ def leaf_type_to_variable(name: str, leaf_type: Type) -> Variable:
         return Integer(name)
     elif issubclass(leaf_type, float):
         return Continuous(name)
-    elif issubclass(leaf_type, PhysicalObject):
-        all_subclasses = recursive_subclasses(PhysicalObject)
-        leaf_subclasses = [cls for cls in all_subclasses if cls.__subclasses__() == []]
-        return Symbolic(name, Set.from_iterable(leaf_subclasses))
     else:
         raise NotImplementedError(f"No conversion between {leaf_type} and random_events.Variable is known.")

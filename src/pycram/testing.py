@@ -1,94 +1,165 @@
+import logging
 import os
 import threading
 import time
 import unittest
-from datetime import timedelta
+from copy import deepcopy
 
 import pytest
+from rclpy.node import Node
+from semantic_digital_twin.adapters.mesh import STLParser
+from semantic_digital_twin.adapters.urdf import URDFParser
+from semantic_digital_twin.adapters.procthor.procthor_semantic_annotations import Milk
+from semantic_digital_twin.spatial_types.spatial_types import TransformationMatrix
+from semantic_digital_twin.utils import rclpy_installed
+from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.connections import OmniDrive
 
-from .datastructures.world import UseProspectionWorld
-from .worlds.bullet_world import BulletWorld
-from .world_concepts.world_object import Object
-from .datastructures.pose import PoseStamped
-from .robot_description import RobotDescription, RobotDescriptionManager
-from .process_module import ProcessModule
+from .datastructures.dataclasses import Context
 from .datastructures.enums import WorldMode
-from .object_descriptors.urdf import ObjectDescription
 from .plan import Plan
-from .ros import loginfo, get_node_names
-from pycrap.ontologies import Milk, Robot, Kitchen, Cereal
+from .robot_descriptions.pr2_states import *
+
+logger = logging.getLogger(__name__)
+
 try:
-    from .ros_utils.viz_marker_publisher import VizMarkerPublisher
+    from semantic_digital_twin.adapters.viz_marker import VizMarkerPublisher
 except ImportError:
-    loginfo("Could not import VizMarkerPublisher. This is probably because you are not running ROS.")
+    logger.info("Could not import VizMarkerPublisher. This is probably because you are not running ROS.")
+
 
 @pytest.fixture(autouse=True, scope="session")
-def cleanup_ros(self):
+def cleanup_ros():
     """
     Fixture to ensure that ROS is properly cleaned up after all tests.
     """
-    yield
     if os.environ.get('ROS_VERSION') == '2':
         import rclpy
+        if not rclpy.ok():
+            rclpy.init()
+    yield
+    if os.environ.get('ROS_VERSION') == '2':
         if rclpy.ok():
             rclpy.shutdown()
 
+@pytest.fixture(scope="function")
+def rclpy_node():
+    if not rclpy_installed():
+        pytest.skip("ROS not installed")
+    import rclpy
+    from rclpy.executors import SingleThreadedExecutor
 
-class EmptyBulletWorldTestCase(unittest.TestCase):
+    rclpy.init()
+    node = rclpy.create_node("test_node")
+
+    executor = SingleThreadedExecutor()
+    executor.add_node(node)
+
+    thread = threading.Thread(target=executor.spin, daemon=True, name="rclpy-executor")
+    thread.start()
+    time.sleep(0.1)
+    try:
+        yield node
+    finally:
+        # Stop executor cleanly and wait for the thread to exit
+        executor.shutdown()
+        thread.join(timeout=2.0)
+
+        # Remove the node from the executor and destroy it
+        # (executor.shutdown() takes care of spinning; add_node is safe to keep as-is)
+        node.destroy_node()
+
+        # Shut down the ROS client library
+        rclpy.shutdown()
+
+
+def setup_world() -> World:
+    pr2_sem_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots",
+                                                      "pr2_calibrated_with_ft.urdf")).parse()
+    apartment_world = URDFParser.from_file(
+        os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
+    milk_world = STLParser(
+        os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "milk.stl")).parse()
+    cereal_world = STLParser(
+        os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "breakfast_cereal.stl")).parse()
+    # apartment_world.merge_world(pr2_sem_world)
+    apartment_world.merge_world(milk_world)
+    apartment_world.merge_world(cereal_world)
+
+    with apartment_world.modify_world():
+        pr2_root = pr2_sem_world.get_body_by_name("base_footprint")
+        apartment_root = apartment_world.root
+        c_root_bf = OmniDrive.create_with_dofs(parent=apartment_root, child=pr2_root, world=apartment_world)
+        apartment_world.merge_world(pr2_sem_world, c_root_bf)
+        c_root_bf.origin = TransformationMatrix.from_xyz_rpy(1.5, 2.5, 0)
+
+    apartment_world.get_body_by_name("milk.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.37,
+                                                                                                              2, 1.05,
+                                                                                                              reference_frame=apartment_world.root)
+    apartment_world.get_body_by_name(
+        "breakfast_cereal.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.37, 1.8, 1.05,
+                                                                                             reference_frame=apartment_world.root)
+    milk_view = Milk(body=apartment_world.get_body_by_name("milk.stl"))
+    with apartment_world.modify_world():
+        apartment_world.add_semantic_annotation(milk_view)
+
+    return apartment_world
+
+
+class SemanticWorldTestCase(unittest.TestCase):
+    world: World
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pr2_sem_world = URDFParser(
+            os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots",
+                         "pr2_calibrated_with_ft.urdf")).parse()
+        cls.apartment_world = URDFParser(
+            os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
+        cls.apartment_world.merge_world(cls.pr2_sem_world)
+
+
+class EmptyWorldTestCase(unittest.TestCase):
     """
     Base class for unit tests that require and ordinary setup and teardown of the empty bullet-world.
     """
 
-    world: BulletWorld
-    #viz_marker_publisher: VizMarkerPublisher
-    extension: str = ObjectDescription.get_file_extension()
+    world: World
+    # viz_marker_publisher: VizMarkerPublisher
     render_mode = WorldMode.DIRECT
 
     @classmethod
     def setUpClass(cls):
-        cls.world = BulletWorld(mode=cls.render_mode)
-        if "ROS_VERSION" in os.environ:
-            cls.viz_marker_publisher = VizMarkerPublisher()
+        cls.world = World()
+        # if "ROS_VERSION" in os.environ:
+        #     cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):
-        self.world.reset_world(remove_saved_states=True)
         Plan.current_plan = None
-        with UseProspectionWorld():
-            pass
-
 
     def tearDown(self):
         time.sleep(0.05)
-        self.world.reset_world(remove_saved_states=True)
-        with UseProspectionWorld():
-            pass
 
-    @classmethod
-    def tearDownClass(cls):
-        if "ROS_VERSION" in os.environ:
-            cls.viz_marker_publisher._stop_publishing()
-        cls.world.exit()
 
-class BulletWorldTestCase(EmptyBulletWorldTestCase):
+class ApartmentWorldTestCase(EmptyWorldTestCase):
     """
     Class for unit tests that require a bullet-world with a PR2, kitchen, milk and cereal.
     """
 
-    world: BulletWorld
-    #viz_marker_publisher: VizMarkerPublisher
-    extension: str = ObjectDescription.get_file_extension()
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        rdm = RobotDescriptionManager()
-        rdm.load_description("pr2")
-        cls.milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
-        cls.robot = Object(RobotDescription.current_robot_description.name, Robot,
-                           RobotDescription.current_robot_description.name + cls.extension)
-        cls.kitchen = Object("kitchen", Kitchen, "kitchen" + cls.extension)
-        cls.cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
-                            pose=PoseStamped.from_list([1.3, 0.7, 0.95]))
 
-class BulletWorldGUITestCase(BulletWorldTestCase):
-    render_mode = WorldMode.GUI
+        cls.apartment_world = setup_world()
+
+        cls.robot_view = PR2.from_world(cls.apartment_world)
+
+        cls.context = Context(cls.apartment_world, cls.robot_view, None)
+
+        cls.original_state_data = deepcopy(cls.apartment_world.state.data)
+        cls.world = cls.apartment_world
+
+    def tearDown(self):
+        self.world.state.data = deepcopy(self.original_state_data)
+        self.world.notify_state_change()
+

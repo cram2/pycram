@@ -14,6 +14,8 @@ jupyter:
 
 # Hands on Object Relational Mapping in PyCram
 
+(orm_example)=
+
 This tutorial will walk you through the serialization of a minimal plan in pycram.
 First we will import sqlalchemy, create an in-memory database and connect a session to it.
 
@@ -40,30 +42,24 @@ from pycram.robot_plans import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms, ObjectType, Grasp, WorldMode, TorsoState
-from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.object_designator import *
 from pycram.datastructures.pose import PoseStamped
-from pycrap.ontologies import Robot, Kitchen, Milk, Cereal
 from pycram.language import SequentialPlan
+from pycram.testing import setup_world
+from semantic_digital_twin.robots.pr2 import PR2
+from pycram.datastructures.dataclasses import Context
 
-world = BulletWorld(WorldMode.DIRECT)
-pr2 = Object("pr2", Robot, "pr2.urdf")
-kitchen = Object("kitchen", Kitchen, "kitchen.urdf")
-milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([1.3, 1, 0.9]))
-cereal = Object("cereal", Cereal, "breakfast_cereal.stl", pose=PoseStamped.from_list([1.3, 0.7, 0.95]))
-milk_desig = ObjectDesignatorDescription(names=["milk"])
-cereal_desig = ObjectDesignatorDescription(names=["cereal"])
-robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
-kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
+world = setup_world()
+pr2_view = PR2.from_world(world)
+context = Context(world, pr2_view)
 
-object_description = ObjectDesignatorDescription(names=["milk"])
 with simulated_robot:
-    sp = SequentialPlan(
+    sp = SequentialPlan(context,
         NavigateActionDescription(PoseStamped.from_list([0.6, 0.4, 0], [0, 0, 0, 1]), True),
         ParkArmsActionDescription(Arms.BOTH),
-        PickUpActionDescription(object_description.resolve(), Arms.LEFT, GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)),
-        NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.9], [0, 0, 0, 1]), True),
-        PlaceActionDescription(object_description.resolve(), PoseStamped.from_list([2.0, 1.6, 1.8], [0, 0, 0, 1]),
+        PickUpActionDescription(world.get_body_by_name("milk.stl"), Arms.LEFT, GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)),
+        NavigateActionDescription(PoseStamped.from_list([1.3, 1, 0.], [0, 0, 0, 1], world.root), True),
+        PlaceActionDescription(world.get_body_by_name("milk.stl"), PoseStamped.from_list([2.0, 1.6, 0.9], [0, 0, 0, 1], world.root),
                                Arms.LEFT))
     sp.perform()
 ```
@@ -111,12 +107,10 @@ In practice, the join would look like this:
 
 ```python
 from pycram.datastructures.pose import Vector3, Pose, PoseStamped
-from pycram.datastructures.dataclasses import FrozenObject
 from pycram.robot_plans import PickUpAction
 
 object_actions = (session.scalars(select(Vector3DAO)
-    .join(PickUpActionDAO.object_at_execution)
-    .join(FrozenObjectMappingDAO.pose)
+    .join(PickUpActionDAO.execution_data)
     .join(PoseStampedDAO.pose)
     .join(PoseDAO.position)).all())
 print(*object_actions, sep="\n")
@@ -128,13 +122,13 @@ so we only have to join on the attributes that hold the relationship.
 This is a huge advantage over writing sql queries by hand, since we do not have to worry about the join conditions. 
 This is a strong tool, but it is crucial to use it properly. 
 Very important to note: The order of the joins matters! 
-For instance, if we joined the Pose table with the FrozenObject table first, and placed the join between 
-the PickUpAction table and the FrozenObject table second, sqlalchemy would have selected the Pose not from the join 
-between all three tables, but rather from a join between the Pose and the FrozenObject table + from a join between 
+For instance, if we joined the Pose table with the Execution data table first, and placed the join between 
+the PickUpAction table and the Execution data table second, sqlalchemy would have selected the Pose not from the join 
+between all three tables, but rather from a join between the Pose and the Execution data table + from a join between 
 the PickUpAction table and the Object table. 
 These mistakes can lead to wrong results or even to errors (the above-mentioned example would actually lead to an error 
-due to the FrozenObject table being accessed twice in two separate joins in the same query and therefore the column 
-names of the FrozenObject tables would have been ambiguous and could not be used by sqlalchemy to join).
+due to the Execution data table being accessed twice in two separate joins in the same query and therefore the column 
+names of the Execution data tables would have been ambiguous and could not be used by sqlalchemy to join).
 
 Make sure to check out the other examples of ORM querying.
 
@@ -166,9 +160,8 @@ from dataclasses import dataclass
 from ormatic.dao import AlternativeMapping
 from pycram.datastructures.enums import Arms
 from pycram.datastructures.grasp import GraspDescription
-from pycram.robot_plans import PickUpAction as PickUpActionDesignator
+from pycram.robot_plans import PickUpAction as PickUpActionDesignator, ActionDescription
 from typing_extensions import Optional
-from pycram.datastructures.dataclasses import FrozenObject
 
 
 # create new dataclass, it has to inherit from ORMaticExplicitMapping
@@ -178,7 +171,6 @@ class PickUpActionDesignatorMapping(ActionDescription, AlternativeMapping[PickUp
   arm: Arms
   prepose_distance: float
   grasp_description: GraspDescription
-  object_at_execution: Optional[FrozenObject]
 
 ```
 

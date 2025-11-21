@@ -3,38 +3,58 @@ from __future__ import annotations
 import abc
 from dataclasses import dataclass, field
 
-from typing_extensions import Type, Any, Optional, Callable
+from semantic_digital_twin.robots.abstract_robot import AbstractRobot
+from semantic_digital_twin.world import World
+from typing_extensions import Any, Optional, Callable
 
-from ...datastructures.pose import PoseStamped
-from ...datastructures.world import World
+from ...datastructures.dataclasses import ExecutionData, Context
 from ...failures import PlanFailure
 from ...has_parameters import HasParameters
-from ...robot_description import RobotDescription
-from pycrap.ontologies import Agent
-
-
-def record_object_pre_perform(action):
-    """
-    Record the object before the action is performed.
-
-    This should be appended to the pre performs of every action that interacts with an object.
-    """
-    # for every field in the action that is an object
-    # write it to a dict mapping the OG field name to the frozen copy
-    action.object_at_execution = action.object_designator.frozen_copy()
+from ...plan import PlanNode, Plan
 
 
 @dataclass
 class ActionDescription(HasParameters):
-    robot_position: PoseStamped = field(init=False)
-    robot_torso_height: float = field(init=False)
-    robot_type: Type[Agent] = field(init=False)
+    execution_data: ExecutionData = field(init=False, repr=False)
+    """
+    Additional data that  is collected before and after the execution of the action.
+    """
+
+    # Is assigned in the __post_init method of the ActionNode
+    _plan_node: PlanNode = field(init=False, default=None)
 
     _pre_perform_callbacks = []
     _post_perform_callbacks = []
 
+    @property
+    def plan_node(self) -> PlanNode:
+        return self._plan_node
+
+    @plan_node.setter
+    def plan_node(self, value: PlanNode):
+        if not isinstance(value, PlanNode):
+            raise TypeError("plan_node must be an instance of PlanNode")
+        self._plan_node = value
+
+    @property
+    def plan_struct(self) -> Plan:
+        return self.plan_node.plan
+
+    @property
+    def world(self) -> World:
+        return self.plan_struct.world
+
+    @property
+    def context(self) -> Context:
+        return Context(self.world, self.robot_view, self.plan_struct)
+
+    @property
+    def robot_view(self) -> AbstractRobot:
+        return self.plan_struct.robot
+
     def __post_init__(self):
-        self._pre_perform_callbacks.append(self._update_robot_params)
+        pass
+        # self._pre_perform_callbacks.append(self._update_robot_params)
 
     def perform(self) -> Any:
         """
@@ -88,9 +108,3 @@ class ActionDescription(HasParameters):
     def post_perform(cls, func) -> Callable:
         cls._post_perform_callbacks.append(func)
         return func
-
-    def _update_robot_params(self, action: ActionDescription):
-        action.robot_position = World.robot.pose
-        action.robot_torso_height = World.robot.get_joint_position(
-            RobotDescription.current_robot_description.torso_joint)
-        action.robot_type = World.robot.obj_type

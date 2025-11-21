@@ -8,8 +8,9 @@ from typing_extensions import Dict, Optional, Tuple
 import xml.etree.ElementTree as ET
 
 from .datastructures.enums import DescriptionType
-from .object_descriptors.urdf import ObjectDescription as URDFObject
-from .ros import  loginfo
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Singleton(type):
@@ -88,7 +89,7 @@ def get_robot_description_path(robot_relative_dir: str, robot_name: str,
     """
     resources_dir = find_multiverse_resources_path() if resources_dir is None else resources_dir
     if resources_dir is None:
-        loginfo("Could not find Multiverse resources path and no other resources were given.")
+        logger.info("Could not find Multiverse resources path and no other resources were given.")
         return None
     file_name = file_name if file_name is not None else robot_name
     extension = description_type.get_file_extension()
@@ -111,7 +112,7 @@ def get_robot_description_path(robot_relative_dir: str, robot_name: str,
                         return os.path.join(robot_folder, extension_folder, file_name)
                 elif file_name in os.listdir(robot_folder):
                     return os.path.join(robot_folder, file_name)
-    logwarn(f"Robot {robot_name} not found in resources.")
+    logger.warning(f"Robot {robot_name} not found in resources.")
     return None
 
 

@@ -5,19 +5,16 @@ from dataclasses import dataclass
 from time import sleep
 from typing import Tuple
 
+from semantic_digital_twin.world_description.world_entity import Body, SemanticAnnotation
 from typing_extensions import Union, Optional, Iterable
 
 from ...motions.gripper import MoveTCPMotion
 from .... import utils
 from ....datastructures.pose import PoseStamped
 from ....has_parameters import has_parameters
-from ....plan import with_plan
 from ....datastructures.partial_designator import PartialDesignator
-from ....local_transformer import LocalTransformer
 from ....datastructures.enums import Arms, AxisIdentifier, Grasp, ApproachDirection, VerticalAlignment
-from ....datastructures.world import World
 from ....robot_description import RobotDescription
-from ....world_concepts.world_object import Object
 from ....robot_plans.actions.base import ActionDescription
 
 
@@ -27,11 +24,11 @@ class MixingAction(ActionDescription):
     """
     Mixes contents of an object using a tool in a spiral motion.
     """
-    object_: Object
+    object_: Body
     """
     The object to be mixed.
     """
-    tool: Object
+    tool: SemanticAnnotation
     """
     The tool to be used for mixing.
     """
@@ -64,8 +61,7 @@ class MixingAction(ActionDescription):
         World.current_world.remove_vis_axis()
 
     @classmethod
-    @with_plan
-    def description(cls, object_: Union[Iterable[Object], Object], tool: Union[Iterable[Object], Object],
+    def description(cls, object_: Union[Iterable[Body], Body], tool: Union[Iterable[SemanticAnnotation], SemanticAnnotation],
                     arm: Optional[Union[Iterable[Arms], Arms]] = None,
                     technique: Optional[Union[Iterable[str], str]] = None):
         return PartialDesignator(cls, object_=object_, tool=tool, arm=arm, technique=technique)
@@ -78,11 +74,11 @@ class PouringAction(ActionDescription):
     """
     Performs a pouring action with a tool over an object, typically used for liquids.
     """
-    object_: Object
+    object_: Body
     """
     The object over which the pouring action is performed.
     """
-    tool: Object
+    tool: SemanticAnnotation
     """
     The tool used for pouring, e.g., a jug or a bottle.
     """
@@ -127,8 +123,7 @@ class PouringAction(ActionDescription):
         World.current_world.remove_vis_axis()
 
     @classmethod
-    @with_plan
-    def description(cls, object_: Union[Iterable[Object], Object], tool: Union[Iterable[Object], Object],
+    def description(cls, object_: Union[Iterable[Body], Body], tool: Union[Iterable[SemanticAnnotation], SemanticAnnotation],
                     arm: Optional[Union[Iterable[Arms], Arms]] = None,
                     technique: Optional[Union[Iterable[str], str]] = None,
                     angle: Optional[Union[Iterable[float], float]] = 90):
@@ -140,11 +135,11 @@ class CuttingAction(ActionDescription):
     """
     Performs a cutting action on an object using a specified tool.
     """
-    object_: Object
+    object_: Body
     """
     The object to be cut.
     """
-    tool: Object
+    tool: SemanticAnnotation
     """
     The tool used for cutting, e.g., a knife or a saw.
     """
@@ -199,8 +194,7 @@ class CuttingAction(ActionDescription):
             lift_pose.pose.position.z += height
 
     @classmethod
-    @with_plan
-    def description(cls, object_: Union[Iterable[Object], Object], tool: Union[Iterable[Object], Object],
+    def description(cls, object_: Union[Iterable[Body], Body], tool: Union[Iterable[SemanticAnnotation], SemanticAnnotation],
                     arm: Optional[Union[Iterable[Arms], Arms]] = None,
                     technique: Optional[Union[Iterable[str], str]] = None, slice_thickness: Optional[float] = 0.03):
         return PartialDesignator(cls, object_=object_, tool=tool, arm=arm, technique=technique,

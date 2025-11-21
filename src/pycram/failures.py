@@ -5,15 +5,11 @@ from pathlib import Path
 
 from typing_extensions import TYPE_CHECKING, List, Optional, Type
 
-from pycrap.ontologies import PhysicalObject
 
 if TYPE_CHECKING:
     from .datastructures.pose import PoseStamped
-    from .description import Link, Joint
-    from .world_concepts.world_object import Object
     from .datastructures.enums import JointType, MultiverseAPIName, Arms, StaticJointState, Grasp, DetectionTechnique, \
         ContainerManipulationType
-    from .datastructures.world_entity import PhysicalBody
     from .validation.goal_validator import MultiJointPositionGoalValidator
     from .designator import ObjectDesignatorDescription
     from .designators.location_designator import Location

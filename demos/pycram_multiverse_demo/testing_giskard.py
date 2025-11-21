@@ -11,7 +11,7 @@ from geometry_msgs.msg import PoseStamped, Point, Quaternion
 
 from pycram.helper import find_multiverse_resources_path
 import pycram.ros  # this to start the ros node
-from pycram.ros import loginfo
+from pycram.logging import info
 
 
 def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> WorldResult:
@@ -31,7 +31,7 @@ def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> WorldResult:
 
 def get_pose_stamped(position, orientation):
     pose_stamped = PoseStamped()
-    pose_stamped.header.frame_id = 'map'
+    pose_stamped.header.reference_frame = 'map'
     pose_stamped.pose.position = Point(**dict(zip(["x", "y", "z"], position)))
     pose_stamped.pose.orientation = Quaternion(**dict(zip(["x", "y", "z", "w"],orientation)))
     return pose_stamped
@@ -78,10 +78,10 @@ def close_gripper(gripper: str):
 
 def move_gripper(cmd: str, gripper: str):
     def activate_callback():
-        loginfo("Started gripper Movement")
+        info("Started gripper Movement")
 
     def done_callback(state, result):
-        loginfo(f"Reached goal: {result.reached_goal}")
+        info(f"Reached goal: {result.reached_goal}")
 
     def feedback_callback(msg):
         pass
@@ -94,7 +94,7 @@ def move_gripper(cmd: str, gripper: str):
     else:
         controller_topic = "/real/pr2/left_gripper_controller/gripper_cmd"
     client = actionlib.SimpleActionClient(controller_topic, GripperCommandAction)
-    loginfo("Waiting for action server")
+    info("Waiting for action server")
     client.wait_for_server()
     client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
     wait = client.wait_for_result()

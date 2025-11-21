@@ -7,7 +7,6 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.pose import PoseStamped
 from pycram.datastructures.enums import WorldMode, ApproachDirection, VerticalAlignment
-from pycrap.ontologies import Apartment, Robot, Milk
 from pycram.robot_plans import *
 world = BulletWorld(WorldMode.GUI)
 

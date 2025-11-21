@@ -9,8 +9,6 @@ from pycram.robot_plans import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms, ObjectType, WorldMode
-from pycram.worlds.bullet_world import BulletWorld
-from pycram.world_concepts.world_object import Object
 from pycram.designators.object_designator import *
 from dataclasses import dataclass, field
 
