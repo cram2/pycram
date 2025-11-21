@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import get_type_hints
 
 from krrood.entity_query_language.entity import an, entity, contains, let
+from krrood.entity_query_language.symbolic import symbolic_mode
 from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
@@ -223,8 +224,9 @@ class NamedObject(ObjectDesignatorDescription, PartialDesignator):
         :yield: A executed object designator_description
         """
         for params in self.generate_permutations():
-            query = an(entity(body := let(type_=Body, domain=self.world.bodies),
-                              contains(body.name.name, params['names'])))
+            with symbolic_mode():
+                query = an(entity(body := let(type_=Body, domain=self.world.bodies),
+                                  contains(body.name.name, params['names'])))
 
             for obj in query.evaluate():
                 yield obj
