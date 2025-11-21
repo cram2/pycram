@@ -1,5 +1,5 @@
-![](doc/images/new_pycram_logo_clean.svg#gh-light-mode-only)
-![](doc/images/new_pycram_logo_clean_dark.svg#gh-dark-mode-only)
+![](doc/source/_static/images/new_pycram_logo_clean.svg#gh-light-mode-only)
+![](doc/source/_static/images/new_pycram_logo_clean_dark.svg#gh-dark-mode-only)
 
 
 # PyCRAM — High‑level feature highlights 
