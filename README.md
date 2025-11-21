@@ -2,11 +2,6 @@
 ![](doc/source/_static/images/new_pycram_logo_clean_dark.svg#gh-dark-mode-only)
 
 
-# PyCRAM — High‑level feature highlights 
-
-[![Python Tests](https://github.com/cram2/pycram/actions/workflows/new-pycram-ci.yml/badge.svg)](https://github.com/cram2/pycram/actions/workflows/new-pycram-ci.yml/badge.svg)
-[![Example Tests](https://github.com/cram2/pycram/actions/workflows/notebook-test-ci.yml/badge.svg)](https://github.com/cram2/pycram/actions/workflows/notebook-test-ci.yml/badge.svg)
-
 
 ## Key Features
 
