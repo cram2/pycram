@@ -45,12 +45,10 @@ To query for a body for example the milk bottle we need to create a query.
 
 ```python
 from krrood.entity_query_language.entity import an, entity, contains, let
-from krrood.entity_query_language.symbolic import symbolic_mode
 from semantic_digital_twin.world_description.world_entity import Body
 
-with symbolic_mode():
-    query = an(entity(body := let(type_=Body, domain=world.bodies),
-                                  contains(body.name.name, "milk")))
+query = an(entity(body := let(type_=Body, domain=world.bodies),
+                              contains(body.name.name, "milk")))
 ```
 This query searches in all bodies of the world, this is defined by the ```let``` in the first line. The next lines define 
 constrains of this body, in this case we check the name of each body if it contains the string "milk". 
@@ -72,12 +70,10 @@ We first need a query with multiple results.
 
 ```python
 from krrood.entity_query_language.entity import an, entity, contains, let
-from krrood.entity_query_language.symbolic import symbolic_mode
 from semantic_digital_twin.world_description.world_entity import Body
 
-with symbolic_mode():
-    query = an(entity(body := let(type_=Body, domain=world.bodies),
-                                  contains(body.name.name, "cabinet")))
+query = an(entity(body := let(type_=Body, domain=world.bodies),
+                              contains(body.name.name, "cabinet")))
 ```
 
 ```python

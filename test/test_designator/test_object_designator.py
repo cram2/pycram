@@ -1,7 +1,6 @@
 import unittest
 
 from krrood.entity_query_language.entity import an, entity, let, and_, contains
-from krrood.entity_query_language.symbolic import symbolic_mode
 
 from pycram.designator import EQLObjectDesignator, NamedObject
 from pycram.designators.object_designator import *
@@ -12,11 +11,10 @@ from pycram.testing import ApartmentWorldTestCase
 class TestObjectDesignator(ApartmentWorldTestCase):
 
     def test_eql_designator(self):
-        with symbolic_mode():
-            milk_desig = EQLObjectDesignator(
-                an(entity(obj := let(type_=Body, domain=self.world.bodies),
-                            contains( obj.name.name, "milk")))
-            )
+        milk_desig = EQLObjectDesignator(
+            an(entity(obj := let(type_=Body, domain=self.world.bodies),
+                        contains( obj.name.name, "milk")))
+        )
         found_milks = list(milk_desig)
         self.assertEqual(1, len(found_milks))
         self.assertEqual("milk.stl", found_milks[0].name.name)
