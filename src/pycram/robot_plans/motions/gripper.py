@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional, Dict, List
 
+from giskardpy.motion_statechart.tasks.cartesian_tasks import CartesianPosition, CartesianPose
+from giskardpy.motion_statechart.tasks.joint_tasks import JointPositionList
 from semantic_digital_twin.world_description.world_entity import Body
 
 from .base import BaseMotion
@@ -9,6 +11,7 @@ from ...datastructures.grasp import GraspDescription
 from ...datastructures.pose import PoseStamped
 from ...failure_handling import try_motion
 from ...failures import ToolPoseNotReachedError
+from ...language import SequentialPlan
 from ...process_module import ProcessModuleManager
 from ...robot_description import ViewManager
 from ...utils import translate_pose_along_local_axis
@@ -70,6 +73,11 @@ class MoveArmJointsMotion(BaseMotion):
         pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         return pm_manager.move_arm_joints().execute(self)
 
+    def _motion_chart(self):
+        left_connections = [self.world.get_connection_by_name(name) for name in self.left_arm_poses.keys()]
+        right_connections = [self.world.get_connection_by_name(name) for name in self.right_arm_poses.keys()]
+        return JointPositionList()
+
 
 @dataclass
 class MoveGripperMotion(BaseMotion):
@@ -93,6 +101,9 @@ class MoveGripperMotion(BaseMotion):
     def perform(self):
         pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         return pm_manager.move_gripper().execute(self)
+
+    def _motion_chart(self):
+        return JointPositionList()
 
 
 @dataclass
@@ -122,6 +133,10 @@ class MoveTCPMotion(BaseMotion):
         pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         try_motion(pm_manager.move_tcp(), self, ToolPoseNotReachedError)
 
+    def _motion_chart(self):
+        tip = ViewManager().get_end_effector_view(self.arm, self.robot_view).tool_frame
+        return CartesianPose(root_link=self.world.root, tip_link=tip, goal_pose=self.target.to_spatial_type())
+
 
 @dataclass
 class MoveTCPWaypointsMotion(BaseMotion):
@@ -149,3 +164,7 @@ class MoveTCPWaypointsMotion(BaseMotion):
     def perform(self):
         pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         pm_manager.move_tcp_waypoints().execute(self)
+
+    def _motion_chart(self):
+        tip = ViewManager().get_end_effector_view(self.arm, self.robot_view).tool_frame
+        pass
