@@ -15,10 +15,6 @@ from ...plan import PlanNode, Plan
 
 @dataclass
 class ActionDescription(HasParameters):
-    execution_data: ExecutionData = field(init=False, repr=False)
-    """
-    Additional data that  is collected before and after the execution of the action.
-    """
 
     # Is assigned in the __post_init method of the ActionNode
     _plan_node: PlanNode = field(init=False, default=None)

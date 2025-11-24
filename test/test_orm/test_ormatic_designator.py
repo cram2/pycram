@@ -24,6 +24,7 @@ from pycram.datastructures.pose import Pose, PoseStamped
 from pycram.designator import ObjectDesignatorDescription, NamedObject
 from pycram.language import SequentialPlan
 from pycram.orm.ormatic_interface import *
+from pycram.plan import ResolvedActionNode
 from pycram.process_module import simulated_robot
 from pycram.robot_plans import (
     MoveTorsoActionDescription,
@@ -39,7 +40,7 @@ from pycram.robot_plans import (
     SetGripperActionDescription,
     OpenActionDescription,
     CloseActionDescription,
-    NavigateAction,
+    NavigateAction, PickUpAction, PlaceAction,
 )
 from pycram.testing import ApartmentWorldTestCase
 from semantic_digital_twin.world import World
@@ -65,7 +66,6 @@ class ORMaticBaseTestCaseMixin(ApartmentWorldTestCase):
         self.session.close()
 
 
-@unittest.skip("until tom fixes bug in ORMatic")
 class PoseTestCases(ORMaticBaseTestCaseMixin):
 
     def plan(self):
@@ -176,7 +176,6 @@ class PoseTestCases(ORMaticBaseTestCaseMixin):
         self.assertEqual(pose_result.position.z, 3.0)
         self.assertEqual(pose_result.database_id, raw_pose[0][0])
 
-@unittest.skip("until tom fixes bug in ORMatic")
 class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
     def test_code_designator_type(self):
         action = SequentialPlan(
@@ -194,7 +193,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
 
         result = self.session.scalars(select(ResolvedActionNodeMappingDAO)).all()
         # motion = self.session.scalars(select(MoveMotionDAO)).all()
-        self.assertEqual(result[0].action, NavigateAction)
+        self.assertEqual(result[0].designator_type, NavigateAction)
         self.assertTrue(result[0].start_time < result[0].end_time)
         # self.assertEqual(result[1].action.dtype, MoveMotion.__name__)
 
@@ -244,7 +243,7 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         self.session.add(dao)
         self.session.commit()
         result = self.session.scalars(select(ParkArmsActionDAO)).all()
-        self.assertEqual(len(result), 1)
+        self.assertEqual(1, len(result))
         self.assertEqual(type(result[0]).original_class(), ParkArmsAction)
 
     def test_transportAction(self):
@@ -380,7 +379,6 @@ class ORMActionDesignatorTestCase(ORMaticBaseTestCaseMixin):
         detect_actions = self.session.scalars(select(DetectActionDAO)).all()
         self.assertEqual(1, len(detect_actions))
 
-@unittest.skip("until tom fixes bug in ORMatic")
 class ExecDataTest(ORMaticBaseTestCaseMixin):
 
     def plan(self, test_world):
@@ -460,7 +458,7 @@ class ExecDataTest(ORMaticBaseTestCaseMixin):
         exec_data = self.session.scalars(select(ExecutionDataDAO)).all()[0]
         self.assertIsNotNone(exec_data)
         self.assertListEqual(
-            [0, 0, 0],
+            [1.5, 2.5, 0],
             PoseStampedDAO.from_dao(
                 exec_data.execution_start_pose
             ).pose.position.to_list(),
@@ -477,24 +475,26 @@ class ExecDataTest(ORMaticBaseTestCaseMixin):
 
         self.plan(test_world)
 
-        pick_up = self.session.scalars(select(PickUpActionDAO)).all()[0]
-        place = self.session.scalars(select(PlaceActionDAO)).all()[0]
-        self.assertIsNotNone(pick_up.execution_data.manipulated_body_pose_start)
-        self.assertIsNotNone(pick_up.execution_data.manipulated_body_pose_end)
+        # pick_up = self.session.scalars(select(PickUpActionDAO)).all()[0]
+        pick_up_node = self.session.scalars(select(ResolvedActionNodeMappingDAO).where(ResolvedActionNodeMappingDAO.designator_type == PickUpAction)).all()[0]
+        place_node = self.session.scalars(select(ResolvedActionNodeMappingDAO).where(ResolvedActionNodeMappingDAO.designator_type == PlaceAction)).all()[0]
+        # place = self.session.scalars(select(PlaceActionDAO)).all()[0]
+        self.assertIsNotNone(pick_up_node.execution_data.manipulated_body_pose_start)
+        self.assertIsNotNone(pick_up_node.execution_data.manipulated_body_pose_end)
         start_pose_pick = PoseStampedDAO.from_dao(
-            pick_up.execution_data.manipulated_body_pose_start
+            pick_up_node.execution_data.manipulated_body_pose_start
         )
         end_pose_pick = PoseStampedDAO.from_dao(
-            pick_up.execution_data.manipulated_body_pose_end
+            pick_up_node.execution_data.manipulated_body_pose_end
         )
         start_pose_place = PoseStampedDAO.from_dao(
-            place.execution_data.manipulated_body_pose_start
+            place_node.execution_data.manipulated_body_pose_start
         )
         end_pose_place = PoseStampedDAO.from_dao(
-            place.execution_data.manipulated_body_pose_end
+            place_node.execution_data.manipulated_body_pose_end
         )
 
-        self.assertListEqual([2.2, 2, 1], start_pose_pick.position.to_list())
+        self.assertListEqual([2.37, 2, 1.05], start_pose_pick.position.to_list())
         # Check that the end_pose of pick_up and start pose of place are not equal because of navigate in between
         for pick, place in zip(
             end_pose_pick.position.to_list(), start_pose_place.position.to_list()
@@ -507,10 +507,10 @@ class ExecDataTest(ORMaticBaseTestCaseMixin):
 
         self.plan(test_world)
 
-        pick_up = self.session.scalars(select(PickUpActionDAO)).all()[0]
-        self.assertIsNotNone(pick_up.execution_data.manipulated_body)
-        milk = BodyDAO.from_dao(pick_up.execution_data.manipulated_body)
-        # self.assertEqual(milk.name.name, "milk.stl")
+        pick_up_node = self.session.scalars(select(ResolvedActionNodeMappingDAO).where(ResolvedActionNodeMappingDAO.designator_type == PickUpAction)).all()[0]
+        self.assertIsNotNone(pick_up_node.execution_data.manipulated_body)
+        milk = BodyDAO.from_dao(pick_up_node.execution_data.manipulated_body)
+        self.assertEqual(milk.name.name, "milk.stl")
 
     def test_state(self):
         plan = SequentialPlan(
@@ -525,10 +525,9 @@ class ExecDataTest(ORMaticBaseTestCaseMixin):
         dao = to_dao(plan)
         self.session.add(dao)
         self.session.commit()
-        navigate = self.session.scalars(select(NavigateActionDAO)).all()[0]
-        self.assertIsNotNone(navigate.execution_data.execution_start_world_state)
+        navigate_node = self.session.scalars(select(ResolvedActionNodeMappingDAO).where(ResolvedActionNodeMappingDAO.designator_type == NavigateAction)).all()[0]
+        self.assertIsNotNone(navigate_node.execution_data.execution_start_world_state)
 
-@unittest.skip("until tom fixes bug in ORMatic")
 class RelationalAlgebraTestCase(ORMaticBaseTestCaseMixin):
     def test_filtering(self):
         with simulated_robot:

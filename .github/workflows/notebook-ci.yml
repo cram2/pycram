@@ -5,10 +5,12 @@ on:
     branches:
       - dev
       - master
+      - main
   pull_request:
     branches:
       - master
       - dev
+      - main
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -71,4 +73,4 @@ jobs:
           source /opt/ros/overlay_ws/install/setup.bash
           source /opt/ros/overlay_ws/src/pycram-venv/bin/activate
           cd /opt/ros/overlay_ws/src/pycram/examples/tmp
-          python -m treon --thread 1 -v --exclude=migrate_neems.ipynb --exclude=improving_actions.ipynb
+          python -m treon -v --exclude=migrate_neems.ipynb --exclude=improving_actions.ipynb

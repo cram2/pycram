@@ -48,7 +48,7 @@ source /opt/ros/$ROS_DISTRO/setup.bash
 echo "Installing xacro and ROS dependencies"
 sudo apt install ros-"${ROS_DISTRO}"-xacro -y
 echo "Cloning pycram and dependencies"
-vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/rosinstall/pycram-ros2-dependencies.rosinstall
+vcs import --input https://raw.githubusercontent.com/cram2/pycram/main/rosinstall/pycram-ros2-dependencies.rosinstall
 
 cd ~/workspace/ros
 

@@ -3,10 +3,11 @@ from datetime import datetime
 from typing import Type, List, Self
 
 import numpy as np
-from krrood.ormatic.dao import AlternativeMapping, T
+from krrood.ormatic.dao import AlternativeMapping, T, to_dao
 from sqlalchemy import TypeDecorator, types
 from typing_extensions import Optional
 
+from ..datastructures.dataclasses import ExecutionData
 from ..datastructures.enums import TaskStatus
 from ..datastructures.pose import Quaternion
 from ..failures import PlanFailure
@@ -71,6 +72,7 @@ class PlanNodeMapping(AlternativeMapping[PlanNode]):
 
 @dataclass
 class DesignatorNodeMapping(PlanNodeMapping, AlternativeMapping[DesignatorNode]):
+    designator_type: Type[ActionDescription] = None
 
     @classmethod
     def create_instance(cls, obj: DesignatorNode):
@@ -80,6 +82,7 @@ class DesignatorNodeMapping(PlanNodeMapping, AlternativeMapping[DesignatorNode])
         return cls(
             status=obj.status,
             start_time=obj.start_time,
+            designator_type=obj.designator_type,
             end_time=obj.end_time,
             reason=obj.reason,
         )
@@ -90,7 +93,6 @@ class DesignatorNodeMapping(PlanNodeMapping, AlternativeMapping[DesignatorNode])
 
 @dataclass
 class ActionNodeMapping(DesignatorNodeMapping, AlternativeMapping[ActionNode]):
-    action: ActionDescription = None
 
     @classmethod
     def create_instance(cls, obj: ActionNode):
@@ -99,7 +101,7 @@ class ActionNodeMapping(DesignatorNodeMapping, AlternativeMapping[ActionNode]):
         """
         return cls(
             status=obj.status,
-            action=obj.action,
+            designator_type=obj.designator_type,
             start_time=obj.start_time,
             end_time=obj.end_time,
             reason=obj.reason,
@@ -133,20 +135,23 @@ class MotionNodeMapping(DesignatorNodeMapping, AlternativeMapping[MotionNode]):
 class ResolvedActionNodeMapping(
     DesignatorNodeMapping, AlternativeMapping[ResolvedActionNode]
 ):
+    designator_ref: ActionDescription = None
+    execution_data: ExecutionData = None
 
-    # @classmethod
-    # def create_instance(cls, obj: ResolvedActionNode):
-    #     """
-    #     Convert a ResolvedActionNode to a ResolvedActionNodeDAO.
-    #     """
-    #     return cls(
-    #         designator_ref=obj.designator_ref,
-    #         action=obj.action,
-    #         status=obj.status,
-    #         start_time=obj.start_time,
-    #         end_time=obj.end_time,
-    #         reason=obj.reason,
-    #     )
+    @classmethod
+    def create_instance(cls, obj: ResolvedActionNode):
+        """
+        Convert a ResolvedActionNode to a ResolvedActionNodeDAO.
+        """
+        return cls(
+            status=obj.status,
+            start_time=obj.start_time,
+            designator_ref=obj.designator_ref,
+            designator_type=obj.designator_type,
+            end_time=obj.end_time,
+            reason=obj.reason,
+            execution_data=obj.execution_data,
+        )
 
     def create_from_dao(self) -> T:
         raise NotImplementedError()
@@ -227,24 +232,18 @@ class PlanEdge:
     parent: PlanNode
     child: PlanNode
 
-
 @dataclass
 class PlanMapping(AlternativeMapping[Plan]):
     nodes: List[PlanNode]
-    edges: List[PlanEdge]
+    #edges: List[PlanEdge]
 
     @classmethod
     def create_instance(cls, obj: Plan):
-        """
-        Convert a MonitorNode to a MonitorNodeDAO.
-        """
-        return cls(
-            obj.nodes, [PlanEdge(parent=edge[0], child=edge[1]) for edge in obj.edges]
-        )
+        #return cls(nodes=[to_dao(node) for node in obj.nodes], edges=[PlanEdge(to_dao(edge[0]), to_dao(edge[1])) for edge in obj.edges])
+        return cls(nodes=[to_dao(node) for node in obj.nodes])#, edges=[PlanEdge(parent=parent, child=child) for parent, child in obj.edges])
 
     def create_from_dao(self) -> T:
         raise NotImplementedError()
-
 
 #
 # @dataclass

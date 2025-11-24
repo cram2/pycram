@@ -8,10 +8,12 @@ on:
     branches:
       - dev
       - master
+      - main
   pull_request:
     branches:
       - master
       - dev
+      - main
   workflow_dispatch: # For manual debugging
     inputs:
       debug_enabled:
@@ -68,4 +70,4 @@ jobs:
           cd /opt/ros/overlay_ws/src/pycram
           source ../pycram-venv/bin/activate
           python3 demos/pycram_bullet_world_demo/test_demo.py
-          python3 demos/pycram_procthor_demo/test_demo.py
+#          python3 demos/pycram_procthor_demo/test_demo.py

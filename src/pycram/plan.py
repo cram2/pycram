@@ -478,7 +478,7 @@ class Plan:
         )
         x = [pose[0] for pose in layout.values()]
         y = [pose[1] for pose in layout.values()]
-        name = [str(hash_nodes[node].action.__name__) for node in layout.keys()]
+        name = [str(hash_nodes[node].designator_type.__name__) for node in layout.keys()]
         label_dict = {"x": x, "y": y, "names": name}
 
         data_source = ColumnDataSource(data=label_dict)
@@ -519,12 +519,12 @@ def managed_node(func: Callable) -> Callable:
         node.status = TaskStatus.RUNNING
         node.start_time = datetime.now()
         on_start_callbacks = (
-            Plan.on_start_callback.get(node.action, [])
+            Plan.on_start_callback.get(node.designator_type, [])
             + Plan.on_start_callback.get(None, [])
             + Plan.on_start_callback.get(node.__class__, [])
         )
         on_end_callbacks = (
-            Plan.on_end_callback.get(node.action, [])
+            Plan.on_end_callback.get(node.designator_type, [])
             + Plan.on_end_callback.get(None, [])
             + Plan.on_end_callback.get(node.__class__, [])
         )
@@ -707,7 +707,7 @@ class DesignatorNode(PlanNode):
     Reference to the Designator in this node
     """
 
-    action: Optional[Any] = None
+    designator_type: Optional[Any] = None
     """
     The action and that is performed or None if nothing was performed
     """
@@ -755,7 +755,7 @@ class ActionNode(DesignatorNode):
     Iterator over the current evaluation state of the ActionDesignator Description
     """
 
-    action: ActionDescription = None
+    designator_type: Type[ActionDescription] = None
 
     def __hash__(self):
         return id(self)
@@ -777,7 +777,7 @@ class ActionNode(DesignatorNode):
         }
         resolved_action_node = ResolvedActionNode(
             designator_ref=resolved_action,
-            action=resolved_action.__class__,
+            designator_type=resolved_action.__class__,
             kwargs=kwargs,
         )
         self.plan.add_edge(self, resolved_action_node)
@@ -796,7 +796,12 @@ class ResolvedActionNode(DesignatorNode):
 
     designator_ref: ActionDescription = None
 
-    action: Type[ActionDescription] = None
+    designator_type: Type[ActionDescription] = None
+
+    execution_data: ExecutionData = None
+    """
+    Additional data that  is collected before and after the execution of the action.
+    """
 
     def __hash__(self):
         return id(self)
@@ -810,7 +815,7 @@ class ResolvedActionNode(DesignatorNode):
         """
         robot_pose = PoseStamped.from_spatial_type(self.plan.robot.root.global_pose)
         exec_data = ExecutionData(robot_pose, self.plan.world.state.data)
-        self.designator_ref.execution_data = exec_data
+        self.execution_data = exec_data
         last_mod = self.plan.world._model_manager.model_modification_blocks[-1]
 
         manipulated_bodies = list(
@@ -819,18 +824,18 @@ class ResolvedActionNode(DesignatorNode):
         manipulated_body = manipulated_bodies[0] if manipulated_bodies else None
 
         if manipulated_body:
-            exec_data.manipulated_body = manipulated_body
-            exec_data.manipulated_body_pose_start = PoseStamped.from_spatial_type(
+            self.execution_data.manipulated_body = manipulated_body
+            self.execution_data.manipulated_body_pose_start = PoseStamped.from_spatial_type(
                 manipulated_body.global_pose
             )
-            exec_data.manipulated_body_name = str(manipulated_body.name)
+            self.execution_data.manipulated_body_name = str(manipulated_body.name)
 
         result = self.designator_ref.perform()
 
-        exec_data.execution_end_pose = PoseStamped.from_spatial_type(
+        self.execution_data.execution_end_pose = PoseStamped.from_spatial_type(
             self.plan.robot.root.global_pose
         )
-        exec_data.execution_end_world_state = self.plan.world.state.data
+        self.execution_data.execution_end_world_state = self.plan.world.state.data
         new_modifications = []
         for i in range(len(self.plan.world._model_manager.model_modification_blocks)):
             if self.plan.world._model_manager.model_modification_blocks[-i] is last_mod:
@@ -838,10 +843,10 @@ class ResolvedActionNode(DesignatorNode):
             new_modifications.append(
                 self.plan.world._model_manager.model_modification_blocks[-i]
             )
-        exec_data.modifications = new_modifications[::-1]
+        self.execution_data.modifications = new_modifications[::-1]
 
         if manipulated_body:
-            exec_data.manipulated_body_pose_end = PoseStamped.from_spatial_type(
+            self.execution_data.manipulated_body_pose_end = PoseStamped.from_spatial_type(
                 manipulated_body.global_pose
             )
 
@@ -857,7 +862,7 @@ class MotionNode(DesignatorNode):
     A node in the plan representing a MotionDesignator
     """
 
-    designator_ref: BaseMotion = None
+    designator_ref: Type[BaseMotion] = None
     """
     Reference to the MotionDesignator
     """

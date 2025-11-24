@@ -1,3 +1,4 @@
+import logging
 import os
 from dataclasses import is_dataclass
 
@@ -62,7 +63,8 @@ classes |= set(classes_of_module(pick_up))
 classes |= set(classes_of_module(misc))
 classes |= set(classes_of_module(navigation))
 classes |= set(classes_of_module(placing))
-classes |= set(classes_of_module(robot_body)) | {ActionDescription}
+classes |= set(classes_of_module(robot_body))# | {ActionDescription}
+classes |= {ActionDescription}
 classes |= set(classes_of_module(grasp))
 classes |= {WorldModelModificationBlock, WorldModelModification}
 

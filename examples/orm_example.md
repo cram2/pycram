@@ -1,4 +1,4 @@
----
+from pycram.orm.ormatic_interface import ResolvedActionNodeMappingDAOfrom pycram.orm.model import ResolvedActionNodeMapping---
 jupyter:
   jupytext:
     text_representation:
@@ -68,9 +68,10 @@ The data obtained throughout the plan execution, including robot states, poses, 
 logged into the database once we insert the plan .
 
 ```python
-from pycram.orm.logging_hooks import insert
+from krrood.ormatic.dao import to_dao
 
-insert(sp, session)
+session.add(to_dao(sp))
+session.commit()
 ```
 
 Now we can query the database to see what we have logged. Let's say we want to see all the NavigateActions that occurred.
@@ -110,7 +111,7 @@ from pycram.datastructures.pose import Vector3, Pose, PoseStamped
 from pycram.robot_plans import PickUpAction
 
 object_actions = (session.scalars(select(Vector3DAO)
-    .join(PickUpActionDAO.execution_data)
+    .join(ResolvedActionNodeMappingDAO.execution_data)
     .join(PoseStampedDAO.pose)
     .join(PoseDAO.position)).all())
 print(*object_actions, sep="\n")
@@ -136,7 +137,7 @@ Make sure to check out the other examples of ORM querying.
 If we want to filter for all successful tasks we can just add the filter operator:
 
 ```python
-filtered_navigate_results = session.scalars(select(NavigateActionDAO).where(NavigateActionDAO.id == 1)).all()
+filtered_navigate_results = session.scalars(select(NavigateActionDAO).where(NavigateActionDAO.database_id == 1)).all()
 print(*filtered_navigate_results, sep="\n")
 ```
 

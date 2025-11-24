@@ -73,7 +73,7 @@ class Parameterizer:
         """
         for node in self.plan.nodes:
             if isinstance(node, DesignatorNode):
-                self.parameters[node] = node.action._parameters
+                self.parameters[node] = node.designator_type._parameters
 
     def make_variables(self):
         """
@@ -82,7 +82,7 @@ class Parameterizer:
         for index, (node, params) in enumerate(self.parameters.items()):
             variables = []
             for name, leaf_type in node.flattened_parameters().items():
-                full_name = f"{node.action.__name__}_{index}.{name}"
+                full_name = f"{node.designator_type.__name__}_{index}.{name}"
                 variable = leaf_type_to_variable(full_name, leaf_type)
                 variables.append(variable)
             self.variables_of_node[node] = variables
@@ -104,7 +104,7 @@ class Parameterizer:
             flattened_parameters = []
             for variable in self.variables_of_node[node]:
                 flattened_parameters.append(sample[model.variables.index(variable)])
-            resolved = node.action.reconstruct(flattened_parameters)
+            resolved = node.designator_type.reconstruct(flattened_parameters)
 
             kwargs = {key: getattr(resolved, key) for key in resolved._parameters}
             plan.add_edge(plan.root,

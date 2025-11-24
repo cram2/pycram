@@ -70,12 +70,12 @@ class LanguagePlan(Plan):
                 self.mount(child, self.root)
             elif isinstance(child, PartialDesignator):
                 node = ActionNode(
-                    designator_ref=child, action=child.performable, kwargs=child.kwargs
+                    designator_ref=child, designator_type=child.performable, kwargs=child.kwargs
                 )
                 self.add_edge(self.root, node)
             elif "ActionDescription" in [c.__name__ for c in child.__class__.__mro__]:
                 node = ResolvedActionNode(
-                    designator_ref=child, action=child.__class__, kwargs=child.__dict__
+                    designator_ref=child, designator_type=child.__class__, kwargs=child.__dict__
                 )
                 self.add_edge(self.root, node)
             elif "BaseMotion" in [c.__name__ for c in child.__class__.__mro__]:
@@ -83,7 +83,7 @@ class LanguagePlan(Plan):
                     inspect.signature(child.__init__).bind(**child.__dict__).arguments
                 )
                 node = MotionNode(
-                    designator_ref=child, action=child.__class__, kwargs=kwargs
+                    designator_ref=child, designator_type=child.__class__, kwargs=kwargs
                 )
                 self.add_edge(self.root, node)
             else:
@@ -245,7 +245,7 @@ class CodePlan(LanguagePlan):
 
 @dataclass
 class LanguageNode(PlanNode):
-    action: Type[LanguageNode] = field(default_factory=lambda: LanguageNode)
+    designator_type: Type[LanguageNode] = field(default_factory=lambda: LanguageNode)
     """
     Superclass for language nodes in a plan. Used to distinguish language nodes from other types of nodes.
     """
@@ -253,7 +253,7 @@ class LanguageNode(PlanNode):
 
 @dataclass
 class SequentialNode(LanguageNode):
-    action: Type[SequentialNode] = field(default_factory=lambda: SequentialNode)
+    designator_type: Type[SequentialNode] = field(default_factory=lambda: SequentialNode)
     """
     Executes all children sequentially, an exception while executing a child does not terminate the whole process.
     Instead, the exception is saved to a list of all exceptions thrown during execution and returned.
@@ -547,7 +547,7 @@ class CodeNode(LanguageNode):
     :ivar kwargs: Dictionary holding the keyword arguments of the function
     """
 
-    action: Type[LanguageNode] = field(default_factory=lambda: LanguageNode)
+    designator_type: Type[LanguageNode] = field(default_factory=lambda: LanguageNode)
 
     def __init__(
         self, function: Optional[Callable] = None, kwargs: Optional[Dict] = None
