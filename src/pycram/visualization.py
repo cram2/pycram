@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, Iterable, Optional, Sequence, Tuple
 
+import networkx as nx
+
 
 def plot_rustworkx_interactive(
-    graph: "Any",
+    graph: Any,
     *,
     node_params: Optional[Dict[int, Dict[str, Any]]] = None,
     node_label: Optional[Callable[[int, Any], str]] = None,
@@ -56,90 +58,17 @@ def plot_rustworkx_interactive(
     try:
         import networkx as nx
         import importlib
-        bokeh_layouts = importlib.import_module("bokeh.layouts")
-        bokeh_models = importlib.import_module("bokeh.models")
-        bokeh_plotting = importlib.import_module("bokeh.plotting")
-        row = getattr(bokeh_layouts, "row")
-        ColumnDataSource = getattr(bokeh_models, "ColumnDataSource")
-        Div = getattr(bokeh_models, "Div")
-        HoverTool = getattr(bokeh_models, "HoverTool")
-        NodesAndLinkedEdges = getattr(bokeh_models, "NodesAndLinkedEdges")
-        TapTool = getattr(bokeh_models, "TapTool")
-        CustomJS = getattr(bokeh_models, "CustomJS")
-        figure = getattr(bokeh_plotting, "figure")
-        from_networkx = getattr(bokeh_plotting, "from_networkx")
-        show = getattr(bokeh_plotting, "show")
+        from bokeh.layouts import row
+        from bokeh.models import ColumnDataSource, Div, HoverTool, NodesAndLinkedEdges, TapTool, CustomJS
+        from bokeh.plotting import figure, from_networkx, show
     except Exception as exc:  # pragma: no cover - informative error only if used
         raise RuntimeError(
             "plot_rustworkx_interactive requires bokeh and networkx. Install with 'pip install bokeh networkx'."
         ) from exc
 
-    # Import typed only to avoid hard dependency in module scope
-    try:
-        import rustworkx as rx  # type: ignore
-    except Exception:
-        rx = None  # best effort; we don't need types here
+    nx_g = build_nx_graph(graph, node_params, attributes, node_label)
 
-    # Build a NetworkX graph from rustworkx graph
-    is_directed = getattr(graph, "is_directed", lambda: True)()
-    nx_g = nx.DiGraph() if is_directed else nx.Graph()
-
-    # rustworkx nodes are indexed 0..n-1. Access via graph.nodes(), graph.node_indices() or graph.num_nodes()
-    # We'll iterate over range(num_nodes) and get payload via graph[node]
-    num_nodes = getattr(graph, "num_nodes")()
-
-    def get_node_payload(idx: int) -> Any:
-        # PyGraph/PyDiGraph index access returns payload
-        try:
-            return graph[idx]
-        except Exception:
-            return None
-
-    # Prepare label/params for each node
-    attributes = list(attributes) if attributes is not None else None
-
-    for i in range(num_nodes):
-        payload = get_node_payload(i)
-        # Label
-        if node_label is not None:
-            label = node_label(i, payload)
-        else:
-            label = None
-            if isinstance(payload, dict) and "label" in payload:
-                label = str(payload.get("label"))
-            if label is None:
-                label = str(payload)
-        # Parameters
-        params = None
-        if node_params is not None:
-            params = node_params.get(i)
-        else:
-            params = _object_params_with_properties(payload)
-        # Filter attributes if requested
-        if attributes is not None and isinstance(params, dict):
-            params = {k: params.get(k) for k in attributes if k in params}
-        # Attach as node attributes
-        nx_g.add_node(
-            i,
-            label=label,
-            param_text=_format_params(params),
-        )
-
-    # Add edges
-    for (u, v) in getattr(graph, "edge_list")():
-        nx_g.add_edge(u, v)
-
-    # Choose layout
-    if layout == "spring":
-        pos = getattr(nx, "spring_layout")(nx_g, seed=42)
-    elif layout == "kamada_kawai":
-        pos = getattr(nx, "kamada_kawai_layout")(nx_g)
-    elif layout == "bfs":
-        if start is None and num_nodes > 0:
-            start = 0
-        pos = getattr(nx, "bfs_layout")(nx_g, start=start)
-    else:
-        pos = getattr(nx, "spring_layout")(nx_g, seed=42)
+    pos = calculate_layout_positions(layout, nx_g, start)
 
     # Create bokeh figure
     p = figure(
@@ -201,6 +130,74 @@ def plot_rustworkx_interactive(
     show(row(p, info))
 
 
+def calculate_layout_positions(layout: str, nx_g: nx.Graph, start: Optional[int] = None) -> Dict[int, Tuple[float, float]]:
+    """
+    Calculates node positions based on the selected layout.
+    :param layout: Layout name, e.g. "spring", "kamada_kawai", "bfs
+    :param nx_g: networkx graph
+    :param start: Optional start node index for "bfs" layout.
+    :return: A dictionary mapping node indices to 2d coordinates.
+    """
+    # Choose layout
+    if layout == "spring":
+        pos = nx.spring_layout(nx_g, seed=42)
+    elif layout == "kamada_kawai":
+        pos = nx.kamada_kawai_layout(nx_g)
+    elif layout == "bfs":
+        if start is None and len(nx_g.nodes) > 0:
+            start = 0
+        pos = nx.bfs_layout(nx_g, start=start)
+    else:
+        pos = nx.spring_layout(nx_g, seed=42)
+    return pos
+
+
+def build_nx_graph(graph: "Any", node_params, attributes, node_label) -> nx.Graph:
+    """Convert a rustworkx graph to a networkx graph."""
+    # Build a NetworkX graph from rustworkx graph
+    is_directed = getattr(graph, "is_directed", lambda: True)()
+    nx_g = nx.DiGraph() if is_directed else nx.Graph()
+
+    # rustworkx nodes are indexed 0..n-1. Access via graph.nodes(), graph.node_indices() or graph.num_nodes()
+    # We'll iterate over range(num_nodes) and get payload via graph[node]
+    num_nodes = graph.num_nodes()
+
+    # Prepare label/params for each node
+    attributes = list(attributes) if attributes is not None else None
+
+    for i in range(num_nodes):
+        payload = graph[i]
+        # Label
+        if node_label is not None:
+            label = node_label(i, payload)
+        else:
+            label = None
+            if isinstance(payload, dict) and "label" in payload:
+                label = str(payload.get("label"))
+            if label is None:
+                label = str(payload)
+        # Parameters
+        params = None
+        if node_params is not None:
+            params = node_params.get(i)
+        else:
+            params = _object_params_with_properties(payload)
+        # Filter attributes if requested
+        if attributes is not None and isinstance(params, dict):
+            params = {k: params.get(k) for k in attributes if k in params}
+        # Attach as node attributes
+        nx_g.add_node(
+            i,
+            label=label,
+            param_text=_format_params(params),
+        )
+
+    # Add edges
+    for (u, v) in graph.edge_list():
+        nx_g.add_edge(u, v)
+
+    return nx_g
+
 def _object_params_with_properties(payload: Any) -> Optional[Dict[str, Any]]:
     """
     Build a parameter dictionary from a node payload by combining:
@@ -236,6 +233,12 @@ def _object_params_with_properties(payload: Any) -> Optional[Dict[str, Any]]:
     except Exception:
         pass
 
+    params.update(_collect_properties(payload))
+
+    return params if params else None
+
+def _collect_properties(payload) -> Dict[str, Any]:
+    params = {}
     # Collect readable @property attributes on the class
     try:
         import inspect
@@ -263,9 +266,7 @@ def _object_params_with_properties(payload: Any) -> Optional[Dict[str, Any]]:
     except Exception:
         # If inspection fails, just ignore properties
         pass
-
-    return params if params else None
-
+    return params
 
 def _format_params(params: Optional[Dict[str, Any]]) -> str:
     """Return HTML for parameter dict suitable for the side panel."""

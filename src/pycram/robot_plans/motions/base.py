@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional
 
-from giskardpy.motion_statechart.tasks.task import Task
+# from giskardpy.motion_statechart.tasks.task import Task
 from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 from semantic_digital_twin.world import World
 from typing_extensions import TYPE_CHECKING
