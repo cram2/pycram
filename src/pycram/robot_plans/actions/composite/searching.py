@@ -36,7 +36,7 @@ class SearchAction(ActionDescription):
     Type of the object which is searched for.
     """
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         SequentialPlan(self.context,
                        NavigateActionDescription(
                            CostmapLocation(target=self.target_location, visible_for=self.robot_view))).perform()

@@ -38,7 +38,7 @@ class OpenAction(ActionDescription):
     The distance in meters the gripper should be at in the x-axis away from the handle.
     """
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         SequentialPlan(self.context,
                        GraspingActionDescription(self.object_designator, self.arm,
                                                                                self.grasping_prepose_distance),
@@ -84,7 +84,7 @@ class CloseAction(ActionDescription):
     The distance in meters between the gripper and the handle before approaching to grasp.
     """
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         SequentialPlan(self.context,
                        GraspingActionDescription(self.object_designator, self.arm, self.grasping_prepose_distance),
                        ClosingMotion(self.object_designator, self.arm),

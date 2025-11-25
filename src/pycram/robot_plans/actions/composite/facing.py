@@ -32,7 +32,7 @@ class FaceAtAction(ActionDescription):
     Keep the joint states of the robot the same during the navigation.
     """
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         # get the robot position
         robot_position = PoseStamped.from_spatial_type(self.robot_view.root.global_pose)
 

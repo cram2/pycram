@@ -45,7 +45,7 @@ class DetectAction(ActionDescription):
     def __post_init__(self):
         super().__post_init__()
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         if not self.object_sem_annotation and self.region:
             raise AttributeError("Either a Semantic Annotation or a Region must be provided.")
         region_bb = self.region.area.as_bounding_box_collection_in_frame(

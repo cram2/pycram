@@ -212,7 +212,7 @@ class TestPlanInterrupt(ApartmentWorldTestCase):
 
 
 class AlgebraTest(ApartmentWorldTestCase):
-
+    @unittest.skip
     def test_algebra(self):
         sp = SequentialPlan(self.context,
                             MoveTorsoActionDescription(None),

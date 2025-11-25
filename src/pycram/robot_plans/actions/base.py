@@ -1,52 +1,19 @@
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from semantic_digital_twin.robots.abstract_robot import AbstractRobot
-from semantic_digital_twin.world import World
 from typing_extensions import Any, Optional, Callable
 
-from ...datastructures.dataclasses import ExecutionData, Context
+from ...designator import DesignatorDescription
 from ...failures import PlanFailure
 from ...has_parameters import HasParameters
-from ...plan import PlanNode, Plan
 
 
 @dataclass
-class ActionDescription(HasParameters):
-
-    # Is assigned in the __post_init method of the ActionNode
-    _plan_node: PlanNode = field(init=False, default=None)
-
+class ActionDescription(DesignatorDescription, HasParameters):
     _pre_perform_callbacks = []
     _post_perform_callbacks = []
-
-    @property
-    def plan_node(self) -> PlanNode:
-        return self._plan_node
-
-    @plan_node.setter
-    def plan_node(self, value: PlanNode):
-        if not isinstance(value, PlanNode):
-            raise TypeError("plan_node must be an instance of PlanNode")
-        self._plan_node = value
-
-    @property
-    def plan_struct(self) -> Plan:
-        return self.plan_node.plan
-
-    @property
-    def world(self) -> World:
-        return self.plan_struct.world
-
-    @property
-    def context(self) -> Context:
-        return Context(self.world, self.robot_view, self.plan_struct)
-
-    @property
-    def robot_view(self) -> AbstractRobot:
-        return self.plan_struct.robot
 
     def __post_init__(self):
         pass
@@ -63,7 +30,7 @@ class ActionDescription(HasParameters):
 
         result = None
         try:
-            result = self.plan()
+            result = self.execute()
         except PlanFailure as e:
             raise e
         finally:
@@ -75,7 +42,7 @@ class ActionDescription(HasParameters):
         return result
 
     @abc.abstractmethod
-    def plan(self) -> Any:
+    def execute(self) -> Any:
         """
         Symbolic plan. Should only call motions or sub-actions.
         """

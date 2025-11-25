@@ -72,10 +72,11 @@ state of execution. Arguments of nodes include:
 Reasons for failure propagate upwards, meaning that if a child node fails the parent will also contain the same reason.
 
 Now let's take a look at the arguments of the plan we just created.
+
 ```python
 print(plan.root.status)
 print(plan.root.start_time)
-print(plan.root.plan)
+print(plan.root.execute)
 ```
 
 ## Plan Execution

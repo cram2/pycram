@@ -40,7 +40,7 @@ class MixingAction(ActionDescription):
     """
     The technique to be used for mixing, e.g. 'Spiral Mixing'.
     """
-    def plan(self) -> None:
+    def execute(self) -> None:
         lt = LocalTransformer()
         obj = self.object_
         pose = lt.transform_to_object_frame(obj.pose, obj)
@@ -94,7 +94,7 @@ class PouringAction(ActionDescription):
     """
     The angle at which the tool is tilted during the pouring action, in degrees.
     """
-    def plan(self) -> None:
+    def execute(self) -> None:
         lt = LocalTransformer()
         gripper_frame = World.robot.get_link_tf_frame("base_link")
         grasp_rot = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.get_grasp(
@@ -156,7 +156,7 @@ class CuttingAction(ActionDescription):
     The thickness of each slice to be cut from the object, in meters.
     """
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         if self.technique is None:
             self.technique = "Slicing"
         lt = LocalTransformer()

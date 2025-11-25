@@ -32,7 +32,7 @@ class MoveTorsoAction(ActionDescription):
     The state of the torso that should be set
     """
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         jm = JointStateManager()
         joint_state = jm.get_joint_state(self.torso_state, self.robot_view)[0]
 
@@ -74,7 +74,7 @@ class SetGripperAction(ActionDescription):
     The motion that should be set on the gripper
     """
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         arms = [Arms.LEFT, Arms.RIGHT] if self.gripper == Arms.BOTH else [self.gripper]
         for arm in arms:
             SequentialPlan(self.context, MoveGripperMotion(gripper=arm, motion=self.motion)).perform()
@@ -104,7 +104,7 @@ class ParkArmsAction(ActionDescription):
     Entry from the enum for which arm should be parked.
     """
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         joint_names, joint_poses = self.get_joint_poses()
 
         SequentialPlan(self.context,
@@ -171,7 +171,7 @@ class CarryAction(ActionDescription):
     Goal axis of the root link, that should be used to align with.
     """
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         joint_poses = self.get_joint_poses()
         tip_normal = self.axis_to_vector3_stamped(self.tip_axis, link=self.tip_link)
         root_normal = self.axis_to_vector3_stamped(self.root_axis, link=self.root_link)
