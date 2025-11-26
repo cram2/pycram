@@ -35,7 +35,7 @@ from .has_parameters import leaf_types
 
 if TYPE_CHECKING:
     from .robot_plans import BaseMotion, ActionDescription
-
+    from .designator import DesignatorDescription
 logger = logging.getLogger(__name__)
 
 
@@ -114,7 +114,7 @@ class Plan:
         self.add_edges_from(other.edges)
         self.add_edge(mount_node, other.root)
         for node in self.nodes:
-            node.plan = self
+            node.execute = self
             node.world = self.world
 
     def merge_nodes(self, node1: PlanNode, node2: PlanNode):
@@ -702,7 +702,7 @@ class PlanNode:
 
 @dataclass
 class DesignatorNode(PlanNode):
-    designator_ref: Any = None
+    designator_ref: DesignatorDescription = None
     """
     Reference to the Designator in this node
     """
@@ -866,9 +866,6 @@ class MotionNode(DesignatorNode):
     """
     Reference to the MotionDesignator
     """
-
-    def __post_init__(self):
-        self.designator_ref.plan_node = self
 
     def __hash__(self):
         return id(self)

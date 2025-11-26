@@ -54,24 +54,24 @@ class ReachMotion(BaseMotion):
         MoveTCPMotion(pose, self.arm, allow_gripper_collision=False, movement_type=self.movement_type).perform()
 
 
-@dataclass
-class MoveArmJointsMotion(BaseMotion):
-    """
-    Moves the joints of each arm into the given position
-    """
-
-    left_arm_poses: Optional[Dict[str, float]] = None
-    """
-    Target positions for the left arm joints
-    """
-    right_arm_poses: Optional[Dict[str, float]] = None
-    """
-    Target positions for the right arm joints
-    """
-
-    def perform(self):
-        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
-        return pm_manager.move_arm_joints().execute(self)
+# @dataclass
+# class MoveArmJointsMotion(BaseMotion):
+#     """
+#     Moves the joints of each arm into the given position
+#     """
+#
+#     left_arm_poses: Optional[Dict[str, float]] = None
+#     """
+#     Target positions for the left arm joints
+#     """
+#     right_arm_poses: Optional[Dict[str, float]] = None
+#     """
+#     Target positions for the right arm joints
+#     """
+#
+#     def perform(self):
+#         pm_manager = ProcessModuleManager().get_manager(self.robot_view)
+#         return pm_manager.move_arm_joints().execute(self)
 
     def _motion_chart(self):
         left_connections = [self.world.get_connection_by_name(name) for name in self.left_arm_poses.keys()]

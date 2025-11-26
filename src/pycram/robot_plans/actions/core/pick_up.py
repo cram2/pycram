@@ -57,7 +57,7 @@ class ReachToPickUpAction(ActionDescription):
         super().__post_init__()
 
 
-    def plan(self) -> None:
+    def execute(self) -> None:
 
         end_effector = ViewManager.get_end_effector_view(self.arm, self.robot_view)
 
@@ -136,7 +136,7 @@ class PickUpAction(ActionDescription):
         super().__post_init__()
 
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         SequentialPlan(self.context,
                        ReachToPickUpActionDescription(self.object_designator, self.arm, self.grasp_description),
 
@@ -189,7 +189,7 @@ class GraspingAction(ActionDescription):
     The distance in meters the gripper should be at before grasping the object
     """
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         object_pose = PoseStamped.from_spatial_type(self.object_designator.global_pose)
         end_effector = ViewManager.get_end_effector_view(self.arm, self.robot_view)
 

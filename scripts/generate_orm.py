@@ -7,7 +7,6 @@ from krrood.class_diagrams import ClassDiagram
 from krrood.ormatic.ormatic import ORMatic
 from krrood.ormatic.utils import get_classes_of_ormatic_interface, classes_of_module
 from krrood.utils import recursive_subclasses
-
 from semantic_digital_twin.world import WorldModelManager
 from semantic_digital_twin.world_description.world_entity import Body
 from semantic_digital_twin.world_description.world_modification import (
@@ -16,9 +15,8 @@ from semantic_digital_twin.world_description.world_modification import (
 )
 
 import pycram.datastructures.pose
-from pycram.datastructures import grasp
-from pycram.datastructures.dataclasses import ExecutionData
 import pycram.language
+from pycram.datastructures import grasp
 from pycram.language import SequentialNode, RepeatNode, LanguageNode
 from pycram.orm.model import *
 from pycram.robot_plans.actions.composite import (
@@ -35,7 +33,9 @@ from pycram.robot_plans.actions.core import (
     placing,
     robot_body,
 )
-from krrood.ormatic.dao import AlternativeMapping
+from pycram.robot_plans.motions import BaseMotion
+from pycram.robot_plans.motions import container as motion_container, gripper as motion_gripper, \
+    navigation as motion_navigation, misc as motion_misc, robot_body as motion_robot_body
 
 # ----------------------------------------------------------------------------------------------------------------------
 # This script generates the ORM classes for the pycram package
@@ -63,21 +63,22 @@ classes |= set(classes_of_module(pick_up))
 classes |= set(classes_of_module(misc))
 classes |= set(classes_of_module(navigation))
 classes |= set(classes_of_module(placing))
-classes |= set(classes_of_module(robot_body))# | {ActionDescription}
+classes |= set(classes_of_module(robot_body))  # | {ActionDescription}
 classes |= {ActionDescription}
+classes |= {DesignatorDescription}
+classes |= {BaseMotion}
 classes |= set(classes_of_module(grasp))
 classes |= {WorldModelModificationBlock, WorldModelModification}
-
 
 # Semantic World Classes
 classes |= {Body}
 
 # Motion Designator
-# classes |= set(classes_of_module(motion_gripper))
-# classes |= set(classes_of_module(motion_navigation))
-# classes |= set(classes_of_module(motion_container))
-# classes |= set(classes_of_module(motion_misc))
-# classes |= set(classes_of_module(motion_robot_body))
+classes |= set(classes_of_module(motion_gripper))
+classes |= set(classes_of_module(motion_navigation))
+classes |= set(classes_of_module(motion_container))
+classes |= set(classes_of_module(motion_misc))
+classes |= set(classes_of_module(motion_robot_body))
 
 classes |= {
     PlanNode,
@@ -105,7 +106,6 @@ alternative_mappings = [
     if am.original_class() in classes
 ]
 
-
 # create the new ormatic interface
 class_diagram = ClassDiagram(
     list(sorted(classes, key=lambda c: c.__name__, reverse=True))
@@ -124,6 +124,7 @@ def generate_orm():
         type_mappings=type_mappings,
         alternative_mappings=alternative_mappings,
     )
+    logging.getLogger("krrood").setLevel(logging.DEBUG)
 
     # Generate the ORM classes
     ormatic.make_all_tables()

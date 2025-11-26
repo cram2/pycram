@@ -68,7 +68,7 @@ class TransportAction(ActionDescription):
                 bodies.append(body)
         return bodies
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         if containers := self.inside_container():
             for container in containers:
                 sem_anno = container.get_semantic_annotations_by_type(Drawer)
@@ -173,7 +173,7 @@ class PickAndPlaceAction(ActionDescription):
     def __post_init__(self):
         super().__post_init__()
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         SequentialPlan(self.context,
                        ParkArmsActionDescription(Arms.BOTH),
                        PickUpActionDescription(self.object_designator, self.arm,
@@ -231,7 +231,7 @@ class MoveAndPlaceAction(ActionDescription):
     Keep the joint states of the robot the same during the navigation.
     """
 
-    def plan(self):
+    def execute(self):
         SequentialPlan(self.context,
                        NavigateActionDescription(self.standing_position, self.keep_joint_states),
                        FaceAtActionDescription(self.target_location, self.keep_joint_states),
@@ -295,7 +295,7 @@ class MoveAndPickUpAction(ActionDescription):
     def __post_init__(self):
         super().__post_init__()
 
-    def plan(self):
+    def execute(self):
         obj_pose = PoseStamped.from_spatial_type(self.object_designator.global_pose)
         SequentialPlan(self.context,
                        NavigateActionDescription(self.standing_position, self.keep_joint_states),
@@ -362,7 +362,7 @@ class EfficientTransportAction(ActionDescription):
         else:
             raise ConfigurationNotReached("No free arm available to grasp the object.")
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         """
         The main plan for the transport action, optimized for a stationary robot.
         """

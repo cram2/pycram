@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import inspect
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import get_type_hints
 
 from krrood.entity_query_language.entity import an, entity, contains, let
@@ -11,6 +11,7 @@ from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 from typing_extensions import List, Dict, Any, Optional, Iterator, Iterable, Union
 
+from .datastructures.dataclasses import Context
 from .datastructures.partial_designator import PartialDesignator
 from .datastructures.pose import PoseStamped
 from .plan import Plan, PlanNode
@@ -45,12 +46,12 @@ class ResolutionError(Exception):
         self.message = f"{bcolors.BOLD}{bcolors.FAIL}" + self.message + f"{bcolors.ENDC}"
         super(ResolutionError, self).__init__(self.message)
 
-
+@dataclass
 class DesignatorDescription:
 
-    plan_node: PlanNode = None
+    plan_node: PlanNode = field(init=False, default=None)
     """
-    The plan node to which this designator_description belongs.
+    The plan node to which this designator_description belongs. This is assigned as soon as the designator_description is added to a plan.
     """
 
     @property
@@ -82,6 +83,10 @@ class DesignatorDescription:
             return self.plan_node.plan.world
         else:
             raise ValueError("This designator_description is not part of a plan.")
+
+    @property
+    def context(self) -> Context:
+        return Context(self.world, self.robot_view, self.plan)
 
     def __init__(self):
         """

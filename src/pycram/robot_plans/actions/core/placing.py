@@ -48,7 +48,7 @@ class PlaceAction(ActionDescription):
     def __post_init__(self):
         super().__post_init__()
 
-    def plan(self) -> None:
+    def execute(self) -> None:
         pre_place_pose = self.world.transform(self.target_location.to_spatial_type(), self.world.root)
         pre_place_pose = PoseStamped.from_spatial_type(pre_place_pose)
         pre_place_pose.position.z += 0.1
