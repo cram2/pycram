@@ -11,7 +11,10 @@ import numpy as np
 import rustworkx as rx
 import rustworkx.visualization
 import logging
+
+# from giskardpy.motion_statechart.tasks.task import Task
 from semantic_digital_twin.world_description.world_entity import Body
+from semantic_digital_twin.world_description.world_modification import WorldModelModificationBlock
 from typing_extensions import (
     Optional,
     Callable,
@@ -32,6 +35,7 @@ from .datastructures.pose import PoseStamped
 from .external_interfaces import giskard
 from .failures import PlanFailure
 from .has_parameters import leaf_types
+from .motion_executor import MotionExecutor
 
 if TYPE_CHECKING:
     from .robot_plans import BaseMotion, ActionDescription
@@ -803,20 +807,33 @@ class ResolvedActionNode(DesignatorNode):
     Additional data that  is collected before and after the execution of the action.
     """
 
+    motion_executor: MotionExecutor = None
+
+    _last_mod: WorldModelModificationBlock = None
+    """
+    The last model modification block before the execution of this node. Used to check if the model has changed during execution.
+    """
+
     def __hash__(self):
         return id(self)
 
-    @managed_node
-    def perform(self):
-        """
-        Performs this node by performing the resolved action designator in zit
+    def collect_motions(self) -> List[Task]:
+        motion_desigs =  list(filter(lambda x: x.is_leaf, self.recursive_children))
+        return [m.designator_ref.motion_chart for m in motion_desigs]
 
-        :return: The return value of the resolved ActionDesignator
-        """
+    def construct_msc(self):
+        self.motion_executor = MotionExecutor(self.collect_motions(), self.plan.world)
+        self.motion_executor.construct_msc()
+
+    def execute_msc(self):
+        self.construct_msc()
+        self.motion_executor.execute()
+
+    def log_execution_data_pre_perform(self):
         robot_pose = PoseStamped.from_spatial_type(self.plan.robot.root.global_pose)
         exec_data = ExecutionData(robot_pose, self.plan.world.state.data)
         self.execution_data = exec_data
-        last_mod = self.plan.world._model_manager.model_modification_blocks[-1]
+        self._last_mod = self.plan.world._model_manager.model_modification_blocks[-1]
 
         manipulated_bodies = list(
             filter(lambda x: isinstance(x, Body), self.kwargs.values())
@@ -830,25 +847,39 @@ class ResolvedActionNode(DesignatorNode):
             )
             self.execution_data.manipulated_body_name = str(manipulated_body.name)
 
-        result = self.designator_ref.perform()
-
+    def log_execution_data_post_perform(self):
         self.execution_data.execution_end_pose = PoseStamped.from_spatial_type(
             self.plan.robot.root.global_pose
         )
         self.execution_data.execution_end_world_state = self.plan.world.state.data
         new_modifications = []
         for i in range(len(self.plan.world._model_manager.model_modification_blocks)):
-            if self.plan.world._model_manager.model_modification_blocks[-i] is last_mod:
+            if self.plan.world._model_manager.model_modification_blocks[-i] is self._last_mod:
                 break
             new_modifications.append(
                 self.plan.world._model_manager.model_modification_blocks[-i]
             )
         self.execution_data.modifications = new_modifications[::-1]
 
-        if manipulated_body:
+        if self.execution_data.manipulated_body:
             self.execution_data.manipulated_body_pose_end = PoseStamped.from_spatial_type(
-                manipulated_body.global_pose
+                self.execution_data.manipulated_body.global_pose
             )
+
+    @managed_node
+    def perform(self):
+        """
+        Performs this node by performing the resolved action designator in zit
+
+        :return: The return value of the resolved ActionDesignator
+        """
+        self.log_execution_data_pre_perform()
+
+        result = self.designator_ref.perform()
+
+        self.execute_msc()
+
+        self.log_execution_data_post_perform()
 
         return result
 

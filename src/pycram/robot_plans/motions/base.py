@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from semantic_digital_twin.robots.abstract_robot import AbstractRobot
-# from giskardpy.motion_statechart.tasks.task import Task
+from giskardpy.motion_statechart.graph_node import Task
 from typing_extensions import TYPE_CHECKING
 
 from ...designator import DesignatorDescription
@@ -33,13 +33,26 @@ class AlternativeMotionMapping(ABC):
         return None
 
 @dataclass
-class BaseMotion(DesignatorDescription):
+class BaseMotion(DesignatorDescription, ABC):
 
     @abstractmethod
     def perform(self):
         """
         Passes this designator to the process module for execution. Will be overwritten by each motion.
         """
+        pass
+
+    @property
+    def motion_chart(self) -> Task:
+        alternative = AlternativeMotionMapping.check_for_alternative(self.robot_view, self)
+        if alternative is not None:
+            return alternative
+        else:
+            return self._motion_chart
+
+    @property
+    @abstractmethod
+    def _motion_chart(self) -> Task:
         pass
 
     def __post_init__(self):

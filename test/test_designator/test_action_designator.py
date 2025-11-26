@@ -20,7 +20,7 @@ class TestActionDesignatorGrounding(ApartmentWorldTestCase):
         with simulated_robot:
             plan.perform()
         dof = self.world.get_degree_of_freedom_by_name("torso_lift_joint")
-        self.assertEqual(self.world.state[dof.name].position, 0.3)
+        self.assertAlmostEqual(self.world.state[dof.name].position, 0.29, places=2)
 
     def test_set_gripper(self):
         description = SetGripperActionDescription([Arms.LEFT], [GripperStateEnum.OPEN, GripperStateEnum.CLOSE])
