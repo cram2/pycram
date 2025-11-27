@@ -1,10 +1,14 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from giskardpy.motion_statechart.tasks.pointing import Pointing
+
 from .base import BaseMotion
-from ...datastructures.pose import Vector3Stamped
+from ...datastructures.pose import Vector3Stamped, PoseStamped
 from ...process_module import ProcessModuleManager
 from giskardpy.motion_statechart.tasks.joint_tasks import JointPositionList, JointState
+
+from ...robot_description import ViewManager
 
 
 @dataclass
@@ -51,3 +55,22 @@ class MoveJointsMotion(BaseMotion):
     def _motion_chart(self):
         dofs = [self.world.get_connection_by_name(name) for name in self.names]
         return JointPositionList(goal_state=JointState(dict(zip(dofs, self.positions))))
+
+
+@dataclass
+class LookingMotion(BaseMotion):
+    """
+    Lets the robot look at a point
+    """
+    target: PoseStamped
+
+    def perform(self):
+        return
+        pm_manager = ProcessModuleManager().get_manager(self.robot_view)
+        return pm_manager.looking().execute(self)
+
+    @property
+    def _motion_chart(self):
+        camera = list(self.robot_view.sensors)[0]
+        camera.forward_facing_axis.reference_frame = camera.root
+        return Pointing(root_link=self.robot_view.torso.root, tip_link=camera.root, goal_point=self.target.to_spatial_type().to_position(), pointing_axis=camera.forward_facing_axis)

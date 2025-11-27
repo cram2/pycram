@@ -21,8 +21,14 @@ class MotionExecutor:
     """
 
     world: World
+    """
+    The world in which the motions should be executed.
+    """
 
     motion_state_chart: MotionStatechart = field(init=False)
+    """
+    Giskard's motion state chart that is created from the motions.
+    """
 
 
     def construct_msc(self):
@@ -34,13 +40,19 @@ class MotionExecutor:
 
 
     def execute(self):
+        """
+        Executes the constructed motion state chart in the given world.
+        """
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
            self._execute_for_simulation()
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             self._execute_for_real()
 
     def _execute_for_simulation(self):
-        executor = Executor(self.world, controller_config=QPControllerConfig.create_default_with_50hz())
+        """
+        Creates an executor and executes the motion state chart until it is done.
+        """
+        executor = Executor(self.world, controller_config=QPControllerConfig(control_dt=0.02, mpc_dt=0.02, prediction_horizon=4))
         executor.compile(self.motion_state_chart)
         executor.tick_until_end(timeout=2000)
 
