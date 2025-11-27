@@ -1,40 +1,36 @@
-import unittest
 from copy import deepcopy
 
 import numpy as np
 import sqlalchemy.sql.elements
-from krrood.ormatic.dao import to_dao
 
+from krrood.entity_query_language.symbol_graph import SymbolGraph
+from krrood.ormatic.dao import to_dao
+from krrood.ormatic.utils import create_engine
+from semantic_digital_twin.robots.pr2 import PR2
+from sqlalchemy import select, text
+from sqlalchemy.orm import Session
+
+from pycram.datastructures.dataclasses import Context
 from pycram.datastructures.enums import (
     TorsoState,
     ApproachDirection,
     Arms,
     VerticalAlignment,
-    DetectionTechnique,
-    DetectionState,
     GripperState,
 )
-from semantic_digital_twin.robots.pr2 import PR2
-from sqlalchemy import create_engine, select, text
-from sqlalchemy.orm import Session
-
-from pycram.datastructures.dataclasses import Context
 from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.pose import Pose, PoseStamped
-from pycram.designator import ObjectDesignatorDescription, NamedObject
+from pycram.designator import NamedObject
 from pycram.language import SequentialPlan
 from pycram.orm.ormatic_interface import *
-from pycram.plan import ResolvedActionNode
 from pycram.process_module import simulated_robot
 from pycram.robot_plans import (
     MoveTorsoActionDescription,
     ParkArmsAction,
-    DetectActionDescription,
     PlaceActionDescription,
     TransportAction,
     ParkArmsActionDescription,
     TransportActionDescription,
-    LookAtActionDescription,
     NavigateActionDescription,
     PickUpActionDescription,
     SetGripperActionDescription,
@@ -45,7 +41,6 @@ from pycram.robot_plans import (
     PlaceAction,
 )
 from pycram.testing import ApartmentWorldTestCase
-from semantic_digital_twin.world import World
 
 
 class ORMaticBaseTestCaseMixin(ApartmentWorldTestCase):
@@ -439,15 +434,22 @@ class ExecDataTest(ORMaticBaseTestCaseMixin):
         self.session.add(dao)
         self.session.commit()
         exec_data = self.session.scalars(select(ExecutionDataDAO)).all()[0]
-        exec_data = exec_data.from_dao()
         self.assertIsNotNone(exec_data)
         self.assertListEqual(
             [1.5, 2.5, 0],
-            exec_data.execution_start_pose.pose.position.to_list(),
+            [
+                exec_data.execution_start_pose.pose.position.x,
+                exec_data.execution_start_pose.pose.position.y,
+                exec_data.execution_start_pose.pose.position.z,
+            ],
         )
         self.assertListEqual(
             [0.6, 0.4, 0],
-            exec_data.execution_end_pose.pose.position.to_list(),
+            [
+                exec_data.execution_end_pose.pose.position.x,
+                exec_data.execution_end_pose.pose.position.y,
+                exec_data.execution_end_pose.pose.position.z,
+            ],
         )
 
     def test_manipulated_body_pose(self):
