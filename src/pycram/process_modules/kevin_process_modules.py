@@ -9,7 +9,7 @@ class KevinMoveArmJoints(DefaultMoveArmJoints):
     Process module for the simulated Kevin that moves the arm joints of the robot
     """
 
-    def _execute(self, desig: MoveArmJointsMotion):
+    def _execute(self, desig: 'MoveArmJointsMotion'):
         # Kevin has very long fingers. It is hard to grasp things with we allow collisions for the gripper when moving
         # for now
         giskard.allow_gripper_collision("gripper")

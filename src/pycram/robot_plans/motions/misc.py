@@ -23,3 +23,7 @@ class DetectingMotion(BaseMotion):
         obj_dict = pm_manager.detecting().execute(self)
         return obj_dict
 
+    @property
+    def _motion_chart(self):
+        pass
+

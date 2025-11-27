@@ -7,7 +7,8 @@ import numpy as np
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from ..base import ActionDescription
-from ...motions.navigation import MoveMotion, LookingMotion
+from ...motions.robot_body import LookingMotion
+from ...motions.navigation import MoveMotion
 from ....config.action_conf import ActionConfig
 from ....datastructures.partial_designator import PartialDesignator
 from ....datastructures.pose import PoseStamped
