@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 try:
     from std_msgs.msg import Float64
 except ImportError:
-    logger.info ("Float64 message type not found, make sure to install std_msgs package")
+    logger.info("Float64 message type not found, make sure to install std_msgs package")
+
 
 class RobotiqMoveGripperReal(DefaultMoveGripperReal):
     """
@@ -21,10 +22,17 @@ class RobotiqMoveGripperReal(DefaultMoveGripperReal):
     """
 
     def _execute(self, designator: MoveGripperMotion) -> Any:
-        value = ur5e_data.gripper_open_cmd_value if designator.motion == GripperState.OPEN \
+        value = (
+            ur5e_data.gripper_open_cmd_value
+            if designator.motion == GripperState.OPEN
             else ur5e_data.gripper_close_cmd_value
-        publisher = create_publisher(ur5e_data.gripper_cmd_topic, Float64, queue_size=10, latch=True)
-        World.current_world.step(func=lambda: publisher.publish(Float64(value)), step_seconds=0.1)
+        )
+        publisher = create_publisher(
+            ur5e_data.gripper_cmd_topic, Float64, queue_size=10, latch=True
+        )
+        World.current_world.step(
+            func=lambda: publisher.publish(Float64(value)), step_seconds=0.1
+        )
         return True
 
 
@@ -39,5 +47,6 @@ class RobotiqManager(DefaultManager):
             return DefaultMoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return RobotiqMoveGripperReal(self._move_gripper_lock)
+
 
 RobotiqManager()

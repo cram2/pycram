@@ -6,7 +6,9 @@ import logging
 
 from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 from semantic_digital_twin.world import World
-from semantic_digital_twin.world_description.shape_collection import BoundingBoxCollection
+from semantic_digital_twin.world_description.shape_collection import (
+    BoundingBoxCollection,
+)
 
 from .tf_transformations import quaternion_from_euler
 from random_events.interval import closed_open
@@ -20,7 +22,9 @@ from .units import meter
 
 from pint import Quantity
 from probabilistic_model.probabilistic_circuit.rx.helper import uniform_measure_of_event
-from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import ProbabilisticCircuit
+from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import (
+    ProbabilisticCircuit,
+)
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
 
@@ -30,8 +34,10 @@ try:
     from std_msgs.msg import ColorRGBA
     from visualization_msgs.msg import Marker, MarkerArray
 except ImportError:
-    logger.info("Could not import visualization_msgs.msg.Marker and std_msgs.msg.ColorRGBA. "
-            "This is probably because you are not running ROS.")
+    logger.info(
+        "Could not import visualization_msgs.msg.Marker and std_msgs.msg.ColorRGBA. "
+        "This is probably because you are not running ROS."
+    )
 
 
 class Filter(Enum):
@@ -74,12 +80,15 @@ class ProbabilisticCostmap:
     The distribution associated with the costmap.
     """
 
-    def __init__(self, origin: PoseStamped,
-                 size: Quantity = 2 * meter,
-                 max_cells = 10000,
-                 costmap_type: Type[Costmap] = OccupancyCostmap,
-                 world: Optional[World] = None,
-                 robot: AbstractRobot = None):
+    def __init__(
+        self,
+        origin: PoseStamped,
+        size: Quantity = 2 * meter,
+        max_cells=10000,
+        costmap_type: Type[Costmap] = OccupancyCostmap,
+        world: Optional[World] = None,
+        robot: AbstractRobot = None,
+    ):
 
         self.world = world
         self.origin = origin
@@ -90,20 +99,35 @@ class ProbabilisticCostmap:
         resolution = self.size.to(meter) / number_of_cells
 
         if costmap_type == OccupancyCostmap:
-            robot_bounding_box = BoundingBoxCollection([body.collision.as_bounding_box_collection_in_frame(self.world.root).bounding_box() for body in robot.bodies]).bounding_box()
-            distance_to_obstacle = max(robot_bounding_box.width, robot_bounding_box.depth) / 2
+            robot_bounding_box = BoundingBoxCollection(
+                [
+                    body.collision.as_bounding_box_collection_in_frame(
+                        self.world.root
+                    ).bounding_box()
+                    for body in robot.bodies
+                ]
+            ).bounding_box()
+            distance_to_obstacle = (
+                max(robot_bounding_box.width, robot_bounding_box.depth) / 2
+            )
             self.costmap = OccupancyCostmap(
                 origin=self.origin,
                 distance_to_obstacle=distance_to_obstacle,
                 size=number_of_cells,
                 resolution=resolution.magnitude,
-                world = self.world,
-                robot_view=robot)
+                world=self.world,
+                robot_view=robot,
+            )
         elif costmap_type == VisibilityCostmap:
             camera = robot.sensors[0]
             self.costmap = VisibilityCostmap(
-                min_height=camera.minimal_height, max_height=camera.maximal_height, size=number_of_cells,
-                resolution=resolution.magnitude, origin=self.origin, world=self.world)
+                min_height=camera.minimal_height,
+                max_height=camera.maximal_height,
+                size=number_of_cells,
+                resolution=resolution.magnitude,
+                origin=self.origin,
+                world=self.world,
+            )
         else:
             raise NotImplementedError(f"Unknown costmap type {costmap_type}")
         self.create_distribution()
@@ -119,8 +143,14 @@ class ProbabilisticCostmap:
         area = Event()
         for rectangle in self.costmap.partitioning_rectangles():
             rectangle.translate(self.origin.position.x, self.origin.position.y)
-            area.simple_sets.add(SimpleEvent({self.x: closed_open(rectangle.x_lower, rectangle.x_upper),
-                                                    self.y: closed_open(rectangle.y_lower, rectangle.y_upper)}))
+            area.simple_sets.add(
+                SimpleEvent(
+                    {
+                        self.x: closed_open(rectangle.x_lower, rectangle.x_upper),
+                        self.y: closed_open(rectangle.y_lower, rectangle.y_upper),
+                    }
+                )
+            )
         return area
 
     def create_distribution(self):
@@ -139,7 +169,13 @@ class ProbabilisticCostmap:
         x = sample[0]
         y = sample[1]
         position = [x, y, self.origin.position.z]
-        angle = np.arctan2(position[1] - self.origin.position.y, position[0] - self.origin.position.x) + np.pi
+        angle = (
+            np.arctan2(
+                position[1] - self.origin.position.y,
+                position[0] - self.origin.position.x,
+            )
+            + np.pi
+        )
         orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
         return PoseStamped.from_list(position, orientation, self.origin.frame_id)
 
@@ -162,12 +198,17 @@ class ProbabilisticCostmap:
         marker.scale.x = 0.05
         marker.scale.y = 0.05
 
-
         for index, (sample, likelihood) in enumerate(zip(samples, likelihoods)):
             position = self.sample_to_pose(sample).pose.position
             position.z = 0.1
             marker.points.append(position)
-            marker.colors.append(ColorRGBA(**dict(zip(["r", "g", "b","a"], [*colorscale(likelihood)[:3], 1.0]))))
+            marker.colors.append(
+                ColorRGBA(
+                    **dict(
+                        zip(["r", "g", "b", "a"], [*colorscale(likelihood)[:3], 1.0])
+                    )
+                )
+            )
 
         marker_array = MarkerArray()
         marker_array.markers.append(marker)

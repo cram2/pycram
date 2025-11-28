@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 #                 return alternative.motion_chart
 #         return None
 
+
 @dataclass
 class BaseMotion(DesignatorDescription):
 

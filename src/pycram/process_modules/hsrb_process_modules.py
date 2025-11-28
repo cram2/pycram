@@ -3,6 +3,7 @@ from threading import Lock
 from typing_extensions import Any
 
 from .default_process_modules import *
+
 # from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
 from ..process_module import ProcessModule
 from ..robot_plans import *
@@ -14,10 +15,9 @@ try:
     from pydub.playback import play
     from gtts import gTTS
 except ImportError:
-    logger.debug("pydub and gtts are not installed. HSR speech simulated will not work.")
-
-
-
+    logger.debug(
+        "pydub and gtts are not installed. HSR speech simulated will not work."
+    )
 
 
 ###########################################################
@@ -58,8 +58,13 @@ class HSRBMoveTCPReal(ProcessModule):
         giskard.avoid_all_collisions()
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm)
-        giskard.achieve_cartesian_goal(pose_in_map, RobotDescription.current_robot_description.get_arm_chain(
-            designator.arm).get_tool_frame(), "map")
+        giskard.achieve_cartesian_goal(
+            pose_in_map,
+            RobotDescription.current_robot_description.get_arm_chain(
+                designator.arm
+            ).get_tool_frame(),
+            "map",
+        )
 
 
 class HSRBMoveArmJointsReal(ProcessModule):
@@ -102,8 +107,11 @@ class HSRBOpenReal(ProcessModule):
 
     def _execute(self, designator: OpeningMotion) -> Any:
         giskard.achieve_open_container_goal(
-            RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
-            designator.object_part.name)
+            RobotDescription.current_robot_description.get_arm_chain(
+                designator.arm
+            ).get_tool_frame(),
+            designator.object_part.name,
+        )
 
 
 class HSRBCloseReal(ProcessModule):
@@ -113,8 +121,11 @@ class HSRBCloseReal(ProcessModule):
 
     def _execute(self, designator: ClosingMotion) -> Any:
         giskard.achieve_close_container_goal(
-            RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
-            designator.object_part.name)
+            RobotDescription.current_robot_description.get_arm_chain(
+                designator.arm
+            ).get_tool_frame(),
+            designator.object_part.name,
+        )
 
 
 # class HSRBTalkReal(ProcessModule):
@@ -177,7 +188,6 @@ class HSRBManager(DefaultManager):
         self.robot_name = "hsrb"
         self._navigate_lock = Lock()
 
-
     def navigate(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultNavigation(self._navigate_lock)
@@ -199,7 +209,7 @@ class HSRBManager(DefaultManager):
             return DefaultDetectingReal(self._detecting_lock)
 
     def move_tcp(self):
-        if  ProcessModuleManager.execution_type == ExecutionType.REAL:
+        if ProcessModuleManager.execution_type == ExecutionType.REAL:
             return HSRBMoveTCPReal(self._move_tcp_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBMoveTCPReal(self._move_tcp_lock)
@@ -239,5 +249,6 @@ class HSRBManager(DefaultManager):
     #         return HSRBTalkReal(self._talk_lock)
     #     elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
     #         return HSRBTalkSemiReal(self._talk_lock)
+
 
 HSRBManager()

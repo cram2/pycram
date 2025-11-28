@@ -18,9 +18,14 @@ class DualArmPickupAction(PickUpAction):
     Specialization version of the PickUpAction designator which uses heuristics to solve for a dual pickup solution.
     """
 
-    def __init__(self,
-                 object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
-                 grasps: List[Grasp], resolver=None):
+    def __init__(
+        self,
+        object_designator_description: Union[
+            ObjectDesignatorDescription, ObjectDesignatorDescription.Object
+        ],
+        grasps: List[Grasp],
+        resolver=None,
+    ):
         """
         Specialized version of the PickUpAction designator which uses heuristics to solve for a dual pickup problem. The
         designator will choose the arm which is closest to the object that is to be picked up.
@@ -30,21 +35,32 @@ class DualArmPickupAction(PickUpAction):
         :param resolver: Optional specialized_designators that returns a performable designator with elements from the
                          lists of possible parameter
         """
-        super().__init__(object_designator_description,
-                         arms=[Arms.LEFT, Arms.RIGHT],
-                         grasps=grasps,
-                         resolver=resolver)
+        super().__init__(
+            object_designator_description,
+            arms=[Arms.LEFT, Arms.RIGHT],
+            grasps=grasps,
+            resolver=resolver,
+        )
 
         self.object_designator_description: Union[
-            ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
+            ObjectDesignatorDescription, ObjectDesignatorDescription.Object
+        ] = object_designator_description
 
-        left_gripper = RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT)
-        right_gripper = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT)
-        self.gripper_list: List[KinematicChainDescription] = [left_gripper, right_gripper]
-
+        left_gripper = RobotDescription.current_robot_description.get_arm_chain(
+            Arms.LEFT
+        )
+        right_gripper = RobotDescription.current_robot_description.get_arm_chain(
+            Arms.RIGHT
+        )
+        self.gripper_list: List[KinematicChainDescription] = [
+            left_gripper,
+            right_gripper,
+        ]
 
     def ground(self) -> PickUpAction:
-        if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object):
+        if isinstance(
+            self.object_designator_description, ObjectDesignatorDescription.Object
+        ):
             obj_desig = self.object_designator_description
         else:
             obj_desig = self.object_designator_description.resolve()
@@ -60,9 +76,15 @@ class DualArmPickupAction(PickUpAction):
             # Object pose in gripper frame
             gripper_frame = World.robot.get_link_tf_frame(gripper.get_tool_frame())
 
-            object_T_gripper: PoseStamped = local_transformer.transform_pose(object_pose, gripper_frame)
-            object_V_gripper: Vector3 = object_T_gripper.pose.position  # translation vector
-            distance = norm(array([object_V_gripper.x, object_V_gripper.y, object_V_gripper.z]))
+            object_T_gripper: PoseStamped = local_transformer.transform_pose(
+                object_pose, gripper_frame
+            )
+            object_V_gripper: Vector3 = (
+                object_T_gripper.pose.position
+            )  # translation vector
+            distance = norm(
+                array([object_V_gripper.x, object_V_gripper.y, object_V_gripper.z])
+            )
             info(f"Distance between {gripper} and {obj_desig.name}: {distance}")
             distances.append(distance)
 
@@ -70,4 +92,6 @@ class DualArmPickupAction(PickUpAction):
         winner = self.gripper_list[min_index]
         info(f"Winner is {winner.arm_type.name} with distance {min(distances):.2f}")
 
-        return PickUpAction(object_designator=obj_desig, arm=winner.arm_type, grasp=self.grasps[0])
+        return PickUpAction(
+            object_designator=obj_desig, arm=winner.arm_type, grasp=self.grasps[0]
+        )

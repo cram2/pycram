@@ -7,15 +7,18 @@ from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 from semantic_digital_twin.world import World
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
-from ..ros import  Time
-from ..ros import  create_publisher
+from ..ros import Time
+from ..ros import create_publisher
 
 
 class JointStatePublisher:
     """
     Joint state publisher for all robots currently loaded in the World
     """
-    def __init__(self, world: World, node, joint_state_topic="/pycram/joint_state", interval=0.1):
+
+    def __init__(
+        self, world: World, node, joint_state_topic="/pycram/joint_state", interval=0.1
+    ):
         """
         Robot object is from :py:attr:`~pycram.world.World.robot` and current joint states are published to
         the given joint_state_topic as a JointState message.
@@ -27,7 +30,9 @@ class JointStatePublisher:
         """
         self.world = world
 
-        self.joint_state_pub = create_publisher(joint_state_topic, JointState, node, queue_size=10)
+        self.joint_state_pub = create_publisher(
+            joint_state_topic, JointState, node, queue_size=10
+        )
         self.node = node
         self.interval = interval
         self.kill_event = threading.Event()
@@ -42,9 +47,12 @@ class JointStatePublisher:
         The joint states are published as long as the kill_event is not set by :py:meth:`~JointStatePublisher._stop_publishing`
         """
         robot_views = self.world.get_semantic_annotations_by_type(AbstractRobot)
-        dofs = {dof for robot_view in robot_views
-                     for connection in self.world.get_connections_of_branch(robot_view.root)
-                     for dof in connection.dofs}
+        dofs = {
+            dof
+            for robot_view in robot_views
+            for connection in self.world.get_connections_of_branch(robot_view.root)
+            for dof in connection.dofs
+        }
 
         while not self.kill_event.is_set():
             current_joint_states = [self.world.state[dof.name].position for dof in dofs]

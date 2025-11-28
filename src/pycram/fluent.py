@@ -17,6 +17,7 @@ class Behavior(Enum):
     ONCE -- if pulses were missed, execute the body once more in total.
     ALWAYS -- if pulses were missed, execute the body once more for each.
     """
+
     NEVER = 1
     ONCE = 2
     ALWAYS = 3
@@ -160,6 +161,7 @@ class Fluent:
         fluent = Fluent()
 
         if type(other) == Fluent:
+
             def value():
                 if operator(self.get_value(), other.get_value()):
                     return True
@@ -168,6 +170,7 @@ class Fluent:
 
             other.add_child(fluent)
         else:
+
             def value():
                 if operator(self.get_value(), other):
                     return True
@@ -324,6 +327,7 @@ class Fluent:
         fluent = Fluent()
 
         if type(other) == Fluent:
+
             def value():
                 if self.get_value() and other.get_value():
                     return True
@@ -332,6 +336,7 @@ class Fluent:
 
             other.add_child(fluent)
         else:
+
             def value():
                 if self.get_value() and other:
                     return True
@@ -350,6 +355,7 @@ class Fluent:
         fluent = Fluent()
 
         if type(other) == Fluent:
+
             def value():
                 if self.get_value() or other.get_value():
                     return True
@@ -358,6 +364,7 @@ class Fluent:
 
             other.add_child(fluent)
         else:
+
             def value():
                 if self.get_value() or other:
                     return True
@@ -370,6 +377,7 @@ class Fluent:
 
     def NOT(self) -> Fluent:
         """Create a fluent which value is True if the value of its parent expresses False, None otherwise."""
+
         def value():
             if not self.get_value():
                 return True

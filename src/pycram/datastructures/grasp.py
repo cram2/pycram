@@ -41,7 +41,9 @@ class GraspDescription(HasParameters):
     """
 
     def __hash__(self):
-        return hash((self.approach_direction, self.vertical_alignment, self.rotate_gripper))
+        return hash(
+            (self.approach_direction, self.vertical_alignment, self.rotate_gripper)
+        )
 
     def as_list(self) -> List[Union[Grasp, Optional[Grasp], bool]]:
         """
@@ -49,8 +51,9 @@ class GraspDescription(HasParameters):
         """
         return [self.approach_direction, self.vertical_alignment, self.rotate_gripper]
 
-
-    def get_grasp_pose(self, end_effector: Manipulator, body: Body, translate_rim_offset: bool = False) -> PoseStamped:
+    def get_grasp_pose(
+        self, end_effector: Manipulator, body: Body, translate_rim_offset: bool = False
+    ) -> PoseStamped:
         """
         Translates the grasp pose of the object using the desired grasp description and object knowledge.
         Leaves the orientation untouched.
@@ -67,12 +70,22 @@ class GraspDescription(HasParameters):
         approach_direction = self.approach_direction
         rim_direction_index = approach_direction.value[0].value.index(1)
 
-        rim_offset = body.collision.as_bounding_box_collection_in_frame(body).bounding_box().dimensions[rim_direction_index] / 2
+        rim_offset = (
+            body.collision.as_bounding_box_collection_in_frame(body)
+            .bounding_box()
+            .dimensions[rim_direction_index]
+            / 2
+        )
 
-
-        grasp_pose.rotate_by_quaternion(self.calculate_grasp_orientation(end_effector.front_facing_orientation.to_np()))
+        grasp_pose.rotate_by_quaternion(
+            self.calculate_grasp_orientation(
+                end_effector.front_facing_orientation.to_np()
+            )
+        )
         if translate_rim_offset:
-            grasp_pose = translate_pose_along_local_axis(grasp_pose, self.approach_direction.axis.value, -rim_offset)
+            grasp_pose = translate_pose_along_local_axis(
+                grasp_pose, self.approach_direction.axis.value, -rim_offset
+            )
 
         return grasp_pose
 
@@ -85,19 +98,26 @@ class GraspDescription(HasParameters):
         :return: The calculated orientation as a quaternion.
         """
         rotation = Rotations.SIDE_ROTATIONS[self.approach_direction]
-        rotation = quaternion_multiply(rotation, Rotations.VERTICAL_ROTATIONS[self.vertical_alignment])
-        rotation = quaternion_multiply(rotation, Rotations.HORIZONTAL_ROTATIONS[self.rotate_gripper])
+        rotation = quaternion_multiply(
+            rotation, Rotations.VERTICAL_ROTATIONS[self.vertical_alignment]
+        )
+        rotation = quaternion_multiply(
+            rotation, Rotations.HORIZONTAL_ROTATIONS[self.rotate_gripper]
+        )
 
         orientation = quaternion_multiply(rotation, front_orientation)
 
-        norm = math.sqrt(sum(comp ** 2 for comp in orientation))
+        norm = math.sqrt(sum(comp**2 for comp in orientation))
         orientation = [comp / norm for comp in orientation]
 
         return orientation
 
     @staticmethod
-    def calculate_grasp_descriptions(robot: AbstractRobot, pose: PoseStamped, grasp_alignment: Optional[PreferredGraspAlignment] = None) -> \
-            List[GraspDescription]:
+    def calculate_grasp_descriptions(
+        robot: AbstractRobot,
+        pose: PoseStamped,
+        grasp_alignment: Optional[PreferredGraspAlignment] = None,
+    ) -> List[GraspDescription]:
         """
         This method determines the possible grasp configurations (approach axis and vertical alignment) of the body,
         taking into account the bodies orientation, position, and whether the gripper should be rotated by 90°.
@@ -117,15 +137,23 @@ class GraspDescription(HasParameters):
             vertical = grasp_alignment.with_vertical_alignment
             rotated_gripper = grasp_alignment.with_rotated_gripper
         else:
-            side_axis, vertical, rotated_gripper = AxisIdentifier.Undefined, False, False
+            side_axis, vertical, rotated_gripper = (
+                AxisIdentifier.Undefined,
+                False,
+                False,
+            )
 
-        object_to_robot_vector_world = objectTmap.position.vector_to_position(robot_pose.position)
+        object_to_robot_vector_world = objectTmap.position.vector_to_position(
+            robot_pose.position
+        )
         orientation = objectTmap.orientation.to_list()
 
         mapRobject = R.from_quat(orientation).as_matrix()
         objectRmap = mapRobject.T
 
-        object_to_robot_vector_local = objectRmap.dot(object_to_robot_vector_world.to_numpy())
+        object_to_robot_vector_local = objectRmap.dot(
+            object_to_robot_vector_world.to_numpy()
+        )
         vector_x, vector_y, vector_z = object_to_robot_vector_local
 
         vector_side = Vector3(vector_x, vector_y, np.nan)
@@ -138,7 +166,11 @@ class GraspDescription(HasParameters):
             vertical_faces = [VerticalAlignment.NoAlignment]
 
         grasp_configs = [
-            GraspDescription(approach_direction=side, vertical_alignment=top_face, rotate_gripper=rotated_gripper)
+            GraspDescription(
+                approach_direction=side,
+                vertical_alignment=top_face,
+                rotate_gripper=rotated_gripper,
+            )
             for top_face in vertical_faces
             for side in side_faces
         ]
@@ -146,9 +178,13 @@ class GraspDescription(HasParameters):
         return grasp_configs
 
     @staticmethod
-    def calculate_closest_faces(pose_to_robot_vector: Vector3,
-                                specified_grasp_axis: AxisIdentifier = AxisIdentifier.Undefined) \
-            -> Union[Tuple[ApproachDirection, ApproachDirection], Tuple[VerticalAlignment, VerticalAlignment]]:
+    def calculate_closest_faces(
+        pose_to_robot_vector: Vector3,
+        specified_grasp_axis: AxisIdentifier = AxisIdentifier.Undefined,
+    ) -> Union[
+        Tuple[ApproachDirection, ApproachDirection],
+        Tuple[VerticalAlignment, VerticalAlignment],
+    ]:
         """
         Determines the faces of the object based on the input vector.
 
@@ -169,36 +205,56 @@ class GraspDescription(HasParameters):
         if not specified_grasp_axis == AxisIdentifier.Undefined:
             valid_axes = [specified_grasp_axis]
         else:
-            valid_axes = [axis for axis in all_axes if
-                          not np.isnan(pose_to_robot_vector.to_list()[axis.value.index(1)])]
+            valid_axes = [
+                axis
+                for axis in all_axes
+                if not np.isnan(pose_to_robot_vector.to_list()[axis.value.index(1)])
+            ]
 
         object_to_robot_vector = np.array(pose_to_robot_vector.to_list()) + 1e-9
-        sorted_axes = sorted(valid_axes, key=lambda axis: abs(object_to_robot_vector[axis.value.index(1)]),
-                             reverse=True)
+        sorted_axes = sorted(
+            valid_axes,
+            key=lambda axis: abs(object_to_robot_vector[axis.value.index(1)]),
+            reverse=True,
+        )
 
         primary_axis: AxisIdentifier = sorted_axes[0]
         primary_sign = int(np.sign(object_to_robot_vector[primary_axis.value.index(1)]))
 
-        primary_axis_class = VerticalAlignment if primary_axis == AxisIdentifier.Z else ApproachDirection
-        primary_face = primary_axis_class.from_axis_direction(primary_axis, primary_sign)
+        primary_axis_class = (
+            VerticalAlignment if primary_axis == AxisIdentifier.Z else ApproachDirection
+        )
+        primary_face = primary_axis_class.from_axis_direction(
+            primary_axis, primary_sign
+        )
 
         if len(sorted_axes) > 1:
             secondary_axis: AxisIdentifier = sorted_axes[1]
-            secondary_sign = int(np.sign(object_to_robot_vector[secondary_axis.value.index(1)]))
+            secondary_sign = int(
+                np.sign(object_to_robot_vector[secondary_axis.value.index(1)])
+            )
         else:
             secondary_axis: AxisIdentifier = primary_axis
             secondary_sign = -primary_sign
 
-        secondary_axis_class = VerticalAlignment if secondary_axis == AxisIdentifier.Z else ApproachDirection
-        secondary_face = secondary_axis_class.from_axis_direction(secondary_axis, secondary_sign)
+        secondary_axis_class = (
+            VerticalAlignment
+            if secondary_axis == AxisIdentifier.Z
+            else ApproachDirection
+        )
+        secondary_face = secondary_axis_class.from_axis_direction(
+            secondary_axis, secondary_sign
+        )
 
         return primary_face, secondary_face
+
 
 @dataclass
 class PreferredGraspAlignment:
     """
     Description of the preferred grasp alignment for an object.
     """
+
     preferred_axis: Optional[AxisIdentifier]
     """
     The preferred axis, X, Y, or Z, for grasping the object, or None if not specified.

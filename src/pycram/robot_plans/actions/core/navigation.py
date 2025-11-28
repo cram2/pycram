@@ -17,6 +17,7 @@ from ....has_parameters import has_parameters
 from ....language import SequentialPlan
 from ....validation.error_checkers import PoseErrorChecker
 
+
 @has_parameters
 @dataclass
 class NavigateAction(ActionDescription):
@@ -35,19 +36,32 @@ class NavigateAction(ActionDescription):
     """
 
     def execute(self) -> None:
-        return SequentialPlan(self.context,  MoveMotion(self.target_location, self.keep_joint_states)).perform()
+        return SequentialPlan(
+            self.context, MoveMotion(self.target_location, self.keep_joint_states)
+        ).perform()
 
-    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+    def validate(
+        self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None
+    ):
         pose_validator = PoseErrorChecker(World.conf.get_pose_tolerance())
-        if not pose_validator.is_error_acceptable(World.robot.pose, self.target_location):
+        if not pose_validator.is_error_acceptable(
+            World.robot.pose, self.target_location
+        ):
             raise NavigationGoalNotReachedError(World.robot.pose, self.target_location)
 
     @classmethod
-    def description(cls, target_location: Union[Iterable[PoseStamped], PoseStamped],
-                    keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.navigate_keep_joint_states) -> \
-            PartialDesignator[Type[NavigateAction]]:
-        return PartialDesignator(NavigateAction, target_location=target_location,
-                                 keep_joint_states=keep_joint_states)
+    def description(
+        cls,
+        target_location: Union[Iterable[PoseStamped], PoseStamped],
+        keep_joint_states: Union[
+            Iterable[bool], bool
+        ] = ActionConfig.navigate_keep_joint_states,
+    ) -> PartialDesignator[Type[NavigateAction]]:
+        return PartialDesignator(
+            NavigateAction,
+            target_location=target_location,
+            keep_joint_states=keep_joint_states,
+        )
 
 
 @has_parameters
@@ -63,9 +77,11 @@ class LookAtAction(ActionDescription):
     """
 
     def execute(self) -> None:
-        SequentialPlan(self.context,  LookingMotion(target=self.target)).perform()
+        SequentialPlan(self.context, LookingMotion(target=self.target)).perform()
 
-    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+    def validate(
+        self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None
+    ):
         """
         Check if the robot is looking at the target location by spawning a virtual object at the target location and
         creating a ray from the camera and checking if it intersects with the object.
@@ -73,16 +89,11 @@ class LookAtAction(ActionDescription):
         return
 
     @classmethod
-    def description(cls, target: Union[Iterable[PoseStamped], PoseStamped]) -> PartialDesignator[Type[LookAtAction]]:
+    def description(
+        cls, target: Union[Iterable[PoseStamped], PoseStamped]
+    ) -> PartialDesignator[Type[LookAtAction]]:
         return PartialDesignator(LookAtAction, target=target)
-
-
-
-
 
 
 NavigateActionDescription = NavigateAction.description
 LookAtActionDescription = LookAtAction.description
-
-
-

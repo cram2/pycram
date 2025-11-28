@@ -4,6 +4,7 @@ from typing import Optional
 from .base import BaseMotion
 from ...datastructures.pose import Vector3Stamped
 from ...process_module import ProcessModuleManager
+
 # from giskardpy.motion_statechart.tasks.joint_tasks import JointPositionList
 
 

@@ -70,12 +70,16 @@ class LanguagePlan(Plan):
                 self.mount(child, self.root)
             elif isinstance(child, PartialDesignator):
                 node = ActionNode(
-                    designator_ref=child, designator_type=child.performable, kwargs=child.kwargs
+                    designator_ref=child,
+                    designator_type=child.performable,
+                    kwargs=child.kwargs,
                 )
                 self.add_edge(self.root, node)
             elif "ActionDescription" in [c.__name__ for c in child.__class__.__mro__]:
                 node = ResolvedActionNode(
-                    designator_ref=child, designator_type=child.__class__, kwargs=child.__dict__
+                    designator_ref=child,
+                    designator_type=child.__class__,
+                    kwargs=child.__dict__,
                 )
                 self.add_edge(self.root, node)
             elif "BaseMotion" in [c.__name__ for c in child.__class__.__mro__]:
@@ -253,7 +257,9 @@ class LanguageNode(PlanNode):
 
 @dataclass
 class SequentialNode(LanguageNode):
-    designator_type: Type[SequentialNode] = field(default_factory=lambda: SequentialNode)
+    designator_type: Type[SequentialNode] = field(
+        default_factory=lambda: SequentialNode
+    )
     """
     Executes all children sequentially, an exception while executing a child does not terminate the whole process.
     Instead, the exception is saved to a list of all exceptions thrown during execution and returned.

@@ -8,6 +8,7 @@ def get_service_proxy(topic_name: str, service_message) -> None:
     """
     raise NotImplementedError("ROS is not available. Cannot get service proxy.")
 
+
 def wait_for_service(topic_name: str) -> None:
     """
     Wait for a service to become available.

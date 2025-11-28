@@ -5,7 +5,9 @@ from control_msgs.msg import GripperCommandGoal, GripperCommandAction
 from giskard_msgs.msg import WorldResult
 from typing_extensions import Optional
 
-from giskardpy.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
+from giskardpy.python_interface.old_python_interface import (
+    OldGiskardWrapper as GiskardWrapper,
+)
 
 from geometry_msgs.msg import PoseStamped, Point, Quaternion
 
@@ -31,18 +33,31 @@ def spawn_urdf(name: str, urdf_path: str, pose: PoseStamped) -> WorldResult:
 
 def get_pose_stamped(position, orientation):
     pose_stamped = PoseStamped()
-    pose_stamped.header.reference_frame = 'map'
+    pose_stamped.header.reference_frame = "map"
     pose_stamped.pose.position = Point(**dict(zip(["x", "y", "z"], position)))
-    pose_stamped.pose.orientation = Quaternion(**dict(zip(["x", "y", "z", "w"],orientation)))
+    pose_stamped.pose.orientation = Quaternion(
+        **dict(zip(["x", "y", "z", "w"], orientation))
+    )
     return pose_stamped
 
 
 def park_arms():
-    joint_goals = {'l_shoulder_pan_joint': 1.712, 'l_shoulder_lift_joint': -0.264, 'l_upper_arm_roll_joint': 1.38,
-                   'l_elbow_flex_joint': -2.12, 'l_forearm_roll_joint': 16.996, 'l_wrist_flex_joint': -0.073,
-                   'l_wrist_roll_joint': 0.0, 'r_shoulder_pan_joint': -1.712, 'r_shoulder_lift_joint': -0.256,
-                   'r_upper_arm_roll_joint': -1.463, 'r_elbow_flex_joint': -2.12, 'r_forearm_roll_joint': 1.766,
-                   'r_wrist_flex_joint': -0.07, 'r_wrist_roll_joint': 0.051}
+    joint_goals = {
+        "l_shoulder_pan_joint": 1.712,
+        "l_shoulder_lift_joint": -0.264,
+        "l_upper_arm_roll_joint": 1.38,
+        "l_elbow_flex_joint": -2.12,
+        "l_forearm_roll_joint": 16.996,
+        "l_wrist_flex_joint": -0.073,
+        "l_wrist_roll_joint": 0.0,
+        "r_shoulder_pan_joint": -1.712,
+        "r_shoulder_lift_joint": -0.256,
+        "r_upper_arm_roll_joint": -1.463,
+        "r_elbow_flex_joint": -2.12,
+        "r_forearm_roll_joint": 1.766,
+        "r_wrist_flex_joint": -0.07,
+        "r_wrist_roll_joint": 0.051,
+    }
     giskard.set_joint_goal(joint_goals)
     giskard.execute()
 
@@ -96,39 +111,48 @@ def move_gripper(cmd: str, gripper: str):
     client = actionlib.SimpleActionClient(controller_topic, GripperCommandAction)
     info("Waiting for action server")
     client.wait_for_server()
-    client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
+    client.send_goal(
+        goal,
+        active_cb=activate_callback,
+        done_cb=done_callback,
+        feedback_cb=feedback_callback,
+    )
     wait = client.wait_for_result()
 
 
 def move_base(pose_stamped: PoseStamped):
-    giskard.set_cart_goal(pose_stamped, 'base_link', 'map', add_monitor=False)
+    giskard.set_cart_goal(pose_stamped, "base_link", "map", add_monitor=False)
     giskard.execute()
 
 
 def move_left_arm_tool(pose_stamped: PoseStamped):
-    move_arm_tool(pose_stamped, 'left')
+    move_arm_tool(pose_stamped, "left")
 
 
 def move_right_arm_tool(pose_stamped: PoseStamped):
-    move_arm_tool(pose_stamped, 'right')
+    move_arm_tool(pose_stamped, "right")
 
 
 def move_arm_tool(pose_stamped: PoseStamped, arm: str):
-    tool_frame = 'l_gripper_tool_frame' if arm == 'left' else 'r_gripper_tool_frame'
-    giskard.set_cart_goal(pose_stamped, tool_frame, 'torso_lift_link', add_monitor=False)
+    tool_frame = "l_gripper_tool_frame" if arm == "left" else "r_gripper_tool_frame"
+    giskard.set_cart_goal(
+        pose_stamped, tool_frame, "torso_lift_link", add_monitor=False
+    )
     giskard.execute()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     multiverse_resources = find_multiverse_resources_path()
-    cached_dir = multiverse_resources + 'cached/'
+    cached_dir = multiverse_resources + "cached/"
 
     giskard = GiskardWrapper()
 
-    giskard.add_urdf('apartment',
-                     get_urdf_string(cached_dir + 'apartment.urdf'),
-                     get_pose_stamped([0, 0, 0], [0, 0, 0, 1]))
+    giskard.add_urdf(
+        "apartment",
+        get_urdf_string(cached_dir + "apartment.urdf"),
+        get_pose_stamped([0, 0, 0], [0, 0, 0, 1]),
+    )
 
     park_arms()
 

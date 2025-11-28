@@ -4,6 +4,7 @@ from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 
 from ..robot_plans.motions.base import AlternativeMotionMapping
 
+
 class HSRBTCPMotionMapping(AlternativeMotionMapping):
 
     @property

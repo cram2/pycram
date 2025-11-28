@@ -15,6 +15,7 @@ class KevinMoveArmJoints(DefaultMoveArmJoints):
         giskard.allow_gripper_collision("gripper")
         DefaultMoveArmJoints._execute(desig)
 
+
 ###########################################################
 ########## Process Modules for the Real Kevin ###########
 ###########################################################
@@ -57,7 +58,10 @@ class KevinManager(DefaultManager):
             # return KevinMoveArmJointsReal(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED or ProcessModuleManager.execution_type == ExecutionType.REAL:
+        if (
+            ProcessModuleManager.execution_type == ExecutionType.SIMULATED
+            or ProcessModuleManager.execution_type == ExecutionType.REAL
+        ):
             return DefaultWorldStateDetecting(self._world_state_detecting_lock)
 
     def move_joints(self):
@@ -72,5 +76,6 @@ class KevinManager(DefaultManager):
         elif ProcessModuleManager.execution_type == "real":
             raise NotImplemented
             # return KevinMoveGripperReal(self._move_gripper_lock)
+
 
 KevinManager()

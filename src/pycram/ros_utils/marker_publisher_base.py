@@ -11,11 +11,16 @@ from semantic_digital_twin.world_description.world_entity import Body
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
-from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape, \
-    BoundingBox
+from ..datastructures.dataclasses import (
+    BoxVisualShape,
+    CylinderVisualShape,
+    MeshVisualShape,
+    SphereVisualShape,
+    BoundingBox,
+)
 from ..datastructures.pose import PoseStamped, TransformStamped
-from ..ros import  Duration, Time
-from ..ros import  create_publisher
+from ..ros import Duration, Time
+from ..ros import create_publisher
 from ..tf_transformations import quaternion_multiply
 
 
@@ -51,9 +56,16 @@ class MarkerPublisherBase(ABC):
         """
         pass
 
-    def _create_arrow_marker(self, p1: Point, p2: Point, index: int, frame_id: str,
-                             color: Optional[List] = (1.0, 0.0, 1.0, 1.0), scale: Optional[List] = (0.01, 0.02, 0.02),
-                             duration: Optional[int] = 60) -> Marker:
+    def _create_arrow_marker(
+        self,
+        p1: Point,
+        p2: Point,
+        index: int,
+        frame_id: str,
+        color: Optional[List] = (1.0, 0.0, 1.0, 1.0),
+        scale: Optional[List] = (0.01, 0.02, 0.02),
+        duration: Optional[int] = 60,
+    ) -> Marker:
         """
         Create an arrow marker.
 
@@ -84,7 +96,9 @@ class MarkerPublisherBase(ABC):
 
         return marker
 
-    def _create_cube_marker(self, box: BoundingBox, index: int, duration: Optional[int] = 60) -> Marker:
+    def _create_cube_marker(
+        self, box: BoundingBox, index: int, duration: Optional[int] = 60
+    ) -> Marker:
         """
         Create a cube marker.
 
@@ -118,9 +132,16 @@ class MarkerPublisherBase(ABC):
 
         return marker
 
-    def _create_line_marker(self, pose: PoseStamped, axis: List[float], color_rgba: List[float], index: int,
-                            duration: Optional[int] = 60, length: Optional[float] = 0.1,
-                            width: Optional[float] = 0.02) -> Marker:
+    def _create_line_marker(
+        self,
+        pose: PoseStamped,
+        axis: List[float],
+        color_rgba: List[float],
+        index: int,
+        duration: Optional[int] = 60,
+        length: Optional[float] = 0.1,
+        width: Optional[float] = 0.02,
+    ) -> Marker:
         """
         Create a line marker.
 
@@ -134,7 +155,10 @@ class MarkerPublisherBase(ABC):
 
         returns: The created line marker.
         """
-        def rotate_axis_by_quaternion(axis: List[float], quaternion: PoseStamped.orientation) -> List[float]:
+
+        def rotate_axis_by_quaternion(
+            axis: List[float], quaternion: PoseStamped.orientation
+        ) -> List[float]:
             """
             Rotates axis by quaternion.
 
@@ -148,7 +172,9 @@ class MarkerPublisherBase(ABC):
             axis_quat = (*axis, 0)
             q = (qx, qy, qz, qw)
             q_inverse = (-qx, -qy, -qz, qw)
-            rotated_quat = quaternion_multiply(quaternion_multiply(q, axis_quat), q_inverse)
+            rotated_quat = quaternion_multiply(
+                quaternion_multiply(q, axis_quat), q_inverse
+            )
             return rotated_quat[:3]
 
         start_point = Point(x=pose.position.x, y=pose.position.y, z=pose.position.z)
@@ -163,7 +189,7 @@ class MarkerPublisherBase(ABC):
         marker = Marker()
         marker.header.frame_id = pose.frame_id
         marker.header.stamp = Time().now()
-        marker.ns = f'axis_visualization_{index}'
+        marker.ns = f"axis_visualization_{index}"
         marker.id = index
         marker.type = Marker.LINE_LIST
         marker.action = Marker.ADD
@@ -176,9 +202,18 @@ class MarkerPublisherBase(ABC):
 
         return marker
 
-    def _create_geometry_marker(self, geom: MeshVisualShape | CylinderVisualShape | BoxVisualShape | SphereVisualShape,
-                                obj: Body, link: str, i: int, link_pose_with_origin: TransformStamped, reference_frame: str,
-                                use_prospection_world: Optional[bool] = False) -> Marker:
+    def _create_geometry_marker(
+        self,
+        geom: (
+            MeshVisualShape | CylinderVisualShape | BoxVisualShape | SphereVisualShape
+        ),
+        obj: Body,
+        link: str,
+        i: int,
+        link_pose_with_origin: TransformStamped,
+        reference_frame: str,
+        use_prospection_world: Optional[bool] = False,
+    ) -> Marker:
         """
         Creates a Marker for the given geometry type.
 
@@ -210,7 +245,9 @@ class MarkerPublisherBase(ABC):
         if isinstance(geom, MeshVisualShape):
             marker.type = Marker.MESH_RESOURCE
             marker.mesh_resource = "file://" + geom.file_name
-            marker.scale = Vector3(**dict(zip(["x", "y", "z"], geom.scale or (1.0, 1.0, 1.0))))
+            marker.scale = Vector3(
+                **dict(zip(["x", "y", "z"], geom.scale or (1.0, 1.0, 1.0)))
+            )
             marker.mesh_use_embedded_materials = True
         elif isinstance(geom, CylinderVisualShape):
             marker.type = Marker.CYLINDER
@@ -221,11 +258,15 @@ class MarkerPublisherBase(ABC):
             marker.scale = Vector3(x=float(size[0]), y=float(size[1]), z=float(size[2]))
         elif isinstance(geom, SphereVisualShape):
             marker.type = Marker.SPHERE
-            marker.scale = Vector3(x=geom.radius * 2, y=geom.radius * 2, z=geom.radius * 2)
+            marker.scale = Vector3(
+                x=geom.radius * 2, y=geom.radius * 2, z=geom.radius * 2
+            )
 
         return marker
 
-    def _create_object_marker(self, pose: PoseStamped, name: str, path: str, current_id: int) -> Marker:
+    def _create_object_marker(
+        self, pose: PoseStamped, name: str, path: str, current_id: int
+    ) -> Marker:
         """
         Create a marker for an object.
 
@@ -247,6 +288,6 @@ class MarkerPublisherBase(ABC):
         marker.scale.y = 1.0
         marker.scale.z = 1.0
         marker.color = ColorRGBA(r=1.0, g=1.0, b=1.0, a=1.0)
-        marker.mesh_resource = 'file://' + path
+        marker.mesh_resource = "file://" + path
 
         return marker

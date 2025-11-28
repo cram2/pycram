@@ -3,6 +3,7 @@
 Classes:
 ProcessModule -- implementation of process modules.
 """
+
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
@@ -33,6 +34,7 @@ class ProcessModule:
     Implementation of process modules. Process modules are the part that communicate with the outer world to execute
      designators.
     """
+
     execution_delay: Optional[timedelta] = ActionConfig.execution_delay
     """
     Adds a delay after executing a process module, to make the execution in simulation more realistic
@@ -238,6 +240,7 @@ class ProcessModuleManager(ABC):
     Base class for managing process modules, any new process modules have to implement this class to register the
     Process Modules
     """
+
     execution_type: ExecutionType = None
     """
     Whether the robot for which the process module is intended for is real or a simulated one
@@ -301,17 +304,25 @@ class ProcessModuleManager(ABC):
                 return pm_manager
             if pm_manager.robot_name == "default":
                 default_manager = pm_manager
-        logger.warning(f"No Process Module Manager found for robot: '{robot.name}' returning default process modules")
+        logger.warning(
+            f"No Process Module Manager found for robot: '{robot.name}' returning default process modules"
+        )
         return default_manager
 
     @staticmethod
     def register_all_process_modules():
         modules = glob.glob(join(dirname(__file__) + "/process_modules", "*.py"))
-        __all__ = [basename(f)[:-3] for f in modules if isfile(f) and not f.endswith('__init__.py')]
+        __all__ = [
+            basename(f)[:-3]
+            for f in modules
+            if isfile(f) and not f.endswith("__init__.py")
+        ]
 
         for module_name in __all__:
             try:
-                importlib.import_module(f".{module_name}", package="pycram.process_modules")
+                importlib.import_module(
+                    f".{module_name}", package="pycram.process_modules"
+                )
             except Exception as e:
                 print(f"Error loading module {module_name}: {e}")
 

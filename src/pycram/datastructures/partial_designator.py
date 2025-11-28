@@ -9,7 +9,7 @@ from ..has_parameters import leaf_types, HasParameters
 from ..plan import PlanNode
 from ..utils import is_iterable, lazy_product
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class PartialDesignator(Iterable[T]):
@@ -29,6 +29,7 @@ class PartialDesignator(Iterable[T]):
             for performable in partial_designator(Grasp.FRONT):
                 performable.perform()
     """
+
     performable: T = None
     """
     Reference to the performable class that should be initialized
@@ -53,7 +54,14 @@ class PartialDesignator(Iterable[T]):
         # This is not optimal since "self" needs to be filtered from the parameter list but it works.
         sig = signature(self.performable.__init__)
         params_without_self = list(
-            filter(None, [param if name != "self" else None for name, param in sig.parameters.items()]))
+            filter(
+                None,
+                [
+                    param if name != "self" else None
+                    for name, param in sig.parameters.items()
+                ],
+            )
+        )
         sig_without_self = sig.replace(parameters=params_without_self)
         self.kwargs = dict(sig_without_self.bind_partial(*args, **kwargs).arguments)
         for key in dict(signature(self.performable).parameters).keys():
@@ -75,7 +83,9 @@ class PartialDesignator(Iterable[T]):
                 newkeywors[key] = value
             elif key not in newkeywors.keys():
                 newkeywors[key] = value
-        self.kwargs.update(dict(signature(self.performable).bind_partial(*fargs, **fkwargs).arguments))
+        self.kwargs.update(
+            dict(signature(self.performable).bind_partial(*fargs, **fkwargs).arguments)
+        )
         return self
 
     def __iter__(self) -> Iterator[T]:
@@ -95,8 +105,13 @@ class PartialDesignator(Iterable[T]):
 
         :yields: A list with a possible permutation of the given arguments
         """
-        iter_list = [x if is_iterable(x) and not type(x) == str else [x] for x in self.kwargs.values()]
-        for combination in lazy_product(*iter_list, iter_names=list(self.kwargs.keys())):
+        iter_list = [
+            x if is_iterable(x) and not type(x) == str else [x]
+            for x in self.kwargs.values()
+        ]
+        for combination in lazy_product(
+            *iter_list, iter_names=list(self.kwargs.keys())
+        ):
             yield dict(zip(self.kwargs.keys(), combination))
 
     def missing_parameter(self) -> List[str]:

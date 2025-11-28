@@ -36,6 +36,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class Rectangle:
     """
@@ -85,7 +86,7 @@ class Costmap:
     """
     Origin pose of the costmap.
     """
-    map: np.ndarray = field(default_factory=lambda : np.zeros((10, 10)), kw_only=True)
+    map: np.ndarray = field(default_factory=lambda: np.zeros((10, 10)), kw_only=True)
     """
     Numpy array representing the costmap.
     """
@@ -266,7 +267,12 @@ class Costmap:
             new_map = new_map.reshape((self.height, self.width))
             logger.warning("Merged costmap is empty.")
         return Costmap(
-            resolution=self.resolution, height=self.height, width=self.width, origin=self.origin, map=new_map, world=self.world
+            resolution=self.resolution,
+            height=self.height,
+            width=self.width,
+            origin=self.origin,
+            map=new_map,
+            world=self.world,
         )
 
     def __add__(self, other: Costmap) -> Costmap:
@@ -329,6 +335,7 @@ class OccupancyCostmap(Costmap):
     The occupancy Costmap represents a map of the environment where obstacles or
     positions which are inaccessible for a robot have a value of -1.
     """
+
     distance_to_obstacle: float
 
     robot_view: AbstractRobot
@@ -336,7 +343,9 @@ class OccupancyCostmap(Costmap):
     _distance_to_obstacle_index: int = field(init=False, default=None)
 
     def __post_init__(self):
-        self._distance_to_obstacle_index = max(int(self.distance_to_obstacle / self.resolution), 1)
+        self._distance_to_obstacle_index = max(
+            int(self.distance_to_obstacle / self.resolution), 1
+        )
         self.map = self._create_from_world()
 
     def create_ray_mask_around_origin(self):
@@ -350,7 +359,10 @@ class OccupancyCostmap(Costmap):
         # Generate 2d grid with indices
         indices = np.concatenate(
             np.dstack(
-                np.mgrid[int(-self.width / 2): int(self.width / 2), int(-self.width / 2): int(self.width / 2)]
+                np.mgrid[
+                    int(-self.width / 2) : int(self.width / 2),
+                    int(-self.width / 2) : int(self.width / 2),
+                ]
             ),
             axis=0,
         ) * self.resolution + np.array(origin_position[:2])
@@ -370,7 +382,7 @@ class OccupancyCostmap(Costmap):
                 (
                     1
                     if r_t[2][i]
-                       in self.world.get_kinematic_structure_entities_of_branch(
+                    in self.world.get_kinematic_structure_entities_of_branch(
                         self.robot_view.root
                     )
                     else 0
@@ -390,7 +402,10 @@ class OccupancyCostmap(Costmap):
         :param map: Map of obstacles to inflate.
         :return: The map with inflated obstacles.
         """
-        sub_shape = (self._distance_to_obstacle_index * 2, self._distance_to_obstacle_index * 2)
+        sub_shape = (
+            self._distance_to_obstacle_index * 2,
+            self._distance_to_obstacle_index * 2,
+        )
         view_shape = tuple(np.subtract(map.shape, sub_shape) + 1) + sub_shape
         strides = map.strides + map.strides
 
@@ -411,7 +426,11 @@ class OccupancyCostmap(Costmap):
         res = self.create_ray_mask_around_origin()
 
         map = np.pad(
-            res, (int(self._distance_to_obstacle_index / 2), int(self._distance_to_obstacle_index / 2))
+            res,
+            (
+                int(self._distance_to_obstacle_index / 2),
+                int(self._distance_to_obstacle_index / 2),
+            ),
         )
 
         map = self.inflate_obstacles(map)
@@ -431,6 +450,7 @@ class VisibilityCostmap(Costmap):
     this point. For a detailed explanation on how the creation of the costmap works
     please look here: `PhD Thesis (page 173) <https://mediatum.ub.tum.de/doc/1239461/1239461.pdf>`_
     """
+
     min_height: float
 
     max_height: float
@@ -439,8 +459,8 @@ class VisibilityCostmap(Costmap):
 
     def __post_init__(self):
         self.origin: PoseStamped = (
-                    PoseStamped.from_list(self.world.root) if not self.origin else self.origin
-                )
+            PoseStamped.from_list(self.world.root) if not self.origin else self.origin
+        )
         self._generate_map()
 
     # def __init__(
@@ -575,7 +595,9 @@ class VisibilityCostmap(Costmap):
 
         # Convert back to origin in the middle of the costmap
         depth_indices[:, :, :1] -= self.width / 2
-        depth_indices[:, :, 1:2] = np.absolute(self.width / 2 - depth_indices[:, :, 1:2])
+        depth_indices[:, :, 1:2] = np.absolute(
+            self.width / 2 - depth_indices[:, :, 1:2]
+        )
 
         # Sets the y index for the coordinates of the middle of the costmap to 1,
         # the computed value is 0 which would cause an error in the next step where
@@ -585,7 +607,10 @@ class VisibilityCostmap(Costmap):
         # Calculate columns for the respective position in the costmap
         columns = (
             np.around(
-                ((depth_indices[:, :, :1] / depth_indices[:, :, 1:2]) * (self.width / 2))
+                (
+                    (depth_indices[:, :, :1] / depth_indices[:, :, 1:2])
+                    * (self.width / 2)
+                )
                 + self.width / 2
             )
             .reshape((self.width, self.width))
@@ -747,7 +772,6 @@ class SemanticCostmap(Costmap):
         self.map: np.ndarray = np.zeros((self.height, self.width))
         self.generate_map()
 
-
     def get_edges_map(
         self, margin_in_meters: float, horizontal_only: bool = False
     ) -> Costmap:
@@ -765,7 +789,9 @@ class SemanticCostmap(Costmap):
         if not horizontal_only:
             mask[:, :edge_tolerance] = 1
             mask[:, -edge_tolerance:] = 1
-        return Costmap(self.resolution, self.height, self.width, self.origin, mask, self.world)
+        return Costmap(
+            self.resolution, self.height, self.width, self.origin, mask, self.world
+        )
 
     def generate_map(self) -> None:
         """
@@ -1006,7 +1032,7 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
             + np.pi
         )
         orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
-        return PoseStamped.from_list( position, orientation,self.world.root)
+        return PoseStamped.from_list(position, orientation, self.world.root)
 
     def __iter__(self) -> Iterator[PoseStamped]:
         model = self.as_distribution()

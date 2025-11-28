@@ -7,16 +7,20 @@ class GripperState(Enum):
     """
     Enum for the different motions of the gripper.
     """
+
     OPEN = auto()
     CLOSE = auto()
+
 
 class Arms(int, Enum):
     """
     Enum for Arms.
     """
+
     LEFT = 0
     RIGHT = 1
     BOTH = 2
+
 
 @dataclass
 class TestOntomaticPerformable(ActionDescription):

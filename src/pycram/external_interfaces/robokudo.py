@@ -3,8 +3,8 @@ import logging
 from threading import Lock, RLock
 from typing import Any
 
-from ..ros import  create_action_client
-from ..ros import  get_node_names
+from ..ros import create_action_client
+from ..ros import get_node_names
 
 from typing_extensions import List, Callable, Optional
 
@@ -63,12 +63,16 @@ def init_robokudo_interface(func: Callable) -> Callable:
         if is_init and "/robokudo" in get_node_names():
             return func(*args, **kwargs)
         elif is_init and "/robokudo" not in get_node_names():
-            logger.warning("Robokudo node is not available anymore, could not initialize robokudo interface")
+            logger.warning(
+                "Robokudo node is not available anymore, could not initialize robokudo interface"
+            )
             is_init = False
             return
 
         if "robokudo_msgs" not in sys.modules:
-            logger.warning("Could not initialize the Robokudo interface since the robokudo_msgs are not imported")
+            logger.warning(
+                "Could not initialize the Robokudo interface since the robokudo_msgs are not imported"
+            )
             return
 
         if "/robokudo" in get_node_names():
@@ -83,7 +87,9 @@ def init_robokudo_interface(func: Callable) -> Callable:
                 is_init = False
                 return
         else:
-            logger.warning("Robokudo is not running, could not initialize Robokudo interface")
+            logger.warning(
+                "Robokudo is not running, could not initialize Robokudo interface"
+            )
             return
         return func(*args, **kwargs)
 
@@ -91,8 +97,11 @@ def init_robokudo_interface(func: Callable) -> Callable:
 
 
 @init_robokudo_interface
-def send_query(obj_type: Optional[str] = None, region: Optional[str] = None,
-               attributes: Optional[List[str]] = None) -> Any:
+def send_query(
+    obj_type: Optional[str] = None,
+    region: Optional[str] = None,
+    attributes: Optional[List[str]] = None,
+) -> Any:
     """Generic function to send a query to RoboKudo."""
 
     global client
@@ -118,7 +127,12 @@ def send_query(obj_type: Optional[str] = None, region: Optional[str] = None,
     def feedback_callback(feedback):
         logger.info("Received feedback: %s" % feedback)
 
-    client.send_goal(goal, done_cb=done_callback, active_cb=active_callback, feedback_cb=feedback_callback)
+    client.send_goal(
+        goal,
+        done_cb=done_callback,
+        active_cb=active_callback,
+        feedback_cb=feedback_callback,
+    )
     logger.info("Goal has been sent to the action server")
 
     client.wait_for_result()
@@ -146,9 +160,9 @@ def query_object(obj_desc: ObjectDesignatorDescription) -> dict:
 
 
 @init_robokudo_interface
-def query_human() -> 'PointStamped':
+def query_human() -> "PointStamped":
     """Query RoboKudo for human detection and return the detected human's pose."""
-    result = send_query(obj_type='human')
+    result = send_query(obj_type="human")
     if result:
         return result  # Assuming result is of type PointStamped or similar.
     return None
@@ -171,13 +185,13 @@ def query_specific_region(region: str) -> Any:
 @init_robokudo_interface
 def query_human_attributes() -> Any:
     """Query RoboKudo for human attributes like brightness of clothes, headgear, and gender."""
-    return send_query(obj_type='human', attributes=["attributes"])
+    return send_query(obj_type="human", attributes=["attributes"])
 
 
 @init_robokudo_interface
 def query_waving_human() -> PoseStamped:
     """Query RoboKudo for detecting a waving human."""
-    result = send_query(obj_type='human')
+    result = send_query(obj_type="human")
     if result and result.res:
         try:
             pose = PoseStamped.from_pose_stamped(result.res[0].pose[0])

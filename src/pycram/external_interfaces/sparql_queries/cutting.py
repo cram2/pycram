@@ -1,7 +1,9 @@
 import owlready2
 from SPARQLWrapper import SPARQLWrapper, JSON
 
-sparql = SPARQLWrapper("https://knowledgedb.informatik.uni-bremen.de/mealprepDB/MealPreparation/query")
+sparql = SPARQLWrapper(
+    "https://knowledgedb.informatik.uni-bremen.de/mealprepDB/MealPreparation/query"
+)
 sparql.setReturnFormat(JSON)
 
 prefix = """
@@ -13,6 +15,7 @@ prefix = """
  PREFIX soma: <http://www.ease-crc.org/ont/SOMA.owl#>
  PREFIX sit_aware: <http://www.ease-crc.org/ont/situation_awareness#>
  """
+
 
 def check_food_part(food, part):
     query = """
@@ -33,11 +36,15 @@ def check_food_part(food, part):
 						?first owl:someValuesFrom cut:ShouldBeAvoided.
 					  }
 					}
-    """% (food, part)
-    full_query = (prefix + query)
+    """ % (
+        food,
+        part,
+    )
+    full_query = prefix + query
     sparql.setQuery(full_query)
     results = sparql.queryAndConvert()
     return results["boolean"]
+
 
 def get_prior_task(verb):
     query = """
@@ -47,11 +54,18 @@ def get_prior_task(verb):
 						?sub owl:someValuesFrom ?priortask.
 						BIND(REPLACE(STR(?priortask), "^.*[#/]", "") AS ?res).
 					}
-					""" % (verb)
-    full_query = (prefix + query)
+					""" % (
+        verb
+    )
+    full_query = prefix + query
     sparql.setQuery(prefix + query)
     results = sparql.queryAndConvert()
-    return results["results"]["bindings"][0]["res"]["value"] if results["results"]["bindings"] else None
+    return (
+        results["results"]["bindings"][0]["res"]["value"]
+        if results["results"]["bindings"]
+        else None
+    )
+
 
 def get_cutting_tool(foodobject):
     query = """
@@ -69,11 +83,18 @@ def get_cutting_tool(foodobject):
 							?trigger_tool owl:allValuesFrom ?tool.
 							BIND(REPLACE(STR(?tool), "^.*[#/]", "") AS ?res).
 						}
-    """ % (foodobject)
-    full_query = (prefix + query)
+    """ % (
+        foodobject
+    )
+    full_query = prefix + query
     sparql.setQuery(prefix + query)
     results = sparql.queryAndConvert()
-    return results["results"]["bindings"][0]["res"]["value"] if results["results"]["bindings"] else "Knife"
+    return (
+        results["results"]["bindings"][0]["res"]["value"]
+        if results["results"]["bindings"]
+        else "Knife"
+    )
+
 
 def get_cutting_position(verb):
     query = """
@@ -83,11 +104,18 @@ def get_cutting_position(verb):
 						?pos_node owl:someValuesFrom ?pos.
 						BIND(REPLACE(STR(?pos), "^.*[#/]", "") AS ?res).
 					}
-    """ % (verb)
-    full_query = (prefix + query)
+    """ % (
+        verb
+    )
+    full_query = prefix + query
     sparql.setQuery(prefix + query)
     results = sparql.queryAndConvert()
-    return results["results"]["bindings"][0]["res"]["value"] if results["results"]["bindings"] else "middle"
+    return (
+        results["results"]["bindings"][0]["res"]["value"]
+        if results["results"]["bindings"]
+        else "middle"
+    )
+
 
 def get_repetition(verb):
     query = """
@@ -110,11 +138,19 @@ def get_repetition(verb):
 						BIND("at least 1" AS ?res)
 					  }
 					}
-    """ % (verb, verb)
-    full_query = (prefix + query)
+    """ % (
+        verb,
+        verb,
+    )
+    full_query = prefix + query
     sparql.setQuery(prefix + query)
     results = sparql.queryAndConvert()
-    return results["results"]["bindings"][0]["res"]["value"] if results["results"]["bindings"] else "1"
+    return (
+        results["results"]["bindings"][0]["res"]["value"]
+        if results["results"]["bindings"]
+        else "1"
+    )
+
 
 def get_peel_tool(foodobject):
     query = """
@@ -132,11 +168,18 @@ def get_peel_tool(foodobject):
 						?trigger_tool owl:allValuesFrom ?tool.
 						BIND(REPLACE(STR(?tool), "^.*[#/]", "") AS ?res).
 					}
-    """ % (foodobject)
-    full_query = (prefix + query)
+    """ % (
+        foodobject
+    )
+    full_query = prefix + query
     sparql.setQuery(prefix + query)
     results = sparql.queryAndConvert()
-    return results["results"]["bindings"][0]["res"]["value"] if results["results"]["bindings"] else "Peeler"
+    return (
+        results["results"]["bindings"][0]["res"]["value"]
+        if results["results"]["bindings"]
+        else "Peeler"
+    )
+
 
 def query_var(verb, foodobject):
     priorTask = get_prior_task(verb)
@@ -148,11 +191,14 @@ def query_var(verb, foodobject):
     remove_stem = check_food_part(foodobject, "Stem")
     remove_shell = check_food_part(foodobject, "Shell")
 
+    print(
+        f"For {verb} on {foodobject}, the prior task is: {priorTask}, and the cutting tool is: {cut_tool}, and the cutting position is: {cut_position},"
+        f" and the repetition is: {repetition}"
+    )
 
-    print(f"For {verb} on {foodobject}, the prior task is: {priorTask}, and the cutting tool is: {cut_tool}, and the cutting position is: {cut_position},"
-          f" and the repetition is: {repetition}")
-
-    print(f"Remove peel: {remove_peel}, Remove core: {remove_core}, Remove stem: {remove_stem}, Remove shell: {remove_shell}")
+    print(
+        f"Remove peel: {remove_peel}, Remove core: {remove_core}, Remove stem: {remove_stem}, Remove shell: {remove_shell}"
+    )
 
     if remove_peel or remove_shell:
         peeling_tool = get_peel_tool(foodobject)
@@ -160,6 +206,7 @@ def query_var(verb, foodobject):
     """
     Bei Stem und Core wird einfach "Remove Core/Stem" ausgegeben, aber es gibt keine Abfrage für den Tool
     """
+
 
 verb = "cut:Quartering"
 foodobject = "FOODON_00003523"

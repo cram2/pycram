@@ -6,6 +6,7 @@ _block -- wrap multiple statements into a single block.
 Classes:
 GeneratorList -- implementation of generator list wrappers.
 """
+
 from __future__ import annotations
 
 from copy import deepcopy
@@ -19,8 +20,21 @@ from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
 from semantic_digital_twin.world_description.world_entity import Body
 
-from .tf_transformations import quaternion_about_axis, quaternion_multiply, quaternion_matrix
-from typing_extensions import Tuple, Callable, List, Dict, TYPE_CHECKING, Sequence, Any, Iterable
+from .tf_transformations import (
+    quaternion_about_axis,
+    quaternion_multiply,
+    quaternion_matrix,
+)
+from typing_extensions import (
+    Tuple,
+    Callable,
+    List,
+    Dict,
+    TYPE_CHECKING,
+    Sequence,
+    Any,
+    Iterable,
+)
 
 from .datastructures.pose import PoseStamped
 
@@ -28,10 +42,9 @@ if TYPE_CHECKING:
     from .robot_description import CameraDescription
 
 
-
 def link_pose_for_joint_config(
-        obj: Body,
-        joint_config: Dict[str, float]) -> PoseStamped:
+    obj: Body, joint_config: Dict[str, float]
+) -> PoseStamped:
     """
     Get the pose a link would be in if the given joint configuration would be applied to the object.
     This is done by using the respective object in the prospection world and applying the joint configuration
@@ -43,14 +56,19 @@ def link_pose_for_joint_config(
     """
     reasoning_world = deepcopy(obj._world)
     for joint_name, joint_pose in joint_config.items():
-        reasoning_world.state[reasoning_world.get_degree_of_freedom_by_name(joint_name).name].position = joint_pose
+        reasoning_world.state[
+            reasoning_world.get_degree_of_freedom_by_name(joint_name).name
+        ].position = joint_pose
     reasoning_world.notify_state_change()
     pose = reasoning_world.get_body_by_name(obj.name).global_pose
     return PoseStamped.from_spatial_type(pose)
 
 
-def get_rays_from_min_max(min_bound: Sequence[float], max_bound: Sequence[float], step_size_in_meters: float = 0.01) \
-        -> np.ndarray:
+def get_rays_from_min_max(
+    min_bound: Sequence[float],
+    max_bound: Sequence[float],
+    step_size_in_meters: float = 0.01,
+) -> np.ndarray:
     """
     Get rays from min and max bounds as an array of start and end 3D points.
     Note: The rays are not steped in the x direction as the rays are cast parallel to the x-axis.
@@ -91,7 +109,9 @@ def get_rays_from_min_max(min_bound: Sequence[float], max_bound: Sequence[float]
     """
     min_bound = np.array(min_bound)
     max_bound = np.array(max_bound)
-    n_steps = np.ceil(np.abs(max_bound[1:] - min_bound[1:]) / step_size_in_meters).astype(int)
+    n_steps = np.ceil(
+        np.abs(max_bound[1:] - min_bound[1:]) / step_size_in_meters
+    ).astype(int)
     rays_start_x = np.ones((n_steps[0], n_steps[1])) * min_bound[0]
     rays_end_x = np.ones((n_steps[0], n_steps[1])) * max_bound[0]
     y_values = np.linspace(min_bound[1], max_bound[1], n_steps[0])
@@ -117,7 +137,7 @@ def chunks(lst: Union[List, np.ndarray], n: int) -> Iterator[List]:
     :return: A list of size n from lst
     """
     for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+        yield lst[i : i + n]
 
 
 class bcolors:
@@ -128,15 +148,16 @@ class bcolors:
     Firstly import the class into the file.
     print(f'{bcolors.WARNING} Some Text {bcolors.ENDC}')
     """
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
 
 
 class GeneratorList:
@@ -195,7 +216,7 @@ def axis_angle_to_quaternion(axis: List, angle: float) -> Tuple:
     :return: The quaternion representing the axis angle
     """
     angle = math.radians(angle)
-    axis_length = math.sqrt(sum([i ** 2 for i in axis]))
+    axis_length = math.sqrt(sum([i**2 for i in axis]))
     normalized_axis = tuple(i / axis_length for i in axis)
 
     x = normalized_axis[0] * math.sin(angle / 2)
@@ -240,8 +261,11 @@ class suppress_stdout_stderr(object):
             os.close(fd)
 
 
-def adjust_camera_pose_based_on_target(cam_pose: PoseStamped, target_pose: PoseStamped,
-                                       camera_description: CameraDescription) -> PoseStamped:
+def adjust_camera_pose_based_on_target(
+    cam_pose: PoseStamped,
+    target_pose: PoseStamped,
+    camera_description: CameraDescription,
+) -> PoseStamped:
     """
     Adjust the given cam_pose orientation such that it is facing the target_pose, which partly depends on the
      front_facing_axis of the that is defined in the camera_description.
@@ -251,13 +275,18 @@ def adjust_camera_pose_based_on_target(cam_pose: PoseStamped, target_pose: PoseS
     :param camera_description: The camera description.
     :return: The adjusted camera pose.
     """
-    quaternion = get_quaternion_between_camera_and_target(cam_pose, target_pose, camera_description)
+    quaternion = get_quaternion_between_camera_and_target(
+        cam_pose, target_pose, camera_description
+    )
     # apply the rotation to the camera pose using quaternion multiplication
     return apply_quaternion_to_pose(cam_pose, quaternion)
 
 
-def get_quaternion_between_camera_and_target(cam_pose: PoseStamped, target_pose: PoseStamped,
-                                             camera_description: 'CameraDescription') -> np.ndarray:
+def get_quaternion_between_camera_and_target(
+    cam_pose: PoseStamped,
+    target_pose: PoseStamped,
+    camera_description: "CameraDescription",
+) -> np.ndarray:
     """
     Get the quaternion between the camera and the target.
 
@@ -267,7 +296,9 @@ def get_quaternion_between_camera_and_target(cam_pose: PoseStamped, target_pose:
     :return: The quaternion between the camera and the target.
     """
     # Get the front facing axis of the camera in the world frame
-    front_facing_axis = transform_vector_using_pose(camera_description.front_facing_axis, cam_pose)
+    front_facing_axis = transform_vector_using_pose(
+        camera_description.front_facing_axis, cam_pose
+    )
     front_facing_axis = front_facing_axis - np.array(cam_pose.position.to_list())
 
     # Get the vector from the camera to the target
@@ -286,7 +317,11 @@ def transform_vector_using_pose(vector: Sequence, pose) -> np.ndarray:
     :return: The transformed vector.
     """
     vector = np.array(vector).reshape(1, 3)
-    return pose.to_transform_stamped("pose").apply_transform_to_array_of_points(vector).flatten()
+    return (
+        pose.to_transform_stamped("pose")
+        .apply_transform_to_array_of_points(vector)
+        .flatten()
+    )
 
 
 def apply_quaternion_to_pose(pose: PoseStamped, quaternion: np.ndarray) -> PoseStamped:
@@ -314,7 +349,9 @@ def get_quaternion_between_two_vectors(v1: np.ndarray, v2: np.ndarray) -> np.nda
     return quaternion_about_axis(angle, axis)
 
 
-def get_axis_angle_between_two_vectors(v1: np.ndarray, v2: np.ndarray) -> Tuple[np.ndarray, float]:
+def get_axis_angle_between_two_vectors(
+    v1: np.ndarray, v2: np.ndarray
+) -> Tuple[np.ndarray, float]:
     """
     Get the axis and angle between two vectors.
 
@@ -367,7 +404,6 @@ def xyzw_to_wxyz_arr(xyzw: np.ndarray) -> np.ndarray:
     wxyz[0] = xyzw[3]
     wxyz[1:] = xyzw[:3]
     return wxyz
-
 
 
 class ClassPropertyDescriptor:
@@ -435,12 +471,14 @@ def lazy_product(*iterables: Iterable, iter_names: List[str] = None) -> Iterable
         try:
             current_value.append(next(consumable_iterable))
         except StopIteration as e:
-            raise RuntimeError(f"No values in the iterable: {consumable_iterable} for iterable '{iter_names[i] if iter_names else i}'")
+            raise RuntimeError(
+                f"No values in the iterable: {consumable_iterable} for iterable '{iter_names[i] if iter_names else i}'"
+            )
 
     while True:
         yield tuple(current_value)
 
-        for index in range(len(consumable_iterables) -1, -1, -1):
+        for index in range(len(consumable_iterables) - 1, -1, -1):
             current_iterable = consumable_iterables[index]
             try:
                 consumable_value = next(current_iterable)
@@ -453,10 +491,14 @@ def lazy_product(*iterables: Iterable, iter_names: List[str] = None) -> Iterable
                 try:
                     current_value[index] = next(consumable_iterables[index])
                 except StopIteration as e:
-                    raise StopIteration(f"No more values in the iterable: {iterables[index]}")
+                    raise StopIteration(
+                        f"No more values in the iterable: {iterables[index]}"
+                    )
 
 
-def translate_pose_along_local_axis(pose: PoseStamped, axis: Union[List, np.ndarray], distance: float) -> PoseStamped:
+def translate_pose_along_local_axis(
+    pose: PoseStamped, axis: Union[List, np.ndarray], distance: float
+) -> PoseStamped:
     """
     Translate a pose along a given 3d vector (axis) by a given distance. The axis is given in the local coordinate
     frame of the pose. The axis is normalized and then scaled by the distance.
@@ -471,6 +513,10 @@ def translate_pose_along_local_axis(pose: PoseStamped, axis: Union[List, np.ndar
 
     rot_matrix = quaternion_matrix(pose.orientation.to_list())[:3, :3]
     translation_in_world = rot_matrix @ normalized_translation_vector
-    scaled_translation_vector = np.array(pose.position.to_list()) + translation_in_world * distance
+    scaled_translation_vector = (
+        np.array(pose.position.to_list()) + translation_in_world * distance
+    )
 
-    return PoseStamped.from_list(list(scaled_translation_vector), pose.orientation.to_list(), pose.frame_id )
+    return PoseStamped.from_list(
+        list(scaled_translation_vector), pose.orientation.to_list(), pose.frame_id
+    )

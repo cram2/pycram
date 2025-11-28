@@ -34,8 +34,13 @@ from pycram.robot_plans.actions.core import (
     robot_body,
 )
 from pycram.robot_plans.motions import BaseMotion
-from pycram.robot_plans.motions import container as motion_container, gripper as motion_gripper, \
-    navigation as motion_navigation, misc as motion_misc, robot_body as motion_robot_body
+from pycram.robot_plans.motions import (
+    container as motion_container,
+    gripper as motion_gripper,
+    navigation as motion_navigation,
+    misc as motion_misc,
+    robot_body as motion_robot_body,
+)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # This script generates the ORM classes for the pycram package

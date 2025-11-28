@@ -37,28 +37,45 @@ class FaceAtAction(ActionDescription):
         robot_position = PoseStamped.from_spatial_type(self.robot_view.root.global_pose)
 
         # calculate orientation for robot to face the object
-        angle = np.arctan2(robot_position.position.y - self.pose.position.y,
-                           robot_position.position.x - self.pose.position.x) + np.pi
+        angle = (
+            np.arctan2(
+                robot_position.position.y - self.pose.position.y,
+                robot_position.position.x - self.pose.position.x,
+            )
+            + np.pi
+        )
         orientation = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
 
         # create new robot pose
-        new_robot_pose = PoseStamped.from_list(robot_position.position.to_list(), orientation, self.world.root)
+        new_robot_pose = PoseStamped.from_list(
+            robot_position.position.to_list(), orientation, self.world.root
+        )
 
         # turn robot
-        SequentialPlan(self.context,
-                       NavigateActionDescription(new_robot_pose, self.keep_joint_states),
-                       # look at target
-                       LookAtActionDescription(self.pose)).perform()
+        SequentialPlan(
+            self.context,
+            NavigateActionDescription(new_robot_pose, self.keep_joint_states),
+            # look at target
+            LookAtActionDescription(self.pose),
+        ).perform()
 
-    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+    def validate(
+        self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None
+    ):
         # The validation will be done in the LookAtActionPerformable.perform() method so no need to validate here.
         pass
 
     @classmethod
-    def description(cls, pose: Union[Iterable[PoseStamped], PoseStamped],
-                    keep_joint_states: Union[Iterable[bool], bool] = ActionConfig.face_at_keep_joint_states) -> \
-            PartialDesignator[Type[FaceAtAction]]:
-        return PartialDesignator(FaceAtAction, pose=pose, keep_joint_states=keep_joint_states)
+    def description(
+        cls,
+        pose: Union[Iterable[PoseStamped], PoseStamped],
+        keep_joint_states: Union[
+            Iterable[bool], bool
+        ] = ActionConfig.face_at_keep_joint_states,
+    ) -> PartialDesignator[Type[FaceAtAction]]:
+        return PartialDesignator(
+            FaceAtAction, pose=pose, keep_joint_states=keep_joint_states
+        )
 
 
 FaceAtActionDescription = FaceAtAction.description

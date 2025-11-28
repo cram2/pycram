@@ -15,9 +15,14 @@ def _park_arms(arm):
 
     robot = World.robot
     if arm == "left":
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left",
-                                                                                             StaticJointState.Park).items():
+        for (
+            joint,
+            pose,
+        ) in RobotDescription.current_robot_description.get_static_joint_chain(
+            "left", StaticJointState.Park
+        ).items():
             robot.set_joint_position(joint, pose)
+
 
 class BoxyParkArms(ProcessModule):
     """
@@ -27,7 +32,7 @@ class BoxyParkArms(ProcessModule):
 
     def _execute(self, desig):
         solutions = desig.reference()
-        if solutions['cmd'] == 'park':
+        if solutions["cmd"] == "park":
             _park_arms()
 
 
@@ -43,27 +48,53 @@ class BoxyMoveHead(ProcessModule):
 
         local_transformer = LocalTransformer()
 
-        pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("neck_shoulder_link"))
+        pose_in_shoulder = local_transformer.transform_pose(
+            target, robot.get_link_tf_frame("neck_shoulder_link")
+        )
 
-        if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(pose_in_shoulder.position.y):
+        if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(
+            pose_in_shoulder.position.y
+        ):
             robot.set_multiple_joint_positions(
-                RobotDescription.current_robot_description.get_static_joint_chain("neck", "front"))
-        if pose_in_shoulder.position.y >= 0 and pose_in_shoulder.position.y >= abs(pose_in_shoulder.position.x):
+                RobotDescription.current_robot_description.get_static_joint_chain(
+                    "neck", "front"
+                )
+            )
+        if pose_in_shoulder.position.y >= 0 and pose_in_shoulder.position.y >= abs(
+            pose_in_shoulder.position.x
+        ):
             robot.set_multiple_joint_positions(
-                RobotDescription.current_robot_description.get_static_joint_chain("neck", "neck_right"))
-        if pose_in_shoulder.position.x <= 0 and abs(pose_in_shoulder.position.x) > abs(pose_in_shoulder.position.y):
+                RobotDescription.current_robot_description.get_static_joint_chain(
+                    "neck", "neck_right"
+                )
+            )
+        if pose_in_shoulder.position.x <= 0 and abs(pose_in_shoulder.position.x) > abs(
+            pose_in_shoulder.position.y
+        ):
             robot.set_multiple_joint_positions(
-                RobotDescription.current_robot_description.get_static_joint_chain("neck", "back"))
-        if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(pose_in_shoulder.position.x):
+                RobotDescription.current_robot_description.get_static_joint_chain(
+                    "neck", "back"
+                )
+            )
+        if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(
+            pose_in_shoulder.position.x
+        ):
             robot.set_multiple_joint_positions(
-                RobotDescription.current_robot_description.get_static_joint_chain("neck", "neck_left"))
+                RobotDescription.current_robot_description.get_static_joint_chain(
+                    "neck", "neck_left"
+                )
+            )
 
-        pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("neck_shoulder_link"))
+        pose_in_shoulder = local_transformer.transform_pose(
+            target, robot.get_link_tf_frame("neck_shoulder_link")
+        )
 
         new_pan = np.arctan2(pose_in_shoulder.position.y, pose_in_shoulder.position.x)
 
-        robot.set_joint_position("neck_shoulder_pan_joint",
-                                 new_pan + robot.get_joint_position("neck_shoulder_pan_joint"))
+        robot.set_joint_position(
+            "neck_shoulder_pan_joint",
+            new_pan + robot.get_joint_position("neck_shoulder_pan_joint"),
+        )
 
 
 class BoxyDetecting(ProcessModule):
@@ -78,7 +109,9 @@ class BoxyDetecting(ProcessModule):
         # Should be "wide_stereo_optical_frame"
         cam_link_name = RobotDescription.current_robot_description.get_camera_link()
         # should be [0, 0, 1]
-        front_facing_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
+        front_facing_axis = (
+            RobotDescription.current_robot_description.get_default_camera().front_facing_axis
+        )
 
         objects = World.current_world.get_object_by_type(object_type)
         for obj in objects:
@@ -99,5 +132,6 @@ class BoxyManager(DefaultManager):
     def detecting(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return BoxyDetecting(self._detecting_lock)
+
 
 BoxyManager()

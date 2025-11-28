@@ -9,8 +9,8 @@ from ..datastructures.pose import PoseStamped
 from ..datastructures.enums import ExecutionType
 from tf2_msgs.msg import TFMessage
 
-from ..ros import  create_publisher
-from ..ros import  Time
+from ..ros import create_publisher
+from ..ros import Time
 from pycram.testing import cleanup_ros
 
 
@@ -18,7 +18,15 @@ class TFBroadcaster:
     """
     Broadcaster that publishes TF frames for every object in the World.
     """
-    def __init__(self, world: World, node, projection_namespace=ExecutionType.SIMULATED, odom_frame="odom", interval=0.1):
+
+    def __init__(
+        self,
+        world: World,
+        node,
+        projection_namespace=ExecutionType.SIMULATED,
+        odom_frame="odom",
+        interval=0.1,
+    ):
         """
         The broadcaster prefixes all published TF messages with a projection namespace to distinguish between the TF
         frames from the simulation and the one from the real robot.
@@ -30,7 +38,9 @@ class TFBroadcaster:
         self.world = world
         self.node = node
 
-        self.tf_static_publisher = create_publisher("/tf_static", TFMessage, node, queue_size=10)
+        self.tf_static_publisher = create_publisher(
+            "/tf_static", TFMessage, node, queue_size=10
+        )
         self.tf_publisher = create_publisher("/tf", TFMessage, node, queue_size=10)
         self.thread = threading.Thread(target=self._publish, daemon=True)
         self.kill_event = threading.Event()
@@ -65,10 +75,19 @@ class TFBroadcaster:
         """
         Publishes a static odom frame to the tf_static topic.
         """
-        self._publish_pose(self.odom_frame,
-                           PoseStamped.from_list( [0, 0, 0], [0, 0, 0, 1], self.world.root,), static=True)
+        self._publish_pose(
+            self.odom_frame,
+            PoseStamped.from_list(
+                [0, 0, 0],
+                [0, 0, 0, 1],
+                self.world.root,
+            ),
+            static=True,
+        )
 
-    def _publish_pose(self, child_frame_id: str, pose: PoseStamped, static=False) -> None:
+    def _publish_pose(
+        self, child_frame_id: str, pose: PoseStamped, static=False
+    ) -> None:
         """
         Publishes the given pose to the ROS TF topic. First the pose is converted to a Transform between pose.frame and
         the given child_frame_id. Afterward, the frames of the Transform are prefixed with the projection namespace.
@@ -81,8 +100,14 @@ class TFBroadcaster:
         if frame_id != child_frame_id:
             tf_stamped = pose.to_transform_stamped(None)
             tf_stamped_msg = tf_stamped.ros_message()
-            tf_stamped_msg.header.frame_id = self.projection_namespace.name + "/" + tf_stamped.header.frame_id.name.name
-            tf_stamped_msg.child_frame_id = self.projection_namespace.name + "/" + tf_stamped.child_frame_id
+            tf_stamped_msg.header.frame_id = (
+                self.projection_namespace.name
+                + "/"
+                + tf_stamped.header.frame_id.name.name
+            )
+            tf_stamped_msg.child_frame_id = (
+                self.projection_namespace.name + "/" + tf_stamped.child_frame_id
+            )
             tf2_msg = TFMessage()
             tf2_msg.transforms.append(tf_stamped)
             if static:

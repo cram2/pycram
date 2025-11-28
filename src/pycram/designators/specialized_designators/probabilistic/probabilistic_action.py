@@ -4,8 +4,11 @@ from typing import Type
 
 from probabilistic_model.distributions import SymbolicDistribution
 from probabilistic_model.probabilistic_circuit.rx.helper import fully_factorized, leaf
-from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import ProbabilisticCircuit, SumUnit, \
-    ProductUnit
+from probabilistic_model.probabilistic_circuit.rx.probabilistic_circuit import (
+    ProbabilisticCircuit,
+    SumUnit,
+    ProductUnit,
+)
 from probabilistic_model.utils import MissingDict
 from random_events.product_algebra import SimpleEvent
 from random_events.set import Set
@@ -13,7 +16,9 @@ from random_events.variable import Symbolic, Continuous
 from semantic_digital_twin.spatial_types import TransformationMatrix
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.geometry import BoundingBox
-from semantic_digital_twin.world_description.shape_collection import BoundingBoxCollection
+from semantic_digital_twin.world_description.shape_collection import (
+    BoundingBoxCollection,
+)
 from semantic_digital_twin.world_description.world_entity import Body
 from sqlalchemy import select
 from typing_extensions import Optional, List
@@ -73,8 +78,12 @@ class MoveAndPickUpVariables(Variables):
     x = Continuous("x")
     y = Continuous("y")
 
-    approach_direction = Symbolic("approach_direction", Set.from_iterable(ApproachDirection))
-    vertical_alignment = Symbolic("vertical_alignment", Set.from_iterable(VerticalAlignment))
+    approach_direction = Symbolic(
+        "approach_direction", Set.from_iterable(ApproachDirection)
+    )
+    vertical_alignment = Symbolic(
+        "vertical_alignment", Set.from_iterable(VerticalAlignment)
+    )
 
 
 @dataclass
@@ -90,24 +99,32 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
     world: World
 
     def collision_free_condition_for_object(self, obj: Body):
-        search_space_size = 1.
+        search_space_size = 1.0
         obj_pose = PoseStamped.from_spatial_type(obj.global_pose)
-        search_space = BoundingBox(min_x=obj_pose.pose.position.x - search_space_size,
-                                   min_y=obj_pose.pose.position.y - search_space_size,
-                                   min_z=obj_pose.pose.position.z - search_space_size,
-                                   max_x=obj_pose.pose.position.x + search_space_size,
-                                   max_y=obj_pose.pose.position.y + search_space_size,
-                                   max_z=obj_pose.pose.position.z + search_space_size,
-                                   origin=TransformationMatrix(reference_frame=self.world.root))
-        bb_collection = BoundingBoxCollection([search_space], reference_frame=self.world.root)
+        search_space = BoundingBox(
+            min_x=obj_pose.pose.position.x - search_space_size,
+            min_y=obj_pose.pose.position.y - search_space_size,
+            min_z=obj_pose.pose.position.z - search_space_size,
+            max_x=obj_pose.pose.position.x + search_space_size,
+            max_y=obj_pose.pose.position.y + search_space_size,
+            max_z=obj_pose.pose.position.z + search_space_size,
+            origin=TransformationMatrix(reference_frame=self.world.root),
+        )
+        bb_collection = BoundingBoxCollection(
+            [search_space], reference_frame=self.world.root
+        )
         navigate_conditions = collision_free_event(obj._world, bb_collection)
         return navigate_conditions
 
-    def accessing_distribution_for_object(self, obj: Body, object_variable: Symbolic) -> ProbabilisticCircuit:
+    def accessing_distribution_for_object(
+        self, obj: Body, object_variable: Symbolic
+    ) -> ProbabilisticCircuit:
         model = self.default_policy()
 
         # add object distribution her
-        p_object = SymbolicDistribution(object_variable, MissingDict(float, {obj.index: 1.}))
+        p_object = SymbolicDistribution(
+            object_variable, MissingDict(float, {obj.index: 1.0})
+        )
         root = model.root
         new_root = ProductUnit(probabilistic_circuit=model)
         new_root.add_subcircuit(leaf(p_object, model))
@@ -115,7 +132,12 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
 
         # move model to position of the object
         obj_pose = PoseStamped.from_spatial_type(obj.global_pose)
-        model.translate({self.variables.x.value: obj_pose.pose.position.x, self.variables.y.value: obj_pose.pose.position.y})
+        model.translate(
+            {
+                self.variables.x.value: obj_pose.pose.position.x,
+                self.variables.y.value: obj_pose.pose.position.y,
+            }
+        )
 
         # apply collision-free condition
         condition = self.collision_free_condition_for_object(obj)
@@ -123,13 +145,29 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
 
         # apply grasp conditions
         grasp_condition = SimpleEvent(
-            {self.variables.approach_direction.value: [ApproachDirection.FRONT, ApproachDirection.BACK, ApproachDirection.LEFT, ApproachDirection.RIGHT],
-                self.variables.vertical_alignment.value: [VerticalAlignment.TOP, VerticalAlignment.BOTTOM, VerticalAlignment.NoAlignment],}).as_composite_set()
+            {
+                self.variables.approach_direction.value: [
+                    ApproachDirection.FRONT,
+                    ApproachDirection.BACK,
+                    ApproachDirection.LEFT,
+                    ApproachDirection.RIGHT,
+                ],
+                self.variables.vertical_alignment.value: [
+                    VerticalAlignment.TOP,
+                    VerticalAlignment.BOTTOM,
+                    VerticalAlignment.NoAlignment,
+                ],
+            }
+        ).as_composite_set()
         grasp_condition.fill_missing_variables(model.variables)
         condition &= grasp_condition
 
         # apply arm condition
-        arm_condition = SimpleEvent({self.variables.arm.value: [Arms.LEFT, Arms.RIGHT], }).as_composite_set()
+        arm_condition = SimpleEvent(
+            {
+                self.variables.arm.value: [Arms.LEFT, Arms.RIGHT],
+            }
+        ).as_composite_set()
         arm_condition.fill_missing_variables(model.variables)
         condition &= arm_condition
 
@@ -139,7 +177,10 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
 
     @property
     def object_variable(self) -> Symbolic:
-        return Symbolic("object_designator", Set.from_iterable([obj.index for obj in self.world.bodies]))
+        return Symbolic(
+            "object_designator",
+            Set.from_iterable([obj.index for obj in self.world.bodies]),
+        )
 
     def create_distribution(self):
 
@@ -154,7 +195,7 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
 
             temp_root = model.root
             remap = result.add_from_subgraph(model.graph)
-            root.add_subcircuit(remap[temp_root.index], 0.)
+            root.add_subcircuit(remap[temp_root.index], 0.0)
         root.normalize()
 
         return result
@@ -168,27 +209,42 @@ class MoveAndPickUpParameterizer(ProbabilisticAction):
 
         return [self.sample_to_action(sample, model) for sample in samples]
 
-    def sample_to_action(self, sample: List, model: ProbabilisticCircuit) -> MoveAndPickUpAction:
-        sample_dict = {variable: value for variable, value in zip(model.variables, sample)}
+    def sample_to_action(
+        self, sample: List, model: ProbabilisticCircuit
+    ) -> MoveAndPickUpAction:
+        sample_dict = {
+            variable: value for variable, value in zip(model.variables, sample)
+        }
         obj = self.world.kinematic_structure[int(sample_dict[self.object_variable])]
 
         standing_position = PoseStamped.from_list(
-            [sample_dict[self.variables.x.value], sample_dict[self.variables.y.value], 0.])
+            [
+                sample_dict[self.variables.x.value],
+                sample_dict[self.variables.y.value],
+                0.0,
+            ]
+        )
 
         grasp_description = GraspDescription(
-            approach_direction=list(ApproachDirection)[int(sample_dict[self.variables.approach_direction.value])],
+            approach_direction=list(ApproachDirection)[
+                int(sample_dict[self.variables.approach_direction.value])
+            ],
             rotate_gripper=sample_dict[self.variables.rotate_gripper.value],
-            vertical_alignment=list(VerticalAlignment)[int(sample_dict[self.variables.vertical_alignment.value])], )
+            vertical_alignment=list(VerticalAlignment)[
+                int(sample_dict[self.variables.vertical_alignment.value])
+            ],
+        )
 
-        return MoveAndPickUpAction(standing_position=standing_position, object_designator=obj,
-                                   arm=Arms(int(sample_dict[self.variables.arm.value])),
-                                   grasp_description=grasp_description,
-                                   keep_joint_states=sample_dict[self.variables.keep_joint_states.value])
+        return MoveAndPickUpAction(
+            standing_position=standing_position,
+            object_designator=obj,
+            arm=Arms(int(sample_dict[self.variables.arm.value])),
+            grasp_description=grasp_description,
+            keep_joint_states=sample_dict[self.variables.keep_joint_states.value],
+        )
 
     def create_action(self):
         return self.create_actions(100)[0]
 
     def query_for_database(self):
-        select(
-
-        )
+        select()

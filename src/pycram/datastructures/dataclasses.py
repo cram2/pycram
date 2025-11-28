@@ -10,11 +10,29 @@ from semantic_digital_twin.robots.abstract_robot import AbstractRobot
 from semantic_digital_twin.world import World
 
 from semantic_digital_twin.world_description.world_entity import Body
-from semantic_digital_twin.world_description.world_modification import WorldModelModificationBlock
-from typing_extensions import List, Optional, Callable, Dict, Any, Union, Sequence, \
-    deprecated, Type, TYPE_CHECKING
+from semantic_digital_twin.world_description.world_modification import (
+    WorldModelModificationBlock,
+)
+from typing_extensions import (
+    List,
+    Optional,
+    Callable,
+    Dict,
+    Any,
+    Union,
+    Sequence,
+    deprecated,
+    Type,
+    TYPE_CHECKING,
+)
 
-from .enums import JointType, VirtualMobileBaseJointName, Grasp, ApproachDirection, VerticalAlignment
+from .enums import (
+    JointType,
+    VirtualMobileBaseJointName,
+    Grasp,
+    ApproachDirection,
+    VerticalAlignment,
+)
 from .pose import PoseStamped, Point
 
 if TYPE_CHECKING:
@@ -26,6 +44,7 @@ class Context:
     """
     A dataclass for storing the context of a plan
     """
+
     world: World
     """
     The world in which the plan is executed
@@ -50,7 +69,11 @@ class Context:
         :param super_plan: An optional super plan
         :return: A context with the first robot in the world and no super plan
         """
-        return cls(world=world, robot=world.get_semantic_annotations_by_type(AbstractRobot)[0], super_plan=super_plan)
+        return cls(
+            world=world,
+            robot=world.get_semantic_annotations_by_type(AbstractRobot)[0],
+            super_plan=super_plan,
+        )
 
     @classmethod
     def from_plan(cls, plan: Plan):
@@ -70,6 +93,7 @@ class ExecutionData:
     A dataclass for storing the information of an execution that is used for creating a robot description for that
     execution. An execution is a Robot with a virtual mobile base that can be used to move the robot in the environment.
     """
+
     execution_start_pose: PoseStamped
     """
     Start of the robot at the start of execution of an action designator
@@ -80,7 +104,7 @@ class ExecutionData:
     The world state at the start of execution of an action designator
     """
 
-    execution_end_pose: Optional[PoseStamped]  = None
+    execution_end_pose: Optional[PoseStamped] = None
     """
     The pose of the robot at the end of executing an action designator
     """
@@ -90,7 +114,9 @@ class ExecutionData:
     The world state at the end of executing an action designator
     """
 
-    added_world_modifications: List[WorldModelModificationBlock] = field(default_factory=list)
+    added_world_modifications: List[WorldModelModificationBlock] = field(
+        default_factory=list
+    )
     """
     A list of World modification blocks that were added during the execution of the action designator
     """
@@ -122,6 +148,7 @@ class ManipulatorData:
     A dataclass for storing the information of a manipulator that is used for creating a robot description for that
     manipulator. A manipulator is an Arm with an end-effector that can be used to interact with the environment.
     """
+
     name: str
     """
     Name of the Manipulator.
@@ -170,7 +197,7 @@ class ManipulatorData:
     """
     List of link names for the fingers of the gripper.
     """
-    relative_dir: str = ''
+    relative_dir: str = ""
     """
     Relative directory of the manipulator description file in the resources directory.
     """
@@ -210,6 +237,7 @@ class Color:
     The values are stored as floats between 0 and 1.
     The default rgba_color is white. 'A' stands for the opacity.
     """
+
     R: float = 1
     G: float = 1
     B: float = 1
@@ -268,6 +296,7 @@ class Colors(Color, Enum):
     """
     Enum for easy access to some common colors.
     """
+
     PINK = (1, 0, 1, 1)
     BLACK = (0, 0, 0, 1)
     WHITE = (1, 1, 1, 1)
@@ -298,22 +327,27 @@ class CollisionCallbacks:
     Dataclass for storing the collision callbacks which are callables that get called when there is a collision
     or when a collision is no longer there.
     """
+
     on_collision_cb: Callable
     no_collision_cb: Optional[Callable] = None
+
 
 @dataclass
 class LateralFriction:
     """
     Dataclass for storing the information of the lateral friction.
     """
+
     lateral_friction: float
     lateral_friction_direction: List[float]
+
 
 @dataclass
 class TextAnnotation:
     """
     Dataclass for storing text annotations that can be displayed in the simulation.
     """
+
     text: str
     position: List[float]
     id: int
@@ -326,6 +360,7 @@ class VirtualJoint:
     """
     A virtual (not real) joint that is most likely used for simulation purposes.
     """
+
     name: str
     type_: JointType
     axes: Optional[Point] = None
@@ -353,6 +388,7 @@ class Rotations(Dict[Optional[Union[Grasp, bool]], List[float]]):
     HORIZONTAL_ROTATIONS: The quaternions for the different horizontal alignments, in case the gripper needs to roll
     90°
     """
+
     SIDE_ROTATIONS = {
         ApproachDirection.FRONT: [0, 0, 0, 1],
         ApproachDirection.BACK: [0, 0, 1, 0],
@@ -378,15 +414,21 @@ class VirtualMobileBaseJoints:
     Dataclass for storing the names, types and axes of the virtual mobile base joints of a mobile robot.
     """
 
-    translation_x: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_X.value,
-                                                         JointType.PRISMATIC,
-                                                         Point(x=1.0, y=0.0, z=0.0))
-    translation_y: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_Y.value,
-                                                         JointType.PRISMATIC,
-                                                         Point(x=0.0, y=1.0, z=0.0))
-    angular_z: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.ANGULAR_Z.value,
-                                                     JointType.REVOLUTE,
-                                                     Point(x=0.0, y=0.0, z=1.0))
+    translation_x: Optional[VirtualJoint] = VirtualJoint(
+        VirtualMobileBaseJointName.LINEAR_X.value,
+        JointType.PRISMATIC,
+        Point(x=1.0, y=0.0, z=0.0),
+    )
+    translation_y: Optional[VirtualJoint] = VirtualJoint(
+        VirtualMobileBaseJointName.LINEAR_Y.value,
+        JointType.PRISMATIC,
+        Point(x=0.0, y=1.0, z=0.0),
+    )
+    angular_z: Optional[VirtualJoint] = VirtualJoint(
+        VirtualMobileBaseJointName.ANGULAR_Z.value,
+        JointType.REVOLUTE,
+        Point(x=0.0, y=0.0, z=1.0),
+    )
 
     @property
     def names(self) -> List[str]:
@@ -399,18 +441,25 @@ class VirtualMobileBaseJoints:
         """
         Return the joint types of the virtual mobile base joints.
         """
-        return {getattr(self, field.name).name: getattr(self, field.name).type_ for field in fields(self)}
+        return {
+            getattr(self, field.name).name: getattr(self, field.name).type_
+            for field in fields(self)
+        }
 
     def get_axes(self) -> Dict[str, Point]:
         """
         Return the axes (i.e. The axis on which the joint moves) of the virtual mobile base joints.
         """
-        return {getattr(self, field.name).name: getattr(self, field.name).axes for field in fields(self)}
+        return {
+            getattr(self, field.name).name: getattr(self, field.name).axes
+            for field in fields(self)
+        }
 
 
 @dataclass
 class MultiverseMetaData:
     """Meta data for the Multiverse Client, the simulation_name should be non-empty and unique for each simulation"""
+
     world_name: str = "world"
     simulation_name: str = "cram"
     length_unit: str = "m"

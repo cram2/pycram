@@ -1,5 +1,7 @@
 # Funky MonkeyPatching for ROS2 compatability
 import builtin_interfaces.msg
+
+
 def to_sec(self):
     """
     Returns the time in seconds from a builtin_interfaces.msg.Time message.
@@ -7,6 +9,7 @@ def to_sec(self):
     :return: The time in seconds.
     """
     return self.sec
+
 
 builtin_interfaces.msg.Time.to_sec = to_sec
 
@@ -19,9 +22,8 @@ from rclpy.node import Node
 # threading.Thread(target=rclpy.spin, args=(node,), daemon=True).start()
 
 
-
 from .data_types import *
-from .ros_tools import  *
+from .ros_tools import *
 from .action_lib import *
 from .service import *
 from .publisher import *

@@ -18,7 +18,10 @@ from semantic_digital_twin.world_description.connections import Connection6DoF
 from semantic_digital_twin.world_description.degree_of_freedom import DegreeOfFreedom
 from semantic_digital_twin.world_description.geometry import Box, Scale
 from semantic_digital_twin.world_description.shape_collection import ShapeCollection
-from semantic_digital_twin.world_description.world_entity import Body, KinematicStructureEntity
+from semantic_digital_twin.world_description.world_entity import (
+    Body,
+    KinematicStructureEntity,
+)
 from typing_extensions import List, Union, Dict, Iterable, Optional, Iterator, Callable
 
 from .costmaps import Costmap
@@ -36,7 +39,7 @@ class OrientationGenerator:
 
     @staticmethod
     def generate_origin_orientation(
-            position: List[float], origin: PoseStamped
+        position: List[float], origin: PoseStamped
     ) -> List[float]:
         """
         Generates an orientation such that the robot faces the origin of the costmap.
@@ -46,15 +49,15 @@ class OrientationGenerator:
         :return: A quaternion of the calculated orientation.
         """
         angle = (
-                np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x)
-                + np.pi
+            np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x)
+            + np.pi
         )
         quaternion = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
         return quaternion
 
     @staticmethod
     def generate_random_orientation(
-            *_, rng: random.Random = random.Random(42)
+        *_, rng: random.Random = random.Random(42)
     ) -> List[float]:
         """
         Generates a random orientation rotated around the z-axis (yaw).
@@ -88,11 +91,11 @@ class PoseGenerator(Iterable[PoseStamped]):
     """
 
     def __init__(
-            self,
-            costmap: Costmap,
-            number_of_samples: int = 100,
-            orientation_generator: Callable[[PoseStamped, PoseStamped], List[float]] = None,
-            randomize: bool = False,
+        self,
+        costmap: Costmap,
+        number_of_samples: int = 100,
+        orientation_generator: Callable[[PoseStamped, PoseStamped], List[float]] = None,
+        randomize: bool = False,
     ):
         """
         :param costmap: The costmap from which poses should be sampled.
@@ -127,8 +130,8 @@ class PoseGenerator(Iterable[PoseStamped]):
 
         # Determines how many positions should be sampled from the costmap
         if (
-                self.number_of_samples == -1
-                or self.number_of_samples > self.costmap.map.flatten().shape[0]
+            self.number_of_samples == -1
+            or self.number_of_samples > self.costmap.map.flatten().shape[0]
         ):
             self.number_of_samples = self.costmap.map.flatten().shape[0]
         if self.randomize:
@@ -138,7 +141,7 @@ class PoseGenerator(Iterable[PoseStamped]):
         else:
             indices = np.argpartition(
                 self.costmap.map.flatten(), -self.number_of_samples
-            )[-self.number_of_samples:]
+            )[-self.number_of_samples :]
 
         indices = np.dstack(np.unravel_index(indices, self.costmap.map.shape)).reshape(
             self.number_of_samples, 2
@@ -185,15 +188,15 @@ class PoseGenerator(Iterable[PoseStamped]):
         :return: A quaternion of the calculated orientation
         """
         angle = (
-                np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x)
-                + np.pi
+            np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x)
+            + np.pi
         )
         quaternion = list(quaternion_from_euler(0, 0, angle, axes="sxyz"))
         return quaternion
 
 
 def visibility_validator(
-        robot: AbstractRobot, object_or_pose: Union[Body, PoseStamped], world: World
+    robot: AbstractRobot, object_or_pose: Union[Body, PoseStamped], world: World
 ) -> bool:
     """
     This method validates if the robot can see the target position from a given
@@ -213,7 +216,11 @@ def visibility_validator(
             collision=ShapeCollection([Box(scale=Scale(0.1, 0.1, 0.1))]),
         )
         with world.modify_world():
-            world.add_connection(Connection6DoF.create_with_dofs(parent=world.root, child=gen_body, world=world))
+            world.add_connection(
+                Connection6DoF.create_with_dofs(
+                    parent=world.root, child=gen_body, world=world
+                )
+            )
         gen_body.parent_connection.origin = object_or_pose.to_spatial_type()
     else:
         gen_body = object_or_pose
@@ -236,11 +243,11 @@ def visibility_validator(
 
 
 def reachability_validator(
-        root: KinematicStructureEntity,
-        tip: KinematicStructureEntity,
-        target_pose: PoseStamped,
-        world: World,
-        allowed_collision: List[CollisionCheck] = None,
+    root: KinematicStructureEntity,
+    tip: KinematicStructureEntity,
+    target_pose: PoseStamped,
+    world: World,
+    allowed_collision: List[CollisionCheck] = None,
 ) -> Optional[Dict[DegreeOfFreedom, float]]:
     """
     This method validates if a target position is reachable for the robot.
@@ -279,11 +286,11 @@ def reachability_validator(
 
 
 def pose_sequence_reachability_validator(
-        root: KinematicStructureEntity,
-        tip: KinematicStructureEntity,
-        target_sequence: List[PoseStamped],
-        world: World,
-        allowed_collision: List[CollisionCheck] = None,
+    root: KinematicStructureEntity,
+    tip: KinematicStructureEntity,
+    target_sequence: List[PoseStamped],
+    world: World,
+    allowed_collision: List[CollisionCheck] = None,
 ) -> bool:
     """
     This method validates if a target sequence, if traversed in order, is reachable for the robot.
@@ -318,7 +325,7 @@ def pose_sequence_reachability_validator(
 
 
 def collision_check(
-        robot: AbstractRobot, allowed_collision: List[Body], world: World
+    robot: AbstractRobot, allowed_collision: List[Body], world: World
 ) -> List[Collision]:
     """
     This method checks if a given robot collides with any object within the world
@@ -339,7 +346,7 @@ def collision_check(
 
 
 def create_collision_matrix(
-        ignore_collision_with: List[Body], world: World, robot: AbstractRobot
+    ignore_collision_with: List[Body], world: World, robot: AbstractRobot
 ) -> List[CollisionCheck]:
     """
     CCreates a list of collision checks that should be performed
@@ -358,9 +365,9 @@ def create_collision_matrix(
     for robot_body in robot.bodies_with_enabled_collision:
         for world_body in world.bodies_with_enabled_collision:
             if (
-                    world_body in allowed_collision_with
-                    or robot_body in allowed_collision_with
-                    or world_body in robot.bodies
+                world_body in allowed_collision_with
+                or robot_body in allowed_collision_with
+                or world_body in robot.bodies
             ):
                 continue
             collision_checks.append(CollisionCheck(robot_body, world_body, 0.01, world))

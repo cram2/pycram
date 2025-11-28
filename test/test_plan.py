@@ -14,11 +14,16 @@ from pycram.plan import PlanNode, Plan
 from pycram.process_module import simulated_robot
 from pycram.testing import ApartmentWorldTestCase
 
+
 class TestPlan(unittest.TestCase):
 
     def setUp(self):
         Plan.current_plan = None
-        self.world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "resources", "robots", "pr2.urdf")).parse()
+        self.world = URDFParser.from_file(
+            os.path.join(
+                os.path.dirname(__file__), "..", "resources", "robots", "pr2.urdf"
+            )
+        ).parse()
         self.context = Context(self.world, None, None)
 
     def test_plan_construction(self):
@@ -93,7 +98,11 @@ class TestPlan(unittest.TestCase):
 
 class TestPlanNode(unittest.TestCase):
     def setUp(self):
-        self.world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "resources", "robots", "pr2.urdf")).parse()
+        self.world = URDFParser.from_file(
+            os.path.join(
+                os.path.dirname(__file__), "..", "resources", "robots", "pr2.urdf"
+            )
+        ).parse()
         self.context = Context(self.world, None, None)
 
     def test_plan_node_creation(self):
@@ -140,7 +149,7 @@ class TestPlanNode(unittest.TestCase):
 
     def test_plan_node_recursive_children(self):
         node = PlanNode()
-        plan = Plan(node,self.context)
+        plan = Plan(node, self.context)
 
         self.assertEqual([], node.recursive_children)
 
@@ -176,48 +185,83 @@ class TestPlanNode(unittest.TestCase):
         self.assertEqual(len(sub_tree.edges), 1)
         self.assertIn((node2, node3), sub_tree.edges)
 
+
 class TestPlanInterrupt(ApartmentWorldTestCase):
-        def test_interrupt_plan(self):
+    def test_interrupt_plan(self):
 
-            def interrupt_plan():
-                Plan.current_plan.root.interrupt()
+        def interrupt_plan():
+            Plan.current_plan.root.interrupt()
 
-            code_node = CodeNode(interrupt_plan)
-            with simulated_robot:
-                SequentialPlan(self.context, MoveTorsoActionDescription(TorsoState.HIGH), Plan(code_node, self.context), MoveTorsoActionDescription([TorsoState.LOW])).perform()
+        code_node = CodeNode(interrupt_plan)
+        with simulated_robot:
+            SequentialPlan(
+                self.context,
+                MoveTorsoActionDescription(TorsoState.HIGH),
+                Plan(code_node, self.context),
+                MoveTorsoActionDescription([TorsoState.LOW]),
+            ).perform()
 
-            self.assertEqual(0.3, self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position)
+        self.assertEqual(
+            0.3,
+            self.world.state[
+                self.world.get_degree_of_freedom_by_name("torso_lift_joint").name
+            ].position,
+        )
 
-        @unittest.skip(
-            "There is some weird error here that causes the interpreter to abort with exit code 134, something with thread handling. Needs more investigation")
-        def test_pause_plan(self):
-            def node_sleep():
-                sleep(1)
+    @unittest.skip(
+        "There is some weird error here that causes the interpreter to abort with exit code 134, something with thread handling. Needs more investigation"
+    )
+    def test_pause_plan(self):
+        def node_sleep():
+            sleep(1)
 
-            def pause_plan():
-                Plan.current_plan.root.pause()
-                self.assertEqual(0, self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position)
-                Plan.current_plan.root.resume()
-                sleep(3)
-                self.assertEqual(0.3, self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position)
+        def pause_plan():
+            Plan.current_plan.root.pause()
+            self.assertEqual(
+                0,
+                self.world.state[
+                    self.world.get_degree_of_freedom_by_name("torso_lift_joint").name
+                ].position,
+            )
+            Plan.current_plan.root.resume()
+            sleep(3)
+            self.assertEqual(
+                0.3,
+                self.world.state[
+                    self.world.get_degree_of_freedom_by_name("torso_lift_joint").name
+                ].position,
+            )
 
-            code_node = CodeNode(pause_plan)
-            sleep_node = CodeNode(node_sleep)
-            robot_plan = SequentialPlan(self.context,  Plan(sleep_node, *self.context), MoveTorsoActionDescription([TorsoState.HIGH]))
+        code_node = CodeNode(pause_plan)
+        sleep_node = CodeNode(node_sleep)
+        robot_plan = SequentialPlan(
+            self.context,
+            Plan(sleep_node, *self.context),
+            MoveTorsoActionDescription([TorsoState.HIGH]),
+        )
 
-            with simulated_robot:
-                ParallelPlan(self.context,  Plan(code_node, self.context), robot_plan).perform()
+        with simulated_robot:
+            ParallelPlan(
+                self.context, Plan(code_node, self.context), robot_plan
+            ).perform()
 
-            self.assertEqual(0.3, self.world.state[self.world.get_degree_of_freedom_by_name("torso_lift_joint").name].position)
+        self.assertEqual(
+            0.3,
+            self.world.state[
+                self.world.get_degree_of_freedom_by_name("torso_lift_joint").name
+            ].position,
+        )
 
 
 class AlgebraTest(ApartmentWorldTestCase):
     @unittest.skip
     def test_algebra(self):
-        sp = SequentialPlan(self.context,
-                            MoveTorsoActionDescription(None),
-                            NavigateActionDescription(None),
-                            MoveTorsoActionDescription(None))
+        sp = SequentialPlan(
+            self.context,
+            MoveTorsoActionDescription(None),
+            NavigateActionDescription(None),
+            MoveTorsoActionDescription(None),
+        )
 
         p = Parameterizer(sp)
         distribution = p.create_fully_factorized_distribution()
@@ -237,7 +281,7 @@ class AlgebraTest(ApartmentWorldTestCase):
             p.get_variable("NavigateAction_1.target_location.pose.orientation.x"): 0,
             p.get_variable("NavigateAction_1.target_location.pose.orientation.y"): 0,
             p.get_variable("NavigateAction_1.target_location.pose.orientation.z"): 0,
-            p.get_variable("NavigateAction_1.target_location.pose.orientation.w"): 1
+            p.get_variable("NavigateAction_1.target_location.pose.orientation.w"): 1,
         }
 
         distribution, _ = distribution.conditional(navigate_condition)

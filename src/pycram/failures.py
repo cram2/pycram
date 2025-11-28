@@ -8,8 +8,15 @@ from typing_extensions import TYPE_CHECKING, List, Optional, Type
 
 if TYPE_CHECKING:
     from .datastructures.pose import PoseStamped
-    from .datastructures.enums import JointType, MultiverseAPIName, Arms, StaticJointState, Grasp, DetectionTechnique, \
-        ContainerManipulationType
+    from .datastructures.enums import (
+        JointType,
+        MultiverseAPIName,
+        Arms,
+        StaticJointState,
+        Grasp,
+        DetectionTechnique,
+        ContainerManipulationType,
+    )
     from .validation.goal_validator import MultiJointPositionGoalValidator
     from .designator import ObjectDesignatorDescription
     from .designators.location_designator import Location
@@ -79,6 +86,7 @@ class DeliveringFailed(HighLevelFailure):
 
 class ManipulationLowLevelFailure(LowLevelFailure):
     """Thrown when a low-level, i.e. hardware related, failure is detected in a manipulation action."""
+
     robot: Object
     """
     The robot that the manipulation action was performed with.
@@ -92,7 +100,9 @@ class ManipulationLowLevelFailure(LowLevelFailure):
     The body that the manipulation action was performed on.
     """
 
-    def __init__(self, robot: Object, arms: List[Arms], body: PhysicalBody, *args, **kwargs):
+    def __init__(
+        self, robot: Object, arms: List[Arms], body: PhysicalBody, *args, **kwargs
+    ):
         self.robot = robot
         self.arm = arms
         self.body = body
@@ -108,6 +118,7 @@ class EnvironmentManipulationGoalNotReached(ManipulationLowLevelFailure):
 
 class ContainerManipulationError(ManipulationLowLevelFailure, ABC):
     """Thrown when container manipulation fails."""
+
     container_joint: Joint
     """
     The joint of the container that should be manipulated.
@@ -117,16 +128,29 @@ class ContainerManipulationError(ManipulationLowLevelFailure, ABC):
     The type of manipulation that should be performed on the container.
     """
 
-    def __init__(self, robot: Object, arms: List[Arms], body: PhysicalBody, container_joint: Joint,
-                 manipulation_type: ContainerManipulationType,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        robot: Object,
+        arms: List[Arms],
+        body: PhysicalBody,
+        container_joint: Joint,
+        manipulation_type: ContainerManipulationType,
+        *args,
+        **kwargs,
+    ):
         self.container_joint = container_joint
         self.manipulation_type = manipulation_type
-        super().__init__(robot, arms, body,
-                         f"manipulation type \"{manipulation_type.name}\" failedContainer {body.name} with joint"
-                         f" name {container_joint.name}"
-                         f" (current position is {container_joint.position}) and limits {container_joint.limits},"
-                         f" using {[arm.name for arm in arms]} arm of {robot.name} robot", *args, **kwargs)
+        super().__init__(
+            robot,
+            arms,
+            body,
+            f'manipulation type "{manipulation_type.name}" failedContainer {body.name} with joint'
+            f" name {container_joint.name}"
+            f" (current position is {container_joint.position}) and limits {container_joint.limits},"
+            f" using {[arm.name for arm in arms]} arm of {robot.name} robot",
+            *args,
+            **kwargs,
+        )
 
 
 class EnvironmentManipulationImpossible(HighLevelFailure):
@@ -152,6 +176,7 @@ class FetchingFailed(HighLevelFailure):
 
 class GripperLowLevelFailure(LowLevelFailure):
     """Thrown when a failure involving the gripper hardware occurs."""
+
     robot: Object
     """
     The robot that the gripper belongs to.
@@ -171,9 +196,13 @@ class GripperIsNotOpen(GripperLowLevelFailure):
     """Thrown when the gripper is not open when it should be open."""
 
     def __init__(self, robot: Object, arm: Arms, *args, **kwargs):
-        super().__init__(robot, arm,
-                         f"The gripper of arm {arm.name} of robot {robot.name} should be open but is not",
-                         *args, **kwargs)
+        super().__init__(
+            robot,
+            arm,
+            f"The gripper of arm {arm.name} of robot {robot.name} should be open but is not",
+            *args,
+            **kwargs,
+        )
 
 
 class GripperClosedCompletely(GripperLowLevelFailure):
@@ -201,6 +230,7 @@ class GripperOccupied(GripperLowLevelFailure):
 class LookingHighLevelFailure(HighLevelFailure):
     """High-level failure produced when looking for an object, i.e. it is not a hardware issue but one relating to
     the looking task, its parameters, and how they relate to the environment."""
+
     robot: Object
     """
     The robot that performed the look at action.
@@ -220,8 +250,14 @@ class LookAtGoalNotReached(LookingHighLevelFailure):
     """Thrown when the look at goal is not reached."""
 
     def __init__(self, robot: Object, target: PoseStamped, *args, **kwargs):
-        super().__init__(robot, target, f"Look at action failed for {robot.name} and target "
-                                        f"{target.position.to_list()}{target.orientation.to_list()}", *args, **kwargs)
+        super().__init__(
+            robot,
+            target,
+            f"Look at action failed for {robot.name} and target "
+            f"{target.position.to_list()}{target.orientation.to_list()}",
+            *args,
+            **kwargs,
+        )
 
 
 class ManipulationGoalInCollision(HighLevelFailure):
@@ -237,6 +273,7 @@ class ManipulationGoalNotReached(ManipulationLowLevelFailure):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+
 class RobotInCollision(PlanFailure):
     """Thrown when the robot is in collision with the environment."""
 
@@ -246,6 +283,7 @@ class RobotInCollision(PlanFailure):
 
 class IKError(PlanFailure):
     """Thrown when no inverse kinematics solution could be found"""
+
     pose: PoseStamped
     """
     The pose for which no IK solution could be found.
@@ -264,9 +302,11 @@ class IKError(PlanFailure):
         self.base_frame = base_frame
         self.tip_frame = tip_frame
         self.robot_pose = robot_pose
-        self.message = ("Position {} in frame '{}' is not reachable for end effector: '{}'. \n"
-                        "Robot pose was: {}. \n"
-                        "Its joint positions were: {}").format(pose, base_frame, tip_frame, robot_pose, joint_positions)
+        self.message = (
+            "Position {} in frame '{}' is not reachable for end effector: '{}'. \n"
+            "Robot pose was: {}. \n"
+            "Its joint positions were: {}"
+        ).format(pose, base_frame, tip_frame, robot_pose, joint_positions)
         super(IKError, self).__init__(self.message)
 
 
@@ -329,6 +369,7 @@ class ObjectNotFound(HighLevelFailure):
 
 class LinkNotFound(HighLevelFailure):
     """Thrown when the robot cannot find a link of a given description"""
+
     link_name: str
     """
     The name of the link that couldn't be found
@@ -354,6 +395,7 @@ class ObjectUndeliverable(HighLevelFailure):
 
 class ObjectPlacingError(HighLevelFailure):
     """Thrown when the placing of the object fails."""
+
     obj: Object
     """
     The object that should be placed.
@@ -371,8 +413,15 @@ class ObjectPlacingError(HighLevelFailure):
     The robot arm used to place the object.
     """
 
-    def __init__(self, obj: Object, placing_pose: PoseStamped, robot: Object, arm: Arms,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        obj: Object,
+        placing_pose: PoseStamped,
+        robot: Object,
+        arm: Arms,
+        *args,
+        **kwargs,
+    ):
         self.obj = obj
         self.placing_pose = placing_pose
         self.robot = robot
@@ -382,29 +431,60 @@ class ObjectPlacingError(HighLevelFailure):
 
 class ObjectStillInContact(ObjectPlacingError):
     """Thrown when the object is still in contact with the robot after placing."""
+
     contact_links: List[Link]
     """
     The links of the robot that are still in contact with the object.
     """
 
-    def __init__(self, obj: Object, contact_links: List[Link], placing_pose: PoseStamped, robot: Object, arm: Arms,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        obj: Object,
+        contact_links: List[Link],
+        placing_pose: PoseStamped,
+        robot: Object,
+        arm: Arms,
+        *args,
+        **kwargs,
+    ):
         self.contact_links = contact_links
         contact_link_names = [link.name for link in contact_links]
-        super().__init__(obj, placing_pose, robot, arm,
-                         f"Object {obj.name} is still in contact with {robot.name}, the contact links are"
-                         f"{contact_link_names}, after placing at"
-                         f" target pose {placing_pose.position.to_list()}{placing_pose.orientation.to_list()} using"
-                         f" {arm.name} arm", *args, **kwargs)
+        super().__init__(
+            obj,
+            placing_pose,
+            robot,
+            arm,
+            f"Object {obj.name} is still in contact with {robot.name}, the contact links are"
+            f"{contact_link_names}, after placing at"
+            f" target pose {placing_pose.position.to_list()}{placing_pose.orientation.to_list()} using"
+            f" {arm.name} arm",
+            *args,
+            **kwargs,
+        )
 
 
 class ObjectNotPlacedAtTargetLocation(ObjectPlacingError):
     """Thrown when the object was not placed at the target location."""
 
-    def __init__(self, obj: Object, placing_pose: PoseStamped, robot: Object, arm: Arms, *args, **kwargs):
-        super().__init__(obj, placing_pose, robot, arm,
-                         f"Object {obj.name} was not placed at target pose {placing_pose.position.to_list()}"
-                         f"{placing_pose.orientation.to_list()} using {arm.name} arm of {robot.name}", *args, **kwargs)
+    def __init__(
+        self,
+        obj: Object,
+        placing_pose: PoseStamped,
+        robot: Object,
+        arm: Arms,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            obj,
+            placing_pose,
+            robot,
+            arm,
+            f"Object {obj.name} was not placed at target pose {placing_pose.position.to_list()}"
+            f"{placing_pose.orientation.to_list()} using {arm.name} arm of {robot.name}",
+            *args,
+            **kwargs,
+        )
 
 
 class ObjectUnfetchable(HighLevelFailure):
@@ -423,6 +503,7 @@ class ObjectUnreachable(HighLevelFailure):
 
 class PerceptionLowLevelFailure(LowLevelFailure):
     """Low-level failure produced while perceiving, i.e. some kind of hardware issue."""
+
     object_description: ObjectDesignatorDescription
     """
     The object description that was used to search for the object.
@@ -436,8 +517,14 @@ class PerceptionLowLevelFailure(LowLevelFailure):
     The suggested region in which the object was searched.
     """
 
-    def __init__(self, object_description: ObjectDesignatorDescription, technique: DetectionTechnique,
-                 region: Optional[Location] = None, *args, **kwargs):
+    def __init__(
+        self,
+        object_description: ObjectDesignatorDescription,
+        technique: DetectionTechnique,
+        region: Optional[Location] = None,
+        *args,
+        **kwargs,
+    ):
         self.object_description = object_description
         self.technique = technique
         self.region = region
@@ -448,11 +535,23 @@ class PerceptionObjectNotFound(PerceptionLowLevelFailure):
     """Thrown when an attempt to find an object by perception fails -- and this can still be interpreted as the robot
     not looking in the right direction, as opposed to the object being absent."""
 
-    def __init__(self, obj_type: Type[PhysicalObject], technique: DetectionTechnique, region: PoseStamped,
-                 *args, **kwargs):
-        super().__init__(obj_type, technique, region,
-                         f"object of type {obj_type} not found using {technique.name} technique in region"
-                         f" {region}", *args, **kwargs)
+    def __init__(
+        self,
+        obj_type: Type[PhysicalObject],
+        technique: DetectionTechnique,
+        region: PoseStamped,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            obj_type,
+            technique,
+            region,
+            f"object of type {obj_type} not found using {technique.name} technique in region"
+            f" {region}",
+            *args,
+            **kwargs,
+        )
 
 
 class PerceptionObjectNotInWorld(PerceptionLowLevelFailure):
@@ -472,12 +571,18 @@ class SearchingFailed(HighLevelFailure):
 
 class TorsoLowLevelFailure(LowLevelFailure):
     """Low-level failure produced while moving the torso, i.e. some kind of hardware issue."""
+
     goal_validator: Optional[MultiJointPositionGoalValidator] = None
     """
     The goal validator that was used to check if the goal was reached.
     """
 
-    def __init__(self, goal_validator: Optional[MultiJointPositionGoalValidator] = None, *args, **kwargs):
+    def __init__(
+        self,
+        goal_validator: Optional[MultiJointPositionGoalValidator] = None,
+        *args,
+        **kwargs,
+    ):
         self.goal_validator = goal_validator
         if goal_validator:
             super().__init__(goal_validator.goal_not_achieved_message, *args, **kwargs)
@@ -502,6 +607,7 @@ class Task(PlanFailure):
 
 class Grasping(Task):
     """"""
+
     obj: Object
     """
     The object to be grasped.
@@ -519,7 +625,15 @@ class Grasping(Task):
     The grasp type used to grasp the object.
     """
 
-    def __init__(self, obj: Object, robot: Object, arm: Arms, grasp: Optional[Grasp] = None, *args, **kwargs):
+    def __init__(
+        self,
+        obj: Object,
+        robot: Object,
+        arm: Arms,
+        grasp: Optional[Grasp] = None,
+        *args,
+        **kwargs,
+    ):
         self.obj = obj
         self.robot = robot
         self.arm = arm
@@ -528,10 +642,19 @@ class Grasping(Task):
 
 
 class ObjectNotGraspedError(Grasping):
-    def __init__(self, obj: Object, robot: Object, arm: Arms, grasp = None, *args, **kwargs):
+    def __init__(
+        self, obj: Object, robot: Object, arm: Arms, grasp=None, *args, **kwargs
+    ):
         grasp_str = f"using {grasp} grasp" if grasp else ""
-        super().__init__(obj, robot, arm, grasp, f"object {obj.name} was not grasped by {arm.name} arm" + grasp_str,
-                         *args, **kwargs)
+        super().__init__(
+            obj,
+            robot,
+            arm,
+            grasp,
+            f"object {obj.name} was not grasped by {arm.name} arm" + grasp_str,
+            *args,
+            **kwargs,
+        )
 
 
 class Looking(Task):
@@ -599,6 +722,7 @@ class CapabilityAbsenceFailure(PlanFailure):
 
 class ReachabilityFailure(PlanFailure):
     """"""
+
     obj: Object
     """
     The object that should be reachable.
@@ -616,7 +740,9 @@ class ReachabilityFailure(PlanFailure):
     The grasp/gripper orientation that should be used to reach the object.
     """
 
-    def __init__(self, obj: Object, robot: Object, arm: Arms, grasp: Grasp, *args, **kwargs):
+    def __init__(
+        self, obj: Object, robot: Object, arm: Arms, grasp: Grasp, *args, **kwargs
+    ):
         self.obj = obj
         self.robot = robot
         self.arm = arm
@@ -626,9 +752,16 @@ class ReachabilityFailure(PlanFailure):
 
 class ObjectNotInGraspingArea(ReachabilityFailure):
     def __init__(self, obj: Object, robot: Object, arm: Arms, grasp, *args, **kwargs):
-        super().__init__(obj, robot, arm, grasp,
-                         f"object {obj.name} is not in the grasping area of robot {robot.name} using {arm.name} arm and"
-                         f" {grasp} grasp", *args, **kwargs)
+        super().__init__(
+            obj,
+            robot,
+            arm,
+            grasp,
+            f"object {obj.name} is not in the grasping area of robot {robot.name} using {arm.name} arm and"
+            f" {grasp} grasp",
+            *args,
+            **kwargs,
+        )
 
 
 class TorsoFailure(PlanFailure):
@@ -640,6 +773,7 @@ class TorsoFailure(PlanFailure):
 
 class ConfigurationNotReached(PlanFailure):
     """"""
+
     goal_validator: MultiJointPositionGoalValidator
     """
     The goal validator that was used to check if the goal was reached.
@@ -649,13 +783,21 @@ class ConfigurationNotReached(PlanFailure):
     The configuration type that should be reached.
     """
 
-    def __init__(self, goal_validator: MultiJointPositionGoalValidator, configuration_type: StaticJointState,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        goal_validator: MultiJointPositionGoalValidator,
+        configuration_type: StaticJointState,
+        *args,
+        **kwargs,
+    ):
         self.goal_validator = goal_validator
         self.configuration_type = configuration_type
-        super().__init__(f"configuration_type: {configuration_type.name},"
-                         f" {goal_validator.goal_not_achieved_message}",
-                         *args, **kwargs)
+        super().__init__(
+            f"configuration_type: {configuration_type.name},"
+            f" {goal_validator.goal_not_achieved_message}",
+            *args,
+            **kwargs,
+        )
 
 
 class Timeout(PlanFailure):
@@ -700,6 +842,7 @@ class NavigationGoalNotReachedError(PlanFailure):
     """
     Thrown when the navigation goal is not reached.
     """
+
     current_pose: PoseStamped
     """
     The current pose of the robot.
@@ -709,17 +852,23 @@ class NavigationGoalNotReachedError(PlanFailure):
     The goal pose of the robot.
     """
 
-    def __init__(self, current_pose: PoseStamped, goal_pose: PoseStamped, *args, **kwargs):
+    def __init__(
+        self, current_pose: PoseStamped, goal_pose: PoseStamped, *args, **kwargs
+    ):
         self.current_pose = current_pose
         self.goal_pose = goal_pose
-        super().__init__(f"Navigation goal not reached. Current pose: {current_pose}, goal pose: {goal_pose}",
-                         *args, **kwargs)
+        super().__init__(
+            f"Navigation goal not reached. Current pose: {current_pose}, goal pose: {goal_pose}",
+            *args,
+            **kwargs,
+        )
 
 
 class ToolPoseNotReachedError(PlanFailure):
     """
     Thrown when the tool pose is not reached.
     """
+
     current_pose: PoseStamped
     """
     The current pose of the tool.
@@ -729,11 +878,16 @@ class ToolPoseNotReachedError(PlanFailure):
     The goal pose of the tool.
     """
 
-    def __init__(self, current_pose: PoseStamped, goal_pose: PoseStamped, *args, **kwargs):
+    def __init__(
+        self, current_pose: PoseStamped, goal_pose: PoseStamped, *args, **kwargs
+    ):
         self.current_pose = current_pose
         self.goal_pose = goal_pose
-        super().__init__(f"Tool pose not reached. Current pose: {current_pose}, goal pose: {goal_pose}",
-                         *args, **kwargs)
+        super().__init__(
+            f"Tool pose not reached. Current pose: {current_pose}, goal pose: {goal_pose}",
+            *args,
+            **kwargs,
+        )
 
 
 """
@@ -746,6 +900,7 @@ class MultiverseFailedAPIResponse(Exception):
     """
     Exception raised when a Multiverse API call fails.
     """
+
     api_response: List[str]
     """
     The response of the API call that failed.
@@ -754,43 +909,57 @@ class MultiverseFailedAPIResponse(Exception):
     """
     The name of the API that failed.
     """
-    def __init__(self, api_response: List[str], api_name: MultiverseAPIName, *args, **kwargs):
+
+    def __init__(
+        self, api_response: List[str], api_name: MultiverseAPIName, *args, **kwargs
+    ):
         self.api_response = api_response
         self.api_name = api_name
-        super().__init__(f"{api_name} api request with arguments {args} and keyword arguments {kwargs}"
-                         f" failed with response {api_response}")
+        super().__init__(
+            f"{api_name} api request with arguments {args} and keyword arguments {kwargs}"
+            f" failed with response {api_response}"
+        )
 
 
 class ProspectionObjectNotFound(KeyError):
     """
     Exception raised when an object was not found in the prospection world.
     """
+
     obj: Object
     """
     The object that was not found in the prospection world.
     """
+
     def __init__(self, obj: Object):
         self.obj = obj
-        super().__init__(f"The given object {obj.name} is not in the prospection world.")
+        super().__init__(
+            f"The given object {obj.name} is not in the prospection world."
+        )
 
 
 class ObjectAlreadyExists(Exception):
     """
     Exception raised when an object with the same name already exists in the world.
     """
+
     obj: Object
     """
     The object that already exists in the world.
     """
+
     def __init__(self, obj: Object):
         self.obj = obj
-        super().__init__(f"An object with the name {obj.name} already exists in the world.")
+        super().__init__(
+            f"An object with the name {obj.name} already exists in the world."
+        )
 
 
 class ObjectDescriptionNotFound(KeyError):
     """
     Exception raised when the description of an object was not found.
     """
+
     object_name: str
     """
     The name of the object whose description was not found.
@@ -803,18 +972,22 @@ class ObjectDescriptionNotFound(KeyError):
     """
     The description extension of the object whose description was not found.
     """
+
     def __init__(self, object_name: str, path: str, extension: str):
         self.object_name = object_name
         self.path = path
         self.extension = extension
-        super().__init__(f"{object_name} with path {path} and extension {extension} is not in supported extensions, and"
-                         f" the description data was not found on the ROS parameter server")
+        super().__init__(
+            f"{object_name} with path {path} and extension {extension} is not in supported extensions, and"
+            f" the description data was not found on the ROS parameter server"
+        )
 
 
 class WorldMismatchErrorBetweenAttachedObjects(Exception):
     """
     Exception raised when two objects that are attached to each other have a mismatch in the world they belong to.
     """
+
     obj_1: Object
     """
     The first object that has a mismatch in the world.
@@ -823,30 +996,38 @@ class WorldMismatchErrorBetweenAttachedObjects(Exception):
     """
     The second object that has a mismatch in the world.
     """
-    def __init__(self, obj_1: 'Object', obj_2: 'Object'):
+
+    def __init__(self, obj_1: "Object", obj_2: "Object"):
         self.obj_1 = obj_1
         self.obj_2 = obj_2
-        super().__init__(f"World mismatch between the attached objects {obj_1.name} and {obj_2.name},"
-                         f"obj_1.world: {obj_1.world}, obj_2.world: {obj_2.world}")
+        super().__init__(
+            f"World mismatch between the attached objects {obj_1.name} and {obj_2.name},"
+            f"obj_1.world: {obj_1.world}, obj_2.world: {obj_2.world}"
+        )
 
 
 class ObjectFrameNotFoundError(KeyError):
     """
     Exception raised when a tf frame of an object is not found.
     """
+
     frame_name: str
     """
     The name of the frame that was not found.
     """
+
     def __init__(self, frame_name: str):
         self.frame_name = frame_name
-        super().__init__(f"Frame {frame_name} does not belong to any of the objects in the world.")
+        super().__init__(
+            f"Frame {frame_name} does not belong to any of the objects in the world."
+        )
 
 
 class MultiplePossibleTipLinks(Exception):
     """
     Exception raised when multiple tip links are found for an object.
     """
+
     object_name: str
     """
     The name of the object that has multiple tip links.
@@ -859,18 +1040,22 @@ class MultiplePossibleTipLinks(Exception):
     """
     The list of tip links that are found for the object.
     """
+
     def __init__(self, object_name: str, start_link: str, tip_links: List[str]):
         self.object_name = object_name
         self.start_link = start_link
         self.tip_links = tip_links
-        super().__init__(f"Multiple possible tip links found for object {object_name} with start link {start_link}:"
-                         f" {tip_links}")
+        super().__init__(
+            f"Multiple possible tip links found for object {object_name} with start link {start_link}:"
+            f" {tip_links}"
+        )
 
 
 class UnsupportedFileExtension(Exception):
     """
     Exception raised when an object mesh/description has an unsupported file extension.
     """
+
     object_name: str
     """
     The name of the object that has an unsupported file extension.
@@ -883,36 +1068,45 @@ class UnsupportedFileExtension(Exception):
     """
     The unsupported file extension of the object description/mesh.
     """
+
     def __init__(self, object_name: str, path: str):
         self.object_name = object_name
         self.path = path
         self.extension = Path(path).suffix
-        super().__init__(f"Unsupported file extension for object {object_name} with path {path}"
-                         f"and extension {self.extension}")
+        super().__init__(
+            f"Unsupported file extension for object {object_name} with path {path}"
+            f"and extension {self.extension}"
+        )
 
 
 class ObjectDescriptionUndefined(Exception):
     """
     Exception raised when the given object description type is not defined or couldn't be resolved to a known type.
     """
+
     object_name: str
     """
     The name of the object that has an undefined description.
     """
+
     def __init__(self, object_name: str):
         self.object_name = object_name
-        super().__init__(f"Object description for object {object_name} is not defined, either a path or a description"
-                         f"object should be provided.")
+        super().__init__(
+            f"Object description for object {object_name} is not defined, either a path or a description"
+            f"object should be provided."
+        )
 
 
 class UnsupportedJointType(Exception):
     """
     Exception raised when an unsupported joint type is used.
     """
+
     joint_type: JointType
     """
     The unsupported joint type that was used.
     """
+
     def __init__(self, joint_type: JointType):
         self.joint_type = joint_type
         super().__init__(f"Unsupported joint type: {joint_type}")
@@ -922,10 +1116,12 @@ class LinkHasNoGeometry(Exception):
     """
     Exception raised when a link has no geometry (i.e. no visual or collision elements).
     """
+
     link_name: str
     """
     The name of the link that has no geometry.
     """
+
     def __init__(self, link_name: str):
         self.link_name = link_name
         super().__init__(f"Link {link_name} has no geometry.")
@@ -935,6 +1131,7 @@ class LinkGeometryHasNoMesh(Exception):
     """
     Exception raised when a link geometry has no mesh or is not of type mesh.
     """
+
     link_name: str
     """
     The name of the link that has no mesh.
@@ -943,7 +1140,10 @@ class LinkGeometryHasNoMesh(Exception):
     """
     The type of the link geometry.
     """
+
     def __init__(self, link_name: str, geometry_type: str):
         self.link_name = link_name
         self.geometry_type = geometry_type
-        super().__init__(f"Link {link_name} geometry with type {geometry_type} has no mesh.")
+        super().__init__(
+            f"Link {link_name} geometry with type {geometry_type} has no mesh."
+        )

@@ -1,6 +1,7 @@
 import unittest
 from pycram.filter import Butterworth
 
+
 class TestButterworthFilter(unittest.TestCase):
 
     def test_initialization_with_default_values(self):
@@ -41,5 +42,6 @@ class TestButterworthFilter(unittest.TestCase):
         # self.assertAlmostEquals(filtered_data.tolist()[0], expected_filtered_data)
         self.assertAlmostEqual(filtered_data.tolist()[0], expected_filtered_data)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

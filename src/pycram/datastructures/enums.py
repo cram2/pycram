@@ -21,6 +21,7 @@ class ContainerManipulationType(Enum):
     """
     Enum for the different types of container manipulation.
     """
+
     Opening = auto()
     """
     The Opening type is used to open a container.
@@ -35,6 +36,7 @@ class FindBodyInRegionMethod(Enum):
     """
     Enum for the different methods to find a body in a region.
     """
+
     FingerToCentroid = auto()
     """
     The FingerToCentroid method is used to find the body in a region by casting a ray from each finger to the
@@ -70,6 +72,7 @@ class DescriptionType(Enum):
 
 class ExecutionType(Enum):
     """Enum for Execution Process Module types."""
+
     REAL = auto()
     SIMULATED = auto()
     SEMI_REAL = auto()
@@ -77,6 +80,7 @@ class ExecutionType(Enum):
 
 class Arms(IntEnum):
     """Enum for Arms."""
+
     # LEFT = "left"
     # RIGHT = "right"
     # BOTH = "both"
@@ -95,6 +99,7 @@ class TaskStatus(int, Enum):
     """
     Enum for readable descriptions of a tasks' status.
     """
+
     CREATED = 0
     RUNNING = 1
     SUCCEEDED = 2
@@ -107,6 +112,7 @@ class JointType(Enum):
     """
     Enum for readable joint types.
     """
+
     REVOLUTE = 0
     PRISMATIC = 1
     SPHERICAL = 2
@@ -121,6 +127,7 @@ class AxisIdentifier(Enum):
     """
     Enum for translating the axis name to a vector along that axis.
     """
+
     X = (1, 0, 0)
     Y = (0, 1, 0)
     Z = (0, 0, 1)
@@ -129,6 +136,7 @@ class AxisIdentifier(Enum):
     @classmethod
     def from_tuple(cls, axis_tuple):
         return next((axis for axis in cls if axis.value == axis_tuple), None)
+
 
 class Grasp:
     """
@@ -143,12 +151,14 @@ class Grasp:
         """Get the Grasp face from an axis-index tuple"""
         return next((grasp for grasp in cls if grasp.value == (axis, direction)), None)
 
+
 class ApproachDirection(Grasp, Enum):
     """
     Enum for the approach direction of a gripper.
     The AxisIdentifier is used to identify the axis of the gripper, and the int is used to identify the direction along
      that axis.
     """
+
     FRONT = (AxisIdentifier.X, -1)
     BACK = (AxisIdentifier.X, 1)
     RIGHT = (AxisIdentifier.Y, -1)
@@ -161,12 +171,14 @@ class ApproachDirection(Grasp, Enum):
         """
         return self.value[0]
 
+
 class VerticalAlignment(Grasp, Enum):
     """
     Enum for the vertical alignment of a gripper.
     The AxisIdentifier is used to identify the axis of the gripper, and the int is used to identify the direction along
      that axis.
     """
+
     TOP = (AxisIdentifier.Z, -1)
     BOTTOM = (AxisIdentifier.Z, 1)
     NoAlignment = (AxisIdentifier.Undefined, 0)
@@ -176,6 +188,7 @@ class ObjectType(int, Enum):
     """
     Enum for Object types to easier identify different objects
     """
+
     METALMUG = auto()
     PRINGLES = auto()
     MILK = auto()
@@ -195,6 +208,7 @@ class Shape(Enum):
     """
     Enum for visual shapes of objects
     """
+
     SPHERE = 2
     BOX = 3
     CYLINDER = 4
@@ -207,6 +221,7 @@ class TorsoState(IntEnum):
     """
     Enum for the different states of the torso.
     """
+
     HIGH = auto()
     MID = auto()
     LOW = auto()
@@ -216,6 +231,7 @@ class WorldMode(Enum):
     """
     Enum for the different modes of the world.
     """
+
     GUI = "GUI"
     DIRECT = "DIRECT"
 
@@ -224,6 +240,7 @@ class GripperState(Enum):
     """
     Enum for the different motions of the gripper.
     """
+
     OPEN = auto()
     CLOSE = auto()
     MEDIUM = auto()
@@ -239,6 +256,7 @@ class GripperType(Enum):
     """
     Enum for the different types of grippers.
     """
+
     PARALLEL = auto()
     SUCTION = auto()
     FINGER = auto()
@@ -251,6 +269,7 @@ class ImageEnum(Enum):
     """
     Enum for image switch view on hsrb display.
     """
+
     HI = 0
     TALK = 1
     DISH = 2
@@ -277,6 +296,7 @@ class DetectionTechnique(int, Enum):
     """
     Enum for techniques for detection tasks.
     """
+
     ALL = 0
     HUMAN = 1
     TYPES = 2
@@ -289,6 +309,7 @@ class DetectionState(int, Enum):
     """
     Enum for the state of the detection task.
     """
+
     START = 0
     STOP = 1
     PAUSE = 2
@@ -298,17 +319,19 @@ class LoggerLevel(Enum):
     """
     Enum for the different logger levels.
     """
-    DEBUG = 'debug'
-    INFO = 'info'
-    WARN = 'warn'
-    ERROR = 'error'
-    FATAL = 'fatal'
+
+    DEBUG = "debug"
+    INFO = "info"
+    WARN = "warn"
+    ERROR = "error"
+    FATAL = "fatal"
 
 
 class VirtualMobileBaseJointName(Enum):
     """
     Enum for the joint names of the virtual mobile base.
     """
+
     LINEAR_X = "odom_vel_lin_x_joint"
     LINEAR_Y = "odom_vel_lin_y_joint"
     ANGULAR_Z = "odom_vel_ang_z_joint"
@@ -318,6 +341,7 @@ class MJCFGeomType(Enum):
     """
     Enum for the different geom types in a MuJoCo XML file.
     """
+
     BOX = "box"
     CYLINDER = "cylinder"
     CAPSULE = "capsule"
@@ -339,6 +363,7 @@ class MJCFJointType(Enum):
     """
     Enum for the different joint types in a MuJoCo XML file.
     """
+
     FREE = "free"
     BALL = "ball"
     SLIDE = "slide"
@@ -350,15 +375,18 @@ class MovementType(Enum):
     """
     Enum for the different movement types of the robot.
     """
+
     STRAIGHT_TRANSLATION = auto()
     STRAIGHT_CARTESIAN = auto()
     TRANSLATION = auto()
     CARTESIAN = auto()
 
+
 class WaypointsMovementType(Enum):
     """
     Enum for the different movement types of the robot.
     """
+
     ENFORCE_ORIENTATION_STRICT = auto()
     ENFORCE_ORIENTATION_FINAL_POINT = auto()
 
@@ -367,6 +395,7 @@ class MultiverseAPIName(Enum):
     """
     Enum for the different APIs of the Multiverse.
     """
+
     GET_CONTACT_POINTS = "get_contact_points"
     GET_CONTACT_BODIES = "get_contact_bodies"
     GET_CONTACT_BODIES_AND_POINTS = "get_contact_bodies_and_points"
@@ -391,6 +420,7 @@ class MultiverseBodyProperty(MultiverseProperty):
     """
     Enum for the different properties of a body the Multiverse.
     """
+
     POSITION = "position"
     ORIENTATION = "quaternion"
     RELATIVE_VELOCITY = "relative_velocity"
@@ -404,11 +434,12 @@ class MultiverseJointPosition(MultiverseJointProperty):
     """
     Enum for the Position names of the different joint types in the Multiverse.
     """
+
     REVOLUTE_JOINT_POSITION = "joint_rvalue"
     PRISMATIC_JOINT_POSITION = "joint_tvalue"
 
     @classmethod
-    def from_pycram_joint_type(cls, joint_type: JointType) -> 'MultiverseJointPosition':
+    def from_pycram_joint_type(cls, joint_type: JointType) -> "MultiverseJointPosition":
         if joint_type in [JointType.REVOLUTE, JointType.CONTINUOUS]:
             return MultiverseJointPosition.REVOLUTE_JOINT_POSITION
         elif joint_type == JointType.PRISMATIC:
@@ -421,11 +452,12 @@ class MultiverseJointCMD(MultiverseJointProperty):
     """
     Enum for the Command names of the different joint types in the Multiverse.
     """
+
     REVOLUTE_JOINT_CMD = "cmd_joint_rvalue"
     PRISMATIC_JOINT_CMD = "cmd_joint_tvalue"
 
     @classmethod
-    def from_pycram_joint_type(cls, joint_type: JointType) -> 'MultiverseJointCMD':
+    def from_pycram_joint_type(cls, joint_type: JointType) -> "MultiverseJointCMD":
         if joint_type in [JointType.REVOLUTE, JointType.CONTINUOUS]:
             return MultiverseJointCMD.REVOLUTE_JOINT_CMD
         elif joint_type == JointType.PRISMATIC:
@@ -439,12 +471,15 @@ class FilterConfig(Enum):
     Declare existing filter methods.
     Currently supported: Butterworth
     """
+
     butterworth = 1
+
 
 class MonitorBehavior(Enum):
     """
     Enum for the different monitor behaviors.
     """
+
     INTERRUPT = auto()
     """
     Interrupt the task when the condition is met.

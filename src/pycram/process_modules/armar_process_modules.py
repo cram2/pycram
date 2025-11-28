@@ -6,4 +6,5 @@ class ArmarManager(DefaultManager):
         super().__init__()
         self.robot_name = "Armar6"
 
+
 ArmarManager()
