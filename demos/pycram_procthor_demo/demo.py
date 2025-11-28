@@ -17,9 +17,13 @@ from pycram.world_concepts.world_object import Object
 from pycram.worlds.bullet_world import BulletWorld
 from pycrap.ontologies import Robot, Apartment, Milk, Cereal, Bowl, Spoon
 
-procthor_interface = ProcTHORInterface(base_url="https://user.informatik.uni-bremen.de/~luc_kro/procthor_environments/")
-resource_path, sampled_world = procthor_interface.sample_environment(keep_environment=True)
-info(f'Processing apartment:{sampled_world}')
+procthor_interface = ProcTHORInterface(
+    base_url="https://user.informatik.uni-bremen.de/~luc_kro/procthor_environments/"
+)
+resource_path, sampled_world = procthor_interface.sample_environment(
+    keep_environment=True
+)
+info(f"Processing apartment:{sampled_world}")
 
 np.random.seed(420)
 extension = ObjectDescription.get_file_extension()
@@ -33,25 +37,70 @@ viz2 = VizMarkerPublisher(use_prospection_world=True)
 
 robot = Object("pr2", Robot, f"pr2{extension}", pose=PoseStamped.from_list([1, 2, 0]))
 
-milk = Object("milk", Milk, "milk.stl", pose=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]),
-              color=Color(1, 0, 0, 1))
-cereal = Object("cereal", Cereal, "breakfast_cereal.stl",
-                pose=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]), color=Color(0, 1, 0, 1))
-spoon = Object("spoon", Spoon, "spoon.stl", pose=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]),
-               color=Color(0, 0, 1, 1))
-bowl = Object("bowl", Bowl, "bowl.stl", pose=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]),
-              color=Color(1, 1, 0, 1))
+milk = Object(
+    "milk",
+    Milk,
+    "milk.stl",
+    pose=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]),
+    color=Color(1, 0, 0, 1),
+)
+cereal = Object(
+    "cereal",
+    Cereal,
+    "breakfast_cereal.stl",
+    pose=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]),
+    color=Color(0, 1, 0, 1),
+)
+spoon = Object(
+    "spoon",
+    Spoon,
+    "spoon.stl",
+    pose=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]),
+    color=Color(0, 0, 1, 1),
+)
+bowl = Object(
+    "bowl",
+    Bowl,
+    "bowl.stl",
+    pose=PoseStamped.from_list([0, 0, 0], [0, 0, 0, 1]),
+    color=Color(1, 1, 0, 1),
+)
 
-apartment = Object(sampled_world, Apartment, sampled_world+extension)
-robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
+apartment = Object(sampled_world, Apartment, sampled_world + extension)
+robot_desig_resolved = BelieveObject(
+    names=[RobotDescription.current_robot_description.name]
+).resolve()
 
 # substrings that are used to identify potential surfaces in our world. This should in the future be replaced by a more
 # robust way of identifying surfaces, e.g. by using RippleDownRules
 apartment_links = apartment.link_names
-potential_surfaces_procthor = ["table_", "countertop_", "desk_", 'deskgustav_', 'tvstand_', 'dresser_']
-known_obj_names_procthor = ['wall_', 'kitchen_', 'bathroom_', 'livingroom_', 'bedroom_'] + potential_surfaces_procthor
-potential_surfaces = ['table_area_main', 'kitchen_island', 'coffee_table', 'bedside_table', 'island_countertop'] + potential_surfaces_procthor
-available_surfaces = [link for link in apartment_links if any(surf in link.lower() for surf in potential_surfaces)]
+potential_surfaces_procthor = [
+    "table_",
+    "countertop_",
+    "desk_",
+    "deskgustav_",
+    "tvstand_",
+    "dresser_",
+]
+known_obj_names_procthor = [
+    "wall_",
+    "kitchen_",
+    "bathroom_",
+    "livingroom_",
+    "bedroom_",
+] + potential_surfaces_procthor
+potential_surfaces = [
+    "table_area_main",
+    "kitchen_island",
+    "coffee_table",
+    "bedside_table",
+    "island_countertop",
+] + potential_surfaces_procthor
+available_surfaces = [
+    link
+    for link in apartment_links
+    if any(surf in link.lower() for surf in potential_surfaces)
+]
 used_surfaces = random.sample(available_surfaces, k=min(len(available_surfaces), 3))
 info(f"Used surfaces in {sampled_world}: {used_surfaces}")
 
@@ -59,15 +108,21 @@ start_time = time.time_ns()
 
 try:
     if not available_surfaces:
-        raise ValueError(f"No available surfaces found in apartment links for apartment '{sampled_world}'.")
+        raise ValueError(
+            f"No available surfaces found in apartment links for apartment '{sampled_world}'."
+        )
 
-    prob_costmap = ProbabilisticSemanticLocation(used_surfaces, apartment, for_object=milk, link_is_center_link=True)
+    prob_costmap = ProbabilisticSemanticLocation(
+        used_surfaces, apartment, for_object=milk, link_is_center_link=True
+    )
 
     prob_costmap_iter = iter(prob_costmap)
 
     with simulated_robot:
-        ParallelPlan(MoveTorsoActionDescription(TorsoState.MID),
-                     ParkArmsActionDescription(Arms.BOTH)).perform()
+        ParallelPlan(
+            MoveTorsoActionDescription(TorsoState.MID),
+            ParkArmsActionDescription(Arms.BOTH),
+        ).perform()
 
         milk.set_pose(next(prob_costmap_iter))
         cereal.set_pose(next(prob_costmap_iter))
@@ -75,26 +130,57 @@ try:
         bowl.set_pose(next(prob_costmap_iter))
 
         sp = SequentialPlan(
-            TransportActionDescription(ResolutionStrategyObject(
-                strategy=SearchActionDescription(CodePlan(milk.get_pose).perform(), Milk)),
-                prob_costmap_iter, place_rotation_agnostic=True),
-            ParallelPlan(MoveTorsoActionDescription(TorsoState.MID),
-                         ParkArmsActionDescription(Arms.BOTH)),
-            TransportActionDescription(ResolutionStrategyObject(
-                strategy=SearchActionDescription(CodePlan(cereal.get_pose).perform(), Cereal)),
-                prob_costmap_iter,place_rotation_agnostic=True),
-            ParallelPlan(MoveTorsoActionDescription(TorsoState.MID),
-                         ParkArmsActionDescription(Arms.BOTH)),
-            TransportActionDescription(ResolutionStrategyObject(
-                strategy=SearchActionDescription(CodePlan(spoon.get_pose).perform(), Spoon)),
-                prob_costmap_iter),
-            ParallelPlan(MoveTorsoActionDescription(TorsoState.MID),
-                         ParkArmsActionDescription(Arms.BOTH)),
-            TransportActionDescription(ResolutionStrategyObject(
-                strategy=SearchActionDescription(CodePlan(bowl.get_pose).perform(), Bowl)),
-                prob_costmap_iter, place_rotation_agnostic=True),
-            ParallelPlan(MoveTorsoActionDescription(TorsoState.MID),
-                         ParkArmsActionDescription(Arms.BOTH)),
+            TransportActionDescription(
+                ResolutionStrategyObject(
+                    strategy=SearchActionDescription(
+                        CodePlan(milk.get_pose).perform(), Milk
+                    )
+                ),
+                prob_costmap_iter,
+                place_rotation_agnostic=True,
+            ),
+            ParallelPlan(
+                MoveTorsoActionDescription(TorsoState.MID),
+                ParkArmsActionDescription(Arms.BOTH),
+            ),
+            TransportActionDescription(
+                ResolutionStrategyObject(
+                    strategy=SearchActionDescription(
+                        CodePlan(cereal.get_pose).perform(), Cereal
+                    )
+                ),
+                prob_costmap_iter,
+                place_rotation_agnostic=True,
+            ),
+            ParallelPlan(
+                MoveTorsoActionDescription(TorsoState.MID),
+                ParkArmsActionDescription(Arms.BOTH),
+            ),
+            TransportActionDescription(
+                ResolutionStrategyObject(
+                    strategy=SearchActionDescription(
+                        CodePlan(spoon.get_pose).perform(), Spoon
+                    )
+                ),
+                prob_costmap_iter,
+            ),
+            ParallelPlan(
+                MoveTorsoActionDescription(TorsoState.MID),
+                ParkArmsActionDescription(Arms.BOTH),
+            ),
+            TransportActionDescription(
+                ResolutionStrategyObject(
+                    strategy=SearchActionDescription(
+                        CodePlan(bowl.get_pose).perform(), Bowl
+                    )
+                ),
+                prob_costmap_iter,
+                place_rotation_agnostic=True,
+            ),
+            ParallelPlan(
+                MoveTorsoActionDescription(TorsoState.MID),
+                ParkArmsActionDescription(Arms.BOTH),
+            ),
         )
         sp.perform()
         info("ProcTHOR demo completed successfully.")

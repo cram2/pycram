@@ -19,7 +19,9 @@ class ProcTHORInterface:
     Base URL defaults to 'https://user.informatik.uni-bremen.de/~luc_kro/procthor_environments/'
     """
 
-    base_url: str = "https://user.informatik.uni-bremen.de/~luc_kro/procthor_environments/"
+    base_url: str = (
+        "https://user.informatik.uni-bremen.de/~luc_kro/procthor_environments/"
+    )
     """
     The base URL to scrape for .tar.gz files containing ProcThor environments.
     """
@@ -67,7 +69,9 @@ class ProcTHORInterface:
         """
         os.makedirs(extract_to, exist_ok=True)
         mode = "r:gz" if filename.endswith(".gz") else "r:"
-        with tarfile.open(os.path.join(self.project_root, "tmp", filename), mode) as tar:
+        with tarfile.open(
+            os.path.join(self.project_root, "tmp", filename), mode
+        ) as tar:
             tar.extractall(path=extract_to)
 
     def sample_environment(self, keep_environment: bool = False):
@@ -81,7 +85,9 @@ class ProcTHORInterface:
         if not keep_environment:
             output_dir = os.path.join(self.project_root, "tmp")
         else:
-            output_dir = os.path.join(self.project_root, "resources/procthor_environments")
+            output_dir = os.path.join(
+                self.project_root, "resources/procthor_environments"
+            )
 
         filename = os.path.basename(selected_link)
         environment_name = os.path.splitext(os.path.splitext(filename)[0])[0]

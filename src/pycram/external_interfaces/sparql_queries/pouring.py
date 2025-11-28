@@ -1,6 +1,8 @@
 from SPARQLWrapper import SPARQLWrapper, JSON
 
-sparql = SPARQLWrapper("https://knowledgedb.informatik.uni-bremen.de/mealprepDB/MealPreparation/query")
+sparql = SPARQLWrapper(
+    "https://knowledgedb.informatik.uni-bremen.de/mealprepDB/MealPreparation/query"
+)
 sparql.setReturnFormat(JSON)
 
 prefix = """
@@ -16,6 +18,7 @@ prefix = """
  PREFIX qudt: <http://qudt.org/schema/qudt#>
  """
 
+
 def get_needed_tool(verb):
     query = """
      SELECT ?res WHERE {
@@ -24,11 +27,18 @@ def get_needed_tool(verb):
                         ?sub owl:someValuesFrom ?neededtool.
                         BIND(REPLACE(STR(?neededtool), "^.*[#/]", "") AS ?res).
                     }
-    """ % (verb)
-    full_query = (prefix + query)
+    """ % (
+        verb
+    )
+    full_query = prefix + query
     sparql.setQuery(full_query)
     results = sparql.queryAndConvert()
-    return results["results"]["bindings"][0]["res"]["value"] if results["results"]["bindings"] else None
+    return (
+        results["results"]["bindings"][0]["res"]["value"]
+        if results["results"]["bindings"]
+        else None
+    )
+
 
 def get_min_angle(foodobject):
     query = """
@@ -56,11 +66,18 @@ def get_min_angle(foodobject):
 			  ?degree1 owl:onProperty qudt:valueQuantity.
 			  ?degree1 owl:minQualifiedCardinality ?res.
                     }
-                    """ % (foodobject)
-    full_query = (prefix + query)
+                    """ % (
+        foodobject
+    )
+    full_query = prefix + query
     sparql.setQuery(full_query)
     results = sparql.queryAndConvert()
-    return results["results"]["bindings"][0]["res"]["value"] if results["results"]["bindings"] else "0"
+    return (
+        results["results"]["bindings"][0]["res"]["value"]
+        if results["results"]["bindings"]
+        else "0"
+    )
+
 
 def get_max_angle(foodobject):
     query = """
@@ -87,11 +104,18 @@ def get_max_angle(foodobject):
 			  ?param rdfs:subClassOf ?degree1.
 			  ?degree1 owl:onProperty qudt:valueQuantity.
 			  ?degree1 owl:maxQualifiedCardinality ?res.
-                    }""" % (foodobject)
-    full_query = (prefix + query)
+                    }""" % (
+        foodobject
+    )
+    full_query = prefix + query
     sparql.setQuery(full_query)
     results = sparql.queryAndConvert()
-    return results["results"]["bindings"][0]["res"]["value"] if results["results"]["bindings"] else "90"
+    return (
+        results["results"]["bindings"][0]["res"]["value"]
+        if results["results"]["bindings"]
+        else "90"
+    )
+
 
 def get_min_duration(foodobject):
     query = """
@@ -119,11 +143,18 @@ def get_min_duration(foodobject):
 			  ?degree1 owl:onProperty qudt:valueQuantity.
 			  ?degree1 owl:minQualifiedCardinality ?res.
                     }
-                    """ % (foodobject)
-    full_query = (prefix + query)
+                    """ % (
+        foodobject
+    )
+    full_query = prefix + query
     sparql.setQuery(full_query)
     results = sparql.queryAndConvert()
-    return results["results"]["bindings"][0]["res"]["value"] if results["results"]["bindings"] else "0"
+    return (
+        results["results"]["bindings"][0]["res"]["value"]
+        if results["results"]["bindings"]
+        else "0"
+    )
+
 
 def get_max_duration(foodobject):
     query = """
@@ -151,19 +182,35 @@ def get_max_duration(foodobject):
 			  ?degree1 owl:onProperty qudt:valueQuantity.
 			  ?degree1 owl:maxQualifiedCardinality ?res.
                     }
-    """ % (foodobject)
-    full_query = (prefix + query)
+    """ % (
+        foodobject
+    )
+    full_query = prefix + query
     sparql.setQuery(full_query)
     results = sparql.queryAndConvert()
-    return results["results"]["bindings"][0]["res"]["value"] if results["results"]["bindings"] else "10"
+    return (
+        results["results"]["bindings"][0]["res"]["value"]
+        if results["results"]["bindings"]
+        else "10"
+    )
 
 
 def query_var(verb, foodobject):
-    print(f"For the verb {verb} and food object {foodobject}, the needed tool is:{get_needed_tool(verb)}")
-    print(f"For the verb {verb} and food object {foodobject}, the minimum angle is:{get_min_angle(foodobject)}")
-    print(f"For the verb {verb} and food object {foodobject}, the maximum angle is:{get_max_angle(foodobject)}")
-    print(f"For the verb {verb} and food object {foodobject}, the minimum duration is:{get_min_duration(foodobject)}")
-    print(f"For the verb {verb} and food object {foodobject}, the maximum duration is:{get_max_duration(foodobject)}")
+    print(
+        f"For the verb {verb} and food object {foodobject}, the needed tool is:{get_needed_tool(verb)}"
+    )
+    print(
+        f"For the verb {verb} and food object {foodobject}, the minimum angle is:{get_min_angle(foodobject)}"
+    )
+    print(
+        f"For the verb {verb} and food object {foodobject}, the maximum angle is:{get_max_angle(foodobject)}"
+    )
+    print(
+        f"For the verb {verb} and food object {foodobject}, the minimum duration is:{get_min_duration(foodobject)}"
+    )
+    print(
+        f"For the verb {verb} and food object {foodobject}, the maximum duration is:{get_max_duration(foodobject)}"
+    )
 
 
 verb = "pour:Draining"

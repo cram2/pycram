@@ -10,6 +10,7 @@ This script will overwrite the existing folders with the same name as the ontolo
 relevant changes before running this script.
 """
 
+
 def main():
     ontologies = [
         get_ontology("http://www.ease-crc.org/ont/SOMA.owl").load(),
@@ -18,10 +19,15 @@ def main():
         # get_ontology("https://raw.githubusercontent.com/knowrob/knowrob/refs/heads/dev/owl/URDF.owl").load()
     ]
 
-    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "src", "pycrap", "ontologies")
+    path = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "..", "src", "pycrap", "ontologies"
+    )
 
     parser = OntologiesParser(ontologies, path)
-    nx.draw(parser.dependency_graph, labels={node: node.name for node in parser.dependency_graph.nodes()})
+    nx.draw(
+        parser.dependency_graph,
+        labels={node: node.name for node in parser.dependency_graph.nodes()},
+    )
     plt.show()
     assert nx.is_directed_acyclic_graph(parser.dependency_graph)
     parser.parse()

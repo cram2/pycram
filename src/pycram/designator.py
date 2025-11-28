@@ -27,24 +27,43 @@ class DesignatorError(Exception):
 
 
 class ResolutionError(Exception):
-    def __init__(self, missing_properties: List[str], wrong_type: Dict, current_type: Any,
-                 designator: DesignatorDescription):
-        self.error = (f"\nSome required properties where missing or had the wrong type when grounding the Designator:"
-                      f" {designator}.\n")
+    def __init__(
+        self,
+        missing_properties: List[str],
+        wrong_type: Dict,
+        current_type: Any,
+        designator: DesignatorDescription,
+    ):
+        self.error = (
+            f"\nSome required properties where missing or had the wrong type when grounding the Designator:"
+            f" {designator}.\n"
+        )
         self.missing = f"The missing properties where: {missing_properties}\n"
         self.wrong = f"The properties with the wrong type along with the current -and right type :\n"
-        self.head = ("Property   |   Current Type    |     Right Type\n------------------------------------"
-                     "-------------------------\n")
+        self.head = (
+            "Property   |   Current Type    |     Right Type\n------------------------------------"
+            "-------------------------\n"
+        )
         self.tab = ""
         for prop in wrong_type.keys():
-            self.tab += prop + "     " + str(current_type[prop]) + "      " + str(wrong_type[prop]) + "\n"
+            self.tab += (
+                prop
+                + "     "
+                + str(current_type[prop])
+                + "      "
+                + str(wrong_type[prop])
+                + "\n"
+            )
         self.message = self.error
         if missing_properties != []:
             self.message += self.missing
         if wrong_type != {}:
             self.message += self.wrong + self.head + self.tab
-        self.message = f"{bcolors.BOLD}{bcolors.FAIL}" + self.message + f"{bcolors.ENDC}"
+        self.message = (
+            f"{bcolors.BOLD}{bcolors.FAIL}" + self.message + f"{bcolors.ENDC}"
+        )
         super(ResolutionError, self).__init__(self.message)
+
 
 @dataclass
 class DesignatorDescription:
@@ -110,14 +129,20 @@ class DesignatorDescription:
         """
         Returns a list of optional parameter names of this designator_description description.
         """
-        return [param_name for param_name, param in inspect.signature(self.__init__).parameters.items() if
-                param.default != param.empty]
+        return [
+            param_name
+            for param_name, param in inspect.signature(self.__init__).parameters.items()
+            if param.default != param.empty
+        ]
 
     def get_all_parameter(self) -> List[str]:
         """
         Returns a list of all parameter names of this designator_description description.
         """
-        return [param_name for param_name, param in inspect.signature(self.__init__).parameters.items()]
+        return [
+            param_name
+            for param_name, param in inspect.signature(self.__init__).parameters.items()
+        ]
 
     @classmethod
     def get_type_hints(cls) -> Dict[str, Any]:
@@ -228,8 +253,12 @@ class NamedObject(ObjectDesignatorDescription, PartialDesignator):
         :yield: A executed object designator_description
         """
         for params in self.generate_permutations():
-            query = an(entity(body := let(type_=Body, domain=self.world.bodies),
-                              contains(body.name.name, params['names'])))
+            query = an(
+                entity(
+                    body := let(type_=Body, domain=self.world.bodies),
+                    contains(body.name.name, params["names"]),
+                )
+            )
 
             for obj in query.evaluate():
                 yield obj

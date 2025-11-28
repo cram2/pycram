@@ -10,7 +10,10 @@ from pycram.helper import perform, an
 from pycram.perception import detect
 from pycram.process_module import real_robot
 from pycram.ros_utils.robot_state_updater import WorldStateUpdater
-from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher, ManualMarkerPublisher
+from pycram.ros_utils.viz_marker_publisher import (
+    VizMarkerPublisher,
+    ManualMarkerPublisher,
+)
 from pycram.worlds.bullet_world import BulletWorld
 from pycrap.ontologies import PouringTool
 from pycrap.ontologies import Robot, Environment, Bowl
@@ -27,7 +30,17 @@ from pycram.process_module import simulated_robot
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
 from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
-from pycrap.ontologies import Robot, Apartment, Milk, Cereal, Spoon, Bowl, PouringTool, Apple, Food
+from pycrap.ontologies import (
+    Robot,
+    Apartment,
+    Milk,
+    Cereal,
+    Spoon,
+    Bowl,
+    PouringTool,
+    Apple,
+    Food,
+)
 
 extension = ObjectDescription.get_file_extension()
 world = BulletWorld(WorldMode.GUI)
@@ -38,7 +51,12 @@ apartment_desig = BelieveObject(names=["apartment"])
 VizMarkerPublisher()
 # WorldStateUpdater("/tf", "/joint_states")
 
-obj_tool_ = Object("jeroen_cup", PouringTool, "jeroen_cup.stl", pose=PoseStamped.from_list([3.4, 2, 1.0], [0, 0, 0, 1]))
+obj_tool_ = Object(
+    "jeroen_cup",
+    PouringTool,
+    "jeroen_cup.stl",
+    pose=PoseStamped.from_list([3.4, 2, 1.0], [0, 0, 0, 1]),
+)
 m = ManualMarkerPublisher()
 
 
@@ -61,23 +79,37 @@ def move_in_simulation():
 
 
 def cutting_simulation():
-    tool_pose = PoseStamped.from_list([2.0449586673391935, 1.5384467778416917, 1.229705326966067],
-                                      [0.14010099565491793, -0.7025332835765593,
-                                       0.15537176280408957, 0.6802046102510538])
+    tool_pose = PoseStamped.from_list(
+        [2.0449586673391935, 1.5384467778416917, 1.229705326966067],
+        [
+            0.14010099565491793,
+            -0.7025332835765593,
+            0.15537176280408957,
+            0.6802046102510538,
+        ],
+    )
 
     with simulated_robot:
         perform(an(ParkArmsActionDescription([Arms.BOTH])))
         perform(an(MoveTorsoActionDescription([TorsoState.HIGH])))
         move_in_simulation()
-        knife = Object("knife", PouringTool, "big-knife.stl", pose=tool_pose, size=[0.2, 0.1, 0.05])
+        knife = Object(
+            "knife", PouringTool, "big-knife.stl", pose=tool_pose, size=[0.2, 0.1, 0.05]
+        )
         rotate_q = utils.axis_angle_to_quaternion([0, 0, 1], 180)
-        tool_frame = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_tool_frame()
+        tool_frame = RobotDescription.current_robot_description.get_arm_chain(
+            Arms.RIGHT
+        ).get_tool_frame()
         World.current_world.robot.attach(child_object=obj_tool_, parent_link=tool_frame)
-        bread1_ = Object("bread1", Food, "bread.stl",
-                         pose=PoseStamped.from_list([2.4, 2, 1.0], [0, 0, -1, -1]),
-                         color=Color.from_list([1, 1, 0, 1]), size=[0.1, 0.2, 0.1])
+        bread1_ = Object(
+            "bread1",
+            Food,
+            "bread.stl",
+            pose=PoseStamped.from_list([2.4, 2, 1.0], [0, 0, -1, -1]),
+            color=Color.from_list([1, 1, 0, 1]),
+            size=[0.1, 0.2, 0.1],
+        )
         perform(an(CuttingActionDescription(bread1_, knife, [Arms.RIGHT])))
-
 
 
 def spawn_world():
@@ -104,25 +136,35 @@ def pick_up(arm, object_designator):
     with real_robot:
         manu = ManualMarkerPublisher()
 
-        robot_desig_resolved = BelieveObject(names=[RobotDescription.current_robot_description.name]).resolve()
+        robot_desig_resolved = BelieveObject(
+            names=[RobotDescription.current_robot_description.name]
+        ).resolve()
         # ParkArmsAction(Arms.BOTH).perform()
-        pickup_loc = CostmapLocation(target=object_designator,
-                                     reachable_for=robot_desig_resolved,
-                                     reachable_arm=[arm])
+        pickup_loc = CostmapLocation(
+            target=object_designator,
+            reachable_for=robot_desig_resolved,
+            reachable_arm=[arm],
+        )
         # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = pickup_loc.resolve()
         manu.publish(pickup_pose)
         if not pickup_pose:
             raise ObjectUnfetchable(
-                f"Found no pose for the robot to grasp the object: {object_designator} with arm: {arm}")
+                f"Found no pose for the robot to grasp the object: {object_designator} with arm: {arm}"
+            )
 
         NavigateAction(pickup_pose, True).perform()
-        PickUpAction(object_designator, pickup_pose.arm,
-                     grasp_description=pickup_pose.grasp_description).perform()
+        PickUpAction(
+            object_designator,
+            pickup_pose.arm,
+            grasp_description=pickup_pose.grasp_description,
+        ).perform()
 
 
 def pouring():
-    tool_pose = PoseStamped.from_list([2.0449586673391935, 1.5384467778416917, 1.09705326966067], [0, 0, 0, 1])
+    tool_pose = PoseStamped.from_list(
+        [2.0449586673391935, 1.5384467778416917, 1.09705326966067], [0, 0, 0, 1]
+    )
     obj_tool_.pose = tool_pose
     location_pose = PoseStamped.from_list([1.7, 2, 0])
     looking_pose = PoseStamped.from_list([2.3, 2, 0.97])
@@ -146,7 +188,13 @@ def pouring():
         perceived_objects = detect(BelieveObject(types=[Bowl]))
         # query(PouringActionDescription)
         print("Pouring")
-        perform(an(PouringActionDescription(perceived_objects[0], tool_BO, [Arms.RIGHT], None, angle=90)))
+        perform(
+            an(
+                PouringActionDescription(
+                    perceived_objects[0], tool_BO, [Arms.RIGHT], None, angle=90
+                )
+            )
+        )
         print("ParkArms")
         perform(an(ParkArmsActionDescription([Arms.BOTH])))
 
@@ -155,6 +203,10 @@ def cutting():
     # Object("apple", Apple, stl_path, pose=PoseStamped.from_list([2.5, 2, 1.0],
     #                                                             [0, 0, 0, 1]),
     #        color=Color.from_list([1, 0, 0, 0, 1]))
-    Object("bread", Food, "bread.stl", pose=PoseStamped.from_list([2.5, 2, 1.0],
-                                                                  [0, 0, 0, 1]),
-           color=Color.from_list([1, 0, 0, 0, 1]))
+    Object(
+        "bread",
+        Food,
+        "bread.stl",
+        pose=PoseStamped.from_list([2.5, 2, 1.0], [0, 0, 0, 1]),
+        color=Color.from_list([1, 0, 0, 0, 1]),
+    )

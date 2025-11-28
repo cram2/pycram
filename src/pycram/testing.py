@@ -25,7 +25,9 @@ logger = logging.getLogger(__name__)
 try:
     from semantic_digital_twin.adapters.viz_marker import VizMarkerPublisher
 except ImportError:
-    logger.info("Could not import VizMarkerPublisher. This is probably because you are not running ROS.")
+    logger.info(
+        "Could not import VizMarkerPublisher. This is probably because you are not running ROS."
+    )
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -33,14 +35,16 @@ def cleanup_ros():
     """
     Fixture to ensure that ROS is properly cleaned up after all tests.
     """
-    if os.environ.get('ROS_VERSION') == '2':
+    if os.environ.get("ROS_VERSION") == "2":
         import rclpy
+
         if not rclpy.ok():
             rclpy.init()
     yield
-    if os.environ.get('ROS_VERSION') == '2':
+    if os.environ.get("ROS_VERSION") == "2":
         if rclpy.ok():
             rclpy.shutdown()
+
 
 @pytest.fixture(scope="function")
 def rclpy_node():
@@ -74,14 +78,41 @@ def rclpy_node():
 
 
 def setup_world() -> World:
-    pr2_sem_world = URDFParser.from_file(os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots",
-                                                      "pr2_calibrated_with_ft.urdf")).parse()
+    pr2_sem_world = URDFParser.from_file(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "resources",
+            "robots",
+            "pr2_calibrated_with_ft.urdf",
+        )
+    ).parse()
     apartment_world = URDFParser.from_file(
-        os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "resources",
+            "worlds",
+            "apartment.urdf",
+        )
+    ).parse()
     milk_world = STLParser(
-        os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "milk.stl")).parse()
+        os.path.join(
+            os.path.dirname(__file__), "..", "..", "resources", "objects", "milk.stl"
+        )
+    ).parse()
     cereal_world = STLParser(
-        os.path.join(os.path.dirname(__file__), "..", "..", "resources", "objects", "breakfast_cereal.stl")).parse()
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "resources",
+            "objects",
+            "breakfast_cereal.stl",
+        )
+    ).parse()
     # apartment_world.merge_world(pr2_sem_world)
     apartment_world.merge_world(milk_world)
     apartment_world.merge_world(cereal_world)
@@ -89,16 +120,22 @@ def setup_world() -> World:
     with apartment_world.modify_world():
         pr2_root = pr2_sem_world.get_body_by_name("base_footprint")
         apartment_root = apartment_world.root
-        c_root_bf = OmniDrive.create_with_dofs(parent=apartment_root, child=pr2_root, world=apartment_world)
+        c_root_bf = OmniDrive.create_with_dofs(
+            parent=apartment_root, child=pr2_root, world=apartment_world
+        )
         apartment_world.merge_world(pr2_sem_world, c_root_bf)
         c_root_bf.origin = TransformationMatrix.from_xyz_rpy(1.5, 2.5, 0)
 
-    apartment_world.get_body_by_name("milk.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.37,
-                                                                                                              2, 1.05,
-                                                                                                              reference_frame=apartment_world.root)
+    apartment_world.get_body_by_name("milk.stl").parent_connection.origin = (
+        TransformationMatrix.from_xyz_rpy(
+            2.37, 2, 1.05, reference_frame=apartment_world.root
+        )
+    )
     apartment_world.get_body_by_name(
-        "breakfast_cereal.stl").parent_connection.origin = TransformationMatrix.from_xyz_rpy(2.37, 1.8, 1.05,
-                                                                                             reference_frame=apartment_world.root)
+        "breakfast_cereal.stl"
+    ).parent_connection.origin = TransformationMatrix.from_xyz_rpy(
+        2.37, 1.8, 1.05, reference_frame=apartment_world.root
+    )
     milk_view = Milk(body=apartment_world.get_body_by_name("milk.stl"))
     with apartment_world.modify_world():
         apartment_world.add_semantic_annotation(milk_view)
@@ -112,10 +149,25 @@ class SemanticWorldTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.pr2_sem_world = URDFParser(
-            os.path.join(os.path.dirname(__file__), "..", "..", "resources", "robots",
-                         "pr2_calibrated_with_ft.urdf")).parse()
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "..",
+                "resources",
+                "robots",
+                "pr2_calibrated_with_ft.urdf",
+            )
+        ).parse()
         cls.apartment_world = URDFParser(
-            os.path.join(os.path.dirname(__file__), "..", "..", "resources", "worlds", "apartment.urdf")).parse()
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "..",
+                "resources",
+                "worlds",
+                "apartment.urdf",
+            )
+        ).parse()
         cls.apartment_world.merge_world(cls.pr2_sem_world)
 
 
@@ -162,4 +214,3 @@ class ApartmentWorldTestCase(EmptyWorldTestCase):
     def tearDown(self):
         self.world.state.data = deepcopy(self.original_state_data)
         self.world.notify_state_change()
-

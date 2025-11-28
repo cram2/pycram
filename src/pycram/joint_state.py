@@ -15,6 +15,7 @@ class JointState:
     """
     Represents a named joint state of a robot. For example, the park position of the arms.
     """
+
     name: PrefixedName
     """
     Name of the joint state
@@ -50,24 +51,32 @@ class JointState:
 class ArmState(JointState):
     arm: Arms = None
 
+
 @dataclass
 class GripperState(JointState):
     """
     Represents the state of a gripper, such as open or closed.
     """
+
     gripper: Arms = None
+
 
 @dataclass
 class JointStateManager(metaclass=Singleton):
     """
     Manages joint states for different robot arms and their configurations.
     """
-    joint_states: Dict[Type[AbstractRobot], List[JointState]] = field(default_factory=dict)
+
+    joint_states: Dict[Type[AbstractRobot], List[JointState]] = field(
+        default_factory=dict
+    )
     """
     A list of joint states that can be applied to the robot.
     """
 
-    def get_arm_state(self, arm: Arms, state_type: StaticJointState, robot_view: AbstractRobot) -> Union[ArmState, None]:
+    def get_arm_state(
+        self, arm: Arms, state_type: StaticJointState, robot_view: AbstractRobot
+    ) -> Union[ArmState, None]:
         """
         Retrieves the joint state for a specific arm and state type.
 
@@ -77,11 +86,17 @@ class JointStateManager(metaclass=Singleton):
         :return: The corresponding ArmState or None if not found.
         """
         for joint_state in self.joint_states[robot_view.__class__]:
-            if isinstance(joint_state, ArmState) and joint_state.arm == arm and joint_state.state_type == state_type:
+            if (
+                isinstance(joint_state, ArmState)
+                and joint_state.arm == arm
+                and joint_state.state_type == state_type
+            ):
                 return joint_state
         return None
 
-    def get_gripper_state(self, gripper: Arms, state_type: StaticJointState, robot_view: AbstractRobot) -> Union[GripperState, None]:
+    def get_gripper_state(
+        self, gripper: Arms, state_type: StaticJointState, robot_view: AbstractRobot
+    ) -> Union[GripperState, None]:
         """
         Retrieves the joint state for a specific gripper and state type.
 
@@ -91,11 +106,17 @@ class JointStateManager(metaclass=Singleton):
         :return: The corresponding GripperState or None if not found.
         """
         for joint_state in self.joint_states[robot_view.__class__]:
-            if isinstance(joint_state, GripperState) and joint_state.gripper == gripper and joint_state.state_type == state_type:
+            if (
+                isinstance(joint_state, GripperState)
+                and joint_state.gripper == gripper
+                and joint_state.state_type == state_type
+            ):
                 return joint_state
         return None
 
-    def get_joint_state(self, state: Enum, robot_view: AbstractRobot) -> List[JointState]:
+    def get_joint_state(
+        self, state: Enum, robot_view: AbstractRobot
+    ) -> List[JointState]:
         """
         Retrieves all joint states of a specific type for a given robot.
 
@@ -103,10 +124,15 @@ class JointStateManager(metaclass=Singleton):
         :param robot_view: The robot class for which the joint states are requested.
         :return: A list of JointState objects matching the specified type.
         """
-        return [js for js in self.joint_states.get(robot_view.__class__, []) if js.state_type == state]
+        return [
+            js
+            for js in self.joint_states.get(robot_view.__class__, [])
+            if js.state_type == state
+        ]
 
-
-    def add_joint_states(self, robot: Type[AbstractRobot], joint_states: List[JointState]):
+    def add_joint_states(
+        self, robot: Type[AbstractRobot], joint_states: List[JointState]
+    ):
         """
         Adds joint states for a specific robot type.
 
@@ -116,5 +142,3 @@ class JointStateManager(metaclass=Singleton):
         if robot not in self.joint_states:
             self.joint_states[robot] = []
         self.joint_states[robot].extend(joint_states)
-
-

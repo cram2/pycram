@@ -5,8 +5,11 @@ from datetime import timedelta
 
 from semantic_digital_twin.spatial_types import TransformationMatrix
 from semantic_digital_twin.world_description.geometry import BoundingBox
-from semantic_digital_twin.world_description.world_entity import Region, \
-    SemanticAnnotation, SemanticEnvironmentAnnotation
+from semantic_digital_twin.world_description.world_entity import (
+    Region,
+    SemanticAnnotation,
+    SemanticEnvironmentAnnotation,
+)
 from typing_extensions import Union, Optional, Type, Any, Iterable
 
 from ....perception import PerceptionQuery
@@ -47,31 +50,56 @@ class DetectAction(ActionDescription):
 
     def execute(self) -> None:
         if not self.object_sem_annotation and self.region:
-            raise AttributeError("Either a Semantic Annotation or a Region must be provided.")
-        region_bb = self.region.area.as_bounding_box_collection_in_frame(
-            self.robot_view.root).bounding_box if self.region else BoundingBox(
-            origin=TransformationMatrix(reference_frame=self.robot_view.root), min_x=-1, min_y=-1, min_z=0, max_x=3,
-            max_y=3, max_z=3)
+            raise AttributeError(
+                "Either a Semantic Annotation or a Region must be provided."
+            )
+        region_bb = (
+            self.region.area.as_bounding_box_collection_in_frame(
+                self.robot_view.root
+            ).bounding_box
+            if self.region
+            else BoundingBox(
+                origin=TransformationMatrix(reference_frame=self.robot_view.root),
+                min_x=-1,
+                min_y=-1,
+                min_z=0,
+                max_x=3,
+                max_y=3,
+                max_z=3,
+            )
+        )
         if not self.object_sem_annotation:
             self.object_sem_annotation = SemanticEnvironmentAnnotation
-        query = PerceptionQuery(self.object_sem_annotation, region_bb, self.robot_view, self.world)
+        query = PerceptionQuery(
+            self.object_sem_annotation, region_bb, self.robot_view, self.world
+        )
 
         return query.from_world()
 
-    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+    def validate(
+        self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None
+    ):
         return
         # if not result:
         #     raise PerceptionObjectNotFound(self.object_designator, self.technique, self.region)
 
     @classmethod
-    def description(cls, technique: Union[Iterable[DetectionTechnique], DetectionTechnique],
-                    state: Union[Iterable[DetectionState], DetectionState] = None,
-                    object_sem_annotation: Union[Iterable[Type[SemanticAnnotation]], Type[SemanticAnnotation]] = None,
-                    region: Union[Iterable[Region], Region] = None) -> PartialDesignator[Type[DetectAction]]:
-        return PartialDesignator(DetectAction, technique=technique,
-                                 state=state,
-                                 object_sem_annotation=object_sem_annotation,
-                                 region=region)
+    def description(
+        cls,
+        technique: Union[Iterable[DetectionTechnique], DetectionTechnique],
+        state: Union[Iterable[DetectionState], DetectionState] = None,
+        object_sem_annotation: Union[
+            Iterable[Type[SemanticAnnotation]], Type[SemanticAnnotation]
+        ] = None,
+        region: Union[Iterable[Region], Region] = None,
+    ) -> PartialDesignator[Type[DetectAction]]:
+        return PartialDesignator(
+            DetectAction,
+            technique=technique,
+            state=state,
+            object_sem_annotation=object_sem_annotation,
+            region=region,
+        )
 
 
 DetectActionDescription = DetectAction.description

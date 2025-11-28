@@ -4,10 +4,24 @@ from time import sleep, time
 
 import numpy as np
 import logging
-from typing_extensions import Any, Callable, Optional, Union, Iterable, Dict, TYPE_CHECKING, Tuple
+from typing_extensions import (
+    Any,
+    Callable,
+    Optional,
+    Union,
+    Iterable,
+    Dict,
+    TYPE_CHECKING,
+    Tuple,
+)
 
-from .error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
-    OrientationErrorChecker, SingleValueErrorChecker
+from .error_checkers import (
+    ErrorChecker,
+    PoseErrorChecker,
+    PositionErrorChecker,
+    OrientationErrorChecker,
+    SingleValueErrorChecker,
+)
 from ..datastructures.enums import JointType
 
 if TYPE_CHECKING:
@@ -31,8 +45,12 @@ class GoalValidator:
     The total wait time that was spent waiting for the goal to be achieved.
     """
 
-    def __init__(self, error_checker: ErrorChecker, current_value_getter: OptionalArgCallable,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.8):
+    def __init__(
+        self,
+        error_checker: ErrorChecker,
+        current_value_getter: OptionalArgCallable,
+        acceptable_percentage_of_goal_achieved: Optional[float] = 0.8,
+    ):
         """
         Initialize the goal validator.
 
@@ -44,17 +62,22 @@ class GoalValidator:
         """
         self.error_checker: ErrorChecker = error_checker
         self.current_value_getter: Callable[[Optional[Any]], Any] = current_value_getter
-        self.acceptable_percentage_of_goal_achieved: Optional[float] = acceptable_percentage_of_goal_achieved
+        self.acceptable_percentage_of_goal_achieved: Optional[float] = (
+            acceptable_percentage_of_goal_achieved
+        )
         self.goal_value: Optional[Any] = None
         self.initial_error: Optional[np.ndarray] = None
         self.current_value_getter_input: Optional[Any] = None
 
-    def register_goal_and_wait_until_achieved(self, goal_value: Any,
-                                              current_value_getter_input: Optional[Any] = None,
-                                              initial_value: Optional[Any] = None,
-                                              acceptable_error: Optional[Union[float, Iterable[float]]] = None,
-                                              max_wait_time: Optional[float] = 1,
-                                              time_per_read: Optional[float] = 0.01) -> None:
+    def register_goal_and_wait_until_achieved(
+        self,
+        goal_value: Any,
+        current_value_getter_input: Optional[Any] = None,
+        initial_value: Optional[Any] = None,
+        acceptable_error: Optional[Union[float, Iterable[float]]] = None,
+        max_wait_time: Optional[float] = 1,
+        time_per_read: Optional[float] = 0.01,
+    ) -> None:
         """
         Register the goal value and wait until the target is reached.
 
@@ -65,11 +88,16 @@ class GoalValidator:
         :param max_wait_time: The maximum time to wait.
         :param time_per_read: The time to wait between each read.
         """
-        self.register_goal(goal_value, current_value_getter_input, initial_value, acceptable_error)
+        self.register_goal(
+            goal_value, current_value_getter_input, initial_value, acceptable_error
+        )
         self.wait_until_goal_is_achieved(max_wait_time, time_per_read)
 
-    def wait_until_goal_is_achieved(self, max_wait_time: Optional[timedelta] = timedelta(seconds=2),
-                                    time_per_read: Optional[timedelta] = timedelta(milliseconds=10)) -> None:
+    def wait_until_goal_is_achieved(
+        self,
+        max_wait_time: Optional[timedelta] = timedelta(seconds=2),
+        time_per_read: Optional[timedelta] = timedelta(milliseconds=10),
+    ) -> None:
         """
         Wait until the target is reached.
 
@@ -77,17 +105,21 @@ class GoalValidator:
         :param time_per_read: The time to wait between each read.
         """
         if self.goal_value is None:
-            logger.warning("Goal value is None, skipping waiting for goal to be achieved")
+            logger.warning(
+                "Goal value is None, skipping waiting for goal to be achieved"
+            )
             return  # Skip if goal value is None
         start_time = time()
         current = self.current_value
         while not self.goal_achieved:
             self.total_wait_time = timedelta(seconds=time() - start_time)
             if self.total_wait_time > max_wait_time:
-                msg = f"Failed to achieve goal from initial error {self.initial_error} with" \
-                      f" goal {self.goal_value} within {max_wait_time.total_seconds()}" \
-                      f" seconds, the current value is {current}, error is {self.current_error}, percentage" \
-                      f" of goal achieved is {self.percentage_of_goal_achieved}"
+                msg = (
+                    f"Failed to achieve goal from initial error {self.initial_error} with"
+                    f" goal {self.goal_value} within {max_wait_time.total_seconds()}"
+                    f" seconds, the current value is {current}, error is {self.current_error}, percentage"
+                    f" of goal achieved is {self.percentage_of_goal_achieved}"
+                )
                 if self.raise_error:
                     logger.error(msg)
                     raise TimeoutError(msg)
@@ -130,10 +162,13 @@ class GoalValidator:
         """
         return self.error_checker.tiled_acceptable_error
 
-    def register_goal(self, goal_value: Any,
-                      current_value_getter_input: Optional[Any] = None,
-                      initial_value: Optional[Any] = None,
-                      acceptable_error: Optional[Union[float, Iterable[float]]] = None):
+    def register_goal(
+        self,
+        goal_value: Any,
+        current_value_getter_input: Optional[Any] = None,
+        initial_value: Optional[Any] = None,
+        acceptable_error: Optional[Union[float, Iterable[float]]] = None,
+    ):
         """
         Register the goal value.
 
@@ -142,14 +177,18 @@ class GoalValidator:
         :param initial_value: The initial value.
         :param acceptable_error: The acceptable error.
         """
-        if goal_value is None or (hasattr(goal_value, '__len__') and len(goal_value) == 0):
+        if goal_value is None or (
+            hasattr(goal_value, "__len__") and len(goal_value) == 0
+        ):
             return  # Skip if goal value is None or empty
         self.goal_value = goal_value
         self.current_value_getter_input = current_value_getter_input
         self.update_initial_error(goal_value, initial_value=initial_value)
         self.error_checker.update_acceptable_error(acceptable_error, self.initial_error)
 
-    def update_initial_error(self, goal_value: Any, initial_value: Optional[Any] = None) -> None:
+    def update_initial_error(
+        self, goal_value: Any, initial_value: Optional[Any] = None
+    ) -> None:
         """
         Calculate the initial error.
 
@@ -159,7 +198,9 @@ class GoalValidator:
         if initial_value is None:
             self.initial_error: np.ndarray = self.current_error
         else:
-            self.initial_error: np.ndarray = self.calculate_error(goal_value, initial_value)
+            self.initial_error: np.ndarray = self.calculate_error(
+                goal_value, initial_value
+            )
 
     @property
     def current_value(self) -> Any:
@@ -198,7 +239,9 @@ class GoalValidator:
         The relative (relative to the acceptable error) achieved percentage of goal.
         """
         percent_array = 1 - self.relative_current_error / self.relative_initial_error
-        percent_array_filtered = percent_array[self.relative_initial_error > self._acceptable_error]
+        percent_array_filtered = percent_array[
+            self.relative_initial_error > self._acceptable_error
+        ]
         if len(percent_array_filtered) == 0:
             return 1
         else:
@@ -210,7 +253,9 @@ class GoalValidator:
         The percentage of goal achieved.
         """
         percent_array = 1 - self.current_error / np.maximum(self.initial_error, 1e-3)
-        percent_array_filtered = percent_array[self.initial_error > self._acceptable_error]
+        percent_array_filtered = percent_array[
+            self.initial_error > self._acceptable_error
+        ]
         if len(percent_array_filtered) == 0:
             return 1
         else:
@@ -232,7 +277,9 @@ class GoalValidator:
             self.update_initial_error(self.goal_value)
         return np.maximum(self.initial_error, 1e-3)
 
-    def get_relative_error(self, error: Any, threshold: Optional[float] = 1e-3) -> np.ndarray:
+    def get_relative_error(
+        self, error: Any, threshold: Optional[float] = 1e-3
+    ) -> np.ndarray:
         """
         Get the relative error by comparing the error with the acceptable error and filtering out the errors that are
         less than the threshold.
@@ -251,23 +298,30 @@ class GoalValidator:
         if self.acceptable_percentage_of_goal_achieved is None:
             return self.is_current_error_acceptable
         else:
-            return self.percentage_of_goal_achieved >= self.acceptable_percentage_of_goal_achieved
+            return (
+                self.percentage_of_goal_achieved
+                >= self.acceptable_percentage_of_goal_achieved
+            )
 
     @property
     def is_current_error_acceptable(self) -> bool:
         """
         Check if the error is acceptable.
         """
-        return self.error_checker.is_error_acceptable(self.current_value, self.goal_value)
+        return self.error_checker.is_error_acceptable(
+            self.current_value, self.goal_value
+        )
 
     @property
     def goal_not_achieved_message(self):
         """
         Message to be displayed when the goal is not achieved.
         """
-        return f"Goal not achieved, current value: {self.current_value}, error: {self.current_error}, " \
-               f"percentage of goal achieved: {self.percentage_of_goal_achieved}, " \
-               f"with initial error: {self.initial_error}, goal: {self.goal_value}"
+        return (
+            f"Goal not achieved, current value: {self.current_value}, error: {self.current_error}, "
+            f"percentage of goal achieved: {self.percentage_of_goal_achieved}, "
+            f"with initial error: {self.initial_error}, goal: {self.goal_value}"
+        )
 
 
 class PoseGoalValidator(GoalValidator):
@@ -275,10 +329,16 @@ class PoseGoalValidator(GoalValidator):
     A class to validate the pose goal by tracking the goal achievement progress.
     """
 
-    def __init__(self, current_pose_getter: OptionalArgCallable = None,
-                 acceptable_error: Union[Tuple[float], Iterable[Tuple[float]]] = (1e-3, np.pi / 180),
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.8,
-                 is_iterable: Optional[bool] = False):
+    def __init__(
+        self,
+        current_pose_getter: OptionalArgCallable = None,
+        acceptable_error: Union[Tuple[float], Iterable[Tuple[float]]] = (
+            1e-3,
+            np.pi / 180,
+        ),
+        acceptable_percentage_of_goal_achieved: Optional[float] = 0.8,
+        is_iterable: Optional[bool] = False,
+    ):
         """
         Initialize the pose goal validator.
 
@@ -287,8 +347,11 @@ class PoseGoalValidator(GoalValidator):
         :param acceptable_error: The acceptable error.
         :param acceptable_percentage_of_goal_achieved: The acceptable percentage of goal achieved.
         """
-        super().__init__(PoseErrorChecker(acceptable_error, is_iterable=is_iterable), current_pose_getter,
-                         acceptable_percentage_of_goal_achieved=acceptable_percentage_of_goal_achieved)
+        super().__init__(
+            PoseErrorChecker(acceptable_error, is_iterable=is_iterable),
+            current_pose_getter,
+            acceptable_percentage_of_goal_achieved=acceptable_percentage_of_goal_achieved,
+        )
 
 
 class MultiPoseGoalValidator(PoseGoalValidator):
@@ -296,9 +359,15 @@ class MultiPoseGoalValidator(PoseGoalValidator):
     A class to validate the multi-pose goal by tracking the goal achievement progress.
     """
 
-    def __init__(self, current_poses_getter: OptionalArgCallable = None,
-                 acceptable_error: Union[Tuple[float], Iterable[Tuple[float]]] = (1e-2, 5 * np.pi / 180),
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.8):
+    def __init__(
+        self,
+        current_poses_getter: OptionalArgCallable = None,
+        acceptable_error: Union[Tuple[float], Iterable[Tuple[float]]] = (
+            1e-2,
+            5 * np.pi / 180,
+        ),
+        acceptable_percentage_of_goal_achieved: Optional[float] = 0.8,
+    ):
         """
         Initialize the multi-pose goal validator.
 
@@ -307,8 +376,12 @@ class MultiPoseGoalValidator(PoseGoalValidator):
         :param acceptable_error: The acceptable error.
         :param acceptable_percentage_of_goal_achieved: The acceptable percentage of goal achieved.
         """
-        super().__init__(current_poses_getter, acceptable_error, acceptable_percentage_of_goal_achieved,
-                         is_iterable=True)
+        super().__init__(
+            current_poses_getter,
+            acceptable_error,
+            acceptable_percentage_of_goal_achieved,
+            is_iterable=True,
+        )
 
 
 class PositionGoalValidator(GoalValidator):
@@ -316,10 +389,13 @@ class PositionGoalValidator(GoalValidator):
     A class to validate the position goal by tracking the goal achievement progress.
     """
 
-    def __init__(self, current_position_getter: OptionalArgCallable = None,
-                 acceptable_error: Optional[float] = 1e-3,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.8,
-                 is_iterable: Optional[bool] = False):
+    def __init__(
+        self,
+        current_position_getter: OptionalArgCallable = None,
+        acceptable_error: Optional[float] = 1e-3,
+        acceptable_percentage_of_goal_achieved: Optional[float] = 0.8,
+        is_iterable: Optional[bool] = False,
+    ):
         """
         Initialize the position goal validator.
 
@@ -329,8 +405,11 @@ class PositionGoalValidator(GoalValidator):
         :param acceptable_percentage_of_goal_achieved: The acceptable percentage of goal achieved.
         :param is_iterable: Whether it is a sequence of position vectors.
         """
-        super().__init__(PositionErrorChecker(acceptable_error, is_iterable=is_iterable), current_position_getter,
-                         acceptable_percentage_of_goal_achieved=acceptable_percentage_of_goal_achieved)
+        super().__init__(
+            PositionErrorChecker(acceptable_error, is_iterable=is_iterable),
+            current_position_getter,
+            acceptable_percentage_of_goal_achieved=acceptable_percentage_of_goal_achieved,
+        )
 
 
 class MultiPositionGoalValidator(PositionGoalValidator):
@@ -338,9 +417,12 @@ class MultiPositionGoalValidator(PositionGoalValidator):
     A class to validate the multi-position goal by tracking the goal achievement progress.
     """
 
-    def __init__(self, current_positions_getter: OptionalArgCallable = None,
-                 acceptable_error: Optional[float] = 1e-3,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.8):
+    def __init__(
+        self,
+        current_positions_getter: OptionalArgCallable = None,
+        acceptable_error: Optional[float] = 1e-3,
+        acceptable_percentage_of_goal_achieved: Optional[float] = 0.8,
+    ):
         """
         Initialize the multi-position goal validator.
 
@@ -349,8 +431,12 @@ class MultiPositionGoalValidator(PositionGoalValidator):
         :param acceptable_error: The acceptable error.
         :param acceptable_percentage_of_goal_achieved: The acceptable percentage of goal achieved.
         """
-        super().__init__(current_positions_getter, acceptable_error, acceptable_percentage_of_goal_achieved,
-                         is_iterable=True)
+        super().__init__(
+            current_positions_getter,
+            acceptable_error,
+            acceptable_percentage_of_goal_achieved,
+            is_iterable=True,
+        )
 
 
 class OrientationGoalValidator(GoalValidator):
@@ -358,10 +444,13 @@ class OrientationGoalValidator(GoalValidator):
     A class to validate the orientation goal by tracking the goal achievement progress.
     """
 
-    def __init__(self, current_orientation_getter: OptionalArgCallable = None,
-                 acceptable_error: Optional[float] = np.pi / 180,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.8,
-                 is_iterable: Optional[bool] = False):
+    def __init__(
+        self,
+        current_orientation_getter: OptionalArgCallable = None,
+        acceptable_error: Optional[float] = np.pi / 180,
+        acceptable_percentage_of_goal_achieved: Optional[float] = 0.8,
+        is_iterable: Optional[bool] = False,
+    ):
         """
         Initialize the orientation goal validator.
 
@@ -371,8 +460,11 @@ class OrientationGoalValidator(GoalValidator):
         :param acceptable_percentage_of_goal_achieved: The acceptable percentage of goal achieved.
         :param is_iterable: Whether it is a sequence of quaternions.
         """
-        super().__init__(OrientationErrorChecker(acceptable_error, is_iterable=is_iterable), current_orientation_getter,
-                         acceptable_percentage_of_goal_achieved=acceptable_percentage_of_goal_achieved)
+        super().__init__(
+            OrientationErrorChecker(acceptable_error, is_iterable=is_iterable),
+            current_orientation_getter,
+            acceptable_percentage_of_goal_achieved=acceptable_percentage_of_goal_achieved,
+        )
 
 
 class MultiOrientationGoalValidator(OrientationGoalValidator):
@@ -380,9 +472,12 @@ class MultiOrientationGoalValidator(OrientationGoalValidator):
     A class to validate the multi-orientation goal by tracking the goal achievement progress.
     """
 
-    def __init__(self, current_orientations_getter: OptionalArgCallable = None,
-                 acceptable_error: Optional[float] = np.pi / 180,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.8):
+    def __init__(
+        self,
+        current_orientations_getter: OptionalArgCallable = None,
+        acceptable_error: Optional[float] = np.pi / 180,
+        acceptable_percentage_of_goal_achieved: Optional[float] = 0.8,
+    ):
         """
         Initialize the multi-orientation goal validator.
 
@@ -391,8 +486,12 @@ class MultiOrientationGoalValidator(OrientationGoalValidator):
         :param acceptable_error: The acceptable error.
         :param acceptable_percentage_of_goal_achieved: The acceptable percentage of goal achieved.
         """
-        super().__init__(current_orientations_getter, acceptable_error, acceptable_percentage_of_goal_achieved,
-                         is_iterable=True)
+        super().__init__(
+            current_orientations_getter,
+            acceptable_error,
+            acceptable_percentage_of_goal_achieved,
+            is_iterable=True,
+        )
 
 
 class JointPositionGoalValidator(GoalValidator):
@@ -400,12 +499,15 @@ class JointPositionGoalValidator(GoalValidator):
     A class to validate the joint position goal by tracking the goal achievement progress.
     """
 
-    def __init__(self, current_position_getter: OptionalArgCallable = None,
-                 acceptable_error: Optional[float] = None,
-                 acceptable_revolute_joint_position_error: float = np.pi / 180,
-                 acceptable_prismatic_joint_position_error: float = 1e-3,
-                 acceptable_percentage_of_goal_achieved: float = 0.8,
-                 is_iterable: bool = False):
+    def __init__(
+        self,
+        current_position_getter: OptionalArgCallable = None,
+        acceptable_error: Optional[float] = None,
+        acceptable_revolute_joint_position_error: float = np.pi / 180,
+        acceptable_prismatic_joint_position_error: float = 1e-3,
+        acceptable_percentage_of_goal_achieved: float = 0.8,
+        is_iterable: bool = False,
+    ):
         """
         Initialize the joint position goal validator.
 
@@ -417,15 +519,22 @@ class JointPositionGoalValidator(GoalValidator):
         :param acceptable_percentage_of_goal_achieved: The acceptable percentage of goal achieved.
         :param is_iterable: Whether it is a sequence of joint positions.
         """
-        super().__init__(SingleValueErrorChecker(acceptable_error, is_iterable=is_iterable), current_position_getter,
-                         acceptable_percentage_of_goal_achieved=acceptable_percentage_of_goal_achieved)
+        super().__init__(
+            SingleValueErrorChecker(acceptable_error, is_iterable=is_iterable),
+            current_position_getter,
+            acceptable_percentage_of_goal_achieved=acceptable_percentage_of_goal_achieved,
+        )
         self.acceptable_orientation_error = acceptable_revolute_joint_position_error
         self.acceptable_position_error = acceptable_prismatic_joint_position_error
 
-    def register_goal(self, goal_value: Any, joint_type: JointType,
-                      current_value_getter_input: Optional[Any] = None,
-                      initial_value: Optional[Any] = None,
-                      acceptable_error: Optional[float] = None):
+    def register_goal(
+        self,
+        goal_value: Any,
+        joint_type: JointType,
+        current_value_getter_input: Optional[Any] = None,
+        initial_value: Optional[Any] = None,
+        acceptable_error: Optional[float] = None,
+    ):
         """
         Register the goal value.
 
@@ -436,9 +545,14 @@ class JointPositionGoalValidator(GoalValidator):
         :param acceptable_error: The acceptable error.
         """
         if acceptable_error is None:
-            self.error_checker.acceptable_error = self.acceptable_orientation_error if joint_type == JointType.REVOLUTE \
+            self.error_checker.acceptable_error = (
+                self.acceptable_orientation_error
+                if joint_type == JointType.REVOLUTE
                 else self.acceptable_position_error
-        super().register_goal(goal_value, current_value_getter_input, initial_value, acceptable_error)
+            )
+        super().register_goal(
+            goal_value, current_value_getter_input, initial_value, acceptable_error
+        )
 
 
 class MultiJointPositionGoalValidator(GoalValidator):
@@ -446,11 +560,14 @@ class MultiJointPositionGoalValidator(GoalValidator):
     A class to validate the multi-joint position goal by tracking the goal achievement progress.
     """
 
-    def __init__(self, current_positions_getter: OptionalArgCallable = None,
-                 acceptable_error: Optional[Iterable[float]] = None,
-                 acceptable_revolute_joint_position_error: float = np.pi / 180,
-                 acceptable_prismatic_joint_position_error: float = 1e-3,
-                 acceptable_percentage_of_goal_achieved: float = 0.8):
+    def __init__(
+        self,
+        current_positions_getter: OptionalArgCallable = None,
+        acceptable_error: Optional[Iterable[float]] = None,
+        acceptable_revolute_joint_position_error: float = np.pi / 180,
+        acceptable_prismatic_joint_position_error: float = 1e-3,
+        acceptable_percentage_of_goal_achieved: float = 0.8,
+    ):
         """
         Initialize the multi-joint position goal validator.
 
@@ -461,19 +578,34 @@ class MultiJointPositionGoalValidator(GoalValidator):
         :param acceptable_prismatic_joint_position_error: The acceptable position error.
         :param acceptable_percentage_of_goal_achieved: The acceptable percentage of goal achieved.
         """
-        super().__init__(SingleValueErrorChecker(acceptable_error, is_iterable=True), current_positions_getter,
-                         acceptable_percentage_of_goal_achieved)
+        super().__init__(
+            SingleValueErrorChecker(acceptable_error, is_iterable=True),
+            current_positions_getter,
+            acceptable_percentage_of_goal_achieved,
+        )
         self.acceptable_orientation_error = acceptable_revolute_joint_position_error
         self.acceptable_position_error = acceptable_prismatic_joint_position_error
 
-    def register_goal(self, goal_value: Any, joint_type: Iterable[JointType],
-                      current_value_getter_input: Optional[Any] = None,
-                      initial_value: Optional[Any] = None,
-                      acceptable_error: Optional[Iterable[float]] = None):
+    def register_goal(
+        self,
+        goal_value: Any,
+        joint_type: Iterable[JointType],
+        current_value_getter_input: Optional[Any] = None,
+        initial_value: Optional[Any] = None,
+        acceptable_error: Optional[Iterable[float]] = None,
+    ):
         if acceptable_error is None:
-            self.error_checker.acceptable_error = [self.acceptable_orientation_error if jt == JointType.REVOLUTE
-                                                   else self.acceptable_position_error for jt in joint_type]
-        super().register_goal(goal_value, current_value_getter_input, initial_value, acceptable_error)
+            self.error_checker.acceptable_error = [
+                (
+                    self.acceptable_orientation_error
+                    if jt == JointType.REVOLUTE
+                    else self.acceptable_position_error
+                )
+                for jt in joint_type
+            ]
+        super().register_goal(
+            goal_value, current_value_getter_input, initial_value, acceptable_error
+        )
 
 
 def validate_object_pose(pose_setter_func):
@@ -491,8 +623,11 @@ def validate_object_pose(pose_setter_func):
         if obj is None:
             logger.error("Object should not be None")
             return False
-        pose_goal_validator = PoseGoalValidator(world.get_object_pose, world.conf.get_pose_tolerance(),
-                                                world.conf.acceptable_percentage_of_goal)
+        pose_goal_validator = PoseGoalValidator(
+            world.get_object_pose,
+            world.conf.get_pose_tolerance(),
+            world.conf.acceptable_percentage_of_goal,
+        )
         pose_goal_validator.register_goal(pose, obj)
 
         if not pose_setter_func(world, obj, pose):
@@ -518,9 +653,12 @@ def validate_multiple_object_poses(pose_setter_func):
 
         multi_pose_goal_validator = MultiPoseGoalValidator(
             lambda x: list(world.get_multiple_object_poses(x).values()),
-            world.conf.get_pose_tolerance(), world.conf.acceptable_percentage_of_goal)
-        multi_pose_goal_validator.register_goal(list(object_poses.values()),
-                                                list(object_poses.keys()))
+            world.conf.get_pose_tolerance(),
+            world.conf.acceptable_percentage_of_goal,
+        )
+        multi_pose_goal_validator.register_goal(
+            list(object_poses.values()), list(object_poses.keys())
+        )
 
         if not pose_setter_func(world, object_poses):
             return False
@@ -547,7 +685,8 @@ def validate_joint_position(position_setter_func):
             world.get_joint_position,
             acceptable_revolute_joint_position_error=world.conf.revolute_joint_position_tolerance,
             acceptable_prismatic_joint_position_error=world.conf.prismatic_joint_position_tolerance,
-            acceptable_percentage_of_goal_achieved=world.conf.acceptable_percentage_of_goal)
+            acceptable_percentage_of_goal_achieved=world.conf.acceptable_percentage_of_goal,
+        )
 
         joint_type = joint.type
         joint_position_goal_validator.register_goal(position, joint_type, joint)
@@ -574,13 +713,18 @@ def validate_multiple_joint_positions(position_setter_func):
     def wrapper(world: World, joint_positions: Dict[Joint, float]):
         if not world.current_world.conf.validate_goals:
             return position_setter_func(world, joint_positions)
-        joint_positions_to_validate = {joint: position for joint, position in joint_positions.items()
-                                       if not joint.is_virtual}
+        joint_positions_to_validate = {
+            joint: position
+            for joint, position in joint_positions.items()
+            if not joint.is_virtual
+        }
         if not joint_positions_to_validate:
             return position_setter_func(world, joint_positions)
 
         robot = list(joint_positions.keys())[0].object
-        multi_joint_position_goal_validator = create_multiple_joint_goal_validator(robot, joint_positions_to_validate)
+        multi_joint_position_goal_validator = create_multiple_joint_goal_validator(
+            robot, joint_positions_to_validate
+        )
 
         if not position_setter_func(world, joint_positions):
             return False
@@ -591,9 +735,9 @@ def validate_multiple_joint_positions(position_setter_func):
     return wrapper
 
 
-def create_multiple_joint_goal_validator(robot: Object,
-                                         joint_positions: Union[Dict[Joint, float], Dict[str, float]]) \
-        -> MultiJointPositionGoalValidator:
+def create_multiple_joint_goal_validator(
+    robot: Object, joint_positions: Union[Dict[Joint, float], Dict[str, float]]
+) -> MultiJointPositionGoalValidator:
     """
     Validate the multiple joint goals, and wait until the goal is achieved.
 
@@ -605,11 +749,13 @@ def create_multiple_joint_goal_validator(robot: Object,
         lambda x: list(world.get_multiple_joint_positions(x).values()),
         acceptable_revolute_joint_position_error=world.conf.revolute_joint_position_tolerance,
         acceptable_prismatic_joint_position_error=world.conf.prismatic_joint_position_tolerance,
-        acceptable_percentage_of_goal_achieved=world.conf.acceptable_percentage_of_goal)
+        acceptable_percentage_of_goal_achieved=world.conf.acceptable_percentage_of_goal,
+    )
     joint_objects = list(joint_positions.keys())
     if isinstance(joint_objects[0], str):
         joint_objects = [robot.joints[joint_name] for joint_name in joint_objects]
     joint_types = [joint.type for joint in joint_objects]
-    multi_joint_position_goal_validator.register_goal(list(joint_positions.values()), joint_types,
-                                                      joint_objects)
+    multi_joint_position_goal_validator.register_goal(
+        list(joint_positions.values()), joint_types, joint_objects
+    )
     return multi_joint_position_goal_validator

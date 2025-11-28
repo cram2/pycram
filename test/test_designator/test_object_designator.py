@@ -12,8 +12,12 @@ class TestObjectDesignator(ApartmentWorldTestCase):
 
     def test_eql_designator(self):
         milk_desig = EQLObjectDesignator(
-            an(entity(obj := let(type_=Body, domain=self.world.bodies),
-                        contains( obj.name.name, "milk")))
+            an(
+                entity(
+                    obj := let(type_=Body, domain=self.world.bodies),
+                    contains(obj.name.name, "milk"),
+                )
+            )
         )
         found_milks = list(milk_desig)
         self.assertEqual(1, len(found_milks))
@@ -22,12 +26,12 @@ class TestObjectDesignator(ApartmentWorldTestCase):
 
     def test_named_object(self):
         named_desig = NamedObject("milk.stl")
-        plan = SequentialPlan(self.context,  named_desig)
+        plan = SequentialPlan(self.context, named_desig)
         found_milks = list(named_desig)
         self.assertEqual(1, len(found_milks))
         self.assertEqual("milk.stl", found_milks[0].name.name)
         self.assertEqual(self.world.get_body_by_name("milk.stl"), found_milks[0])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

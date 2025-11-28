@@ -31,6 +31,7 @@ class LookingMotion(BaseMotion):
     """
     Lets the robot look at a point
     """
+
     target: PoseStamped
 
     def perform(self):

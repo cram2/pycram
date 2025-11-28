@@ -8,10 +8,11 @@ from std_msgs.msg import Header
 
 from ..datastructures.enums import FilterConfig
 from ..filter import Butterworth
-from ..ros import  Time
-from ..ros import  create_publisher, create_subscriber
+from ..ros import Time
+from ..ros import create_publisher, create_subscriber
 
 logger = logging.getLogger(__name__)
+
 
 class ForceTorqueSensorSimulated:
     """
@@ -50,7 +51,9 @@ class ForceTorqueSensorSimulated:
         """
         seq = 0
         while not self.kill_event.is_set():
-            joint_ft = self.world.get_joint_reaction_force_torque(self.world.robot, self.fts_joint_idx)
+            joint_ft = self.world.get_joint_reaction_force_torque(
+                self.world.robot, self.fts_joint_idx
+            )
             h = Header()
             h.stamp = Time().now()
             h.frame_id = self.joint_name
@@ -93,11 +96,17 @@ class ForceTorqueSensor:
     :param custom_topic: Declare a custom topic if the default topics do not fit
     """
 
-    filtered = 'filtered'
-    unfiltered = 'unfiltered'
+    filtered = "filtered"
+    unfiltered = "unfiltered"
 
-    def __init__(self, robot_name, filter_config=FilterConfig.butterworth, filter_order=4, custom_topic=None,
-                 debug=False):
+    def __init__(
+        self,
+        robot_name,
+        filter_config=FilterConfig.butterworth,
+        filter_order=4,
+        custom_topic=None,
+        debug=False,
+    ):
         self.robot_name = robot_name
         self.filter_config = filter_config
         self.filter = self._get_filter(order=filter_order)
@@ -122,28 +131,32 @@ class ForceTorqueSensor:
         if self.wrench_topic_name is not None:
             return
 
-        if self.robot_name == 'hsrb':
-            self.wrench_topic_name = '/hsrb/wrist_wrench/compensated'
+        if self.robot_name == "hsrb":
+            self.wrench_topic_name = "/hsrb/wrist_wrench/compensated"
 
-        elif self.robot_name == 'iai_donbot':
-            self.wrench_topic_name = '/kms40_driver/wrench'
+        elif self.robot_name == "iai_donbot":
+            self.wrench_topic_name = "/kms40_driver/wrench"
 
-        elif self.robot_name == 'pr2':
+        elif self.robot_name == "pr2":
             raw_data = "/ft/l_gripper_motor_zeroed"
             raw_data_10_sample_moving_average = "/ft/l_gripper_motor_zeroed_avg"
             derivative_data = "/ft/l_gripper_motor_zeroed_derivative"
-            derivative_data_10_sample_moving_average = "/ft/l_gripper_motor_zeroed_derivative_avg"
+            derivative_data_10_sample_moving_average = (
+                "/ft/l_gripper_motor_zeroed_derivative_avg"
+            )
 
             self.wrench_topic_name = raw_data
         else:
-            logger.error(f'{self.robot_name} is not supported')
+            logger.error(f"{self.robot_name} is not supported")
 
     def _get_rospy_data(self, data_compensated: WrenchStamped):
         if self.init_data:
             self.init_data = False
             self.prev_values = [data_compensated] * (self.order + 1)
-            self.whole_data = {self.unfiltered: [data_compensated],
-                               self.filtered: [data_compensated]}
+            self.whole_data = {
+                self.unfiltered: [data_compensated],
+                self.filtered: [data_compensated],
+            }
 
         filtered_data = self._filter_data(data_compensated)
 
@@ -155,9 +168,10 @@ class ForceTorqueSensor:
 
         if self.debug:
             logger.debug(
-                f'x: {data_compensated.wrench.force.x}, '
-                f'y: {data_compensated.wrench.force.y}, '
-                f'z: {data_compensated.wrench.force.z}')
+                f"x: {data_compensated.wrench.force.x}, "
+                f"y: {data_compensated.wrench.force.y}, "
+                f"z: {data_compensated.wrench.force.z}"
+            )
 
     def _get_filter(self, order=4, cutoff=10, fs=60):
         if self.filter_config == FilterConfig.butterworth:
@@ -166,11 +180,13 @@ class ForceTorqueSensor:
     def _filter_data(self, current_wrench_data: WrenchStamped) -> WrenchStamped:
         filtered_data = WrenchStamped()
         filtered_data.header = current_wrench_data.header
-        for attr in ['x', 'y', 'z']:
-            force_values = [getattr(val.wrench.force, attr) for val in self.prev_values] + [
-                getattr(current_wrench_data.wrench.force, attr)]
-            torque_values = [getattr(val.wrench.torque, attr) for val in self.prev_values] + [
-                getattr(current_wrench_data.wrench.torque, attr)]
+        for attr in ["x", "y", "z"]:
+            force_values = [
+                getattr(val.wrench.force, attr) for val in self.prev_values
+            ] + [getattr(current_wrench_data.wrench.force, attr)]
+            torque_values = [
+                getattr(val.wrench.torque, attr) for val in self.prev_values
+            ] + [getattr(current_wrench_data.wrench.torque, attr)]
 
             filtered_force = self.filter.filter(force_values)[-1]
             filtered_torque = self.filter.filter(torque_values)[-1]
@@ -187,9 +203,9 @@ class ForceTorqueSensor:
         This will automatically be called on setup.
         Only use this if you already unsubscribed before.
         """
-        self.force_torque_subscriber = create_subscriber(self.wrench_topic_name,
-                                                            WrenchStamped,
-                                                            self._get_rospy_data)
+        self.force_torque_subscriber = create_subscriber(
+            self.wrench_topic_name, WrenchStamped, self._get_rospy_data
+        )
 
     def unsubscribe(self):
         """
@@ -228,23 +244,33 @@ class ForceTorqueSensor:
         if dt == 0:
             return WrenchStamped()
 
-        derivative.wrench.force.x = float((after.wrench.force.x - before.wrench.force.x) / dt)
-        derivative.wrench.force.y = float((after.wrench.force.y - before.wrench.force.y) / dt)
-        derivative.wrench.force.z = float((after.wrench.force.z - before.wrench.force.z) / dt)
-        derivative.wrench.torque.x = float((after.wrench.torque.x - before.wrench.torque.x) / dt)
-        derivative.wrench.torque.y = float((after.wrench.torque.y - before.wrench.torque.y) / dt)
-        derivative.wrench.torque.z = float((after.wrench.torque.z - before.wrench.torque.z) / dt)
+        derivative.wrench.force.x = float(
+            (after.wrench.force.x - before.wrench.force.x) / dt
+        )
+        derivative.wrench.force.y = float(
+            (after.wrench.force.y - before.wrench.force.y) / dt
+        )
+        derivative.wrench.force.z = float(
+            (after.wrench.force.z - before.wrench.force.z) / dt
+        )
+        derivative.wrench.torque.x = float(
+            (after.wrench.torque.x - before.wrench.torque.x) / dt
+        )
+        derivative.wrench.torque.y = float(
+            (after.wrench.torque.y - before.wrench.torque.y) / dt
+        )
+        derivative.wrench.torque.z = float(
+            (after.wrench.torque.z - before.wrench.torque.z) / dt
+        )
 
         return derivative
 
     def human_touch_monitoring(self, plan):
         while True:
             logger.info("Now monitoring for human touch")
-            if self.robot_name == 'pr2':
+            if self.robot_name == "pr2":
                 der = self.get_derivative()
                 if abs(der.wrench.torque.x) > 4:
                     plan.root.resume()
                     break
         return False
-
-

@@ -478,7 +478,9 @@ class Plan:
         )
         x = [pose[0] for pose in layout.values()]
         y = [pose[1] for pose in layout.values()]
-        name = [str(hash_nodes[node].designator_type.__name__) for node in layout.keys()]
+        name = [
+            str(hash_nodes[node].designator_type.__name__) for node in layout.keys()
+        ]
         label_dict = {"x": x, "y": y, "names": name}
 
         data_source = ColumnDataSource(data=label_dict)
@@ -825,8 +827,8 @@ class ResolvedActionNode(DesignatorNode):
 
         if manipulated_body:
             self.execution_data.manipulated_body = manipulated_body
-            self.execution_data.manipulated_body_pose_start = PoseStamped.from_spatial_type(
-                manipulated_body.global_pose
+            self.execution_data.manipulated_body_pose_start = (
+                PoseStamped.from_spatial_type(manipulated_body.global_pose)
             )
             self.execution_data.manipulated_body_name = str(manipulated_body.name)
 
@@ -846,8 +848,8 @@ class ResolvedActionNode(DesignatorNode):
         self.execution_data.modifications = new_modifications[::-1]
 
         if manipulated_body:
-            self.execution_data.manipulated_body_pose_end = PoseStamped.from_spatial_type(
-                manipulated_body.global_pose
+            self.execution_data.manipulated_body_pose_end = (
+                PoseStamped.from_spatial_type(manipulated_body.global_pose)
             )
 
         return result

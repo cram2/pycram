@@ -1,7 +1,12 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from semantic_digital_twin.robots.abstract_robot import AbstractRobot, KinematicChain, Manipulator, Neck
+from semantic_digital_twin.robots.abstract_robot import (
+    AbstractRobot,
+    KinematicChain,
+    Manipulator,
+    Neck,
+)
 
 import glob
 import importlib
@@ -15,13 +20,28 @@ from itertools import product
 from scipy.spatial.transform import Rotation as R
 from typing_extensions import List, Dict, Union, Optional, TypeVar
 
-from .datastructures.dataclasses import VirtualMobileBaseJoints, ManipulatorData, Rotations
-from .datastructures.enums import Arms, GripperState, GripperType, JointType, DescriptionType, StaticJointState, \
-    ApproachDirection, VerticalAlignment
+from .datastructures.dataclasses import (
+    VirtualMobileBaseJoints,
+    ManipulatorData,
+    Rotations,
+)
+from .datastructures.enums import (
+    Arms,
+    GripperState,
+    GripperType,
+    JointType,
+    DescriptionType,
+    StaticJointState,
+    ApproachDirection,
+    VerticalAlignment,
+)
 from .datastructures.grasp import GraspDescription
 from .datastructures.pose import PoseStamped
-from .helper import parse_mjcf_actuators, find_multiverse_resources_path, \
-    get_robot_description_path
+from .helper import (
+    parse_mjcf_actuators,
+    find_multiverse_resources_path,
+    get_robot_description_path,
+)
 from .tf_transformations import quaternion_multiply
 from .utils import suppress_stdout_stderr
 
@@ -29,11 +49,13 @@ from urdf_parser_py.urdf import URDF as URDFObject
 
 logger = logging.getLogger(__name__)
 
+
 class RobotDescriptionManager:
     """
     Singleton class to manage multiple robot descriptions. Stores all robot descriptions and loads a robot description
     according to the name of the loaded robot.
     """
+
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -46,7 +68,8 @@ class RobotDescriptionManager:
         """
         Initialize the RobotDescriptionManager, if no instance exists a new instance is created.
         """
-        if self._initialized: return
+        if self._initialized:
+            return
         self.descriptions: Dict[str, RobotDescription] = {}
         self._initialized = True
         self.register_all_descriptions()
@@ -82,11 +105,17 @@ class RobotDescriptionManager:
     @staticmethod
     def register_all_descriptions():
         modules = glob.glob(join(dirname(__file__) + "/robot_descriptions", "*.py"))
-        __all__ = [basename(f)[:-3] for f in modules if isfile(f) and not f.endswith('__init__.py')]
+        __all__ = [
+            basename(f)[:-3]
+            for f in modules
+            if isfile(f) and not f.endswith("__init__.py")
+        ]
 
         for module_name in __all__:
             try:
-                importlib.import_module(f".{module_name}", package="pycram.robot_descriptions")
+                importlib.import_module(
+                    f".{module_name}", package="pycram.robot_descriptions"
+                )
             except Exception as e:
                 print(f"Error loading module {module_name}: {e}")
 
@@ -96,6 +125,7 @@ class RobotDescription:
     Base class of a robot description. Contains all necessary information about a robot, like the URDF, the base link,
     the torso link and joint, the kinematic chains and cameras.
     """
+
     current_robot_description: RobotDescription = None
     """
     The currently loaded robot description.
@@ -151,10 +181,18 @@ class RobotDescription:
     Dictionary of neck links and joints. Keys are yaw, pitch and roll, values are [link, joint]
     """
 
-    def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
-                 virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None,
-                 ignore_joints: Optional[List[str]] = None,
-                 gripper_name: Optional[str] = None):
+    def __init__(
+        self,
+        name: str,
+        base_link: str,
+        torso_link: str,
+        torso_joint: str,
+        urdf_path: str,
+        virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None,
+        mjcf_path: Optional[str] = None,
+        ignore_joints: Optional[List[str]] = None,
+        gripper_name: Optional[str] = None,
+    ):
         """
         Initialize the RobotDescription. The URDF is loaded from the given path and used as basis for the kinematic
         chains.
@@ -178,20 +216,27 @@ class RobotDescription:
             # Since parsing URDF causes a lot of warning messages which can't be deactivated, we suppress them
             self.urdf_object = URDFObject(urdf_path)
         self.joint_types = {joint.name: joint.type for joint in self.urdf_object.joints}
-        self.joint_actuators: Optional[Dict] = parse_mjcf_actuators(mjcf_path) if mjcf_path is not None else None
+        self.joint_actuators: Optional[Dict] = (
+            parse_mjcf_actuators(mjcf_path) if mjcf_path is not None else None
+        )
         self.kinematic_chains: Dict[str, KinematicChainDescription] = {}
         self.cameras: Dict[str, CameraDescription] = {}
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
-        self.virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = virtual_mobile_base_joints
+        self.virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = (
+            virtual_mobile_base_joints
+        )
         self.gripper_name = gripper_name
         self.neck = {}
 
-    def add_arm(self, end_link: str,
-                arm_type: Arms = Arms.RIGHT,
-                arm_name: str = "manipulator",
-                arm_home_values: Optional[Dict[str, float]] = None,
-                arm_start: Optional[str] = None) -> KinematicChainDescription:
+    def add_arm(
+        self,
+        end_link: str,
+        arm_type: Arms = Arms.RIGHT,
+        arm_name: str = "manipulator",
+        arm_home_values: Optional[Dict[str, float]] = None,
+        arm_start: Optional[str] = None,
+    ) -> KinematicChainDescription:
         """
         Creates and adds an arm to the RobotDescription.
 
@@ -202,9 +247,10 @@ class RobotDescription:
         :param arm_start: Start link of the arm
         """
         if arm_start is None:
-            arm_start = self.base_link if self.torso_link == '' else self.torso_link
-        arm = KinematicChainDescription(arm_name, arm_start, end_link,
-                                        self.urdf_object, arm_type=arm_type)
+            arm_start = self.base_link if self.torso_link == "" else self.torso_link
+        arm = KinematicChainDescription(
+            arm_name, arm_start, end_link, self.urdf_object, arm_type=arm_type
+        )
 
         if arm_home_values is not None:
             arm.add_static_joint_states(StaticJointState.Park, arm_home_values)
@@ -266,7 +312,9 @@ class RobotDescription:
             raise ValueError(f"Camera {name} already exists for robot {self.name}")
         self.cameras[name] = camera
 
-    def add_camera(self, name: str, camera_link: str, minimal_height: float, maximal_height: float):
+    def add_camera(
+        self, name: str, camera_link: str, minimal_height: float, maximal_height: float
+    ):
         """
         Creates and adds a CameraDescription object to the RobotDescription. Minimal and maximal height of the camera are
         relevant if the robot has a moveable torso or the camera is mounted on a moveable part of the robot. Otherwise
@@ -278,7 +326,9 @@ class RobotDescription:
         :param maximal_height: Maximal height of the camera
         :return:
         """
-        camera_desc = CameraDescription(name, camera_link, minimal_height, maximal_height)
+        camera_desc = CameraDescription(
+            name, camera_link, minimal_height, maximal_height
+        )
         self.cameras[name] = camera_desc
 
     def get_manipulator_chains(self) -> List[KinematicChainDescription]:
@@ -319,7 +369,9 @@ class RobotDescription:
         """
         return self.cameras[list(self.cameras.keys())[0]]
 
-    def get_static_joint_chain(self, kinematic_chain_name: str, configuration_name: Union[str, Enum]):
+    def get_static_joint_chain(
+        self, kinematic_chain_name: str, configuration_name: Union[str, Enum]
+    ):
         """
         Get the static joint states of a kinematic chain for a specific configuration. When trying to access one of
         the robot arms the function `:func: get_arm_chain` should be used.
@@ -329,15 +381,25 @@ class RobotDescription:
         :return:
         """
         if kinematic_chain_name in self.kinematic_chains.keys():
-            if configuration_name in self.kinematic_chains[kinematic_chain_name].static_joint_states.keys():
-                return self.kinematic_chains[kinematic_chain_name].static_joint_states[configuration_name]
+            if (
+                configuration_name
+                in self.kinematic_chains[
+                    kinematic_chain_name
+                ].static_joint_states.keys()
+            ):
+                return self.kinematic_chains[kinematic_chain_name].static_joint_states[
+                    configuration_name
+                ]
             else:
                 raise ValueError(
                     f"There is no static joint state with the name {configuration_name} for Kinematic chain {kinematic_chain_name} of robot {self.name}. "
-                    f"The following keys are available: {list(self.kinematic_chains[kinematic_chain_name].static_joint_states.keys())}")
+                    f"The following keys are available: {list(self.kinematic_chains[kinematic_chain_name].static_joint_states.keys())}"
+                )
         else:
-            raise ValueError(f"There is no KinematicChain with name {kinematic_chain_name} for robot {self.name}. "
-                             f"The following chains are available: {list(self.kinematic_chains.keys())}")
+            raise ValueError(
+                f"There is no KinematicChain with name {kinematic_chain_name} for robot {self.name}. "
+                f"The following chains are available: {list(self.kinematic_chains.keys())}"
+            )
 
     def get_offset(self, name: str) -> Optional[PoseStamped]:
         """
@@ -373,7 +435,9 @@ class RobotDescription:
             parent_link = self.urdf_object.joint_map[name].parent
             return parent_link
 
-    def get_child(self, name: str, return_multiple_children: bool = False) -> Union[str, List[str]]:
+    def get_child(
+        self, name: str, return_multiple_children: bool = False
+    ) -> Union[str, List[str]]:
         """
         Get the child of a link or joint in the URDF. Always returns the immediate child, for a link this is a joint
         and vice versa. Since a link can have multiple children, the return_multiple_children parameter can be set to
@@ -412,7 +476,9 @@ class RobotDescription:
         chain = self.get_arm_chain(arm)
         return chain.get_tool_frame()
 
-    def get_arm_chain(self, arm: Arms) -> Union[KinematicChainDescription, List[KinematicChainDescription]]:
+    def get_arm_chain(
+        self, arm: Arms
+    ) -> Union[KinematicChainDescription, List[KinematicChainDescription]]:
         """
         Get the kinematic chain of a specific arm. If the arm is set to BOTH, all kinematic chains are returned.
 
@@ -420,14 +486,23 @@ class RobotDescription:
         :return: KinematicChainDescription object of the arm
         """
         if arm == Arms.BOTH:
-            return list(filter(lambda chain: chain.arm_type is not None, self.kinematic_chains.values()))
+            return list(
+                filter(
+                    lambda chain: chain.arm_type is not None,
+                    self.kinematic_chains.values(),
+                )
+            )
         for chain in self.kinematic_chains.values():
             if chain.arm_type == arm:
                 return chain
         raise ValueError(f"There is no Kinematic Chain for the Arm {arm}")
 
-    def set_neck(self, yaw_joint: Optional[str] = None, pitch_joint: Optional[str] = None,
-                 roll_joint: Optional[str] = None):
+    def set_neck(
+        self,
+        yaw_joint: Optional[str] = None,
+        pitch_joint: Optional[str] = None,
+        roll_joint: Optional[str] = None,
+    ):
         """
         Defines the neck configuration of the robot by setting the yaw, pitch, and roll
         joints along with their corresponding links.
@@ -517,8 +592,15 @@ class KinematicChainDescription:
     Dictionary of static joint states for the chain
     """
 
-    def __init__(self, name: str, start_link: str, end_link: str, urdf_object: URDFObject, arm_type: Arms = None,
-                 include_fixed_joints=False):
+    def __init__(
+        self,
+        name: str,
+        start_link: str,
+        end_link: str,
+        urdf_object: URDFObject,
+        arm_type: Arms = None,
+        include_fixed_joints=False,
+    ):
         """
         Initialize the KinematicChainDescription object.
 
@@ -547,25 +629,34 @@ class KinematicChainDescription:
         """
         Initializes the links of the chain by getting the chain from the URDF object.
         """
-        self.link_names = self.urdf_object.get_chain(self.start_link, self.end_link, joints=False)
+        self.link_names = self.urdf_object.get_chain(
+            self.start_link, self.end_link, joints=False
+        )
 
     def _init_joints(self):
         """
         Initializes the joints of the chain by getting the chain from the URDF object.
         """
         joints = self.urdf_object.get_chain(self.start_link, self.end_link, links=False)
-        self.joint_names = list(filter(lambda j: self.urdf_object.joint_map[j].type != JointType.FIXED
-                                                 or self.include_fixed_joints, joints))
+        self.joint_names = list(
+            filter(
+                lambda j: self.urdf_object.joint_map[j].type != JointType.FIXED
+                or self.include_fixed_joints,
+                joints,
+            )
+        )
 
-    def create_end_effector(self,
-                            name: str,
-                            tool_frame,
-                            opened_joint_values: Dict[str, float],
-                            closed_joint_values: Dict[str, float],
-                            relative_dir: Optional[str] = None,
-                            resources_dir: Optional[str] = None,
-                            description_name: str = "gripper",
-                            opening_distance: Optional[float] = None) -> EndEffectorDescription:
+    def create_end_effector(
+        self,
+        name: str,
+        tool_frame,
+        opened_joint_values: Dict[str, float],
+        closed_joint_values: Dict[str, float],
+        relative_dir: Optional[str] = None,
+        resources_dir: Optional[str] = None,
+        description_name: str = "gripper",
+        opening_distance: Optional[float] = None,
+    ) -> EndEffectorDescription:
         """
         Create a gripper end effector description.
 
@@ -582,17 +673,25 @@ class KinematicChainDescription:
         if resources_dir is None:
             resources_dir = find_multiverse_resources_path()
         if relative_dir is not None:
-            gripper_filename = get_robot_description_path(relative_dir, name,
-                                                          description_type=DescriptionType.URDF,
-                                                          resources_dir=resources_dir)
+            gripper_filename = get_robot_description_path(
+                relative_dir,
+                name,
+                description_type=DescriptionType.URDF,
+                resources_dir=resources_dir,
+            )
             gripper_urdf_obj = URDFObject(gripper_filename)
             gripper_object_name = name
         else:
             gripper_urdf_obj = self.urdf_object
             gripper_object_name = None
-        gripper = EndEffectorDescription(description_name, name, tool_frame,
-                                         gripper_urdf_obj, gripper_object_name=gripper_object_name,
-                                         opening_distance=opening_distance)
+        gripper = EndEffectorDescription(
+            description_name,
+            name,
+            tool_frame,
+            gripper_urdf_obj,
+            gripper_object_name=gripper_object_name,
+            opening_distance=opening_distance,
+        )
 
         gripper.add_static_joint_states(GripperState.OPEN, opened_joint_values)
         gripper.add_static_joint_states(GripperState.CLOSE, closed_joint_values)
@@ -684,6 +783,7 @@ class CameraDescription:
     Represents a camera mounted on a robot. Contains all necessary information about the camera, like the link name,
     minimal and maximal height, horizontal and vertical angle and the front facing axis.
     """
+
     name: str
     """
     Name of the camera
@@ -713,8 +813,16 @@ class CameraDescription:
     Axis along which the camera is taking the image
     """
 
-    def __init__(self, name: str, link_name: str, minimal_height: float, maximal_height: float,
-                 horizontal_angle: float = 20, vertical_angle: float = 20, front_facing_axis: List[float] = None):
+    def __init__(
+        self,
+        name: str,
+        link_name: str,
+        minimal_height: float,
+        maximal_height: float,
+        horizontal_angle: float = 20,
+        vertical_angle: float = 20,
+        front_facing_axis: List[float] = None,
+    ):
         """
         Initialize the CameraDescription object.
 
@@ -732,7 +840,9 @@ class CameraDescription:
         self.maximal_height: float = maximal_height
         self.horizontal_angle: float = horizontal_angle
         self.vertical_angle: float = vertical_angle
-        self.front_facing_axis: List[int] = front_facing_axis if front_facing_axis else [0, 0, 1]
+        self.front_facing_axis: List[int] = (
+            front_facing_axis if front_facing_axis else [0, 0, 1]
+        )
 
 
 class EndEffectorDescription:
@@ -740,6 +850,7 @@ class EndEffectorDescription:
     Describes an end effector of robot. Contains all necessary information about the end effector, like the
     base link, the tool frame, the URDF object and the static joint states.
     """
+
     name: str
     """
     Name of the end effector
@@ -794,9 +905,16 @@ class EndEffectorDescription:
     Relative axis along which the end effector is approaching an object
     """
 
-    def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject,
-                 gripper_object_name: Optional[str] = None, opening_distance: Optional[float] = None,
-                 fingers_link_names: Optional[List[str]] = None):
+    def __init__(
+        self,
+        name: str,
+        start_link: str,
+        tool_frame: str,
+        urdf_object: URDFObject,
+        gripper_object_name: Optional[str] = None,
+        opening_distance: Optional[float] = None,
+        fingers_link_names: Optional[List[str]] = None,
+    ):
         """
         Initialize the EndEffectorDescription object.
 
@@ -884,24 +1002,34 @@ class EndEffectorDescription:
             for side, vertical, horizontal in product(
                 Rotations.SIDE_ROTATIONS.keys(),
                 Rotations.VERTICAL_ROTATIONS.keys(),
-                Rotations.HORIZONTAL_ROTATIONS.keys()
+                Rotations.HORIZONTAL_ROTATIONS.keys(),
             )
         ]
 
         for grasp_description in grasp_descriptions:
             rotation = Rotations.SIDE_ROTATIONS[grasp_description.approach_direction]
-            rotation = quaternion_multiply(rotation, Rotations.VERTICAL_ROTATIONS[grasp_description.vertical_alignment])
-            rotation = quaternion_multiply(rotation, Rotations.HORIZONTAL_ROTATIONS[grasp_description.rotate_gripper])
+            rotation = quaternion_multiply(
+                rotation,
+                Rotations.VERTICAL_ROTATIONS[grasp_description.vertical_alignment],
+            )
+            rotation = quaternion_multiply(
+                rotation,
+                Rotations.HORIZONTAL_ROTATIONS[grasp_description.rotate_gripper],
+            )
 
             orientation = quaternion_multiply(rotation, front_orientation)
 
-            norm = math.sqrt(sum(comp ** 2 for comp in orientation))
+            norm = math.sqrt(sum(comp**2 for comp in orientation))
             orientation = [comp / norm for comp in orientation]
 
             self.grasps[grasp_description] = orientation
 
-    def get_grasp(self, approach_direction: ApproachDirection, vertical_alignment: VerticalAlignment = VerticalAlignment.NoAlignment,
-                  rotate_gripper: bool = False) -> List[float]:
+    def get_grasp(
+        self,
+        approach_direction: ApproachDirection,
+        vertical_alignment: VerticalAlignment = VerticalAlignment.NoAlignment,
+        rotate_gripper: bool = False,
+    ) -> List[float]:
         """
         Retrieves the quaternion orientation of the end effector for a specific grasp.
 
@@ -911,7 +1039,9 @@ class EndEffectorDescription:
 
         :return: List of floats representing the quaternion orientation of the end effector
         """
-        grasp_description = GraspDescription(approach_direction, vertical_alignment, rotate_gripper)
+        grasp_description = GraspDescription(
+            approach_direction, vertical_alignment, rotate_gripper
+        )
         return self.grasps[grasp_description]
 
     def set_approach_axis(self, axis: List[float]):
@@ -929,14 +1059,16 @@ class EndEffectorDescription:
         :return: A list representing the approach axis.
         """
         if self.approach_axis is None:
-            front_grasp = self.get_grasp(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
+            front_grasp = self.get_grasp(
+                ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False
+            )
             self.approach_axis = R.from_quat(front_grasp).as_matrix()[0]
         return self.approach_axis
 
 
-def create_manipulator_description(data: ManipulatorData,
-                                   urdf_filename: str,
-                                   mjcf_filename: Optional[str] = None) -> RobotDescription:
+def create_manipulator_description(
+    data: ManipulatorData, urdf_filename: str, mjcf_filename: Optional[str] = None
+) -> RobotDescription:
     """
     Create a robot description from a ManipulatorData object.
 
@@ -945,17 +1077,32 @@ def create_manipulator_description(data: ManipulatorData,
     :param mjcf_filename: Path to the MJCF file of the robot.
     :return: A RobotDescription object
     """
-    gripper_object_name = None if data.gripper_relative_dir is None else data.gripper_name
-    robot_description = RobotDescription(data.name, data.base_link, "", "",
-                                         urdf_filename, mjcf_path=mjcf_filename, gripper_name=gripper_object_name)
+    gripper_object_name = (
+        None if data.gripper_relative_dir is None else data.gripper_name
+    )
+    robot_description = RobotDescription(
+        data.name,
+        data.base_link,
+        "",
+        "",
+        urdf_filename,
+        mjcf_path=mjcf_filename,
+        gripper_name=gripper_object_name,
+    )
 
-    arm = robot_description.add_arm(data.arm_end_link,
-                                    arm_home_values=dict(zip(data.joint_names, data.home_joint_values)))
+    arm = robot_description.add_arm(
+        data.arm_end_link,
+        arm_home_values=dict(zip(data.joint_names, data.home_joint_values)),
+    )
 
-    arm.create_end_effector(data.gripper_name, data.gripper_tool_frame,
-                            dict(zip(data.gripper_joint_names, data.open_joint_values)),
-                            dict(zip(data.gripper_joint_names, data.closed_joint_values)),
-                            relative_dir=data.gripper_relative_dir, opening_distance=data.opening_distance)
+    arm.create_end_effector(
+        data.gripper_name,
+        data.gripper_tool_frame,
+        dict(zip(data.gripper_joint_names, data.open_joint_values)),
+        dict(zip(data.gripper_joint_names, data.closed_joint_values)),
+        relative_dir=data.gripper_relative_dir,
+        opening_distance=data.opening_distance,
+    )
 
     return robot_description
 
@@ -964,7 +1111,9 @@ def create_manipulator_description(data: ManipulatorData,
 class ViewManager:
 
     @staticmethod
-    def get_end_effector_view(arm: Arms, robot_view: AbstractRobot) -> Optional[Manipulator]:
+    def get_end_effector_view(
+        arm: Arms, robot_view: AbstractRobot
+    ) -> Optional[Manipulator]:
 
         for man in robot_view.manipulators:
             if "left" in man.name.name and arm == Arms.LEFT:

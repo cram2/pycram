@@ -8,7 +8,11 @@ from ..ros import Duration, create_action_client
 logger = logging.getLogger(__name__)
 
 try:
-    from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
+    from pr2_controllers_msgs.msg import (
+        Pr2GripperCommandGoal,
+        Pr2GripperCommandAction,
+        Pr2,
+    )
 except ImportError:
     pass
 
@@ -29,9 +33,14 @@ except ImportError:
     Multiverse = type(None)
 
 try:
-    from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
+    from pr2_controllers_msgs.msg import (
+        Pr2GripperCommandGoal,
+        Pr2GripperCommandAction,
+        Pr2,
+    )
 except ImportError:
     logger.debug("Pr2GripperCommandGoal not found")
+
 
 class Pr2MoveGripperMultiverse(ProcessModule):
     """
@@ -58,9 +67,15 @@ class Pr2MoveGripperMultiverse(ProcessModule):
         client = create_action_client(controller_topic, GripperCommandAction)
         logger.info("Waiting for action server")
         client.wait_for_server()
-        client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
+        client.send_goal(
+            goal,
+            active_cb=activate_callback,
+            done_cb=done_callback,
+            feedback_cb=feedback_callback,
+        )
         wait = client.wait_for_result(Duration(5))
         # client.cancel_all_goals()
+
 
 class Pr2MoveGripperReal(ProcessModule):
     """
@@ -82,7 +97,7 @@ class Pr2MoveGripperReal(ProcessModule):
         position_map = {
             GripperState.CLOSE: 0.0,
             GripperState.MEDIUM: 0.015,
-            GripperState.OPEN: 0.1  # or whatever default fits
+            GripperState.OPEN: 0.1,  # or whatever default fits
         }
         goal.command.position = position_map.get(designator.motion, 0.1)
         goal.command.max_effort = -1
@@ -93,8 +108,14 @@ class Pr2MoveGripperReal(ProcessModule):
         client = create_action_client(controller_topic, Pr2GripperCommandAction)
         logger.info("Waiting for action server")
         client.wait_for_server()
-        client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
+        client.send_goal(
+            goal,
+            active_cb=activate_callback,
+            done_cb=done_callback,
+            feedback_cb=feedback_callback,
+        )
         wait = client.wait_for_result()
+
 
 class Pr2Manager(DefaultManager):
     def __init__(self):
@@ -105,11 +126,14 @@ class Pr2Manager(DefaultManager):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            if (isinstance(World.current_world, Multiverse) and
-                    World.current_world.conf.use_multiverse_process_modules):
+            if (
+                isinstance(World.current_world, Multiverse)
+                and World.current_world.conf.use_multiverse_process_modules
+            ):
                 return Pr2MoveGripperMultiverse(self._move_gripper_lock)
             else:
                 return Pr2MoveGripperReal(self._move_gripper_lock)
+
 
 # Initialize the PR2 manager and register it with the process module manager
 Pr2Manager()

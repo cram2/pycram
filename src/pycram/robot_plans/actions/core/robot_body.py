@@ -27,6 +27,7 @@ class MoveTorsoAction(ActionDescription):
     """
     Move the torso of the robot up and down.
     """
+
     torso_state: TorsoState
     """
     The state of the torso that should be set
@@ -36,25 +37,38 @@ class MoveTorsoAction(ActionDescription):
         jm = JointStateManager()
         joint_state = jm.get_joint_state(self.torso_state, self.robot_view)[0]
 
-        SequentialPlan(self.context,
-                       MoveJointsMotion(joint_state.joint_names, joint_state.joint_positions)).perform()
+        SequentialPlan(
+            self.context,
+            MoveJointsMotion(joint_state.joint_names, joint_state.joint_positions),
+        ).perform()
 
-    def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
+    def validate(
+        self,
+        result: Optional[Any] = None,
+        max_wait_time: timedelta = timedelta(seconds=2),
+    ):
         """
         Create a goal validator for the joint positions and wait until the goal is achieved or the timeout is reached.
         """
 
-        joint_positions: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
-                                                                                                  self.torso_state)
-        validator = create_multiple_joint_goal_validator(World.current_world.robot, joint_positions)
-        validator.wait_until_goal_is_achieved(max_wait_time=max_wait_time,
-                                              time_per_read=timedelta(milliseconds=20))
+        joint_positions: dict = (
+            RobotDescription.current_robot_description.get_static_joint_chain(
+                "torso", self.torso_state
+            )
+        )
+        validator = create_multiple_joint_goal_validator(
+            World.current_world.robot, joint_positions
+        )
+        validator.wait_until_goal_is_achieved(
+            max_wait_time=max_wait_time, time_per_read=timedelta(milliseconds=20)
+        )
         if not validator.goal_achieved:
             raise TorsoGoalNotReached(validator)
 
     @classmethod
-    def description(cls, torso_state: Union[Iterable[TorsoState], TorsoState]) -> PartialDesignator[
-        Type[MoveTorsoAction]]:
+    def description(
+        cls, torso_state: Union[Iterable[TorsoState], TorsoState]
+    ) -> PartialDesignator[Type[MoveTorsoAction]]:
         return PartialDesignator(MoveTorsoAction, torso_state=torso_state)
 
 
@@ -77,18 +91,26 @@ class SetGripperAction(ActionDescription):
     def execute(self) -> None:
         arms = [Arms.LEFT, Arms.RIGHT] if self.gripper == Arms.BOTH else [self.gripper]
         for arm in arms:
-            SequentialPlan(self.context, MoveGripperMotion(gripper=arm, motion=self.motion)).perform()
+            SequentialPlan(
+                self.context, MoveGripperMotion(gripper=arm, motion=self.motion)
+            ).perform()
 
-    def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
+    def validate(
+        self,
+        result: Optional[Any] = None,
+        max_wait_time: timedelta = timedelta(seconds=2),
+    ):
         """
         Needs gripper state to be read or perceived.
         """
         pass
 
     @classmethod
-    def description(cls, gripper: Union[Iterable[Arms], Arms],
-                    motion: Union[Iterable[GripperState], GripperState] = None) -> PartialDesignator[
-        Type[SetGripperAction]]:
+    def description(
+        cls,
+        gripper: Union[Iterable[Arms], Arms],
+        motion: Union[Iterable[GripperState], GripperState] = None,
+    ) -> PartialDesignator[Type[SetGripperAction]]:
         return PartialDesignator(SetGripperAction, gripper=gripper, motion=motion)
 
 
@@ -107,8 +129,9 @@ class ParkArmsAction(ActionDescription):
     def execute(self) -> None:
         joint_names, joint_poses = self.get_joint_poses()
 
-        SequentialPlan(self.context,
-                       MoveJointsMotion(names=joint_names, positions=joint_poses)).perform()
+        SequentialPlan(
+            self.context, MoveJointsMotion(names=joint_names, positions=joint_poses)
+        ).perform()
 
     def get_joint_poses(self) -> Tuple[List[str], List[float]]:
         """
@@ -118,19 +141,30 @@ class ParkArmsAction(ActionDescription):
         park_state = jm.get_arm_state(self.arm, StaticJointState.Park, self.robot_view)
         return park_state.joint_names, park_state.joint_positions
 
-    def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
+    def validate(
+        self,
+        result: Optional[Any] = None,
+        max_wait_time: timedelta = timedelta(seconds=2),
+    ):
         """
         Create a goal validator for the joint positions and wait until the goal is achieved or the timeout is reached.
         """
         joint_poses = self.get_joint_poses()
-        validator = create_multiple_joint_goal_validator(World.current_world.robot, joint_poses)
-        validator.wait_until_goal_is_achieved(max_wait_time=max_wait_time,
-                                              time_per_read=timedelta(milliseconds=20))
+        validator = create_multiple_joint_goal_validator(
+            World.current_world.robot, joint_poses
+        )
+        validator.wait_until_goal_is_achieved(
+            max_wait_time=max_wait_time, time_per_read=timedelta(milliseconds=20)
+        )
         if not validator.goal_achieved:
-            raise ConfigurationNotReached(validator, configuration_type=StaticJointState.Park)
+            raise ConfigurationNotReached(
+                validator, configuration_type=StaticJointState.Park
+            )
 
     @classmethod
-    def description(cls, arm: Union[Iterable[Arms], Arms]) -> PartialDesignator[Type[ParkArmsAction]]:
+    def description(
+        cls, arm: Union[Iterable[Arms], Arms]
+    ) -> PartialDesignator[Type[ParkArmsAction]]:
         return PartialDesignator(cls, arm=arm)
 
 
@@ -176,10 +210,18 @@ class CarryAction(ActionDescription):
         tip_normal = self.axis_to_vector3_stamped(self.tip_axis, link=self.tip_link)
         root_normal = self.axis_to_vector3_stamped(self.root_axis, link=self.root_link)
 
-        SequentialPlan(self.context,
-                       MoveJointsMotion(names=list(joint_poses.keys()), positions=list(joint_poses.values()),
-                                        align=self.align, tip_link=self.tip_link, tip_normal=tip_normal,
-                                        root_link=self.root_link, root_normal=root_normal)).perform()
+        SequentialPlan(
+            self.context,
+            MoveJointsMotion(
+                names=list(joint_poses.keys()),
+                positions=list(joint_poses.values()),
+                align=self.align,
+                tip_link=self.tip_link,
+                tip_normal=tip_normal,
+                root_link=self.root_link,
+                root_normal=root_normal,
+            ),
+        ).perform()
 
     def get_joint_poses(self) -> Dict[str, float]:
         """
@@ -190,11 +232,17 @@ class CarryAction(ActionDescription):
         if type(arm_chains) is not list:
             joint_poses = arm_chains.get_static_joint_states(StaticJointState.Park)
         else:
-            for arm_chain in RobotDescription.current_robot_description.get_arm_chain(self.arm):
-                joint_poses.update(arm_chain.get_static_joint_states(StaticJointState.Park))
+            for arm_chain in RobotDescription.current_robot_description.get_arm_chain(
+                self.arm
+            ):
+                joint_poses.update(
+                    arm_chain.get_static_joint_states(StaticJointState.Park)
+                )
         return joint_poses
 
-    def axis_to_vector3_stamped(self, axis: AxisIdentifier, link: str = "base_link") -> Vector3Stamped:
+    def axis_to_vector3_stamped(
+        self, axis: AxisIdentifier, link: str = "base_link"
+    ) -> Vector3Stamped:
         v = {
             AxisIdentifier.X: Vector3Stamped(x=1.0, y=0.0, z=0.0),
             AxisIdentifier.Y: Vector3Stamped(x=0.0, y=1.0, z=0.0),
@@ -204,24 +252,45 @@ class CarryAction(ActionDescription):
         v.header.stamp = datetime.datetime.now()
         return v
 
-    def validate(self, result: Optional[Any] = None, max_wait_time: timedelta = timedelta(seconds=2)):
+    def validate(
+        self,
+        result: Optional[Any] = None,
+        max_wait_time: timedelta = timedelta(seconds=2),
+    ):
         """
         Create a goal validator for the joint positions and wait until the goal is achieved or the timeout is reached.
         """
         joint_poses = self.get_joint_poses()
-        validator = create_multiple_joint_goal_validator(World.current_world.robot, joint_poses)
-        validator.wait_until_goal_is_achieved(max_wait_time=max_wait_time,
-                                              time_per_read=timedelta(milliseconds=20))
+        validator = create_multiple_joint_goal_validator(
+            World.current_world.robot, joint_poses
+        )
+        validator.wait_until_goal_is_achieved(
+            max_wait_time=max_wait_time, time_per_read=timedelta(milliseconds=20)
+        )
         if not validator.goal_achieved:
-            raise ConfigurationNotReached(validator, configuration_type=StaticJointState.Park)
+            raise ConfigurationNotReached(
+                validator, configuration_type=StaticJointState.Park
+            )
 
     @classmethod
-    def description(cls, arm: Union[Iterable[Arms], Arms], align: Optional[bool] = False,
-                    tip_link: Optional[str] = None, tip_axis: Optional[AxisIdentifier] = None,
-                    root_link: Optional[str] = None, root_axis: Optional[AxisIdentifier] = None) \
-            -> PartialDesignator[Type[CarryAction]]:
-        return PartialDesignator(cls, arm=arm, align=align, tip_link=tip_link, tip_axis=tip_axis,
-                                 root_link=root_link, root_axis=root_axis)
+    def description(
+        cls,
+        arm: Union[Iterable[Arms], Arms],
+        align: Optional[bool] = False,
+        tip_link: Optional[str] = None,
+        tip_axis: Optional[AxisIdentifier] = None,
+        root_link: Optional[str] = None,
+        root_axis: Optional[AxisIdentifier] = None,
+    ) -> PartialDesignator[Type[CarryAction]]:
+        return PartialDesignator(
+            cls,
+            arm=arm,
+            align=align,
+            tip_link=tip_link,
+            tip_axis=tip_axis,
+            root_link=root_link,
+            root_axis=root_axis,
+        )
 
 
 MoveTorsoActionDescription = MoveTorsoAction.description

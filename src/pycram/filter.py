@@ -22,14 +22,14 @@ class Butterworth(Filter):
     :param order: The order of the filter (default is 4).
     :param cutoff: The cutoff frequency of the filter (default is 10).
     :param fs: The sampling frequency of the data (default is 60).
-  """
+    """
 
     def __init__(self, order=4, cutoff=10, fs=60):
         self.order = order
         self.cutoff = cutoff
         self.fs = fs
 
-        self.b, self.a = butter(self.order, cutoff / (0.5 * fs), btype='low')
+        self.b, self.a = butter(self.order, cutoff / (0.5 * fs), btype="low")
 
     def filter(self, data: list):
         """

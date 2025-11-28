@@ -2,7 +2,16 @@ from enum import EnumMeta
 from owlready2 import get_ontology, Thing, DataProperty, types
 from random_events.utils import recursive_subclasses
 from random_events.utils import get_full_class_name
-from typing_extensions import Dict, List, Type, Optional, Any, get_origin, Union, get_args
+from typing_extensions import (
+    Dict,
+    List,
+    Type,
+    Optional,
+    Any,
+    get_origin,
+    Union,
+    get_args,
+)
 from dataclasses import dataclass
 from pathlib import Path
 import inspect
@@ -18,6 +27,7 @@ class ParameterDigest:
     """
     Encapsulation of meta information about a parameter.
     """
+
     clazz: Any
     """
     Class of the parameter.
@@ -36,21 +46,31 @@ class ParameterDigest:
     """
 
     @property
-    def docstring_of_clazz(self) -> str: return self.clazz.__doc__
+    def docstring_of_clazz(self) -> str:
+        return self.clazz.__doc__
 
     @property
-    def is_enum(self) -> bool: return self.clazz.__class__ == EnumMeta
+    def is_enum(self) -> bool:
+        return self.clazz.__class__ == EnumMeta
 
     @property
-    def is_optional(self) -> bool: return (type(None) in get_args(self.clazz)) if get_origin(
-        self.clazz) is Union else False
+    def is_optional(self) -> bool:
+        return (
+            (type(None) in get_args(self.clazz))
+            if get_origin(self.clazz) is Union
+            else False
+        )
 
     def get_default_value(self) -> Optional[List[str]]:
         """
         :return: A list containing the string representation of the default value or
             `None` if no default value exists.
         """
-        return None if self.default_value == inspect.Parameter.empty else [str(self.default_value)]
+        return (
+            None
+            if self.default_value == inspect.Parameter.empty
+            else [str(self.default_value)]
+        )
 
 
 class ActionAbstractDigest:
@@ -63,7 +83,9 @@ class ActionAbstractDigest:
         self.full_name: str = get_full_class_name(clazz)
         self.classname: str = clazz.__name__
         self.docstring: str = clazz.__doc__ or ""
-        self.parameters: Optional[List[ParameterDigest]] = self.extract_dataclass_parameter_information()
+        self.parameters: Optional[List[ParameterDigest]] = (
+            self.extract_dataclass_parameter_information()
+        )
 
     def extract_dataclass_parameter_information(self) -> List[ParameterDigest]:
         """
@@ -72,7 +94,7 @@ class ActionAbstractDigest:
         :return: List of parameter information.
         """
 
-        with open(inspect.getfile(self.clazz), 'r') as file:
+        with open(inspect.getfile(self.clazz), "r") as file:
             file_content = file.read()
         tree = ast.parse(file_content)
         class_param_comment: Dict = {}
@@ -85,9 +107,15 @@ class ActionAbstractDigest:
                         class_param_comment[item.target.id] = ""
                     elif isinstance(item, ast.Assign):
                         last_assign = list(map(lambda tar: tar.id, list(item.targets)))
-                        class_param_comment = {**class_param_comment, **{var: "" for var in last_assign}}
+                        class_param_comment = {
+                            **class_param_comment,
+                            **{var: "" for var in last_assign},
+                        }
                     elif last_assign and isinstance(item, ast.Expr):
-                        class_param_comment = {**class_param_comment, **{var: item.value.s for var in last_assign}}
+                        class_param_comment = {
+                            **class_param_comment,
+                            **{var: item.value.s for var in last_assign},
+                        }
                         last_assign = []
 
         parameters_inspection = inspect.signature(self.clazz).parameters
@@ -98,15 +126,23 @@ class ActionAbstractDigest:
                 ParameterDigest(
                     clazz=param_clazz,
                     name=param,
-                    docstring=class_param_comment[param] if param in class_param_comment.keys() else "",
+                    docstring=(
+                        class_param_comment[param]
+                        if param in class_param_comment.keys()
+                        else ""
+                    ),
                     default_value=parameters_inspection[param].default,
-                ))
+                )
+            )
         return parameter_digests
 
 
 def create_ontology_from_performables(
-        output_path: Path = "./performables.owl",
-        abstract_actions_to_parse: Union[List[Type[ActionDescription]], Type[ActionDescription]] = None) -> None:
+    output_path: Path = "./performables.owl",
+    abstract_actions_to_parse: Union[
+        List[Type[ActionDescription]], Type[ActionDescription]
+    ] = None,
+) -> None:
     """
     Create an ontology from the performables.
 
@@ -141,8 +177,14 @@ def create_ontology_from_performables(
             """
             optional_types = [arg for arg in get_args(t) if arg is not type(None)]
             if len(optional_types) > 1:
-                print(f"Optional type has more than one type: {optional_types} (Type: {t})")
-            return get_full_class_name(optional_types[0]) if len(optional_types) >= 1 else None
+                print(
+                    f"Optional type has more than one type: {optional_types} (Type: {t})"
+                )
+            return (
+                get_full_class_name(optional_types[0])
+                if len(optional_types) >= 1
+                else None
+            )
 
         clazz = parameter.clazz
         if parameter.is_optional:
@@ -164,19 +206,27 @@ def create_ontology_from_performables(
     # Definition of created ontology
     output_ontology = get_ontology("performables")
     with output_ontology:
-        class Performable(Thing): pass
 
-        class Parameter(Thing): pass
+        class Performable(Thing):
+            pass
 
-        class Enum(Thing): pass
+        class Parameter(Thing):
+            pass
 
-        class has_parameter(Performable >> Parameter): pass
+        class Enum(Thing):
+            pass
 
-        class has_default_value(DataProperty): pass
+        class has_parameter(Performable >> Parameter):
+            pass
 
-        class has_possible_value(Parameter >> Enum): pass
+        class has_default_value(DataProperty):
+            pass
 
-        class is_optional(Parameter >> bool): pass
+        class has_possible_value(Parameter >> Enum):
+            pass
+
+        class is_optional(Parameter >> bool):
+            pass
 
         class has_description(DataProperty):
             range = [str]
@@ -216,10 +266,13 @@ def create_ontology_from_performables(
             """
             params = []
             for param_digest in clazz_digest.parameters:
-                param_instance = all_param_classes_to_ontological_class[unwrap_classname(param_digest)](
-                    param_digest.name)
+                param_instance = all_param_classes_to_ontological_class[
+                    unwrap_classname(param_digest)
+                ](param_digest.name)
                 param_instance.has_description = [param_digest.docstring]
-                param_instance.is_optional = [True] if param_digest.is_optional else [False]
+                param_instance.is_optional = (
+                    [True] if param_digest.is_optional else [False]
+                )
                 if param_digest.get_default_value():
                     param_instance.has_default_value = param_digest.get_default_value()
                 params.append(param_instance)
@@ -233,8 +286,12 @@ def create_ontology_from_performables(
     all_param_classes_to_ontological_class = {}
     for clazz_digest in classes:
         for param in clazz_digest.parameters:
-            if (classname := unwrap_classname(param)) not in all_param_classes_to_ontological_class.keys():
-                all_param_classes_to_ontological_class[classname] = create_parameter_onto_class(param)
+            if (
+                classname := unwrap_classname(param)
+            ) not in all_param_classes_to_ontological_class.keys():
+                all_param_classes_to_ontological_class[classname] = (
+                    create_parameter_onto_class(param)
+                )
 
     # Creating the ontology instances based on the created ActionAbstractDigests.
     for clazz_digest in classes:

@@ -1,7 +1,14 @@
 from .default_process_modules import *
 from ..process_module import ProcessModuleManager
 from ..robot_description import RobotDescription
-from ..datastructures.enums import Arms, ExecutionType, Grasp, StaticJointState, ApproachDirection, VerticalAlignment
+from ..datastructures.enums import (
+    Arms,
+    ExecutionType,
+    Grasp,
+    StaticJointState,
+    ApproachDirection,
+    VerticalAlignment,
+)
 from .default_process_modules import _move_arm_tcp
 
 
@@ -20,11 +27,15 @@ class DonbotMoveHead(DefaultMoveHead):
         # Rotate the arm to have a nice starting seed for the IK. If we dont do this, we regularly run into
         # self-collision in the simulation. Another solution would be to look into (possibly collision gradient
         # based) collision avoidance for pinocchio.
-        perceive_state = RobotDescription.current_robot_description.get_static_joint_chain("left_arm",
-                                                                                           "looking")
+        perceive_state = (
+            RobotDescription.current_robot_description.get_static_joint_chain(
+                "left_arm", "looking"
+            )
+        )
         robot.set_multiple_joint_positions(perceive_state)
-        pose_in_pan = local_transformer.transform_pose(target,
-                                                        robot.get_link_tf_frame("ur5_shoulder_link")).position_as_list()
+        pose_in_pan = local_transformer.transform_pose(
+            target, robot.get_link_tf_frame("ur5_shoulder_link")
+        ).position_as_list()
         new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
         current_pan = robot.get_joint_position("ur5_shoulder_pan_joint")
         robot.set_joint_position("ur5_shoulder_pan_joint", new_pan + current_pan)
@@ -35,7 +46,9 @@ class DonbotMoveHead(DefaultMoveHead):
         # higher and lower should still work just as well. Could in theory be dynamically set depending on the required
         # camera height to see an object, similar to setting up a torso to be able to see a certain object.
         base_frame_pose: Pose = robot.get_link_pose("ur5_shoulder_link").copy()
-        base_frame_pose = local_transformer.translate_pose_along_local_axis(base_frame_pose, [0, -1, 0], 0.2)
+        base_frame_pose = local_transformer.translate_pose_along_local_axis(
+            base_frame_pose, [0, -1, 0], 0.2
+        )
         base_frame_pose.position.z += 0.6
         base_position = np.array(base_frame_pose.position_as_list())
 
@@ -55,7 +68,9 @@ class DonbotMoveHead(DefaultMoveHead):
         corrected_up_z = np.cross(direction_vector, right_hand_y)
 
         # Construct rotation matrix
-        rotation_matrix = np.column_stack((direction_vector, right_hand_y, corrected_up_z))
+        rotation_matrix = np.column_stack(
+            (direction_vector, right_hand_y, corrected_up_z)
+        )
 
         # Convert to quaternion, and construct pose
         orientation_quat = R.from_matrix(rotation_matrix).as_quat()
@@ -63,9 +78,14 @@ class DonbotMoveHead(DefaultMoveHead):
 
         # Get front grasp of gripper, apply it to the pose, and then roll 180°. This works for donbot, because
         # the camera has the same frame orientation, albeit, rotated by 180° around z (which is the "forward" axis of the frame)
-        side_grasp, top_grasp, horizontal = (ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)
-        grasp_orientation = RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT).end_effector.get_grasp(
-            side_grasp, top_grasp, horizontal)
+        side_grasp, top_grasp, horizontal = (
+            ApproachDirection.FRONT,
+            VerticalAlignment.NoAlignment,
+            False,
+        )
+        grasp_orientation = RobotDescription.current_robot_description.get_arm_chain(
+            Arms.LEFT
+        ).end_effector.get_grasp(side_grasp, top_grasp, horizontal)
         adjusted_pose.rotate_by_quaternion(grasp_orientation)
         adjusted_pose.rotate_by_quaternion([0, 0, 1, 0])
 
@@ -83,5 +103,6 @@ class DonbotManager(DefaultManager):
     def looking(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DonbotMoveHead(self._looking_lock)
+
 
 DonbotManager()

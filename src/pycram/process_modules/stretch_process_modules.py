@@ -6,6 +6,7 @@ from ..robot_description import RobotDescription
 
 logger = logging.getLogger(__name__)
 
+
 class StretchMoveHead(ProcessModule):
     """
     Process module for the simulated Stretch that moves the head such that it looks at the given position
@@ -16,16 +17,25 @@ class StretchMoveHead(ProcessModule):
         robot = World.robot
 
         local_transformer = LocalTransformer()
-        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("link_head_pan"))
+        pose_in_pan = local_transformer.transform_pose(
+            target, robot.get_link_tf_frame("link_head_pan")
+        )
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         current_pan = robot.get_joint_position("joint_head_pan")
 
         robot.set_joint_position("joint_head_pan", new_pan + current_pan)
 
-        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame("link_head_tilt"))
-        new_tilt = np.arctan2(-pose_in_tilt.position.y,
-                              np.sqrt(pose_in_tilt.position.z ** 2 + pose_in_tilt.position.x ** 2)) * -1
+        pose_in_tilt = local_transformer.transform_pose(
+            target, robot.get_link_tf_frame("link_head_tilt")
+        )
+        new_tilt = (
+            np.arctan2(
+                -pose_in_tilt.position.y,
+                np.sqrt(pose_in_tilt.position.z**2 + pose_in_tilt.position.x**2),
+            )
+            * -1
+        )
         current_tilt = robot.get_joint_position("joint_head_tilt")
 
         robot.set_joint_position("joint_head_tilt", new_tilt + current_tilt)
@@ -43,7 +53,11 @@ class StretchNavigationReal(ProcessModule):
 
     def _execute(self, designator: MoveMotion) -> Any:
         logger.debug(f"Sending goal to giskard to Move the robot")
-        giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
+        giskard.achieve_cartesian_goal(
+            designator.target,
+            RobotDescription.current_robot_description.base_link,
+            "map",
+        )
 
 
 class StretchMoveHeadReal(ProcessModule):
@@ -57,7 +71,9 @@ class StretchMoveHeadReal(ProcessModule):
         robot = World.robot
 
         local_transformer = LocalTransformer()
-        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_pan_link"))
+        pose_in_pan = local_transformer.transform_pose(
+            target, robot.get_link_tf_frame("head_pan_link")
+        )
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
 
@@ -67,9 +83,16 @@ class StretchMoveHeadReal(ProcessModule):
         giskard.avoid_all_collisions()
         giskard.achieve_joint_goal({"head_pan_joint": new_pan + current_pan})
 
-        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_tilt_link"))
-        new_tilt = np.arctan2(-pose_in_tilt.position.y,
-                              np.sqrt(pose_in_tilt.position.z ** 2 + pose_in_tilt.position.x ** 2)) * -1
+        pose_in_tilt = local_transformer.transform_pose(
+            target, robot.get_link_tf_frame("head_tilt_link")
+        )
+        new_tilt = (
+            np.arctan2(
+                -pose_in_tilt.position.y,
+                np.sqrt(pose_in_tilt.position.z**2 + pose_in_tilt.position.x**2),
+            )
+            * -1
+        )
         current_tilt = robot.get_joint_position("joint_head_tilt")
         giskard.avoid_all_collisions()
         giskard.achieve_joint_goal({"head_tilt_joint": new_tilt + current_tilt})
@@ -82,12 +105,16 @@ class StretchDetectingReal(ProcessModule):
     """
 
     def _execute(self, designator: DetectingMotion) -> Any:
-        query_result = query(ObjectDesignatorDescription(types=[designator.object_type]))
+        query_result = query(
+            ObjectDesignatorDescription(types=[designator.object_type])
+        )
         # print(query_result)
         obj_pose = query_result["ClusterPoseBBAnnotator"]
 
         lt = LocalTransformer()
-        obj_pose = lt.transform_pose(obj_pose, World.robot.get_link_tf_frame("torso_lift_link"))
+        obj_pose = lt.transform_pose(
+            obj_pose, World.robot.get_link_tf_frame("torso_lift_link")
+        )
         obj_pose.orientation = [0, 0, 0, 1]
         obj_pose.position.x += 0.05
 
@@ -111,8 +138,9 @@ class StretchMoveGripperReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveGripperMotion) -> Any:
-        chain = RobotDescription.current_robot_description.get_arm_chain(designator.gripper).get_static_gripper_state(
-            designator.motion)
+        chain = RobotDescription.current_robot_description.get_arm_chain(
+            designator.gripper
+        ).get_static_gripper_state(designator.motion)
         giskard.achieve_joint_goal(chain)
 
 
@@ -138,5 +166,6 @@ class StretchManager(DefaultManager):
             return DefaultMoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return StretchMoveGripperReal(self._move_gripper_lock)
+
 
 StretchManager()

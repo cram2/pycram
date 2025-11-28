@@ -17,7 +17,6 @@ class TestTFBroadcaster(ApartmentWorldTestCase):
         cls.node = rclpy.create_node("tf_broadcaster_test_node")
         cls.mock_publisher = MagicMock()
 
-
     @classmethod
     def tearDownClass(cls):
         patch.stopall()
@@ -27,7 +26,9 @@ class TestTFBroadcaster(ApartmentWorldTestCase):
         self.assertIsNotNone(broadcaster.tf_publisher)
         self.assertIsNotNone(broadcaster.tf_static_publisher)
         self.assertIsInstance(broadcaster.tf_publisher, rclpy.publisher.Publisher)
-        self.assertIsInstance(broadcaster.tf_static_publisher, rclpy.publisher.Publisher)
+        self.assertIsInstance(
+            broadcaster.tf_static_publisher, rclpy.publisher.Publisher
+        )
         self.assertEqual(broadcaster.interval, 0.1)
         self.assertEqual(broadcaster.odom_frame, "odom")
         self.assertEqual(broadcaster.projection_namespace, ExecutionType.SIMULATED)
@@ -41,9 +42,14 @@ class TestTFBroadcaster(ApartmentWorldTestCase):
         broadcaster.odom_frame = "odom"
 
         mock_pose = MagicMock()
-        with patch("pycram.ros_utils.tf_broadcaster.PoseStamped.from_list", return_value=mock_pose):
+        with patch(
+            "pycram.ros_utils.tf_broadcaster.PoseStamped.from_list",
+            return_value=mock_pose,
+        ):
             broadcaster._update_static_odom()
-            broadcaster._publish_pose.assert_called_once_with("odom", mock_pose, static=True)
+            broadcaster._publish_pose.assert_called_once_with(
+                "odom", mock_pose, static=True
+            )
 
     def test_update_objects_publishes_all_objects_and_links(self):
         broadcaster = TFBroadcaster(self.world, self.node)
@@ -62,7 +68,10 @@ class TestTFBroadcaster(ApartmentWorldTestCase):
         broadcaster._update_objects()
 
         self.assertEqual(broadcaster._publish_pose.call_count, len(self.world.bodies))
-        self.assertEqual(broadcaster._publish_pose.call_args_list[0][0][0], "apartment/apartment_root")
+        self.assertEqual(
+            broadcaster._publish_pose.call_args_list[0][0][0],
+            "apartment/apartment_root",
+        )
 
     def test_update_objects_with_no_objects(self):
         broadcaster = TFBroadcaster(self.world, self.node)
@@ -86,7 +95,9 @@ class TestTFBroadcaster(ApartmentWorldTestCase):
         mock_transform.frame_id = "base"
         mock_pose.to_transform_stamped.return_value = mock_transform
 
-        with patch("pycram.ros_utils.tf_broadcaster.TFMessage", return_value=TFMessage()):
+        with patch(
+            "pycram.ros_utils.tf_broadcaster.TFMessage", return_value=TFMessage()
+        ):
             broadcaster._publish_pose("child", mock_pose, static=False)
 
         broadcaster.tf_publisher.publish.assert_called_once()
@@ -110,5 +121,3 @@ class TestTFBroadcaster(ApartmentWorldTestCase):
         broadcaster._stop_publishing()
         broadcaster.kill_event.set.assert_called_once()
         broadcaster.thread.join.assert_called_once()
-
-

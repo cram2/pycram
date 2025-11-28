@@ -23,6 +23,7 @@ class BelieveObject(ObjectDesignatorDescription):
     Description for Objects that are only believed in.
     """
 
+
 class ResolutionStrategyObject(ObjectDesignatorDescription):
 
     def __init__(self, strategy: Union[Callable, Iterable]):

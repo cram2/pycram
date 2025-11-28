@@ -4,7 +4,15 @@ import enum
 from functools import lru_cache
 
 import typing_extensions
-from typing_extensions import List, Dict, Union, Tuple, TYPE_CHECKING, get_origin, get_args
+from typing_extensions import (
+    List,
+    Dict,
+    Union,
+    Tuple,
+    TYPE_CHECKING,
+    get_origin,
+    get_args,
+)
 
 import logging
 
@@ -48,17 +56,20 @@ class HasParametersMeta(type):
         """
         if not issubclass(target_class, HasParameters):
             raise TypeError(
-                f"{target_class.__name__} must inherit from HasParameters. If you are using a dataclass use both the decorator has_parameters and inherit from HasParameters.")
+                f"{target_class.__name__} must inherit from HasParameters. If you are using a dataclass use both the decorator has_parameters and inherit from HasParameters."
+            )
         # calculate the field
         target_class._parameters = {}
-        if hasattr(target_class, 'define_parameters'):
+        if hasattr(target_class, "define_parameters"):
             try:
                 target_class._parameters = target_class.define_parameters()
                 return
             except NotImplementedError:
                 pass
 
-        for field_name, field_type in typing_extensions.get_type_hints(target_class.__init__).items():
+        for field_name, field_type in typing_extensions.get_type_hints(
+            target_class.__init__
+        ).items():
             if field_name.startswith("_") or field_name == "return":
                 continue
             # in case there are optional arguments
@@ -72,10 +83,14 @@ class HasParametersMeta(type):
                 target_class._parameters[field_name] = type_type
                 continue
             try:
-                if issubclass(field_type, leaf_types) or issubclass(field_type, HasParameters):
+                if issubclass(field_type, leaf_types) or issubclass(
+                    field_type, HasParameters
+                ):
                     target_class._parameters[field_name] = field_type
             except TypeError as e:
-                logger.warning(f"Filed type in {target_class.__name__} is not a leaf type: {field_type}")
+                logger.warning(
+                    f"Filed type in {target_class.__name__} is not a leaf type: {field_type}"
+                )
 
 
 class HasParameters(metaclass=HasParametersMeta):
@@ -137,7 +152,10 @@ class HasParameters(metaclass=HasParametersMeta):
         index = 0
         for field_name, field_type in cls._parameters.items():
             if issubclass(field_type, HasParameters):
-                field_indices[field_name] = (index, index + field_type.number_of_fields())
+                field_indices[field_name] = (
+                    index,
+                    index + field_type.number_of_fields(),
+                )
                 index += field_type.number_of_fields()
             elif issubclass(field_type, leaf_types):
                 field_indices[field_name] = (index, index + 1)

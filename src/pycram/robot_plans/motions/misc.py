@@ -22,4 +22,3 @@ class DetectingMotion(BaseMotion):
         pm_manager = ProcessModuleManager().get_manager(self.robot_view)
         obj_dict = pm_manager.detecting().execute(self)
         return obj_dict
-

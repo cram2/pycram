@@ -16,6 +16,7 @@ class Location(LocationDesignatorDescription.Location):
     """
     A location that is described by a pose, a reachable arm, a torso height and a grasp.
     """
+
     pose: PoseStamped
     reachable_arm: str
     torso_height: float
@@ -41,8 +42,13 @@ class AbstractCostmapLocation(CostmapLocation):
         :return: A list of rectangles that represent the occupied space of the target object.
         """
         # create Occupancy costmap for the target object
-        ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.02,
-                               origin=self.target.pose)
+        ocm = OccupancyCostmap(
+            distance_to_obstacle=0.3,
+            from_ros=False,
+            size=200,
+            resolution=0.02,
+            origin=self.target.pose,
+        )
         return ocm.partitioning_rectangles()
 
 
@@ -52,7 +58,13 @@ class DatabaseCostmapLocation(AbstractCostmapLocation):
     The database has to have a schema that is compatible with the pycram.orm package.
     """
 
-    def __init__(self, target, session: sqlalchemy.orm.Session = None, reachable_for=None, reachable_arm=None):
+    def __init__(
+        self,
+        target,
+        session: sqlalchemy.orm.Session = None,
+        reachable_for=None,
+        reachable_arm=None,
+    ):
         """
         Create a Database Costmap
 
@@ -67,8 +79,17 @@ class DatabaseCostmapLocation(AbstractCostmapLocation):
 
     @staticmethod
     def select_statement(view: Type[PickUpWithContextView]) -> Select:
-        return (select(view.arm, view.grasp, view.torso_height, view.relative_x, view.relative_y, view.quaternion_x,
-                       view.quaternion_y, view.quaternion_z, view.quaternion_w).distinct())
+        return select(
+            view.arm,
+            view.grasp,
+            view.torso_height,
+            view.relative_x,
+            view.relative_y,
+            view.quaternion_x,
+            view.quaternion_y,
+            view.quaternion_z,
+            view.quaternion_w,
+        ).distinct()
 
     def create_query_from_occupancy_costmap(self) -> Select:
         """
@@ -82,17 +103,23 @@ class DatabaseCostmapLocation(AbstractCostmapLocation):
         query = self.select_statement(view)
 
         # constraint query to correct object type and successful task status
-        query = query.where(view.obj_type == self.target.obj_type).where(view.status == "SUCCEEDED")
+        query = query.where(view.obj_type == self.target.obj_type).where(
+            view.status == "SUCCEEDED"
+        )
 
         filters = []
 
         # for every rectangle
         for rectangle in self.create_occupancy_rectangles():
             # add sql filter
-            filters.append(sqlalchemy.and_(view.relative_x >= rectangle.x_lower,
-                                           view.relative_x < rectangle.x_upper,
-                                           view.relative_y >= rectangle.y_lower,
-                                           view.relative_y < rectangle.y_upper))
+            filters.append(
+                sqlalchemy.and_(
+                    view.relative_x >= rectangle.x_lower,
+                    view.relative_x < rectangle.x_upper,
+                    view.relative_y >= rectangle.y_lower,
+                    view.relative_y < rectangle.y_upper,
+                )
+            )
 
         return query.where(sqlalchemy.or_(*filters))
 
@@ -108,7 +135,12 @@ class DatabaseCostmapLocation(AbstractCostmapLocation):
         position = [target_x + sample[3], target_y + sample[4], 0]
         orientation = [sample[5], sample[6], sample[7], sample[8]]
 
-        result = Location(PoseStamped(position, orientation), sample.arm, sample.torso_height, sample.grasp)
+        result = Location(
+            PoseStamped(position, orientation),
+            sample.arm,
+            sample.torso_height,
+            sample.grasp,
+        )
         return result
 
     def __iter__(self) -> Location:

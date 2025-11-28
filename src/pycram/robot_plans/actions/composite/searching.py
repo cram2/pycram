@@ -37,12 +37,20 @@ class SearchAction(ActionDescription):
     """
 
     def execute(self) -> None:
-        SequentialPlan(self.context,
-                       NavigateActionDescription(
-                           CostmapLocation(target=self.target_location, visible_for=self.robot_view))).perform()
+        SequentialPlan(
+            self.context,
+            NavigateActionDescription(
+                CostmapLocation(
+                    target=self.target_location, visible_for=self.robot_view
+                )
+            ),
+        ).perform()
 
         target_base = PoseStamped.from_spatial_type(
-            self.world.transform(self.target_location.to_spatial_type(), self.world.root))
+            self.world.transform(
+                self.target_location.to_spatial_type(), self.world.root
+            )
+        )
 
         target_base_left = deepcopy(target_base)
         target_base_left.pose.position.y -= 0.5
@@ -50,35 +58,55 @@ class SearchAction(ActionDescription):
         target_base_right = deepcopy(target_base)
         target_base_right.pose.position.y += 0.5
 
-        plan = TryInOrderPlan(self.context,
-                              SequentialPlan(
-                                  self.context,
-                                  LookAtActionDescription(target_base_left),
-                                  DetectActionDescription(DetectionTechnique.TYPES,
-                                                          object_sem_annotation=self.object_sem_annotation)),
-                              SequentialPlan(
-                                  self.context,
-                                  LookAtActionDescription(target_base_right),
-                                  DetectActionDescription(DetectionTechnique.TYPES,
-                                                          object_sem_annotation=self.object_sem_annotation)),
-                              SequentialPlan(self.context,
-                                             LookAtActionDescription(target_base),
-                                             DetectActionDescription(DetectionTechnique.TYPES,
-                                                        object_sem_annotation=self.object_sem_annotation)))
+        plan = TryInOrderPlan(
+            self.context,
+            SequentialPlan(
+                self.context,
+                LookAtActionDescription(target_base_left),
+                DetectActionDescription(
+                    DetectionTechnique.TYPES,
+                    object_sem_annotation=self.object_sem_annotation,
+                ),
+            ),
+            SequentialPlan(
+                self.context,
+                LookAtActionDescription(target_base_right),
+                DetectActionDescription(
+                    DetectionTechnique.TYPES,
+                    object_sem_annotation=self.object_sem_annotation,
+                ),
+            ),
+            SequentialPlan(
+                self.context,
+                LookAtActionDescription(target_base),
+                DetectActionDescription(
+                    DetectionTechnique.TYPES,
+                    object_sem_annotation=self.object_sem_annotation,
+                ),
+            ),
+        )
 
         obj = plan.perform()
         if obj is not None:
             return obj
-        raise PerceptionObjectNotFound(self.object_sem_annotation, DetectionTechnique.TYPES, self.target_location)
+        raise PerceptionObjectNotFound(
+            self.object_sem_annotation, DetectionTechnique.TYPES, self.target_location
+        )
 
-    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+    def validate(
+        self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None
+    ):
         pass
 
     @classmethod
-    def description(cls, target_location: Union[Iterable[PoseStamped], PoseStamped],
-                    object_type: Union[Iterable[SemanticAnnotation], SemanticAnnotation]) -> PartialDesignator[
-        Type[SearchAction]]:
-        return PartialDesignator(SearchAction, target_location=target_location, object_type=object_type)
+    def description(
+        cls,
+        target_location: Union[Iterable[PoseStamped], PoseStamped],
+        object_type: Union[Iterable[SemanticAnnotation], SemanticAnnotation],
+    ) -> PartialDesignator[Type[SearchAction]]:
+        return PartialDesignator(
+            SearchAction, target_location=target_location, object_type=object_type
+        )
 
 
 SearchActionDescription = SearchAction.description

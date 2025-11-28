@@ -39,14 +39,20 @@ class OpenAction(ActionDescription):
     """
 
     def execute(self) -> None:
-        SequentialPlan(self.context,
-                       GraspingActionDescription(self.object_designator, self.arm,
-                                                                               self.grasping_prepose_distance),
-                       OpeningMotion(self.object_designator, self.arm),
+        SequentialPlan(
+            self.context,
+            GraspingActionDescription(
+                self.object_designator, self.arm, self.grasping_prepose_distance
+            ),
+            OpeningMotion(self.object_designator, self.arm),
+            MoveGripperMotion(
+                GripperState.OPEN, self.arm, allow_gripper_collision=True
+            ),
+        ).perform()
 
-                       MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True)).perform()
-
-    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+    def validate(
+        self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None
+    ):
         """
         Check if the container is opened, this assumes that the container state can be read accurately from the
         real world.
@@ -54,14 +60,20 @@ class OpenAction(ActionDescription):
         validate_close_open(self.object_designator, self.arm, OpenAction)
 
     @classmethod
-    def description(cls, object_designator_description: Union[Iterable[Body], Body],
-                    arm: Union[Iterable[Arms], Arms] = None,
-                    grasping_prepose_distance: Union[
-                        Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
-            PartialDesignator[Type[OpenAction]]:
-        return PartialDesignator(OpenAction, object_designator=object_designator_description,
-                                 arm=arm,
-                                 grasping_prepose_distance=grasping_prepose_distance)
+    def description(
+        cls,
+        object_designator_description: Union[Iterable[Body], Body],
+        arm: Union[Iterable[Arms], Arms] = None,
+        grasping_prepose_distance: Union[
+            Iterable[float], float
+        ] = ActionConfig.grasping_prepose_distance,
+    ) -> PartialDesignator[Type[OpenAction]]:
+        return PartialDesignator(
+            OpenAction,
+            object_designator=object_designator_description,
+            arm=arm,
+            grasping_prepose_distance=grasping_prepose_distance,
+        )
 
 
 @has_parameters
@@ -85,12 +97,20 @@ class CloseAction(ActionDescription):
     """
 
     def execute(self) -> None:
-        SequentialPlan(self.context,
-                       GraspingActionDescription(self.object_designator, self.arm, self.grasping_prepose_distance),
-                       ClosingMotion(self.object_designator, self.arm),
-                       MoveGripperMotion(GripperState.OPEN, self.arm, allow_gripper_collision=True)).perform()
+        SequentialPlan(
+            self.context,
+            GraspingActionDescription(
+                self.object_designator, self.arm, self.grasping_prepose_distance
+            ),
+            ClosingMotion(self.object_designator, self.arm),
+            MoveGripperMotion(
+                GripperState.OPEN, self.arm, allow_gripper_collision=True
+            ),
+        ).perform()
 
-    def validate(self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None):
+    def validate(
+        self, result: Optional[Any] = None, max_wait_time: Optional[timedelta] = None
+    ):
         """
         Check if the container is closed, this assumes that the container state can be read accurately from the
         real world.
@@ -98,18 +118,27 @@ class CloseAction(ActionDescription):
         validate_close_open(self.object_designator, self.arm, CloseAction)
 
     @classmethod
-    def description(cls, object_designator_description: Union[Iterable[Body], Body],
-                    arm: Union[Iterable[Arms], Arms] = None,
-                    grasping_prepose_distance: Union[
-                        Iterable[float], float] = ActionConfig.grasping_prepose_distance) -> \
-            PartialDesignator[Type[CloseAction]]:
-        return PartialDesignator(CloseAction, object_designator=object_designator_description,
-                                 arm=arm,
-                                 grasping_prepose_distance=grasping_prepose_distance)
+    def description(
+        cls,
+        object_designator_description: Union[Iterable[Body], Body],
+        arm: Union[Iterable[Arms], Arms] = None,
+        grasping_prepose_distance: Union[
+            Iterable[float], float
+        ] = ActionConfig.grasping_prepose_distance,
+    ) -> PartialDesignator[Type[CloseAction]]:
+        return PartialDesignator(
+            CloseAction,
+            object_designator=object_designator_description,
+            arm=arm,
+            grasping_prepose_distance=grasping_prepose_distance,
+        )
 
 
-def validate_close_open(object_designator: Body, arm: Arms,
-                        action_type: Union[Type[OpenAction], Type[CloseAction]]):
+def validate_close_open(
+    object_designator: Body,
+    arm: Arms,
+    action_type: Union[Type[OpenAction], Type[CloseAction]],
+):
     """
     Validates if the container is opened or closed by checking the joint position of the container.
 
@@ -132,14 +161,16 @@ def validate_close_open(object_designator: Body, arm: Arms,
 
 def check_opened(joint_obj: Connection, obj_part: Body, arm: Arms, upper_limit: float):
     if joint_obj.position < upper_limit - joint_obj.acceptable_error:
-        raise ContainerManipulationError(World.robot, [arm], obj_part, joint_obj,
-                                         ContainerManipulationType.Opening)
+        raise ContainerManipulationError(
+            World.robot, [arm], obj_part, joint_obj, ContainerManipulationType.Opening
+        )
 
 
 def check_closed(joint_obj: Connection, obj_part: Body, arm: Arms, lower_limit: float):
     if joint_obj.position > lower_limit + joint_obj.acceptable_error:
-        raise ContainerManipulationError(World.robot, [arm], obj_part, joint_obj,
-                                         ContainerManipulationType.Closing)
+        raise ContainerManipulationError(
+            World.robot, [arm], obj_part, joint_obj, ContainerManipulationType.Closing
+        )
 
 
 OpenActionDescription = OpenAction.description

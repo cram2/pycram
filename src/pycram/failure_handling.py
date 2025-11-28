@@ -9,13 +9,12 @@ from typing_extensions import Union, Any, List, Optional, Type, Callable, TYPE_C
 from .language import MonitorNode, MonitorPlan
 from .plan import Plan
 from .process_module import ProcessModule
+
 if TYPE_CHECKING:
     from .robot_plans import BaseMotion
 
 
-
-
-class FailureHandling():
+class FailureHandling:
     """
     Base class for failure handling mechanisms in automated systems or workflows.
 
@@ -52,6 +51,7 @@ class Retry(FailureHandling):
     This class represents a specific failure handling strategy where the system
     attempts to retry a failed action a certain number of times before giving up.
     """
+
     max_tries: int
     """
     The maximum number of attempts to retry the action.
@@ -95,6 +95,7 @@ class RetryMonitor(FailureHandling):
     This class represents a specific failure handling strategy that allows us to retry a demo that is
     being monitored, in case that monitoring condition is triggered.
     """
+
     max_tries: int
     """
     The maximum number of attempts to retry the action.
@@ -120,12 +121,17 @@ class RetryMonitor(FailureHandling):
         else:
             if not isinstance(recovery, dict):
                 raise ValueError(
-                    "Recovery must be a dictionary with exception types as keys and Language instances as values.")
+                    "Recovery must be a dictionary with exception types as keys and Language instances as values."
+                )
             for key, value in recovery.items():
                 if not issubclass(key, BaseException):
-                    raise TypeError("Keys in the recovery dictionary must be exception types.")
+                    raise TypeError(
+                        "Keys in the recovery dictionary must be exception types."
+                    )
                 if not callable(value):
-                    raise TypeError("Values in the recovery dictionary must be instances of the Language class.")
+                    raise TypeError(
+                        "Values in the recovery dictionary must be instances of the Language class."
+                    )
             self.recovery = recovery
 
     def perform(self) -> List[Any]:
@@ -192,14 +198,20 @@ def try_action(action: Any, failure_type: Type[Exception], max_tries: int = 3):
     :param failure_type: The type of exception to catch.
     :param max_tries: The maximum number of attempts to retry the action. Defaults to 3.
     """
-    return try_method(method=lambda: action.perform(),
-                      failure_type=failure_type,
-                      max_tries=max_tries,
-                      name="action")
+    return try_method(
+        method=lambda: action.perform(),
+        failure_type=failure_type,
+        max_tries=max_tries,
+        name="action",
+    )
 
 
-def try_motion(motion: ProcessModule, motion_designator_instance: BaseMotion,
-               failure_type: Type[Exception], max_tries: int = 3):
+def try_motion(
+    motion: ProcessModule,
+    motion_designator_instance: BaseMotion,
+    failure_type: Type[Exception],
+    max_tries: int = 3,
+):
     """
     A generic function to retry a motion a certain number of times before giving up, with a specific exception.
 
@@ -208,13 +220,20 @@ def try_motion(motion: ProcessModule, motion_designator_instance: BaseMotion,
     :param failure_type: The type of exception to catch.
     :param max_tries: The maximum number of attempts to retry the motion.
     """
-    return try_method(method=lambda: motion.execute(motion_designator_instance),
-                      failure_type=failure_type,
-                      max_tries=max_tries,
-                      name="motion")
+    return try_method(
+        method=lambda: motion.execute(motion_designator_instance),
+        failure_type=failure_type,
+        max_tries=max_tries,
+        name="motion",
+    )
 
 
-def try_method(method: Callable, failure_type: Type[Exception], max_tries: int = 3, name: str = "method"):
+def try_method(
+    method: Callable,
+    failure_type: Type[Exception],
+    max_tries: int = 3,
+    name: str = "method",
+):
     """
     A generic function to retry a method a certain number of times before giving up, with a specific exception.
 
@@ -230,7 +249,9 @@ def try_method(method: Callable, failure_type: Type[Exception], max_tries: int =
             result = method()
             break
         except failure_type as e:
-            logging.debug(f"Caught exception {e} during {name} execution {method}. Retrying...")
+            logging.debug(
+                f"Caught exception {e} during {name} execution {method}. Retrying..."
+            )
             current_retry += 1
     if current_retry == max_tries:
         logging.error(f"Failed to execute {name} {method} after {max_tries} retries.")
