@@ -235,18 +235,22 @@ class PlanEdge:
     parent: PlanNode
     child: PlanNode
 
+
 @dataclass
 class PlanMapping(AlternativeMapping[Plan]):
     nodes: List[PlanNode]
-    # edges: List[PlanEdge]
+    edges: List[PlanEdge]
 
     @classmethod
     def create_instance(cls, obj: Plan):
-        #return cls(nodes=[to_dao(node) for node in obj.nodes], edges=[PlanEdge(to_dao(edge[0]), to_dao(edge[1])) for edge in obj.edges])
-        return cls(nodes=[to_dao(node) for node in obj.nodes])#, edges=[PlanEdge(parent=parent, child=child) for parent, child in obj.edges])
+        return cls(
+            nodes=obj.nodes,
+            edges=[PlanEdge(edge[0], edge[1]) for edge in obj.edges],
+        )
 
     def create_from_dao(self) -> T:
         raise NotImplementedError()
+
 
 #
 # @dataclass
