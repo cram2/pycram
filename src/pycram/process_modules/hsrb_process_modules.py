@@ -67,7 +67,7 @@ class HSRBMoveArmJointsReal(ProcessModule):
     Moves the arm joints of the real HSRB to the given configuration while avoiding all collisions via giskard
     """
 
-    def _execute(self, designator: MoveArmJointsMotion) -> Any:
+    def _execute(self, designator: "MoveArmJointsMotion") -> Any:
         joint_goals = {}
         if designator.left_arm_poses:
             joint_goals.update(designator.left_arm_poses)
