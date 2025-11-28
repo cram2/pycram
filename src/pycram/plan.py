@@ -822,7 +822,7 @@ class ResolvedActionNode(DesignatorNode):
         return [m.designator_ref.motion_chart for m in motion_desigs]
 
     def construct_msc(self):
-        self.motion_executor = MotionExecutor(self.collect_motions(), self.plan.world)
+        self.motion_executor = MotionExecutor(self.collect_motions(), self.plan.world, ros_node=self.plan.context.ros_node)
         self.motion_executor.construct_msc()
 
     def execute_msc(self):

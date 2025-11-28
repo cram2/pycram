@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import logging
 from dataclasses import dataclass
 
 from typing_extensions import Any, Optional, Callable
@@ -9,6 +10,7 @@ from ...designator import DesignatorDescription
 from ...failures import PlanFailure
 from ...has_parameters import HasParameters
 
+logger = logging.getLogger(__name__)
 
 @dataclass
 class ActionDescription(DesignatorDescription, HasParameters):
@@ -23,6 +25,8 @@ class ActionDescription(DesignatorDescription, HasParameters):
         """
         Full execution: pre-check, plan, post-check
         """
+        logger.info(f"Performing action {self.__class__.__name__}")
+
         for pre_cb in self._pre_perform_callbacks:
             pre_cb(self)
 

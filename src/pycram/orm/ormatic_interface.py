@@ -964,7 +964,7 @@ class LookAtActionDAO(
 
 
 class LookingMotionDAO(
-    BaseMotionDAO, DataAccessObject[pycram.robot_plans.motions.navigation.LookingMotion]
+    BaseMotionDAO, DataAccessObject[pycram.robot_plans.motions.robot_body.LookingMotion]
 ):
 
     __tablename__ = "LookingMotionDAO"
@@ -3042,28 +3042,6 @@ class TryInOrderPlanDAO(
     }
 
 
-class Vector3DAO(Base, DataAccessObject[pycram.datastructures.pose.Vector3]):
-
-    __tablename__ = "Vector3DAO"
-
-    database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
-    )
-
-    x: Mapped[builtins.float] = mapped_column(use_existing_column=True)
-    y: Mapped[builtins.float] = mapped_column(use_existing_column=True)
-    z: Mapped[builtins.float] = mapped_column(use_existing_column=True)
-
-    polymorphic_type: Mapped[str] = mapped_column(
-        String(255), nullable=False, use_existing_column=True
-    )
-
-    __mapper_args__ = {
-        "polymorphic_on": "polymorphic_type",
-        "polymorphic_identity": "Vector3DAO",
-    }
-
-
 class Vector3MappingDAO(
     Base, DataAccessObject[semantic_digital_twin.orm.model.Vector3Mapping]
 ):
@@ -3090,6 +3068,28 @@ class Vector3MappingDAO(
         foreign_keys=[reference_frame_id],
         post_update=True,
     )
+
+
+class Vector3DAO(Base, DataAccessObject[pycram.datastructures.pose.Vector3]):
+
+    __tablename__ = "Vector3DAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        Integer, primary_key=True, use_existing_column=True
+    )
+
+    x: Mapped[builtins.float] = mapped_column(use_existing_column=True)
+    y: Mapped[builtins.float] = mapped_column(use_existing_column=True)
+    z: Mapped[builtins.float] = mapped_column(use_existing_column=True)
+
+    polymorphic_type: Mapped[str] = mapped_column(
+        String(255), nullable=False, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_on": "polymorphic_type",
+        "polymorphic_identity": "Vector3DAO",
+    }
 
 
 class Vector3StampedDAO(
@@ -6149,7 +6149,7 @@ class ManipulatorDAO(
         use_existing_column=True,
     )
     front_facing_axis_id: Mapped[int] = mapped_column(
-        ForeignKey("Vector3DAO.database_id", use_alter=True),
+        ForeignKey("Vector3MappingDAO.database_id", use_alter=True),
         nullable=True,
         use_existing_column=True,
     )
@@ -6163,8 +6163,8 @@ class ManipulatorDAO(
         foreign_keys=[front_facing_orientation_id],
         post_update=True,
     )
-    front_facing_axis: Mapped[Vector3DAO] = relationship(
-        "Vector3DAO",
+    front_facing_axis: Mapped[Vector3MappingDAO] = relationship(
+        "Vector3MappingDAO",
         uselist=False,
         foreign_keys=[front_facing_axis_id],
         post_update=True,
@@ -6246,7 +6246,7 @@ class CameraDAO(
     maximal_height: Mapped[builtins.float] = mapped_column(use_existing_column=True)
 
     forward_facing_axis_id: Mapped[int] = mapped_column(
-        ForeignKey("Vector3DAO.database_id", use_alter=True),
+        ForeignKey("Vector3MappingDAO.database_id", use_alter=True),
         nullable=True,
         use_existing_column=True,
     )
@@ -6256,8 +6256,8 @@ class CameraDAO(
         use_existing_column=True,
     )
 
-    forward_facing_axis: Mapped[Vector3DAO] = relationship(
-        "Vector3DAO",
+    forward_facing_axis: Mapped[Vector3MappingDAO] = relationship(
+        "Vector3MappingDAO",
         uselist=False,
         foreign_keys=[forward_facing_axis_id],
         post_update=True,

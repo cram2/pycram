@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Any
 
 from giskardpy.executor import Executor
 from giskardpy.motion_statechart.goals.templates import Sequence
@@ -30,6 +30,11 @@ class MotionExecutor:
     Giskard's motion state chart that is created from the motions.
     """
 
+    ros_node: Any = field(kw_only=True, default=None)
+    """
+    ROS node that should be used for communication. Only relevant for real execution.
+    """
+
 
     def construct_msc(self):
         self.motion_state_chart = MotionStatechart()
@@ -57,4 +62,7 @@ class MotionExecutor:
         executor.tick_until_end(timeout=2000)
 
     def _execute_for_real(self):
-        pass
+        from giskardpy_ros.python_interface.python_interface import GiskardWrapper
+
+        giskard = GiskardWrapper(self.ros_node)
+        giskard.execute(self.motion_state_chart)

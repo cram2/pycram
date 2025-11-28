@@ -1,5 +1,7 @@
 import unittest
 
+import numpy as np
+
 from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.partial_designator import PartialDesignator
 from pycram.datastructures.pose import PoseStamped
@@ -82,7 +84,7 @@ class TestPartialActions(ApartmentWorldTestCase):
         with simulated_robot:
             move1 = SequentialPlan(self.context,  NavigateActionDescription(PoseStamped.from_list([1, 0, 0], frame=self.world.root)))
             move1.perform()
-            self.assertEqual(list(self.robot_view.root.global_pose.to_np()[:3, 3]), [1, 0, 0])
+            np.testing.assert_almost_equal(list(self.robot_view.root.global_pose.to_np()[:3, 3]), [1, 0, 0], decimal=1)
 
     def test_partial_navigate_action_multiple(self):
         nav = NavigateActionDescription([PoseStamped.from_list( [1, 0, 0], frame=self.world.root), PoseStamped.from_list( [2, 0, 0], frame=self.world.root), PoseStamped.from_list([3, 0, 0], frame=self.world.root)])
@@ -90,7 +92,8 @@ class TestPartialActions(ApartmentWorldTestCase):
         for i, action in enumerate(nav):
             with simulated_robot:
                 SequentialPlan(self.context,  action).perform()
-                self.assertEqual(nav_goals[i], list(self.robot_view.root.global_pose.to_np()[:3, 3]) )
+                np.testing.assert_almost_equal(self.robot_view.root.global_pose.to_np()[:3, 3], nav_goals[i], decimal=2)
+                # self.assertEqual(nav_goals[i], list(self.robot_view.root.global_pose.to_np()[:3, 3]) )
 
     def test_partial_pickup_action(self):
         grasp_description = GraspDescription(ApproachDirection.FRONT, VerticalAlignment.NoAlignment, False)

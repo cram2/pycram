@@ -41,6 +41,11 @@ class Context:
     The plan of which this plan/designator is a part of
     """
 
+    ros_node: Optional[Any] = field(default=None)
+    """
+    A ROS node that should be used for communication in this plan
+    """
+
     @classmethod
     def from_world(cls, world: World, super_plan: Optional[Plan] = None):
         """
